@@ -113,86 +113,74 @@ export function RedeemNoteForm({
     }
 
     return (
-        <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.375rem', backgroundColor: '#f9fafb' }}>
-            <div style={{ padding: '1rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Redeem Note</h2>
-                <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>
-                    Redeem a signed note to transfer funds from the signer to a recipient
-                </p>
+        <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', backgroundColor: '#ffffff', padding: '1.5rem' }}>
+
+            {/* Amount Display - Center Stage */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+                <label style={{ display: 'block', fontSize: '1rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>You are redeeming:</label>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#16a34a', lineHeight: '1.2' }}>
+                    {redeemAmount || '0'}
+                    <span style={{ fontSize: '1.5rem', fontWeight: 'normal', marginLeft: '0.25rem' }}>WELSH</span>
+                </div>
             </div>
-            <div style={{ padding: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {/* Signature Display */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>Signature</label>
-                        <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', padding: '0.5rem 0.75rem', backgroundColor: '#e5e7eb', borderRadius: '0.375rem', border: '1px solid #d1d5db', overflowWrap: 'break-word' }}>
-                            {redeemSignature || '-'}
-                        </div>
-                    </div>
 
-                    {/* Amount Display */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>Amount</label>
-                        <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', padding: '0.5rem 0.75rem', backgroundColor: '#e5e7eb', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}>
-                            {redeemAmount || '-'}
-                        </div>
+            {/* Section: Recipient & Action */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Recipient input + Button */}
+                <div>
+                    <label htmlFor="redeem-to" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#1f2937', marginBottom: '0.25rem' }}>To Wallet Address:</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                            id="redeem-to"
+                            style={{ flexGrow: 1, borderRadius: '0.375rem', border: '1px solid #d1d5db', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}
+                            placeholder="Enter address or use yours"
+                            value={redeemTo}
+                            onChange={handleRecipientChange}
+                        />
+                        {/* Use My Address Button (Style refined slightly) */}
+                        <button
+                            type="button"
+                            onClick={handleUseMyAddress}
+                            disabled={!connectedWalletAddress}
+                            style={{
+                                padding: '0.5rem 0.75rem',
+                                backgroundColor: connectedWalletAddress ? '#f3f4f6' : '#e5e7eb', // Lightest Grays
+                                color: connectedWalletAddress ? '#374151' : '#9ca3af',
+                                borderRadius: '0.375rem',
+                                cursor: connectedWalletAddress ? 'pointer' : 'not-allowed',
+                                whiteSpace: 'nowrap',
+                                border: '1px solid #d1d5db',
+                                fontSize: '0.875rem',
+                                flexShrink: 0 // Prevent button from shrinking
+                            }}
+                        >
+                            Use Mine
+                        </button>
                     </div>
+                </div>
 
-                    {/* UUID Display */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>UUID</label>
-                        <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', padding: '0.5rem 0.75rem', backgroundColor: '#e5e7eb', borderRadius: '0.375rem', border: '1px solid #d1d5db' }}>
-                            {redeemUuid || '-'}
-                        </div>
-                    </div>
-
-                    {/* Recipient input + Button (remains editable) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label htmlFor="redeem-to" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>Recipient</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                id="redeem-to"
-                                style={{ flexGrow: 1, borderRadius: '0.375rem', border: '1px solid #d1d5db', padding: '0.5rem 0.75rem' }}
-                                placeholder="Enter recipient address"
-                                value={redeemTo}
-                                onChange={handleRecipientChange}
-                            />
-                            <button
-                                type="button"
-                                onClick={handleUseMyAddress}
-                                disabled={!connectedWalletAddress}
-                                style={{
-                                    padding: '0.5rem 0.75rem',
-                                    backgroundColor: connectedWalletAddress ? '#d1d5db' : '#e5e7eb',
-                                    color: connectedWalletAddress ? '#1f2937' : '#9ca3af',
-                                    borderRadius: '0.375rem',
-                                    cursor: connectedWalletAddress ? 'pointer' : 'not-allowed',
-                                    whiteSpace: 'nowrap'
-                                }}
-                            >
-                                Use My Address
-                            </button>
-                        </div>
-                    </div>
-
-                    {!isWalletConnected && (
-                        <p style={{ color: '#ea580c', textAlign: 'center', marginTop: '0.5rem' }}>
+                {/* Conditional message or Redeem button */}
+                {!isWalletConnected ? (
+                    <div style={{ backgroundColor: '#fffbeb', padding: '0.75rem 1rem', borderRadius: '0.375rem', border: '1px solid #fef3c7', textAlign: 'center' }}>
+                        <p style={{ color: '#b45309', fontSize: '0.875rem', fontWeight: '500' }}>
                             Please connect your wallet to redeem.
                         </p>
-                    )}
-
+                    </div>
+                ) : (
                     <button
                         style={{
-                            padding: '0.5rem 1rem',
-                            backgroundColor: isWalletConnected && redeemSignature && redeemAmount && redeemUuid && redeemTo ? '#2563eb' : '#9ca3af',
+                            padding: '0.75rem 1.5rem',
+                            backgroundColor: redeemTo ? '#16a34a' : '#9ca3af', // Green when active, Gray when disabled
                             color: 'white',
                             borderRadius: '0.375rem',
                             width: '100%',
-                            cursor: isWalletConnected && redeemSignature && redeemAmount && redeemUuid && redeemTo ? 'pointer' : 'not-allowed',
+                            cursor: redeemTo ? 'pointer' : 'not-allowed',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            opacity: isWalletConnected && redeemSignature && redeemAmount && redeemUuid && redeemTo ? 1 : 0.7
+                            opacity: redeemTo ? 1 : 0.7,
+                            fontSize: '1rem',
+                            fontWeight: '600'
                         }}
                         onClick={handleRedeemNote}
                         disabled={isRedeeming || !isWalletConnected || !redeemSignature || !redeemAmount || !redeemUuid || !redeemTo}
@@ -200,25 +188,35 @@ export function RedeemNoteForm({
                         {isRedeeming ? (
                             <>
                                 <Loader2 style={{ marginRight: '0.5rem', height: '1rem', width: '1rem', animation: 'spin 1s linear infinite' }} />
-                                Redeeming...
+                                Processing Redemption...
                             </>
                         ) : (
-                            "Redeem Note"
+                            '✨ Redeem Now!'
                         )}
                     </button>
+                )}
 
-                    {redeemResult && (
-                        <div className="result-box">
-                            <p className="result-box-title">Result</p>
-                            <div className="result-box-content">
-                                <span className={redeemResult.type === 'success' ? "text-primary" : "text-destructive"}>
-                                    {redeemResult.message}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                {/* Result box */}
+                {redeemResult && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '0.375rem', border: `1px solid ${redeemResult.type === 'success' ? '#bbf7d0' : '#fecaca'}`, backgroundColor: `${redeemResult.type === 'success' ? '#f0fdf4' : '#fef2f2'}` }}>
+                        <p style={{ fontWeight: '600', color: `${redeemResult.type === 'success' ? '#15803d' : '#b91c1c'}` }}>{redeemResult.type === 'success' ? 'Success!' : 'Error:'}</p>
+                        <p style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: `${redeemResult.type === 'success' ? '#166534' : '#991b1b'}` }}>
+                            {redeemResult.message}
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Technical Details (Minimized) */}
+            <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}>
+                <details style={{ cursor: 'pointer' }}>
+                    <summary style={{ fontSize: '0.75rem', color: '#6b7280', display: 'inline-block' }}>Show Technical Details</summary>
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#4b5563', fontFamily: 'monospace', overflowWrap: 'break-word', textAlign: 'left', backgroundColor: '#f9fafb', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                        <p><strong>Signature:</strong> {redeemSignature || '-'}</p>
+                        <p style={{ marginTop: '0.25rem' }}><strong>UUID:</strong> {redeemUuid || '-'}</p>
+                    </div>
+                </details>
             </div>
         </div>
-    )
+    );
 } 

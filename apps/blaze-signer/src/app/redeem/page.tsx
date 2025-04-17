@@ -8,6 +8,9 @@ import type { AddressEntry } from "@stacks/connect/dist/types/methods"; // Impor
 import { connect } from "@stacks/connect"; // Import connect function
 import { Button } from "@repo/ui/button"; // Assuming Button component exists
 import { Loader2 } from "@repo/ui/icons"; // Assuming Loader icon exists
+// Imports needed for status check
+import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType } from '@stacks/transactions';
+import { BLAZE_SIGNER_CONTRACT, parseContract } from '../../constants/contracts';
 
 // Mock function/values - Replace with your actual implementation
 const getNetwork = () => STACKS_MAINNET; // Use the correct instance
@@ -23,6 +26,11 @@ function RedeemPageContent() {
     const [isConnected, setIsConnected] = useState(false);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [isConnecting, setIsConnecting] = useState(false);
+
+    // State for UUID status check
+    const [isCheckingStatus, setIsCheckingStatus] = useState(true); // Start checking immediately
+    const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
+    const [checkError, setCheckError] = useState<string | null>(null);
 
     const network = getNetwork();
 
@@ -50,6 +58,45 @@ function RedeemPageContent() {
             setWalletAddress(null);
         }
     }, []);
+
+    // Check UUID status on component mount or when UUID changes
+    useEffect(() => {
+        if (uuid) {
+            const checkUuidStatus = async () => {
+                setIsCheckingStatus(true);
+                setIsAlreadySubmitted(false);
+                setCheckError(null);
+                try {
+                    const [blazeAddress, blazeContractName] = parseContract(BLAZE_SIGNER_CONTRACT);
+                    const result = await fetchCallReadOnlyFunction({
+                        contractAddress: blazeAddress,
+                        contractName: blazeContractName,
+                        functionName: 'is-uuid-submitted',
+                        functionArgs: [stringAsciiCV(uuid)],
+                        network: STACKS_MAINNET,
+                        senderAddress: blazeAddress,
+                    });
+
+                    if ('type' in result && result.type === ClarityType.BoolTrue) {
+                        setIsAlreadySubmitted(true);
+                    } else if ('type' in result && result.type === ClarityType.BoolFalse) {
+                        setIsAlreadySubmitted(false);
+                    } else {
+                        throw new Error("Unexpected result type checking UUID status");
+                    }
+                } catch (err: any) {
+                    console.error("Error checking UUID status on redeem page:", err);
+                    setCheckError(`Failed to check note status: ${err.message || String(err)}`);
+                } finally {
+                    setIsCheckingStatus(false);
+                }
+            };
+            checkUuidStatus();
+        } else {
+            // If no UUID, stop checking (or handle as invalid link)
+            setIsCheckingStatus(false);
+        }
+    }, [uuid]); // Re-run if UUID changes
 
     // Function to handle wallet connection
     const handleConnectWallet = async () => {
@@ -80,15 +127,49 @@ function RedeemPageContent() {
 
     // Basic validation for URL params
     if (!sig || !amount || !uuid) {
-        return <p style={{ maxWidth: '640px', margin: '0 auto', padding: '1rem', color: '#dc2626' }}>Missing required signature, amount, or UUID parameters in the URL.</p>;
+        return (
+            <div style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#dc2626' }}>Invalid Link</h2>
+                <p style={{ color: '#b91c1c', marginTop: '0.5rem' }}>The redemption link is missing required details (signature, amount, or UUID).</p>
+            </div>
+        );
+    }
+
+    // Show Loading state for status check
+    if (isCheckingStatus) {
+        return (
+            <div style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center' }}>
+                <Loader2 style={{ margin: '0 auto', height: '2rem', width: '2rem', animation: 'spin 1s linear infinite' }} />
+                <p style={{ marginTop: '1rem', color: '#4b5563' }}>Checking note status...</p>
+            </div>
+        );
+    }
+
+    // Show Error state for status check
+    if (checkError) {
+        return (
+            <div style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#dc2626' }}>Status Check Failed</h2>
+                <p style={{ color: '#b91c1c', marginTop: '0.5rem' }}>{checkError}</p>
+            </div>
+        );
+    }
+
+    // Show Already Submitted state
+    if (isAlreadySubmitted) {
+        return (
+            <div style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center', border: '1px solid #fed7aa', backgroundColor: '#fffbeb', borderRadius: '0.5rem' }}>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#c2410c', marginBottom: '1rem' }}>Note Already Redeemed</h1>
+                <p style={{ color: '#9a3412' }}>This note (identified by its UUID) has already been submitted and redeemed. It cannot be redeemed again.</p>
+                {/* Optional: Add a link to the verify page or transaction explorer */}
+            </div>
+        );
     }
 
     return (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '1rem' }}>
-            <h1 style={{ fontSize: '1.5rem', lineHeight: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>Redeem Note</h1>
-
-            {/* Always render the wallet status/button container */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <div style={{ maxWidth: '640px', margin: '2rem auto', padding: '1rem' }}>
+            {/* Wallet Connector Area - Top Right */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
                 {isConnected && walletAddress ? (
                     // Connected State UI
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -119,7 +200,13 @@ function RedeemPageContent() {
                 )}
             </div>
 
-            {/* Always render the form */}
+            {/* Main Content Area */}
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e3a8a' }}>Collect Your WELSH!</h1>
+                <p style={{ color: '#4b5563', fontSize: '1.1rem' }}>You're about to redeem a signed note to receive WELSH tokens.</p>
+            </div>
+
+            {/* Pass data to the form component */}
             <RedeemNoteForm
                 network={network}
                 isWalletConnected={isConnected}
@@ -129,6 +216,7 @@ function RedeemPageContent() {
                 initialUuid={uuid}
                 initialRecipient={walletAddress || ""}
                 connectedWalletAddress={walletAddress}
+            // Add className or style prop if RedeemNoteForm supports it for outer container styling
             />
         </div>
     );

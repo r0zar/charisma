@@ -60,32 +60,53 @@ function VerifyContent() {
         }
     }, [uuid]); // Dependency array only includes uuid
 
+    // Function to determine status color and text
+    const getStatusStyle = () => {
+        if (isLoading) return { color: '#6b7280', text: 'Checking...' };
+        if (error) return { color: '#dc2626', text: 'Error' };
+        if (verificationStatus === 'Submitted') return { color: '#ea580c', text: 'Already Submitted' };
+        if (verificationStatus === 'Not Submitted') return { color: '#16a34a', text: 'Ready to Submit' };
+        return { color: '#6b7280', text: 'Waiting for details...' };
+    };
+
+    const statusInfo = getStatusStyle();
+
     return (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '1rem' }}>
-            <h1 style={{ fontSize: '1.5rem', lineHeight: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>Verify UUID Status</h1>
+        <div style={{ maxWidth: '500px', margin: '2rem auto', padding: '1rem' }}>
+            {/* Optional: Wallet connector area could go here if needed */}
+
+            <h1 style={{ fontSize: '1.75rem', lineHeight: '2rem', fontWeight: 'bold', marginBottom: '2rem', textAlign: 'center' }}>Note Status Check</h1>
+
             {uuid ? (
-                <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.375rem', padding: '1rem', backgroundColor: '#f9fafb' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {originalContractParam && <p><strong>Original Target Contract:</strong> {originalContractParam}</p>} {/* Display original contract */}
-                        <p><strong>UUID:</strong> {uuid}</p>
-                        <p><strong>Checking Contract:</strong> {BLAZE_SIGNER_CONTRACT}</p> {/* Show which contract is being checked */}
-                        <div style={{ marginTop: '1rem' }}>
-                            <h3 style={{ fontWeight: '600' }}>Status:</h3>
-                            {isLoading && <p>Checking status...</p>}
-                            {error && <p style={{ color: '#dc2626' }}>Error: {error}</p>}
-                            {verificationStatus && (
-                                <p style={{
-                                    fontWeight: 'bold',
-                                    color: verificationStatus === 'Submitted' ? '#ea580c' : '#16a34a'
-                                }}>
-                                    {verificationStatus}
-                                </p>
-                            )}
-                        </div>
+                <div style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', backgroundColor: '#ffffff', padding: '1.5rem', textAlign: 'center' }}>
+                    {/* Main Status Display */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '1.5rem', fontWeight: '600', color: statusInfo.color }}>
+                            {statusInfo.text}
+                        </p>
+                        {error && <p style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: '#b91c1c' }}>{error}</p>}
+                        {verificationStatus === 'Submitted' && <p style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: '#9a3412' }}>This note (UUID) has already been processed.</p>}
+                        {verificationStatus === 'Not Submitted' && <p style={{ marginTop: '0.25rem', fontSize: '0.875rem', color: '#166534' }}>This note (UUID) has not been submitted yet.</p>}
+                    </div>
+
+                    {/* Technical Details (Minimized) */}
+                    <div style={{ paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                        <details style={{ cursor: 'pointer' }}>
+                            <summary style={{ fontSize: '0.75rem', color: '#6b7280', display: 'inline-block' }}>Show Technical Details</summary>
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#4b5563', fontFamily: 'monospace', overflowWrap: 'break-word', textAlign: 'left', backgroundColor: '#f9fafb', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                                {originalContractParam && <p><strong>Original Target Contract:</strong> {originalContractParam}</p>}
+                                <p style={{ marginTop: '0.25rem' }}><strong>Checking Contract:</strong> {BLAZE_SIGNER_CONTRACT}</p>
+                                <p style={{ marginTop: '0.25rem' }}><strong>UUID:</strong> {uuid}</p>
+                            </div>
+                        </details>
                     </div>
                 </div>
             ) : (
-                <p style={{ color: '#dc2626' }}>Missing UUID parameter in the URL.</p>
+                // Improved error display for missing UUID
+                <div style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center', border: '1px solid #fecaca', backgroundColor: '#fef2f2', borderRadius: '0.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#dc2626' }}>Invalid Link</h2>
+                    <p style={{ color: '#b91c1c', marginTop: '0.5rem' }}>The link is missing the required UUID parameter.</p>
+                </div>
             )}
         </div>
     );
