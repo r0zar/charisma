@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, ChangeEvent } from "react"
+import React, { useState, ChangeEvent, useEffect } from "react"
 import { StacksNetwork } from "@stacks/network"
 import { fetchCallReadOnlyFunction, stringAsciiCV, cvToHex, ClarityValue, principalCV, tupleCV, uintCV, cvToValue } from "@stacks/transactions"
 import { Copy, Loader2, CheckCircle2 } from "@repo/ui/icons"
@@ -46,6 +46,12 @@ export function HashGenerator({
     const [isSigning, setIsSigning] = useState(false)
     const [publicQrData, setPublicQrData] = useState<string | null>(null)
     const [privateQrData, setPrivateQrData] = useState<string | null>(null)
+    const [baseUrl, setBaseUrl] = useState("");
+
+    // Get base URL on component mount (client-side only)
+    useEffect(() => {
+        setBaseUrl(window.location.origin);
+    }, []);
 
     // Type event handlers explicitly
     const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -131,17 +137,20 @@ export function HashGenerator({
             if (data && data.signature) {
                 setSignature(data.signature)
 
-                // Generate QR Code Data after successful signing
-                const amount = parseAmountFromOpcode(opcode);
-                if (amount) {
-                    // Placeholder URLs - adjust as needed for your routing setup
-                    const publicUrl = `/verify?uuid=${encodeURIComponent(hashUuid)}&contract=${encodeURIComponent(coreContract)}`;
-                    const privateUrl = `/redeem?sig=${encodeURIComponent(data.signature)}&amount=${encodeURIComponent(amount)}&uuid=${encodeURIComponent(hashUuid)}`;
-                    setPublicQrData(publicUrl);
-                    setPrivateQrData(privateUrl);
+                // Generate QR Code Data only if baseUrl is available
+                if (baseUrl) {
+                    const amount = parseAmountFromOpcode(opcode);
+                    if (amount) {
+                        // Prepend baseUrl to create absolute URLs
+                        const publicUrl = `${baseUrl}/verify?uuid=${encodeURIComponent(hashUuid)}&contract=${encodeURIComponent(coreContract)}`;
+                        const privateUrl = `${baseUrl}/redeem?sig=${encodeURIComponent(data.signature)}&amount=${encodeURIComponent(amount)}&uuid=${encodeURIComponent(hashUuid)}`;
+                        setPublicQrData(publicUrl);
+                        setPrivateQrData(privateUrl);
+                    } else {
+                        console.warn("Could not parse amount from opcode for QR code generation.");
+                    }
                 } else {
-                    console.warn("Could not parse amount from opcode for QR code generation.");
-                    // Optionally set an error state or message if amount parsing fails
+                    console.warn("Base URL not available yet for QR code generation.");
                 }
             }
         } catch (error) {
