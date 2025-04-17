@@ -21,7 +21,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="blaze-theme">
+        <ThemeProvider defaultTheme="light" storageKey="blaze-theme">
           <main className="min-h-screen bg-background">
             {/* <ThemeSwitcher /> */}
             {children}
