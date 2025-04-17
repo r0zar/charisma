@@ -218,6 +218,22 @@ function RedeemPageContent() {
                 connectedWalletAddress={walletAddress}
             // Add className or style prop if RedeemNoteForm supports it for outer container styling
             />
+
+            {/* Explanation Section */}
+            <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>How does this work? (It's like cashing a check!)</h4>
+                <p style={{ fontSize: '0.875rem', color: '#4b5563', lineHeight: '1.6' }}>
+                    The original sender of these tokens previously signed a secure, off-chain message (like writing a check or IOU) authorizing this specific transfer.
+                    <br />
+                    This note contains their cryptographic signature, proving they approved sending {amount || 'these'} WELSH tokens. Each note also includes a unique ID (UUID) to prevent it from being used more than once.
+                    <br /><br />
+                    You are now submitting this pre-authorized note to the Stacks blockchain (secured by Bitcoin) to claim the funds into the recipient address specified above. The system verifies the original sender's signature and checks the UUID to ensure the transaction is valid and hasn't already been processed.
+                    <br /><br />
+                    Since you're seeing this page, it means the note is ready to be redeemed – you're the first to cash this check!
+                    <br /><br />
+                    This "sign first, submit later" method allows for secure transfers without requiring the original sender to be online now, enabling cool features like off-chain payments and efficient processing.
+                </p>
+            </div>
         </div>
     );
 }
