@@ -9,24 +9,94 @@
     "dist"
   ],
   "exports": {
-    "./counter-button": {
+    "./button": {
       "import": {
-        "types": "./dist/es/counter-button.d.mts",
-        "default": "./dist/es/counter-button.mjs"
+        "types": "./dist/es/button/index.d.mts",
+        "default": "./dist/es/button/index.mjs"
       },
       "require": {
-        "types": "./dist/cjs/counter-button.d.ts",
-        "default": "./dist/cjs/counter-button.js"
+        "types": "./dist/cjs/button/index.d.ts",
+        "default": "./dist/cjs/button/index.js"
+      }
+    },
+    "./card": {
+      "import": {
+        "types": "./dist/es/card/index.d.mts",
+        "default": "./dist/es/card/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/card/index.d.ts",
+        "default": "./dist/cjs/card/index.js"
+      }
+    },
+    "./input": {
+      "import": {
+        "types": "./dist/es/input/index.d.mts",
+        "default": "./dist/es/input/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/input/index.d.ts",
+        "default": "./dist/cjs/input/index.js"
+      }
+    },
+    "./textarea": {
+      "import": {
+        "types": "./dist/es/textarea/index.d.mts",
+        "default": "./dist/es/textarea/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/textarea/index.d.ts",
+        "default": "./dist/cjs/textarea/index.js"
+      }
+    },
+    "./icons": {
+      "import": {
+        "types": "./dist/es/icons/index.d.mts",
+        "default": "./dist/es/icons/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/icons/index.d.ts",
+        "default": "./dist/cjs/icons/index.js"
+      }
+    },
+    "./theme": {
+      "import": {
+        "types": "./dist/es/theme/index.d.mts",
+        "default": "./dist/es/theme/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/theme/index.d.ts",
+        "default": "./dist/cjs/theme/index.js"
+      }
+    },
+    "./tabs": {
+      "import": {
+        "types": "./dist/es/tabs/index.d.mts",
+        "default": "./dist/es/tabs/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/tabs/index.d.ts",
+        "default": "./dist/cjs/tabs/index.js"
+      }
+    },
+    "./counter-button": {
+      "import": {
+        "types": "./dist/es/counter-button/index.d.mts",
+        "default": "./dist/es/counter-button/index.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/counter-button/index.d.ts",
+        "default": "./dist/cjs/counter-button/index.js"
       }
     },
     "./link": {
       "import": {
-        "types": "./dist/es/link.d.mts",
-        "default": "./dist/es/link.mjs"
+        "types": "./dist/es/link/index.d.mts",
+        "default": "./dist/es/link/index.mjs"
       },
       "require": {
-        "types": "./dist/cjs/link.d.ts",
-        "default": "./dist/cjs/link.js"
+        "types": "./dist/cjs/link/index.d.ts",
+        "default": "./dist/cjs/link/index.js"
       }
     }
   },
@@ -49,6 +119,8 @@
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
+    "postcss": "^8.4.35",
+    "postcss-modules": "^6.0.0",
     "typescript": "5.8.2"
   },
   "peerDependencies": {
@@ -56,5 +128,8 @@
     "@types/react-dom": ">=18",
     "react": ">=18",
     "react-dom": ">=18"
+  },
+  "dependencies": {
+    "lucide-react": "^0.488.0"
   }
 }

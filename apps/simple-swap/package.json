@@ -1,5 +1,5 @@
 {
-  "name": "storefront",
+  "name": "simple-swap",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -11,6 +11,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@repo/blaze": "workspace:*",
+    "@repo/cryptonomicon": "workspace:*",
+    "@repo/dexterity": "workspace:*",
+    "@repo/stacks": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/ui": "workspace:*",
     "next": "^15.2.1",
