@@ -2,28 +2,28 @@ import type { Metadata } from "next"
 import "../styles/globals.css"
 
 export const metadata: Metadata = {
-  title: 'Blaze Signer',
+  title: 'Blaze Protocol',
   description: 'Secure off-chain signing with on-chain verification for Stacks Blockchain',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://blaze-signer.charisma.network'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://blaze-signer.charisma.network',
-    title: 'Blaze Signer | Off-Chain Signing for Stacks',
+    title: 'Blaze Protocol | Off-Chain Signing for Stacks',
     description: 'Secure off-chain message signing with on-chain verification for Stacks Blockchain',
-    siteName: 'Blaze Signer',
+    siteName: 'Blaze Protocol',
     images: [
       {
         url: '/opengraph-image.png',
         width: 1200,
         height: 630,
-        alt: 'Blaze Signer - Secure Off-Chain Signing for Stacks',
+        alt: 'Blaze Protocol - Secure Off-Chain Signing for Stacks',
       }
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Blaze Signer | Off-Chain Signing for Stacks',
+    title: 'Blaze Protocol | Off-Chain Signing for Stacks',
     description: 'Secure off-chain message signing with on-chain verification for Stacks Blockchain',
     images: ['/twitter-image.png'],
     creator: '@charisma_tech',

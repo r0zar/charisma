@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 // Image metadata
-export const alt = 'Blaze Signer - Secure Off-Chain Signing for Stacks'
+export const alt = 'Blaze Protocol - Secure Off-Chain Signing for Stacks'
 export const size = {
     width: 1200,
     height: 630,

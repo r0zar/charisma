@@ -117,7 +117,7 @@ export function BlazeSignerInterface() {
             content: (
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">
-                        Submit a previously generated and signed message (hash + signature) to the main Blaze Signer contract.
+                        Submit a previously generated and signed message (hash + signature) to the main Blaze Protocol contract.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SubmitSignature
@@ -134,7 +134,7 @@ export function BlazeSignerInterface() {
             content: (
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">
-                        Check if a specific UUID has already been processed by the Blaze Signer contract.
+                        Check if a specific UUID has already been processed by the Blaze Protocol contract.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <UuidChecker
@@ -193,7 +193,7 @@ export function BlazeSignerInterface() {
                         className="text-xl font-bold text-foreground hover:text-primary transition-colors"
                         onClick={(e) => handleLinkClick(e, '/signer')}
                     >
-                        Blaze Signer
+                        Blaze Protocol
                     </a>
                     <div className="flex items-center justify-end gap-6">
                         {/* Desktop Navigation */}
@@ -232,7 +232,7 @@ export function BlazeSignerInterface() {
                 <div className="space-y-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-bold">Blaze Signer Interface</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold">Blaze Protocol Interface</h1>
                             <p className="text-muted-foreground">
                                 Test the functions of the blaze-signer Clarity smart contract
                             </p>

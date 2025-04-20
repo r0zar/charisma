@@ -1,8 +1,8 @@
 /**
- * Shared contract constants for the Blaze Signer application
+ * Shared contract constants for the Blaze Protocol application
  */
 
-// Blaze Signer contract
+// Blaze Protocol contract
 export const BLAZE_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc9"
 
 // Welsh Credits contract

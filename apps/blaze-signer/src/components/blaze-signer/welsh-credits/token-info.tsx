@@ -46,7 +46,7 @@ const FALLBACK_TOKEN_DATA: TokenData = {
     tokenUri: null,
     metadata: {
         name: "Welsh Credits",
-        description: "A fungible token for the Stacks blockchain used for testing the Blaze Signer contract",
+        description: "A fungible token for the Stacks blockchain used for testing the Blaze Protocol contract",
         image: undefined
     }
 };
