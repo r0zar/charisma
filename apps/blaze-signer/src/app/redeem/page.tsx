@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function RedeemRedirect() {
+function RedeemRedirectContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const sig = searchParams.get('sig')
@@ -28,4 +28,12 @@ export default function RedeemRedirect() {
     }, [router, sig, amount, uuid])
 
     return null
+}
+
+export default function RedeemRedirect() {
+    return (
+        <Suspense fallback={null}>
+            <RedeemRedirectContent />
+        </Suspense>
+    )
 } 
