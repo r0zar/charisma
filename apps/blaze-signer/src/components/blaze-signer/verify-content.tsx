@@ -1,17 +1,33 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchCallReadOnlyFunction, stringAsciiCV, principalCV, ClarityType } from '@stacks/transactions';
 import { STACKS_MAINNET } from '@stacks/network'; // Use appropriate network
 import { BLAZE_SIGNER_CONTRACT, parseContract } from '../../constants/contracts'; // Import constant and parser
 
-// Extracted component from the original verify page
-export function VerifyContent() {
+// This component safely uses useSearchParams hook
+function SearchParamsReader() {
     const searchParams = useSearchParams();
     const uuid = searchParams.get('uuid');
     const originalContractParam = searchParams.get('contract'); // Get original contract from URL for display
 
+    return (
+        <VerifyContentInner
+            uuid={uuid}
+            originalContractParam={originalContractParam}
+        />
+    );
+}
+
+// Extracted component from the original verify page
+function VerifyContentInner({
+    uuid,
+    originalContractParam
+}: {
+    uuid: string | null,
+    originalContractParam: string | null
+}) {
     const [isLoading, setIsLoading] = useState(false);
     const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -107,5 +123,14 @@ export function VerifyContent() {
                 </div>
             )}
         </div>
+    );
+}
+
+// Export the component with Suspense boundary
+export function VerifyContent() {
+    return (
+        <Suspense fallback={<div>Loading verification details...</div>}>
+            <SearchParamsReader />
+        </Suspense>
     );
 } 

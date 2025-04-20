@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { RedeemNoteForm } from './welsh-credits/redeem-note-form';
 import { STACKS_MAINNET } from '@stacks/network';
@@ -15,12 +15,28 @@ import { BLAZE_SIGNER_CONTRACT, parseContract } from '../../constants/contracts'
 const getNetwork = () => STACKS_MAINNET; // Use the correct instance
 const handleSuccess = () => { alert('Redemption Successful!'); }; // Replace with your success handler
 
-export function RedeemPageContent() {
+// This component will safely use the useSearchParams hook
+function SearchParamsReader() {
     const searchParams = useSearchParams();
     const sig = searchParams.get('sig') ?? undefined;
     const amount = searchParams.get('amount') ?? undefined;
     const uuid = searchParams.get('uuid') ?? undefined;
 
+    return (
+        <RedeemPageContentInner
+            sig={sig}
+            amount={amount}
+            uuid={uuid}
+        />
+    );
+}
+
+// Inner component that doesn't directly use useSearchParams
+function RedeemPageContentInner({ sig, amount, uuid }: {
+    sig: string | undefined,
+    amount: string | undefined,
+    uuid: string | undefined
+}) {
     // State for wallet details 
     const [isConnected, setIsConnected] = useState(false);
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -96,33 +112,6 @@ export function RedeemPageContent() {
             setIsCheckingStatus(false);
         }
     }, [uuid]); // Re-run if UUID changes
-
-    // Function to handle wallet connection
-    const handleConnectWallet = async () => {
-        setIsConnecting(true);
-        try {
-            const result = await connect();
-            if (result.addresses && result.addresses.length > 2) {
-                localStorage.setItem('addresses', JSON.stringify(result.addresses));
-                const mainnetAddress = result.addresses[2].address;
-                setWalletAddress(mainnetAddress);
-                setIsConnected(true);
-            }
-        } catch (error) {
-            console.error('Failed to connect wallet:', error);
-            // Optionally show an error message to the user
-        } finally {
-            setIsConnecting(false);
-        }
-    };
-
-    // Function to handle wallet disconnection
-    const handleDisconnectWallet = () => {
-        localStorage.removeItem('addresses');
-        setWalletAddress(null);
-        setIsConnected(false);
-        // Note: We don't need to call onWalletUpdate here like in WalletConnector
-    };
 
     // Instead of rejecting missing params, we'll just pass empty values and let the form handle it
     const hasAllParams = sig && amount && uuid;
@@ -204,5 +193,14 @@ export function RedeemPageContent() {
                 </p>
             </div>
         </div>
+    );
+}
+
+// Export the component with Suspense boundary
+export function RedeemPageContent() {
+    return (
+        <Suspense fallback={<div>Loading redemption form...</div>}>
+            <SearchParamsReader />
+        </Suspense>
     );
 } 
