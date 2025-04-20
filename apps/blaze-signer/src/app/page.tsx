@@ -73,35 +73,32 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="group bg-background border border-border shadow-sm p-6 rounded-xl transition-all duration-200 hover:shadow-md hover:border-primary/20">
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-200"></div>
-              <div className="bg-primary/10 p-3 rounded-full w-fit mb-4 relative">
+            <div className="bg-background border border-border shadow-sm p-6 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:shadow-md hover:border-primary/20">
+              <div className="bg-primary/10 p-3 rounded-full w-fit mb-4">
                 <Zap className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 relative">Fast & Efficient</h3>
-              <p className="text-muted-foreground relative">
+              <h3 className="text-xl font-semibold mb-3">Fast & Efficient</h3>
+              <p className="text-muted-foreground">
                 Sign transactions off-chain and submit them when needed, reducing blockchain congestion and costs.
               </p>
             </div>
 
-            <div className="group bg-background border border-border shadow-sm p-6 rounded-xl transition-all duration-200 hover:shadow-md hover:border-primary/20">
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-200"></div>
-              <div className="bg-primary/10 p-3 rounded-full w-fit mb-4 relative">
+            <div className="bg-background border border-border shadow-sm p-6 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:shadow-md hover:border-primary/20">
+              <div className="bg-primary/10 p-3 rounded-full w-fit mb-4">
                 <Lock className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 relative">Secure Verification</h3>
-              <p className="text-muted-foreground relative">
+              <h3 className="text-xl font-semibold mb-3">Secure Verification</h3>
+              <p className="text-muted-foreground">
                 Built on SIP-018 standards with cryptographic verification guaranteeing transaction integrity.
               </p>
             </div>
 
-            <div className="group bg-background border border-border shadow-sm p-6 rounded-xl transition-all duration-200 hover:shadow-md hover:border-primary/20">
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-200"></div>
-              <div className="bg-primary/10 p-3 rounded-full w-fit mb-4 relative">
+            <div className="bg-background border border-border shadow-sm p-6 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:shadow-md hover:border-primary/20">
+              <div className="bg-primary/10 p-3 rounded-full w-fit mb-4">
                 <Layers className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 relative">Flexible Integration</h3>
-              <p className="text-muted-foreground relative">
+              <h3 className="text-xl font-semibold mb-3">Flexible Integration</h3>
+              <p className="text-muted-foreground">
                 Easily integrate with existing Stacks applications, tokens, and smart contracts.
               </p>
             </div>
@@ -172,9 +169,8 @@ export default function HomePage() {
           </div>
 
           <div className="max-w-3xl mx-auto space-y-4">
-            <div className="group bg-background border border-border shadow-sm rounded-xl p-6 transition-all duration-200 hover:shadow-md hover:border-primary/20 relative">
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-200"></div>
-              <div className="flex items-start relative">
+            <div className="bg-background border border-border shadow-sm rounded-xl p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-md hover:border-primary/20">
+              <div className="flex items-start">
                 <div className="bg-primary/10 p-2 rounded-full flex-shrink-0 mr-4">
                   <Check className="text-primary h-5 w-5" />
                 </div>
@@ -187,9 +183,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group bg-background border border-border shadow-sm rounded-xl p-6 transition-all duration-200 hover:shadow-md hover:border-primary/20 relative">
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-200"></div>
-              <div className="flex items-start relative">
+            <div className="bg-background border border-border shadow-sm rounded-xl p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-md hover:border-primary/20">
+              <div className="flex items-start">
                 <div className="bg-primary/10 p-2 rounded-full flex-shrink-0 mr-4">
                   <Check className="text-primary h-5 w-5" />
                 </div>
@@ -202,9 +197,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="group bg-background border border-border shadow-sm rounded-xl p-6 transition-all duration-200 hover:shadow-md hover:border-primary/20 relative">
-              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-200"></div>
-              <div className="flex items-start relative">
+            <div className="bg-background border border-border shadow-sm rounded-xl p-6 transition-all duration-200 hover:bg-gray-50 hover:shadow-md hover:border-primary/20">
+              <div className="flex items-start">
                 <div className="bg-primary/10 p-2 rounded-full flex-shrink-0 mr-4">
                   <Check className="text-primary h-5 w-5" />
                 </div>
