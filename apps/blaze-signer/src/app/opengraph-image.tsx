@@ -15,11 +15,11 @@ export const runtime = 'edge'
 export default async function Image() {
     // Font
     const interBold = fetch(
-        new URL('./Inter-Bold.ttf', import.meta.url)
+        new URL('./fonts/Inter-Bold.woff2', import.meta.url)
     ).then((res) => res.arrayBuffer())
 
     const interRegular = fetch(
-        new URL('./Inter-Regular.ttf', import.meta.url)
+        new URL('./fonts/Inter-Regular.woff2', import.meta.url)
     ).then((res) => res.arrayBuffer())
 
     return new ImageResponse(
