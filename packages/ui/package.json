@@ -6,7 +6,10 @@
   "sideEffects": false,
   "files": [
     "dist/**",
-    "dist"
+    "dist",
+    "tailwind.config.ts",
+    "tailwind.preset.ts",
+    "tailwind.theme.ts"
   ],
   "exports": {
     "./button": {
@@ -59,16 +62,6 @@
         "default": "./dist/cjs/icons/index.js"
       }
     },
-    "./theme": {
-      "import": {
-        "types": "./dist/es/theme/index.d.mts",
-        "default": "./dist/es/theme/index.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/theme/index.d.ts",
-        "default": "./dist/cjs/theme/index.js"
-      }
-    },
     "./tabs": {
       "import": {
         "types": "./dist/es/tabs/index.d.mts",
@@ -98,11 +91,34 @@
         "types": "./dist/cjs/link/index.d.ts",
         "default": "./dist/cjs/link/index.js"
       }
+    },
+    "./utils": {
+      "import": {
+        "types": "./dist/es/utils.d.mts",
+        "default": "./dist/es/utils.mjs"
+      },
+      "require": {
+        "types": "./dist/cjs/utils.d.ts",
+        "default": "./dist/cjs/utils.js"
+      }
+    },
+    "./tailwind": {
+      "types": "./tailwind.config.ts",
+      "default": "./tailwind.config.ts"
+    },
+    "./tailwind/preset": {
+      "types": "./tailwind.preset.ts",
+      "default": "./tailwind.preset.ts"
+    },
+    "./tailwind/theme": {
+      "types": "./tailwind.theme.ts",
+      "default": "./tailwind.theme.ts"
     }
   },
   "scripts": {
     "build": "bunchee",
     "dev": "bunchee --watch",
+    "watch": "nodemon --watch src --watch tailwind.*.ts --ext 'ts,tsx,js,jsx' --exec 'pnpm build'",
     "check-types": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "jest"
@@ -119,6 +135,7 @@
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
     "postcss": "^8.4.35",
     "postcss-modules": "^6.0.0",
     "typescript": "5.8.2"
@@ -130,6 +147,11 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "lucide-react": "^0.488.0"
+    "autoprefixer": "^10.4.18",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.488.0",
+    "postcss": "^8.4.35",
+    "tailwind-merge": "^3.2.0",
+    "tailwindcss": "^3.4.1"
   }
 }

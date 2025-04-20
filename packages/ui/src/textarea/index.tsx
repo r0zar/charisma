@@ -1,45 +1,25 @@
-import React, { CSSProperties, TextareaHTMLAttributes, useState } from 'react';
+import React, { TextareaHTMLAttributes, forwardRef } from 'react';
+import { cn } from '../utils';
 
-const baseTextareaStyle: CSSProperties = {
-    display: 'block',
-    width: '100%',
-    minHeight: '80px',
-    padding: '0.5rem 0.75rem',
-    fontSize: '0.875rem',
-    lineHeight: '1.5',
-    color: '#1f2937',
-    backgroundColor: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '0.375rem',
-    transition: 'border 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
-    resize: 'vertical'
-};
+export interface TextareaProps
+    extends TextareaHTMLAttributes<HTMLTextAreaElement> { }
 
-const focusStyle: CSSProperties = {
-    outline: 'none',
-    border: '1px solid #3b82f6',
-    boxShadow: '0 0 0 1px #3b82f6'
-};
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+    ({ className, ...props }, ref) => {
+        return (
+            <textarea
+                className={cn(
+                    "flex min-h-20 w-full rounded-md border border-border bg-background px-3 py-2",
+                    "text-sm ring-offset-background resize-vertical",
+                    "placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    className
+                )}
+                ref={ref}
+                {...props}
+            />
+        );
+    }
+);
 
-export function Textarea({ style, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-    const [isFocused, setIsFocused] = useState(false);
-
-    return (
-        <textarea
-            style={{
-                ...baseTextareaStyle,
-                ...(isFocused ? focusStyle : {}),
-                ...style
-            }}
-            onFocus={(e) => {
-                setIsFocused(true);
-                props.onFocus?.(e);
-            }}
-            onBlur={(e) => {
-                setIsFocused(false);
-                props.onBlur?.(e);
-            }}
-            {...props}
-        />
-    );
-} 
+Textarea.displayName = "Textarea"; 

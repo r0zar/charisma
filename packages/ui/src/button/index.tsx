@@ -1,83 +1,44 @@
-import React, { ButtonHTMLAttributes, CSSProperties, useState } from 'react';
+import React, { ButtonHTMLAttributes } from 'react';
+import { cn } from '../utils';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+    size?: 'sm' | 'md' | 'lg';
 }
 
-const baseStyles: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '0.375rem',
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    padding: '0.5rem 1rem',
-    cursor: 'pointer',
-    border: '1px solid transparent',
-    transition: 'background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out'
-};
-
-interface VariantStyle {
-    default: CSSProperties;
-    hover: CSSProperties;
-}
-
-const variantStyles: Record<Required<ButtonProps>['variant'], VariantStyle> = {
-    primary: {
-        default: {
-            backgroundColor: '#000000',
-            color: '#ffffff',
-        },
-        hover: {
-            backgroundColor: '#333333'
-        }
-    },
-    secondary: {
-        default: {
-            backgroundColor: '#f3f4f6',
-            color: '#1f2937',
-        },
-        hover: {
-            backgroundColor: '#e5e7eb'
-        }
-    },
-    outline: {
-        default: {
-            border: '1px solid #e5e7eb',
-            backgroundColor: 'transparent',
-            color: '#1f2937',
-        },
-        hover: {
-            backgroundColor: '#f9fafb'
-        }
-    },
-    ghost: {
-        default: {
-            backgroundColor: 'transparent',
-            color: '#1f2937',
-        },
-        hover: {
-            backgroundColor: '#f9fafb'
-        }
-    }
-};
-
-export function Button({ style, variant = 'primary', children, disabled, ...props }: ButtonProps) {
-    const [isHovered, setIsHovered] = useState(false);
-    const variantStyle = variantStyles[variant];
-    const currentStyle = !disabled && isHovered ? { ...variantStyle.default, ...variantStyle.hover } : variantStyle.default;
-
+export function Button({
+    className,
+    variant = 'primary',
+    size = 'md',
+    children,
+    disabled,
+    ...props
+}: ButtonProps) {
     return (
         <button
-            style={{
-                ...baseStyles,
-                ...currentStyle,
-                opacity: disabled ? 0.5 : 1,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                ...style,
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            className={cn(
+                // Base styles
+                "inline-flex items-center justify-center rounded-md font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+
+                // Size variations
+                size === 'sm' && "px-3 py-1.5 text-xs",
+                size === 'md' && "px-4 py-2 text-sm",
+                size === 'lg' && "px-6 py-3 text-base",
+
+                // Variant styles
+                variant === 'primary' && "bg-primary text-white hover:bg-primary-700 focus-visible:ring-primary-800",
+                variant === 'secondary' && "bg-secondary text-white hover:bg-secondary-700 focus-visible:ring-secondary-800",
+                variant === 'outline' && "border border-border bg-transparent hover:bg-muted-50 text-foreground",
+                variant === 'ghost' && "bg-transparent hover:bg-muted-50 text-foreground",
+
+                // Disabled state
+                disabled && "opacity-50 cursor-not-allowed pointer-events-none",
+
+                // Custom classes passed through className prop
+                className
+            )}
+            disabled={disabled}
             {...props}
         >
             {children}

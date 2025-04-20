@@ -1,28 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "../utils";
 
-export function CounterButton() {
+export function CounterButton({ className }: { className?: string }) {
   const [count, setCount] = useState(0);
 
   return (
-    <div
-      style={{
-        background: `rgba(0,0,0,0.05)`,
-        borderRadius: `8px`,
-        padding: "1.5rem",
-        fontWeight: 500,
-      }}
-    >
-      <p style={{ margin: "0 0 1.5rem 0" }}>
+    <div className={cn("bg-black/5 rounded-lg p-6 font-medium", className)}>
+      <p className="mb-6">
         This component is from{" "}
-        <code
-          style={{
-            padding: "0.2rem 0.3rem",
-            background: `rgba(0,0,0,0.1)`,
-            borderRadius: "0.25rem",
-          }}
-        >
+        <code className="px-[0.2rem] py-[0.3rem] bg-black/10 rounded-md">
           ui
         </code>
       </p>
@@ -31,15 +19,7 @@ export function CounterButton() {
           onClick={() => {
             setCount((c) => c + 1);
           }}
-          style={{
-            background: "black",
-            color: "white",
-            border: "none",
-            padding: "0.5rem 1rem",
-            borderRadius: "0.25rem",
-            display: "inline-block",
-            cursor: "pointer",
-          }}
+          className="bg-black text-white border-none py-2 px-4 rounded inline-block cursor-pointer hover:bg-black/80 transition-colors"
           type="button"
         >
           Count: {count}

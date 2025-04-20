@@ -11,6 +11,9 @@ import {
 } from "@stacks/transactions"
 import { Loader2 } from "@repo/ui/icons"
 import { request } from "@stacks/connect"
+import { Button } from "@repo/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
+import { cn } from "@repo/ui/utils"
 import {
     WELSHCORGICOIN_CONTRACT,
     WELSH_CREDITS_CONTRACT,
@@ -107,20 +110,20 @@ export function WithdrawForm({
     }
 
     return (
-        <div className={`card ${className || ''}`}>
-            <div className="card-header">
-                <h2 className="card-title">Withdraw</h2>
-                <p className="card-description">
+        <Card className={cn(className)}>
+            <CardHeader>
+                <CardTitle>Withdraw</CardTitle>
+                <CardDescription>
                     Withdraw WELSH tokens from this contract
-                </p>
-            </div>
-            <div className="card-content">
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="withdraw-amount" className="label">Amount</label>
+                        <label htmlFor="withdraw-amount" className="block text-sm font-medium text-foreground">Amount</label>
                         <input
                             id="withdraw-amount"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="Enter amount (e.g. 10.5)"
                             value={withdrawAmount}
                             onChange={handleInputChange(setWithdrawAmount)}
@@ -128,37 +131,37 @@ export function WithdrawForm({
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="withdraw-recipient" className="label">
+                        <label htmlFor="withdraw-recipient" className="block text-sm font-medium text-foreground">
                             Recipient (Optional)
                         </label>
                         <input
                             id="withdraw-recipient"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="Leave empty to withdraw to your own account"
                             value={withdrawRecipient}
                             onChange={handleInputChange(setWithdrawRecipient)}
                         />
                     </div>
 
-                    <button
-                        className="button w-full"
+                    <Button
+                        className="w-full"
                         onClick={handleWithdraw}
                         disabled={isWithdrawing || !isWalletConnected || !withdrawAmount}
                     >
                         {isWithdrawing ? (
                             <>
-                                <Loader2 className="button-icon h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Withdrawing...
                             </>
                         ) : (
                             "Withdraw"
                         )}
-                    </button>
+                    </Button>
 
                     {withdrawResult && (
-                        <div className="result-box">
-                            <p className="result-box-title">Result</p>
-                            <div className="result-box-content">
+                        <div className="mt-4 p-4 rounded-md border border-border">
+                            <p className="text-sm font-medium mb-1">Result</p>
+                            <div className="font-mono text-sm break-all">
                                 <span className={withdrawResult.type === 'success' ? "text-primary" : "text-destructive"}>
                                     {withdrawResult.message}
                                 </span>
@@ -166,7 +169,7 @@ export function WithdrawForm({
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     )
 } 

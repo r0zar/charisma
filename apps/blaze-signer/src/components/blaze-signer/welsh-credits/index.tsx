@@ -12,6 +12,7 @@ import {
     WELSH_CREDITS_DECIMALS,
     parseContract
 } from "../../../constants/contracts"
+import { cn } from "@repo/ui/utils"
 import { TokenInfo } from './token-info'
 import { BalanceDisplay } from './balance-display'
 import { DepositForm } from './deposit-form'
@@ -84,7 +85,7 @@ export function WelshCreditsInterface({
     }
 
     return (
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${className || ''}`}>
+        <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-6", className)}>
             <TokenInfo network={network} className="md:col-span-1" />
             <BalanceDisplay
                 walletAddress={walletAddress}
@@ -92,11 +93,6 @@ export function WelshCreditsInterface({
                 isLoading={isLoadingBalance}
                 onRefresh={fetchBalance}
                 className="md:col-span-1"
-            />
-            <RedeemNoteForm
-                network={network}
-                isWalletConnected={isWalletConnected}
-                onSuccess={fetchBalance}
             />
             <DepositForm
                 network={network}
@@ -111,11 +107,6 @@ export function WelshCreditsInterface({
             <TransferForm
                 network={network}
                 walletAddress={walletAddress}
-                isWalletConnected={isWalletConnected}
-                onSuccess={fetchBalance}
-            />
-            <BatchRedeemForm
-                network={network}
                 isWalletConnected={isWalletConnected}
                 onSuccess={fetchBalance}
             />

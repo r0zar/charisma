@@ -6,6 +6,9 @@ import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType, principalCV } fr
 import { bufferFromHex } from "@stacks/transactions/dist/cl"
 import { Loader2 } from "@repo/ui/icons"
 import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
+import { Button } from "@repo/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
+import { cn } from "@repo/ui/utils"
 
 interface VerifySignatureProps {
     network: StacksNetwork
@@ -96,22 +99,22 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
     }
 
     return (
-        <div className={`card ${className || ''}`}>
-            <div className="card-header">
-                <h2 className="card-title">Get Signer by Data Properties</h2>
-                <p className="card-description">
+        <Card className={cn(className)}>
+            <CardHeader>
+                <CardTitle>Get Signer by Data Properties</CardTitle>
+                <CardDescription>
                     Verify a signature matches the original request data.
-                </p>
-            </div>
-            <div className="card-content">
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="core-contract" className="label">
+                        <label htmlFor="core-contract" className="block text-sm font-medium text-foreground">
                             Subnet Contract (principal)
                         </label>
                         <input
                             id="core-contract"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="SP... (Contract that called 'submit')"
                             value={coreContract}
                             onChange={handleInputChange(setCoreContract)}
@@ -119,12 +122,12 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="opcode" className="label">
+                        <label htmlFor="opcode" className="block text-sm font-medium text-foreground">
                             Opcode (string-ascii 64)
                         </label>
                         <input
                             id="opcode"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="action=transfer;token=ST...;amount=100"
                             value={opcode}
                             onChange={handleInputChange(setOpcode)}
@@ -132,12 +135,12 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="uuid" className="label">
+                        <label htmlFor="uuid" className="block text-sm font-medium text-foreground">
                             UUID (string-ascii 64)
                         </label>
                         <input
                             id="uuid"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="Enter UUID"
                             value={uuid}
                             onChange={handleInputChange(setUuid)}
@@ -145,36 +148,36 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="verify-signature" className="label">
+                        <label htmlFor="verify-signature" className="block text-sm font-medium text-foreground">
                             Signature (buff 65)
                         </label>
                         <input
                             id="verify-signature"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="0x..."
                             value={signature}
                             onChange={handleInputChange(setSignature)}
                         />
                     </div>
 
-                    <button
-                        className="button w-full"
+                    <Button
+                        className="w-full"
                         onClick={handleVerifySignature}
                         disabled={isVerifying || !coreContract || !opcode || !uuid || !signature}
                     >
                         {isVerifying ? (
                             <>
-                                <Loader2 className="button-icon h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Verifying...
                             </>
                         ) : (
                             "Recover Signer"
                         )}
-                    </button>
+                    </Button>
 
-                    <div className="result-box md:col-span-2">
-                        <p className="result-box-title">Verification Result</p>
-                        <div className="result-box-content">
+                    <div className="mt-4 p-4 rounded-md border border-border">
+                        <p className="text-sm font-medium mb-1">Verification Result</p>
+                        <div className="text-base">
                             {isVerifying ? (
                                 "Verifying signature..."
                             ) : !verificationResult ? (
@@ -187,7 +190,7 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     )
 } 

@@ -1,43 +1,26 @@
-import React, { CSSProperties, InputHTMLAttributes, useState } from 'react';
+import React, { InputHTMLAttributes, forwardRef } from 'react';
+import { cn } from '../utils';
 
-const baseInputStyle: CSSProperties = {
-    display: 'block',
-    width: '100%',
-    padding: '0.5rem 0.75rem',
-    fontSize: '0.875rem',
-    lineHeight: '1.25rem',
-    color: '#1f2937',
-    backgroundColor: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '0.375rem',
-    transition: 'border 0.15s ease-in-out, box-shadow 0.15s ease-in-out'
-};
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> { }
 
-const focusStyle: CSSProperties = {
-    outline: 'none',
-    border: '1px solid #3b82f6',
-    boxShadow: '0 0 0 1px #3b82f6'
-};
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+    ({ className, type, ...props }, ref) => {
+        return (
+            <input
+                type={type || 'text'}
+                className={cn(
+                    "flex h-10 w-full rounded-md border border-border bg-background px-3 py-2",
+                    "text-sm ring-offset-background",
+                    "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                    "placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    className
+                )}
+                ref={ref}
+                {...props}
+            />
+        );
+    }
+)
 
-export function Input({ style, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-    const [isFocused, setIsFocused] = useState(false);
-
-    return (
-        <input
-            style={{
-                ...baseInputStyle,
-                ...(isFocused ? focusStyle : {}),
-                ...style
-            }}
-            onFocus={(e) => {
-                setIsFocused(true);
-                props.onFocus?.(e);
-            }}
-            onBlur={(e) => {
-                setIsFocused(false);
-                props.onBlur?.(e);
-            }}
-            {...props}
-        />
-    );
-} 
+Input.displayName = "Input"; 

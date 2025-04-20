@@ -6,6 +6,9 @@ import { fetchCallReadOnlyFunction, stringAsciiCV, cvToHex, ClarityValue, princi
 import { Copy, Loader2, CheckCircle2 } from "@repo/ui/icons"
 import { request } from "@stacks/connect"
 import { QRCodeSVG } from 'qrcode.react'
+import { Button } from "@repo/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
+import { cn } from "@repo/ui/utils"
 import { BLAZE_SIGNER_CONTRACT, generateUUID, BLAZE_PROTOCOL_NAME, BLAZE_PROTOCOL_VERSION } from "../../constants/contracts"
 
 // Add padding utility function at the top level
@@ -169,22 +172,22 @@ export function HashGenerator({
     }
 
     return (
-        <div className={`card ${className || ''}`}>
-            <div className="card-header">
-                <h2 className="card-title">Generate SIP-018 Hash</h2>
-                <p className="card-description">
+        <Card className={cn(className)}>
+            <CardHeader>
+                <CardTitle>Generate SIP-018 Hash</CardTitle>
+                <CardDescription>
                     Create the hash that needs to be signed off-chain using signer contract.
-                </p>
-            </div>
-            <div className="card-content">
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="core-contract" className="label">
+                        <label htmlFor="core-contract" className="block text-sm font-medium text-foreground">
                             Subnet Contract (principal)
                         </label>
                         <input
                             id="core-contract"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="SP... (Contract allowed to call 'submit')"
                             value={coreContract}
                             onChange={handleInputChange(setCoreContract)}
@@ -192,12 +195,12 @@ export function HashGenerator({
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="opcode" className="label">
+                        <label htmlFor="opcode" className="block text-sm font-medium text-foreground">
                             Opcode (string-ascii 64)
                         </label>
                         <input
                             id="opcode"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="action=transfer;token=ST...;amount=100"
                             value={opcode}
                             onChange={handleInputChange(setOpcode)}
@@ -205,50 +208,49 @@ export function HashGenerator({
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="hash-uuid" className="label">
+                        <label htmlFor="hash-uuid" className="block text-sm font-medium text-foreground">
                             UUID (string-ascii 64)
                         </label>
                         <div className="flex space-x-2">
                             <input
                                 id="hash-uuid"
-                                className="input"
+                                className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                                 placeholder="Enter unique request ID"
                                 value={hashUuid}
                                 onChange={handleInputChange(setHashUuid)}
                             />
-                            <button
+                            <Button
                                 type="button"
-                                className="button"
                                 onClick={handleGenerateUUID}
                             >
                                 Generate
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
-                    <button
-                        className="button w-full"
+                    <Button
+                        className="w-full"
                         onClick={generateStructuredDataHash}
                         disabled={isGeneratingHash || !opcode || !hashUuid || !coreContract}
                     >
                         {isGeneratingHash ? (
                             <>
-                                <Loader2 className="button-icon h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Generating...
                             </>
                         ) : (
                             "Generate Hash"
                         )}
-                    </button>
+                    </Button>
 
                     {generatedHash && (
                         <div className="space-y-4 md:col-span-2">
-                            <div className="result-box">
-                                <div className="result-box-header">
-                                    <h3 className="result-box-title">Generated Hash</h3>
+                            <div className="mt-4 p-4 rounded-md border border-border">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-sm font-semibold">Generated Hash</h3>
                                     <button
                                         type="button"
-                                        className="button-icon"
+                                        className="text-muted hover:text-foreground"
                                         onClick={() => copyToClipboard(generatedHash)}
                                         title="Copy to clipboard"
                                     >
@@ -259,7 +261,7 @@ export function HashGenerator({
                                         )}
                                     </button>
                                 </div>
-                                <div className="result-box-content">
+                                <div className="font-mono text-sm break-all">
                                     {generatedHash.startsWith("Error") ? (
                                         <span className="text-destructive">{generatedHash}</span>
                                     ) : (
@@ -269,61 +271,40 @@ export function HashGenerator({
                             </div>
 
                             {!generatedHash.startsWith("Error") && isWalletConnected && (
-                                <button
-                                    className="button w-full"
+                                <Button
+                                    className="w-full"
                                     onClick={() => signWithWallet(generatedHash)}
                                     disabled={isSigning}
                                 >
                                     {isSigning ? (
                                         <>
-                                            <Loader2 className="button-icon h-4 w-4 animate-spin" />
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             Signing...
                                         </>
                                     ) : (
                                         "Sign with Wallet"
                                     )}
-                                </button>
+                                </Button>
                             )}
 
                             {signature && (publicQrData || privateQrData) && (
-                                <div style={{
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: '1rem',
-                                    marginTop: '1rem'
-                                }}>
+                                <div className="flex flex-wrap gap-4 mt-4">
                                     {publicQrData && (
                                         <a
                                             href={publicQrData}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                                            className="no-underline text-foreground block flex-1 min-w-[150px]"
                                         >
-                                            <div style={{
-                                                border: '1px solid #e5e7eb',
-                                                borderRadius: '0.375rem',
-                                                padding: '1rem',
-                                                backgroundColor: '#f9fafb',
-                                                flex: '1 1 0%',
-                                                minWidth: '150px'
-                                            }}>
-                                                <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Public Verification QR</h3>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'center',
-                                                    padding: '1rem'
-                                                }}>
-                                                    {/* Use QRCodeSVG and ignore TS error */}
+                                            <div className="border border-border rounded-md p-4 bg-background">
+                                                <h3 className="font-bold mb-2">Public Verification QR</h3>
+                                                <div className="flex justify-center p-4">
                                                     {/* @ts-ignore */}
                                                     <QRCodeSVG value={publicQrData} size={128} />
                                                 </div>
-                                                <p style={{
-                                                    fontSize: '0.75rem',
-                                                    lineHeight: '1rem',
-                                                    color: '#6b7280',
-                                                    textAlign: 'center',
-                                                    marginTop: '0.5rem'
-                                                }}>Scan to verify UUID status.</p>
+                                                <p className="text-xs text-muted-foreground text-center mt-2">
+                                                    Scan to verify UUID status.
+                                                </p>
                                             </div>
                                         </a>
                                     )}
@@ -332,33 +313,17 @@ export function HashGenerator({
                                             href={privateQrData}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                                            className="no-underline text-foreground block flex-1 min-w-[150px]"
                                         >
-                                            <div style={{
-                                                border: '1px solid #e5e7eb',
-                                                borderRadius: '0.375rem',
-                                                padding: '1rem',
-                                                backgroundColor: '#f9fafb',
-                                                flex: '1 1 0%',
-                                                minWidth: '150px'
-                                            }}>
-                                                <h3 style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Private Redeem QR</h3>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'center',
-                                                    padding: '1rem'
-                                                }}>
-                                                    {/* Use QRCodeSVG and ignore TS error */}
+                                            <div className="border border-border rounded-md p-4 bg-background">
+                                                <h3 className="font-bold mb-2">Private Redeem QR</h3>
+                                                <div className="flex justify-center p-4">
                                                     {/* @ts-ignore */}
                                                     <QRCodeSVG value={privateQrData} size={128} />
                                                 </div>
-                                                <p style={{
-                                                    fontSize: '0.75rem',
-                                                    lineHeight: '1rem',
-                                                    color: '#6b7280',
-                                                    textAlign: 'center',
-                                                    marginTop: '0.5rem'
-                                                }}>Scan to pre-fill redeem form.</p>
+                                                <p className="text-xs text-muted-foreground text-center mt-2">
+                                                    Scan to pre-fill redeem form.
+                                                </p>
                                             </div>
                                         </a>
                                     )}
@@ -367,7 +332,7 @@ export function HashGenerator({
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     )
 } 

@@ -6,6 +6,9 @@ import { fetchCallReadOnlyFunction, ClarityType, stringAsciiCV } from "@stacks/t
 import { bufferFromHex } from "@stacks/transactions/dist/cl"
 import { Loader2 } from "@repo/ui/icons"
 import { request } from "@stacks/connect"
+import { Button } from "@repo/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
+import { cn } from "@repo/ui/utils"
 import { BLAZE_SIGNER_CONTRACT, generateUUID } from "../../constants/contracts"
 
 interface SubmitSignatureProps {
@@ -91,39 +94,37 @@ export function SubmitSignature({ network, walletAddress, className }: SubmitSig
     }
 
     return (
-        <div className={`card ${className || ''}`}>
-            <div className="card-header">
-                <h2 className="card-title">Submit Signature</h2>
-                <p className="card-description">
+        <Card className={cn(className)}>
+            <CardHeader>
+                <CardTitle>Submit Signature</CardTitle>
+                <CardDescription>
                     Submit a signature to verify and consume a UUID. The contract must be the caller.
-                </p>
-            </div>
-            <div className="card-content">
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="submit-wallet" className="label">
+                        <label htmlFor="submit-wallet" className="block text-sm font-medium text-foreground">
                             Connected Wallet (Principal)
                         </label>
                         <input
                             id="submit-wallet"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             value={walletAddress || "Not connected"}
                             disabled
                             style={{
-                                backgroundColor: 'var(--border)',
-                                cursor: 'not-allowed',
                                 opacity: walletAddress ? 1 : 0.7
                             }}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="submit-opcode" className="label">
+                        <label htmlFor="submit-opcode" className="block text-sm font-medium text-foreground">
                             Opcode (string-ascii 64)
                         </label>
                         <input
                             id="submit-opcode"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="e.g. TRANSFER_10"
                             value={opcode}
                             onChange={handleInputChange(setOpcode)}
@@ -131,51 +132,49 @@ export function SubmitSignature({ network, walletAddress, className }: SubmitSig
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="submit-uuid" className="label">
+                        <label htmlFor="submit-uuid" className="block text-sm font-medium text-foreground">
                             UUID (string-ascii 64)
                         </label>
-                        <div className="flex space-x-2">
-                            <input
-                                id="submit-uuid"
-                                className="input"
-                                placeholder="Enter unique request ID"
-                                value={uuid}
-                                onChange={handleInputChange(setUuid)}
-                            />
-                        </div>
+                        <input
+                            id="submit-uuid"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            placeholder="Enter unique request ID"
+                            value={uuid}
+                            onChange={handleInputChange(setUuid)}
+                        />
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="submit-signature" className="label">
+                        <label htmlFor="submit-signature" className="block text-sm font-medium text-foreground">
                             Signature (buff 65)
                         </label>
                         <input
                             id="submit-signature"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="0x..."
                             value={signature}
                             onChange={handleInputChange(setSignature)}
                         />
                     </div>
 
-                    <button
-                        className="button w-full"
+                    <Button
+                        className="w-full"
                         onClick={handleSubmitSignature}
                         disabled={isSubmitting || !opcode || !uuid || !signature || !walletAddress}
                     >
                         {isSubmitting ? (
                             <>
-                                <Loader2 className="button-icon h-4 w-4 animate-spin" />
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 Submitting...
                             </>
                         ) : (
                             "Submit Signature"
                         )}
-                    </button>
+                    </Button>
 
-                    <div className="result-box">
-                        <p className="result-box-title">Submit Result</p>
-                        <div className="result-box-content">
+                    <div className="mt-4 p-4 rounded-md border border-border">
+                        <p className="text-sm font-medium mb-1">Submit Result</p>
+                        <div className="font-mono text-sm break-all">
                             {isSubmitting ? (
                                 "Submitting signature..."
                             ) : !submitResult ? (
@@ -188,7 +187,7 @@ export function SubmitSignature({ network, walletAddress, className }: SubmitSig
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     )
 } 

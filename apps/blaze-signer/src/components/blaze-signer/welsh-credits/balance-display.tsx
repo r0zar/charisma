@@ -2,6 +2,9 @@
 
 import React from "react"
 import { Loader2 } from "@repo/ui/icons"
+import { Button } from "@repo/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
+import { cn } from "@repo/ui/utils"
 
 interface BalanceDisplayProps {
     walletAddress: string
@@ -18,60 +21,61 @@ export function BalanceDisplay({
     onRefresh,
     className
 }: BalanceDisplayProps) {
+    const isRefreshDisabled = isLoading || !walletAddress;
+
     return (
-        <div className={`card ${className || ''}`}>
-            <div className="card-header">
-                <h2 className="card-title">Welsh Credits Manager</h2>
-                <p className="card-description">
+        <Card className={cn(className)}>
+            <CardHeader>
+                <CardTitle>Welsh Credits Manager</CardTitle>
+                <CardDescription>
                     Interact with the Welsh Credits contract to manage your tokens
-                </p>
-            </div>
-            <div className="card-content">
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label className="label">Connected Wallet</label>
+                        <label className="block text-sm font-medium text-foreground">Connected Wallet</label>
                         <input
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed"
+                            style={{ opacity: walletAddress ? 1 : 0.7 }}
                             value={walletAddress || "Not connected"}
                             disabled
-                            style={{
-                                backgroundColor: 'var(--border)',
-                                cursor: 'not-allowed',
-                                opacity: walletAddress ? 1 : 0.7
-                            }}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label className="label">Your Balance</label>
-                        <div className="result-box">
-                            <div className="result-box-content">
-                                {isLoading ? (
-                                    <div className="flex items-center">
-                                        <Loader2 className="button-icon h-4 w-4 animate-spin" />
-                                        <span>Loading...</span>
-                                    </div>
-                                ) : balance === null ? (
-                                    "Connect wallet to view balance"
-                                ) : balance === "Error" ? (
-                                    <span className="text-destructive">Error loading balance</span>
-                                ) : (
-                                    <span className="text-primary">{balance} WELSH</span>
-                                )}
+                        <label className="block text-sm font-medium text-foreground">Your Balance</label>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-grow p-3 rounded-md border border-border bg-background">
+                                <div className="min-h-6">
+                                    {isLoading ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Loading...</span>
+                                        </div>
+                                    ) : balance === null ? (
+                                        "Connect wallet to view balance"
+                                    ) : balance === "Error" ? (
+                                        <span className="text-destructive">Error loading balance</span>
+                                    ) : (
+                                        <span className="text-primary">{balance} WELSH</span>
+                                    )}
+                                </div>
                             </div>
+                            {walletAddress && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={onRefresh}
+                                    disabled={isRefreshDisabled}
+                                >
+                                    Refresh
+                                </Button>
+                            )}
                         </div>
-                        {walletAddress && (
-                            <button
-                                className="button"
-                                onClick={onRefresh}
-                                disabled={isLoading || !walletAddress}
-                            >
-                                Refresh Balance
-                            </button>
-                        )}
                     </div>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     )
 } 

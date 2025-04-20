@@ -13,6 +13,9 @@ import {
 } from "@stacks/transactions"
 import { bufferFromHex } from "@stacks/transactions/dist/cl"
 import { Loader2 } from "@repo/ui/icons"
+import { Button } from "@repo/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
+import { cn } from "@repo/ui/utils"
 
 // Default signer contract - keep in sync with hash-generator
 const DEFAULT_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc9"
@@ -102,22 +105,22 @@ export function SignatureVerifier({ network, walletAddress, className }: Signatu
     }
 
     return (
-        <div className={`card mb-8 ${className || ''}`}>
-            <div className="card-header">
-                <h2 className="card-title">Get Signer by Hash</h2>
-                <p className="card-description">
+        <Card className={cn("mb-8", className)}>
+            <CardHeader>
+                <CardTitle>Get Signer by Hash</CardTitle>
+                <CardDescription>
                     Recover the signer's principal from a pre-computed hash and signature.
-                </p>
-            </div>
-            <div className="card-content space-y-4">
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="verify-hash" className="label">
+                        <label htmlFor="verify-hash" className="block text-sm font-medium text-foreground">
                             Hash (buff 32)
                         </label>
                         <input
                             id="verify-hash"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="0x..."
                             value={verifyHash}
                             onChange={handleInputChange(setVerifyHash)}
@@ -125,49 +128,49 @@ export function SignatureVerifier({ network, walletAddress, className }: Signatu
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="signature" className="label">
+                        <label htmlFor="signature" className="block text-sm font-medium text-foreground">
                             Signature (buff 65)
                         </label>
                         <input
                             id="signature"
-                            className="input"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             placeholder="0x..."
                             value={verifySignature}
                             onChange={handleInputChange(setVerifySignature)}
                         />
                     </div>
-                </div>
 
-                <button
-                    onClick={handleVerifySignature}
-                    className="button w-full mt-4"
-                    disabled={isVerifying || !verifyHash || !verifySignature}
-                >
-                    {isVerifying ? (
-                        <>
-                            <Loader2 className="button-icon h-4 w-4 animate-spin" />
-                            Verifying...
-                        </>
-                    ) : (
-                        "Recover Signer"
-                    )}
-                </button>
-
-                <div className="result-box md:col-span-2">
-                    <p className="result-box-title">Verification Result:</p>
-                    <div className="result-box-content">
+                    <Button
+                        onClick={handleVerifySignature}
+                        className="w-full mt-4"
+                        disabled={isVerifying || !verifyHash || !verifySignature}
+                    >
                         {isVerifying ? (
-                            "Verifying signature..."
-                        ) : !verificationResult ? (
-                            "Result will appear here..."
-                        ) : verificationResult.type === 'error' ? (
-                            <span className="text-destructive">{verificationResult.message}</span>
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Verifying...
+                            </>
                         ) : (
-                            <span className="text-primary">Signer: {verificationResult.signer}</span>
+                            "Recover Signer"
                         )}
+                    </Button>
+
+                    <div className="mt-4 p-4 rounded-md border border-border">
+                        <p className="text-sm font-medium mb-1">Verification Result:</p>
+                        <div className="font-mono text-sm break-all">
+                            {isVerifying ? (
+                                "Verifying signature..."
+                            ) : !verificationResult ? (
+                                "Result will appear here..."
+                            ) : verificationResult.type === 'error' ? (
+                                <span className="text-destructive">{verificationResult.message}</span>
+                            ) : (
+                                <span className="text-primary">{verificationResult.signer}</span>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 } 

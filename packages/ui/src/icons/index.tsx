@@ -16,6 +16,11 @@ export const {
     Copy,
     Loader2,
     CheckCircle2,
+    ChevronRight,
+    Zap,
+    Lock,
+    Layers,
+    Check,
     // Add any other icons you want to export directly here
     ...otherIcons
 } = icons; 

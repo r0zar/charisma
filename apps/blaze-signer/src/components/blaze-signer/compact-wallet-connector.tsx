@@ -6,17 +6,16 @@ import { connect } from "@stacks/connect"
 import type { AddressEntry } from "@stacks/connect/dist/types/methods"
 import { cn } from "@repo/ui/utils"
 
-interface WalletConnectorProps {
+interface CompactWalletConnectorProps {
     onWalletUpdate: (status: {
         connected: boolean
         address: string
         publicKey: string
     }) => void
     className?: string
-    compact?: boolean
 }
 
-export function WalletConnector({ onWalletUpdate, className, compact = false }: WalletConnectorProps) {
+export function CompactWalletConnector({ onWalletUpdate, className }: CompactWalletConnectorProps) {
     const [isConnecting, setIsConnecting] = useState(false)
     const [walletConnected, setWalletConnected] = useState(false)
     const [walletAddress, setWalletAddress] = useState("")
@@ -78,49 +77,37 @@ export function WalletConnector({ onWalletUpdate, className, compact = false }: 
     }
 
     return (
-        <div className={cn(
-            compact ? "" : "mb-6",
-            compact ? "flex" : "flex justify-end",
-            className
-        )}>
+        <div className={cn("flex justify-end", className)}>
             {walletConnected ? (
                 <div className="flex items-center gap-2">
-                    <div className={cn(
-                        "bg-muted rounded-md",
-                        compact ? "px-2 py-1" : "px-3 py-2"
-                    )}>
-                        <span className={cn(
-                            "font-medium",
-                            compact ? "text-xs" : "text-sm"
-                        )}>
+                    <div className="px-2 py-1 bg-muted rounded-md">
+                        <span className="text-xs font-medium">
                             {`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}
-                            {!compact && walletPublicKey && <span className="ml-2 text-muted-foreground">({walletPublicKey.substring(0, 4)})</span>}
                         </span>
                     </div>
                     <Button
                         variant="outline"
                         onClick={disconnectWallet}
-                        size={compact ? "sm" : "md"}
+                        size="sm"
+                        className="h-8 px-3"
                     >
-                        {compact ? "Logout" : "Disconnect"}
+                        Logout
                     </Button>
                 </div>
             ) : (
                 <Button
                     onClick={connectWallet}
                     disabled={isConnecting}
-                    size={compact ? "sm" : "md"}
+                    size="sm"
+                    className="h-8 px-3"
                 >
                     {isConnecting ? (
                         <>
-                            <div className={cn(
-                                "inline-block rounded-full animate-spin border-t-foreground border-muted",
-                                compact ? "w-3 h-3 mr-1 border" : "w-4 h-4 mr-2 border-2"
-                            )} />
-                            {compact ? "..." : "Connecting..."}
+                            <div className="inline-block w-3 h-3 mr-1 border rounded-full animate-spin border-t-foreground border-muted" />
+                            ...
                         </>
                     ) : (
-                        compact ? "Connect" : "Connect Wallet"
+                        "Connect"
                     )}
                 </Button>
             )}
