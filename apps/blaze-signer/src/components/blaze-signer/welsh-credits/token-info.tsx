@@ -11,7 +11,7 @@ import {
 import { Loader2 } from "@repo/ui/icons"
 import { Card, CardHeader, CardTitle, CardContent } from "@repo/ui/card"
 import { cn } from "@repo/ui/utils"
-import { Link } from "@repo/ui/link"
+import Link from "next/link"
 import {
     WELSH_CREDITS_CONTRACT,
     WELSH_CREDITS_DECIMALS,
@@ -254,8 +254,8 @@ export function TokenInfo({ network, className }: TokenInfoProps) {
                                             {tokenData.tokenUri ? (
                                                 <Link
                                                     href={tokenData.tokenUri}
-                                                    newTab
-                                                    variant="hover"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
                                                     className="text-primary"
                                                 >
                                                     View

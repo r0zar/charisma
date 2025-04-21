@@ -145,7 +145,7 @@ export function RedeemNoteForm({
                             type="text"
                             value={redeemAmount}
                             onChange={handleAmountChange}
-                            placeholder="Enter amount"
+                            placeholder="Amount"
                             className="text-center w-32 text-3xl font-bold text-green-600 bg-transparent border-b-2 border-border focus:border-primary focus:outline-none"
                         />
                         <span className="text-xl font-normal ml-1">WELSH</span>

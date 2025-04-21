@@ -79,21 +79,14 @@ export function CompactWalletConnector({ onWalletUpdate, className }: CompactWal
     return (
         <div className={cn("flex justify-end", className)}>
             {walletConnected ? (
-                <div className="flex items-center gap-2">
-                    <div className="px-2 py-1 bg-muted rounded-md">
-                        <span className="text-xs font-medium">
-                            {`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}
-                        </span>
-                    </div>
-                    <Button
-                        variant="outline"
-                        onClick={disconnectWallet}
-                        size="sm"
-                        className="h-8 px-3"
-                    >
-                        Logout
-                    </Button>
-                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={disconnectWallet}
+                    className="h-8 px-3 text-xs font-medium hover:bg-destructive/10 hover:text-destructive transition-colors"
+                >
+                    {`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}
+                </Button>
             ) : (
                 <Button
                     onClick={connectWallet}

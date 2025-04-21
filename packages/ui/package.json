@@ -7,89 +7,47 @@
   "files": [
     "dist/**",
     "dist",
-    "tailwind.config.ts",
-    "tailwind.preset.ts",
-    "tailwind.theme.ts"
+    "tailwind.config.ts"
   ],
   "exports": {
     "./button": {
       "import": {
-        "types": "./dist/es/button/index.d.mts",
-        "default": "./dist/es/button/index.mjs"
+        "types": "./dist/es/button.d.mts",
+        "default": "./dist/es/button.mjs"
       },
       "require": {
-        "types": "./dist/cjs/button/index.d.ts",
-        "default": "./dist/cjs/button/index.js"
+        "types": "./dist/cjs/button.d.ts",
+        "default": "./dist/cjs/button.js"
       }
     },
     "./card": {
       "import": {
-        "types": "./dist/es/card/index.d.mts",
-        "default": "./dist/es/card/index.mjs"
+        "types": "./dist/es/card.d.mts",
+        "default": "./dist/es/card.mjs"
       },
       "require": {
-        "types": "./dist/cjs/card/index.d.ts",
-        "default": "./dist/cjs/card/index.js"
+        "types": "./dist/cjs/card.d.ts",
+        "default": "./dist/cjs/card.js"
       }
     },
-    "./input": {
+    "./navigation-menu": {
       "import": {
-        "types": "./dist/es/input/index.d.mts",
-        "default": "./dist/es/input/index.mjs"
+        "types": "./dist/es/navigation-menu.d.mts",
+        "default": "./dist/es/navigation-menu.mjs"
       },
       "require": {
-        "types": "./dist/cjs/input/index.d.ts",
-        "default": "./dist/cjs/input/index.js"
-      }
-    },
-    "./textarea": {
-      "import": {
-        "types": "./dist/es/textarea/index.d.mts",
-        "default": "./dist/es/textarea/index.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/textarea/index.d.ts",
-        "default": "./dist/cjs/textarea/index.js"
+        "types": "./dist/cjs/navigation-menu.d.ts",
+        "default": "./dist/cjs/navigation-menu.js"
       }
     },
     "./icons": {
       "import": {
-        "types": "./dist/es/icons/index.d.mts",
-        "default": "./dist/es/icons/index.mjs"
+        "types": "./dist/es/icons.d.mts",
+        "default": "./dist/es/icons.mjs"
       },
       "require": {
-        "types": "./dist/cjs/icons/index.d.ts",
-        "default": "./dist/cjs/icons/index.js"
-      }
-    },
-    "./tabs": {
-      "import": {
-        "types": "./dist/es/tabs/index.d.mts",
-        "default": "./dist/es/tabs/index.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/tabs/index.d.ts",
-        "default": "./dist/cjs/tabs/index.js"
-      }
-    },
-    "./counter-button": {
-      "import": {
-        "types": "./dist/es/counter-button/index.d.mts",
-        "default": "./dist/es/counter-button/index.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/counter-button/index.d.ts",
-        "default": "./dist/cjs/counter-button/index.js"
-      }
-    },
-    "./link": {
-      "import": {
-        "types": "./dist/es/link/index.d.mts",
-        "default": "./dist/es/link/index.mjs"
-      },
-      "require": {
-        "types": "./dist/cjs/link/index.d.ts",
-        "default": "./dist/cjs/link/index.js"
+        "types": "./dist/cjs/icons.d.ts",
+        "default": "./dist/cjs/icons.js"
       }
     },
     "./utils": {
@@ -105,20 +63,11 @@
     "./tailwind": {
       "types": "./tailwind.config.ts",
       "default": "./tailwind.config.ts"
-    },
-    "./tailwind/preset": {
-      "types": "./tailwind.preset.ts",
-      "default": "./tailwind.preset.ts"
-    },
-    "./tailwind/theme": {
-      "types": "./tailwind.theme.ts",
-      "default": "./tailwind.theme.ts"
     }
   },
   "scripts": {
     "build": "bunchee",
     "dev": "bunchee --watch",
-    "watch": "nodemon --watch src --watch tailwind.*.ts --ext 'ts,tsx,js,jsx' --exec 'pnpm build'",
     "check-types": "tsc --noEmit",
     "lint": "eslint src/",
     "test": "jest"
@@ -147,11 +96,15 @@
     "react-dom": ">=18"
   },
   "dependencies": {
+    "@radix-ui/react-navigation-menu": "^1.2.9",
+    "@radix-ui/react-slot": "^1.2.0",
     "autoprefixer": "^10.4.18",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.488.0",
     "postcss": "^8.4.35",
     "tailwind-merge": "^3.2.0",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7"
   }
 }

@@ -6,7 +6,6 @@ import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType } from "@stacks/t
 import { Loader2 } from "@repo/ui/icons"
 import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
 import { Button } from "@repo/ui/button"
-import { Input } from "@repo/ui/input"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
 import { cn } from "@repo/ui/utils"
 

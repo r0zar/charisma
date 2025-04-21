@@ -8,7 +8,6 @@ import { CompactWalletConnector } from "./compact-wallet-connector"
 import { HashGenerator } from "./hash-generator"
 import { UuidChecker } from "./uuid-checker"
 import { SignatureVerifier } from "./signature-verifier"
-import { Tabs } from "@repo/ui/tabs"
 import { VerifySignature } from "./verify-signature"
 import { SubmitSignature } from "./submit-signature"
 import { WelshCreditsInterface } from "./welsh-credits"
@@ -16,8 +15,18 @@ import { DeployContractForm } from "./deploy-contract-form"
 import { VerifyContent } from "./verify-content"
 import { RedeemPageContent } from "./redeem-content"
 import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
+import {
+    NavigationMenu,
+    NavigationMenuList,
+    NavigationMenuItem,
+    NavigationMenuLink,
+    navigationMenuTriggerStyle,
+} from "@repo/ui/navigation-menu"
+import Link from "next/link"
 import { cn } from "@repo/ui/utils"
-import { Link } from "@repo/ui/link"
+import { Zap, MenuIcon } from "lucide-react"
+import { Button } from "@repo/ui/button"
+
 
 // Default to mainnet
 const defaultNetwork = STACKS_MAINNET
@@ -25,6 +34,7 @@ const defaultNetwork = STACKS_MAINNET
 export function BlazeSignerInterface() {
     const router = useRouter()
     const pathname = usePathname()
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const [walletStatus, setWalletStatus] = useState({
         connected: false,
@@ -35,7 +45,6 @@ export function BlazeSignerInterface() {
 
     // Determine active tab based on current path
     const getTabFromPath = (path: string) => {
-        if (path.includes("/submit")) return "submit"
         if (path.includes("/uuid")) return "uuid"
         if (path.includes("/welsh-credits")) return "welsh-credits"
         if (path.includes("/redeem")) return "redeem"
@@ -58,11 +67,8 @@ export function BlazeSignerInterface() {
     const handleTabChange = (tabId: string) => {
         let path = "/signer"
         switch (tabId) {
-            case "submit":
-                path = "/signer/submit"
-                break
             case "uuid":
-                path = "/signer/uuid-checker"
+                path = "/signer/uuid"
                 break
             case "welsh-credits":
                 path = "/signer/welsh-credits"
@@ -78,20 +84,20 @@ export function BlazeSignerInterface() {
         router.push(path, { scroll: false })
     }
 
-    // Add this function to handle client-side navigation
-    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
-        e.preventDefault();
-        router.push(path, { scroll: false });
+    // Add this function to handle client-side navigation for NavMenu links
+    const handleNavMenuLinkClick = (href: string) => {
+        router.push(href, { scroll: false });
     };
 
-    const tabs = [
+    const navItems = [
         {
             id: 'signatures',
             label: 'Signatures',
+            href: '/signer',
             content: (
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">
-                        Generate and verify SIP-018 structured data hashes and signatures for off-chain operations.
+                        Generate, verify, and submit SIP-018 structured data signatures for off-chain operations.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <HashGenerator
@@ -107,19 +113,6 @@ export function BlazeSignerInterface() {
                             network={network}
                             walletAddress={walletStatus.address}
                         />
-                    </div>
-                </div>
-            )
-        },
-        {
-            id: 'submit',
-            label: 'Submit',
-            content: (
-                <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground mb-2">
-                        Submit a previously generated and signed message (hash + signature) to the main Blaze Protocol contract.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SubmitSignature
                             network={network}
                             walletAddress={walletStatus.address}
@@ -131,6 +124,7 @@ export function BlazeSignerInterface() {
         {
             id: 'uuid',
             label: 'Verify',
+            href: '/signer/uuid',
             content: (
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">
@@ -148,6 +142,7 @@ export function BlazeSignerInterface() {
         {
             id: 'welsh-credits',
             label: 'Welsh Credits',
+            href: '/signer/welsh-credits',
             content: (
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">
@@ -164,6 +159,7 @@ export function BlazeSignerInterface() {
         {
             id: 'redeem',
             label: 'Redeem Note',
+            href: '/signer/redeem',
             content: (
                 <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">
@@ -179,53 +175,95 @@ export function BlazeSignerInterface() {
 
     // Render the appropriate content based on active tab
     const renderActiveTabContent = () => {
-        const activeTabData = tabs.find(tab => tab.id === activeTab);
-        return activeTabData?.content || null;
+        const activeItemData = navItems.find(item => item.id === activeTab);
+        return activeItemData?.content || null;
     }
 
     return (
         <>
             {/* Navigation Bar */}
-            <header className="bg-background border-b border-border">
-                <nav className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <a
-                        href="/signer"
-                        className="text-xl font-bold text-foreground hover:text-primary transition-colors"
-                        onClick={(e) => handleLinkClick(e, '/signer')}
-                    >
-                        Blaze Protocol
-                    </a>
-                    <div className="flex items-center justify-end gap-6">
-                        {/* Desktop Navigation */}
-                        <div className="hidden md:flex space-x-4">
-                            {tabs.map(tab => {
-                                const href = `/signer${tab.id === 'signatures' ? '' : `/${tab.id}`}`;
-                                return (
-                                    <Link
-                                        key={tab.id}
-                                        href={href}
-                                        className={cn(
-                                            "text-sm font-medium px-3 py-2 rounded-md transition-colors",
-                                            activeTab === tab.id
-                                                ? "bg-muted text-foreground"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                        )}
-                                        onClick={(e) => handleLinkClick(e, href)}
-                                    >
-                                        {tab.label}
-                                    </Link>
-                                );
-                            })}
-                        </div>
+            <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+                <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+                    {/* Logo/Brand Link */}
+                    <div className="flex items-center gap-2">
+                        <Zap className="h-6 w-6 text-primary" />
+                        <span className="text-xl font-bold">Blaze Protocol</span>
+                    </div>
 
-                        {/* Wallet Status in Header - Compact Version */}
-                        <div className="flex items-center ml-auto md:ml-0">
+                    {/* Desktop Navigation Menu */}
+                    <nav className="hidden md:flex items-center gap-6">
+                        <NavigationMenu>
+                            <NavigationMenuList className="gap-6">
+                                {navItems.map((item) => (
+                                    <NavigationMenuItem key={item.id}>
+                                        <Link href={item.href} legacyBehavior passHref>
+                                            <NavigationMenuLink
+                                                className={cn(
+                                                    "text-sm text-muted-foreground hover:text-foreground transition-colors",
+                                                    getTabFromPath(pathname) === item.id && "text-foreground font-medium"
+                                                )}
+                                                onClick={() => handleNavMenuLinkClick(item.href)}
+                                            >
+                                                {item.label}
+                                            </NavigationMenuLink>
+                                        </Link>
+                                    </NavigationMenuItem>
+                                ))}
+                            </NavigationMenuList>
+                        </NavigationMenu>
+
+                        {/* Desktop Wallet Connector */}
+                        <div className="flex items-center">
                             <CompactWalletConnector
                                 onWalletUpdate={setWalletStatus}
                             />
                         </div>
+                    </nav>
+
+                    {/* Mobile Navigation */}
+                    <div className="flex items-center gap-4 md:hidden">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 shrink-0"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            <MenuIcon className="h-5 w-5" />
+                            <span className="sr-only">Toggle menu</span>
+                        </Button>
+
+                        {/* Mobile Wallet Connector */}
+                        <CompactWalletConnector
+                            onWalletUpdate={setWalletStatus}
+                        />
                     </div>
-                </nav>
+                </div>
+
+                {/* Mobile Navigation Menu */}
+                {isMenuOpen && (
+                    <nav className="md:hidden border-t border-border">
+                        <div className="container max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex flex-col gap-4">
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.id}
+                                        href={item.href}
+                                        className={cn(
+                                            "text-sm text-muted-foreground hover:text-foreground transition-colors py-2",
+                                            getTabFromPath(pathname) === item.id && "text-foreground font-medium"
+                                        )}
+                                        onClick={() => {
+                                            handleNavMenuLinkClick(item.href);
+                                            setIsMenuOpen(false);
+                                        }}
+                                    >
+                                        {item.label}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+                )}
             </header>
 
             <div className="container max-w-7xl mx-auto px-4 py-8">
@@ -233,29 +271,13 @@ export function BlazeSignerInterface() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-2">
                             <h1 className="text-2xl md:text-3xl font-bold">Blaze Protocol Interface</h1>
-                            <p className="text-muted-foreground">
+                            <p className="text-muted-foreground text-sm sm:text-base">
                                 Test the functions of the blaze-signer Clarity smart contract
                             </p>
                         </div>
                         <div className="p-3 rounded-md border border-border text-sm bg-muted/30 min-w-[260px] text-center md:text-right">
-                            <span className="font-medium font-mono">{BLAZE_SIGNER_CONTRACT}</span>
+                            <span className="font-medium font-mono text-xs sm:text-sm">{BLAZE_SIGNER_CONTRACT}</span>
                         </div>
-                    </div>
-
-                    {/* Mobile Navigation */}
-                    <div className="md:hidden mb-8">
-                        <Tabs
-                            tabs={tabs.map(tab => ({
-                                id: tab.id,
-                                label: tab.label,
-                                content: null
-                            }))}
-                            activeTab={activeTab}
-                            onTabChange={handleTabChange}
-                            variant="pills"
-                            size="sm"
-                            alignment="center"
-                        />
                     </div>
 
                     {/* Content section - always render based on active tab */}

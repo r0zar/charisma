@@ -64,7 +64,6 @@ export function BalanceDisplay({
                             </div>
                             {walletAddress && (
                                 <Button
-                                    size="sm"
                                     variant="outline"
                                     onClick={onRefresh}
                                     disabled={isRefreshDisabled}
