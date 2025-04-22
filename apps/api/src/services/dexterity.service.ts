@@ -47,9 +47,10 @@ export class DexterityService {
     this.routerName = options?.routerName;
 
     // Configure Dexterity
+
     Dexterity.init({
       debug: true,
-      apiKeys: process.env.HIRO_API_KEYS?.split(',')
+      apiKey: process.env.HIRO_API_KEY,
     });
 
     // Configure router if information provided

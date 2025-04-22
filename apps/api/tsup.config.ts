@@ -4,5 +4,7 @@ export default defineConfig((options: Options) => ({
   entryPoints: ["src/index.ts"],
   clean: true,
   format: ["cjs"],
+  // Prevent bundling workspace packages
+  noExternal: [/@repo\/.*/],
   ...options,
 }));

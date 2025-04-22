@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { StacksClient } from "@repo/stacks";
 import { describe, it, expect, beforeAll, jest } from "@jest/globals";
 import { Dexterity, OPCODES, SwapOptions } from "..";
 import 'dotenv/config';
@@ -10,15 +9,15 @@ const TEST_PRIVATE_KEY =
   'e494f188c2d35887531ba474c433b1e41fadd8eb824aca983447fd4bb8b277d801';
 
 // Hiro API keys from environment
-const apiKeys = process.env.HIRO_API_KEYS!.split(',');
+const apiKey = process.env.HIRO_API_KEY!
 
 describe("@repo/dexterity", () => {
   // Initialize once before all tests
   beforeAll(() => {
     Dexterity.init({
       privateKey: TEST_PRIVATE_KEY,
-      debug: false,
-      apiKeys: apiKeys,
+      debug: true,
+      apiKey: apiKey,
     });
   });
 
@@ -46,7 +45,7 @@ describe("@repo/dexterity", () => {
 
   // Test building a specific vault
   it('builds a vault by address', async () => {
-    const contractId = 'SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.chabtz-lp-token';
+    const contractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
     const vault = await Dexterity.buildVault(contractId);
 
     expect(vault).toBeDefined();
