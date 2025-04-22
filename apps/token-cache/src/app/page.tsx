@@ -24,6 +24,7 @@ export default async function Home() {
   // Get an example contract ID for the API link, if tokens exist
   const exampleContractId = tokens.length > 0 ? tokens[0].contract_principal : null;
   const exampleApiUrl = exampleContractId ? `/api/v1/sip10/${exampleContractId}` : null;
+  const exampleSearchUrl = exampleContractId ? `/?search=${exampleContractId}` : null;
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 bg-gray-50 dark:bg-gray-900">
@@ -48,6 +49,21 @@ export default async function Home() {
             <span className="break-words">
               You can search for tokens by name, symbol, or contract ID. If a token isn't listed, searching by its full contract ID
               (e.g., <code className="break-all text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token</code>) and clicking the "Lookup" button will attempt to fetch its data and add it to the list.
+            </span>
+          </p>
+          <p className="flex items-start gap-3">
+            <span className="text-lg mt-0.5 flex-shrink-0">🔗</span>
+            <span className="break-words">
+              You can directly link to a specific token by using the <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">?search=</code> URL parameter with the contract ID.
+              {exampleSearchUrl && (
+                <>
+                  {' '}
+                  Example:
+                  <Link href={exampleSearchUrl} className="text-blue-500 hover:underline ml-1 break-all text-xs">
+                    <code>{exampleSearchUrl}</code>
+                  </Link>
+                </>
+              )}
             </span>
           </p>
           <p className="flex items-start gap-3">

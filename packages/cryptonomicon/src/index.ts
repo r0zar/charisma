@@ -45,6 +45,7 @@ export interface Token {
   supply?: number;
   image?: string;
   description?: string;
+  contract_principal?: string;
 }
 
 /**
@@ -208,7 +209,7 @@ export class Cryptonomicon {
           ...apiMetadata,
           image: apiMetadata.image_uri || apiMetadata.image_canonical_uri || "",
           identifier: apiMetadata.asset_identifier?.split("::")[1] || "",
-          contract_principal: apiMetadata.contract_principal || contractId,
+          contract_principal: contractId, // Always use the passed contractId
         };
       } catch (error) {
         if (this.config.debug) {
@@ -282,6 +283,7 @@ export class Cryptonomicon {
         return {
           ...metadata,
           token_uri: uri,
+          contract_principal: contractId, // Always include the contract_principal with the passed contractId
         };
       } catch (error) {
         if (this.config.debug) {
@@ -333,7 +335,8 @@ export class Cryptonomicon {
         symbol: "STX",
         decimals: 6,
         description: "The native token of the Stacks blockchain",
-        image: "https://charisma.rocks/stx-logo.png"
+        image: "https://charisma.rocks/stx-logo.png",
+        contract_principal: ".stx"
       };
     }
 
@@ -349,7 +352,8 @@ export class Cryptonomicon {
           symbol: metadata.symbol,
           decimals: metadata.decimals,
           description: metadata.description || "",
-          image: metadata.image || ""
+          image: metadata.image || "",
+          contract_principal: metadata.contract_principal || contractId
         };
       }
 
@@ -367,7 +371,8 @@ export class Cryptonomicon {
         symbol,
         decimals,
         description: "",
-        image: ""
+        image: "",
+        contract_principal: contractId
       };
     } catch (error) {
       if (this.config.debug) {

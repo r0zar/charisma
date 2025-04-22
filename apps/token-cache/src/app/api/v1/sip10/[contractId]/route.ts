@@ -33,7 +33,7 @@ export async function GET(
     request: Request,
     context: { params: { contractId: string } }
 ) {
-    const { contractId } = context.params;
+    const { contractId } = await context.params;
 
     // Validate contract ID format (basic check)
     if (!contractId) {

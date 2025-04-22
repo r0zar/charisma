@@ -3,6 +3,7 @@
 import { useState, useMemo, startTransition, useRef, useEffect } from 'react';
 import { TokenMetadata } from "@repo/cryptonomicon";
 import Image from "next/image";
+import { useSearchParams } from 'next/navigation';
 import { removeTokenFromList, refreshTokenData } from '@/app/actions';
 
 // Helper to check if a string looks like a Stacks contract ID (basic check)
@@ -65,7 +66,11 @@ const formatSupplyWithDecimals = (
 
     try {
         const rawSupplyBigInt = BigInt(String(supply));
-        const divisor = BigInt(10) ** BigInt(decimals);
+        // Create divisor without using ** operator on BigInt
+        let divisor = BigInt(1);
+        for (let i = 0; i < decimals; i++) {
+            divisor = divisor * BigInt(10);
+        }
         const formattedSupply = rawSupplyBigInt / divisor;
         return formattedSupply.toLocaleString();
     } catch (error) {
@@ -75,6 +80,10 @@ const formatSupplyWithDecimals = (
 };
 
 export default function TokenList({ initialTokens, isDevelopment }: TokenListProps) {
+    const searchParams = useSearchParams();
+    const urlSearchParam = searchParams.get('search');
+    const contractIdParam = searchParams.get('contractId');
+
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedTokens, setExpandedTokens] = useState<Record<string, boolean>>({});
     const [isLookingUp, setIsLookingUp] = useState(false);
@@ -85,6 +94,7 @@ export default function TokenList({ initialTokens, isDevelopment }: TokenListPro
     const [statusMessages, setStatusMessages] = useState<StatusMessage[]>([]);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const messageTimeoutRef = useRef<NodeJS.Timeout[]>([]);
+    const searchPerformedRef = useRef(false);
 
     // Clear message timeouts on unmount
     useEffect(() => {
@@ -92,6 +102,23 @@ export default function TokenList({ initialTokens, isDevelopment }: TokenListPro
             messageTimeoutRef.current.forEach(timeout => clearTimeout(timeout));
         };
     }, []);
+
+    // Effect to handle URL search parameter
+    useEffect(() => {
+        // Prioritize explicit contractId parameter over search parameter
+        const contractToLookup = contractIdParam || urlSearchParam;
+
+        if (contractToLookup && !searchPerformedRef.current) {
+            setSearchTerm(contractToLookup);
+            // Check if the URL param is a contract ID and not found in initialTokens
+            if (looksLikeContractId(contractToLookup) &&
+                !initialTokens.some(token => token.contract_principal === contractToLookup)) {
+                // Automatically trigger a lookup
+                handleLookup(contractToLookup);
+                searchPerformedRef.current = true;
+            }
+        }
+    }, [urlSearchParam, contractIdParam, initialTokens]);
 
     // Add a status message with auto-removal after delay
     const addStatusMessage = (type: StatusMessage['type'], message: string, autoRemoveDelay = 5000) => {
@@ -384,10 +411,9 @@ export default function TokenList({ initialTokens, isDevelopment }: TokenListPro
                                         <button
                                             onClick={() => handleRefresh(token.contract_principal || '')}
                                             disabled={isLoading}
-                                            className={`p-1.5 rounded-full ${isRefreshing ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 animate-pulse' : 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+                                            className={`p-1.5 rounded-full ${isRefreshing ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 animate-pulse' : 'text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer`}
                                             aria-label={`Refresh ${token.symbol}`}
                                             title="Refresh Token Data"
-                                            style={{ cursor: 'pointer' }}
                                         >
                                             {isRefreshing ? (
                                                 <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
@@ -403,10 +429,9 @@ export default function TokenList({ initialTokens, isDevelopment }: TokenListPro
                                             <button
                                                 onClick={() => handleRemove(token.contract_principal || '')}
                                                 disabled={isLoading}
-                                                className={`p-1.5 rounded-full ${isRemoving ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 animate-pulse' : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+                                                className={`p-1.5 rounded-full ${isRemoving ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 animate-pulse' : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer`}
                                                 aria-label={`Remove ${token.symbol}`}
                                                 title="Remove (Dev Only)"
-                                                style={{ cursor: 'pointer' }}
                                             >
                                                 {isRemoving ? (
                                                     <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>

@@ -268,6 +268,64 @@ importers:
         specifier: 4.2.1
         version: 4.2.1(typescript@5.8.2)(vite@5.4.14)
 
+  apps/contract-search:
+    dependencies:
+      '@repo/cryptonomicon':
+        specifier: '*'
+        version: link:../../packages/cryptonomicon
+      '@vercel/kv':
+        specifier: ^3.0.0
+        version: 3.0.0
+      next:
+        specifier: 15.3.1
+        version: 15.3.1(react-dom@19.1.0)(react@19.1.0)
+      react:
+        specifier: ^19.0.0
+        version: 19.1.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.1.0(react@19.1.0)
+    devDependencies:
+      '@next/eslint-plugin-next':
+        specifier: ^15.2.1
+        version: 15.3.1
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.1.4
+      '@types/node':
+        specifier: ^20
+        version: 20.14.14
+      '@types/react':
+        specifier: ^19
+        version: 19.0.10
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.0.4(@types/react@19.0.10)
+      autoprefixer:
+        specifier: ^10.4.21
+        version: 10.4.21(postcss@8.5.3)
+      concurrently:
+        specifier: ^8.2.2
+        version: 8.2.2
+      eslint:
+        specifier: ^9.24.0
+        version: 9.24.0
+      postcss:
+        specifier: ^8.4.35
+        version: 8.5.3
+      tailwindcss:
+        specifier: ^4
+        version: 4.1.4
+      typescript:
+        specifier: ^5
+        version: 5.8.2
+
   apps/simple-swap:
     dependencies:
       '@repo/blaze':
