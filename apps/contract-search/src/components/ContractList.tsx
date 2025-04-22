@@ -606,7 +606,7 @@ export default function ContractList({ isDevelopment, initialSearches }: Contrac
                                             {contractCount > 1 && (
                                                 <button
                                                     onClick={() => deduplicateSearch(search.id)}
-                                                    className="ml-2 py-1 px-2 text-xs rounded border bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600/70 border-gray-300 dark:border-gray-600 transition-colors flex items-center gap-1"
+                                                    className="ml-2 py-1 px-2 text-xs rounded border cursor-pointer bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600/70 border-gray-300 dark:border-gray-600 transition-colors flex items-center gap-1"
                                                     title="Remove duplicate contracts"
                                                 >
                                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -621,7 +621,7 @@ export default function ContractList({ isDevelopment, initialSearches }: Contrac
                                                 <button
                                                     onClick={() => handleBatchIndex(search.id)}
                                                     disabled={isIndexing}
-                                                    className={`ml-2 py-1 px-2 text-xs rounded border ${isIndexing
+                                                    className={`ml-2 py-1 px-2 text-xs rounded border cursor-pointer ${isIndexing
                                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700'
                                                         : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 dark:border-blue-700'} 
                                                         transition-colors flex items-center gap-1`}
