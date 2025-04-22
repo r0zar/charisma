@@ -39,6 +39,7 @@ const truncateContractId = (contractId: string, prefixLength = 4, suffixLength =
 interface TokenListProps {
     initialTokens: TokenMetadata[];
     isDevelopment: boolean;
+    initialSearchTerm?: string;
 }
 
 // Unified status message type
@@ -79,12 +80,13 @@ const formatSupplyWithDecimals = (
     }
 };
 
-export default function TokenList({ initialTokens, isDevelopment }: TokenListProps) {
-    const searchParams = useSearchParams();
-    const urlSearchParam = searchParams.get('search');
-    const contractIdParam = searchParams.get('contractId');
+export default function TokenList({ initialTokens, isDevelopment, initialSearchTerm = '' }: TokenListProps) {
+    // Remove useSearchParams hook since we're getting the search term from props now
+    // const searchParams = useSearchParams();
+    // const urlSearchParam = searchParams.get('search');
+    // const contractIdParam = searchParams.get('contractId');
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [expandedTokens, setExpandedTokens] = useState<Record<string, boolean>>({});
     const [isLookingUp, setIsLookingUp] = useState(false);
     const [removingTokenId, setRemovingTokenId] = useState<string | null>(null);
@@ -103,22 +105,19 @@ export default function TokenList({ initialTokens, isDevelopment }: TokenListPro
         };
     }, []);
 
-    // Effect to handle URL search parameter
+    // Effect to handle initialSearchTerm (replaces the previous URL search parameter effect)
     useEffect(() => {
-        // Prioritize explicit contractId parameter over search parameter
-        const contractToLookup = contractIdParam || urlSearchParam;
-
-        if (contractToLookup && !searchPerformedRef.current) {
-            setSearchTerm(contractToLookup);
-            // Check if the URL param is a contract ID and not found in initialTokens
-            if (looksLikeContractId(contractToLookup) &&
-                !initialTokens.some(token => token.contract_principal === contractToLookup)) {
+        if (initialSearchTerm && !searchPerformedRef.current) {
+            setSearchTerm(initialSearchTerm);
+            // Check if the search term is a contract ID and not found in initialTokens
+            if (looksLikeContractId(initialSearchTerm) &&
+                !initialTokens.some(token => token.contract_principal === initialSearchTerm)) {
                 // Automatically trigger a lookup
-                handleLookup(contractToLookup);
+                handleLookup(initialSearchTerm);
                 searchPerformedRef.current = true;
             }
         }
-    }, [urlSearchParam, contractIdParam, initialTokens]);
+    }, [initialSearchTerm, initialTokens]);
 
     // Add a status message with auto-removal after delay
     const addStatusMessage = (type: StatusMessage['type'], message: string, autoRemoveDelay = 5000) => {
