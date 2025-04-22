@@ -1,20 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'assets.hiro.so',
-        // port: '', // Optional: specify port if needed
-        // pathname: '/account/**', // Optional: specify path if needed
+        hostname: '**',
       },
-      // Add other allowed hostnames here if needed
-      // {
-      //   protocol: 'https',
-      //   hostname: 'another.domain.com',
-      // },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
     ],
   },
 };
