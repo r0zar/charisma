@@ -323,7 +323,7 @@ importers:
         specifier: 5.8.2
         version: 5.8.2
 
-  apps/token-viewer:
+  apps/token-cache:
     dependencies:
       '@repo/cryptonomicon':
         specifier: '*'
