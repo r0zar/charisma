@@ -42,6 +42,21 @@ const getTokenCacheBase = () => {
 
 // Fetch token metadata from token-cache API (can be LP token or underlying token)
 export const fetchTokenFromCache = async (contractId: string): Promise<any | null> => {
+    // Special case for STX token
+    if (contractId === '.stx') {
+        console.log('Special case: STX token requested');
+        return {
+            contractId: '.stx',
+            contract_principal: '.stx',
+            name: 'Stacks',
+            symbol: 'STX',
+            decimals: 6,
+            image: 'https://charisma.rocks/stx-logo.png',
+            description: 'Native token of the Stacks blockchain',
+            identifier: 'stx'
+        };
+    }
+
     const base = getTokenCacheBase();
     if (!base) {
         console.error("Token Cache endpoint/host not configured.");
@@ -70,15 +85,17 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
 };
 
 // Read a vault from KV cache
-export const getVaultData = async (contractId: string): Promise<Vault | null> => {
-    if (!contractId || !contractId.includes('.')) {
+export const getVaultData = async (contractId: string, refresh?: boolean): Promise<Vault | null> => {
+    // Special exception for .stx or other special tokens
+    const isSpecialToken = contractId === '.stx';
+    if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
         console.warn(`Invalid contractId format passed to getVaultData: ${contractId}`);
         return null;
     }
     const cacheKey = getCacheKey(contractId);
     try {
         const cached = await kv.get<Vault>(cacheKey);
-        if (cached) {
+        if (cached && !refresh) {
             console.log(`Cache hit for vault ${contractId}`);
             return cached;
         } else {

@@ -23,7 +23,10 @@ export async function GET(
     if (!contractId) {
         return NextResponse.json({ status: 'error', error: 'Contract ID is required' }, { status: 400, headers });
     }
-    if (!contractId.includes('.')) {
+
+    // Special exception for .stx or other special tokens that don't follow the standard pattern
+    const isSpecialToken = contractId === '.stx';
+    if (!isSpecialToken && !contractId.includes('.')) {
         return NextResponse.json({ status: 'error', error: 'Invalid contract ID format. Expect address.contract-name' }, { status: 400, headers });
     }
 

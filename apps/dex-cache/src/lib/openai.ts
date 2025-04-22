@@ -139,6 +139,22 @@ export async function parseTokenMetadata(
         // Enhance token data if needed
         const enhanceToken = (token: any) => {
             if (!token) return {};
+
+            // Special handling for STX token
+            if (token.contractId === '.stx' || token.contract_principal === '.stx') {
+                return {
+                    ...token,
+                    name: token.name || 'Stacks',
+                    symbol: token.symbol || 'STX',
+                    decimals: token.decimals || 6,
+                    contractId: '.stx',
+                    contract_principal: '.stx',
+                    identifier: token.identifier || 'stx',
+                    image: token.image || 'https://charisma.rocks/stx-logo.png',
+                    description: token.description || 'Native token of the Stacks blockchain'
+                };
+            }
+
             return {
                 ...token,
                 contractId: token.contractId || token.contract_principal || '',

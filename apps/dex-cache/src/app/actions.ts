@@ -105,7 +105,9 @@ export async function previewVault(contractId: string): Promise<{
     analysis?: string;
     error?: string;
 }> {
-    if (!contractId || !contractId.includes('.')) {
+    // Special exception for .stx or other special tokens
+    const isSpecialToken = contractId === '.stx';
+    if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
         return { success: false, error: 'Invalid contract ID format.' };
     }
 
