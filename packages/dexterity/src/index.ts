@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { createBlazeClient, Blaze } from "@repo/blaze";
+import { createBlazeClient, Blaze, StacksService } from "@repo/blaze";
 import { Cryptonomicon, Token, MetadataServiceConfig } from "@repo/cryptonomicon"; // Adjust path as needed
 import {
   bufferCV,
@@ -230,7 +230,11 @@ export class Dexterity {
    * Initialize the discovery service with appropriate configuration
    */
   static init(options: MetadataServiceConfig = {}) {
-    this.client = createBlazeClient(options)
+    this.client = new Blaze({
+      disableCache: true,
+      services: [StacksService],
+      ...options,
+    });
     this.cryptonomicon = new Cryptonomicon(options);
   }
 

@@ -1,811 +1,292 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { swapClient, type Token, type QuoteResponse } from "../lib/swap-client";
+import React, { useState } from "react";
+import TokenDropdown from "./TokenDropdown";
+import { useSwap } from "../hooks/useSwap";
+import type { Token } from "../lib/swap-client";
+import TokenLogo from "./TokenLogo";
 
-// Custom TokenOption component for dropdown
-interface TokenOptionProps {
-  token: Token;
-  onClick: () => void;
-  active?: boolean;
+interface SwapInterfaceProps {
+  initialTokens?: Token[];
 }
 
-function TokenOption({ token, onClick, active = false }: TokenOptionProps) {
-  // Use the swapClient utility function to get token logos
-  const getTokenLogo = (token: Token): string => {
-    return swapClient.getTokenLogo(token);
-  };
+// Helper function to get explorer URL
+const getExplorerUrl = (txId: string) => {
+  // You can switch this to mainnet or testnet as appropriate
+  return `https://explorer.stacks.co/txid/${txId}`;
+};
 
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '12px 16px',
-        cursor: 'pointer',
-        backgroundColor: active ? '#f3f4f6' : 'transparent',
-        borderRadius: '8px',
-        transition: 'all 0.15s ease',
-        margin: '4px 0',
-      }}
-      onMouseOver={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = '#f9fafb';
-        }
-      }}
-      onMouseOut={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }
-      }}
-    >
-      <img
-        src={getTokenLogo(token)}
-        alt={token.symbol || "token"}
-        style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "50%",
-          marginRight: "12px",
-          border: "1px solid #f3f4f6",
-          objectFit: "cover",
-        }}
-      />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <div style={{ fontWeight: 600 }}>{token.symbol}</div>
-        <div style={{ fontSize: '12px', color: '#6b7280', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {token.name || token.contractId}
+export default function SwapInterface({ initialTokens = [] }: SwapInterfaceProps) {
+  const swap = useSwap({ initialTokens });
+  const [showDetails, setShowDetails] = useState(false);
+
+  const {
+    tokens,
+    selectedFromToken,
+    setSelectedFromToken,
+    selectedToToken,
+    setSelectedToToken,
+    displayAmount,
+    setDisplayAmount,
+    microAmount,
+    setMicroAmount,
+    quote,
+    error,
+    isInitializing,
+    isLoadingTokens,
+    isLoadingRouteInfo,
+    isLoadingQuote,
+    formatTokenAmount,
+    convertToMicroUnits,
+    getTokenLogo,
+    handleSwap,
+    handleSwitchTokens,
+    swapSuccessInfo,
+    fromTokenBalance,
+    toTokenBalance,
+    userAddress,
+  } = swap;
+
+  // Simple loader while initializing
+  if (isInitializing || isLoadingTokens || isLoadingRouteInfo) {
+    return (
+      <div className="glass-card p-8 flex flex-col items-center justify-center h-64">
+        <div className="relative flex items-center justify-center w-12 h-12 mb-4">
+          <div className="absolute w-full h-full border-4 border-primary-400/30 rounded-full"></div>
+          <div className="absolute w-full h-full border-4 border-primary-500 rounded-full animate-spin border-t-transparent"></div>
         </div>
+        <p className="text-dark-700">Loading swap interface...</p>
       </div>
-    </div>
-  );
-}
-
-export function SwapInterface() {
-  // State
-  const [tokens, setTokens] = useState<Token[]>([]);
-  const [selectedFromToken, setSelectedFromToken] = useState<Token | null>(null);
-  const [selectedToToken, setSelectedToToken] = useState<Token | null>(null);
-
-  // Display amount (human readable) and actual amount (in micro units)
-  const [displayAmount, setDisplayAmount] = useState<string>("1"); // Default 1 in human readable format
-  const [microAmount, setMicroAmount] = useState<string>("1000000"); // Default 1 in micro units (assuming 6 decimals)
-
-  const [quote, setQuote] = useState<QuoteResponse | null>(null);
-  const [isLoadingTokens, setIsLoadingTokens] = useState(false);
-  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [defaultTokensSet, setDefaultTokensSet] = useState(false);
-
-  // Dropdown states
-  const [fromDropdownOpen, setFromDropdownOpen] = useState(false);
-  const [toDropdownOpen, setToDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Router is configured in the swap client
-
-  // Fetch tokens on mount
-  useEffect(() => {
-    async function fetchTokens() {
-      setIsLoadingTokens(true);
-      setError(null);
-
-      try {
-        const data = await swapClient.getTokens();
-        setTokens(data);
-      } catch (err) {
-        setError("Failed to load tokens. Please try again later.");
-        console.error(err);
-      } finally {
-        setIsLoadingTokens(false);
-      }
-    }
-
-    fetchTokens();
-  }, []);
-
-  // Set default tokens once tokens are loaded
-  useEffect(() => {
-    if (tokens.length > 0 && !defaultTokensSet) {
-      // Set STX as default "from" token
-      const stxToken = tokens.find(t => t.contractId === ".stx");
-      if (stxToken) {
-        setSelectedFromToken(stxToken);
-        // Update microAmount based on default token decimals (1 STX in micro units)
-        const microUnits = convertInputToMicroUnits(displayAmount, stxToken.decimals);
-        setMicroAmount(microUnits);
-      } else if (tokens.length > 0) {
-        setSelectedFromToken(tokens[0]);
-        // Update microAmount based on first token decimals
-        const microUnits = convertInputToMicroUnits(displayAmount, tokens[0].decimals);
-        setMicroAmount(microUnits);
-      }
-
-      // Set a BTC token as default "to" token if possible
-      const btcToken = tokens.find(t =>
-        t.symbol?.toLowerCase().includes("btc") ||
-        t.symbol?.toLowerCase().includes("bitcoin")
-      );
-
-      if (btcToken) {
-        setSelectedToToken(btcToken);
-      } else if (tokens.length > 1) {
-        setSelectedToToken(tokens[1]);
-      }
-
-      setDefaultTokensSet(true);
-    }
-  }, [tokens, defaultTokensSet, displayAmount]);
-
-  // Get quote when inputs change
-  useEffect(() => {
-    if (selectedFromToken && selectedToToken && microAmount && Number(microAmount) > 0) {
-      fetchQuote();
-    } else {
-      setQuote(null);
-    }
-  }, [selectedFromToken, selectedToToken, microAmount]);
-
-  // Fetch quote using swapClient
-  const fetchQuote = async () => {
-    if (!selectedFromToken || !selectedToToken || !microAmount) return;
-
-    // Skip if amount is invalid
-    const amountNum = Number(microAmount);
-    if (isNaN(amountNum) || amountNum <= 0) return;
-
-    setIsLoadingQuote(true);
-    setError(null);
-
-    try {
-      const quoteData = await swapClient.getQuote(
-        selectedFromToken.contractId,
-        selectedToToken.contractId,
-        microAmount
-      );
-
-      setQuote(quoteData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to get quote");
-      console.error(err);
-      setQuote(null);
-    } finally {
-      setIsLoadingQuote(false);
-    }
-  };
-
-  // Swap the tokens using swapClient
-  const handleSwap = async () => {
-    if (!quote) return;
-
-    const result = await swapClient.executeSwap(quote.route);
-    console.log('Swap result:', result);
-
-    if ('error' in result) {
-      setError(result.error);
-    }
-  };
-
-  // Handle token from/to swap
-  const handleSwitchTokens = () => {
-    const temp = selectedFromToken;
-    setSelectedFromToken(selectedToToken);
-    setSelectedToToken(temp);
-
-    // Update the microAmount based on new from token decimals
-    if (selectedToToken) {
-      const microUnits = convertInputToMicroUnits(displayAmount, selectedToToken.decimals);
-      setMicroAmount(microUnits);
-    }
-  };
-
-  // Format token amount for display - using swapClient utility
-  const formatTokenAmount = (amount: number, decimals: number): string => {
-    return swapClient.formatTokenAmount(amount, decimals);
-  };
-
-  // Convert user input to micro units based on token decimals - using swapClient utility
-  const convertInputToMicroUnits = (input: string, decimals: number): string => {
-    if (!input || input === '') return '0';
-    try {
-      return swapClient.convertToMicroUnits(input, decimals);
-    } catch (e) {
-      return '0';
-    }
-  };
-
-  // Handle click outside to close dropdowns
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-
-      // Check if click is outside the from-dropdown
-      if (fromDropdownOpen && !target.closest('#from-token-container')) {
-        setFromDropdownOpen(false);
-      }
-
-      // Check if click is outside the to-dropdown
-      if (toDropdownOpen && !target.closest('#to-token-container')) {
-        setToDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [fromDropdownOpen, toDropdownOpen]);
-
-  // Filter tokens based on search query
-  const filteredTokens = useMemo(() => {
-    if (!searchQuery) return tokens;
-
-    return tokens.filter(token =>
-      token.symbol?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      token.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      token.contractId.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [tokens, searchQuery]);
-
-  // Use the swapClient utility function to get token logos
-  const getTokenLogo = (token: Token): string => {
-    return swapClient.getTokenLogo(token);
-  };
+  }
 
   return (
-    <div
-      style={{
-        background: `#ffffff`,
-        borderRadius: `12px`,
-        padding: "1.5rem",
-        fontWeight: 500,
-        maxWidth: "500px",
-        margin: "0 auto",
-        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h2 style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>Swap</h2>
-        <div>
-          {/* Settings icon would go here */}
+    <div className="glass-card overflow-hidden">
+      {/* Header */}
+      <div className="border-b border-dark-300/20 p-5 flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-dark-800">Swap Tokens</h2>
+        <div className="text-xs text-dark-600 truncate max-w-[180px]" title={userAddress}>
+          {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
         </div>
       </div>
 
-      {/* From Token Section */}
-      <div style={{
-        background: "#f3f4f6",
-        padding: "16px",
-        borderRadius: "12px",
-        marginBottom: "8px"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-          <label style={{ color: "#6b7280", fontSize: "14px" }}>From</label>
-          <div style={{ color: "#6b7280", fontSize: "14px" }}>
-            {/* Balance would go here */}
+      <div className="p-5">
+        {/* From section */}
+        <div className="bg-dark-300/10 rounded-xl p-4 mb-1">
+          <div className="flex justify-between mb-2">
+            <label className="text-xs text-dark-600">You pay</label>
+            {selectedFromToken && (
+              <span className="text-xs text-dark-600 flex items-center gap-1">
+                Balance: <span className="font-medium">{fromTokenBalance}</span> {selectedFromToken.symbol}
+                {Number(fromTokenBalance) > 0 && (
+                  <button
+                    className="ml-1 text-primary-500 hover:text-primary-600 font-medium"
+                    onClick={() => {
+                      setDisplayAmount(fromTokenBalance);
+                      if (selectedFromToken) {
+                        setMicroAmount(convertToMicroUnits(fromTokenBalance, selectedFromToken.decimals));
+                      }
+                    }}
+                  >
+                    MAX
+                  </button>
+                )}
+              </span>
+            )}
           </div>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={displayAmount}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              // Only allow numbers and one decimal point
-              if (/^[0-9]*\.?[0-9]*$/.test(newValue) || newValue === '') {
-                setDisplayAmount(newValue);
-
-                // Convert to micro units for API when token is selected
-                if (selectedFromToken) {
-                  const microUnits = convertInputToMicroUnits(newValue, selectedFromToken.decimals);
-                  setMicroAmount(microUnits);
+          <div className="flex justify-between items-center">
+            <input
+              value={displayAmount}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^[0-9]*\.?[0-9]*$/.test(v) || v === "") {
+                  setDisplayAmount(v);
+                  if (selectedFromToken) {
+                    setMicroAmount(convertToMicroUnits(v, selectedFromToken.decimals));
+                  }
                 }
-              }
-            }}
-            placeholder="0"
-            style={{
-              fontSize: "20px",
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              maxWidth: "60%",
-            }}
-          />
+              }}
+              placeholder="0.00"
+              className="input-field text-2xl font-semibold placeholder:text-dark-500"
+            />
+            <div className="min-w-[130px]">
+              <TokenDropdown
+                tokens={tokens}
+                selected={selectedFromToken}
+                onSelect={(t) => {
+                  setSelectedFromToken(t);
+                  setMicroAmount(convertToMicroUnits(displayAmount, t.decimals));
+                }}
+                label=""
+              />
+            </div>
+          </div>
+        </div>
 
-          <div
-            id="from-token-container"
-            style={{
-              position: "relative",
-              minWidth: "180px",
-            }}
+        {/* Switch button */}
+        <div className="relative h-8">
+          <button
+            onClick={handleSwitchTokens}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-dark-300 hover:bg-dark-400 rounded-full p-2 shadow-md transition-colors z-10"
           >
-            {/* Token selector button */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px 14px",
-                borderRadius: "20px",
-                border: "1px solid #e5e7eb",
-                background: "#ffffff",
-                fontSize: "16px",
-                cursor: "pointer",
-                position: "relative",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                transition: "all 0.2s ease",
-                justifyContent: "space-between",
-                width: "100%",
-                minWidth: "140px",
-                fontWeight: 500,
-              }}
-              onClick={() => {
-                setFromDropdownOpen(!fromDropdownOpen);
-                setToDropdownOpen(false);
-                setSearchQuery("");
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                {selectedFromToken ? (
-                  <>
-                    <img
-                      src={getTokenLogo(selectedFromToken)}
-                      alt={selectedFromToken.symbol || "token"}
-                      style={{
-                        width: "28px",
-                        height: "28px",
-                        borderRadius: "50%",
-                        marginRight: "10px",
-                        border: "1px solid #f3f4f6",
-                      }}
-                    />
-                    <span>{selectedFromToken.symbol}</span>
-                  </>
-                ) : (
-                  <span>Select token</span>
-                )}
-              </div>
-              <div
-                style={{
-                  marginLeft: "8px",
-                  color: "#6b7280",
-                  fontSize: "12px",
-                  background: "#f9fafb",
-                  width: "18px",
-                  height: "18px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  transform: fromDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s ease",
-                }}
-              >
-                ▼
-              </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-dark-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9 9 0 0 0-9 9h2" />
+              <path d="M3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9h-2" />
+              <path d="M17 8l-4-4-4 4" />
+              <path d="M7 16l4 4 4-4" />
+            </svg>
+          </button>
+        </div>
+
+        {/* To section */}
+        <div className="bg-dark-300/10 rounded-xl p-4 mb-5">
+          <div className="flex justify-between mb-2">
+            <label className="text-xs text-dark-600">You receive</label>
+            {selectedToToken && (
+              <span className="text-xs text-dark-600">
+                Balance: <span className="font-medium">{toTokenBalance}</span> {selectedToToken.symbol}
+              </span>
+            )}
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="text-2xl font-semibold text-dark-800">
+              {isLoadingQuote ? (
+                <div className="animate-pulse flex space-x-1 items-center">
+                  <div className="h-5 w-5 bg-dark-400/20 rounded-md"></div>
+                  <div className="h-5 w-16 bg-dark-400/20 rounded-md"></div>
+                </div>
+              ) : quote ? (
+                formatTokenAmount(Number(quote.amountOut), selectedToToken?.decimals || 0)
+              ) : (
+                "0.00"
+              )}
             </div>
-
-            {/* Custom dropdown menu */}
-            {fromDropdownOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 8px)",
-                  left: 0,
-                  width: "300px",
-                  backgroundColor: "white",
-                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-                  borderRadius: "12px",
-                  zIndex: 50,
-                  maxHeight: "350px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {/* Search bar */}
-                <div style={{ padding: "16px 16px 8px 16px", borderBottom: "1px solid #f3f4f6" }}>
-                  <div style={{
-                    position: "relative",
-                    width: "100%",
-                  }}>
-                    <input
-                      type="text"
-                      placeholder="Search by name or address"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px 10px 36px",
-                        borderRadius: "8px",
-                        border: "1px solid #e5e7eb",
-                        fontSize: "14px",
-                        outline: "none",
-                      }}
-                    />
-                    <div style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "12px",
-                      transform: "translateY(-50%)",
-                      color: "#9ca3af"
-                    }}>
-                      🔍
-                    </div>
-                  </div>
-                </div>
-
-                {/* Token list */}
-                <div style={{
-                  overflowY: "auto",
-                  maxHeight: "280px",
-                  padding: "8px",
-                }}>
-                  {isLoadingTokens ? (
-                    <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
-                      Loading tokens...
-                    </div>
-                  ) : filteredTokens.length === 0 ? (
-                    <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
-                      No tokens found
-                    </div>
-                  ) : (
-                    filteredTokens.map(token => (
-                      <TokenOption
-                        key={token.contractId}
-                        token={token}
-                        active={selectedFromToken?.contractId === token.contractId}
-                        onClick={() => {
-                          setSelectedFromToken(token);
-                          setFromDropdownOpen(false);
-
-                          // Update the microAmount based on new token decimals
-                          const microUnits = convertInputToMicroUnits(displayAmount, token.decimals);
-                          setMicroAmount(microUnits);
-                        }}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Swap Direction Button */}
-      <div style={{ textAlign: "center", margin: "8px 0" }}>
-        <button
-          onClick={handleSwitchTokens}
-          style={{
-            background: "#ffffff",
-            border: "4px solid #f3f4f6",
-            borderRadius: "50%",
-            width: "40px",
-            height: "40px",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.08)",
-            color: "#3b82f6",
-            fontSize: "18px",
-            fontWeight: "bold",
-            transition: "all 0.2s ease",
-            position: "relative",
-            zIndex: 5,
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.transform = "scale(1.05)";
-            e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.08)";
-          }}
-        >
-          ⇅
-        </button>
-      </div>
-
-      {/* To Token Section */}
-      <div style={{
-        background: "#f3f4f6",
-        padding: "16px",
-        borderRadius: "12px",
-        marginBottom: "24px"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-          <label style={{ color: "#6b7280", fontSize: "14px" }}>To</label>
-          <div style={{ color: "#6b7280", fontSize: "14px" }}>
-            {/* Balance would go here */}
+            <div className="min-w-[130px]">
+              <TokenDropdown
+                tokens={tokens}
+                selected={selectedToToken}
+                onSelect={setSelectedToToken}
+                label=""
+              />
+            </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: "20px", maxWidth: "60%" }}>
-            {isLoadingQuote ? (
-              <span style={{ color: "#6b7280" }}>Loading...</span>
-            ) : quote ? (
-              formatTokenAmount(quote.amountOut, selectedToToken?.decimals || 0)
-            ) : (
-              "0"
-            )}
-          </div>
-
+        {/* Quote details */}
+        {quote && !isLoadingQuote && (
           <div
-            id="to-token-container"
-            style={{
-              position: "relative",
-              minWidth: "180px",
-            }}
+            className="mb-5 border-dark-300/20 border rounded-xl overflow-hidden"
           >
-            {/* Token selector button */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px 14px",
-                borderRadius: "20px",
-                border: "1px solid #e5e7eb",
-                background: "#ffffff",
-                fontSize: "16px",
-                cursor: "pointer",
-                position: "relative",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                transition: "all 0.2s ease",
-                justifyContent: "space-between",
-                width: "100%",
-                minWidth: "140px",
-                fontWeight: 500,
-              }}
-              onClick={() => {
-                setToDropdownOpen(!toDropdownOpen);
-                setFromDropdownOpen(false);
-                setSearchQuery("");
-              }}
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="w-full flex justify-between items-center p-3 hover:bg-dark-300/10 transition-colors"
             >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                {selectedToToken ? (
-                  <>
-                    <img
-                      src={getTokenLogo(selectedToToken)}
-                      alt={selectedToToken.symbol || "token"}
-                      style={{
-                        width: "28px",
-                        height: "28px",
-                        borderRadius: "50%",
-                        marginRight: "10px",
-                        border: "1px solid #f3f4f6",
-                      }}
-                    />
-                    <span>{selectedToToken.symbol}</span>
-                  </>
-                ) : (
-                  <span>Select token</span>
-                )}
+              <div className="flex items-center space-x-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-4 w-4 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`}
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium text-dark-700">Swap details</span>
               </div>
-              <div
-                style={{
-                  marginLeft: "8px",
-                  color: "#6b7280",
-                  fontSize: "12px",
-                  background: "#f9fafb",
-                  width: "18px",
-                  height: "18px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  transform: toDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s ease",
-                }}
-              >
-                ▼
+              <div className="text-sm text-dark-600">
+                1 {selectedFromToken?.symbol} = {quote.expectedPrice.toFixed(6)} {selectedToToken?.symbol}
               </div>
-            </div>
+            </button>
 
-            {/* Custom dropdown menu */}
-            {toDropdownOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 8px)",
-                  left: 0,
-                  width: "300px",
-                  backgroundColor: "white",
-                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-                  borderRadius: "12px",
-                  zIndex: 50,
-                  maxHeight: "350px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {/* Search bar */}
-                <div style={{ padding: "16px 16px 8px 16px", borderBottom: "1px solid #f3f4f6" }}>
-                  <div style={{
-                    position: "relative",
-                    width: "100%",
-                  }}>
-                    <input
-                      type="text"
-                      placeholder="Search by name or address"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px 10px 36px",
-                        borderRadius: "8px",
-                        border: "1px solid #e5e7eb",
-                        fontSize: "14px",
-                        outline: "none",
-                      }}
-                    />
-                    <div style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "12px",
-                      transform: "translateY(-50%)",
-                      color: "#9ca3af"
-                    }}>
-                      🔍
-                    </div>
-                  </div>
+            {showDetails && (
+              <div className="p-3 pt-0 bg-dark-300/5 text-sm space-y-3">
+                <div className="flex justify-between py-2 border-t border-dark-300/10">
+                  <span className="text-dark-600">Minimum received</span>
+                  <span className="font-medium">{formatTokenAmount(Number(quote.minimumReceived), selectedToToken?.decimals || 0)} {selectedToToken?.symbol}</span>
                 </div>
 
-                {/* Token list */}
-                <div style={{
-                  overflowY: "auto",
-                  maxHeight: "280px",
-                  padding: "8px",
-                }}>
-                  {isLoadingTokens ? (
-                    <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
-                      Loading tokens...
-                    </div>
-                  ) : filteredTokens.length === 0 ? (
-                    <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
-                      No tokens found
-                    </div>
-                  ) : (
-                    filteredTokens.map(token => (
-                      <TokenOption
-                        key={token.contractId}
-                        token={token}
-                        active={selectedToToken?.contractId === token.contractId}
-                        onClick={() => {
-                          setSelectedToToken(token);
-                          setToDropdownOpen(false);
-                        }}
-                      />
-                    ))
-                  )}
+                {/* Path */}
+                <div className="flex justify-between py-2 border-t border-dark-300/10">
+                  <span className="text-dark-600">Route</span>
+                  <div className="flex items-center">
+                    {quote.route.path.map((tok: Token, idx: number) => (
+                      <div key={tok.contractId} className="flex items-center">
+                        {idx > 0 && <svg className="h-4 w-4 mx-1 text-dark-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>}
+                        <div className="flex items-center space-x-1">
+                          <TokenLogo token={tok} size="sm" />
+                          <span className="font-medium">{tok.symbol}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Quote Details */}
-      {quote && !isLoadingQuote && (
-        <div style={{
-          padding: "16px",
-          backgroundColor: "#f9fafb",
-          borderRadius: "8px",
-          marginBottom: "24px",
-          fontSize: "14px",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span>Rate</span>
-            <span>
-              1 {selectedFromToken?.symbol} = {quote.expectedPrice.toFixed(6)} {selectedToToken?.symbol}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span>Minimum received</span>
-            <span>
-              {formatTokenAmount(quote.minimumReceived, selectedToToken?.decimals || 0)} {selectedToToken?.symbol}
-            </span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span>Route</span>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              {quote.route.path.map((token, index) => (
-                <div key={token.contractId} style={{ display: "flex", alignItems: "center" }}>
-                  {index > 0 && <span style={{ margin: "0 4px" }}>→</span>}
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <img
-                      src={getTokenLogo(token)}
-                      alt={token.symbol || "token"}
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        borderRadius: "50%",
-                        marginRight: "4px",
-                      }}
-                    />
-                    <span>{token.symbol}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div style={{
-          padding: "12px",
-          backgroundColor: "#fee2e2",
-          color: "#b91c1c",
-          borderRadius: "8px",
-          marginBottom: "24px",
-          fontSize: "14px",
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* Swap Button */}
-      <button
-        onClick={handleSwap}
-        disabled={!quote || isLoadingQuote}
-        style={{
-          width: "100%",
-          padding: "16px",
-          backgroundColor: !quote || isLoadingQuote ? "#9ca3af" : "#3b82f6",
-          color: "white",
-          borderRadius: "12px",
-          border: "none",
-          fontSize: "16px",
-          fontWeight: "600",
-          cursor: !quote || isLoadingQuote ? "not-allowed" : "pointer",
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-          transition: "all 0.2s ease",
-          position: "relative",
-          overflow: "hidden",
-        }}
-        onMouseOver={(e) => {
-          if (!(!quote || isLoadingQuote)) {
-            e.currentTarget.style.backgroundColor = "#2563eb";
-            e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.15)";
-          }
-        }}
-        onMouseOut={(e) => {
-          if (!(!quote || isLoadingQuote)) {
-            e.currentTarget.style.backgroundColor = "#3b82f6";
-            e.currentTarget.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
-          }
-        }}
-      >
-        {isLoadingQuote ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ marginRight: "8px" }}>Loading Quote</span>
-            <span className="loading-dots">...</span>
-          </div>
-        ) : !selectedFromToken || !selectedToToken ? (
-          "Select tokens"
-        ) : (
-          "Swap Tokens"
         )}
-      </button>
 
-      {/* Attribution */}
-      <div style={{
-        marginTop: "16px",
-        textAlign: "center",
-        fontSize: "12px",
-        color: "#9ca3af"
-      }}>
-        Powered by Charisma
+        {/* Error */}
+        {error && (
+          <div className="mb-5 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600">
+            <div className="flex items-start space-x-2">
+              <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {swapSuccessInfo && (
+          <div className="mb-5 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-green-600">
+            <div className="flex items-start space-x-2">
+              <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <div>
+                <span className="block">Swap successful!</span>
+                <div className="text-sm flex items-center space-x-1 mt-0.5">
+                  <span>View transaction:</span>
+                  <a
+                    href={getExplorerUrl(swapSuccessInfo.txId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:text-primary-700 hover:underline flex items-center"
+                  >
+                    {swapSuccessInfo.txId.substring(0, 8)}...
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button
+          disabled={!quote || isLoadingQuote}
+          onClick={handleSwap}
+          className="button-primary w-full"
+        >
+          {isLoadingQuote ? (
+            <span className="flex items-center space-x-2">
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Loading Quote</span>
+            </span>
+          ) : !selectedFromToken || !selectedToToken ? (
+            "Select Tokens"
+          ) : !displayAmount || displayAmount === "0" ? (
+            "Enter Amount"
+          ) : (
+            "Swap Tokens"
+          )}
+        </button>
       </div>
     </div>
   );

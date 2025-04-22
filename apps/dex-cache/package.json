@@ -1,42 +1,38 @@
 {
-  "name": "blaze-signer",
+  "name": "dex-cache",
   "version": "0.0.0",
   "type": "module",
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev -p 3005",
+    "dev": "next dev -p 3003",
     "dev:watch": "pnpm dev",
     "lint": "next lint",
     "check-types": "tsc --noEmit",
     "start": "next start"
   },
   "dependencies": {
-    "@repo/logger": "workspace:*",
-    "@repo/stacks": "workspace:*",
-    "@repo/ui": "workspace:*",
-    "@stacks/auth": "^7.0.5",
-    "@stacks/connect": "latest",
-    "@stacks/network": "latest",
-    "@stacks/transactions": "latest",
-    "lucide-react": "^0.488.0",
-    "next": "^15.2.1",
-    "qrcode.react": "^4.2.0",
-    "react": "^19",
-    "react-dom": "^19"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next": "15.3.1",
+    "@repo/cryptonomicon": "*",
+    "@vercel/kv": "^3.0.0",
+    "@repo/dexterity": "workspace:*",
+    "openai": "^4.24.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.2.1",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.14.0",
+    "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.2",
     "eslint": "^9.24.0",
     "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "typescript": "5.8.2"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
