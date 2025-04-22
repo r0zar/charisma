@@ -54,7 +54,7 @@ export interface SwapClientOptions {
 export function createSwapClient(options: SwapClientOptions = {}) {
   // Default configuration
   const config = {
-    dexCacheUrl: options.dexCacheUrl || "http://localhost:3003/api/v1",
+    dexCacheUrl: options.dexCacheUrl || "https://charisma-dex-cache.vercel.app/api/v1",
     routerAddress: options.routerAddress || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
     routerName: options.routerName || 'multihop'
   };
