@@ -64,8 +64,6 @@ export async function POST(
         // ── auth headers ──
         const signature = request.headers.get('x-signature');
         const publicKey = request.headers.get('x-public-key');
-        console.log('signature', signature);
-        console.log('publicKey', publicKey);
         if (!signature || !publicKey) {
             return NextResponse.json(
                 { error: 'Missing authentication headers' },

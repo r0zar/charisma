@@ -26,13 +26,18 @@ const TemplatesPage = () => {
     const { toast } = useToast();
     const router = useRouter();
 
-    const handleDeployClick = (type: ContractType) => {
+    const handleDeployClick = (templateId: string, type: ContractType) => {
         if (!authenticated) {
             toast({
                 title: "Wallet not connected",
                 description: "Please connect your wallet to deploy a contract",
                 variant: "destructive",
             });
+            return;
+        }
+
+        if (templateId === 'subnet-token-wrapper') {
+            router.push('/templates/subnet-wrapper');
             return;
         }
 
@@ -91,10 +96,10 @@ const TemplatesPage = () => {
             items: [
                 {
                     id: 'hold-to-earn',
-                    title: 'Hold-to-Earn Farm Rewards',
+                    title: 'Hold-to-Earn Rewards',
                     description: 'A reward distribution contract that allows token holders to earn rewards just by holding tokens in their wallet.',
                     icon: <Coins className="h-6 w-6" />,
-                    type: 'custom' as ContractType,
+                    type: 'hold-to-earn' as ContractType,
                     features: [
                         'Snapshot-based rewards',
                         'Time-weighted holding incentives',
@@ -114,21 +119,21 @@ const TemplatesPage = () => {
                     title: 'Subnet Token Wrapper',
                     description: 'Upgrade an existing token to a subnet token. Once deployed, this contract allows users to peg tokens into and out of a subnet, enabling advanced transaction patterns.',
                     icon: <Globe className="h-6 w-6" />,
-                    type: 'custom' as ContractType,
+                    type: 'subnet-token-wrapper' as ContractType,
                     features: [
                         'Token pegging with virtual balance issuance',
                         'Off-chain signature-based transfers',
                         'Deferred and gasless transactions',
                         'Off-chain oracle logic integration',
                     ],
-                    enabled: false
+                    enabled: true
                 },
                 {
                     id: 'liquidity-pool-subnet',
                     title: 'AMM Liquidity Subnet',
                     description: 'An advanced AMM liquidity pool that works with subnet tokens and leverages off-chain signature-based transfers to enable sophisticated DeFi functionality beyond standard AMMs.',
                     icon: <Network className="h-6 w-6" />,
-                    type: 'custom' as ContractType,
+                    type: 'subnet-liquidity-pool' as ContractType,
                     features: [
                         'Off-chain signature-based transfers',
                         'Limit orders with conditional execution',
@@ -157,7 +162,7 @@ const TemplatesPage = () => {
             />
 
             <div className="mt-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {allTemplates.map((template, itemIndex) => (
                         <motion.div
                             key={template.id}
@@ -188,7 +193,7 @@ const TemplatesPage = () => {
                                 </CardContent>
                                 <CardFooter className="pt-4">
                                     <Button
-                                        onClick={() => handleDeployClick(template.type)}
+                                        onClick={() => handleDeployClick(template.id, template.type)}
                                         className="w-full"
                                         disabled={!template.enabled}
                                     >

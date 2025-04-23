@@ -373,6 +373,9 @@ importers:
       lucide-react:
         specifier: ^0.321.0
         version: 0.321.0(react@19.1.0)
+      mustache:
+        specifier: ^4.2.0
+        version: 4.2.0
       next:
         specifier: 15.3.1
         version: 15.3.1(react-dom@19.1.0)(react@19.1.0)
@@ -413,6 +416,9 @@ importers:
       '@types/lodash':
         specifier: ^4.17.16
         version: 4.17.16
+      '@types/mustache':
+        specifier: ^4.2.5
+        version: 4.2.5
       '@types/node':
         specifier: ^20
         version: 20.14.14
@@ -5140,6 +5146,10 @@ packages:
   /@types/ms@2.1.0:
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
+  /@types/mustache@4.2.5:
+    resolution: {integrity: sha512-PLwiVvTBg59tGFL/8VpcGvqOu3L4OuveNvPi0EYbWchRdEVP++yRUXJPFl+CApKEq13017/4Nf7aQ5lTtHUNsA==}
+    dev: true
+
   /@types/node-fetch@2.6.12:
     resolution: {integrity: sha512-8nneRWKCg3rMtF69nLQJnOYUcbafYeFSjqkw3jCRLsqkWFlHaoQrr5mXmofFGOx3DKn7UfmBMyov8ySvLRVldA==}
     dependencies:
@@ -9541,6 +9551,11 @@ packages:
 
   /ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+
+  /mustache@4.2.0:
+    resolution: {integrity: sha512-71ippSywq5Yb7/tVYyGbkBggbU8H3u5Rz56fH60jGFgr8uHwxs+aSKeqmluIVzM0m0kB7xQjKS6qPfd0b2ZoqQ==}
+    hasBin: true
+    dev: false
 
   /mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}

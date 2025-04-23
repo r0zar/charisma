@@ -3,7 +3,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { TokenProvider } from "@/lib/context/token-context";
 import { WalletContextState, SignatureResponse } from "@/components/wallet-connector";
-import { connect } from "@stacks/connect";
+import { connect, request } from "@stacks/connect";
 
 // Create a Wallet context
 interface WalletContextValue {
@@ -86,7 +86,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
         try {
             // Call the stx_signMessage method
-            const response = await (window as any).btc?.request('stx_signMessage', {
+            const response = await request('stx_signMessage', {
                 message
             });
 
