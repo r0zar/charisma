@@ -96,7 +96,7 @@ export default function SIP10DeployPage() {
                 // Fallback to API call
                 console.log("Using API fallback for metadata");
                 try {
-                    const response = await fetch(`http://localhost:3008/api/v1/metadata/${contractIdentifier}`);
+                    const response = await fetch(`https://charisma-metadata.vercel.app/api/v1/metadata/${contractIdentifier}`);
 
                     if (response.ok) {
                         const data = await response.json();
