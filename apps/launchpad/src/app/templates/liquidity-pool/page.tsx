@@ -276,7 +276,7 @@ export default function LiquidityPoolDeployPage() {
                                 </div>
                                 <Select
                                     value={token1}
-                                    onValueChange={(value) => {
+                                    onValueChange={(value: string) => {
                                         setToken1(value);
                                         const selectedToken = predefinedTokens.find(t => t.symbol === value);
                                         if (selectedToken) {
@@ -363,7 +363,7 @@ export default function LiquidityPoolDeployPage() {
                                 </div>
                                 <Select
                                     value={token2}
-                                    onValueChange={(value) => {
+                                    onValueChange={(value: string) => {
                                         setToken2(value);
                                         const selectedToken = predefinedTokens.find(t => t.symbol === value);
                                         if (selectedToken) {

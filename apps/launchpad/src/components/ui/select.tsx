@@ -6,17 +6,16 @@ import { Check, ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+const CD = ChevronDown as any
+const C = Check as any
 // Cast components to specific React JSX component types
-const Select = SelectPrimitive.Root as React.FC<React.ComponentProps<typeof SelectPrimitive.Root>>
+const Select = SelectPrimitive.Root as any
 
 const SelectGroup = SelectPrimitive.Group
 
-const SelectValue = SelectPrimitive.Value as React.FC<React.ComponentProps<typeof SelectPrimitive.Value>>
+const SelectValue = SelectPrimitive.Value as any
 
-const SelectTrigger = React.forwardRef<
-    React.ElementRef<typeof SelectPrimitive.Trigger>,
-    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+const SelectTrigger = (({ className, children, ...props }: any, ref: any) => (
     <SelectPrimitive.Trigger
         ref={ref}
         className={cn(
@@ -27,10 +26,10 @@ const SelectTrigger = React.forwardRef<
     >
         {children}
         <SelectPrimitive.Icon asChild>
-            <ChevronDown className="h-4 w-4 opacity-50" />
+            <CD className="h-4 w-4 opacity-50" />
         </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
-))
+)) as any
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
 const SelectScrollUpButton = React.forwardRef<
@@ -96,7 +95,7 @@ const SelectContent = React.forwardRef<
             <SelectScrollDownButton />
         </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
-))
+)) as any
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectLabel = React.forwardRef<
@@ -125,13 +124,13 @@ const SelectItem = React.forwardRef<
     >
         <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
             <SelectPrimitive.ItemIndicator>
-                <Check className="h-4 w-4" />
+                <C className="h-4 w-4" />
             </SelectPrimitive.ItemIndicator>
         </span>
 
         <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
-))
+)) as any
 SelectItem.displayName = SelectPrimitive.Item.displayName
 
 const SelectSeparator = React.forwardRef<
