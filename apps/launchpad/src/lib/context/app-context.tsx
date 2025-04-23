@@ -4,6 +4,7 @@ import * as React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { connect, request } from "@stacks/connect";
+import { PostCondition } from '@stacks/connect/dist/types/methods';
 
 // Types
 interface WalletState {
@@ -21,13 +22,18 @@ interface DeploymentResponse {
     txid: string;
 }
 
+// Interface for deploy contract options
+interface DeployContractOptions {
+    postConditions?: PostCondition[];
+}
+
 interface AppContextType {
     // Wallet state
     walletState: WalletState;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
     signMessage: (message: string) => Promise<SignatureResponse>;
-    deployContract: (contractCode: string, contractName: string) => Promise<DeploymentResponse>;
+    deployContract: (contractCode: string, contractName: string, options?: DeployContractOptions) => Promise<DeploymentResponse>;
 
     // Token state
     authenticated: boolean;
@@ -158,18 +164,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     // Function to deploy a contract using the wallet
-    const deployContract = async (contractCode: string, contractName: string): Promise<DeploymentResponse> => {
+    const deployContract = async (contractCode: string, contractName: string, options?: DeployContractOptions): Promise<DeploymentResponse> => {
         if (!walletState.connected) {
             throw new Error("Wallet not connected");
         }
 
         try {
             console.log(`Deploying contract ${contractName}...`);
+
+            // Log post conditions if provided
+            if (options?.postConditions && options.postConditions.length > 0) {
+                console.log("Deploying with post conditions:", options.postConditions);
+            }
+
+            console.log("Deploying contract with post conditions:", options?.postConditions);
+
             // Call the stx_deployContract method
             const response = await request('stx_deployContract', {
                 name: contractName,
                 clarityCode: contractCode,
-                clarityVersion: 3
+                postConditionMode: 'deny',
+                postConditions: [], //options?.postConditions as any || [],
+                clarityVersion: 3,
+                fee: 10000,
             });
 
             if (!response || !response.txid) {

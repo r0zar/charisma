@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { MetadataService, TokenMetadata } from "@/lib/metadata-service";
 import { generateSIP10TokenContract } from "@/lib/templates/sip10-contract-template";
+import { truncateAddress } from "@/lib/utils";
 
 // Updated constants for all metadata-related URLs
 const METADATA_BASE_URL = process.env.NODE_ENV === 'development'
@@ -40,13 +41,6 @@ const METADATA_BASE_URL = process.env.NODE_ENV === 'development'
 
 const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
 
-// Add a utility function to truncate addresses
-const truncateAddress = (address: string) => {
-    if (!address) return '';
-    const start = address.slice(0, 6);
-    const end = address.slice(-4);
-    return `${start}...${end}`;
-};
 
 export default function SIP10DeployPage() {
     const router = useRouter();
@@ -636,7 +630,7 @@ export default function SIP10DeployPage() {
                                                                         }
                                                                     }}
                                                                 />
-                                                                <div className="image-fallback hidden absolute inset-0 flex items-center justify-center bg-muted/20">
+                                                                <div className="image-fallback hidden absolute inset-0 sm:flex items-center justify-center bg-muted/20">
                                                                     <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center">
                                                                         {metadata?.symbol ? (
                                                                             <span className="text-2xl font-bold text-muted-foreground">

@@ -80,9 +80,9 @@ const TemplatesPage = () => {
                         'Constant product formula',
                         'Add/Remove liquidity',
                         'Swap functionality',
-                        'Fee mechanism (0.3%)'
+                        'Flexible rebates'
                     ],
-                    enabled: false
+                    enabled: true
                 }
             ]
         }
