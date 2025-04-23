@@ -44,33 +44,27 @@ export function ContractsList({ limit }: ContractsListProps) {
     const [loading, setLoading] = useState(true);
     const [firstLoad, setFirstLoad] = useState(true);
 
-    // This is a placeholder for the actual contract fetching logic
-    // In a real implementation, this would come from the app context
+    // This is the actual contract fetching logic
     async function fetchContracts() {
-        // Mocked data for now - this would be replaced with an actual API call
-        // In the future, we would use the app context for this
-        const mockContracts: Contract[] = [
-            {
-                id: '1',
-                name: 'My Test Token',
-                type: 'sip10',
-                deployedAt: new Date().toISOString(),
-                contractAddress: 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.my-token',
-                description: 'A test SIP-10 token with basic functionality',
-                status: 'deployed'
-            },
-            {
-                id: '2',
-                name: 'BTC/STX Pool',
-                type: 'liquidity-pool',
-                deployedAt: new Date().toISOString(),
-                contractAddress: 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.btc-stx-pool',
-                description: 'A liquidity pool for BTC and STX',
-                status: 'deployed'
-            }
-        ];
+        if (!stxAddress) {
+            return [];
+        }
 
-        return mockContracts;
+        // Call our new API endpoint
+        const response = await fetch(`/api/v1/contracts/list?address=${stxAddress}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Failed to fetch contracts: ${errorData}`);
+        }
+
+        const data = await response.json();
+        return data.contracts || [];
     }
 
     useEffect(() => {
@@ -187,22 +181,56 @@ export function ContractsList({ limit }: ContractsListProps) {
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold">My Contracts</h1>
                 {authenticated && (
-                    <Button onClick={() => router.push('/templates')}>
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="mr-2 h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                    <div className="flex space-x-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setLoading(true);
+                                fetchContracts()
+                                    .then(data => setContracts(data))
+                                    .catch(err => {
+                                        console.error('Error refreshing contracts:', err);
+                                        toast({
+                                            variant: "destructive",
+                                            title: "Error refreshing contracts",
+                                            description: "Failed to refresh your contracts. Please try again later.",
+                                        });
+                                    })
+                                    .finally(() => setLoading(false));
+                            }}
+                            disabled={loading}
                         >
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Deploy New Contract
-                    </Button>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" />
+                            </svg>
+                            Refresh
+                        </Button>
+                        <Button onClick={() => router.push('/templates')}>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="mr-2 h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Deploy New Contract
+                        </Button>
+                    </div>
                 )}
             </div>
 
@@ -284,49 +312,81 @@ function ContractCard({ contract, index }: ContractCardProps) {
         }
     };
 
+    const getTypeLabel = (type: ContractType) => {
+        switch (type) {
+            case 'sip10':
+                return 'SIP-10 Token';
+            case 'liquidity-pool':
+                return 'Liquidity Pool';
+            case 'audit':
+                return 'Audit Result';
+            default:
+                return 'Custom Contract';
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch (e) {
+            return 'Unknown date';
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
         >
-            <Card className="h-full overflow-hidden hover:shadow-md transition-shadow duration-200">
-                <div
-                    className="h-24 relative bg-muted flex items-center justify-center cursor-pointer p-4"
-                    onClick={handleNavigate}
-                >
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        {getIcon(contract.type)}
-                    </div>
-
-                    <div className="absolute top-2 right-2">
-                        <div className="flex items-center">
-                            <div className={`h-2 w-2 rounded-full mr-1 ${getStatusColor(contract.status)}`}></div>
-                            <span className="text-xs capitalize text-muted-foreground">{contract.status}</span>
+            <Card
+                className="overflow-hidden hover:shadow-md transition-shadow duration-300 h-full flex flex-col"
+                onClick={handleNavigate}
+            >
+                <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                        <div className="flex items-center space-x-2">
+                            <div className="p-2 rounded-full bg-primary/10">
+                                {getIcon(contract.type)}
+                            </div>
+                            <div>
+                                <CardTitle className="text-lg">{contract.name}</CardTitle>
+                                <CardDescription className="text-xs">
+                                    {getTypeLabel(contract.type)}
+                                </CardDescription>
+                            </div>
                         </div>
-                    </div>
-                </div>
-                <CardContent className="pt-6 flex-grow">
-                    <div className="mb-2 flex items-center gap-2">
-                        <h3 className="font-medium text-lg truncate">{contract.name || 'Unnamed Contract'}</h3>
-                        <Badge variant="outline" className="ml-auto">
-                            {contract.type === 'sip10' ? 'SIP-10' : 'LP'}
+                        <Badge
+                            variant="outline"
+                            className="flex items-center space-x-1"
+                        >
+                            <span className={`h-2 w-2 rounded-full ${getStatusColor(contract.status)}`}></span>
+                            <span className="capitalize text-xs">{contract.status}</span>
                         </Badge>
                     </div>
-                    <p className="text-muted-foreground text-sm truncate font-mono mb-3">{contract.contractAddress}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                        {contract.description || 'No description provided'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        Deployed: {new Date(contract.deployedAt).toLocaleDateString()}
-                    </p>
+                </CardHeader>
+                <CardContent className="pb-2 text-sm">
+                    <div className="flex flex-col space-y-2">
+                        <div className="text-muted-foreground truncate text-xs">
+                            <span className="font-medium">Address:</span> {contract.contractAddress}
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                            <span className="font-medium">Deployed:</span> {formatDate(contract.deployedAt)}
+                        </div>
+                        {contract.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
+                                {contract.description}
+                            </p>
+                        )}
+                    </div>
                 </CardContent>
-                <CardFooter className="pt-2 pb-4">
-                    <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={handleNavigate}
-                    >
+                <CardFooter className="mt-auto pt-2">
+                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={handleNavigate}>
                         View Details
                     </Button>
                 </CardFooter>

@@ -1,44 +1,53 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Code, Layers, ExternalLink, Calendar, ArrowLeft, Copy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/lib/context/app-context';
 import { Contract, ContractType } from '@/components/contracts/contracts-list';
 
-export default function ContractDetailPage({ params }: { params: { id: string } }) {
+export default function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    // Use React.use to unwrap params
+    const { id } = React.use(params);
+
     const router = useRouter();
     const { toast } = useToast();
     const { authenticated } = useApp();
     const [loading, setLoading] = useState(true);
     const [contract, setContract] = useState<Contract | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const { stxAddress } = useApp();
 
     useEffect(() => {
         async function loadContract() {
             try {
                 setLoading(true);
+                setError(null);
 
-                // Mocked contract data - would be replaced with an API call
-                const mockContract: Contract = {
-                    id: params.id,
-                    name: params.id === '1' ? 'My Test Token' : 'BTC/STX Pool',
-                    type: params.id === '1' ? 'sip10' : 'liquidity-pool',
-                    deployedAt: new Date().toISOString(),
-                    contractAddress: params.id === '1'
-                        ? 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.my-token'
-                        : 'SP2PABAF9FTAJYNFZH93XENAJ8FVY99RRM50D2JG9.btc-stx-pool',
-                    description: params.id === '1'
-                        ? 'A test SIP-10 token with basic functionality'
-                        : 'A liquidity pool for BTC and STX',
-                    status: 'deployed'
-                };
+                if (!stxAddress) {
+                    throw new Error('Wallet address not available');
+                }
 
-                setContract(mockContract);
+                // Call our API endpoint to fetch the contract details
+                const response = await fetch(`/api/v1/contracts/${id}?address=${stxAddress}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(errorData || 'Failed to fetch contract details');
+                }
+
+                const data = await response.json();
+                setContract(data.contract);
             } catch (error) {
                 console.error('Error loading contract:', error);
+                setError(error instanceof Error ? error.message : 'Unknown error occurred');
                 toast({
                     variant: "destructive",
                     title: "Error loading contract",
@@ -54,16 +63,70 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
         } else {
             setLoading(false);
         }
-    }, [params.id, authenticated, toast]);
+    }, [id, authenticated, toast, stxAddress]);
 
     const getIcon = (type: ContractType | undefined) => {
         switch (type) {
             case 'sip10':
-                return <Code className="h-6 w-6 text-primary" />;
+                return (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-primary"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                );
             case 'liquidity-pool':
-                return <Layers className="h-6 w-6 text-primary" />;
+                return (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-primary"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <polygon points="16 3 21 8 8 21 3 21 3 16 16 3"></polygon>
+                    </svg>
+                );
             default:
-                return <Code className="h-6 w-6 text-primary" />;
+                return (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-primary"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                    </svg>
+                );
+        }
+    };
+
+    const getTypeLabel = (type: ContractType | undefined) => {
+        switch (type) {
+            case 'sip10':
+                return 'SIP-10 Token';
+            case 'liquidity-pool':
+                return 'Liquidity Pool';
+            case 'audit':
+                return 'Audit Result';
+            default:
+                return 'Custom Contract';
         }
     };
 
@@ -77,6 +140,26 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                 return 'bg-red-500';
             default:
                 return 'bg-gray-500';
+        }
+    };
+
+    const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return { date: 'Unknown date', time: 'Unknown time' };
+        try {
+            const date = new Date(dateString);
+            return {
+                date: date.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                }),
+                time: date.toLocaleTimeString(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            };
+        } catch (e) {
+            return { date: 'Unknown date', time: 'Unknown time' };
         }
     };
 
@@ -178,7 +261,19 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                         We couldn't find the contract you're looking for.
                     </p>
                     <Button variant="outline" onClick={() => router.push('/contracts')}>
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Contracts
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 mr-2"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                        Back to Contracts
                     </Button>
                 </div>
             </div>
@@ -188,7 +283,19 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
     return (
         <div className="container py-12">
             <Button variant="outline" className="mb-6" onClick={() => router.push('/contracts')}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Contracts
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-2"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back to Contracts
             </Button>
 
             <div className="flex flex-col lg:flex-row gap-8">
@@ -198,11 +305,11 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mr-4">
                             {getIcon(contract.type)}
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-2xl font-bold">{contract.name}</h1>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h1 className="text-2xl font-bold text-ellipsis overflow-hidden">{contract.name}</h1>
                                 <Badge variant="outline" className="ml-1">
-                                    {contract.type === 'sip10' ? 'SIP-10' : 'LP'}
+                                    {getTypeLabel(contract.type)}
                                 </Badge>
                                 <div className="flex items-center">
                                     <div className={`h-2 w-2 rounded-full mr-1 ${getStatusColor(contract.status)}`}></div>
@@ -210,13 +317,26 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                                 </div>
                             </div>
                             <div className="flex items-center mt-1">
-                                <p className="text-sm text-muted-foreground font-mono flex items-center">
+                                <p className="text-sm text-muted-foreground font-mono flex items-center truncate">
                                     {contract.contractAddress}
                                     <button
                                         onClick={handleCopyAddress}
-                                        className="ml-2 text-muted-foreground hover:text-foreground transition-colors"
+                                        className="ml-2 flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                        title="Copy contract address"
                                     >
-                                        <Copy className="h-3.5 w-3.5" />
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-3.5 w-3.5"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
                                     </button>
                                 </p>
                             </div>
@@ -231,31 +351,57 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                     <div className="mt-8">
                         <h2 className="text-xl font-semibold mb-4">Deployment Details</h2>
                         <div className="border rounded-lg p-4 bg-muted/5">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Deployed On</p>
-                                    <p className="flex items-center">
-                                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        {new Date(contract.deployedAt).toLocaleDateString()} at {new Date(contract.deployedAt).toLocaleTimeString()}
-                                    </p>
+                                    <div className="flex items-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-4 w-4 mr-2 text-muted-foreground"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span>{formatDate(contract.deployedAt).date} at {formatDate(contract.deployedAt).time}</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Status</p>
                                     <p className="flex items-center">
-                                        <div className={`h-2 w-2 rounded-full mr-2 ${getStatusColor(contract.status)}`}></div>
+                                        <span className={`inline-block h-2 w-2 rounded-full mr-2 ${getStatusColor(contract.status)}`}></span>
                                         <span className="capitalize">{contract.status}</span>
                                     </p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Contract Type</p>
-                                    <p className="flex items-center">
+                                    <div className="flex items-center">
                                         {getIcon(contract.type)}
-                                        <span className="ml-2">{contract.type === 'sip10' ? 'SIP-10 Fungible Token' : 'Liquidity Pool'}</span>
-                                    </p>
+                                        <span className="ml-2">{getTypeLabel(contract.type)}</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Network</p>
                                     <p>Stacks Mainnet</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Transaction ID</p>
+                                    <p className="text-sm font-mono truncate">
+                                        {contract.id}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Contract Owner</p>
+                                    <p className="text-sm font-mono truncate">
+                                        {contract.contractAddress?.split('.')?.[0] || 'Unknown'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -264,16 +410,55 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                     <div className="mt-8">
                         <h2 className="text-xl font-semibold mb-4">Contract Actions</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Button variant="outline" className="flex items-center gap-2" onClick={() => window.open(`https://explorer.stacks.co/txid/${contract.contractAddress}`, '_blank')}>
-                                <ExternalLink className="h-4 w-4" /> View on Explorer
+                            <Button
+                                variant="outline"
+                                className="flex items-center gap-2"
+                                onClick={() => window.open(`https://explorer.stacks.co/txid/${contract.id}?chain=mainnet`, '_blank')}
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4 mr-2"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                View Transaction on Explorer
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="flex items-center gap-2"
+                                onClick={() => window.open(`https://explorer.stacks.co/contract/${contract.contractAddress}?chain=mainnet`, '_blank')}
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4 mr-2"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                View Contract on Explorer
                             </Button>
                             {contract.type === 'sip10' && (
-                                <Button variant="outline" className="flex items-center gap-2" onClick={() => router.push(`/contracts/${contract.id}/manage`)}>
+                                <Button variant="outline" className="flex items-center gap-2" onClick={() => router.push(`/contracts/${id}/manage`)}>
                                     Manage Token
                                 </Button>
                             )}
                             {contract.type === 'liquidity-pool' && (
-                                <Button variant="outline" className="flex items-center gap-2" onClick={() => router.push(`/contracts/${contract.id}/manage`)}>
+                                <Button variant="outline" className="flex items-center gap-2" onClick={() => router.push(`/contracts/${id}/manage`)}>
                                     Manage Pool
                                 </Button>
                             )}
@@ -301,7 +486,21 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                                     rel="noopener noreferrer"
                                     className="text-sm flex items-center text-primary hover:underline"
                                 >
-                                    <ExternalLink className="h-3.5 w-3.5 mr-2" /> Documentation
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-3.5 w-3.5 mr-2"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                    Documentation
                                 </a>
                             </li>
                             <li>
@@ -311,7 +510,21 @@ export default function ContractDetailPage({ params }: { params: { id: string } 
                                     rel="noopener noreferrer"
                                     className="text-sm flex items-center text-primary hover:underline"
                                 >
-                                    <ExternalLink className="h-3.5 w-3.5 mr-2" /> Community Support
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-3.5 w-3.5 mr-2"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                    Community Support
                                 </a>
                             </li>
                         </ul>
