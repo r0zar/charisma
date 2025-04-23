@@ -411,7 +411,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
             <h1 className="text-2xl font-bold mb-6">{isNew ? 'Create New Token' : 'Edit Token Metadata'}</h1>
 
             {error && (
-                <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded mb-4">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {error}
                 </div>
             )}
@@ -426,11 +426,11 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="tokenNamePart" className="block text-sm font-medium mb-1">
+                            <label htmlFor="tokenNamePart" className="block text-sm font-medium text-gray-700 mb-1">
                                 Token Identifier *
                             </label>
                             <div className="flex">
-                                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground sm:text-sm">
+                                <span className="inline-flex items-center px-1 rounded-l-md sm:text-sm">
                                     {initialContractParts.address || stxAddress}.
                                 </span>
                                 <input
@@ -440,11 +440,11 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                     value={tokenNamePart}
                                     onChange={(e) => setTokenNamePart(e.target.value)}
                                     placeholder="token-name"
-                                    className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background sm:text-sm"
+                                    className="flex-1 min-w-0 block w-full px-1 py-2 rounded-none rounded-r-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300"
                                     required
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <p className="mt-1 text-xs text-gray-500">
                                 {isNew
                                     ? "Choose a unique identifier for your token"
                                     : "You can update the token identifier as long as it's not already in use"}
@@ -452,7 +452,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                         </div>
 
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium mb-1">
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                                 Name *
                             </label>
                             <input
@@ -461,13 +461,13 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-background sm:text-sm"
+                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="symbol" className="block text-sm font-medium mb-1">
+                            <label htmlFor="symbol" className="block text-sm font-medium text-gray-700 mb-1">
                                 Symbol
                             </label>
                             <input
@@ -476,12 +476,12 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 name="symbol"
                                 value={formData.symbol}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-background sm:text-sm"
+                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="decimals" className="block text-sm font-medium mb-1">
+                            <label htmlFor="decimals" className="block text-sm font-medium text-gray-700 mb-1">
                                 Decimals
                             </label>
                             <input
@@ -492,12 +492,12 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 max="18"
                                 value={formData.decimals}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-background sm:text-sm"
+                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium mb-1">
+                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                                 Description *
                             </label>
                             <textarea
@@ -506,14 +506,14 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 rows={3}
                                 value={formData.description}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-background sm:text-sm"
+                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="prompt" className="block text-sm font-medium mb-1">
-                                Image Generation Prompt <span className="text-muted-foreground">(optional)</span>
+                            <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-1">
+                                Image Generation Prompt <span className="text-gray-400">(optional)</span>
                             </label>
                             <textarea
                                 id="prompt"
@@ -521,7 +521,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 rows={3}
                                 value={formData.prompt as string}
                                 onChange={handleInputChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-background sm:text-sm"
+                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                             />
                         </div>
 
@@ -557,7 +557,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
 
                     <div className="flex flex-col items-center">
                         <h3 className="text-lg font-medium mb-2">Token Image *</h3>
-                        <div className="border border-input rounded-md p-4 w-full h-64 flex items-center justify-center bg-muted/20">
+                        <div className="border rounded-md p-4 w-full h-64 flex items-center justify-center">
                             {imageUrl ? (
                                 <div className="relative w-full h-full">
                                     <img
@@ -567,7 +567,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                     />
                                 </div>
                             ) : (
-                                <p className="text-muted-foreground">Upload or generate an image for your token</p>
+                                <p className="text-gray-400">Upload or generate an image for your token</p>
                             )}
                         </div>
                     </div>

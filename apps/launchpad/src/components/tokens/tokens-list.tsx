@@ -138,16 +138,6 @@ export function TokensList({ limit }: TokensListProps) {
 
     return (
         <div>
-            {authenticated && (
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold tracking-tight">Your Tokens</h1>
-                    <Button onClick={() => router.push('/tokens/new')} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Add New Token
-                    </Button>
-                </div>
-            )}
-
             {loading && !firstLoad && (
                 <div className="flex items-center justify-center w-full py-4">
                     <svg

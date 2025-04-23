@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,15 +16,11 @@ import Link from 'next/link';
 
 export default function NewTokenPage() {
     const { authenticated, stxAddress } = useApp();
-    const searchParams = useSearchParams();
-    const router = useRouter();
-
-    // Get initial token identifier from URL query parameter if available
-    const initialTokenId = searchParams?.get('tokenId') || '';
-    const [tokenIdentifier, setTokenIdentifier] = useState(initialTokenId);
+    const [tokenIdentifier, setTokenIdentifier] = useState('');
     const [isValidating, setIsValidating] = useState(false);
     const [error, setError] = useState('');
     const [contractId, setContractId] = useState('');
+    const router = useRouter();
 
     // Update the full contract ID whenever the token identifier changes
     useEffect(() => {
@@ -35,19 +31,11 @@ export default function NewTokenPage() {
         }
     }, [stxAddress, tokenIdentifier]);
 
-    // Validate token identifier when it's pre-filled from URL
-    useEffect(() => {
-        if (initialTokenId && !/^[a-z0-9\-]+$/.test(initialTokenId)) {
-            setError('Token identifier can only contain lowercase letters, numbers, and hyphens');
-        }
-    }, [initialTokenId]);
-
     // Generate a default token identifier with timestamp
     const handleGenerateTokenId = () => {
         const timestamp = Date.now();
         const newIdentifier = `token-${timestamp}`;
         setTokenIdentifier(newIdentifier);
-        setError('');
     };
 
     // Handle form submission
@@ -109,9 +97,9 @@ export default function NewTokenPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 p-4 bg-primary/5 border border-primary/20 rounded-lg mb-6">
-                    <Info className="h-5 w-5 text-primary flex-shrink-0" />
-                    <p className="text-sm">
+                <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
+                    <Info className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                    <p className="text-sm text-blue-700">
                         Tokens can only be deployed to your wallet address. The principal address is pre-filled with your wallet address.
                     </p>
                 </div>
@@ -132,7 +120,7 @@ export default function NewTokenPage() {
                             <span className="text-xs text-muted-foreground">Required</span>
                         </div>
 
-                        <div className="bg-muted/10 border border-border/50 p-4 rounded-lg">
+                        <div className="bg-muted/50 border border-border/50 p-4 rounded-lg">
                             <div className="flex flex-col space-y-4">
                                 {/* Principal Address Display */}
                                 <div>
@@ -193,7 +181,7 @@ export default function NewTokenPage() {
                         </div>
                     </div>
 
-                    <div className="bg-muted/10 border border-border/50 p-4 rounded-lg">
+                    <div className="bg-muted/50 border border-border/50 p-4 rounded-lg">
                         <h3 className="text-sm font-medium mb-3 flex items-center">
                             <CheckCircle2 className="h-4 w-4 mr-1.5 text-primary/70" />
                             What happens next?
@@ -223,6 +211,7 @@ export default function NewTokenPage() {
                     <Button
                         onClick={handleContinue}
                         disabled={isValidating || !tokenIdentifier.trim()}
+                        className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300"
                     >
                         Continue
                     </Button>
