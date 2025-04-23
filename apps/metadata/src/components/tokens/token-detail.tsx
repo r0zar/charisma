@@ -75,7 +75,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                 console.log(`TokenDetail: API response status for ${contractId}:`, response.status);
 
                 if (response.ok) {
-                    const { metadata: data } = await response.json();
+                    const data = await response.json();
                     console.log(`TokenDetail: API data received for ${contractId}:`, data);
                     setToken(data);
                     setFormData({

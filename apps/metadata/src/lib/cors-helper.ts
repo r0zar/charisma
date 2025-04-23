@@ -9,7 +9,7 @@ export const allowedOrigins = [
     'http://localhost:3004',
     'https://launchpad.charisma.rocks',
     'https://charisma-launchpad.vercel.app',
-    'https://charisma.rocks'
+    'https://charisma.rocks',
 ];
 
 /**
