@@ -442,7 +442,7 @@ export default function SIP10DeployPage() {
                                     <SelectTrigger className={errors.decimals ? "border-red-500" : ""}>
                                         <SelectValue placeholder="Select decimals" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-background">
                                         <SelectItem value="0">0 (No decimals)</SelectItem>
                                         <SelectItem value="6">6 (Like STX)</SelectItem>
                                         <SelectItem value="8">8 (Like BTC)</SelectItem>
