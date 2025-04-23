@@ -599,11 +599,10 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                             Image Generation Prompt
                                         </label>
                                         <div className="relative">
-                                            <input
-                                                type="text"
+                                            <textarea
                                                 id="imagePrompt"
                                                 name="imagePrompt"
-                                                className="w-full pl-3 pr-10 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+                                                className="w-full pl-3 pr-10 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all text-xs"
                                                 value={formData.imagePrompt}
                                                 onChange={handleChange}
                                                 placeholder="Describe token's appearance..."
