@@ -6,7 +6,7 @@
 export const BLAZE_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc9"
 
 // Welsh Credits contract
-export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-credits-rc5"
+export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-credits-rc6"
 
 // Welshcorgicoin token contract
 export const WELSHCORGICOIN_CONTRACT = "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
@@ -32,7 +32,7 @@ export function generateUUID(): string {
 
 /**
  * Utility to parse a contract string into its components
- * @param contractString - Full contract string (e.g., "SP2ZNGJ...KTBS.blaze-rc5")
+ * @param contractString - Full contract string (e.g., "SP2ZNGJ...KTBS.blaze-rc9")
  * @returns [contractAddress, contractName]
  */
 export function parseContract(contractString: string): [string, string] {
