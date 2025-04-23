@@ -247,14 +247,8 @@ curl -X POST \\
                     <li className="text-base leading-relaxed">Select a template and configure parameters</li>
                     <li className="text-base leading-relaxed">Review the generated contract code</li>
                     <li className="text-base leading-relaxed">Confirm deployment and sign the transaction</li>
-                    <li className="text-base leading-relaxed">Wait for confirmation (typically 5-10 minutes)</li>
+                    <li className="text-base leading-relaxed">Wait for confirmation (typically 5-10 seconds)</li>
                 </ol>
-
-                <h3 className="text-xl font-semibold mt-8 mb-4">Advanced: API Integration</h3>
-                <p className="my-4">
-                    For developers who want to integrate with our platform programmatically:
-                </p>
-                <Code code={deployExampleCurl} lang="bash" />
 
                 {/* interact */}
                 <H2 id="interact">Interacting with Contracts</H2>
