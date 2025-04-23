@@ -286,10 +286,10 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                 throw new Error(errorData.error || 'Failed to generate image');
             }
 
-            const data = await response.json();
-            if (data.success && data.metadata && data.metadata.image) {
+            if (response.ok) {
+                const data = await response.json();
                 // Only store the image URL locally, don't update full metadata
-                setUnsavedImageUrl(data.metadata.image);
+                setUnsavedImageUrl(data.image);
                 setSuccess('Image generated successfully! Remember to save metadata.');
 
                 // Clear success message after 3 seconds
@@ -343,11 +343,11 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             }
 
             const data = await response.json();
-            setToken(data.metadata);
+            setToken(data);
 
             // Update image URL state with the saved one
-            if (data.metadata.image) {
-                setImageUrl(data.metadata.image);
+            if (data.image) {
+                setImageUrl(data.image);
                 setUnsavedImageUrl(''); // Clear unsaved image URL
             }
 
