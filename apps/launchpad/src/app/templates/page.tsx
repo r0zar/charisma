@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { Rocket, Layers, ArrowRight } from 'lucide-react';
+import { Rocket, Layers, ArrowRight, Coins, Globe, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ContractType } from '@/components/contracts/contracts-list';
 import { useApp } from '@/lib/context/app-context';
@@ -83,6 +83,59 @@ const TemplatesPage = () => {
                         'Flexible rebates'
                     ],
                     enabled: true
+                }
+            ]
+        },
+        {
+            group: 'Farm & Rewards Templates',
+            items: [
+                {
+                    id: 'hold-to-earn',
+                    title: 'Hold-to-Earn Farm Rewards',
+                    description: 'A reward distribution contract that allows token holders to earn rewards just by holding tokens in their wallet.',
+                    icon: <Coins className="h-6 w-6" />,
+                    type: 'custom' as ContractType,
+                    features: [
+                        'Snapshot-based rewards',
+                        'Time-weighted holding incentives',
+                        'Configurable reward periods',
+                        'Multiple reward token support',
+                        'No staking required'
+                    ],
+                    enabled: false
+                }
+            ]
+        },
+        {
+            group: 'Subnet Integration Templates',
+            items: [
+                {
+                    id: 'subnet-token-wrapper',
+                    title: 'Subnet Token Wrapper',
+                    description: 'Upgrade an existing token to a subnet token. Once deployed, this contract allows users to peg tokens into and out of a subnet, enabling advanced transaction patterns.',
+                    icon: <Globe className="h-6 w-6" />,
+                    type: 'custom' as ContractType,
+                    features: [
+                        'Token pegging with virtual balance issuance',
+                        'Off-chain signature-based transfers',
+                        'Deferred and gasless transactions',
+                        'Off-chain oracle logic integration',
+                    ],
+                    enabled: false
+                },
+                {
+                    id: 'liquidity-pool-subnet',
+                    title: 'AMM Liquidity Subnet',
+                    description: 'An advanced AMM liquidity pool that works with subnet tokens and leverages off-chain signature-based transfers to enable sophisticated DeFi functionality beyond standard AMMs.',
+                    icon: <Network className="h-6 w-6" />,
+                    type: 'custom' as ContractType,
+                    features: [
+                        'Off-chain signature-based transfers',
+                        'Limit orders with conditional execution',
+                        'Dollar-cost averaging (DCA) automation',
+                        'Perpetual trading with dynamic funding',
+                    ],
+                    enabled: false
                 }
             ]
         }
