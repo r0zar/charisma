@@ -3,9 +3,9 @@ import Link from "next/link";
 import { CopyButton } from "@/components/ui/copy-button";
 
 export const metadata = {
-    title: "Charisma Metadata – Developer Guide",
+    title: "Charisma Launchpad – Developer Guide",
     description:
-        "Flat-file JSON hosting for fungible-token and NFT metadata on Stacks.",
+        "Deploy and manage Clarity smart contracts on the Stacks blockchain with ease.",
 };
 
 /* ——— reusable code block ——— */
@@ -27,34 +27,113 @@ const H2 = ({ id, children }: { id: string; children: React.ReactNode }) => (
 
 export default function DocsPage() {
     /* snippets */
-    const schemaFT = `
-{
-  "name":    "Stacker Coin",
-  "symbol":  "STKR",
-  "decimals": 6,
-  "description": "Utility token for the Stacker DAO",
-  "image": "https://cdn.charisma.app/stkr.png"
-}`;
-    const schemaNFT = `
-{
-  "name":  "Wizard #123",
-  "symbol": "WZRD",
-  "description": "Hand-drawn pixel wizard.",
-  "image": "ipfs://bafy.../wizard-123.png",
-  "attributes": [
-    { "trait_type": "Hat", "value": "Moonstone" },
-    { "trait_type": "Staff", "value": "Oak" }
-  ]
-}`;
-    const curlUpload = `
+    const sip10TokenExample = `
+(impl-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
+
+(define-fungible-token example-token)
+
+(define-constant contract-owner tx-sender)
+(define-constant err-owner-only (err u100))
+(define-constant err-not-token-owner (err u101))
+
+;; Read-only functions
+(define-read-only (get-name)
+  (ok "Example Token"))
+
+(define-read-only (get-symbol)
+  (ok "EXT"))
+
+(define-read-only (get-decimals)
+  (ok u6))
+
+(define-read-only (get-balance (who principal))
+  (ok (ft-get-balance example-token who)))
+
+(define-read-only (get-total-supply)
+  (ok (ft-get-supply example-token)))
+
+(define-read-only (get-token-uri)
+  (ok (some "https://charisma.app/api/v1/metadata/SP123...ABC.example-token")))
+
+;; Minting and transferring
+(define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
+  (begin
+    (asserts! (is-eq tx-sender sender) err-not-token-owner)
+    (try! (ft-transfer? example-token amount sender recipient))
+    (match memo to-print (print to-print) 0x)
+    (ok true)
+  ))
+
+(define-public (mint (amount uint) (recipient principal))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    (ft-mint? example-token amount recipient)
+  ))`;
+
+    const liquidityPoolExample = `
+;; Simple AMM Liquidity Pool
+;; This is a simplified liquidity pool contract for illustration
+
+(impl-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.pool-trait.pool-trait)
+
+(define-constant token-x-contract 'SP123...ABC.token-x)
+(define-constant token-y-contract 'SP123...ABC.token-y)
+(define-constant fee-bps u30) ;; 0.3% fee
+(define-constant contract-owner tx-sender)
+
+;; State management
+(define-data-var token-x-balance uint u0)
+(define-data-var token-y-balance uint u0)
+
+;; Read-only functions
+(define-read-only (get-info)
+  (ok {
+    token-x: token-x-contract,
+    token-y: token-y-contract,
+    balance-x: (var-get token-x-balance),
+    balance-y: (var-get token-y-balance),
+    fee-bps: fee-bps,
+    owner: contract-owner
+  })
+)
+
+;; Add liquidity
+(define-public (add-liquidity (x-amount uint) (y-amount uint))
+  (let (
+    (x-balance (var-get token-x-balance))
+    (y-balance (var-get token-y-balance))
+  )
+    ;; Transfer tokens to pool
+    (try! (contract-call? token-x-contract transfer x-amount tx-sender (as-contract tx-sender) none))
+    (try! (contract-call? token-y-contract transfer y-amount tx-sender (as-contract tx-sender) none))
+    
+    ;; Update balances
+    (var-set token-x-balance (+ x-balance x-amount))
+    (var-set token-y-balance (+ y-balance y-amount))
+    
+    (ok true)
+  ))`;
+
+    const deployExampleCurl = `
 curl -X POST \\
-  https://charisma.app/api/v1/metadata/SP2...XYZ.stkr \\
-  -H 'content-type: application/json' \\
-  -H 'x-signature: SIGNATURE' \\
-  -H 'x-public-key: PUBKEY' \\
-  --data '${schemaFT}'`;
-    const curlFetch =
-        "curl https://charisma.app/api/v1/metadata/SP2...XYZ.stkr";
+  https://stacks-node-api.mainnet.stacks.co/v2/transactions \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "version": 0,
+    "chain_id": 1,
+    "auth": {
+      "type": 2,
+      "spent_condition": []
+    },
+    "anchor_mode": 3,
+    "post_condition_mode": 2,
+    "post_conditions": [],
+    "payload": {
+      "type": 2,
+      "contract_name": "my-token",
+      "code_body": "..."
+    }
+  }'`;
 
     return (
         <div className="container grid max-w-6xl grid-cols-1 gap-12 py-12 lg:grid-cols-[220px_1fr]">
@@ -62,12 +141,12 @@ curl -X POST \\
             <aside className="sticky top-24 hidden h-[calc(100vh-6rem)] lg:block">
                 <ul className="space-y-2 text-sm">
                     {[
-                        ["why", "Why Charisma Metadata?"],
+                        ["why", "Why Charisma Launchpad?"],
                         ["quick", "Quick-start"],
-                        ["schema", "Metadata Schema"],
-                        ["api", "REST API"],
-                        ["security", "Signature Security"],
-                        ["tips", "Tips & Limits"],
+                        ["templates", "Contract Templates"],
+                        ["deploy", "Deploying Contracts"],
+                        ["interact", "Interacting with Contracts"],
+                        ["tips", "Tips & Best Practices"],
                     ].map(([id, label]) => (
                         <li key={id}>
                             <a
@@ -83,31 +162,29 @@ curl -X POST \\
 
             {/* content */}
             <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-li:my-1">
-                <h1 className="text-4xl font-bold mb-6">Charisma Metadata</h1>
+                <h1 className="text-4xl font-bold mb-6">Charisma Launchpad</h1>
                 <p className="lead text-xl mb-8 text-muted-foreground">
-                    A dead-simple JSON host for fungible-token and NFT metadata on the
-                    Stacks blockchain. No IPFS pinning, no SQL—just flat files served from
-                    our CDN.
+                    A powerful platform for deploying and managing Clarity smart contracts on the Stacks blockchain. Create, deploy, and interact with fungible tokens, NFTs, and AMM pools with just a few clicks.
                 </p>
 
                 {/* why */}
-                <H2 id="why">Why Charisma Metadata?</H2>
+                <H2 id="why">Why Charisma Launchpad?</H2>
                 <ul className="space-y-2 my-6">
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Flat-file speed</strong>
-                        <span className="text-muted-foreground">→ served straight from edge storage.</span>
+                        <strong className="text-primary">No-code deployment</strong>
+                        <span className="text-muted-foreground">→ deploy smart contracts without writing any code.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Wallet-signed writes</strong>
-                        <span className="text-muted-foreground">→ only the contract owner can mutate records.</span>
+                        <strong className="text-primary">Pre-built templates</strong>
+                        <span className="text-muted-foreground">→ standardized contracts for tokens, NFTs, and AMM pools.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Schema-light</strong>
-                        <span className="text-muted-foreground">→ any JSON keys are accepted; we surface common ones in UI.</span>
+                        <strong className="text-primary">Contract management</strong>
+                        <span className="text-muted-foreground">→ easily interact with your deployed contracts through a simple UI.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">No gas</strong>
-                        <span className="text-muted-foreground">→ metadata lives off-chain; your on-chain contract stores only a URL.</span>
+                        <strong className="text-primary">Gas optimization</strong>
+                        <span className="text-muted-foreground">→ our templates are optimized for minimal gas consumption.</span>
                     </li>
                 </ul>
 
@@ -116,104 +193,111 @@ curl -X POST \\
                 <ol className="list-decimal pl-5 space-y-2 my-6">
                     <li className="text-base leading-relaxed">
                         Connect your wallet in the{" "}
-                        <Link href="/tokens" className="text-primary hover:underline">
-                            Token Dashboard
+                        <Link href="/contracts" className="text-primary hover:underline">
+                            Contracts Dashboard
                         </Link>
                         .
                     </li>
-                    <li className="text-base leading-relaxed">Create or select a token entry.</li>
-                    <li className="text-base leading-relaxed">Edit the JSON; press Save → sign the message.</li>
+                    <li className="text-base leading-relaxed">Select a contract template (SIP-10 Token, NFT, or AMM Pool).</li>
+                    <li className="text-base leading-relaxed">Configure the contract parameters.</li>
+                    <li className="text-base leading-relaxed">Review and deploy your contract → sign the transaction.</li>
                     <li className="text-base leading-relaxed">
-                        Your metadata is now reachable at
-                        <code className="px-1 bg-muted rounded text-sm"> /api/v1/metadata/&lt;contractId&gt;</code>
+                        Your contract will be deployed to the Stacks blockchain and will appear in your dashboard.
                     </li>
                 </ol>
 
-                {/* schema */}
-                <H2 id="schema">Metadata Schema</H2>
+                {/* templates */}
+                <H2 id="templates">Contract Templates</H2>
                 <p className="my-4">
-                    We store raw JSON. Two informal shapes are recognised for nicer UI:
+                    We provide several pre-built templates to simplify your smart contract deployment:
                 </p>
 
-                <h3 className="text-xl font-semibold mt-8 mb-4">Fungible Token (FT)</h3>
-                <Code code={schemaFT} lang="json" />
-
-                <h3 className="text-xl font-semibold mt-8 mb-4">NFT</h3>
-                <Code code={schemaNFT} lang="json" />
-
-                {/* api */}
-                <H2 id="api">REST API</H2>
+                <h3 className="text-xl font-semibold mt-8 mb-4">SIP-10 Fungible Token</h3>
                 <p className="my-4">
-                    Base URL :{" "}
-                    <code className="px-1 bg-muted rounded text-sm">https://charisma.app/api/v1/metadata/&#123;contractId&#125;</code>
+                    Standard-compliant fungible tokens with customizable parameters:
+                </p>
+                <ul className="space-y-1 my-4 list-disc pl-5">
+                    <li>Token name, symbol, and decimals</li>
+                    <li>Initial supply and distribution</li>
+                    <li>Minting and burning permissions</li>
+                    <li>Metadata URI configuration</li>
+                </ul>
+                <Code code={sip10TokenExample} lang="clarity" />
+
+                <h3 className="text-xl font-semibold mt-8 mb-4">Liquidity Pool (AMM)</h3>
+                <p className="my-4">
+                    Automated Market Maker pools for token swapping:
+                </p>
+                <ul className="space-y-1 my-4 list-disc pl-5">
+                    <li>Constant product AMM (x * y = k)</li>
+                    <li>Customizable fee structure</li>
+                    <li>Liquidity provider token issuance</li>
+                    <li>Swap, add liquidity, and remove liquidity functions</li>
+                </ul>
+                <Code code={liquidityPoolExample} lang="clarity" />
+
+                {/* deploy */}
+                <H2 id="deploy">Deploying Contracts</H2>
+                <p className="my-4">
+                    Our platform simplifies the deployment process with a user-friendly interface. Behind the scenes, we use the Stacks blockchain API to broadcast your contract deployment transaction.
                 </p>
 
-                <table className="w-full my-6 border-collapse">
-                    <thead>
-                        <tr className="border-b border-border">
-                            <th className="py-3 px-4 text-left font-semibold">Method</th>
-                            <th className="py-3 px-4 text-left font-semibold">Purpose</th>
-                            <th className="py-3 px-4 text-left font-semibold">Headers</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr className="border-b border-border/50">
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">GET</code></td>
-                            <td className="py-3 px-4">Fetch metadata JSON</td>
-                            <td className="py-3 px-4">None</td>
-                        </tr>
-                        <tr className="border-b border-border/50">
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">POST</code></td>
-                            <td className="py-3 px-4">Create / replace JSON</td>
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code></td>
-                        </tr>
-                        <tr className="border-b border-border/50">
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">DELETE</code></td>
-                            <td className="py-3 px-4">Delete record</td>
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h4 className="text-lg font-semibold mt-8 mb-4">Example POST</h4>
-                <Code code={curlUpload} lang="bash" />
-
-                <h4 className="text-lg font-semibold mt-8 mb-4">Example GET</h4>
-                <Code code={curlFetch} lang="bash" />
-
-                {/* security */}
-                <H2 id="security">Signature Security</H2>
-                <p className="my-4">
-                    Every mutating request must include an{" "}
-                    <code className="px-1 bg-muted rounded text-sm">x-signature</code> header—an RSV signature of the{" "}
-                    <em>contractId</em> string—plus <code className="px-1 bg-muted rounded text-sm">x-public-key</code>. On the
-                    server we:
-                </p>
+                <h3 className="text-xl font-semibold mt-8 mb-4">Deployment Process</h3>
                 <ol className="list-decimal pl-5 space-y-2 my-6">
-                    <li className="text-base leading-relaxed">Verify the signature.</li>
-                    <li className="text-base leading-relaxed">Derive the Stacks address from the public key.</li>
-                    <li className="text-base leading-relaxed">
-                        Ensure it matches the <strong>contract address</strong>{" "}
-                        (<code className="px-1 bg-muted rounded text-sm">SP…</code> prefix before the dot).
-                    </li>
+                    <li className="text-base leading-relaxed">Select a template and configure parameters</li>
+                    <li className="text-base leading-relaxed">Review the generated contract code</li>
+                    <li className="text-base leading-relaxed">Confirm deployment and sign the transaction</li>
+                    <li className="text-base leading-relaxed">Wait for confirmation (typically 5-10 minutes)</li>
                 </ol>
-                <p className="my-4">If any step fails → <code className="px-1 bg-muted rounded text-sm">401 Unauthorized</code>.</p>
 
-                {/* tips */}
-                <H2 id="tips">Tips & Limits</H2>
+                <h3 className="text-xl font-semibold mt-8 mb-4">Advanced: API Integration</h3>
+                <p className="my-4">
+                    For developers who want to integrate with our platform programmatically:
+                </p>
+                <Code code={deployExampleCurl} lang="bash" />
+
+                {/* interact */}
+                <H2 id="interact">Interacting with Contracts</H2>
+                <p className="my-4">
+                    Once deployed, you can interact with your contracts directly from our dashboard:
+                </p>
                 <ul className="space-y-2 my-6">
                     <li className="flex items-baseline gap-2">
-                        Max body size: <strong>32 KB</strong>
+                        <strong className="text-primary">Call read-only functions</strong>
+                        <span className="text-muted-foreground">→ check balances, token info, pool statistics.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        Images: <strong>uploaded and hosted</strong> directly by this app—no need for external hosting.
+                        <strong className="text-primary">Execute public functions</strong>
+                        <span className="text-muted-foreground">→ transfer tokens, add liquidity, swap tokens.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        Write cache: propagation to edge nodes ≤{" "}
-                        <strong>2&nbsp;seconds</strong>.
+                        <strong className="text-primary">Monitor transactions</strong>
+                        <span className="text-muted-foreground">→ view transaction history and status.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        Versioning: coming soon (immutable URL per commit).
+                        <strong className="text-primary">View contract details</strong>
+                        <span className="text-muted-foreground">→ see contract interface, source code, and deployment info.</span>
+                    </li>
+                </ul>
+
+                {/* tips */}
+                <H2 id="tips">Tips & Best Practices</H2>
+                <ul className="space-y-2 my-6">
+                    <li className="flex items-baseline gap-2">
+                        <strong className="text-primary">Test on Testnet First</strong>
+                        <span className="text-muted-foreground">→ Always deploy to testnet before mainnet to verify functionality.</span>
+                    </li>
+                    <li className="flex items-baseline gap-2">
+                        <strong className="text-primary">Secure Owner Keys</strong>
+                        <span className="text-muted-foreground">→ Contract owner privileges are tied to the deploying wallet.</span>
+                    </li>
+                    <li className="flex items-baseline gap-2">
+                        <strong className="text-primary">Check Gas Requirements</strong>
+                        <span className="text-muted-foreground">→ Ensure you have enough STX to cover deployment costs.</span>
+                    </li>
+                    <li className="flex items-baseline gap-2">
+                        <strong className="text-primary">Set Appropriate Access Controls</strong>
+                        <span className="text-muted-foreground">→ Carefully configure who can mint, burn, or modify your tokens.</span>
                     </li>
                 </ul>
             </article>

@@ -61,7 +61,8 @@ const TemplatesPage = () => {
                         'Minting and burning functions',
                         'Transfer and approve functionality',
                         'Metadata support'
-                    ]
+                    ],
+                    enabled: true
                 }
             ]
         },
@@ -80,7 +81,8 @@ const TemplatesPage = () => {
                         'Add/Remove liquidity',
                         'Swap functionality',
                         'Fee mechanism (0.3%)'
-                    ]
+                    ],
+                    enabled: false
                 }
             ]
         }
@@ -135,6 +137,7 @@ const TemplatesPage = () => {
                                     <Button
                                         onClick={() => handleDeployClick(template.type)}
                                         className="w-full"
+                                        disabled={!template.enabled}
                                     >
                                         Deploy Contract
                                         <ArrowRight className="w-4 h-4 ml-2" />
