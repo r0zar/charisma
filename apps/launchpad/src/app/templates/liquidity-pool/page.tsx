@@ -59,7 +59,7 @@ const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
 // Token API URL
 const TOKEN_API_BASE_URL = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'
-    : 'https://token-cache.charisma.xyz'; // Replace with your actual production URL
+    : 'https://charisma-token-cache.vercel.app'; // Replace with your actual production URL
 const TOKEN_API_URL = `${TOKEN_API_BASE_URL}/api/v1/sip10`;
 
 // Wizard steps
