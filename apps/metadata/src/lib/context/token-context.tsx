@@ -69,9 +69,9 @@ export function TokenProvider({ children, walletState, signMessage: externalSign
         setLoading(true);
         try {
             const response = await fetch(`/api/v1/metadata/list?address=${walletState.address}`);
-            const data = await response.json();
-            if (data.success) {
-                setTokens(data.metadata);
+            if (response.ok) {
+                const data = await response.json();
+                setTokens(data);
             } else {
                 // If API is not ready, use an empty array
                 setTokens([]);

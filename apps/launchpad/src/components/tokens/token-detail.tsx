@@ -301,14 +301,12 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             }
 
             const data = await response.json();
-            if (data.success && data.metadata) {
-                setToken(data.metadata);
-                setImageUrl(data.metadata.image);
-                setSuccess('Image generated successfully!');
+            setToken(data);
+            setImageUrl(data.image);
+            setSuccess('Image generated successfully!');
 
-                // Clear success message after 3 seconds
-                setTimeout(() => setSuccess(''), 3000);
-            }
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccess(''), 3000);
         } catch (error) {
             console.error('Failed to generate image:', error);
             setError('Failed to generate image. Please try again.');
