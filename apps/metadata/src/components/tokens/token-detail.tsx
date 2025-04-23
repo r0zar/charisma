@@ -424,21 +424,6 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                         <ArrowLeft className="mr-1 h-4 w-4" />
                         Back to Tokens
                     </button>
-
-                    {saving ? (
-                        <Button disabled className="gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Saving...
-                        </Button>
-                    ) : (
-                        <Button
-                            onClick={handleSubmit}
-                            className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300"
-                        >
-                            <Save className="h-4 w-4" />
-                            Save Metadata
-                        </Button>
-                    )}
                 </div>
 
                 <div className="flex items-start justify-between flex-col sm:flex-row gap-4">
