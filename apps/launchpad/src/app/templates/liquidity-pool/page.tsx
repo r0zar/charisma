@@ -478,27 +478,27 @@ export default function LiquidityPoolDeployPage() {
                         <CardContent className="space-y-6">
                             <div>
                                 <h3 className="text-sm font-medium mb-2">Pool Info</h3>
-                                <div className="border rounded-md p-3 space-y-3 bg-muted/20">
-                                    <div className="flex items-start">
+                                <div className="border rounded-md p-3 bg-muted/20">
+                                    <div className="flex items-stretch">
                                         <a
                                             href={`https://charisma-metadata.vercel.app/tokens/new?tokenId=${encodeURIComponent(contractIdentifier?.split('.')?.pop() || '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex-shrink-0 mr-3 group"
+                                            className="flex-shrink-0 mr-3 group self-stretch flex flex-col"
                                         >
-                                            <div className="border border-dashed rounded-md w-16 h-16 flex items-center justify-center bg-muted/30 group-hover:bg-muted/50 transition-colors">
-                                                <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+                                            <div className="border border-dashed rounded-md w-24 flex-grow flex items-center justify-center bg-muted/30 group-hover:bg-muted/50 transition-colors">
+                                                <ExternalLink className="h-6 w-6 text-muted-foreground group-hover:text-foreground" />
                                             </div>
                                             <div className="text-xs text-center mt-1 text-muted-foreground group-hover:text-foreground">
                                                 Add Metadata
                                             </div>
                                         </a>
-                                        <div className="flex-1 space-y-3">
-                                            <div>
+                                        <div className="flex-1 py-1">
+                                            <div className="mb-3">
                                                 <span className="text-xs text-muted-foreground block">Name</span>
                                                 <span className="font-medium">{poolName || "Not specified"}</span>
                                             </div>
-                                            <div>
+                                            <div className="mb-3">
                                                 <span className="text-xs text-muted-foreground block">Token Pair</span>
                                                 <span className="font-medium">{token1 || "Token 1"} / {token2 || "Token 2"}</span>
                                             </div>
