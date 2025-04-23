@@ -40,7 +40,7 @@ export async function GET(
 
 // Handle preflight requests
 export async function OPTIONS(req: NextRequest) {
-    const headers = generateCorsHeaders(req, 'GET, OPTIONS');
+    const headers = generateCorsHeaders(req, 'GET, POST, DELETE, OPTIONS');
     headers.set('Access-Control-Max-Age', '86400'); // 24 hours
     return new NextResponse(null, { status: 204, headers });
 }
@@ -51,23 +51,33 @@ export async function POST(
     ctx: { params: { contractId: string } },
 ) {
     const { contractId } = await ctx.params;
+    const headers = generateCorsHeaders(request, 'POST');
 
     try {
         if (!isValidContractId(contractId)) {
-            return NextResponse.json({ error: 'Invalid contract ID format' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'Invalid contract ID format' },
+                { status: 400, headers }
+            );
         }
 
         // ── auth headers ──
         const signature = request.headers.get('x-signature');
         const publicKey = request.headers.get('x-public-key');
         if (!signature || !publicKey) {
-            return NextResponse.json({ error: 'Missing authentication headers' }, { status: 401 });
+            return NextResponse.json(
+                { error: 'Missing authentication headers' },
+                { status: 401, headers }
+            );
         }
 
         // ── verify signature ──
         const isValidSig = verifyMessageSignatureRsv({ message: contractId, publicKey, signature });
         if (!isValidSig) {
-            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+            return NextResponse.json(
+                { error: 'Invalid signature' },
+                { status: 401, headers }
+            );
         }
 
         // ── verify ownership ──
@@ -75,18 +85,18 @@ export async function POST(
         if (signerAddress !== getContractAddress(contractId)) {
             return NextResponse.json(
                 { error: 'Not authorized to modify this contract metadata' },
-                { status: 403 },
+                { status: 403, headers },
             );
         }
 
         const body = await request.json();
 
         const result = await MetadataService.set(contractId, body);
-        return NextResponse.json(result);
+        return NextResponse.json(result, { headers });
     } catch (err) {
         console.error('Failed to handle metadata:', err);
         const msg = err instanceof Error ? err.message : 'Failed to handle metadata request';
-        return NextResponse.json({ error: msg }, { status: 500 });
+        return NextResponse.json({ error: msg }, { status: 500, headers });
     }
 }
 
@@ -96,23 +106,33 @@ export async function DELETE(
     ctx: { params: { contractId: string } },
 ) {
     const { contractId } = await ctx.params;
+    const headers = generateCorsHeaders(request, 'DELETE');
 
     try {
         if (!isValidContractId(contractId)) {
-            return NextResponse.json({ error: 'Invalid contract ID format' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'Invalid contract ID format' },
+                { status: 400, headers }
+            );
         }
 
         // ── auth headers ──
         const signature = request.headers.get('x-signature');
         const publicKey = request.headers.get('x-public-key');
         if (!signature || !publicKey) {
-            return NextResponse.json({ error: 'Missing authentication headers' }, { status: 401 });
+            return NextResponse.json(
+                { error: 'Missing authentication headers' },
+                { status: 401, headers }
+            );
         }
 
         // ── verify signature ──
         const isValidSig = verifyMessageSignatureRsv({ message: contractId, publicKey, signature });
         if (!isValidSig) {
-            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+            return NextResponse.json(
+                { error: 'Invalid signature' },
+                { status: 401, headers }
+            );
         }
 
         // ── verify ownership ──
@@ -120,7 +140,7 @@ export async function DELETE(
         if (signerAddress !== getContractAddress(contractId)) {
             return NextResponse.json(
                 { error: 'Not authorized to delete this contract metadata' },
-                { status: 403 },
+                { status: 403, headers },
             );
         }
 
@@ -128,10 +148,10 @@ export async function DELETE(
         return NextResponse.json({
             success: true,
             message: `Metadata for ${contractId} has been deleted`,
-        });
+        }, { headers });
     } catch (err) {
         console.error('Failed to delete metadata:', err);
         const msg = err instanceof Error ? err.message : 'Failed to delete metadata';
-        return NextResponse.json({ error: msg }, { status: 500 });
+        return NextResponse.json({ error: msg }, { status: 500, headers });
     }
 }

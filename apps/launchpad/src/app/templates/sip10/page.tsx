@@ -33,6 +33,13 @@ import {
 import { MetadataService, TokenMetadata } from "@/lib/metadata-service";
 import { generateSIP10TokenContract } from "@/lib/templates/sip10-contract-template";
 
+// Updated constants for all metadata-related URLs
+const METADATA_BASE_URL = process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3008'
+    : 'https://charisma-metadata.vercel.app';
+
+const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
+
 export default function SIP10DeployPage() {
     const router = useRouter();
     const { toast } = useToast();
@@ -96,7 +103,7 @@ export default function SIP10DeployPage() {
                 // Fallback to API call
                 console.log("Using API fallback for metadata");
                 try {
-                    const response = await fetch(`https://charisma-metadata.vercel.app/api/v1/metadata/${contractIdentifier}`);
+                    const response = await fetch(`${METADATA_API_URL}/${contractIdentifier}`);
 
                     if (response.ok) {
                         const data = await response.json();
@@ -598,7 +605,7 @@ export default function SIP10DeployPage() {
                                     <h3 className="text-sm font-medium mb-3">Token Metadata</h3>
                                     <div className="border rounded-md p-4 bg-muted/20 flex flex-col items-center">
                                         <a
-                                            href={`https://charisma-metadata.vercel.app/tokens/new?tokenId=${encodeURIComponent(contractIdentifier?.split('.')?.pop() || '')}`}
+                                            href={`${METADATA_BASE_URL}/tokens/new?tokenId=${encodeURIComponent(contractIdentifier?.split('.')?.pop() || '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="mb-2"
