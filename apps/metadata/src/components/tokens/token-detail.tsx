@@ -46,6 +46,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
     const [success, setSuccess] = useState('');
     const router = useRouter();
 
+    // Add a state to track if the local image URL has been set but not saved
+    const [unsavedImageUrl, setUnsavedImageUrl] = useState('');
+
     // Extract principal address and token identifier from contract ID
     useEffect(() => {
         if (contractId && contractId.includes('.')) {
@@ -197,32 +200,10 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             // Create FormData and append the file
             const formData = new FormData();
             formData.append('image', file);
-            formData.append('contractId', contractId);
 
-            // Sign the message to authenticate
-            let signature, publicKey;
-            try {
-                const signResult = await signMessage(contractId);
-                signature = signResult.signature;
-                publicKey = signResult.publicKey;
-
-                if (!signature || !publicKey) {
-                    throw new Error('Failed to sign message with wallet');
-                }
-            } catch (signError) {
-                console.error('Error signing message:', signError);
-                setError('Please sign the message with your wallet to authenticate the request.');
-                setUploading(false);
-                return;
-            }
-
-            // Upload the image to your API
+            // The upload endpoint no longer requires authentication
             const response = await fetch(`/api/v1/metadata/upload/${contractId}`, {
                 method: 'POST',
-                headers: {
-                    'x-signature': signature,
-                    'x-public-key': publicKey,
-                },
                 body: formData,
             });
 
@@ -233,15 +214,16 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
 
             const data = await response.json();
             if (data.success && data.imageUrl) {
-                setImageUrl(data.imageUrl);
-                setSuccess('Image uploaded successfully!');
+                // Store the image URL in local state, but don't update metadata yet
+                setUnsavedImageUrl(data.imageUrl);
+                setSuccess('Image uploaded successfully! Remember to save metadata.');
 
                 // Clear success message after 3 seconds
                 setTimeout(() => setSuccess(''), 3000);
             }
         } catch (error) {
             console.error('Failed to upload image:', error);
-            setError('Failed to upload image. Please try again.');
+            setError(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setUploading(false);
             // Reset the file input
@@ -269,6 +251,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             let signature, publicKey;
             try {
                 const signResult = await signMessage(contractId);
+                console.log('signResult', signResult);
                 signature = signResult.signature;
                 publicKey = signResult.publicKey;
 
@@ -290,7 +273,10 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                     'x-public-key': publicKey,
                 },
                 body: JSON.stringify({
-                    ...formData,
+                    prompt: formData.imagePrompt,
+                    name: formData.name || undefined,
+                    symbol: formData.symbol || undefined,
+                    description: formData.description || undefined,
                     properties: token?.properties || {}
                 }),
             });
@@ -301,17 +287,17 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             }
 
             const data = await response.json();
-            if (data.success && data.metadata) {
-                setToken(data.metadata);
-                setImageUrl(data.metadata.image);
-                setSuccess('Image generated successfully!');
+            if (data.success && data.metadata && data.metadata.image) {
+                // Only store the image URL locally, don't update full metadata
+                setUnsavedImageUrl(data.metadata.image);
+                setSuccess('Image generated successfully! Remember to save metadata.');
 
                 // Clear success message after 3 seconds
                 setTimeout(() => setSuccess(''), 3000);
             }
         } catch (error) {
             console.error('Failed to generate image:', error);
-            setError('Failed to generate image. Please try again.');
+            setError(`Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setGenerating(false);
         }
@@ -328,6 +314,19 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             // Sign the contract ID as a message to authenticate
             const { signature, publicKey } = await signMessage(contractId);
 
+            // Prepare the metadata with either the saved or unsaved image URL
+            const finalImageUrl = unsavedImageUrl || imageUrl;
+
+            // Create metadata object with only the fields that have values
+            const metadata: Record<string, any> = {};
+            if (formData.name) metadata.name = formData.name;
+            if (formData.symbol) metadata.symbol = formData.symbol;
+            if (formData.description) metadata.description = formData.description;
+            if (formData.decimals) metadata.decimals = formData.decimals;
+            if (formData.identifier) metadata.identifier = formData.identifier;
+            if (finalImageUrl) metadata.image = finalImageUrl;
+            if (token?.properties) metadata.properties = token.properties;
+
             const response = await fetch(`/api/v1/metadata/${contractId}`, {
                 method: 'POST',
                 headers: {
@@ -335,11 +334,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                     'x-signature': signature,
                     'x-public-key': publicKey,
                 },
-                body: JSON.stringify({
-                    ...formData,
-                    image: imageUrl,
-                    properties: token?.properties || {}
-                }),
+                body: JSON.stringify(metadata),
             });
 
             if (!response.ok) {
@@ -349,6 +344,13 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
 
             const data = await response.json();
             setToken(data.metadata);
+
+            // Update image URL state with the saved one
+            if (data.metadata.image) {
+                setImageUrl(data.metadata.image);
+                setUnsavedImageUrl(''); // Clear unsaved image URL
+            }
+
             setSuccess('Metadata saved successfully!');
 
             // Clear success message after 3 seconds
@@ -406,6 +408,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             </div>
         );
     }
+
+    // Use the unsavedImageUrl or the stored imageUrl for display
+    const displayImageUrl = unsavedImageUrl || imageUrl;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -556,9 +561,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                             </h3>
 
                             <div className="aspect-square mb-4 relative rounded-lg overflow-hidden bg-gradient-to-br from-muted/50 to-muted border border-border/50 flex items-center justify-center">
-                                {imageUrl ? (
+                                {displayImageUrl ? (
                                     <Image
-                                        src={imageUrl}
+                                        src={displayImageUrl}
                                         alt={formData.name}
                                         fill
                                         sizes="(max-width: 768px) 100vw, 300px"
@@ -569,6 +574,11 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                     <div className="text-center p-6 text-muted-foreground">
                                         <Layers className="w-12 h-12 mx-auto mb-2 opacity-30" />
                                         <p className="text-sm">No image yet</p>
+                                    </div>
+                                )}
+                                {unsavedImageUrl && (
+                                    <div className="absolute bottom-2 right-2 bg-yellow-500/80 text-white text-xs px-2 py-1 rounded-full">
+                                        Unsaved changes
                                     </div>
                                 )}
                             </div>

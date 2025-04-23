@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,20 +30,28 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { MetadataService, TokenMetadata } from "@/lib/metadata-service";
+import { generateSIP10TokenContract } from "@/lib/templates/sip10-contract-template";
 
 export default function SIP10DeployPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const { authenticated, stxAddress } = useApp();
+    const { authenticated, stxAddress, deployContract } = useApp();
     const [isDeploying, setIsDeploying] = useState(false);
+    const [hasMetadata, setHasMetadata] = useState(false);
+    const [isCheckingMetadata, setIsCheckingMetadata] = useState(false);
+    const [metadata, setMetadata] = useState<TokenMetadata | null>(null);
+    const [metadataApiError, setMetadataApiError] = useState(false);
+    const [isCorsError, setIsCorsError] = useState(false);
+    const [txid, setTxid] = useState<string | null>(null);
 
     // Form state
     const [tokenName, setTokenName] = useState("");
     const [tokenSymbol, setTokenSymbol] = useState("");
     const [decimals, setDecimals] = useState("6");
     const [initialSupply, setInitialSupply] = useState("");
-    const [isMintable, setIsMintable] = useState(true);
-    const [isBurnable, setIsBurnable] = useState(true);
+    const [isMintable, setIsMintable] = useState(false);
+    const [isBurnable, setIsBurnable] = useState(false);
 
     // Generate contract name from token name
     const generateContractName = (name: string) => {
@@ -61,6 +69,87 @@ export default function SIP10DeployPage() {
 
     // Full contract identifier
     const contractIdentifier = stxAddress ? `${stxAddress}.${contractName}` : '';
+
+    // Function to check metadata
+    const checkMetadata = async () => {
+        if (!contractIdentifier) return;
+
+        setIsCheckingMetadata(true);
+        setMetadataApiError(false);
+        setIsCorsError(false);
+        try {
+            // Use the metadata service directly if available in this project
+            // or call the API endpoint
+            let metadataData;
+            try {
+                // Try to use the local service first
+                metadataData = await MetadataService.get(contractIdentifier);
+
+                const hasRequiredFields =
+                    metadataData?.name &&
+                    metadataData?.description &&
+                    metadataData?.image;
+
+                setHasMetadata(!!hasRequiredFields);
+                setMetadata(metadataData);
+            } catch (error) {
+                // Fallback to API call
+                console.log("Using API fallback for metadata");
+                try {
+                    const response = await fetch(`http://localhost:3008/api/v1/metadata/${contractIdentifier}`);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const hasRequiredFields =
+                            data.name &&
+                            data.description &&
+                            data.image;
+
+                        setHasMetadata(!!hasRequiredFields);
+                        setMetadata(data);
+                    } else {
+                        setHasMetadata(false);
+                        setMetadata(null);
+                    }
+                } catch (fetchError) {
+                    console.error("Error fetching metadata from API:", fetchError);
+                    // Identify CORS errors
+                    if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
+                        setIsCorsError(true);
+                        toast({
+                            variant: "destructive",
+                            title: "CORS Error",
+                            description: "Cross-origin request blocked. The metadata service needs to allow requests from this domain.",
+                        });
+                    } else {
+                        setMetadataApiError(true);
+                        toast({
+                            variant: "destructive",
+                            title: "Metadata Service Error",
+                            description: "Could not connect to metadata service. Please try again later.",
+                        });
+                    }
+
+                    setHasMetadata(false);
+                    setMetadata(null);
+                }
+            }
+        } catch (error) {
+            console.error("Error checking metadata:", error);
+            setHasMetadata(false);
+            setMetadata(null);
+        } finally {
+            setIsCheckingMetadata(false);
+        }
+    };
+
+    // Check for metadata when contract identifier changes
+    useEffect(() => {
+        if (contractIdentifier) {
+            checkMetadata();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contractIdentifier]); // We intentionally omit checkMetadata from dependencies to avoid infinite loops
 
     // Form validation
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,26 +208,49 @@ export default function SIP10DeployPage() {
             return;
         }
 
+        if (!hasMetadata) {
+            toast({
+                variant: "destructive",
+                title: "Metadata Required",
+                description: "Please set up token metadata before deploying. Click 'Add Metadata' in the preview section.",
+            });
+            return;
+        }
+
         try {
             setIsDeploying(true);
 
-            // In a real implementation, this would deploy the contract
-            // For now, we'll just simulate a successful deployment after a delay
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            // Generate the SIP-10 token contract code
+            const contractCode = generateSIP10TokenContract({
+                tokenName,
+                tokenSymbol,
+                decimals: parseInt(decimals),
+                initialSupply: parseFloat(initialSupply),
+                hasMinting: isMintable,
+                hasBurning: isBurnable,
+                deployerAddress: stxAddress!,
+                contractName: contractName
+            });
+
+            // Deploy the contract using the wallet
+            const result = await deployContract(contractCode, contractName);
+
+            setTxid(result.txid);
 
             toast({
                 title: "Deployment Initiated",
-                description: "Your SIP-10 token deployment has been initiated. You will be redirected to the contracts page.",
+                description:
+                    `Your SIP-10 token deployment has been initiated with transaction ID: ${result.txid.substring(0, 10)}...`,
             });
 
             // Redirect to contracts page after successful deployment
-            router.push("/contracts");
+            router.push(`/contracts?txid=${result.txid}`);
         } catch (error) {
             console.error("Deployment error:", error);
             toast({
                 variant: "destructive",
                 title: "Deployment Failed",
-                description: "There was an error deploying your token. Please try again.",
+                description: error instanceof Error ? error.message : "There was an error deploying your token. Please try again.",
             });
         } finally {
             setIsDeploying(false);
@@ -218,6 +330,30 @@ export default function SIP10DeployPage() {
                     <p className="text-muted-foreground mb-8">
                         Configure your SIP-10 fungible token contract. This is the standard for fungible tokens on the Stacks blockchain.
                     </p>
+
+                    {/* Deployment Steps */}
+                    <div className="mb-8 flex items-center justify-between">
+                        <div className="flex flex-col items-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${tokenName && tokenSymbol && initialSupply ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-muted/50 text-muted-foreground'}`}>
+                                1
+                            </div>
+                            <span className="text-xs mt-2">Configure Token</span>
+                        </div>
+                        <div className="h-[2px] flex-1 bg-muted mx-2" />
+                        <div className="flex flex-col items-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${hasMetadata ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-muted/50 text-muted-foreground'}`}>
+                                2
+                            </div>
+                            <span className="text-xs mt-2">Set Up Metadata</span>
+                        </div>
+                        <div className="h-[2px] flex-1 bg-muted mx-2" />
+                        <div className="flex flex-col items-center">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-muted bg-muted/50 text-muted-foreground">
+                                3
+                            </div>
+                            <span className="text-xs mt-2">Deploy Contract</span>
+                        </div>
+                    </div>
 
                     <Card className="mb-8">
                         <CardHeader>
@@ -456,54 +592,253 @@ export default function SIP10DeployPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div>
-                                <h3 className="text-sm font-medium mb-2">Token Info</h3>
-                                <div className="border rounded-md p-3 space-y-3 bg-muted/20">
-                                    <div className="flex items-start">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Token Metadata Visual */}
+                                <div className="md:col-span-1">
+                                    <h3 className="text-sm font-medium mb-3">Token Metadata</h3>
+                                    <div className="border rounded-md p-4 bg-muted/20 flex flex-col items-center">
                                         <a
                                             href={`https://charisma-metadata.vercel.app/tokens/new?tokenId=${encodeURIComponent(contractIdentifier?.split('.')?.pop() || '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex-shrink-0 mr-3 group"
+                                            className="mb-2"
                                         >
-                                            <div className="border border-dashed rounded-md w-16 h-16 flex items-center justify-center bg-muted/30 group-hover:bg-muted/50 transition-colors">
-                                                <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+                                            <div className={`border ${hasMetadata ? 'border-solid border-green-500' : isCorsError ? 'border-solid border-amber-500' : metadataApiError ? 'border-solid border-destructive' : 'border-dashed'} rounded-md aspect-square w-32 h-32 flex items-center justify-center ${hasMetadata ? 'bg-green-50/20' : isCorsError ? 'bg-amber-50/20' : metadataApiError ? 'bg-destructive/5' : 'bg-muted/30 group-hover:bg-muted/50'} transition-colors mx-auto relative overflow-hidden`}>
+                                                {hasMetadata ? (
+                                                    <>
+                                                        {metadata?.image ? (
+                                                            <div className="absolute inset-0 w-full h-full">
+                                                                <img
+                                                                    src={metadata.image}
+                                                                    alt={metadata.name || "Token"}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        // Hide image on error and show fallback
+                                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                                        const fallbackEl = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                                                        if (fallbackEl) {
+                                                                            fallbackEl.classList.remove('hidden');
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <div className="image-fallback hidden absolute inset-0 flex items-center justify-center bg-muted/20">
+                                                                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center">
+                                                                        {metadata?.symbol ? (
+                                                                            <span className="text-2xl font-bold text-muted-foreground">
+                                                                                {metadata.symbol.charAt(0)}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                                                                                <circle cx="12" cy="12" r="10" />
+                                                                                <line x1="4.93" y1="19.07" x2="19.07" y2="4.93" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center">
+                                                                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+                                                                    {metadata?.symbol ? (
+                                                                        <span className="text-2xl font-bold text-green-500">
+                                                                            {metadata.symbol.charAt(0)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                                                                            <circle cx="12" cy="12" r="10" />
+                                                                            <line x1="12" y1="8" x2="12" y2="16" />
+                                                                            <line x1="8" y1="12" x2="16" y2="12" />
+                                                                        </svg>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <div className="z-10 bg-green-500 rounded-full p-1 absolute bottom-2 right-2 shadow-sm">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                                            </svg>
+                                                        </div>
+                                                    </>
+                                                ) : isCheckingMetadata ? (
+                                                    <svg className="animate-spin h-8 w-8 text-primary/60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                ) : isCorsError ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 h-8 w-8">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                                    </svg>
+                                                ) : metadataApiError ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive h-8 w-8">
+                                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                                    </svg>
+                                                ) : (
+                                                    <ExternalLink className="h-8 w-8 text-muted-foreground group-hover:text-foreground" />
+                                                )}
                                             </div>
-                                            <div className="text-xs text-center mt-1 text-muted-foreground group-hover:text-foreground">
-                                                Add Metadata
+                                            <div className="text-sm text-center mt-2 font-medium">
+                                                {hasMetadata ? "Metadata Ready" : isCorsError ? "CORS Error" : metadataApiError ? "Service Unavailable" : "Add Metadata"}
                                             </div>
                                         </a>
-                                        <div className="flex-1 space-y-3">
-                                            <div>
-                                                <span className="text-xs text-muted-foreground block">Name</span>
-                                                <span className="font-medium">{tokenName || "Not specified"}</span>
+
+                                        {contractIdentifier && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={checkMetadata}
+                                                disabled={isCheckingMetadata}
+                                                className="mt-3"
+                                            >
+                                                {isCheckingMetadata ? (
+                                                    <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" />
+                                                    </svg>
+                                                )}
+                                                Refresh Metadata
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {metadataApiError && !isCorsError && (
+                                        <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                                            <p className="font-medium">Service unavailable</p>
+                                            <p className="mt-1 text-xs">We're unable to connect to the metadata service.</p>
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                className="mt-2 w-full"
+                                                onClick={checkMetadata}
+                                            >
+                                                Retry Connection
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {isCorsError && (
+                                        <div className="mt-4 p-3 rounded-md bg-amber-50 text-amber-800 text-sm">
+                                            <p className="font-medium">CORS Error</p>
+                                            <p className="mt-1 text-xs">Cross-origin request blocked. The metadata service needs CORS headers to allow requests from this domain.</p>
+                                            <div className="mt-2 bg-amber-100/50 p-2 rounded text-xs font-mono">
+                                                Origin: {window.location.origin}
                                             </div>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="mt-2 w-full border-amber-300 hover:bg-amber-100 text-amber-800"
+                                                onClick={checkMetadata}
+                                            >
+                                                Try Again
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Token Details */}
+                                <div className="md:col-span-2">
+                                    <h3 className="text-sm font-medium mb-3 flex items-center">
+                                        Token Details
+                                        {!hasMetadata && !metadataApiError && (
+                                            <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full flex items-center">
+                                                Metadata Required
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="h-4 w-4 p-0 ml-1"
+                                                            >
+                                                                <HelpCircle className="h-3 w-3 text-amber-800" />
+                                                                <span className="sr-only">Info</span>
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="w-80">
+                                                            <p className="mb-2">Your token requires metadata before it can be deployed.</p>
+                                                            <p>Click on "Add Metadata" to set up your token's details and image.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <div className="border rounded-md p-4 bg-muted/20 h-fit">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <span className="text-xs text-muted-foreground block">Symbol</span>
-                                                <span className="font-medium">{tokenSymbol || "Not specified"}</span>
+                                                <div className="text-sm text-muted-foreground mb-1">Name</div>
+                                                <div className="font-medium">
+                                                    {hasMetadata && metadata?.name ? metadata.name : tokenName || "Not specified"}
+                                                    {hasMetadata && metadata?.name && metadata.name !== tokenName && (
+                                                        <span className="text-xs text-muted-foreground ml-2">(from metadata)</span>
+                                                    )}
+                                                </div>
                                             </div>
+
                                             <div>
-                                                <span className="text-xs text-muted-foreground block">Initial Supply</span>
-                                                <span className="font-medium">{initialSupply || "0"}</span>
+                                                <div className="text-sm text-muted-foreground mb-1">Symbol</div>
+                                                <div className="font-medium">
+                                                    {hasMetadata && metadata?.symbol ? metadata.symbol : tokenSymbol || "Not specified"}
+                                                    {hasMetadata && metadata?.symbol && metadata.symbol !== tokenSymbol && (
+                                                        <span className="text-xs text-muted-foreground ml-2">(from metadata)</span>
+                                                    )}
+                                                </div>
                                             </div>
+
                                             <div>
-                                                <span className="text-xs text-muted-foreground block">Decimals</span>
-                                                <span className="font-medium">{decimals}</span>
+                                                <div className="text-sm text-muted-foreground mb-1">Decimals</div>
+                                                <div className="font-medium">
+                                                    {hasMetadata && metadata?.decimals !== undefined ? metadata.decimals : decimals}
+                                                    {hasMetadata && metadata?.decimals !== undefined && metadata.decimals.toString() !== decimals && (
+                                                        <span className="text-xs text-muted-foreground ml-2">(from metadata)</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div className="text-sm text-muted-foreground mb-1">Initial Supply</div>
+                                                <div className="font-medium">{initialSupply || "0"}</div>
+                                            </div>
+
+                                            {hasMetadata && metadata?.description && (
+                                                <div className="col-span-2 mt-2">
+                                                    <div className="text-sm text-muted-foreground mb-1">Description</div>
+                                                    <div className="text-sm bg-muted/20 p-2 rounded-md max-h-24 overflow-y-auto">
+                                                        {metadata.description}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="col-span-2">
+                                                <div className="text-sm text-muted-foreground mb-1">Features</div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                                        {isMintable ? "Mintable" : "Not Mintable"}
+                                                    </span>
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                                        {isBurnable ? "Burnable" : "Not Burnable"}
+                                                    </span>
+                                                    {hasMetadata && (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            Metadata Ready
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div>
-                                <h3 className="text-sm font-medium mb-2">Contract Identifier</h3>
-                                <div className="border rounded-md p-3 bg-muted/20">
-                                    <div className="font-mono text-xs break-all">
-                                        {contractIdentifier || "Connect wallet and enter token name"}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-2">
-                                        <span className="inline-block px-1.5 py-0.5 bg-muted/20 text-foreground/50 rounded mr-1">Deployer Address</span> +
-                                        <span className="inline-block px-1.5 py-0.5 bg-muted/20 text-foreground/50 rounded mx-1">Contract Name</span>
+                                        <div className="mt-6 pt-4 border-t">
+                                            <div className="text-sm text-muted-foreground mb-1">Contract Identifier</div>
+                                            <div className="font-mono text-xs bg-muted/40 p-2 rounded-md break-all">
+                                                {contractIdentifier || "Connect wallet and enter token name"}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -520,7 +855,7 @@ export default function SIP10DeployPage() {
                         </Button>
                         <Button
                             onClick={handleDeploy}
-                            disabled={isDeploying}
+                            disabled={isDeploying || !hasMetadata}
                             className="min-w-[150px]"
                         >
                             {isDeploying ? (
@@ -547,6 +882,8 @@ export default function SIP10DeployPage() {
                                     </svg>
                                     Deploying...
                                 </>
+                            ) : !hasMetadata ? (
+                                "Metadata Required"
                             ) : (
                                 "Deploy Token"
                             )}

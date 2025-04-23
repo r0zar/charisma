@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { TokenMetadata } from '@/lib/metadata-service';
-import { connect } from "@stacks/connect";
+import { connect, request } from "@stacks/connect";
 
 // Types
 interface WalletState {
@@ -133,7 +133,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         try {
             // Call the stx_signMessage method
-            const response = await (window as any).btc?.request('stx_signMessage', {
+            const response = await request('stx_signMessage', {
                 message
             });
 

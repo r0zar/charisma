@@ -11,12 +11,12 @@ const PropertiesSchema = z.object({
 }).passthrough();
 
 const MetadataSchema = z.object({
-    name: z.string(),
+    name: z.string().optional(),
     symbol: z.string().optional(),
     decimals: z.number().optional(),
     identifier: z.string().optional(),
-    description: z.string(),
-    image: z.string(),
+    description: z.string().optional(),
+    image: z.string().optional(),
     properties: PropertiesSchema.optional()
 }).passthrough();
 
@@ -32,7 +32,7 @@ export class MetadataService {
     static async get(contractId: string): Promise<TokenMetadata> {
         const metadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
         if (!metadata) {
-            console.error('Metadata not found', contractId);
+            console.log('Metadata not found for', contractId);
             return {} as TokenMetadata;
         }
         return { ...metadata, contractId };

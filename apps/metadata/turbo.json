@@ -15,7 +15,8 @@
         "KV_REST_API_READ_ONLY_TOKEN",
         "TOKEN_CACHE_ENDPOINT",
         "HIRO_API_KEY",
-        "OPENAI_API_KEY"
+        "OPENAI_API_KEY",
+        "BLOB_READ_WRITE_TOKEN"
       ]
     }
   }

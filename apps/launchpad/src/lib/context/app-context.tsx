@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { TokenMetadata } from '@/lib/metadata-service';
-import { connect } from "@stacks/connect";
+import { connect, request } from "@stacks/connect";
 
 // Types
 interface WalletState {
@@ -17,12 +17,17 @@ interface SignatureResponse {
     publicKey: string;
 }
 
+interface DeploymentResponse {
+    txid: string;
+}
+
 interface AppContextType {
     // Wallet state
     walletState: WalletState;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
     signMessage: (message: string) => Promise<SignatureResponse>;
+    deployContract: (contractCode: string, contractName: string) => Promise<DeploymentResponse>;
 
     // Token state
     authenticated: boolean;
@@ -39,6 +44,7 @@ const AppContext = createContext<AppContextType>({
     connectWallet: async () => { },
     disconnectWallet: () => { },
     signMessage: async () => ({ signature: "", publicKey: "" }),
+    deployContract: async () => ({ txid: "" }),
 
     // Token state defaults
     authenticated: false,
@@ -133,7 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         try {
             // Call the stx_signMessage method
-            const response = await (window as any).btc?.request('stx_signMessage', {
+            const response = await request('stx_signMessage', {
                 message
             });
 
@@ -147,6 +153,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
             };
         } catch (error) {
             console.error('Error signing message:', error);
+            throw error;
+        }
+    };
+
+    // Function to deploy a contract using the wallet
+    const deployContract = async (contractCode: string, contractName: string): Promise<DeploymentResponse> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+
+        try {
+            console.log(`Deploying contract ${contractName}...`);
+            // Call the stx_deployContract method
+            const response = await request('stx_deployContract', {
+                name: contractName,
+                clarityCode: contractCode,
+                clarityVersion: 3
+            });
+
+            if (!response || !response.txid) {
+                throw new Error('Failed to deploy contract with wallet');
+            }
+
+            console.log(`Contract deployment initiated with txid: ${response.txid}`);
+            return {
+                txid: response.txid
+            };
+        } catch (error) {
+            console.error('Error deploying contract:', error);
             throw error;
         }
     };
@@ -201,6 +236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         connectWallet,
         disconnectWallet,
         signMessage,
+        deployContract,
         authenticated: walletState.connected,
         stxAddress: walletState.address || null,
         tokens,

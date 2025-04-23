@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MetadataService } from '@/lib/metadata-service';
 import { verifyMessageSignatureRsv } from '@stacks/encryption';
 import { getAddressFromPublicKey, TransactionVersion } from '@stacks/transactions';
+import { generateCorsHeaders } from '@/lib/cors-helper';
 
 /* ───────────────────────────── helpers ───────────────────────────── */
 const isValidContractId = (contractId: string) =>
@@ -16,21 +17,32 @@ export async function GET(
     ctx: { params: { contractId: string } },
 ) {
     const { contractId } = await ctx.params;
+    const headers = generateCorsHeaders(req, 'GET');
 
     if (!contractId) {
-        return NextResponse.json({ error: 'Contract ID is required' }, { status: 400 });
+        return NextResponse.json(
+            { error: 'Contract ID is required' },
+            { status: 400, headers }
+        );
     }
 
     try {
         const metadata = await MetadataService.get(contractId);
-        return NextResponse.json({ success: true, metadata });
+        return NextResponse.json(metadata, { headers });
     } catch (err) {
         console.error(`Error fetching metadata for ${contractId}:`, err);
         return NextResponse.json(
             { success: false, error: 'Failed to fetch token metadata' },
-            { status: 500 },
+            { status: 500, headers }
         );
     }
+}
+
+// Handle preflight requests
+export async function OPTIONS(req: NextRequest) {
+    const headers = generateCorsHeaders(req, 'GET, OPTIONS');
+    headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+    return new NextResponse(null, { status: 204, headers });
 }
 
 /* ───────────────────────────── POST ───────────────────────────── */
@@ -68,12 +80,6 @@ export async function POST(
         }
 
         const body = await request.json();
-        if (!body.name || !body.description || !body.image) {
-            return NextResponse.json(
-                { success: false, error: 'Name, description, and image are required fields' },
-                { status: 400 },
-            );
-        }
 
         const result = await MetadataService.set(contractId, body);
         return NextResponse.json(result);
