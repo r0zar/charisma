@@ -11,10 +11,13 @@ export function Header() {
             <div className="container flex h-16 items-center justify-between">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
                             <Coins className="h-4 w-4 text-primary" />
                         </div>
-                        <span className="text-xl font-bold">Swap</span>
+                        <span className="hidden tracking-tight text-foreground sm:inline-block">
+                            <span className="font-bold">Charisma</span>{" "}
+                            <span className="text-primary">Swap</span>
+                        </span>
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-5">
