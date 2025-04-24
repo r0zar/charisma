@@ -10,8 +10,12 @@ const routerName = process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop';
 Dexterity.configureRouter(routerAddress, routerName);
 
 // Make sure to initialize Dexterity
+console.log(process.env.HIRO_API_KEY);
 if (typeof window === 'undefined') { // Server-side only
-    Dexterity.init();
+    Dexterity.init({
+        apiKey: process.env.HIRO_API_KEY!,
+        debug: true,
+    });
 }
 
 // Keep track of vault loading status

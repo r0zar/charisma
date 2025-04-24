@@ -7,6 +7,18 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+    ],
+  },
   env: {
     // Default values for local development
     NEXT_PUBLIC_DEX_CACHE_URL: process.env.NEXT_PUBLIC_DEX_CACHE_URL || "http://localhost:3003/api/v1",

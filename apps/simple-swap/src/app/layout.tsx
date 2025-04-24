@@ -1,11 +1,13 @@
-import { type Metadata } from "next";
-import "./globals.css";
+import React from 'react';
+import type { Metadata } from 'next';
+import './globals.css';
+import { WalletProvider } from '../contexts/wallet-context';
 
 export const metadata: Metadata = {
-  title: "Charisma DEX - Token Swap",
-  description: "Swap tokens seamlessly on the Charisma Decentralized Exchange",
+  title: 'SimpleSwap | Fast Decentralized Exchange',
+  description: 'Swap tokens on Stacks with the fastest and most secure decentralized exchange',
   icons: {
-    icon: "/favicon.ico",
+    icon: '/favicon.ico',
   },
 };
 
@@ -15,9 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-gradient-to-b from-[#2a1d0e] to-dark-100 text-dark-800 dark:text-dark-800 antialiased">
-        {children}
+    <html lang="en" className="light">
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <WalletProvider>
+          {children}
+        </WalletProvider>
       </body>
     </html>
   );

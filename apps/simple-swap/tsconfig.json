@@ -4,17 +4,30 @@
   ],
   "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
+    "target": "es2020",
     "outDir": "dist",
     "plugins": [
       {
         "name": "next"
       }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "jsx": "preserve",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
     ]
   },
   "include": [
     "src",
     "next.config.ts",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "src/types/**/*.d.ts"
   ]
 }

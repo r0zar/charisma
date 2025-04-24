@@ -16,6 +16,8 @@
     "@repo/dexterity": "workspace:*",
     "@repo/stacks": "workspace:*",
     "@repo/logger": "workspace:*",
+    "lucide-react": "^0.503.0",
+    "class-variance-authority": "^0.7.0",
     "next": "^15.2.1",
     "react": "^19",
     "react-dom": "^19"
@@ -24,14 +26,15 @@
     "@next/eslint-plugin-next": "^15.2.1",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.14.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.2",
     "eslint": "^9.24.0",
     "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "typescript": "5.8.2"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

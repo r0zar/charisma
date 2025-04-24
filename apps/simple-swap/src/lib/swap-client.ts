@@ -61,7 +61,11 @@ export function createSwapClient(options: SwapClientOptions = {}) {
 
   // Configure Dexterity if router info provided
   if (config.routerAddress && config.routerName) {
-    Dexterity.configureRouter(config.routerAddress, config.routerName);
+    Dexterity.configureRouter(
+      config.routerAddress,
+      config.routerName,
+      { debug: true, maxHops: 2 }
+    );
   }
 
   // In-memory cache for quotes with 1-second expiry

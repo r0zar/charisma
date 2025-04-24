@@ -3,6 +3,7 @@ import type { Route } from "@repo/dexterity";
 import { Cryptonomicon } from "@repo/cryptonomicon";
 import { getQuote, getRoutableTokens } from "../app/actions";
 import { swapClient, Token } from "../lib/swap-client";
+import { useWallet } from "../contexts/wallet-context";
 
 // Quote response mirrors server action structure
 interface QuoteResponse {
@@ -33,19 +34,19 @@ const crypto = new Cryptonomicon({
     debug: false
 });
 
-// Mock address - In a real app, you would get this from user's wallet
-const DEFAULT_ADDRESS = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS";
-
 export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
+    // Get wallet state from context
+    const { address: walletAddress } = useWallet();
+
     // ---------------------- State ----------------------
-    const [tokens, setTokens] = useState<Token[]>(initialTokens);
+    const [selectedTokens, setSelectedTokens] = useState<Token[]>(initialTokens);
     const [routeableTokenIds, setRouteableTokenIds] = useState<Set<string>>(new Set());
     const [isInitializing, setIsInitializing] = useState(true);
     const [isLoadingRouteInfo, setIsLoadingRouteInfo] = useState(false);
     const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
-    // User address state
-    const [userAddress, setUserAddress] = useState<string>(DEFAULT_ADDRESS);
+    // User address state - now derived from wallet context
+    const [userAddress, setUserAddress] = useState<string>("");
 
     const [selectedFromToken, setSelectedFromToken] = useState<Token | null>(null);
     const [selectedToToken, setSelectedToToken] = useState<Token | null>(null);
@@ -65,6 +66,17 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // Balance cache ref (will persist between renders but won't cause re-renders)
     const balanceCacheRef = useRef<BalanceCache>({});
 
+    // Update userAddress when wallet address changes
+    useEffect(() => {
+        if (walletAddress) {
+            setUserAddress(walletAddress);
+            // Clear balance cache when wallet changes
+            clearBalanceCache();
+        } else {
+            setUserAddress("");
+        }
+    }, [walletAddress]);
+
     // ---------------------- Effects ----------------------
     // Token loading logic (server‑prefetched vs. client fetch)
     useEffect(() => {
@@ -81,7 +93,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
                         decimals: t.decimals ?? 6,
                         image: t.image ?? "",
                     }));
-                    setTokens(tokensWithMeta);
+                    setSelectedTokens(tokensWithMeta);
                     setRouteableTokenIds(new Set(tokensWithMeta.map((t) => t.contractId)));
                 } else {
                     setError("Failed to load tokens with routes");
@@ -104,10 +116,10 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
     // Auto‑select default tokens when list ready
     useEffect(() => {
-        if (tokens.length === 0 || routeableTokenIds.size === 0) return;
+        if (selectedTokens.length === 0 || routeableTokenIds.size === 0) return;
         if (selectedFromToken && selectedToToken) return; // already set
 
-        const routeableTokens = tokens.filter((t) => routeableTokenIds.has(t.contractId));
+        const routeableTokens = selectedTokens.filter((t) => routeableTokenIds.has(t.contractId));
         if (routeableTokens.length === 0) return;
 
         // Prefer STX as source
@@ -121,7 +133,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         setSelectedFromToken(from);
         setSelectedToToken(to);
         setMicroAmount(swapClient.convertToMicroUnits(displayAmount, from.decimals));
-    }, [tokens, routeableTokenIds]);
+    }, [selectedTokens, routeableTokenIds]);
 
     // Function to check if a cached balance is still valid
     const isValidCache = useCallback((cacheKey: string) => {
@@ -179,7 +191,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // Fetch selected token balances
     useEffect(() => {
         async function fetchBalances() {
-            if (!userAddress) return;
+            if (!userAddress || userAddress.trim() === '') return;
 
             // Fetch "from" token balance
             if (selectedFromToken) {
@@ -275,7 +287,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // ---------------------- Return API ----------------------
     return {
         // data
-        tokens,
+        selectedTokens,
         routeableTokenIds,
         selectedFromToken,
         selectedToToken,
