@@ -7,10 +7,16 @@ import type { Token } from "../lib/swap-client";
 // Configure Dexterity router
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const routerName = process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop';
-Dexterity.configureRouter(routerAddress, routerName);
+Dexterity.configureRouter(
+    routerAddress,
+    routerName,
+    {
+        maxHops: 2,
+        debug: true,
+        defaultSlippage: 0.01,
+    });
 
 // Make sure to initialize Dexterity
-console.log(process.env.HIRO_API_KEY);
 if (typeof window === 'undefined') { // Server-side only
     Dexterity.init({
         apiKey: process.env.HIRO_API_KEY!,
