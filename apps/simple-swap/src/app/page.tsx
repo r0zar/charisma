@@ -106,7 +106,7 @@ export default async function SwapHomePage() {
                 <Shield className="h-6 w-6 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Secure Transactions</h3>
-              <p className="text-muted-foreground">Each vault is an <strong>isolated Clarity contract</strong>. A flaw in one pool can't drain funds from another.</p>
+              <p className="text-muted-foreground">Each vault is an <strong>isolated Clarity contract</strong>. A flaw in one pool can't affect funds from another.</p>
             </div>
 
             {/* Feature 3 */}
@@ -143,9 +143,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <Sparkles className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Low Fees</h3>
+              <h3 className="text-xl font-semibold mb-2">Zero Protocol Fees</h3>
               <p className="text-muted-foreground">
-                Enjoy minimal trading fees and transparent cost structure with no hidden charges.
+                All trading fees go back to the community, so you can swap with confidence knowing that you're supporting the network.
               </p>
             </div>
           </div>
