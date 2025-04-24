@@ -21,21 +21,13 @@ export function Header() {
                         <Link href="/swap" className="text-sm font-medium hover:text-primary transition-colors">
                             Swap
                         </Link>
-                        <div className="relative group">
-                            <span className="text-sm font-medium text-muted-foreground cursor-not-allowed">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-muted-foreground/70 cursor-not-allowed">
                                 Tokens
                             </span>
-                            <div className="absolute left-1/2 -translate-x-1/2 top-6 bg-popover border border-border rounded-md px-2 py-1 text-xs font-medium shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                                Coming Soon
-                            </div>
-                        </div>
-                        <div className="relative group">
-                            <span className="text-sm font-medium text-muted-foreground cursor-not-allowed">
-                                Pools
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded-full border border-border/50">
+                                Soon
                             </span>
-                            <div className="absolute left-1/2 -translate-x-1/2 top-6 bg-popover border border-border rounded-md px-2 py-1 text-xs font-medium shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                                Coming Soon
-                            </div>
                         </div>
                     </nav>
                 </div>
