@@ -12,6 +12,9 @@ import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { getTokenMetadataCached } from "@/lib/token-cache-client"
 import { useWallet } from "@/context/wallet-context"
+import { WELSHCORGICOIN_CONTRACT } from "@/constants/contracts"
+import { CHARISMA_CREDITS_CONTRACT } from "@/constants/contracts"
+import { CHARISMA_TOKEN_CONTRACT } from "@/constants/contracts"
 
 const formSchema = z.object({
     amount: z.string()
@@ -64,7 +67,9 @@ export function WithdrawForm({ contractId, tokenSymbol, decimals = 6 }: Withdraw
                 throw new Error("Invalid contract format")
             }
 
-            const tokenMetadata = await getTokenMetadataCached(contractId)
+            const tokenContractId = contractId === CHARISMA_CREDITS_CONTRACT ? CHARISMA_TOKEN_CONTRACT : WELSHCORGICOIN_CONTRACT
+
+            const tokenMetadata = await getTokenMetadataCached(tokenContractId)
 
             const numericAmount = Number(values.amount) * Math.pow(10, decimals)
 
@@ -76,7 +81,7 @@ export function WithdrawForm({ contractId, tokenSymbol, decimals = 6 }: Withdraw
                     noneCV()
                 ],
                 network: "mainnet",
-                postConditions: [Pc.principal(address!).willSendEq(numericAmount).ft(contractId as any, tokenMetadata.identifier!)]
+                postConditions: [Pc.principal(contractId).willSendEq(numericAmount).ft(tokenMetadata.contractId as any, tokenMetadata.identifier!)]
             }
 
             const result = await request('stx_callContract', params) as any

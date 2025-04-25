@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { request } from "@stacks/connect"
-import { noneCV, uintCV } from "@stacks/transactions"
+import { noneCV, Pc, PostConditionMode, uintCV } from "@stacks/transactions"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Form, FormItem, FormLabel, FormControl, FormField, FormMessage } from "@/components/ui/form"
@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { getTokenMetadataCached } from "@/lib/token-cache-client"
+import { useWallet } from "@/context/wallet-context"
+import { CHARISMA_CREDITS_CONTRACT, CHARISMA_TOKEN_CONTRACT, WELSHCORGICOIN_CONTRACT } from "@/constants/contracts"
 
 const formSchema = z.object({
     amount: z.string()
@@ -43,6 +46,8 @@ export function DepositForm({ contractId, tokenSymbol, decimals = 6 }: DepositFo
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [depositResult, setDepositResult] = useState<DepositResult>(null)
 
+    const { address } = useWallet()
+
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -60,6 +65,10 @@ export function DepositForm({ contractId, tokenSymbol, decimals = 6 }: DepositFo
                 throw new Error("Invalid contract format")
             }
 
+            const tokenContractId = contractId === CHARISMA_CREDITS_CONTRACT ? CHARISMA_TOKEN_CONTRACT : WELSHCORGICOIN_CONTRACT
+
+            const tokenMetadata = await getTokenMetadataCached(tokenContractId)
+
             const numericAmount = Number(values.amount) * Math.pow(10, decimals)
 
             const params = {
@@ -70,7 +79,8 @@ export function DepositForm({ contractId, tokenSymbol, decimals = 6 }: DepositFo
                     noneCV()
                 ],
                 network: "mainnet",
-            }
+                postConditions: [Pc.principal(address!).willSendEq(numericAmount).ft(tokenMetadata.contractId as any, tokenMetadata.identifier!)]
+            } as any
 
             const result = await request('stx_callContract', params) as any
 
