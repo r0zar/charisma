@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { request } from "@stacks/connect"
-import { uintCV } from "@stacks/transactions"
+import { noneCV, uintCV } from "@stacks/transactions"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Form, FormItem, FormLabel, FormControl, FormField, FormMessage } from "@/components/ui/form"
@@ -66,7 +66,8 @@ export function DepositForm({ contractId, tokenSymbol, decimals = 6 }: DepositFo
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: "deposit",
                 functionArgs: [
-                    uintCV(numericAmount)
+                    uintCV(numericAmount),
+                    noneCV()
                 ],
                 network: "mainnet",
             }

@@ -172,7 +172,7 @@
 (define-public (x-swap-a-to-b (amount uint) 
     (signature (buff 65)) (uuid (string-ascii 36)))
     (let (
-        (delta (get-swap-quote amount))
+        (delta (get-swap-quote amount (some OP_SWAP_A_TO_B)))
         (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature
             'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 "TRANSFER_TOKENS" none (some amount) (some CONTRACT) uuid))))
         
@@ -187,7 +187,7 @@
 (define-public (x-swap-b-to-a (amount uint) 
     (signature (buff 65)) (uuid (string-ascii 36)))
     (let (
-        (delta (get-swap-quote amount))
+        (delta (get-swap-quote amount (some OP_SWAP_B_TO_A)))
         (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature
             'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-rc2 "TRANSFER_TOKENS" none (some amount) (some CONTRACT) uuid))))
         
