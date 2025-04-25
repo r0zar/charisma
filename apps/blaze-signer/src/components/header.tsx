@@ -35,7 +35,7 @@ export function Header() {
                         <div className="flex items-center justify-center rounded-lg bg-primary/10 p-1">
                             <Zap className="h-6 w-6 text-primary" />
                         </div>
-                        <span className="text-xl font-bold">Blaze Protocol</span>
+                        <span className="text-xl font-bold text-white">Blaze Protocol</span>
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-6">
