@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 // TODO: Fetch this list dynamically in the future
 const knownPools = [
     {
-        contractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.monkey-d-luffy-rc4',
+        contractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.monkey-d-luffy-rc8',
         name: 'Monkey D. Luffy',
         description: 'Provides liquidity between CHA and WELSH.'
     },

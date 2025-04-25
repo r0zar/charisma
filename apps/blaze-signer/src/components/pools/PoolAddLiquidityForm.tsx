@@ -30,7 +30,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 interface PoolAddLiquidityFormProps {
     poolInfo: PoolInfo;
-    contractId: string; // Pool contract ID (e.g., monkey-d-luffy-rc4)
+    contractId: string; // Pool contract ID (e.g., monkey-d-luffy-rc8)
 }
 
 interface LiquidityQuote {
