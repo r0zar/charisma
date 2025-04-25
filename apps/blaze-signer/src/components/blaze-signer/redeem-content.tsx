@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { RedeemNoteForm } from './welsh-credits/redeem-note-form';
 import { STACKS_MAINNET } from '@stacks/network';
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { connect } from "@stacks/connect";
@@ -158,18 +157,6 @@ function RedeemPageContentInner({ sig, amount, uuid }: {
                     }
                 </p>
             </div>
-
-            {/* Pass data to the form component */}
-            <RedeemNoteForm
-                network={network}
-                isWalletConnected={isConnected}
-                onSuccess={handleSuccess}
-                initialSignature={sig || ""}
-                initialAmount={amount || ""}
-                initialUuid={uuid || ""}
-                initialRecipient={walletAddress || ""}
-                connectedWalletAddress={walletAddress}
-            />
 
             {/* Explanation Section */}
             <div className="mt-10 pt-6 border-t border-dashed border-border text-center">
