@@ -2,13 +2,13 @@
 
 import React, { useState, ChangeEvent } from "react"
 import { StacksNetwork } from "@stacks/network"
-import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType, principalCV } from "@stacks/transactions"
+import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType, principalCV, cvToValue, bufferCV } from "@stacks/transactions"
 import { bufferFromHex } from "@stacks/transactions/dist/cl"
-import { Loader2 } from "@repo/ui/icons"
+import { Loader2 } from "lucide-react"
 import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
-import { Button } from "@repo/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
-import { cn } from "@repo/ui/utils"
+import { Button } from "../ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card"
+import { cn } from "../ui/utils"
 
 interface VerifySignatureProps {
     network: StacksNetwork
@@ -29,9 +29,7 @@ type VerificationSuccess = {
 type VerificationResult = VerificationError | VerificationSuccess | null
 
 export function VerifySignature({ network, walletAddress, className }: VerifySignatureProps) {
-    const [coreContract, setCoreContract] = useState("")
-    const [opcode, setOpcode] = useState("")
-    const [uuid, setUuid] = useState("")
+    const [messageHash, setMessageHash] = useState("")
     const [signature, setSignature] = useState("")
     const [verificationResult, setVerificationResult] = useState<VerificationResult>(null)
     const [isVerifying, setIsVerifying] = useState(false)
@@ -43,11 +41,25 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
 
     // Function to verify a signature by calling the contract
     const handleVerifySignature = async () => {
-        if (!signature || !coreContract || !opcode || !uuid) {
+        if (!signature || !messageHash) {
             setVerificationResult({
                 type: 'error',
-                message: "All fields are required."
+                message: "Message Hash and Signature fields are required."
             })
+            return
+        }
+
+        // Basic check for signature format (hex, 130 chars/65 bytes)
+        const cleanSignature = signature.startsWith('0x') ? signature.substring(2) : signature;
+        if (!/^[0-9a-fA-F]+$/.test(cleanSignature) || cleanSignature.length !== 130) {
+            setVerificationResult({ type: 'error', message: "Signature must be a 65-byte hex string (130 characters)" })
+            return
+        }
+
+        // Basic check for hash format (hex, 64 chars/32 bytes)
+        const cleanMessageHash = messageHash.startsWith('0x') ? messageHash.substring(2) : messageHash;
+        if (!/^[0-9a-fA-F]+$/.test(cleanMessageHash) || cleanMessageHash.length !== 64) {
+            setVerificationResult({ type: 'error', message: "Message Hash must be a 32-byte hex string (64 characters)" })
             return
         }
 
@@ -61,30 +73,33 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
                 throw new Error("Invalid signer contract format in default configuration")
             }
 
-            // Call the get-signer-from-args function on the contract
+            // Call the updated 'verify' function
             const result: any = await fetchCallReadOnlyFunction({
                 contractAddress,
                 contractName,
-                functionName: "get-signer-from-args",
+                functionName: "verify",
                 functionArgs: [
-                    bufferFromHex(signature),
-                    principalCV(coreContract),
-                    stringAsciiCV(opcode),
-                    stringAsciiCV(uuid),
+                    bufferCV(Buffer.from(cleanMessageHash, 'hex')),
+                    bufferCV(Buffer.from(cleanSignature, 'hex')),
                 ],
                 network,
                 senderAddress: walletAddress || contractAddress,
             })
 
-            // Check if the result is a response with principal
-            if (result.type === ClarityType.ResponseOk) {
-                const principal = result.value.value
+            // verify returns (ok principal) or (err ...)
+            if (result && result.type === ClarityType.ResponseOk && result.value && result.value.type === ClarityType.PrincipalStandard) {
+                const principal = cvToValue(result.value)
                 setVerificationResult({
                     type: 'success',
                     signer: principal
                 })
+            } else if (result && result.type === ClarityType.ResponseErr) {
+                const errorDetails = JSON.stringify(cvToValue(result.value, true));
+                throw new Error(`Contract returned error: ${errorDetails}`);
             } else {
-                throw new Error("Invalid signature")
+                // Handle unexpected result structure or wrong principal type
+                const errorDetails = result ? JSON.stringify(cvToValue(result, true)) : 'Verification failed';
+                throw new Error(`Invalid signature or hash, or unexpected result: ${errorDetails}`);
             }
 
         } catch (error) {
@@ -101,60 +116,34 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
     return (
         <Card className={cn(className)}>
             <CardHeader>
-                <CardTitle>Get Signer by Data Properties</CardTitle>
+                <CardTitle>Verify Signature by Hash</CardTitle>
                 <CardDescription>
-                    Verify a signature matches the original request data.
+                    Verify a signature against its pre-computed SIP-018 message hash.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="core-contract" className="block text-sm font-medium text-foreground">
-                            Subnet Contract (principal)
+                        <label htmlFor="message-hash" className="block text-sm font-medium text-foreground">
+                            Message Hash (hex buffer 32)
                         </label>
                         <input
-                            id="core-contract"
-                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            placeholder="SP... (Contract that called 'submit')"
-                            value={coreContract}
-                            onChange={handleInputChange(setCoreContract)}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="opcode" className="block text-sm font-medium text-foreground">
-                            Opcode (string-ascii 64)
-                        </label>
-                        <input
-                            id="opcode"
-                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            placeholder="action=transfer;token=ST...;amount=100"
-                            value={opcode}
-                            onChange={handleInputChange(setOpcode)}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="uuid" className="block text-sm font-medium text-foreground">
-                            UUID (string-ascii 64)
-                        </label>
-                        <input
-                            id="uuid"
-                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            placeholder="Enter UUID"
-                            value={uuid}
-                            onChange={handleInputChange(setUuid)}
+                            id="message-hash"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background font-mono placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            placeholder="0x... (64 hex characters)"
+                            value={messageHash}
+                            onChange={handleInputChange(setMessageHash)}
                         />
                     </div>
 
                     <div className="space-y-2">
                         <label htmlFor="verify-signature" className="block text-sm font-medium text-foreground">
-                            Signature (buff 65)
+                            Signature (hex buffer 65)
                         </label>
                         <input
                             id="verify-signature"
-                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            placeholder="0x..."
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background font-mono placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            placeholder="0x... (130 hex characters)"
                             value={signature}
                             onChange={handleInputChange(setSignature)}
                         />
@@ -163,15 +152,15 @@ export function VerifySignature({ network, walletAddress, className }: VerifySig
                     <Button
                         className="w-full"
                         onClick={handleVerifySignature}
-                        disabled={isVerifying || !coreContract || !opcode || !uuid || !signature}
+                        disabled={isVerifying || !messageHash || !signature}
                     >
                         {isVerifying ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Verifying...
+                                <span className="ml-2">Verifying...</span>
                             </>
                         ) : (
-                            "Recover Signer"
+                            "Verify Signature"
                         )}
                     </Button>
 

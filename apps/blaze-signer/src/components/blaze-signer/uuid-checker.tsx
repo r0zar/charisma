@@ -3,11 +3,11 @@
 import React, { useState, ChangeEvent } from "react"
 import { StacksNetwork } from "@stacks/network"
 import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType } from "@stacks/transactions"
-import { Loader2 } from "@repo/ui/icons"
+import { Loader2 } from "lucide-react"
 import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
-import { Button } from "@repo/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
-import { cn } from "@repo/ui/utils"
+import { Button } from "../ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card"
+import { cn } from "../ui/utils"
 
 interface UuidCheckerProps {
     network: StacksNetwork
@@ -45,11 +45,11 @@ export function UuidChecker({ network, walletAddress, className }: UuidCheckerPr
                 throw new Error("Invalid signer contract format")
             }
 
-            // Call the is-uuid-submitted function
+            // Call the 'check' function
             const result = await fetchCallReadOnlyFunction({
                 contractAddress,
                 contractName,
-                functionName: "is-uuid-submitted",
+                functionName: "check",
                 functionArgs: [stringAsciiCV(uuid)],
                 network,
                 senderAddress: walletAddress || contractAddress,
@@ -105,7 +105,7 @@ export function UuidChecker({ network, walletAddress, className }: UuidCheckerPr
                         {isChecking ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Checking...
+                                <span className="ml-2">Checking...</span>
                             </>
                         ) : (
                             "Check UUID"

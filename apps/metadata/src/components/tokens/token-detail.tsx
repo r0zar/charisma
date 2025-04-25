@@ -187,9 +187,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError('Image size should be less than 5MB');
+        // Validate file size (max 25MB)
+        if (file.size > 25 * 1024 * 1024) {
+            setError('Image size should be less than 25MB');
             return;
         }
 
@@ -213,9 +213,10 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             }
 
             const data = await response.json();
-            if (data.success && data.imageUrl) {
+            console.log(data)
+            if (data.success && data.url) {
                 // Store the image URL in local state, but don't update metadata yet
-                setUnsavedImageUrl(data.imageUrl);
+                setUnsavedImageUrl(data.url);
                 setSuccess('Image uploaded successfully! Remember to save metadata.');
 
                 // Clear success message after 3 seconds

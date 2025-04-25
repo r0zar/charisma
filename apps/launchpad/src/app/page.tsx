@@ -28,13 +28,13 @@ export default function HomePage() {
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link href="/contracts">
+              <Link href="/templates">
                 <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300">
                   Launch Your Contract
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/docs">
+              <Link href="/templates">
                 <Button size="lg" variant="outline">
                   View Templates
                 </Button>

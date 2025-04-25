@@ -2,28 +2,16 @@
 ;; authors: rozar.btc
 ;; summary: Utility contract for verifying intent-based signed messages (v2).
 
-;; ---------------------------------------------------------------------------
-;; Constants & Domain Separator (SIP-018 style)
-;; ---------------------------------------------------------------------------
 (define-constant structured-data-prefix 0x534950303138)                               ;; "SIP018"
 (define-constant message-domain-hash (sha256 (unwrap-panic (to-consensus-buff? { name: "BLAZE_PROTOCOL", version: "intent-v1", chain-id: chain-id }))))
 (define-constant structured-data-header (concat structured-data-prefix message-domain-hash))
 
-;; ---------------------------------------------------------------------------
-;; Errors
-;; ---------------------------------------------------------------------------
 (define-constant ERR_INVALID_SIGNATURE (err u400))
 (define-constant ERR_CONSENSUS_BUFF    (err u401))
 (define-constant ERR_UUID_SUBMITTED    (err u402))
 
-;; ---------------------------------------------------------------------------
-;; Storage
-;; ---------------------------------------------------------------------------
 (define-map submitted-uuids (string-ascii 36) bool)
 
-;; ---------------------------------------------------------------------------
-;; Public: submit-intent (state-changing)
-;; ---------------------------------------------------------------------------
 (define-public (execute
     (signature (buff 65))
     (intent    (string-ascii 32))
@@ -44,16 +32,10 @@
   )
 )
 
-;; ---------------------------------------------------------------------------
-;; Read-only helpers
-;; ---------------------------------------------------------------------------
-
-;; Check if UUID already consumed
 (define-read-only (check (uuid (string-ascii 36)))
   (is-some (map-get? submitted-uuids uuid))
 )
 
-;; Hash SIP-018 structured data with SHA-256
 (define-read-only (hash
     (contract principal)
     (intent   (string-ascii 32))
@@ -77,7 +59,6 @@
   )
 )
 
-;; Recover signer without consuming UUID/state
 (define-read-only (recover
     (signature (buff 65))
     (contract  principal)
@@ -92,7 +73,6 @@
   )
 )
 
-;; Core secp256k1 recovery helper
 (define-read-only (verify 
     (message   (buff 32)) 
     (signature (buff 65))

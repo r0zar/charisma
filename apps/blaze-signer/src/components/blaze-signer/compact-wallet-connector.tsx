@@ -1,91 +1,34 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Button } from "@repo/ui/button"
-import { connect } from "@stacks/connect"
-import type { AddressEntry } from "@stacks/connect/dist/types/methods"
-import { cn } from "@repo/ui/utils"
+import React from "react"
+import { Button } from "../ui/button"
+import { cn } from "../ui/utils"
+import { useWallet } from "@/context/wallet-context"
 
 interface CompactWalletConnectorProps {
-    onWalletUpdate: (status: {
-        connected: boolean
-        address: string
-        publicKey: string
-    }) => void
     className?: string
 }
 
-export function CompactWalletConnector({ onWalletUpdate, className }: CompactWalletConnectorProps) {
-    const [isConnecting, setIsConnecting] = useState(false)
-    const [walletConnected, setWalletConnected] = useState(false)
-    const [walletAddress, setWalletAddress] = useState("")
-    const [walletPublicKey, setWalletPublicKey] = useState("")
-
-    // Check if user is already authenticated on component mount
-    useEffect(() => {
-        const addresses: AddressEntry[] = JSON.parse(localStorage.getItem('addresses') || '[]')
-        if (addresses.length) {
-            const mainnetAddress = addresses[2].address
-            const publicKey = addresses[2].publicKey || ""
-            setWalletConnected(true)
-            setWalletAddress(mainnetAddress)
-            setWalletPublicKey(publicKey)
-            onWalletUpdate({
-                connected: true,
-                address: mainnetAddress,
-                publicKey
-            })
-        }
-    }, [onWalletUpdate])
-
-    // Function to connect wallet using Stacks Connect
-    const connectWallet = async () => {
-        setIsConnecting(true)
-        try {
-            const result = await connect()
-            localStorage.setItem('addresses', JSON.stringify(result.addresses))
-
-            const mainnetAddress = result.addresses[2].address
-            const publicKey = result.addresses[2].publicKey || ""
-
-            setWalletConnected(true)
-            setWalletAddress(mainnetAddress)
-            setWalletPublicKey(publicKey)
-            onWalletUpdate({
-                connected: true,
-                address: mainnetAddress,
-                publicKey
-            })
-        } catch (error) {
-            console.error('Failed to connect wallet:', error)
-        } finally {
-            setIsConnecting(false)
-        }
-    }
-
-    // Function to disconnect wallet
-    const disconnectWallet = () => {
-        localStorage.removeItem('addresses')
-        setWalletAddress("")
-        setWalletPublicKey("")
-        setWalletConnected(false)
-        onWalletUpdate({
-            connected: false,
-            address: "",
-            publicKey: ""
-        })
-    }
+export function CompactWalletConnector({ className }: CompactWalletConnectorProps) {
+    const {
+        connected,
+        address,
+        isConnecting,
+        connectWallet,
+        disconnectWallet
+    } = useWallet()
 
     return (
         <div className={cn("flex justify-end", className)}>
-            {walletConnected ? (
+            {connected && address ? (
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={disconnectWallet}
                     className="h-8 px-3 text-xs font-medium hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    title={address}
                 >
-                    {`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}
+                    {`${address.substring(0, 6)}...${address.substring(address.length - 4)}`}
                 </Button>
             ) : (
                 <Button
@@ -97,13 +40,13 @@ export function CompactWalletConnector({ onWalletUpdate, className }: CompactWal
                     {isConnecting ? (
                         <>
                             <div className="inline-block w-3 h-3 mr-1 border rounded-full animate-spin border-t-foreground border-muted" />
-                            ...
+                            Connecting...
                         </>
                     ) : (
-                        "Connect"
+                        "Connect Wallet"
                     )}
                 </Button>
             )}
         </div>
     )
-} 
+}

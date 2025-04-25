@@ -41,6 +41,11 @@ const TemplatesPage = () => {
             return;
         }
 
+        if (templateId === 'liquidity-pool-subnet') {
+            router.push('/templates/liquidity-pool-subnet');
+            return;
+        }
+
         // Navigate directly to the template page
         if (type === 'sip10') {
             router.push(`/templates/sip10`);
@@ -101,11 +106,10 @@ const TemplatesPage = () => {
                     icon: <Coins className="h-6 w-6" />,
                     type: 'hold-to-earn' as ContractType,
                     features: [
-                        'Snapshot-based rewards',
                         'Time-weighted holding incentives',
-                        'Configurable reward periods',
-                        'Multiple reward token support',
-                        'No staking required'
+                        'Rewards accrued on every block',
+                        "Collect rewards whenever you want",
+                        'No staking required, just hold'
                     ],
                     enabled: false
                 }
@@ -133,14 +137,14 @@ const TemplatesPage = () => {
                     title: 'AMM Liquidity Subnet',
                     description: 'An advanced AMM liquidity pool that works with subnet tokens and leverages off-chain signature-based transfers to enable sophisticated DeFi functionality beyond standard AMMs.',
                     icon: <Network className="h-6 w-6" />,
-                    type: 'subnet-liquidity-pool' as ContractType,
+                    type: 'liquidity-pool-subnet' as ContractType,
                     features: [
                         'Off-chain signature-based transfers',
                         'Limit orders with conditional execution',
                         'Dollar-cost averaging (DCA) automation',
                         'Perpetual trading with dynamic funding',
                     ],
-                    enabled: false
+                    enabled: true
                 }
             ]
         }

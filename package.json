@@ -19,5 +19,8 @@
   "packageManager": "pnpm@8.15.6",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.7"
   }
 }

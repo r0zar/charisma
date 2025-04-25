@@ -32,12 +32,13 @@ async function deleteOldBlobIfExists(contractId: string, url: string) {
 
 export async function POST(request: NextRequest, context: Context) {
     try {
-        const contractId = context.params.contractId;
+        const { contractId } = await context.params;
+
         // Set CORS headers
         const headers = generateCorsHeaders(request, 'POST, OPTIONS');
 
         // Validate contract ID format
-        if (!contractId || !/^[A-Z0-9]{40}$/.test(contractId)) {
+        if (!contractId) {
             return NextResponse.json(
                 { error: 'Invalid contract ID format' },
                 { status: 400, headers }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest, context: Context) {
 
         // Get form data
         const formData = await request.formData();
-        const file = formData.get('file') as File | null;
+        const file = formData.get('file') || formData.get('image') as File | null;
 
         // Check if file exists
         if (!file) {

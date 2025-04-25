@@ -48,37 +48,10 @@
   )
 )
 
-;; ---------------------------------------------------------------------------
-;; 4. LP Token Deposit & Withdraw
-;; ---------------------------------------------------------------------------
-(define-public (deposit (amount uint))
-  (let ((sender tx-sender))
-    (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.we-are-legion transfer amount sender CONTRACT none))
-    (map-set lp-balances sender (+ (default-to u0 (map-get? lp-balances sender)) amount))
-    (print {event: "deposit", sender: sender, amount: amount})
-    (ok true)
-  )
-)
-
-(define-public (withdraw (amount uint))
-  (let ((sender tx-sender)
-        (sender-balance (default-to u0 (map-get? lp-balances sender))))
-    (asserts! (>= sender-balance amount) ERR_INSUFFICIENT_BALANCE)
-    (map-set lp-balances sender (- sender-balance amount))
-    (try! (as-contract (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.we-are-legion transfer amount tx-sender sender none)))
-    (print {event: "withdraw", sender: sender, amount: amount})
-    (ok true)
-  )
-)
-
-;; ---------------------------------------------------------------------------
-;; 5. Swap Quote Logic
-;; ---------------------------------------------------------------------------
-;; Get reserves from underlying contract
 (define-read-only (get-reserves)
   { 
-    a: (unwrap-panic (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 get-balance CONTRACT)), 
-    b: (unwrap-panic (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 get-balance CONTRACT))
+    a: (unwrap-panic (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 get-balance CONTRACT)), 
+    b: (unwrap-panic (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 get-balance CONTRACT))
   }
 )
 
@@ -125,34 +98,7 @@
     ERR_INVALID_OPERATION)))))
 )
 
-;; Signed execute function
-(define-public (signed-execute 
-    (signature (buff 65))
-    (amount uint)
-    (uuid (string-ascii 36))
-    (recipient principal)
-    (opcode (optional (buff 16)))
-  )
-  (let (
-        (operation (default-to 0x00 (element-at? (default-to 0x00 opcode) u0)))
-       )
-    (if (is-eq operation 0x00) 
-        (redeem-swap-a-to-b signature amount uuid recipient)
-    (if (is-eq operation 0x01) 
-        (redeem-swap-b-to-a signature amount uuid recipient)
-    (if (is-eq operation 0x02) 
-        (redeem-add-liquidity signature amount uuid recipient)
-    (if (is-eq operation 0x03) 
-        (redeem-remove-liquidity signature amount uuid recipient)
-    ERR_INVALID_OPERATION))))
-  )
-)
-
-;; ---------------------------------------------------------------------------
-;; 7. Redeem note functions for operations
-;; ---------------------------------------------------------------------------
-;; Redeem swap A to B
-(define-public (redeem-swap-a-to-b
+(define-public (x-swap-a-to-b
     (signature (buff 65))
     (amount uint)
     (uuid (string-ascii 36))
@@ -174,12 +120,12 @@
     ;; Future enhancement: Add minimum output check to protect against slippage
     ;; (asserts! (>= dy min-dy) (err u409))
     
-    ;; Call redeem-note on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 to transfer funds from signer to us
-    (try! (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 redeem-note 
+    ;; Call redeem-note on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 to transfer funds from signer to us
+    (try! (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 redeem-note 
            signature amount uuid CONTRACT))
     
-    ;; Call regular transfer on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 to credit the recipient
-    (try! (as-contract (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 transfer 
+    ;; Call regular transfer on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 to credit the recipient
+    (try! (as-contract (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 transfer 
            dy tx-sender recipient none)))
     
     (print {event: "redeem-swap-a-to-b", signer: signer, recipient: recipient, amount-in: amount, amount-out: dy, uuid: uuid})
@@ -187,8 +133,7 @@
   )
 )
 
-;; Redeem swap B to A
-(define-public (redeem-swap-b-to-a
+(define-public (x-swap-b-to-a
     (signature (buff 65))
     (amount uint)
     (uuid (string-ascii 36))
@@ -210,12 +155,12 @@
     ;; Future enhancement: Add minimum output check to protect against slippage
     ;; (asserts! (>= dy min-dy) (err u409))
     
-    ;; Call redeem-note on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 to transfer funds from signer to us
-    (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 redeem-note 
+    ;; Call redeem-note on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 to transfer funds from signer to us
+    (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 redeem-note 
            signature amount uuid CONTRACT))
     
-    ;; Call regular transfer on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 to credit the recipient
-    (try! (as-contract (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 transfer 
+    ;; Call regular transfer on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 to credit the recipient
+    (try! (as-contract (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 transfer 
            dy tx-sender recipient none)))
     
     (print {event: "redeem-swap-b-to-a", signer: signer, recipient: recipient, amount-in: amount, amount-out: dy, uuid: uuid})
@@ -223,8 +168,7 @@
   )
 )
 
-;; Redeem add liquidity
-(define-public (redeem-add-liquidity
+(define-public (x-add-liquidity
     (signature (buff 65))
     (amount uint)
     (uuid (string-ascii 36))
@@ -245,12 +189,12 @@
     ;; Future enhancement: Add deadline check to prevent stale transactions
     ;; (asserts! (< block-height deadline) (err u408))
     
-    ;; Call redeem-note on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 to transfer token A from signer to us
-    (try! (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 redeem-note 
+    ;; Call redeem-note on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 to transfer token A from signer to us
+    (try! (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 redeem-note 
            signature dx uuid CONTRACT))
     
-    ;; Call redeem-note on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 to transfer token B from signer to us
-    (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 redeem-note 
+    ;; Call redeem-note on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 to transfer token B from signer to us
+    (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 redeem-note 
            signature dy uuid CONTRACT))
     
     ;; Credit LP tokens to recipient in the wrapper
@@ -261,8 +205,7 @@
   )
 )
 
-;; Redeem remove liquidity
-(define-public (redeem-remove-liquidity
+(define-public (x-remove-liquidity
     (signature (buff 65))
     (amount uint)
     (uuid (string-ascii 36))
@@ -290,12 +233,12 @@
     ;; Burn LP tokens from signer in the wrapper
     (map-set lp-balances signer (- signer-lp-balance dk))
     
-    ;; Call regular transfer on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 to credit the recipient with token A
-    (try! (as-contract (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-credits-rc6 transfer 
+    ;; Call regular transfer on 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 to credit the recipient with token A
+    (try! (as-contract (contract-call? 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welsh-token-subnet-rc2 transfer 
            dx tx-sender recipient none)))
     
-    ;; Call regular transfer on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 to credit the recipient with token B
-    (try! (as-contract (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-credits-rc1 transfer 
+    ;; Call regular transfer on 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 to credit the recipient with token B
+    (try! (as-contract (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6 transfer 
            dy tx-sender recipient none)))
     
     (print {event: "redeem-remove-liquidity", signer: signer, recipient: recipient, lp-amount: dk, token-a: dx, token-b: dy, uuid: uuid})

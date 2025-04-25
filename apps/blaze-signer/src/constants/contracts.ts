@@ -3,20 +3,24 @@
  */
 
 // Blaze Protocol contract
-export const BLAZE_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc9"
+export const BLAZE_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10"
+
+// Charisma Credits contract
+export const CHARISMA_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6"
 
 // Welsh Credits contract
-export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-credits-rc6"
+export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-rc2"
 
 // Welshcorgicoin token contract
 export const WELSHCORGICOIN_CONTRACT = "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
 
 // Token decimals
 export const WELSH_CREDITS_DECIMALS = 6
+export const CHARISMA_CREDITS_DECIMALS = 6
 
 // SIP-018 Domain details
 export const BLAZE_PROTOCOL_NAME = "BLAZE_PROTOCOL";
-export const BLAZE_PROTOCOL_VERSION = "rc9";
+export const BLAZE_PROTOCOL_VERSION = "intent-v1";
 
 /**
  * Generates a UUID string in the format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx

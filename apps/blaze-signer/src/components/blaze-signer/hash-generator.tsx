@@ -2,13 +2,13 @@
 
 import React, { useState, ChangeEvent, useEffect } from "react"
 import { StacksNetwork } from "@stacks/network"
-import { fetchCallReadOnlyFunction, stringAsciiCV, cvToHex, ClarityValue, principalCV, tupleCV, uintCV, cvToValue } from "@stacks/transactions"
-import { Copy, Loader2, CheckCircle2 } from "@repo/ui/icons"
+import { fetchCallReadOnlyFunction, stringAsciiCV, cvToHex, ClarityValue, principalCV, tupleCV, uintCV, cvToValue, bufferCV, optionalCVOf, noneCV, ClarityType } from "@stacks/transactions"
+import { Copy, Loader2, CheckCircle2 } from "lucide-react"
 import { request } from "@stacks/connect"
 import { QRCodeSVG } from 'qrcode.react'
-import { Button } from "@repo/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui/card"
-import { cn } from "@repo/ui/utils"
+import { Button } from "../ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card"
+import { cn } from "../ui/utils"
 import { BLAZE_SIGNER_CONTRACT, generateUUID, BLAZE_PROTOCOL_NAME, BLAZE_PROTOCOL_VERSION } from "../../constants/contracts"
 
 // Add padding utility function at the top level
@@ -17,13 +17,6 @@ function padTo64Chars(input: string): string {
         throw new Error("Input exceeds 64 characters");
     }
     return input.padEnd(64, ' ');
-}
-
-// Helper function to parse amount from opcode string
-function parseAmountFromOpcode(opcode: string): string | null {
-    // Updated regex to match TRANSFER_<number> format
-    const match = opcode.match(/^TRANSFER_(\d+)$/);
-    return match ? match[1] : null; // Returns the digits if found, otherwise null
 }
 
 interface HashGeneratorProps {
@@ -39,7 +32,10 @@ export function HashGenerator({
     walletAddress,
     className
 }: HashGeneratorProps) {
-    const [opcode, setOpcode] = useState("")
+    const [intent, setIntent] = useState("")
+    const [opcodeOptional, setOpcodeOptional] = useState("")
+    const [amountOptional, setAmountOptional] = useState("")
+    const [targetOptional, setTargetOptional] = useState("")
     const [hashUuid, setHashUuid] = useState("")
     const [coreContract, setCoreContract] = useState("")
     const [generatedHash, setGeneratedHash] = useState("")
@@ -61,13 +57,47 @@ export function HashGenerator({
         setter(e.target.value);
     };
 
+    // Helper for optional hex buffer input
+    const handleHexBufferChange = (setter: React.Dispatch<React.SetStateAction<string>>, maxLengthBytes: number) => (e: ChangeEvent<HTMLInputElement>) => {
+        const hex = e.target.value.replace(/[^0-9a-fA-F]/g, ''); // Allow only hex characters
+        if (hex.length / 2 <= maxLengthBytes) { // Check byte length (2 hex chars per byte)
+            setter(hex);
+        } else {
+            // Optionally provide feedback that max length is reached
+            setter(hex.substring(0, maxLengthBytes * 2));
+        }
+    };
+
+    // Helper for optional uint input
+    const handleUintChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/[^0-9]/g, ''); // Allow only digits
+        setter(val);
+    };
+
     const handleGenerateUUID = () => {
         setHashUuid(generateUUID());
     };
 
     const generateStructuredDataHash = async () => {
-        if (!opcode || !hashUuid || !coreContract) {
-            setGeneratedHash("Error: All fields are required")
+        if (!intent || !hashUuid || !coreContract) {
+            setGeneratedHash("Error: Intent, UUID, and Contract fields are required")
+            return
+        }
+        if (intent.length > 32) {
+            setGeneratedHash("Error: Intent exceeds 32 ASCII characters")
+            return
+        }
+        if (opcodeOptional && (opcodeOptional.length === 0 || opcodeOptional.length % 2 !== 0 || opcodeOptional.length / 2 > 16)) {
+            setGeneratedHash("Error: Optional Opcode must be a valid hex string representing max 16 bytes")
+            return
+        }
+        // Basic principal format check (simple)
+        if (targetOptional && (!targetOptional.startsWith('SP') && !targetOptional.startsWith('ST'))) {
+            setGeneratedHash("Error: Optional Target does not look like a valid principal")
+            return
+        }
+        if (amountOptional && !/^\d+$/.test(amountOptional)) {
+            setGeneratedHash("Error: Optional Amount must be a valid positive integer")
             return
         }
 
@@ -78,35 +108,39 @@ export function HashGenerator({
         setPrivateQrData(null)
 
         try {
-            // Validate input lengths
-            if (opcode.length > 64) {
-                throw new Error("Opcode exceeds 64 characters");
-            }
-            if (hashUuid.length > 64) {
-                throw new Error("UUID exceeds 64 characters");
-            }
-
-            // Parse the contract address and name from constant
             const [contractAddress, contractName] = BLAZE_SIGNER_CONTRACT.split(".")
-
             if (!contractAddress || !contractName) {
-                throw new Error("Invalid signer contract format in default configuration")
+                throw new Error("Invalid signer contract format in configuration")
             }
 
-            // Call the hash-data function on the contract
+            // Prepare optional arguments: Use optionalCVOf only when there IS a value.
+            const opcodeArg = opcodeOptional ? optionalCVOf(bufferCV(Buffer.from(opcodeOptional, 'hex'))) : noneCV();
+            const amountArg = amountOptional ? optionalCVOf(uintCV(amountOptional)) : noneCV();
+            const targetArg = targetOptional ? optionalCVOf(principalCV(targetOptional)) : noneCV();
+
+            // Call the 'hash' function (ensure function name is correct)
             const result: any = await fetchCallReadOnlyFunction({
                 contractAddress,
                 contractName,
-                functionName: "hash-args",
+                functionName: "hash", // Assuming this is the function in BLAZE_SIGNER_CONTRACT
                 functionArgs: [
                     principalCV(coreContract),
-                    stringAsciiCV(opcode),
-                    stringAsciiCV(hashUuid)],
+                    stringAsciiCV(intent),
+                    opcodeArg, // Pass the correctly constructed optional value
+                    amountArg, // Pass the correctly constructed optional value
+                    targetArg, // Pass the correctly constructed optional value
+                    stringAsciiCV(hashUuid)
+                ],
                 network,
-                senderAddress: walletAddress || contractAddress,
+                senderAddress: walletAddress || contractAddress, // Ensure a sender is provided
             })
 
-            setGeneratedHash(result.value.value)
+            if (result?.value?.value) {
+                setGeneratedHash(result.value.value)
+            } else {
+                const errorDetails = result ? JSON.stringify(cvToValue(result, true)) : 'Unknown error structure';
+                throw new Error(`Failed to generate hash: ${errorDetails}`);
+            }
         } catch (error) {
             console.error("Error generating hash:", error)
             setGeneratedHash(`Error: ${error instanceof Error ? error.message : String(error)}`)
@@ -125,6 +159,12 @@ export function HashGenerator({
         setPrivateQrData(null)
 
         try {
+            // Prepare optional arguments for signing: Use optionalCVOf only when there IS a value.
+            const opcodeArg = opcodeOptional ? optionalCVOf(bufferCV(Buffer.from(opcodeOptional, 'hex'))) : noneCV();
+            const amountArg = amountOptional ? optionalCVOf(uintCV(amountOptional)) : noneCV();
+            const targetArg = targetOptional ? optionalCVOf(principalCV(targetOptional)) : noneCV();
+
+            // Updated signing payload
             const data = await request('stx_signStructuredMessage', {
                 domain: tupleCV({
                     name: stringAsciiCV(BLAZE_PROTOCOL_NAME),
@@ -133,25 +173,20 @@ export function HashGenerator({
                 }),
                 message: tupleCV({
                     contract: principalCV(coreContract),
-                    opcode: stringAsciiCV(opcode),
+                    intent: stringAsciiCV(intent),
+                    opcode: opcodeArg, // Pass the correctly constructed optional value
+                    amount: amountArg, // Pass the correctly constructed optional value
+                    target: targetArg, // Pass the correctly constructed optional value
                     uuid: stringAsciiCV(hashUuid),
                 })
             })
             if (data && data.signature) {
                 setSignature(data.signature)
 
-                // Generate QR Code Data only if baseUrl is available
                 if (baseUrl) {
-                    const amount = parseAmountFromOpcode(opcode);
-                    if (amount) {
-                        // Prepend baseUrl to create absolute URLs
-                        const publicUrl = `${baseUrl}/verify?uuid=${encodeURIComponent(hashUuid)}&contract=${encodeURIComponent(coreContract)}`;
-                        const privateUrl = `${baseUrl}/redeem?sig=${encodeURIComponent(data.signature)}&amount=${encodeURIComponent(amount)}&uuid=${encodeURIComponent(hashUuid)}`;
-                        setPublicQrData(publicUrl);
-                        setPrivateQrData(privateUrl);
-                    } else {
-                        console.warn("Could not parse amount from opcode for QR code generation.");
-                    }
+                    const publicUrl = `${baseUrl}/verify?uuid=${encodeURIComponent(hashUuid)}&contract=${encodeURIComponent(coreContract)}`;
+                    setPublicQrData(publicUrl);
+                    setPrivateQrData(null);
                 } else {
                     console.warn("Base URL not available yet for QR code generation.");
                 }
@@ -188,28 +223,72 @@ export function HashGenerator({
                         <input
                             id="core-contract"
                             className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            placeholder="SP... (Contract allowed to call 'submit')"
+                            placeholder="SP... (Contract allowed to call 'execute')"
                             value={coreContract}
                             onChange={handleInputChange(setCoreContract)}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="opcode" className="block text-sm font-medium text-foreground">
-                            Opcode (string-ascii 64)
+                        <label htmlFor="intent" className="block text-sm font-medium text-foreground">
+                            Intent (string-ascii 32) *
                         </label>
                         <input
-                            id="opcode"
+                            id="intent"
+                            maxLength={32}
                             className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            placeholder="action=transfer;token=ST...;amount=100"
-                            value={opcode}
-                            onChange={handleInputChange(setOpcode)}
+                            placeholder="e.g., TRANSFER, MINT, VOTE_YAE"
+                            value={intent}
+                            onChange={handleInputChange(setIntent)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label htmlFor="opcode-optional" className="block text-sm font-medium text-foreground">
+                            Opcode (Optional, hex buffer 16)
+                        </label>
+                        <input
+                            id="opcode-optional"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background font-mono placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            placeholder="0x... (e.g., 0123abcd... max 32 hex chars)"
+                            value={opcodeOptional}
+                            onChange={handleHexBufferChange(setOpcodeOptional, 16)}
+                        />
+                        {opcodeOptional && (opcodeOptional.length % 2 !== 0) && <p className="text-xs text-destructive">Hex string must have an even number of characters.</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label htmlFor="amount-optional" className="block text-sm font-medium text-foreground">
+                            Amount (Optional, uint)
+                        </label>
+                        <input
+                            id="amount-optional"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            placeholder="e.g., 1000000"
+                            value={amountOptional}
+                            onChange={handleUintChange(setAmountOptional)}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label htmlFor="target-optional" className="block text-sm font-medium text-foreground">
+                            Target (Optional, principal)
+                        </label>
+                        <input
+                            id="target-optional"
+                            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            placeholder="SP... or ST..."
+                            value={targetOptional}
+                            onChange={handleInputChange(setTargetOptional)}
                         />
                     </div>
 
                     <div className="space-y-2">
                         <label htmlFor="hash-uuid" className="block text-sm font-medium text-foreground">
-                            UUID (string-ascii 64)
+                            UUID (string-ascii 36) *
                         </label>
                         <div className="flex space-x-2">
                             <input
@@ -218,6 +297,7 @@ export function HashGenerator({
                                 placeholder="Enter unique request ID"
                                 value={hashUuid}
                                 onChange={handleInputChange(setHashUuid)}
+                                maxLength={36}
                             />
                             <Button
                                 type="button"
@@ -231,103 +311,112 @@ export function HashGenerator({
                     <Button
                         className="w-full"
                         onClick={generateStructuredDataHash}
-                        disabled={isGeneratingHash || !opcode || !hashUuid || !coreContract}
+                        disabled={isGeneratingHash || !intent || !hashUuid || !coreContract}
                     >
                         {isGeneratingHash ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating...
+                                <span className="ml-2">Generating...</span>
                             </>
                         ) : (
                             "Generate Hash"
                         )}
                     </Button>
 
-                    {generatedHash && (
+                    {generatedHash && !generatedHash.startsWith("Error:") && (
                         <div className="space-y-4 md:col-span-2">
-                            <div className="mt-4 p-4 rounded-md border border-border">
+                            <div className="mt-4 p-4 rounded-md border border-border bg-muted/40">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-sm font-semibold">Generated Hash</h3>
-                                    <button
-                                        type="button"
-                                        className="text-muted hover:text-foreground"
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-muted-foreground hover:text-foreground"
                                         onClick={() => copyToClipboard(generatedHash)}
-                                        title="Copy to clipboard"
                                     >
-                                        {hashCopied ? (
-                                            <CheckCircle2 className="h-4 w-4" />
-                                        ) : (
-                                            <Copy className="h-4 w-4" />
-                                        )}
-                                    </button>
+                                        {hashCopied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                    </Button>
                                 </div>
-                                <div className="font-mono text-sm break-all">
-                                    {generatedHash.startsWith("Error") ? (
-                                        <span className="text-destructive">{generatedHash}</span>
-                                    ) : (
-                                        <span className="text-primary">{generatedHash}</span>
-                                    )}
-                                </div>
+                                <p className="text-sm font-mono break-all text-muted-foreground">{generatedHash}</p>
                             </div>
 
-                            {!generatedHash.startsWith("Error") && isWalletConnected && (
-                                <Button
-                                    className="w-full"
-                                    onClick={() => signWithWallet(generatedHash)}
-                                    disabled={isSigning}
-                                >
-                                    {isSigning ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Signing...
-                                        </>
-                                    ) : (
-                                        "Sign with Wallet"
-                                    )}
-                                </Button>
-                            )}
+                            <Button
+                                className="w-full"
+                                onClick={() => signWithWallet(generatedHash)}
+                                disabled={!isWalletConnected || isSigning || !generatedHash || generatedHash.startsWith("Error")}
+                            >
+                                {isSigning ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <span className="ml-2">Signing...</span>
+                                    </>
+                                ) : (
+                                    "Sign with Wallet"
+                                )}
+                            </Button>
 
-                            {signature && (publicQrData || privateQrData) && (
-                                <div className="flex flex-wrap gap-4 mt-4">
-                                    {publicQrData && (
-                                        <a
-                                            href={publicQrData}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="no-underline text-foreground block flex-1 min-w-[150px]"
+                            {signature && (
+                                <div className="mt-4 p-4 rounded-md border border-border bg-muted/40">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-semibold">Signature</h3>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground hover:text-foreground"
+                                            onClick={() => copyToClipboard(signature)}
                                         >
-                                            <div className="border border-border rounded-md p-4 bg-background">
-                                                <h3 className="font-bold mb-2">Public Verification QR</h3>
-                                                <div className="flex justify-center p-4">
-                                                    {/* @ts-ignore */}
-                                                    <QRCodeSVG value={publicQrData} size={128} />
-                                                </div>
-                                                <p className="text-xs text-muted-foreground text-center mt-2">
-                                                    Scan to verify UUID status.
-                                                </p>
-                                            </div>
-                                        </a>
-                                    )}
-                                    {privateQrData && (
-                                        <a
-                                            href={privateQrData}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="no-underline text-foreground block flex-1 min-w-[150px]"
-                                        >
-                                            <div className="border border-border rounded-md p-4 bg-background">
-                                                <h3 className="font-bold mb-2">Private Redeem QR</h3>
-                                                <div className="flex justify-center p-4">
-                                                    {/* @ts-ignore */}
-                                                    <QRCodeSVG value={privateQrData} size={128} />
-                                                </div>
-                                                <p className="text-xs text-muted-foreground text-center mt-2">
-                                                    Scan to pre-fill redeem form.
-                                                </p>
-                                            </div>
-                                        </a>
-                                    )}
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm font-mono break-all text-muted-foreground">{signature}</p>
                                 </div>
+                            )}
+                        </div>
+                    )}
+
+                    {generatedHash && generatedHash.startsWith("Error:") && (
+                        <p className="mt-4 text-sm text-destructive">{generatedHash}</p>
+                    )}
+
+                    {signature && (publicQrData || privateQrData) && (
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {publicQrData && (
+                                <a
+                                    href={publicQrData}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="no-underline text-foreground block flex-1 min-w-[150px]"
+                                >
+                                    <div className="border border-border rounded-md p-4 bg-background">
+                                        <h3 className="font-bold mb-2">Public Verification QR</h3>
+                                        <div className="flex justify-center p-4">
+                                            {/* @ts-ignore */}
+                                            <QRCodeSVG value={publicQrData} size={128} />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground text-center mt-2">
+                                            Scan to verify UUID status.
+                                        </p>
+                                    </div>
+                                </a>
+                            )}
+                            {privateQrData && (
+                                <a
+                                    href={privateQrData}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="no-underline text-foreground block flex-1 min-w-[150px]"
+                                >
+                                    <div className="border border-border rounded-md p-4 bg-background">
+                                        <h3 className="font-bold mb-2">Private Redeem QR</h3>
+                                        <div className="flex justify-center p-4">
+                                            {/* @ts-ignore */}
+                                            <QRCodeSVG value={privateQrData} size={128} />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground text-center mt-2">
+                                            Scan to pre-fill redeem form.
+                                        </p>
+                                    </div>
+                                </a>
                             )}
                         </div>
                     )}

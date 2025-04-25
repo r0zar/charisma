@@ -13,14 +13,6 @@ export const runtime = 'edge'
 
 // Export default function to generate the OpenGraph image
 export default async function Image() {
-    // Font
-    const interBold = fetch(
-        new URL('./fonts/Inter-Bold.woff2', import.meta.url)
-    ).then((res) => res.arrayBuffer())
-
-    const interRegular = fetch(
-        new URL('./fonts/Inter-Regular.woff2', import.meta.url)
-    ).then((res) => res.arrayBuffer())
 
     return new ImageResponse(
         (
@@ -109,21 +101,7 @@ export default async function Image() {
             </div>
         ),
         {
-            ...size,
-            fonts: [
-                {
-                    name: 'Inter',
-                    data: await interBold,
-                    style: 'normal',
-                    weight: 700,
-                },
-                {
-                    name: 'Inter',
-                    data: await interRegular,
-                    style: 'normal',
-                    weight: 400,
-                },
-            ],
+            ...size
         },
     )
 } 

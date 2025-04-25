@@ -34,6 +34,16 @@
   (ok (balance-of owner))
 )
 
+;; SIP-10 transfer
+(define-public (transfer (amount uint) (from principal) (to principal) (memo (optional (buff 34))))
+  (let ((sender tx-sender))
+    (asserts! (is-eq sender from) ERR_UNAUTHORIZED)
+    (try! (do-internal-transfer from to amount))
+    (print {event: "transfer", from: from, to: to, amount: amount, memo: memo})
+    (ok true)
+  )
+)
+
 ;; Deposit / Withdraw
 (define-public (deposit (amount uint) (recipient (optional principal)))
   (let ((sender tx-sender)

@@ -6,8 +6,8 @@ import { RedeemNoteForm } from './welsh-credits/redeem-note-form';
 import { STACKS_MAINNET } from '@stacks/network';
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { connect } from "@stacks/connect";
-import { Button } from "@repo/ui/button";
-import { Loader2 } from "@repo/ui/icons";
+import { Button } from "../ui/button";
+import { Loader2 } from "lucide-react";
 import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType } from '@stacks/transactions';
 import { BLAZE_SIGNER_CONTRACT, parseContract } from '../../constants/contracts';
 

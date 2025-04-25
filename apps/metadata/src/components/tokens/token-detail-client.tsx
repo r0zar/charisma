@@ -187,9 +187,9 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError('Image size should be less than 5MB');
+        // Validate file size (max 25MB)
+        if (file.size > 25 * 1024 * 1024) {
+            setError('Image size should be less than 25MB');
             return;
         }
 
@@ -207,6 +207,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
             try {
                 // Convert to base64 string
                 const base64Image = event.target.result as string;
+                console.log(file)
 
                 // Try uploading the image to the server
                 try {
@@ -222,6 +223,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                     });
 
                     if (!response.ok) {
+                        console.log(response)
                         throw new Error('Failed to upload image');
                     }
 
