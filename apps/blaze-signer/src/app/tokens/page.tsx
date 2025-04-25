@@ -4,7 +4,7 @@ import React from "react"
 import { STACKS_MAINNET, type StacksNetwork } from "@stacks/network"
 import { TokenInterface } from "@/components/tokens/token-interface"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CHARISMA_CREDITS_CONTRACT, WELSH_CREDITS_CONTRACT } from "@/constants/contracts"
+import { CHARISMA_CREDITS_CONTRACT, MALI_CREDITS_CONTRACT, WELSH_CREDITS_CONTRACT } from "@/constants/contracts"
 import { useWallet } from "@/context/wallet-context"
 
 export default function TokenSubnetsPage() {
@@ -23,7 +23,8 @@ export default function TokenSubnetsPage() {
             <Tabs defaultValue="charisma" className="w-full">
                 <TabsList className="mb-6">
                     <TabsTrigger value="charisma">Charisma</TabsTrigger>
-                    <TabsTrigger value="welsh">Welsh</TabsTrigger>
+                    <TabsTrigger value="welsh">Welshcorgicoin</TabsTrigger>
+                    <TabsTrigger value="mali">Belgian Malinois</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="charisma">
@@ -32,8 +33,8 @@ export default function TokenSubnetsPage() {
                         walletAddress={address || ""}
                         isWalletConnected={connected}
                         contractId={CHARISMA_CREDITS_CONTRACT}
-                        tokenName="Charisma Credits"
-                        tokenSymbol="CHAR"
+                        tokenName="Charisma"
+                        tokenSymbol="CHA"
                     />
                 </TabsContent>
 
@@ -43,8 +44,19 @@ export default function TokenSubnetsPage() {
                         walletAddress={address || ""}
                         isWalletConnected={connected}
                         contractId={WELSH_CREDITS_CONTRACT}
-                        tokenName="Welsh Credits"
+                        tokenName="Welshcorgicoin"
                         tokenSymbol="WELSH"
+                    />
+                </TabsContent>
+
+                <TabsContent value="mali">
+                    <TokenInterface
+                        network={network}
+                        walletAddress={address || ""}
+                        isWalletConnected={connected}
+                        contractId={MALI_CREDITS_CONTRACT}
+                        tokenName="Belgian Malinois"
+                        tokenSymbol="MALi"
                     />
                 </TabsContent>
             </Tabs>

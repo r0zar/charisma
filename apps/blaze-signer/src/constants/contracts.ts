@@ -11,15 +11,22 @@ export const CHARISMA_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z5
 // Welsh Credits contract
 export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-rc2"
 
+// Mali Credits contract
+export const MALI_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.mali-token-subnet-rc1"
+
 // Charisma token contract
 export const CHARISMA_TOKEN_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"
 
 // Welshcorgicoin token contract
 export const WELSHCORGICOIN_CONTRACT = "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
 
+// Mali token contract
+export const MALI_TOKEN_CONTRACT = "SPKBV3CZB15CM3CVMCMRX56WRYKDY5P5CTQQXSN0.belgian-malinois"
+
 // Token decimals
 export const WELSH_CREDITS_DECIMALS = 6
 export const CHARISMA_CREDITS_DECIMALS = 6
+export const MALI_CREDITS_DECIMALS = 6
 
 // SIP-018 Domain details
 export const BLAZE_PROTOCOL_NAME = "BLAZE_PROTOCOL";
