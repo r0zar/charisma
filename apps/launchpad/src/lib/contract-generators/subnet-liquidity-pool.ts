@@ -140,6 +140,53 @@ export async function generateSubnetLiquidityPool(params: SubnetLiquidityPoolPar
         (try! (ft-mint? ${params.lpTokenSymbol} (/ (get dk delta) u2) signer-b))
         (ok delta)))
 
+(define-public (x-remove-liquidity (amount uint) 
+    (signature (buff 65)) (uuid (string-ascii 36)))
+    (let (
+        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 execute signature "REMOVE_LIQUIDITY" none (some amount) none uuid)))
+        (delta (get-liquidity-quote amount))
+        (amount-a (get dx delta))
+        (amount-b (get dy delta)))
+        
+        ;; Burn the LP tokens from the signer
+        (try! (ft-burn? ${params.lpTokenSymbol} (get dk delta) signer))
+        
+        ;; Transfer tokens back to signer
+        (try! (as-contract (contract-call? '${params.tokenAContractId} transfer amount-a CONTRACT signer none)))
+        (try! (as-contract (contract-call? '${params.tokenBContractId} transfer amount-b CONTRACT signer none)))
+        
+        (ok delta)))
+
+(define-public (x-swap-a-to-b (amount uint) 
+    (signature (buff 65)) (uuid (string-ascii 36)))
+    (let (
+        (delta (get-swap-quote amount (some OP_SWAP_A_TO_B)))
+        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature
+            '${params.tokenAContractId} "TRANSFER_TOKENS" none (some amount) (some CONTRACT) uuid))))
+        
+        ;; Transfer tokens to pool
+        (try! (contract-call? '${params.tokenAContractId} x-transfer signature amount uuid CONTRACT))
+
+        ;; Transfer tokens back to signer
+        (try! (as-contract (contract-call? '${params.tokenBContractId} transfer (get dy delta) CONTRACT signer none)))
+        
+        (ok delta)))
+
+(define-public (x-swap-b-to-a (amount uint) 
+    (signature (buff 65)) (uuid (string-ascii 36)))
+    (let (
+        (delta (get-swap-quote amount (some OP_SWAP_B_TO_A)))
+        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature
+            '${params.tokenBContractId} "TRANSFER_TOKENS" none (some amount) (some CONTRACT) uuid))))
+        
+        ;; Transfer tokens to pool
+        (try! (contract-call? '${params.tokenBContractId} x-transfer signature amount uuid CONTRACT))
+
+        ;; Transfer tokens back to signer
+        (try! (as-contract (contract-call? '${params.tokenAContractId} transfer (get dy delta) CONTRACT signer none)))
+        
+        (ok delta)))
+
 ;; --- Helper Functions ---
 
 (define-private (get-byte (opcode (optional (buff 16))) (position uint))
