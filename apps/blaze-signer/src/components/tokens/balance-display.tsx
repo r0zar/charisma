@@ -1,7 +1,36 @@
 import React, { useState, useEffect } from "react"
-import { STACKS_MAINNET } from "@stacks/network"
-import { fetchCallReadOnlyFunction, standardPrincipalCV } from "@stacks/transactions"
 import { Card } from "@/components/ui/card"
+
+// --- Copied formatBalance helper --- (Move to utils later if preferred)
+function formatBalance(balanceStr: string | null | undefined, decimals: number | undefined): string {
+    if (balanceStr === null || balanceStr === undefined) return "N/A";
+    // Default to 6 decimals if not provided or invalid
+    const dec = (typeof decimals === 'number' && decimals >= 0) ? decimals : 6;
+
+    // Handle zero decimals case
+    if (dec === 0) return balanceStr;
+
+    try {
+        // Ensure it's a non-negative integer string
+        if (!/^\d+$/.test(balanceStr)) return balanceStr; // Return as is if not a simple integer string
+
+        const len = balanceStr.length;
+
+        if (len <= dec) {
+            // Pad with leading zeros if balance length is less than or equal to decimals
+            return `0.${balanceStr.padStart(dec, '0')}`;
+        } else {
+            // Insert decimal point
+            const integerPart = balanceStr.slice(0, len - dec);
+            const fractionalPart = balanceStr.slice(len - dec);
+            return `${integerPart}.${fractionalPart}`;
+        }
+    } catch (e) {
+        console.error(`Error formatting balance ${balanceStr} with ${dec} decimals:`, e);
+        return balanceStr; // Return original string on error
+    }
+}
+// --- End formatBalance helper ---
 
 interface BalanceDisplayProps {
     contractId: string
@@ -21,37 +50,37 @@ export function BalanceDisplay({
     const [error, setError] = useState<string | null>(null)
 
     const fetchBalance = async () => {
-        if (!walletAddress) return
+        if (!walletAddress || !contractId) return
 
         setIsLoading(true)
         setError(null)
 
+        // Construct relative URL to the API endpoint
+        const apiUrl = `/api/balances/${contractId}/${walletAddress}`
+        console.log(`BalanceDisplay: Fetching from ${apiUrl}`)
+
         try {
-            const [contractAddress, contractName] = contractId.split(".")
-            if (!contractAddress || !contractName) {
-                throw new Error("Invalid contract format")
+            const response = await fetch(apiUrl, { cache: 'no-store' })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({})) // Try to get error details
+                throw new Error(errorData.error || `API Error: ${response.status}`)
             }
 
-            const result: any = await fetchCallReadOnlyFunction({
-                contractAddress,
-                contractName,
-                functionName: "get-balance",
-                functionArgs: [standardPrincipalCV(walletAddress)],
-                network: STACKS_MAINNET,
-                senderAddress: walletAddress,
-            })
+            const data = await response.json()
 
-            if (result?.value?.value) {
-                const formattedBalance = (Number(result.value.value) / Math.pow(10, decimals)).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: decimals
-                })
+            // Check if the expected field exists
+            if (data.preconfirmationBalance !== undefined && data.preconfirmationBalance !== null) {
+                // Format the raw preconfirmation balance string using decimals
+                const formattedBalance = formatBalance(data.preconfirmationBalance, decimals)
                 setBalance(formattedBalance)
             } else {
-                setBalance("0.00")
+                // Handle case where API might return null/undefined even on success (e.g., no balance entry)
+                console.warn(`BalanceDisplay: API success but preconfirmationBalance missing or null for ${walletAddress} / ${contractId}`)
+                setBalance(formatBalance("0", decimals)) // Display 0 if missing
             }
         } catch (error) {
-            console.error("Error fetching balance:", error)
+            console.error("Error fetching balance via API:", error)
             setError(error instanceof Error ? error.message : String(error))
             setBalance(null)
         } finally {
@@ -60,13 +89,14 @@ export function BalanceDisplay({
     }
 
     useEffect(() => {
-        if (walletAddress) {
+        if (walletAddress && contractId) {
             fetchBalance()
         } else {
             setBalance(null)
             setError(null)
         }
-    }, [walletAddress, contractId])
+        // Depend on decimals as well, in case it changes
+    }, [walletAddress, contractId, decimals])
 
     return (
         <Card className="p-6">
