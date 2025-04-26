@@ -101,7 +101,7 @@ async function fetchBalanceForPrincipalAndToken(
     tokenId: string
 ): Promise<BalanceInfo> {
     // Construct the absolute URL for the API endpoint using tokenId
-    const baseUrl = process.env.NODE_ENV === 'production' ? 'https://blaze-signer.vercel.app' : 'http://localhost:3005';
+    const baseUrl = process.env.NODE_ENV === 'production' ? 'https://charisma-blaze-signer.vercel.app' : 'http://localhost:3005';
     const apiUrl = `${baseUrl}/api/balances/${tokenId}/${principal}`;
     // console.log(`Dashboard: Fetching balance from URL: ${apiUrl}`); // Less verbose logging now
 
