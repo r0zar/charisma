@@ -2,8 +2,7 @@
 
 // Base URL for the token-cache API – override via environment variable (e.g. NEXT_PUBLIC_TOKEN_CACHE_API_BASE_URL)
 const TOKEN_CACHE_API_BASE_URL =
-    (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_TOKEN_CACHE_API_BASE_URL) ||
-    'http://localhost:3000';
+    process.env.NODE_ENV === 'production' ? 'https://charisma-token-cache.vercel.app' : 'http://localhost:3000';
 
 /**
  * Shape of the token metadata returned by the token-cache service.
