@@ -3,7 +3,7 @@
 import { useState, useMemo, startTransition, useRef, useEffect } from 'react';
 import { TokenMetadata } from "@repo/cryptonomicon";
 import Image from "next/image";
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { removeTokenFromList, refreshTokenData } from '@/app/actions';
 
 // Helper to check if a string looks like a Stacks contract ID (basic check)
@@ -81,11 +81,7 @@ const formatSupplyWithDecimals = (
 };
 
 export default function TokenList({ initialTokens, isDevelopment, initialSearchTerm = '' }: TokenListProps) {
-    // Remove useSearchParams hook since we're getting the search term from props now
-    // const searchParams = useSearchParams();
-    // const urlSearchParam = searchParams.get('search');
-    // const contractIdParam = searchParams.get('contractId');
-
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
     const [expandedTokens, setExpandedTokens] = useState<Record<string, boolean>>({});
     const [isLookingUp, setIsLookingUp] = useState(false);
@@ -222,7 +218,8 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
 
             removeStatusMessage(loadingMsgId);
             if (result.success) {
-                addStatusMessage('success', result.message || `Refreshed ${truncateContractId(contractId)}. Refresh page if needed.`);
+                addStatusMessage('success', result.message || `Refreshed ${truncateContractId(contractId)}.`);
+                router.refresh();
             } else {
                 addStatusMessage('error', result.error || 'Failed to refresh token.');
             }

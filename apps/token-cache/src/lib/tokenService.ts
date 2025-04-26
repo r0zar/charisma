@@ -3,7 +3,9 @@ import { kv } from "@vercel/kv";
 
 // Initialize Cryptonomicon (adjust config as needed)
 const cryptonomicon = new Cryptonomicon({
+    debug: true,
     network: process.env.NEXT_PUBLIC_NETWORK === 'testnet' ? 'testnet' : 'mainnet',
+    apiKey: process.env.HIRO_API_KEY,
     // Add any other specific configurations for Cryptonomicon here
     // e.g., apiKeys, proxy, etc.
 });
@@ -81,7 +83,7 @@ export const getTokenData = async (
         if (!forceRefresh) {
             const cachedData = await kv.get<TokenMetadata>(cacheKey);
             if (cachedData) {
-                console.log(`Cache hit for ${contractId}`);
+                // console.log(`Cache hit for ${contractId}`);
 
                 // Ensure contract_principal is set even for cached data
                 if (!cachedData.contract_principal) {
@@ -152,8 +154,18 @@ export const getAllTokenData = async (): Promise<TokenMetadata[]> => {
         return [];
     }
 
+    let cacheHitCount = 0;
     // 2. Fetch data for each ID (this uses the existing getTokenData with its caching)
-    const allDataPromises = managedTokenIds.map(id => getTokenData(id));
+    const allDataPromises = managedTokenIds.map(id => {
+        // We need to know if getTokenData hit the cache or not.
+        // Modify getTokenData slightly to return this info, or infer it here.
+        // Inferring: Check KV directly before calling getTokenData.
+        // This adds extra reads but avoids modifying getTokenData return signature.
+        return kv.get<TokenMetadata>(getCacheKey(id)).then(cached => {
+            if (cached) cacheHitCount++;
+            return getTokenData(id); // Now call the actual function
+        });
+    });
     const allDataResults = await Promise.allSettled(allDataPromises);
 
     const successfulData = allDataResults
@@ -177,5 +189,35 @@ export const getAllTokenData = async (): Promise<TokenMetadata[]> => {
         }
     });
 
+    console.log(`[getAllTokenData] Processed ${managedTokenIds.length} tokens. Cache hits: ${cacheHitCount}. Fetched/Failed: ${managedTokenIds.length - cacheHitCount}.`);
     return successfulData;
+};
+
+/**
+ * Fetches cache statistics.
+ * @returns A promise resolving to an object with totalManaged and cachedCount.
+ */
+export const getCacheStats = async (): Promise<{ totalManaged: number; cachedCount: number }> => {
+    let totalManaged = 0;
+    let cachedCount = 0;
+
+    try {
+        const managedTokenIds = await getManagedTokenIds();
+        totalManaged = managedTokenIds.length;
+
+        if (totalManaged > 0) {
+            // Check cache status for each managed ID
+            // Note: This involves multiple KV reads. Could be slow for very large lists.
+            const cacheChecks = managedTokenIds.map(id => kv.get(getCacheKey(id)));
+            const cacheResults = await Promise.allSettled(cacheChecks);
+
+            cachedCount = cacheResults.filter(result => result.status === 'fulfilled' && result.value !== null).length;
+        }
+
+        return { totalManaged, cachedCount };
+    } catch (error) {
+        console.error("Error fetching cache stats:", error);
+        // Return 0 counts on error
+        return { totalManaged: 0, cachedCount: 0 };
+    }
 }; 
