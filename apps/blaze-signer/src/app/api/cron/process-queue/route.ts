@@ -57,11 +57,23 @@ export async function GET(request: Request) {
 
             let message: QueuedTxIntent | null = null;
             try {
-                // --- Parse using QueuedTxIntent --- 
-                message = JSON.parse(messageJson as string) as QueuedTxIntent;
+                // Check if the retrieved item is a string that needs parsing,
+                // or if it's already an object (parsed by kv client).
+                if (typeof messageJson === 'string') {
+                    console.log("CRON: Parsing message string from KV...");
+                    message = JSON.parse(messageJson) as QueuedTxIntent;
+                } else if (messageJson && typeof messageJson === 'object') {
+                    // Assume it's already the correct object structure
+                    console.log("CRON: Using pre-parsed message object from KV...");
+                    message = messageJson as QueuedTxIntent;
+                } else {
+                    // Handle unexpected type from kv.rpop
+                    throw new Error(`Unexpected data type from kv.rpop: ${typeof messageJson}`);
+                }
 
-                // Basic validation
-                if (!message || !message.contractId || !message.intent || !message.signature || !message.uuid) {
+                // Basic validation (now applied to the potentially parsed/casted message)
+                if (!message || typeof message !== 'object' || !message.contractId || !message.intent || !message.signature || !message.uuid) {
+                    console.error("CRON: Invalid message structure after processing:", message);
                     throw new Error("Invalid QueuedTxIntent format in queue");
                 }
 
