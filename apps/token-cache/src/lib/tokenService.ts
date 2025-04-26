@@ -37,7 +37,7 @@ const getManagedTokenIds = async (): Promise<string[]> => {
  * @param contractId - The token contract ID.
  * @returns The cache key string.
  */
-const getCacheKey = (contractId: string): string => `sip10:${contractId}`;
+export const getCacheKey = (contractId: string): string => `sip10:${contractId}`;
 
 /**
  * Adds a contract ID to the managed token list in KV if it's not already present.
@@ -88,6 +88,8 @@ export const getTokenData = async (
                 // Ensure contract_principal is set even for cached data
                 if (!cachedData.contract_principal) {
                     cachedData.contract_principal = contractId;
+                    // Also update the refresh timestamp when fixing cached data
+                    cachedData.lastRefreshed = Date.now();
                     // Update the cache with the fixed data
                     await kv.set(cacheKey, cachedData, { ex: CACHE_DURATION_SECONDS });
                     console.log(`Updated cached data for ${contractId} with contract_principal`);
@@ -108,6 +110,9 @@ export const getTokenData = async (
             if (!tokenMetadata.contract_principal) {
                 tokenMetadata.contract_principal = contractId;
             }
+
+            // Add the last refreshed timestamp before caching
+            tokenMetadata.lastRefreshed = Date.now();
 
             // 3. Cache the fetched data
             await kv.set(cacheKey, tokenMetadata, { ex: CACHE_DURATION_SECONDS });
@@ -197,27 +202,83 @@ export const getAllTokenData = async (): Promise<TokenMetadata[]> => {
  * Fetches cache statistics.
  * @returns A promise resolving to an object with totalManaged and cachedCount.
  */
-export const getCacheStats = async (): Promise<{ totalManaged: number; cachedCount: number }> => {
+export const getCacheStats = async (): Promise<{
+    totalManaged: number;
+    cachedCount: number;
+    apiHits: number;
+    apiMisses: number;
+    averageCacheAgeMs: number | null;
+    minCacheAgeMs: number | null;
+    maxCacheAgeMs: number | null;
+}> => {
     let totalManaged = 0;
     let cachedCount = 0;
+    let apiHits = 0;
+    let apiMisses = 0;
+    let totalAgeMs = 0;
+    let minAgeMs: number | null = null;
+    let maxAgeMs: number | null = null;
+    let validAgeCount = 0;
 
     try {
-        const managedTokenIds = await getManagedTokenIds();
+        // Fetch managed list and API hit/miss counts concurrently
+        const [managedTokenIds, hits, misses] = await Promise.all([
+            getManagedTokenIds(),
+            kv.get<number>('stats:api:hits').catch(() => 0),     // Default to 0 on error
+            kv.get<number>('stats:api:misses').catch(() => 0)   // Default to 0 on error
+        ]);
+
         totalManaged = managedTokenIds.length;
+        apiHits = hits || 0;
+        apiMisses = misses || 0;
 
         if (totalManaged > 0) {
-            // Check cache status for each managed ID
-            // Note: This involves multiple KV reads. Could be slow for very large lists.
-            const cacheChecks = managedTokenIds.map(id => kv.get(getCacheKey(id)));
-            const cacheResults = await Promise.allSettled(cacheChecks);
+            // Check cache status and get data for each managed ID
+            // Use kv.mget to fetch multiple keys efficiently
+            const cacheKeys = managedTokenIds.map(id => getCacheKey(id));
+            const cachedItems = await kv.mget<TokenMetadata[]>(...cacheKeys);
 
-            cachedCount = cacheResults.filter(result => result.status === 'fulfilled' && result.value !== null).length;
+            const now = Date.now();
+            cachedItems.forEach(item => {
+                if (item !== null) {
+                    cachedCount++;
+                    if (typeof item.lastRefreshed === 'number') {
+                        const ageMs = now - item.lastRefreshed;
+                        totalAgeMs += ageMs;
+                        if (minAgeMs === null || ageMs < minAgeMs) {
+                            minAgeMs = ageMs;
+                        }
+                        if (maxAgeMs === null || ageMs > maxAgeMs) {
+                            maxAgeMs = ageMs;
+                        }
+                        validAgeCount++;
+                    }
+                }
+            });
         }
 
-        return { totalManaged, cachedCount };
+        const averageCacheAgeMs = validAgeCount > 0 ? totalAgeMs / validAgeCount : null;
+
+        return {
+            totalManaged,
+            cachedCount,
+            apiHits,
+            apiMisses,
+            averageCacheAgeMs,
+            minCacheAgeMs: minAgeMs,
+            maxCacheAgeMs: maxAgeMs,
+        };
     } catch (error) {
         console.error("Error fetching cache stats:", error);
-        // Return 0 counts on error
-        return { totalManaged: 0, cachedCount: 0 };
+        // Return 0/null counts on error
+        return {
+            totalManaged: 0,
+            cachedCount: 0,
+            apiHits: 0,
+            apiMisses: 0,
+            averageCacheAgeMs: null,
+            minCacheAgeMs: null,
+            maxCacheAgeMs: null,
+        };
     }
 }; 

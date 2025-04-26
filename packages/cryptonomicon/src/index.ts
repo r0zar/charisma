@@ -31,6 +31,7 @@ export interface TokenMetadata {
   lpRebatePercent?: number;
   externalPoolId?: string;
   engineContractId?: string;
+  lastRefreshed?: number; // Timestamp (Date.now()) of when the data was last fetched/cached
 }
 
 /**
@@ -76,9 +77,6 @@ export class Cryptonomicon {
   constructor(config: MetadataServiceConfig = {}) {
     this.config = {
       apiKey: "",
-      apiKeys: [],
-      apiKeyRotation: "random",
-      proxy: "https://charisma.rocks/api/v0/proxy",
       ipfsGateway: "https://ipfs.io/ipfs/",
       debug: false,
       network: 'mainnet',

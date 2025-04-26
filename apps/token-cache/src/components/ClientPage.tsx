@@ -118,6 +118,11 @@ export default function ClientPage({ initialTokens = [] }: { initialTokens?: Tok
                 {/* Simple footer */}
                 <footer className="mt-12 text-center text-xs text-gray-500 dark:text-gray-400 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <p>SIP-10 Token Explorer &copy; {new Date().getFullYear()}</p>
+                    <p className="mt-1">
+                        <Link href="/stats" className="text-blue-500 hover:underline">
+                            View Cache Statistics
+                        </Link>
+                    </p>
                 </footer>
             </div>
         </main>

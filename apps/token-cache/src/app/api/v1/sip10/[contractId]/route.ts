@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getTokenData, addContractIdToManagedList } from "@/lib/tokenService";
+import { kv } from "@vercel/kv";
+import { getCacheKey } from "@/lib/tokenService";
 
 /**
  * API headers with proper CORS configuration and cache control
@@ -51,7 +53,19 @@ export async function GET(
         );
     }
 
+    const cacheKey = getCacheKey(contractId);
+    let isCacheHit = false;
+
     try {
+        // Check cache before calling getTokenData
+        const cached = await kv.get(cacheKey);
+        if (cached) {
+            isCacheHit = true;
+            kv.incr('stats:api:hits').catch(console.error); // Fire and forget increment
+        } else {
+            kv.incr('stats:api:misses').catch(console.error); // Fire and forget increment
+        }
+
         // Attempt to fetch token data
         const tokenData = await getTokenData(contractId);
 
