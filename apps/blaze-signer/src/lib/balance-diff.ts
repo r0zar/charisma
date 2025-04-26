@@ -133,8 +133,9 @@ export async function calculatePendingBalanceDiff(
         }
 
         // Add if the targetAddress is the recipient (incoming)
-        // Also ensure the signer is not the recipient to avoid double counting if sending to self
-        if (message.targetOptional === targetAddress && recoveredSignerAddress !== targetAddress) {
+        if (message.targetOptional === targetAddress) {
+            // Note: If targetAddress is both signer and recipient (self-send),
+            // the previous block subtracts and this block adds, resulting in a correct net zero diff for this message.
             console.log(`calculatePendingBalanceDiff: Applying positive diff (+${valueToApply}) for ${message.uuid} (recipient is targetAddress)`);
             balanceDiff += valueToApply;
         }
