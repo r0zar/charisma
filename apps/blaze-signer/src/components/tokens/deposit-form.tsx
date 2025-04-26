@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { getTokenMetadataCached } from "@/lib/token-cache-client"
+import { getTokenMetadataCached } from "@repo/tokens"
 import { useWallet } from "@/context/wallet-context"
 import { CHARISMA_CREDITS_CONTRACT, CHARISMA_TOKEN_CONTRACT, WELSHCORGICOIN_CONTRACT } from "@/constants/contracts"
 

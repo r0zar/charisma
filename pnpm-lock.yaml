@@ -64,6 +64,9 @@ importers:
       '@radix-ui/react-accordion':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
+      '@radix-ui/react-alert-dialog':
+        specifier: ^1.1.11
+        version: 1.1.11(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
       '@radix-ui/react-label':
         specifier: ^2.1.4
         version: 2.1.4(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
@@ -88,12 +91,18 @@ importers:
       '@repo/stacks':
         specifier: workspace:*
         version: link:../../packages/stacks
+      '@repo/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@stacks/auth':
         specifier: ^7.0.5
         version: 7.0.5
+      '@stacks/blockchain-api-client':
+        specifier: ^8.8.0
+        version: 8.8.0
       '@stacks/connect':
         specifier: latest
         version: 8.1.9
@@ -103,6 +112,9 @@ importers:
       '@stacks/transactions':
         specifier: latest
         version: 7.0.5
+      '@vercel/kv':
+        specifier: ^3.0.0
+        version: 3.0.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -118,6 +130,9 @@ importers:
       next:
         specifier: ^15.3.1
         version: 15.3.1(react-dom@19.1.0)(react@19.1.0)
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@19.1.0)(react@19.1.0)
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@19.1.0)
@@ -3093,6 +3108,31 @@ packages:
       '@radix-ui/react-id': 1.1.1(@types/react@19.0.10)(react@19.1.0)
       '@radix-ui/react-primitive': 2.1.0(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.0.10)(react@19.1.0)
+      '@types/react': 19.0.10
+      '@types/react-dom': 19.0.4(@types/react@19.0.10)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+    dev: false
+
+  /@radix-ui/react-alert-dialog@1.1.11(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0):
+    resolution: {integrity: sha512-4KfkwrFnAw3Y5Jeoq6G+JYSKW0JfIS3uDdFC/79Jw9AsMayZMizSSMxk1gkrolYXsa/WzbbDfOA7/D8N5D+l1g==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@radix-ui/primitive': 1.1.2
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.0.10)(react@19.1.0)
+      '@radix-ui/react-context': 1.1.2(@types/react@19.0.10)(react@19.1.0)
+      '@radix-ui/react-dialog': 1.1.11(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
+      '@radix-ui/react-primitive': 2.1.0(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
+      '@radix-ui/react-slot': 1.2.0(@types/react@19.0.10)(react@19.1.0)
       '@types/react': 19.0.10
       '@types/react-dom': 19.0.4(@types/react@19.0.10)
       react: 19.1.0

@@ -20,6 +20,7 @@ export function Header() {
 
     const appNavItems = [
         { href: "/signer", label: "Signer" },
+        { href: "/dashboard", label: "Dashboard" },
         { href: "/tokens", label: "Tokens" },
         { href: "/pools", label: "Pools" },
     ]

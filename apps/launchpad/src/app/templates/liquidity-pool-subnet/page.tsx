@@ -1498,7 +1498,7 @@ const TokensStep = ({
 export default function SubnetLiquidityPoolWizard() {
     const router = useRouter();
     const { toast } = useToast();
-    const { authenticated } = useApp();
+    const { authenticated, stxAddress, deployContract } = useApp();
     // Using any type to access handleDeployContract
     const appContext = useApp() as any;
 
@@ -1713,25 +1713,13 @@ export default function SubnetLiquidityPoolWizard() {
         setIsDeploying(true);
 
         try {
-            if (appContext.handleDeployContract) {
-                await appContext.handleDeployContract({
-                    contractName: filename.replace('.clar', ''),
-                    contractSource: contractCode,
-                    openContractOnSuccess: true,
-                    contractType: 'subnet-liquidity-pool',
-                    contractArgs: {
-                        tokenA: tokenAAddress,
-                        tokenB: tokenBAddress,
-                        poolName: formState.poolName
-                    }
-                });
-            } else {
-                toast({
-                    title: "Deployment not available",
-                    description: "Contract deployment function is not available.",
-                    variant: "destructive",
-                });
-            }
+            await deployContract(contractCode, formState.poolName, {
+                postConditions: [
+                    Pc.principal(stxAddress!)
+                        .willSendEq(formState.token1Amount)
+                        .ft(tokenAAddress as any, 'TODO') as any
+                ]
+            })
         } catch (error) {
             console.error("Error deploying contract:", error);
             toast({

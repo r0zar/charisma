@@ -2,7 +2,7 @@
 
 import "./globals.css"
 import { WalletProvider } from "@/context/wallet-context"
-import { Toaster } from "sonner"
+import { Toaster } from "@/components/ui/sonner"
 import { Header } from "@/components/header"
 
 export default function RootLayout({

@@ -234,10 +234,10 @@ export function TokenSubnetMessages({
 
             const result = await executeSignedMessage(params)
 
-            if (result.success && result.txid) {
-                setSuccess(`Transaction broadcasted successfully! TXID: ${result.txid}`)
+            if (result.success) {
+                setSuccess(`Transaction intent queued successfully! UUID: ${result.uuid ?? 'N/A'}`)
             } else {
-                setError(result.message || "Failed to execute transaction")
+                setError(result.message || "Failed to queue transaction intent")
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to execute transaction")

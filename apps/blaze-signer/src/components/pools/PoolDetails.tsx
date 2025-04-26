@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // For errors
 import { formatUnits, cn } from '@/lib/utils'; // Assuming a utility for formatting
 import { useWallet } from '@/context/wallet-context'; // Import wallet context
-import { getTokenMetadataCached } from '@/lib/token-cache-client'; // Import the cache client
+import { getTokenMetadataCached } from '@repo/tokens'; // Import from tokens package
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';

@@ -7,8 +7,6 @@ import {
     stringAsciiCV,
     uintCV,
     principalCV,
-    TxBroadcastResult,
-    TxBroadcastResultOk,
 } from "@stacks/transactions";
 
 interface ExecuteMessageParams {
@@ -21,22 +19,30 @@ interface ExecuteMessageParams {
     recipient?: string;
 }
 
-// Simplified custom response type
+// Custom response type for this service
 interface ExecuteResponse {
     success: boolean;
     message: string;
-    txid?: string; // Present on success
+    uuid?: string;  // Return the UUID on successful queuing
     error?: string; // Present on failure
-    reason?: string; // Present on failure
-    reason_data?: any; // Present on failure
+}
+
+// API Success Response format from /api/execute
+interface ApiExecuteSuccessResponse {
+    message: string;
+    uuid: string;
+}
+
+// API Error Response format (generic)
+interface ApiErrorResponse {
+    error: string;
 }
 
 /**
- * Sends a signed message to the API for server-side execution
+ * Sends a signed message to the API for server-side queuing
  */
 export async function executeSignedMessage(params: ExecuteMessageParams): Promise<ExecuteResponse> {
     try {
-        // Call API to handle the execution on the server-side
         const response = await fetch('/api/execute', {
             method: 'POST',
             headers: {
@@ -45,47 +51,42 @@ export async function executeSignedMessage(params: ExecuteMessageParams): Promis
             body: JSON.stringify(params),
         });
 
-        // Get the raw broadcast response from the API
-        const broadcastResult: TxBroadcastResult = await response.json();
-
-        // Check if the API itself returned an error (e.g., 500 status)
-        if (!response.ok) {
-            // If the response body contains an error message from the API
-            if ('error' in broadcastResult && typeof broadcastResult.error === 'string') {
-                throw new Error(broadcastResult.error || `API error! status: ${response.status}`);
-            } else {
-                // Otherwise, it's a generic HTTP error
-                throw new Error(`API error! status: ${response.status}`);
-            }
+        // Attempt to parse the JSON response body regardless of status code
+        let responseBody: ApiExecuteSuccessResponse | ApiErrorResponse | any;
+        try {
+            responseBody = await response.json();
+        } catch (jsonError) {
+            // Handle cases where response is not valid JSON (e.g., plain text 500 error)
+            throw new Error(`API error! status: ${response.status}, Response not valid JSON.`);
         }
 
-        // Check the broadcast result for success (presence of txid)
-        if (broadcastResult.txid) {
-            return {
-                success: true,
-                message: "Transaction broadcasted successfully",
-                txid: broadcastResult.txid,
-            };
+        // Check if the API call itself was successful (status code 2xx)
+        if (response.ok) {
+            // Check if the response body conforms to the expected success structure
+            if (responseBody && typeof responseBody.message === 'string' && typeof responseBody.uuid === 'string') {
+                return {
+                    success: true,
+                    message: responseBody.message, // Use the message from the API
+                    uuid: responseBody.uuid,       // Return the UUID
+                };
+            } else {
+                // Successful status code but unexpected response body
+                console.error("Unexpected success response format from /api/execute:", responseBody);
+                throw new Error("Received unexpected success response from server.");
+            }
         } else {
-            // Handle broadcast failure - rely on property existence
-            const errorResult = broadcastResult as any; // Use any to access potential error properties
-            const errorMessage = errorResult.error || 'Unknown broadcast error';
-            const reason = errorResult.reason || 'No reason provided';
-            const reasonData = errorResult.reason_data ? JSON.stringify(errorResult.reason_data) : '';
-            const fullError = `Broadcast failed: ${errorMessage} - ${reason} ${reasonData}`.trim();
-            console.error("Broadcast Error Details:", errorResult);
-            return {
-                success: false,
-                message: fullError,
-                error: errorMessage,
-                reason: reason,
-                reason_data: errorResult.reason_data,
-            };
+            // API call failed (status code 4xx or 5xx)
+            let errorMessage = `API error! status: ${response.status}`;
+            // Try to extract error message from the response body
+            if (responseBody && typeof responseBody.error === 'string') {
+                errorMessage = responseBody.error;
+            }
+            throw new Error(errorMessage);
         }
     } catch (error) {
         console.error('Error executing signed message:', error);
-        // Return a structured error response for client-side handling
         const errorMessage = error instanceof Error ? error.message : 'Unknown client-side error occurred';
+        // Return the simplified error structure
         return {
             success: false,
             message: errorMessage,
