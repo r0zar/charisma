@@ -342,7 +342,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                                 alt={`${token.name} logo`}
                                                 width={40}
                                                 height={40}
-                                                className="rounded-full object-cover bg-white"
+                                                className="rounded-full object-cover"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                 }}
