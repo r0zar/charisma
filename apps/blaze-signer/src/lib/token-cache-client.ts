@@ -1,4 +1,4 @@
-const TOKEN_CACHE_API_BASE_URL = process.env.NEXT_PUBLIC_TOKEN_CACHE_ENDPOINT || 'http://localhost:3000'; // Assuming token-cache runs on 3000 locally
+const TOKEN_CACHE_API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://charisma-token-cache.vercel.app' : 'http://localhost:3000'; // Assuming token-cache runs on 3000 locally
 
 // Updated interface based on actual API response structure
 interface TokenCacheData {
