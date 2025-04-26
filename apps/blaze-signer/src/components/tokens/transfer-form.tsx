@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { request } from "@stacks/connect"
-import { stringAsciiCV, uintCV, principalCV } from "@stacks/transactions"
+import { stringAsciiCV, uintCV, principalCV, noneCV } from "@stacks/transactions"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Form, FormItem, FormLabel, FormControl, FormField, FormMessage } from "@/components/ui/form"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useWallet } from "@/context/wallet-context"
 
 const formSchema = z.object({
     recipient: z.string()
@@ -47,6 +48,7 @@ type TransferResult = TransferError | TransferSuccess | null
 export function TransferForm({ contractId, tokenSymbol, decimals = 6 }: TransferFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [transferResult, setTransferResult] = useState<TransferResult>(null)
+    const { address } = useWallet()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -73,8 +75,9 @@ export function TransferForm({ contractId, tokenSymbol, decimals = 6 }: Transfer
                 functionName: "transfer",
                 functionArgs: [
                     uintCV(numericAmount),
+                    principalCV(address!),
                     principalCV(values.recipient),
-                    stringAsciiCV("") // memo (optional)
+                    noneCV()
                 ],
                 network: "mainnet",
             }
