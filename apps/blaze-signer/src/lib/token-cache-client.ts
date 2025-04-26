@@ -1,7 +1,3 @@
-import { type StacksNetwork } from '@stacks/network';
-
-// Base URL for the token cache API
-// TODO: Make this configurable via environment variables
 const TOKEN_CACHE_API_BASE_URL = process.env.NEXT_PUBLIC_TOKEN_CACHE_ENDPOINT || 'http://localhost:3000'; // Assuming token-cache runs on 3000 locally
 
 // Updated interface based on actual API response structure

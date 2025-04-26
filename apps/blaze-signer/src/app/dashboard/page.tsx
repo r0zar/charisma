@@ -100,9 +100,9 @@ async function fetchBalanceForPrincipalAndToken(
     principal: string,
     tokenId: string
 ): Promise<BalanceInfo> {
+    const siteUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
     // Construct the absolute URL for the API endpoint using tokenId
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005';
-    const apiUrl = `${baseUrl}/api/balances/${tokenId}/${principal}`;
+    const apiUrl = `${siteUrl}/api/balances/${tokenId}/${principal}`;
     // console.log(`Dashboard: Fetching balance from URL: ${apiUrl}`); // Less verbose logging now
 
     try {
