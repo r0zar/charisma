@@ -1,0 +1,401 @@
+@import "tailwindcss";
+
+/* BASE STYLES (Dark Theme) */
+
+/* Define base variables within @theme */
+:root {
+  @theme {
+    /* Base colors */
+    --color-background:         hsl(222 47% 8%);
+    --color-foreground:         hsl(0 0% 98%);
+    --color-card:               hsl(222 47% 11%);
+    --color-card-foreground:    hsl(0 0% 98%);
+    --color-popover:            hsl(222 47% 6%);
+    --color-popover-foreground: hsl(0 0% 98%);
+
+    /* Primary - Vibrant Memecoin Green */
+    --color-primary:              hsl(135 94% 65%);
+    --color-primary-foreground:   hsl(222 47% 5%);
+
+    /* Secondary - Market Red */
+    --color-secondary:            hsl(356 100% 65%);
+    --color-secondary-foreground: hsl(0 0% 98%);
+
+    /* Utility colors */
+    --color-destructive:          hsl(0 84% 60%);
+    --color-destructive-foreground: hsl(0 0% 98%);
+    --color-muted:              hsl(223 47% 15%);
+    --color-muted-foreground:   hsl(220 10% 70%);
+    --color-accent:             hsl(223 47% 15%);
+    --color-accent-foreground:  hsl(0 0% 98%);
+    --color-border:             hsl(222 47% 18%);
+    --color-input:              var(--color-border);
+    --color-ring:               var(--color-primary);
+
+    /* Semantic colors */
+    --color-pump:               hsl(135 94% 65%);
+    --color-dump:               hsl(356 100% 65%);
+    --color-success:            hsl(145, 80%, 42%);
+    --color-warning:            hsl(43, 96%, 56%);
+    --color-info:               hsl(215, 100%, 69%);
+
+    /* Motion */
+    --duration-instant:         0.1s;
+    --duration-fast:            0.2s;
+    --duration-normal:          0.3s;
+    --duration-slow:            0.5s;
+    --ease-snap:                cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-smooth:              cubic-bezier(0.4, 0.0, 0.2, 1);
+
+    /* Other theme variables */
+    --radius: 0.75rem;
+    --font-display: var(--font-display), system-ui, -apple-system, sans-serif;
+    --font-body: var(--font-body), system-ui, -apple-system, sans-serif;
+    --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+
+    /* Aliases for Tailwind compatibility/existing usage */
+    --background: var(--color-background);
+    --foreground: var(--color-foreground);
+    --card: var(--color-card);
+    --card-foreground: var(--color-card-foreground);
+    --popover: var(--color-popover);
+    --popover-foreground: var(--color-popover-foreground);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: var(--color-secondary);
+    --secondary-foreground: var(--color-secondary-foreground);
+    --muted: var(--color-muted);
+    --muted-foreground: var(--color-muted-foreground);
+    --accent: var(--color-accent);
+    --accent-foreground: var(--color-accent-foreground);
+    --destructive: var(--color-destructive);
+    --destructive-foreground: var(--color-destructive-foreground);
+    --border: var(--color-border);
+    --input: var(--color-input);
+    --ring: var(--color-ring);
+  }
+}
+
+
+/* BASE LAYER */
+@layer base {
+  * {
+    /* Apply border color using the variable */
+    border-color: color-mix(in srgb, var(--color-border) 50%, transparent);
+  }
+  body {
+    /* Apply base styles directly using variables */
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body); 
+    font-feature-settings: "rlig" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-medium tracking-tight;
+  }
+  
+  h1 {
+    @apply text-3xl md:text-4xl lg:text-5xl leading-tight;
+  }
+  
+  h2 {
+    @apply text-2xl md:text-3xl lg:text-4xl leading-tight;
+  }
+  
+  .numeric, .price, .cha-amount {
+    font-family: var(--font-mono);
+    @apply tabular-nums;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--color-muted) 90%, var(--color-primary) 10%);
+    border-radius: 9999px;
+  }
+   ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-muted) 70%, var(--color-primary) 30%);
+  }
+}
+
+/* COMPONENTS LAYER */
+@layer components {
+  .glass-card {
+    background-color: color-mix(in srgb, var(--color-card) 50%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 40%, var(--color-primary) 5%);
+    border-width: 1px;
+    backdrop-filter: blur(16px);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 10, 20, 0.1), 0 0 1px rgba(var(--color-primary), 0.2);
+    transition: transform var(--duration-normal) var(--ease-smooth),
+                box-shadow var(--duration-normal) var(--ease-smooth);
+  }
+  
+  .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 10, 20, 0.15), 0 0 2px rgba(var(--color-primary), 0.3);
+  }
+
+  .button-primary {
+    @apply px-6 py-3 bg-primary text-primary-foreground font-medium rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-display);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all var(--duration-normal) var(--ease-snap);
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 255, 120, 0.2);
+      background-color: color-mix(in srgb, var(--color-primary) 90%, white);
+    }
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .button-secondary {
+    @apply px-6 py-3 bg-secondary text-secondary-foreground font-medium rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    font-family: var(--font-display);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all var(--duration-normal) var(--ease-snap);
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255, 40, 40, 0.2);
+      background-color: color-mix(in srgb, var(--color-secondary) 90%, white);
+    }
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+
+  .input-field {
+    @apply bg-transparent border-none text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-full;
+    /* Ensure ring offset uses background color */
+    --tw-ring-offset-color: var(--color-background);
+    transition: all var(--duration-normal) var(--ease-smooth);
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.3);
+    }
+  }
+
+  .token-select {
+    @apply flex items-center gap-2 px-3 py-2 rounded-xl bg-muted cursor-pointer transition-all;
+    border: 1px solid transparent;
+    transition: all var(--duration-normal) var(--ease-smooth);
+    &:hover {
+      background-color: color-mix(in srgb, var(--color-muted) 80%, var(--color-primary) 20%);
+      border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+      transform: translateY(-1px);
+    }
+    &.selected {
+      background-color: color-mix(in srgb, var(--color-muted) 70%, var(--color-primary) 30%);
+      border-color: var(--color-primary);
+    }
+  }
+  
+  .token-card {
+    @apply p-4 rounded-xl border border-border bg-card flex flex-col gap-3 transition-all;
+    transition: all var(--duration-normal) var(--ease-smooth);
+    &:hover {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 10, 20, 0.1);
+      border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-primary) 40%);
+    }
+  }
+  
+  .progress-bar {
+    @apply h-2 rounded-full bg-muted overflow-hidden relative;
+    .progress-bar-fill {
+      @apply h-full rounded-full absolute left-0 top-0;
+      background: linear-gradient(90deg, 
+        var(--color-primary) 0%, 
+        color-mix(in srgb, var(--color-primary) 80%, white) 100%
+      );
+      transition: width var(--duration-slow) var(--ease-smooth);
+      box-shadow: 0 0 10px rgba(var(--color-primary), 0.5);
+    }
+  }
+}
+
+/* UTILITIES LAYER */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .safe-area {
+    padding-inline: max(env(safe-area-inset-left), 1rem)
+                    max(env(safe-area-inset-right), 1rem);
+    padding-block-start: env(safe-area-inset-top);
+    padding-block-end: env(safe-area-inset-bottom);
+  }
+
+  .text-pump {
+    color: var(--color-pump);
+  }
+  
+  .text-dump {
+    color: var(--color-dump);
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 8px rgba(var(--color-primary), 0.7);
+  }
+  
+  .bg-blur {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Custom animations */
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%) skewX(-15deg);
+    }
+    100% {
+      transform: translateX(100%) skewX(-15deg);
+    }
+  }
+
+  @keyframes progress {
+    0% {
+      width: 0%;
+      transform: translateX(0);
+    }
+    50% {
+      width: 100%;
+      transform: translateX(0);
+    }
+    100% {
+      width: 100%;
+      transform: translateX(100%);
+    }
+  }
+
+   @keyframes appear {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* Add Spin Animation Keyframes */
+  @keyframes spin-fast {
+    0% { transform: translateX(50%); }
+    100% { transform: translateX(-2500%); }
+  }
+
+  @keyframes pulse-glow {
+    0% { 
+      box-shadow: 0 0 5px rgba(var(--color-primary), 0.5);
+      border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+    }
+    100% { 
+      box-shadow: 0 0 15px rgba(var(--color-primary), 0.8);
+      border-color: var(--color-primary);
+    }
+  }
+
+  .animate-appear {
+    animation: appear 0.3s ease-out forwards;
+  }
+  
+  /* Utility to hide scrollbars */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Animation utilities */
+@keyframes pulse-slow {
+    0% { opacity: 0.7; }
+    100% { opacity: 0.9; }
+}
+
+@keyframes pulse-medium {
+    0% { opacity: 0.65; }
+    100% { opacity: 0.95; }
+}
+
+@keyframes pulse-fast {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+@keyframes subtle-rotate {
+    0% { transform: rotate(-1deg); }
+    100% { transform: rotate(1deg); }
+}
+
+@keyframes subtle-bounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-2px); }
+}
+
+@keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 1.5s infinite alternate ease-in-out;
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 1s infinite alternate;
+}
+
+.animate-pulse-medium {
+    animation: pulse-medium 0.5s infinite alternate;
+}
+
+.animate-pulse-fast {
+    animation: pulse-fast 0.25s infinite alternate;
+}
+
+.animate-subtle-rotate {
+    animation: subtle-rotate 2s infinite alternate ease-in-out;
+}
+
+.animate-subtle-bounce {
+    animation: subtle-bounce 0.3s infinite alternate ease-in-out;
+}
+
+.animate-float {
+    animation: float 3s infinite ease-in-out;
+}
+
+/* FLUID CONTAINER */
+.container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+  max-width: 80rem; /* 1280px */
+} 
