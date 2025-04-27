@@ -156,11 +156,11 @@ export function LeaderboardTable(/* Removed props */) {
                                     {item.totalBet.toLocaleString()}
                                 </TableCell>
 
-                                <TableCell className="text-right text-muted-foreground relative z-10 hidden sm:table-cell w-[100px]">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <div className="w-16 bg-muted/30 h-2 rounded-full overflow-hidden">
+                                <TableCell className="text-right text-muted-foreground relative z-10 hidden sm:table-cell w-[480px] ">
+                                    <div className="flex items-center justify-end gap-2 w-full">
+                                        <div className="bg-muted/30 h-2 rounded-full overflow-hidden w-full">
                                             <div
-                                                className="h-full bg-primary rounded-full"
+                                                className="h-full bg-primary rounded-full w-full"
                                                 style={{ width: `${percentage}%` }}
                                             />
                                         </div>

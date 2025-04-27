@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from './providers';
 import AppShell from '@/components/layout/AppShell';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { spaceGrotesk, dmMono, inter } from '@/styles/fonts';
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default function RootLayout({
           <AppShell>
             {children}
           </AppShell>
-          <Toaster position="bottom-right" richColors />
+          <Toaster position="bottom-right" />
         </Providers>
       </body>
     </html>

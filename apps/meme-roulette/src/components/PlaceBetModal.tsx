@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { Label } from "@/components/ui/label";
 
 interface PlaceBetModalProps {

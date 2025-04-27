@@ -203,8 +203,14 @@
   .token-card {
     @apply p-4 rounded-xl border border-border bg-card flex flex-col gap-3 transition-all;
     transition: all var(--duration-normal) var(--ease-smooth);
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: transform;
+    margin-top: 2px;
     &:hover {
-      transform: translateY(-2px) scale(1.01);
+      z-index: 100;
+      transform: translateY(-1px);
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 10, 20, 0.1);
       border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-primary) 40%);
     }

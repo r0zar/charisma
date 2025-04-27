@@ -13,7 +13,7 @@ const Footer: React.FC<FooterProps> = (/* { onShowInstructions } */) => {
     return (
         <footer className="bg-muted/40 border-t border-border/40 py-4 text-center text-sm text-muted-foreground">
             <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-                <span>© {new Date().getFullYear()} Group Token Pumper. All rights reserved.</span>
+                <span>© {new Date().getFullYear()} Charisma. All rights reserved.</span>
                 {/* Remove the button that triggers instructions from here */}
                 {/*
                 <Button variant="link" size="sm" onClick={onShowInstructions}>

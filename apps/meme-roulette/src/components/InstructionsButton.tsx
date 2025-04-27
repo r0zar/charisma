@@ -28,7 +28,7 @@ const InstructionsContent = () => (
         </DialogHeader>
         <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none py-4">
             {/* Copied content from InstructionsOverlay */}
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-primary">Welcome to the Group Token Pumper!</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-primary">Welcome to Meme Roulette!</h2>
             <p className="text-center mb-6">
                 Get ready for a collective meme coin pump! Join everyone in committing <span className="font-semibold text-primary">CHA</span> to influence which token gets the big buy. Here's the plan:
             </p>

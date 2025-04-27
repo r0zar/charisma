@@ -6,9 +6,9 @@ import { useSpinFeed } from '@/hooks/useSpinFeed';
 import { useSpin } from '@/contexts/SpinContext';
 import PlaceBetModal from '@/components/PlaceBetModal';
 import { Button } from '@/components/ui/button';
-import DevControls from '@/components/DevControls';
 import { Rocket } from 'lucide-react';
 import Link from 'next/link';
+import FirstVisitPopup from '@/components/FirstVisitPopup';
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const spinFeed = useSpinFeed();
@@ -20,10 +20,6 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const handleOpenBetModal = () => {
         setIsBetModalOpen(true);
     };
-
-    // Determine if dev controls should be rendered and have setters
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const hasDevSetters = isDevelopment && '_devSetIsConnected' in spinFeed && '_devSetMyChaBalance' in spinContext.actions;
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-200">
@@ -40,7 +36,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     {/* Logo and title */}
                     <div className="flex items-center gap-2">
                         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                            <Rocket className="text-primary h-5 w-5 animate-float" />
+                            <Rocket className="text-primary h-5 w-5 animate-float" aria-hidden="true" />
                             <span className="font-display font-bold text-lg">Meme Roulette</span>
                         </Link>
                     </div>
@@ -48,7 +44,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     {/* Center nav links - could add more here */}
                     <nav className="hidden md:flex gap-6">
                         <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">Home</Link>
-                        <Link href="#" className="text-foreground/80 hover:text-primary transition-colors">About</Link>
+                        <Link href="/about" className="text-foreground/80 hover:text-primary transition-colors">About</Link>
                     </nav>
 
                     {/* User balance and actions */}
@@ -71,25 +67,14 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             <Footer />
 
-            {/* Render the modal */}
+            {/* Modals and popups */}
             <PlaceBetModal
                 isOpen={isBetModalOpen}
                 onClose={() => setIsBetModalOpen(false)}
                 tokens={spinContext.state.tokenList}
             />
 
-            {/* Conditionally render Dev Controls */}
-            {isDevelopment && hasDevSetters && (
-                <DevControls
-                    isConnected={spinFeed.isConnected}
-                    // Type assertion needed because TS doesn't narrow based on 'in' check across hooks
-                    setIsConnected={(spinFeed as any)._devSetIsConnected}
-                    data={spinFeed.data}
-                    chaBalance={spinContext.state.myChaBalance}
-                    setChaBalance={(spinContext.actions as any)._devSetMyChaBalance}
-                    tokenList={spinContext.state.tokenList}
-                />
-            )}
+            <FirstVisitPopup />
         </div>
     );
 };

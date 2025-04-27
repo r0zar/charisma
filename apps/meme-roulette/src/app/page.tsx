@@ -126,7 +126,7 @@ export default function HubPage() {
             My Commits
           </h2>
           <div className="glass-card p-8 rounded-xl text-center border">
-            <div className="text-muted-foreground/70 mb-3 justify-center">
+            <div className="text-muted-foreground/70 mb-3 justify-center flex items-center">
               <HandCoins size={40} />
             </div>
             <p className="text-muted-foreground mb-4">You haven't committed any CHA yet.</p>
@@ -207,6 +207,8 @@ export default function HubPage() {
 
     return (
       <>
+        {isBettingLocked && !showSpinAnimation && <LockOverlay timeLeft={timeLeft} />}
+
         {showSpinAnimation && winningTokenId && (
           <SpinAnimationOverlay
             winningTokenId={winningTokenId}
@@ -264,7 +266,7 @@ export default function HubPage() {
                   className={`button-primary w-full py-4 text-lg shadow-lg ${isBettingLocked ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-medium'}`}
                 >
                   <Rocket className="h-5 w-5" />
-                  {isBettingLocked ? 'Voting Locked' : 'Commit CHA to Pump'}
+                  {isBettingLocked ? 'Voting Locked' : 'Vote to Pump a Token'}
                 </button>
               </div>
             )}
@@ -282,8 +284,6 @@ export default function HubPage() {
         <div className={`mb-24 sm:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           {renderMyBetsSection()}
         </div>
-
-        {isBettingLocked && !showSpinAnimation && <LockOverlay />}
 
         <PlaceBetModal
           isOpen={isPlaceBetModalOpen}
