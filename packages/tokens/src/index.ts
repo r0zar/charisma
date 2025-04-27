@@ -6,3 +6,5 @@ export const log = (...args: unknown[]): void => {
 export * from './token-cache-client';
 
 export type { TokenCacheData } from './token-cache-client';
+
+export { listTokens } from './token-cache-client';

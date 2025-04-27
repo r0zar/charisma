@@ -104,6 +104,7 @@ export const getTokenData = async (
 
         // 2. Fetch from Cryptonomicon
         const tokenMetadata = await cryptonomicon.getTokenMetadata(contractId);
+        console.log(`Token metadata: ${JSON.stringify(tokenMetadata)}`);
 
         if (tokenMetadata) {
             // Ensure contract_principal is set

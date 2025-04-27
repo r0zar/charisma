@@ -238,9 +238,7 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
                                                 <span className="font-medium text-gray-400">Decimals:</span> {previewData.lpToken.decimals}
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-400">Fee (%):</span> {previewData.lpToken.lpRebatePercent ? (Number(previewData.lpToken.lpRebatePercent) / 100).toFixed(2) :
-                                                    (previewData.lpToken.properties?.lpRebatePercent ? (Number(previewData.lpToken.properties.lpRebatePercent) / 100).toFixed(2) :
-                                                        (previewData.lpToken.fee ? (Number(previewData.lpToken.fee) / 10000).toFixed(2) : '0.00'))}
+                                                <span className="font-medium text-gray-400">Fee (%):</span> {Number(previewData.lpToken.lpRebatePercent)}
                                             </div>
                                             <div>
                                                 <span className="font-medium text-gray-400">Identifier:</span> {previewData.lpToken.identifier || "—"}

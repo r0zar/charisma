@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useApp } from "@/lib/context/app-context";
 import { ArrowLeft, HelpCircle, Layers, ExternalLink, Search, X } from "lucide-react";
 import {
@@ -30,7 +30,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { truncateAddress } from "@/lib/utils";
+import { truncateAddress } from "@/lib/utils/token-utils";
 import { generateLiquidityPoolContract, LiquidityPoolOptions } from "@/lib/templates/liquidity-pool-contract-template";
 import { TokenMetadata } from "@/lib/metadata-service";
 import {
@@ -48,6 +48,12 @@ import {
 } from "lucide-react";
 import { PostCondition } from "@stacks/connect/dist/types/methods";
 import { Pc } from "@stacks/transactions";
+// Import the newly created step component
+import { TokenSelectionStep } from "@/components/liquidity-pool-wizard/token-selection-step";
+import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-step";
+import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
+import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
+import { getTokenMetadataCached, listTokens, TokenCacheData } from "@repo/tokens"; // Import the clients
 
 
 // Metadata constants
@@ -55,12 +61,6 @@ const METADATA_BASE_URL = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3008'
     : 'https://charisma-metadata.vercel.app';
 const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
-
-// Token API URL
-const TOKEN_API_BASE_URL = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3000'
-    : 'https://charisma-token-cache.vercel.app'; // Replace with your actual production URL
-const TOKEN_API_URL = `${TOKEN_API_BASE_URL}/api/v1/sip10`;
 
 // Wizard steps
 enum WizardStep {
@@ -70,7 +70,7 @@ enum WizardStep {
     REVIEW_DEPLOY = 3,
 }
 
-// Token type
+// Token type - Use TokenCacheData where EnhancedToken was used
 interface Token {
     symbol: string;
     name: string;
@@ -78,11 +78,9 @@ interface Token {
     description?: string;
     image?: string;
     decimals?: number;
-}
-
-// Enhanced Token interface
-interface EnhancedToken extends Token {
-    contract_principal?: string;
+    isSubnet?: boolean;
+    isLpToken?: boolean;
+    total_supply?: string | null;
 }
 
 // Contract Stepper Component
@@ -124,1219 +122,25 @@ const ContractStepper = ({ currentStep }: { currentStep: WizardStep }) => {
     );
 };
 
-// Token Selection Step Component
-const TokenSelectionStep = ({
-    onSelectToken1,
-    onSelectToken2,
-    token1Symbol,
-    excludedToken,
-    predefinedTokens,
-    isLoadingTokens,
-    tokenLoadError
-}: {
-    onSelectToken1: (token: string, address: string) => void;
-    onSelectToken2: (token: string, address: string) => void;
-    token1Symbol: string;
-    excludedToken?: string;
-    predefinedTokens: Token[];
-    isLoadingTokens: boolean;
-    tokenLoadError: string | null;
-}) => {
-    const [selectingToken2, setSelectingToken2] = useState(false);
-    const [showCustomInput, setShowCustomInput] = useState(false);
-    const [customAddress, setCustomAddress] = useState("");
-    const [customError, setCustomError] = useState<string | null>(null);
-
-    // Custom token fetch state
-    const [isFetchingToken, setIsFetchingToken] = useState(false);
-    const [fetchedToken, setFetchedToken] = useState<EnhancedToken | null>(null);
-
-    // Token list state
-    const [filteredTokens, setFilteredTokens] = useState<EnhancedToken[]>(predefinedTokens as EnhancedToken[]);
-    const [searchQuery, setSearchQuery] = useState("");
-
-    // Function to fetch token metadata by contract ID
-    const fetchTokenMetadata = async (contractId: string) => {
-        if (!contractId.trim()) {
-            setCustomError("Contract address is required");
-            return;
-        }
-
-        // Basic validation for Stacks contract address format
-        if (!/^[A-Z0-9]+\.[a-zA-Z0-9-]+$/.test(contractId)) {
-            setCustomError("Invalid contract address format. Should be like: SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token");
-            return;
-        }
-
-        setCustomError(null);
-        setIsFetchingToken(true);
-
-        try {
-            // Fetch token data from the API
-            const response = await fetch(`${TOKEN_API_BASE_URL}/api/v1/sip10/${contractId}`);
-
-            if (!response.ok) {
-                throw new Error(response.status === 404
-                    ? 'Token not found. Please verify the contract address.'
-                    : 'Failed to fetch token data');
-            }
-
-            const tokenData = await response.json();
-            // Check if data has a nested 'data' property (API response format)
-            const tokenInfo = tokenData.data || tokenData;
-
-            // Format the response into our token format
-            const enhancedToken: EnhancedToken = {
-                symbol: tokenInfo.symbol || 'Unknown',
-                name: tokenInfo.name || tokenInfo.symbol || 'Unknown Token',
-                address: contractId,
-                description: tokenInfo.description || `${tokenInfo.symbol || 'Custom'} token`,
-                image: tokenInfo.image || tokenInfo.image_uri || '',
-                contract_principal: contractId,
-                decimals: tokenInfo.decimals || 6
-            };
-
-            setFetchedToken(enhancedToken);
-        } catch (error) {
-            console.error('Error fetching token metadata:', error);
-            setCustomError(error instanceof Error ? error.message : 'Failed to fetch token data');
-            setFetchedToken(null);
-        } finally {
-            setIsFetchingToken(false);
-        }
-    };
-
-    // Update filtered tokens when predefinedTokens change
-    useEffect(() => {
-        setFilteredTokens(predefinedTokens as EnhancedToken[]);
-    }, [predefinedTokens]);
-
-    // Filter tokens based on search query
-    useEffect(() => {
-        if (!searchQuery) {
-            setFilteredTokens(predefinedTokens as EnhancedToken[]);
-            return;
-        }
-
-        const query = searchQuery.toLowerCase();
-        const filtered = (predefinedTokens as EnhancedToken[]).filter(
-            token =>
-                token.symbol.toLowerCase().includes(query) ||
-                token.name.toLowerCase().includes(query) ||
-                token.address.toLowerCase().includes(query)
-        );
-
-        setFilteredTokens(filtered);
-    }, [searchQuery, predefinedTokens]);
-
-    const handleCustomSubmit = () => {
-        if (!fetchedToken) {
-            setCustomError("Please fetch a valid token first");
-            return;
-        }
-
-        setCustomError(null);
-
-        // Call the appropriate select function based on which step we're on
-        if (!selectingToken2) {
-            onSelectToken1(fetchedToken.symbol, fetchedToken.address);
-            setSelectingToken2(true);
-        } else {
-            onSelectToken2(fetchedToken.symbol, fetchedToken.address);
-        }
-
-        // Reset the custom input state
-        setShowCustomInput(false);
-        setCustomAddress("");
-        setFetchedToken(null);
-    };
-
-    const handleCancelCustom = () => {
-        setShowCustomInput(false);
-        setCustomAddress("");
-        setCustomError(null);
-        setFetchedToken(null);
-    };
-
-    return (
-        <div className="space-y-8">
-            {!selectingToken2 ? (
-                <>
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold mb-2">Select First Token</h2>
-                        <p className="text-muted-foreground">Choose the first token for your liquidity pool</p>
-                    </div>
-
-                    {/* Search Bar */}
-                    {!showCustomInput && (
-                        <div className="relative mx-auto max-w-md mb-4">
-                            <div className="relative">
-                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    className="pl-8 pr-8"
-                                    placeholder="Search tokens..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                {searchQuery && (
-                                    <X
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
-                                        onClick={() => setSearchQuery("")}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {showCustomInput ? (
-                        <Card className="p-6">
-                            <h3 className="font-medium mb-4">Enter Custom Token Details</h3>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="customAddress">Token Contract ID</Label>
-                                    <Input
-                                        id="customAddress"
-                                        value={customAddress}
-                                        onChange={(e) => {
-                                            setCustomAddress(e.target.value);
-                                            setCustomError(null);
-                                            setFetchedToken(null);
-                                        }}
-                                        placeholder="e.g. SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.token-name"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Button
-                                        onClick={() => fetchTokenMetadata(customAddress)}
-                                        disabled={isFetchingToken || !customAddress.trim()}
-                                        variant="outline"
-                                        className="w-full"
-                                    >
-                                        {isFetchingToken ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Fetching Token...
-                                            </>
-                                        ) : (
-                                            <>Fetch Token Details</>
-                                        )}
-                                    </Button>
-                                </div>
-
-                                {fetchedToken && (
-                                    <div className="border rounded-md p-4 bg-muted/10 space-y-3">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-3 overflow-hidden">
-                                                {fetchedToken.image ? (
-                                                    <img
-                                                        src={fetchedToken.image}
-                                                        alt={fetchedToken.symbol}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            (e.target as HTMLImageElement).src = '';
-                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="text-sm font-bold text-primary/60">${fetchedToken.symbol.charAt(0)}</div>`;
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol.charAt(0)}</div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-medium">{fetchedToken.symbol}</h4>
-                                                <p className="text-sm text-muted-foreground">{fetchedToken.name}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            <span className="block mb-1">Contract ID:</span>
-                                            <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.address}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {customError && (
-                                    <div className="text-destructive text-sm pt-1">{customError}</div>
-                                )}
-
-                                <div className="flex justify-end space-x-2 pt-2">
-                                    <Button variant="outline" onClick={handleCancelCustom}>
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={handleCustomSubmit}
-                                        disabled={!fetchedToken}
-                                    >
-                                        Use Custom Token
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    ) : (
-                        <div>
-                            {isLoadingTokens ? (
-                                <div className="flex justify-center py-8">
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                </div>
-                            ) : tokenLoadError ? (
-                                <div className="text-center text-destructive mb-4">
-                                    {tokenLoadError}
-                                </div>
-                            ) : filteredTokens.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <p className="text-muted-foreground">No tokens found. Try a different search.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    {filteredTokens.map((token) => (
-                                        <Card
-                                            key={token.address + token.symbol}
-                                            className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                                            onClick={() => {
-                                                onSelectToken1(token.symbol, token.address);
-                                                setSelectingToken2(true);
-                                            }}
-                                        >
-                                            <div className="p-6 flex flex-col items-center">
-                                                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
-                                                    {token.image ? (
-                                                        <img
-                                                            src={token.image}
-                                                            alt={token.symbol}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => {
-                                                                (e.target as HTMLImageElement).src = '';
-                                                                (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-8 h-8 text-primary/60">${token.symbol.charAt(0)}</div>`;
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div className="w-8 h-8 font-bold text-primary/60 flex items-center justify-center">
-                                                            {token.symbol.charAt(0)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <h3 className="font-medium">{token.symbol}</h3>
-                                                <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                    <Card className="cursor-pointer hover:border-primary/50 transition-colors"
-                                        onClick={() => setShowCustomInput(true)}
-                                    >
-                                        <div className="p-6 flex flex-col items-center">
-                                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                                <HelpCircle className="w-8 h-8 text-primary/60" />
-                                            </div>
-                                            <h3 className="font-medium">Custom Token</h3>
-                                            <p className="text-sm text-muted-foreground">Use another SIP-10 token</p>
-                                        </div>
-                                    </Card>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </>
-            ) : (
-                <>
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold mb-2">Select Second Token</h2>
-                        <p className="text-muted-foreground">Choose the second token for your {token1Symbol} liquidity pool</p>
-                    </div>
-
-                    {/* Search Bar for Second Token */}
-                    {!showCustomInput && (
-                        <div className="relative mx-auto max-w-md mb-4">
-                            <div className="relative">
-                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    className="pl-8 pr-8"
-                                    placeholder="Search tokens..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                {searchQuery && (
-                                    <X
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
-                                        onClick={() => setSearchQuery("")}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {showCustomInput ? (
-                        <Card className="p-6">
-                            <h3 className="font-medium mb-4">Enter Custom Token Details</h3>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="customAddress">Token Contract ID</Label>
-                                    <Input
-                                        id="customAddress"
-                                        value={customAddress}
-                                        onChange={(e) => {
-                                            setCustomAddress(e.target.value);
-                                            setCustomError(null);
-                                            setFetchedToken(null);
-                                        }}
-                                        placeholder="e.g. SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.token-name"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Button
-                                        onClick={() => fetchTokenMetadata(customAddress)}
-                                        disabled={isFetchingToken || !customAddress.trim()}
-                                        variant="outline"
-                                        className="w-full"
-                                    >
-                                        {isFetchingToken ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Fetching Token...
-                                            </>
-                                        ) : (
-                                            <>Fetch Token Details</>
-                                        )}
-                                    </Button>
-                                </div>
-
-                                {fetchedToken && (
-                                    <div className="border rounded-md p-4 bg-muted/10 space-y-3">
-                                        <div className="flex items-center">
-                                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mr-3 overflow-hidden">
-                                                {fetchedToken.image ? (
-                                                    <img
-                                                        src={fetchedToken.image}
-                                                        alt={fetchedToken.symbol}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            (e.target as HTMLImageElement).style.display = 'none';
-                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-xs font-medium">${fetchedToken.symbol.charAt(0)}</span>`;
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <span className="text-xs font-medium">{fetchedToken.symbol.charAt(0)}</span>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-medium">{fetchedToken.symbol}</h4>
-                                                <p className="text-sm text-muted-foreground">{fetchedToken.name}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            <span className="block mb-1">Contract ID:</span>
-                                            <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.address}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {customError && (
-                                    <div className="text-destructive text-sm pt-1">{customError}</div>
-                                )}
-
-                                <div className="flex justify-end space-x-2 pt-2">
-                                    <Button variant="outline" onClick={handleCancelCustom}>
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        onClick={handleCustomSubmit}
-                                        disabled={!fetchedToken}
-                                    >
-                                        Use Custom Token
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    ) : (
-                        <div>
-                            {isLoadingTokens ? (
-                                <div className="flex justify-center py-8">
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                </div>
-                            ) : tokenLoadError ? (
-                                <div className="text-center text-destructive mb-4">
-                                    {tokenLoadError}
-                                </div>
-                            ) : filteredTokens.filter(token => token.symbol !== excludedToken).length === 0 ? (
-                                <div className="text-center py-8">
-                                    <p className="text-muted-foreground">No tokens found. Try a different search.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    {filteredTokens
-                                        .filter((token) => token.symbol !== excludedToken)
-                                        .map((token) => (
-                                            <Card
-                                                key={token.address + token.symbol}
-                                                className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                                                onClick={() => onSelectToken2(token.symbol, token.address)}
-                                            >
-                                                <div className="p-6 flex flex-col items-center">
-                                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
-                                                        {token.image ? (
-                                                            <img
-                                                                src={token.image}
-                                                                alt={token.symbol}
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => {
-                                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                                    const fallbackEl = document.createElement('div');
-                                                                    fallbackEl.className = 'text-4xl font-bold text-primary/40';
-                                                                    fallbackEl.textContent = token.symbol.charAt(0);
-                                                                    e.currentTarget.parentElement?.appendChild(fallbackEl);
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <div className="text-4xl font-bold text-primary/40">
-                                                                {token.symbol.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <h3 className="font-medium">{token.symbol}</h3>
-                                                    <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
-                                                </div>
-                                            </Card>
-                                        ))}
-                                    <Card className="cursor-pointer hover:border-primary/50 transition-colors"
-                                        onClick={() => setShowCustomInput(true)}
-                                    >
-                                        <div className="p-6 flex flex-col items-center">
-                                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                                <HelpCircle className="w-8 h-8 text-primary/60" />
-                                            </div>
-                                            <h3 className="font-medium">Custom Token</h3>
-                                            <p className="text-sm text-muted-foreground">Use another SIP-10 token</p>
-                                        </div>
-                                    </Card>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    <div className="text-center">
-                        <Button
-                            variant="outline"
-                            onClick={() => setSelectingToken2(false)}
-                        >
-                            Change First Token
-                        </Button>
-                    </div>
-                </>
-            )}
-        </div>
-    );
-};
-
-// Pool Configuration Step Component
-const PoolConfigStep = ({
-    poolName,
-    onPoolNameChange,
-    swapFee,
-    onSwapFeeChange,
-    token1,
-    token2,
-    errors,
-    onPrevious,
-    onNext
-}: {
-    poolName: string;
-    onPoolNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    swapFee: string;
-    onSwapFeeChange: (value: string) => void;
-    token1: string;
-    token2: string;
-    errors: Record<string, string>;
-    onPrevious: () => void;
-    onNext: () => void;
-}) => {
-    return (
-        <Card className="mb-8">
-            <CardHeader>
-                <CardTitle>Pool Configuration</CardTitle>
-                <CardDescription>
-                    Set the core properties of your {token1}-{token2} liquidity pool
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="poolName">
-                        Pool Name
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-1 inline-block text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p className="w-80">
-                                        The name of your liquidity pool
-                                    </p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </Label>
-                    <Input
-                        id="poolName"
-                        value={poolName}
-                        onChange={onPoolNameChange}
-                        placeholder={`${token1}-${token2} Liquidity Pool`}
-                        className={errors.poolName ? "border-destructive" : ""}
-                    />
-                    {errors.poolName && (
-                        <p className="text-destructive text-sm">{errors.poolName}</p>
-                    )}
-                </div>
-
-                {/* Swap Fee */}
-                <div className="space-y-2">
-                    <div className="flex items-center">
-                        <Label htmlFor="swapFee">Swap Fee (%)</Label>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        className="h-5 w-5 p-0 ml-1"
-                                    >
-                                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <span className="sr-only">Info</span>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p className="w-80">
-                                        The fee charged on swaps, which is distributed to liquidity providers. Common values: 0.3% (standard), 0.1% (stable pairs), 1% (exotic pairs)
-                                    </p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                    <Select
-                        value={swapFee}
-                        onValueChange={onSwapFeeChange}
-                    >
-                        <SelectTrigger className={errors.swapFee ? "border-destructive" : ""}>
-                            <SelectValue placeholder="Select swap fee" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background">
-                            <SelectItem value="0.1">0.1% (Stable pairs)</SelectItem>
-                            <SelectItem value="0.3">0.3% (Standard)</SelectItem>
-                            <SelectItem value="1.0">1.0% (Exotic pairs)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    {errors.swapFee && (
-                        <p className="text-destructive text-sm">{errors.swapFee}</p>
-                    )}
-                </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={onPrevious}>
-                    Back
-                </Button>
-                <Button onClick={onNext}>
-                    Continue to Review
-                </Button>
-            </CardFooter>
-        </Card>
-    );
-};
-
-// Review and Deploy Step Component
-const ReviewDeployStep = ({
-    poolName,
-    lpTokenSymbol,
-    token1,
-    token2,
-    swapFee,
-    contractIdentifier,
-    isGeneratingMetadata,
-    metadataApiError,
-    hasMetadata,
-    metadata,
-    isDeploying,
-    token1Image,
-    token2Image,
-    initialTokenRatio,
-    onGenerateMetadata,
-    onRefreshMetadata,
-    onPrevious,
-    onDeploy
-}: {
-    poolName: string;
-    lpTokenSymbol: string;
-    token1: string;
-    token2: string;
-    swapFee: string;
-    contractIdentifier: string;
-    isGeneratingMetadata: boolean;
-    metadataApiError: boolean;
-    hasMetadata: boolean;
-    metadata: TokenMetadata | null;
-    isDeploying: boolean;
-    token1Image?: string;
-    token2Image?: string;
-    initialTokenRatio: {
-        token1Amount: number;
-        token2Amount: number;
-        useRatio: boolean;
-    };
-    onGenerateMetadata: () => void;
-    onRefreshMetadata: () => void;
-    onPrevious: () => void;
-    onDeploy: () => void;
-}) => {
-    // Track when metadata was successfully generated to show success message
-    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-
-    // Set success message when metadata is generated
-    useEffect(() => {
-        if (hasMetadata && !isGeneratingMetadata) {
-            setShowSuccessMessage(true);
-            // Hide success message after 5 seconds
-            const timer = setTimeout(() => {
-                setShowSuccessMessage(false);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [hasMetadata, isGeneratingMetadata]);
-
-    return (
-        <>
-            <div className="space-y-8">
-                {/* Success message when metadata is generated */}
-                {showSuccessMessage && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3 transition-all animate-in fade-in slide-in-from-top-4">
-                        <div className="h-5 w-5 mt-0.5 rounded-full bg-green-500 flex items-center justify-center">
-                            <Check className="h-3.5 w-3.5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="font-medium text-green-900">Metadata Generated Successfully</h4>
-                            <p className="text-sm text-green-700">Your LP token metadata has been created and saved.</p>
-                        </div>
-                        <button onClick={() => setShowSuccessMessage(false)} className="text-green-500 hover:text-green-700">
-                            <X className="h-4 w-4" />
-                        </button>
-                    </div>
-                )}
-
-                {/* Pool Configuration Summary Card */}
-                <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-900/50 border-b pb-3">
-                        <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                                <Layers className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-lg">Pool Configuration</CardTitle>
-                                <CardDescription className="text-xs">
-                                    Review your configured pool settings
-                                </CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent className="p-0 bg-slate-100/30 dark:bg-slate-900/30">
-                        <div className="divide-y">
-                            <div className="grid grid-cols-3 px-6 py-4">
-                                <div className="col-span-1">
-                                    <span className="text-xs text-muted-foreground">Name</span>
-                                    <p className="font-medium">{poolName || "Not specified"}</p>
-                                </div>
-                                <div className="col-span-1">
-                                    <span className="text-xs text-muted-foreground">LP Token Symbol</span>
-                                    <p className="font-medium">{lpTokenSymbol}</p>
-                                </div>
-                                <div className="col-span-1">
-                                    <span className="text-xs text-muted-foreground">Swap Fee</span>
-                                    <p className="font-medium">{swapFee}%</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-3 px-6 py-4 bg-slate-50/60 dark:bg-slate-800/60">
-                                <div className="col-span-1">
-                                    <div className="flex items-center mb-2">
-                                        <span className="text-xs text-muted-foreground mr-2">Token Pair</span>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p className="w-60">The two tokens that can be swapped in this liquidity pool</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </div>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                                {token1Image ? (
-                                                    <img
-                                                        src={token1Image}
-                                                        alt={token1}
-                                                        className="h-full w-full object-cover"
-                                                        onError={(e) => {
-                                                            (e.target as HTMLImageElement).style.display = 'none';
-                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-xs font-medium">${token1.charAt(0)}</span>`;
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <span className="text-xs font-medium">{token1.charAt(0)}</span>
-                                                )}
-                                            </div>
-                                            <span className="font-medium">{token1}</span>
-                                        </div>
-                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                                                {token2Image ? (
-                                                    <img
-                                                        src={token2Image}
-                                                        alt={token2}
-                                                        className="h-full w-full object-cover"
-                                                        onError={(e) => {
-                                                            (e.target as HTMLImageElement).style.display = 'none';
-                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<span class="text-xs font-medium">${token2.charAt(0)}</span>`;
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <span className="text-xs font-medium">{token2.charAt(0)}</span>
-                                                )}
-                                            </div>
-                                            <span className="font-medium">{token2}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="col-span-2">
-                                    <div className="flex items-center mb-2">
-                                        <span className="text-xs text-muted-foreground mr-2">Contract Identifier</span>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p className="w-60">The full contract identifier for this pool on the Stacks blockchain</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </div>
-                                    <div className="font-mono text-xs break-all bg-muted/30 rounded p-2">
-                                        {contractIdentifier || "Connect wallet and enter pool name"}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-medium mb-2">Initial Pool Ratio</h3>
-                                <div className="border rounded-md p-3 bg-muted/20">
-                                    {initialTokenRatio.useRatio ? (
-                                        <div className="flex flex-col space-y-2">
-                                            <div className="flex justify-between">
-                                                <span className="text-xs text-muted-foreground">Initial {token1}</span>
-                                                <span className="font-medium">{initialTokenRatio.token1Amount}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-xs text-muted-foreground">Initial {token2}</span>
-                                                <span className="font-medium">{initialTokenRatio.token2Amount}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-xs text-muted-foreground">Price Ratio</span>
-                                                <span className="font-medium">
-                                                    {initialTokenRatio.token1Amount && initialTokenRatio.token2Amount ?
-                                                        `1 ${token1} = ${(initialTokenRatio.token2Amount / initialTokenRatio.token1Amount).toFixed(6)} ${token2}` :
-                                                        "Not specified"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="text-sm text-muted-foreground">
-                                            No initial pool ratio specified. The first liquidity provider will set the initial price.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* LP Token Metadata Card */}
-                <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-900/50 border-b pb-3">
-                        <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                                <ImageIconLucide className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-lg">LP Token Metadata</CardTitle>
-                                <CardDescription className="text-xs">
-                                    Token information for your pool
-                                </CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent className="p-6 bg-slate-100/30 dark:bg-slate-900/30">
-                        {metadataApiError ? (
-                            <div className="flex items-center p-4 bg-destructive/15 border border-destructive/30 rounded-lg">
-                                <AlertTriangle className="h-5 w-5 text-destructive mr-3" />
-                                <div>
-                                    <h4 className="font-medium text-destructive">Metadata Generation Failed</h4>
-                                    <p className="text-sm text-destructive/80">
-                                        There was a problem generating the LP token metadata. Please try again.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : isGeneratingMetadata ? (
-                            <div className="p-6 text-center">
-                                <div className="flex flex-col items-center justify-center h-48">
-                                    <Loader2 className="h-12 w-12 text-primary/30 animate-spin mb-4" />
-                                    <p className="text-muted-foreground">Generating LP token metadata...</p>
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                        This may take a moment. We're creating your token information.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : hasMetadata ? (
-                            <div className="flex flex-col md:flex-row gap-6">
-                                <div className="md:w-1/3 flex flex-col items-center justify-center">
-                                    <div className="relative w-48 h-48 rounded-lg overflow-hidden bg-muted/50 border-2 border-muted/30 flex items-center justify-center">
-                                        {metadata?.image ? (
-                                            <img
-                                                src={metadata.image}
-                                                alt={metadata.name || "LP Token"}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    const fallbackEl = document.createElement('div');
-                                                    fallbackEl.className = 'text-4xl font-bold text-primary/40';
-                                                    fallbackEl.textContent = lpTokenSymbol.substring(0, 2);
-                                                    e.currentTarget.parentElement?.appendChild(fallbackEl);
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="text-4xl font-bold text-primary/40">
-                                                {lpTokenSymbol.substring(0, 2)}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-center mt-4">
-                                        <span className="inline-flex items-center bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full">
-                                            <Check className="h-3 w-3 mr-1" /> Metadata Ready
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="md:w-2/3 space-y-4 p-4 rounded-lg bg-slate-50/50 dark:bg-slate-800/50">
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground mb-1">Token Name</p>
-                                        <p className="text-lg font-medium">{metadata?.name || poolName}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground mb-1">Symbol</p>
-                                        <p className="text-lg font-medium">{metadata?.symbol || lpTokenSymbol}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground mb-1">Description</p>
-                                        <p className="text-sm">{metadata?.description || `Liquidity pool between ${token1} and ${token2}`}</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 mt-4">
-                                        <div className="col-span-1">
-                                            <p className="text-sm font-medium text-muted-foreground mb-1">Decimals</p>
-                                            <p className="text-sm">{metadata?.decimals || 6}</p>
-                                        </div>
-                                        <div className="col-span-1">
-                                            <p className="text-sm font-medium text-muted-foreground mb-1">Created</p>
-                                            <p className="text-sm">{new Date().toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-10 px-4 border border-dashed rounded-lg bg-slate-50/20 dark:bg-slate-800/20">
-                                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                    <ImageIconLucide className="h-8 w-8 text-muted-foreground/60" />
-                                </div>
-                                <h3 className="text-lg font-medium mb-2">LP Token Metadata Required</h3>
-                                <p className="text-center text-muted-foreground max-w-md mb-6">
-                                    Before deploying your liquidity pool, you need to create metadata for your LP token.
-                                    This makes your token compatible with wallets and explorers.
-                                </p>
-                                <Button
-                                    onClick={onGenerateMetadata}
-                                    size="lg"
-                                    className="px-8"
-                                >
-                                    <Shield className="mr-2 h-5 w-5" />
-                                    Create LP Token Metadata
-                                </Button>
-
-                                {/* Add a button to check for existing metadata */}
-                                <Button
-                                    variant="link"
-                                    onClick={onGenerateMetadata}
-                                    className="mt-2"
-                                >
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Check for Existing Metadata
-                                </Button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Deployment Action Card */}
-                <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-900/50 border-b pb-3">
-                        <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                                <DollarSign className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                                <CardTitle className="text-lg">Deployment Action</CardTitle>
-                                <CardDescription className="text-xs">
-                                    Final steps before deploying your pool
-                                </CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent className="p-6 bg-slate-100/30 dark:bg-slate-900/30">
-                        <div className="space-y-4">
-                            <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-lg p-4 flex items-start space-x-3">
-                                <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
-                                <div>
-                                    <h4 className="font-medium mb-1">Ready to Deploy?</h4>
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                        You're about to deploy a new liquidity pool contract to the Stacks blockchain.
-                                        This action will:
-                                    </p>
-                                    <ul className="text-sm space-y-2 mb-3">
-                                        <li className="flex items-center gap-x-2">
-                                            <Check className="h-4 w-4 text-green-500" />
-                                            <span>Deploy a new AMM liquidity pool for {token1}-{token2}</span>
-                                        </li>
-                                        <li className="flex items-center gap-x-2">
-                                            <Check className="h-4 w-4 text-green-500" />
-                                            <span>Create LP tokens that represent shares in the pool</span>
-                                        </li>
-                                        <li className="flex items-center gap-x-2">
-                                            <Check className="h-4 w-4 text-green-500" />
-                                            <span>Enable trading between {token1} and {token2} with {swapFee}% fee</span>
-                                        </li>
-                                    </ul>
-                                    <p className="text-sm font-medium">
-                                        Deployment requires STX for transaction fees.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between pt-6">
-                                <Button
-                                    variant="outline"
-                                    onClick={onPrevious}
-                                    className="gap-x-2"
-                                >
-                                    <ChevronRight className="h-4 w-4 rotate-180" />
-                                    <span>Previous Step</span>
-                                </Button>
-                                <Button
-                                    onClick={onDeploy}
-                                    disabled={isDeploying || isGeneratingMetadata || !hasMetadata}
-                                    className="min-w-[200px] gap-x-2"
-                                    size="lg"
-                                >
-                                    {isDeploying ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>Deploying...</span>
-                                        </>
-                                    ) : !hasMetadata ? (
-                                        <span>Create Metadata First</span>
-                                    ) : (
-                                        <>
-                                            <Layers className="h-5 w-5" />
-                                            <span>Deploy Pool</span>
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </>
-    );
-};
-
-// Initial Pool Ratio Configuration Step Component
-const InitializePoolStep = ({
-    token1,
-    token2,
-    initialTokenRatio,
-    onUpdateRatio,
-    onPrevious,
-    onNext
-}: {
-    token1: string;
-    token2: string;
-    initialTokenRatio: {
-        token1Amount: number;
-        token2Amount: number;
-        useRatio: boolean;
-    };
-    onUpdateRatio: (ratio: {
-        token1Amount: number;
-        token2Amount: number;
-        useRatio: boolean;
-    }) => void;
-    onPrevious: () => void;
-    onNext: () => void;
-}) => {
-    const [token1Amount, setToken1Amount] = useState(initialTokenRatio.token1Amount.toString());
-    const [token2Amount, setToken2Amount] = useState(initialTokenRatio.token2Amount.toString());
-    const [useRatio, setUseRatio] = useState(initialTokenRatio.useRatio);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-
-    const validateForm = () => {
-        const newErrors: Record<string, string> = {};
-
-        if (useRatio) {
-            if (token1Amount && isNaN(parseFloat(token1Amount))) {
-                newErrors.token1Amount = "Must be a valid number";
-            }
-
-            if (token2Amount && isNaN(parseFloat(token2Amount))) {
-                newErrors.token2Amount = "Must be a valid number";
-            }
-
-            if (parseFloat(token1Amount) <= 0 && parseFloat(token2Amount) <= 0) {
-                newErrors.general = "At least one token amount must be greater than zero";
-            }
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleNext = () => {
-        if (validateForm()) {
-            onUpdateRatio({
-                token1Amount: useRatio ? Math.max(0, parseFloat(token1Amount) || 0) : 0,
-                token2Amount: useRatio ? Math.max(0, parseFloat(token2Amount) || 0) : 0,
-                useRatio
-            });
-            onNext();
-        }
-    };
-
-    return (
-        <Card className="mb-8">
-            <CardHeader>
-                <CardTitle>Initial Pool Ratio</CardTitle>
-                <CardDescription>
-                    Set the initial ratio between {token1} and {token2} for your liquidity pool
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="flex items-center space-x-2">
-                    <Switch
-                        id="useInitialRatio"
-                        checked={useRatio}
-                        onCheckedChange={setUseRatio}
-                    />
-                    <Label htmlFor="useInitialRatio">Initialize the pool with an initial token ratio</Label>
-                </div>
-
-                {useRatio && (
-                    <div className="space-y-4 pt-4">
-                        <div className="border rounded-md p-4 bg-muted/10">
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Providing initial liquidity allows you to set the starting price ratio for your pool.
-                                This affects the initial swap rate between the two tokens.
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="token1Amount">
-                                        Initial {token1} Amount
-                                    </Label>
-                                    <div className="flex">
-                                        <Input
-                                            id="token1Amount"
-                                            value={token1Amount}
-                                            onChange={(e) => setToken1Amount(e.target.value)}
-                                            placeholder="0"
-                                            type="number"
-                                            min="0"
-                                            className={errors.token1Amount ? "border-destructive" : ""}
-                                        />
-                                    </div>
-                                    {errors.token1Amount && (
-                                        <p className="text-destructive text-sm">{errors.token1Amount}</p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="token2Amount">
-                                        Initial {token2} Amount
-                                    </Label>
-                                    <div className="flex">
-                                        <Input
-                                            id="token2Amount"
-                                            value={token2Amount}
-                                            onChange={(e) => setToken2Amount(e.target.value)}
-                                            placeholder="0"
-                                            type="number"
-                                            min="0"
-                                            className={errors.token2Amount ? "border-destructive" : ""}
-                                        />
-                                    </div>
-                                    {errors.token2Amount && (
-                                        <p className="text-destructive text-sm">{errors.token2Amount}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30 rounded-lg">
-                            <AlertTriangle className="h-5 w-5 text-orange-500 mr-2" />
-                            <p className="text-sm text-muted-foreground">
-                                The contract will automatically transfer these token amounts from your wallet
-                                during deployment. Make sure you have sufficient balance.
-                            </p>
-                        </div>
-
-                        {errors.general && (
-                            <p className="text-destructive text-sm">{errors.general}</p>
-                        )}
-                    </div>
-                )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={onPrevious}>
-                    Back
-                </Button>
-                <Button onClick={handleNext}>
-                    Continue to Review
-                </Button>
-            </CardFooter>
-        </Card>
-    );
-};
-
 export default function LiquidityPoolDeployPage() {
     const router = useRouter();
-    const { toast } = useToast();
-    const { authenticated, stxAddress, deployContract, signMessage } = useApp();
+    const searchParams = useSearchParams();
+    const {
+        authenticated,
+        stxAddress,
+        deployContract,
+        signMessage,
+        tokens, // <-- Use tokens from context
+        loading: contextLoading, // <-- Use loading state from context (renamed)
+        tokensError, // <-- Use error state from context
+        fetchTokens // <-- If needed for manual refresh later
+    } = useApp();
     const [isDeploying, setIsDeploying] = useState(false);
     const [txid, setTxid] = useState<string | null>(null);
     const [metadata, setMetadata] = useState<TokenMetadata | null>(null);
     const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
     const [metadataApiError, setMetadataApiError] = useState(false);
-
-    // Add more thorough check to ensure UI updates properly
     const [hasMetadataFlag, setHasMetadataFlag] = useState(false);
-
-    // State for API-loaded tokens
-    const [availableTokens, setAvailableTokens] = useState<EnhancedToken[]>([]);
-    const [isLoadingTokens, setIsLoadingTokens] = useState(false);
-    const [tokenLoadError, setTokenLoadError] = useState<string | null>(null);
 
     // Track token images separately from metadata
     const [token1Image, setToken1Image] = useState<string | undefined>(undefined);
@@ -1361,6 +165,90 @@ export default function LiquidityPoolDeployPage() {
 
     // Wizard step state
     const [currentStep, setCurrentStep] = useState<WizardStep>(WizardStep.SELECT_TOKENS);
+
+    // Add useEffect to handle URL parameters
+    useEffect(() => {
+        const tokenA_Param = searchParams.get('tokenA');
+        const tokenB_Param = searchParams.get('tokenB');
+        const fee_Param = searchParams.get('fee');
+        const amountA_Param = searchParams.get('amountA');
+        const useRatio_Param = searchParams.get('useRatio') === 'true';
+
+        console.log("Reading URL Params:", { tokenA_Param, tokenB_Param, fee_Param, amountA_Param, useRatio_Param });
+
+        // Check if required parameters are present
+        if (tokenA_Param && tokenB_Param && fee_Param) {
+            console.log("Params detected, processing...");
+            setToken1Address(tokenA_Param);
+            setToken2Address(tokenB_Param);
+            setSwapFee(fee_Param);
+
+            // Fetch both token details concurrently
+            Promise.all([
+                getTokenMetadataCached(tokenA_Param),
+                getTokenMetadataCached(tokenB_Param)
+            ]).then(([detailsA, detailsB]) => {
+                console.log("Fetched Token Details:", { detailsA, detailsB });
+
+                if (detailsA) {
+                    setToken1(detailsA.symbol);
+                    setToken1Details(detailsA);
+                } else {
+                    console.error("Failed to fetch details for Token A:", tokenA_Param);
+                    sonnerToast.error("Error", { description: `Could not fetch details for token ${tokenA_Param}` });
+                    // Optionally redirect or stop processing
+                }
+
+                if (detailsB) {
+                    setToken2(detailsB.symbol);
+                    setToken2Details(detailsB);
+                } else {
+                    console.error("Failed to fetch details for Token B:", tokenB_Param);
+                    sonnerToast.error("Error", { description: `Could not fetch details for token ${tokenB_Param}` });
+                    // Optionally redirect or stop processing
+                }
+
+                // Auto-generate names ONLY if both fetches succeeded and name isn't already set
+                if (detailsA && detailsB && !poolName) {
+                    const generatedPoolName = `${detailsA.symbol}-${detailsB.symbol} LP Token`;
+                    const generatedLpSymbol = `${detailsA.symbol}-${detailsB.symbol}-LP`;
+                    console.log(`Auto-generating state: Pool Name='${generatedPoolName}', LP Symbol='${generatedLpSymbol}'`);
+                    setPoolName(generatedPoolName);
+                    setLpTokenSymbol(generatedLpSymbol);
+                }
+
+                // Set initial liquidity ratio if amountA is provided
+                if (amountA_Param) {
+                    const amountA = parseFloat(amountA_Param);
+                    if (!isNaN(amountA)) {
+                        let amountB = 0; // Default to 0 if useRatio is false
+                        if (useRatio_Param) {
+                            amountB = 10; // Default Token B amount to 10 if useRatio is true
+                            console.log(`Setting initial amounts: Token A = ${amountA}, Token B = ${amountB} (Default), useRatio = ${useRatio_Param}`);
+                        } else {
+                            console.log(`Setting initial amount: Token A = ${amountA}, useRatio = ${useRatio_Param}`);
+                        }
+
+                        setInitialTokenRatio(prev => ({
+                            ...prev,
+                            token1Amount: amountA,
+                            token2Amount: amountB, // Set Token B amount (0 or default 10)
+                            useRatio: useRatio_Param // Respect the flag from URL
+                        }));
+                    }
+                }
+
+                // Advance the wizard step directly to Review & Deploy only after processing
+                if (detailsA && detailsB) { // Ensure we have details before advancing
+                    console.log("Advancing wizard to REVIEW_DEPLOY");
+                    setCurrentStep(WizardStep.REVIEW_DEPLOY); // Go directly to the final step
+                }
+            }).catch(error => {
+                console.error("Error fetching token details in Promise.all:", error);
+                sonnerToast.error("Error Fetching Tokens", { description: "Could not load details for both tokens." });
+            });
+        }
+    }, [searchParams]); // Rerun only when search params change
 
     // Navigation functions
     const nextStep = () => {
@@ -1389,8 +277,10 @@ export default function LiquidityPoolDeployPage() {
     const [token1Address, setToken1Address] = useState(
         "SP000000000000000000002Q6VF78.stx-token"
     );
+    const [token1Details, setToken1Details] = useState<TokenCacheData | null>(null);
     const [token2, setToken2] = useState("");
     const [token2Address, setToken2Address] = useState("");
+    const [token2Details, setToken2Details] = useState<TokenCacheData | null>(null);
     const [swapFee, setSwapFee] = useState("0.3");
 
     // Generate contract name from pool name
@@ -1467,99 +357,56 @@ export default function LiquidityPoolDeployPage() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Add a function to fetch token metadata for specific tokens
-    // Function to fetch specific token metadata
-    const fetchTokenMetadata = async (contractId: string) => {
-        try {
-            const response = await fetch(`${TOKEN_API_URL}/${contractId}`);
-
-            if (!response.ok) {
-                console.error(`Failed to fetch token metadata for ${contractId}:`, response.status);
-                return null;
-            }
-
-            const data = await response.json();
-
-            // Check if data has a nested 'data' property (API response format)
-            const tokenData = data.data || data;
-
-            console.log("Raw token data from API:", tokenData);
-
-            return {
-                symbol: tokenData.symbol || 'Unknown',
-                name: tokenData.name || tokenData.symbol || 'Unknown Token',
-                address: tokenData.contract_principal || contractId,
-                description: tokenData.description || `${tokenData.symbol || 'Unknown'} token`,
-                image: tokenData.image || tokenData.image_uri || '',
-                contract_principal: tokenData.contract_principal || contractId,
-                decimals: tokenData.decimals,
-                identifier: tokenData.identifier
-            };
-        } catch (error) {
-            console.error(`Error fetching token metadata for ${contractId}:`, error);
-            return null;
-        }
-    };
-
     // Update the deployment function to fetch and use metadata
     const handleDeploy = async () => {
         if (!hasMetadata) {
-            toast({
-                variant: "destructive",
-                title: "Metadata Required",
-                description: "Metadata has not been generated yet. Please wait or refresh metadata.",
-            });
+            sonnerToast.error("Metadata Required", { description: "Metadata has not been generated yet. Please wait or refresh metadata." });
             return;
         }
 
         if (!authenticated) {
-            toast({
-                variant: "destructive",
-                title: "Authentication Required",
-                description: "Please connect your wallet to deploy a contract.",
-            });
+            sonnerToast.error("Authentication Required", { description: "Please connect your wallet to deploy a contract." });
             return;
         }
 
         if (!validateForm()) {
-            toast({
-                variant: "destructive",
-                title: "Validation Error",
-                description: "Please fix the form errors before deploying.",
-            });
+            sonnerToast.error("Validation Error", { description: "Please fix the form errors before deploying." });
             return;
         }
 
         try {
             setIsDeploying(true);
+            sonnerToast.info("Preparing Deployment", { description: "Fetching token information..." });
 
-            // Fetch exact token metadata for both tokens to get accurate decimal information
-            setIsDeploying(true);
-            toast({
-                title: "Preparing Deployment",
-                description: "Fetching token information...",
-            });
-
-            // Fetch token metadata to get accurate decimal information
-            const [token1Metadata, token2Metadata] = await Promise.all([
-                fetchTokenMetadata(token1Address),
-                fetchTokenMetadata(token2Address)
+            const [token1Meta, token2Meta] = await Promise.all([
+                getTokenMetadataCached(token1Address),
+                getTokenMetadataCached(token2Address)
             ]);
 
-            // Extract token decimals with fallbacks
-            // NEVER assume decimal places - always use verified metadata
-            if (!token1Metadata || !token2Metadata) {
-                throw new Error("Failed to fetch token metadata. Cannot proceed without verified token information.");
+            // Check for metadata and decimals - Ignore the 'error' field, only check required fields
+            if (typeof token1Meta.decimals !== 'number' || typeof token2Meta.decimals !== 'number') {
+                sonnerToast.error("Token Data Error", {
+                    description: `Failed to fetch required token decimals. Please ensure both tokens have valid metadata.`,
+                });
+                setIsDeploying(false);
+                return;
+            }
+            // Check for identifier which is crucial for FT post conditions
+            if (!token1Meta.identifier || !token2Meta.identifier) {
+                sonnerToast.error("Token Data Error", {
+                    description: "Failed to fetch token asset identifier needed for deployment."
+                });
+                setIsDeploying(false);
+                return;
             }
 
-            const tokenADecimals = token1Metadata?.decimals;
-            const tokenBDecimals = token2Metadata?.decimals;
-            // LP tokens typically use 6 decimals, but should be configurable if needed
+            const tokenADecimals = token1Meta.decimals;
+            const tokenBDecimals = token2Meta.decimals;
             const lpTokenDecimals = 6;
 
             // Log the token information for debugging
-            console.log("Token A metadata:", token1Metadata);
-            console.log("Token B metadata:", token2Metadata);
+            console.log("Token A metadata:", token1Meta);
+            console.log("Token B metadata:", token2Meta);
             console.log("Using token decimals:", { tokenADecimals, tokenBDecimals, lpTokenDecimals });
 
             // Check if tokens are STX
@@ -1569,6 +416,14 @@ export default function LiquidityPoolDeployPage() {
             // Ensure we have initial liquidity values (use 0 if not enabled)
             const token1Amount = initialTokenRatio.useRatio ? initialTokenRatio.token1Amount : 0;
             const token2Amount = initialTokenRatio.useRatio ? initialTokenRatio.token2Amount : 0;
+
+            // Calculate the total liquidity amounts for post-conditions
+            const totalTokenAAmount = initialTokenRatio.useRatio
+                ? initialTokenRatio.token1Amount * Math.pow(10, tokenADecimals)
+                : 0;
+            const totalTokenBAmount = initialTokenRatio.useRatio
+                ? initialTokenRatio.token2Amount * Math.pow(10, tokenBDecimals)
+                : 0;
 
             // Generate the liquidity pool contract code
             const contractCode = generateLiquidityPoolContract({
@@ -1586,14 +441,6 @@ export default function LiquidityPoolDeployPage() {
                 contractIdentifier,
             });
 
-            // Calculate the total liquidity amounts for post-conditions
-            const totalTokenAAmount = initialTokenRatio.useRatio
-                ? initialTokenRatio.token1Amount * Math.pow(10, tokenADecimals)
-                : 0;
-            const totalTokenBAmount = initialTokenRatio.useRatio
-                ? initialTokenRatio.token2Amount * Math.pow(10, tokenBDecimals)
-                : 0;
-
             // Create post-conditions array
             const postConditions: PostCondition[] = [];
 
@@ -1606,17 +453,22 @@ export default function LiquidityPoolDeployPage() {
                     tokenRequirementsMessage += `${initialTokenRatio.token1Amount} ${token1}`;
                     if (totalTokenBAmount > 0) tokenRequirementsMessage += " and ";
 
-                    console.log("Adding post-condition for token A", {
-                        sender: stxAddress,
-                        amount: totalTokenAAmount,
-                        contractId: token1Address,
-                        identifier: token1Metadata.identifier
-                    });
                     // Add post-condition for token A
                     postConditions.push(
                         isToken1Stx
-                            ? Pc.principal(stxAddress!).willSendEq(totalTokenAAmount).ustx() as any
-                            : Pc.principal(stxAddress!).willSendEq(totalTokenAAmount).ft(token1Address as any, token1Metadata.identifier) as any
+                            ? {
+                                type: 'stx-postcondition',
+                                address: stxAddress!,
+                                condition: 'eq',
+                                amount: BigInt(totalTokenAAmount),
+                            }
+                            : {
+                                type: 'ft-postcondition',
+                                address: stxAddress!,
+                                condition: 'eq',
+                                amount: BigInt(totalTokenAAmount),
+                                asset: `${token1Address}::${token1Meta.identifier}` as any
+                            }
                     );
                 }
 
@@ -1626,14 +478,24 @@ export default function LiquidityPoolDeployPage() {
                     // Add post-condition for token B
                     postConditions.push(
                         isToken2Stx
-                            ? Pc.principal(stxAddress!).willSendEq(totalTokenBAmount).ustx() as any
-                            : Pc.principal(stxAddress!).willSendEq(totalTokenBAmount).ft(token2Address as any, token2Metadata.identifier) as any
+                            ? {
+                                type: 'stx-postcondition',
+                                address: stxAddress!,
+                                condition: 'eq',
+                                amount: BigInt(totalTokenBAmount),
+                            }
+                            : {
+                                type: 'ft-postcondition',
+                                address: stxAddress!,
+                                condition: 'eq',
+                                amount: BigInt(totalTokenBAmount),
+                                asset: `${token2Address}::${token2Meta.identifier}` as any
+                            }
                     );
                 }
 
                 // Show a toast to inform the user
-                toast({
-                    title: "Token Requirements",
+                sonnerToast.info("Token Requirements", {
                     description: tokenRequirementsMessage + ". Make sure you have sufficient balance.",
                 });
             }
@@ -1641,28 +503,31 @@ export default function LiquidityPoolDeployPage() {
             // Deploy the contract with post-conditions
             const deployOptions = postConditions.length > 0 ? { postConditions } : undefined;
             const result = await deployContract(contractCode, contractName, deployOptions);
+            const deployedContractId = `${stxAddress}.${contractName}`;
 
             setTxid(result.txid);
+            sonnerToast.success("Deployment Initiated", { description: `Tx ID: ${result.txid.substring(0, 10)}...` });
 
-            toast({
-                title: "Deployment Initiated",
-                description:
-                    `Your liquidity pool deployment has been initiated with transaction ID: ${result.txid.substring(0, 10)}...`,
-            });
+            // --- Add Pool to Dex Cache --- 
+            // run this after 10 seconds
+            setTimeout(async () => {
+                await getTokenMetadataCached(deployedContractId);
+            }, 10000);
+            // --- End Add Pool to Dex Cache ---
 
             // Redirect to contracts page after successful deployment
             router.push(`/contracts?txid=${result.txid}`);
         } catch (error) {
             console.error("Deployment error:", error);
-            toast({
-                variant: "destructive",
-                title: "Deployment Failed",
+            sonnerToast.error("Deployment Failed", {
                 description: error instanceof Error ? error.message : "There was an error deploying your pool. Please try again.",
             });
         } finally {
             setIsDeploying(false);
         }
     };
+
+    // --- End Dex Cache Function ---
 
     const handlePoolNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -1687,8 +552,7 @@ export default function LiquidityPoolDeployPage() {
                     }, 0);
 
                     // Show a short toast to inform the user metadata was found
-                    toast({
-                        title: "Metadata Found",
+                    sonnerToast.info("Metadata Found", {
                         description: "Existing metadata was loaded. You can proceed with deployment.",
                     });
                     return true;
@@ -1705,9 +569,7 @@ export default function LiquidityPoolDeployPage() {
     // Function to generate metadata manually
     const generateMetadata = async () => {
         if (!token1Address || !token2Address || !poolName || !stxAddress) {
-            toast({
-                variant: "destructive",
-                title: "Missing Information",
+            sonnerToast.warning("Missing Information", {
                 description: "Please ensure you have selected both tokens and provided a pool name.",
             });
             return;
@@ -1728,8 +590,7 @@ export default function LiquidityPoolDeployPage() {
                         setMetadata(data);
                     }, 0);
                     setIsGeneratingMetadata(false);
-                    toast({
-                        title: "Metadata Loaded",
+                    sonnerToast.success("Metadata Loaded", {
                         description: "Existing metadata was found and loaded. You can proceed with deployment.",
                     });
                     return;
@@ -1740,19 +601,25 @@ export default function LiquidityPoolDeployPage() {
             // Sign the contractId with wallet for authentication
             const { signature, publicKey } = await signMessage(contractId);
 
-            const currentMetadata = {
-                name: poolName,
-                symbol: effectiveLpTokenSymbol,
-                description: `Liquidity pool between ${token1} and ${token2}`,
-                identifier: effectiveLpTokenSymbol,
-                decimals: 6,
+            // Define the metadata structure with desired naming convention
+            const currentMetadata: Partial<TokenMetadata> = {
+                name: `${token1}-${token2} LP Token`, // e.g., B-CHR LP Token
+                symbol: `${token1}-${token2}-LP`,    // e.g., B-CHR-LP
+                description: `Liquidity pool token for the ${token1}-${token2} pair`,
+                decimals: 6, // Standard for LP tokens
+                // Add lpRebatePercent to top level for dex-cache compatibility
+                lpRebatePercent: parseFloat(swapFee),
                 properties: {
                     tokenAContract: token1Address,
                     tokenBContract: token2Address,
-                    lpRebatePercent: parseFloat(swapFee),
+                    // Keep swapFeePercent in properties for potential future use/consistency
+                    swapFeePercent: parseFloat(swapFee),
                 },
-                imagePrompt: `Minimalist professional logo representing liquidity pool between ${token1} and ${token2}`
+                // Optional: Add image prompt if your metadata service uses it
+                // imagePrompt: `Minimalist professional logo representing liquidity pool between ${token1} and ${token2}`
             };
+
+            console.log("Generating metadata with payload:", currentMetadata);
 
             const resp = await fetch(`${METADATA_API_URL}/${contractId}`, {
                 method: 'POST',
@@ -1768,8 +635,7 @@ export default function LiquidityPoolDeployPage() {
                 const data = await resp.json();
                 if (data.success && data.metadata) {
                     setMetadata(data.metadata);
-                    toast({
-                        title: "Metadata Generated",
+                    sonnerToast.success("Metadata Generated", {
                         description: "LP token metadata has been successfully created and saved.",
                     });
                 } else {
@@ -1781,9 +647,7 @@ export default function LiquidityPoolDeployPage() {
         } catch (e) {
             console.error('Metadata generation error', e);
             setMetadataApiError(true);
-            toast({
-                variant: "destructive",
-                title: "Metadata Generation Failed",
+            sonnerToast.error("Metadata Generation Failed", {
                 description: e instanceof Error ? e.message : "There was an error generating metadata. Please try again.",
             });
         } finally {
@@ -1802,9 +666,7 @@ export default function LiquidityPoolDeployPage() {
             setMetadata(null);
             generateMetadata();
         } else {
-            toast({
-                variant: "destructive",
-                title: "Missing Information",
+            sonnerToast.warning("Missing Information", {
                 description: "Please ensure you have selected both tokens and provided a pool name before refreshing.",
             });
         }
@@ -1842,88 +704,46 @@ export default function LiquidityPoolDeployPage() {
         }
     }, [currentStep, contractIdentifier, hasMetadataFlag, isGeneratingMetadata]);
 
-    // Helper function to find a token's image from the token list
-    const findTokenImage = (symbol: string, address: string): string | undefined => {
-        // First look through the tokens by address
-        const foundToken = availableTokens.find(t =>
-            t.address.toLowerCase() === address.toLowerCase() ||
-            t.symbol.toUpperCase() === symbol.toUpperCase()
-        ) as (Token & { image?: string }) | undefined;
-
-        // Check if the token and image property exist
-        return foundToken?.image;
+    // Helper function to find a token's image from the token list (USE CONTEXT TOKENS)
+    const findTokenImage = (symbol: string, contractIdInput: string): string | undefined => {
+        const foundToken = tokens.find(t =>
+            (t.contractId && t.contractId.toLowerCase() === contractIdInput.toLowerCase()) ||
+            (t.symbol && t.symbol.toUpperCase() === symbol.toUpperCase())
+        );
+        return foundToken?.image ?? undefined;
     };
 
-    // Fetch tokens from the token-cache API
-    useEffect(() => {
-        const fetchTokens = async () => {
-            setIsLoadingTokens(true);
-            setTokenLoadError(null);
+    // Map TokenCacheData from CONTEXT to the simpler Token structure expected by TokenSelectionStep
+    // ADDING ROBUST FALLBACKS for potentially invalid/missing data
+    const predefinedTokensForStep: Token[] = tokens.map((token, index) => {
+        // Provide safe defaults if essential fields are missing/invalid
+        const safeContractId = (typeof token.contractId === 'string' && token.contractId.length > 0)
+            ? token.contractId
+            : `invalid-token-${index}`; // Use index for a unique fallback ID
+        const safeSymbol = (typeof token.symbol === 'string' && token.symbol.length > 0)
+            ? token.symbol
+            : '???';
+        const safeName = (typeof token.name === 'string' && token.name.length > 0)
+            ? token.name
+            : `Unnamed Token ${index}`;
 
-            try {
-                // Fetch tokens from the token-cache API
-                const response = await fetch(TOKEN_API_URL);
+        // Check for subnet using contract_principal from the original TokenCacheData
+        const isSubnet = !!token.contract_principal?.includes('subnet');
+        // Check if it's an LP token by looking for specific properties
+        const isLpToken = !!(token.tokenAContract && token.tokenBContract);
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch tokens');
-                }
-
-                const responseData = await response.json();
-                // Check if the response has a data property that contains the tokens array
-                const tokensArray = Array.isArray(responseData) ? responseData :
-                    (responseData.data && Array.isArray(responseData.data) ? responseData.data : []);
-
-                console.log("Tokens from API:", tokensArray);
-
-                // Convert fetched tokens to EnhancedToken format
-                const enhancedTokens: EnhancedToken[] = tokensArray.map((token: any) => ({
-                    symbol: token.symbol || 'Unknown',
-                    name: token.name || token.symbol || 'Unknown Token',
-                    address: token.contract_principal || '',
-                    description: token.description || `${token.symbol} token`,
-                    image: token.image || token.image_uri || '',
-                    contract_principal: token.contract_principal,
-                    decimals: token.decimals || 6
-                }));
-
-                // Add default STX token if not present
-                const hasStx = enhancedTokens.some(token =>
-                    token.symbol === 'STX' ||
-                    token.address.includes('stx-token')
-                );
-
-                if (!hasStx) {
-                    enhancedTokens.unshift({
-                        symbol: "STX",
-                        name: "Stacks",
-                        address: "SP000000000000000000002Q6VF78.stx-token",
-                        description: "Native token of the Stacks blockchain",
-                        decimals: 6
-                    });
-                }
-
-                setAvailableTokens(enhancedTokens);
-            } catch (error) {
-                console.error('Error fetching tokens:', error);
-                setTokenLoadError('Failed to load tokens. Using default list.');
-
-                // Fallback to a minimal default list with at least STX
-                setAvailableTokens([
-                    {
-                        symbol: "STX",
-                        name: "Stacks",
-                        address: "SP000000000000000000002Q6VF78.stx-token",
-                        description: "Native token of the Stacks blockchain",
-                        decimals: 6
-                    }
-                ]);
-            } finally {
-                setIsLoadingTokens(false);
-            }
+        return {
+            symbol: safeSymbol,
+            name: safeName,
+            address: safeContractId, // Ensure address is always a valid string
+            description: token.description ?? undefined,
+            image: token.image ?? undefined,
+            decimals: token.decimals,
+            isSubnet: isSubnet,
+            isLpToken: isLpToken,
+            total_supply: token.total_supply ?? null,
         };
-
-        fetchTokens();
-    }, []);
+    });
 
     if (!authenticated) {
         return (
@@ -1986,9 +806,9 @@ export default function LiquidityPoolDeployPage() {
                             onSelectToken2={handleSelectToken2}
                             token1Symbol={token1}
                             excludedToken={token1}
-                            predefinedTokens={availableTokens}
-                            isLoadingTokens={isLoadingTokens}
-                            tokenLoadError={tokenLoadError}
+                            predefinedTokens={predefinedTokensForStep}
+                            isLoadingTokens={contextLoading}
+                            tokenLoadError={tokensError}
                         />
                     )}
 
@@ -2065,7 +885,7 @@ export default function LiquidityPoolDeployPage() {
 
                             <div>
                                 <h3 className="font-medium mb-1">Deployment Cost</h3>
-                                <p className="text-sm text-muted-foreground">~15,000 STX (estimated)</p>
+                                <p className="text-sm text-muted-foreground">50 STX</p>
                             </div>
 
                             <div>

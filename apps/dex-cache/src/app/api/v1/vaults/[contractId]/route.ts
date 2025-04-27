@@ -17,7 +17,7 @@ export async function GET(
     _request: Request,
     context: { params: { contractId: string } }
 ) {
-    const { contractId } = context.params;
+    const { contractId } = await context.params;
     const refresh = _request.url.includes('refresh=true');
 
     if (!contractId) {

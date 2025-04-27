@@ -6,6 +6,7 @@ import "./globals.css";
 import { AppProvider } from "@/lib/context/app-context";
 import Link from "next/link";
 import { WalletConnector } from "@/components/wallet-connector";
+import { Toaster as SonnerToaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Charisma Launchpad | Contract Deployment",
@@ -222,6 +223,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
             </div>
           </footer>
         </div>
+        <SonnerToaster richColors position="bottom-right" />
       </AppProvider>
     </body>
   </html>

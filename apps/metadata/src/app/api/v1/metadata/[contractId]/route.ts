@@ -19,6 +19,7 @@ export async function GET(
     const { contractId } = await ctx.params;
     const headers = generateCorsHeaders(req, 'GET');
 
+    console.log(`Getting metadata for ${contractId}`);
     if (!contractId) {
         return NextResponse.json(
             { error: 'Contract ID is required' },
@@ -82,6 +83,7 @@ export async function POST(
 
         // ── verify ownership ──
         const signerAddress = getAddressFromPublicKey(publicKey, TransactionVersion.Mainnet);
+        console.log('signerAddress', signerAddress);
         if (signerAddress !== getContractAddress(contractId)) {
             return NextResponse.json(
                 { error: 'Not authorized to modify this contract metadata' },

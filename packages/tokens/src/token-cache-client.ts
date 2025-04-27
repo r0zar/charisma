@@ -21,7 +21,9 @@ export interface TokenCacheData {
     contract_principal?: string | null;
     error?: string | null;
     identifier?: string | null;
-    totalSupply?: string | null;
+    total_supply?: string | null;
+    tokenAContract?: string | null;
+    tokenBContract?: string | null;
 }
 
 interface TokenCacheResponse {
@@ -51,7 +53,9 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
         contract_principal: principal && contractName ? `${principal}.${contractName}` : contractId,
         error: 'Cache data unavailable',
         identifier: null,
-        totalSupply: null,
+        total_supply: null,
+        tokenAContract: null,
+        tokenBContract: null,
     };
 }
 
@@ -121,5 +125,38 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
     } catch (err) {
         console.error(`Failed to fetch or parse token metadata for ${contractId}:`, err);
         return createDefaultTokenData(contractId);
+    }
+}
+
+/**
+ * Retrieve a list of all known SIP-10 tokens from the token-cache service.
+ */
+export async function listTokens(): Promise<TokenCacheData[]> {
+    const url = `${TOKEN_CACHE_API_BASE_URL}/api/v1/sip10`;
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            console.error(`Token-cache API error listing tokens: ${response.status} ${response.statusText}`);
+            // Return empty array or throw error depending on desired behavior
+            return [];
+        }
+
+        const result: any = await response.json(); // Assert type as any
+
+        // Assuming the API returns an array directly, or has a 'data' property
+        const tokensArray = Array.isArray(result) ? result :
+            (result.data && Array.isArray(result.data)) ? result.data : [];
+
+        // Optional: Basic validation/transformation on each item if needed
+        // For now, we assume the API returns valid TokenCacheData[]
+        // If not, map and validate similar to getTokenMetadataCached
+        return tokensArray as TokenCacheData[];
+
+    } catch (err) {
+        console.error(`Failed to fetch or parse token list:`, err);
+        // Return empty array or throw error
+        return [];
     }
 } 

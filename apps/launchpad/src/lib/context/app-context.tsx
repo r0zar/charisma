@@ -5,6 +5,12 @@ import { createContext, useContext, useState, useEffect, type ReactNode, useCall
 import { TokenMetadata } from '@/lib/metadata-service';
 import { connect, request } from "@stacks/connect";
 import { PostCondition } from '@stacks/connect/dist/types/methods';
+import { createAssetInfo, createSTXPostCondition, FungibleConditionCode, hexToCV, makeStandardFungiblePostCondition, Pc, principalCV, serializeCV } from '@stacks/transactions';
+import { AppConfig, UserSession } from '@stacks/connect';
+import { showConnect } from '@stacks/connect';
+import { signMessage as connectSignMessage } from '@stacks/connect';
+import { openContractDeploy } from '@stacks/connect';
+import { listTokens, TokenCacheData } from "@repo/tokens";
 
 // Types
 interface WalletState {
@@ -38,7 +44,7 @@ interface AppContextType {
     // Token state
     authenticated: boolean;
     stxAddress: string | null;
-    tokens: TokenMetadata[];
+    tokens: TokenCacheData[];
     tokensError: string | null;
     loading: boolean;
     fetchTokens: () => Promise<void>;
@@ -71,7 +77,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [isConnecting, setIsConnecting] = useState(false);
 
     // Token state
-    const [tokens, setTokens] = useState<TokenMetadata[]>([]);
+    const [tokens, setTokens] = useState<TokenCacheData[]>([]);
     const [loading, setLoading] = useState(false);
     const [tokensError, setTokensError] = useState<string | null>(null);
 
@@ -179,13 +185,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
             console.log("Deploying contract with post conditions:", options?.postConditions);
 
+
             // Call the stx_deployContract method
             const response = await request('stx_deployContract', {
                 name: contractName,
                 clarityCode: contractCode,
-                postConditionMode: 'deny',
-                postConditions: [], //options?.postConditions as any || [],
                 clarityVersion: 3,
+                postConditionMode: 'allow',
+                // postConditions: options?.postConditions || [],
                 fee: 10000,
             });
 
@@ -203,43 +210,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // New function to fetch metadata
     const fetchTokens = useCallback(async () => {
-        console.log("fetchTokens called. Address:", walletState.address);
-        if (!walletState.address) {
-            console.log("fetchTokens aborted: No address.");
-            return;
-        }
         console.log("fetchTokens: Setting loading=true");
         setLoading(true);
         setTokensError(null);
-        const apiUrl = `/api/v1/metadata/list?principal=${walletState.address}`;
-        console.log("Fetching tokens from:", apiUrl);
         try {
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            console.log("fetchTokens response status:", response.status);
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error("fetchTokens error response body:", errorBody);
-                throw new Error(`Failed to fetch tokens (${response.status})`);
-            }
-            const data = await response.json();
-            console.log("fetchTokens success. Data:", data);
-            setTokens(data.metadata);
+            // Call listTokens from @repo/tokens
+            console.log("Calling listTokens() from @repo/tokens...");
+            const allTokens = await listTokens(); // Assuming listTokens fetches all, not just user's
+            console.log("listTokens() success. Data:", allTokens);
+
+            // Set the tokens state with the result
+            setTokens(allTokens);
             console.log("fetchTokens: Set tokens state.");
         } catch (error) {
-            console.error('Error fetching tokens:', error);
-            setTokensError('Failed to fetch tokens');
+            console.error('Error fetching tokens via listTokens:', error);
+            setTokensError('Failed to fetch tokens using shared client');
             console.log("fetchTokens: Set tokensError state.");
         } finally {
             setLoading(false);
             console.log("fetchTokens: Setting loading=false");
         }
-    }, [walletState.address]);
+    }, []);
 
     // Fetch tokens whenever wallet state changes
     useEffect(() => {

@@ -14,7 +14,7 @@ export interface TokenMetadata {
   identifier?: string;
   symbol: string;
   decimals?: number;
-  total_supply?: string;
+  total_supply?: number;
   token_uri?: string;
   image_uri?: string;
   image_thumbnail_uri?: string;
@@ -181,6 +181,20 @@ export class Cryptonomicon {
    * @returns TokenMetadata or null if not found
    */
   async getTokenMetadata(contractId: string): Promise<TokenMetadata | null> {
+    // Handle special case for STX token
+    if (contractId === ".stx") {
+      // Predefined metadata for native STX
+      return {
+        sip: 10, // STX conforms to SIP-010 interface conceptually
+        name: "Stacks Token",
+        symbol: "STX",
+        decimals: 6,
+        description: "The native token of the Stacks blockchain.",
+        image: "https://charisma.rocks/stx-logo.png", // Use a placeholder or official logo URL
+        contract_principal: ".stx",
+      };
+    }
+
     let externalMetadata: Partial<TokenMetadata> = {};
     let fallbackContractData: Partial<TokenMetadata> = {};
     let apiMetadata: Partial<TokenMetadata> = {};
@@ -224,7 +238,7 @@ export class Cryptonomicon {
             description: normalizedApiData.description,
             image: normalizedApiData.image_uri || normalizedApiData.image_canonical_uri,
             identifier: normalizedApiData.asset_identifier?.split("::")[1], // Extract identifier if present
-            total_supply: normalizedApiData.total_supply?.value, // Assuming supply is under 'value'
+            total_supply: normalizedApiData.total_supply?.value ? Number(normalizedApiData.total_supply.value) : undefined,
             // Add other relevant fields from Hiro API if needed
           };
           if (this.config.debug) console.debug(`[${contractId}] Hiro API Data:`, apiMetadata);
@@ -240,7 +254,7 @@ export class Cryptonomicon {
         // Continue even if Hiro API fails, we might have external or contract data
       }
 
-      // 3. If essential data (name, symbol, decimals) is still missing, fetch directly from contract
+      // 3. Fetch essential data (name, symbol, decimals) directly from contract if needed
       if (!apiMetadata.name || !apiMetadata.symbol || apiMetadata.decimals === undefined) {
         try {
           const [name, symbol, decimals] = await Promise.all([
@@ -248,8 +262,9 @@ export class Cryptonomicon {
             this.getTokenSymbol(contractId).catch(() => undefined),
             this.getTokenDecimals(contractId).catch(() => undefined)
           ]);
+          // Assign ONLY name, symbol, decimals to fallback
           fallbackContractData = { name, symbol, decimals };
-          if (this.config.debug) console.debug(`[${contractId}] Contract Fallback Data:`, fallbackContractData);
+          if (this.config.debug) console.debug(`[${contractId}] Contract Fallback Data (Essentials):`, fallbackContractData);
         } catch (contractError) {
           if (this.config.debug) {
             console.warn(`Failed to fetch basic info from contract ${contractId}: ${contractError}`);
@@ -257,13 +272,26 @@ export class Cryptonomicon {
         }
       }
 
-      // 4. Merge data: Prioritize External -> API -> Contract Fallback
+      // 3b. ALWAYS try fetching total supply directly from the contract
+      let onChainSupply: number | undefined = undefined;
+      try {
+        onChainSupply = await this.getTokenSupply(contractId).catch(() => undefined);
+        if (onChainSupply !== undefined && this.config.debug) {
+          console.debug(`[${contractId}] Fetched On-Chain Total Supply:`, onChainSupply);
+        }
+      } catch (supplyError) {
+        if (this.config.debug) {
+          console.warn(`Failed to fetch total supply directly from contract ${contractId}: ${supplyError}`);
+        }
+      }
+
+      // 4. Merge data: Prioritize External -> API -> Contract Fallback (for non-supply fields)
       const finalMetadata: Partial<TokenMetadata> = {
         // Start with the least specific source (contract calls for name/symbol/decimals)
         ...this.filterUndefined(fallbackContractData),
-        // Layer on API data (overwrites contract data if present)
+        // Layer on API data (overwrites contract data if present, including its potentially incorrect supply)
         ...this.filterUndefined(apiMetadata),
-        // Layer on External URI data (overwrites API/contract data if present)
+        // Layer on External URI data (overwrites API/contract data if present, including its potentially incorrect supply)
         ...this.filterUndefined(externalMetadata),
         // Set non-critical fields defaults if they are still undefined after merges
         description: externalMetadata.description || apiMetadata.description || fallbackContractData.description || "",
@@ -273,7 +301,12 @@ export class Cryptonomicon {
         contract_principal: contractId,
       };
 
-      if (this.config.debug) console.debug(`[${contractId}] Final Merged Metadata:`, finalMetadata);
+      // 4b. Override total_supply with the on-chain value if fetched successfully
+      if (onChainSupply !== undefined) {
+        finalMetadata.total_supply = onChainSupply;
+      }
+
+      if (this.config.debug) console.debug(`[${contractId}] Final Merged Metadata (Supply Overridden):`, finalMetadata);
 
       // Basic validation: Ensure essential fields (name, symbol) are present
       // Decimals are allowed to be undefined now.
@@ -377,7 +410,10 @@ export class Cryptonomicon {
         description: externalData.description,
         image: externalData.image || externalData.image_uri, // Accept common variations
         identifier: externalData.identifier, // Look for identifier field
-        // Add other potential fields if needed: externalData.some_other_field
+        lpRebatePercent: externalData.lpRebatePercent || externalData.properties?.swapFeePercent || externalData.properties?.lpRebatePercent, // Include top-level fee
+        tokenAContract: externalData.tokenAContract || externalData.properties?.tokenAContract,
+        tokenBContract: externalData.tokenBContract || externalData.properties?.tokenBContract,
+        external: externalData,
       });
 
     } catch (error) {

@@ -7,7 +7,8 @@ const PropertiesSchema = z.object({
     externalPoolId: z.string().optional(),
     engineContractId: z.string().optional(),
     tokenAContract: z.string().optional(),
-    tokenBContract: z.string().optional()
+    tokenBContract: z.string().optional(),
+    swapFeePercent: z.number().optional()
 }).passthrough();
 
 const MetadataSchema = z.object({
@@ -31,6 +32,7 @@ export class MetadataService {
 
     static async get(contractId: string): Promise<TokenMetadata> {
         const metadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
+        console.log(`Metadata: ${JSON.stringify(metadata)}`);
         if (!metadata) {
             console.log('Metadata not found for', contractId);
             return {} as TokenMetadata;

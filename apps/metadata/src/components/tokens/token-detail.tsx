@@ -785,17 +785,53 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                         </div>
                                     </div>
 
-                                    <div className="bg-muted/40 border border-border/50 rounded-lg p-4">
-                                        <h4 className="text-sm font-medium mb-2 flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1.5 text-primary/70">
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
-                                            </svg>
-                                            Advanced Properties
-                                        </h4>
-                                        <p className="text-xs text-muted-foreground">
-                                            Additional properties will be displayed here once your token is saved. These include blockchain-specific attributes and custom metadata.
-                                        </p>
-                                    </div>
+                                    {/* Conditionally display Liquidity Pool properties */}
+                                    {token?.properties?.tokenAContract && token?.properties?.tokenBContract && token?.properties?.swapFeePercent ? (
+                                        <div className="space-y-5">
+                                            <h4 className="text-sm font-medium flex items-center text-primary/80">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1.5">
+                                                    <path d="M10.75 10.81V14.25H9.25V10.81C8.16788 10.6448 7.25 9.74278 7.25 8.625C7.25 7.38477 8.25977 6.375 9.5 6.375C10.7402 6.375 11.75 7.38477 11.75 8.625C11.75 9.74278 10.8321 10.6448 9.75 10.81H10.75ZM12.75 8.625C12.75 6.76079 11.2392 5.25 9.375 5.25C7.51079 5.25 6 6.76079 6 8.625C6 10.4892 7.51079 12 9.375 12C9.51079 12 9.64305 11.9895 9.77063 11.9699L9.75 11.9693V15.75H10.25V11.9693C11.9675 11.6702 13.25 10.2864 13.25 8.625H12.75Z" />
+                                                </svg>
+                                                Liquidity Pool Properties
+                                            </h4>
+                                            <div>
+                                                <label className="text-sm font-medium text-foreground/80 block mb-1.5">Token A Contract</label>
+                                                <div className="w-full px-3 py-2 border border-border bg-background/50 rounded-md text-sm font-mono break-all">
+                                                    {token.properties.tokenAContract}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-foreground/80 block mb-1.5">Token B Contract</label>
+                                                <div className="w-full px-3 py-2 border border-border bg-background/50 rounded-md text-sm font-mono break-all">
+                                                    {token.properties.tokenBContract}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm font-medium text-foreground/80 block mb-1.5">Swap Fee</label>
+                                                <div className="w-full px-3 py-2 border border-border bg-background/50 rounded-md text-sm">
+                                                    {/* Display lpRebatePercent if available, otherwise fallback to properties.swapFeePercent */}
+                                                    {typeof token.lpRebatePercent === 'number'
+                                                        ? `${token.lpRebatePercent}%`
+                                                        : typeof token.properties?.swapFeePercent === 'number'
+                                                            ? `${token.properties.swapFeePercent}%`
+                                                            : 'N/A'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Existing placeholder if LP properties are not found
+                                        <div className="bg-muted/40 border border-border/50 rounded-lg p-4">
+                                            <h4 className="text-sm font-medium mb-2 flex items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1.5 text-primary/70">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                                                </svg>
+                                                Advanced Properties
+                                            </h4>
+                                            <p className="text-xs text-muted-foreground">
+                                                Additional properties will be displayed here once your token is saved. These include blockchain-specific attributes and custom metadata.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
