@@ -261,7 +261,7 @@ export default function HubPage() {
     const isSpinOver = feedData.endTime && new Date(feedData.endTime) < new Date();
     if (!hasAnyVotes && !isSpinActive && isSpinOver) {
       // Calculate time until next round
-      const nextRoundTime = feedData.endTime ? feedData.endTime + spinDuration : Date.now() + spinDuration;
+      const nextRoundTime = feedData.endTime ? feedData.endTime + 60000 : Date.now() + 60000; // 1 minute for empty rounds
       const timeUntilNextRound = Math.max(0, nextRoundTime - Date.now());
 
       return (
@@ -271,7 +271,7 @@ export default function HubPage() {
           <div className="mb-4">
             <SpinCountdown
               timeLeft={timeUntilNextRound}
-              totalTime={spinDuration}
+              totalTime={60000} // 1 minute totalTime
               label="Time until next round"
             />
           </div>
