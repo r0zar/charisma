@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Footer from './Footer';
+import MobileNav from './MobileNav';
 import { useSpinFeed } from '@/hooks/useSpinFeed';
 import { useWallet } from '@/contexts/wallet-context';
 import PlaceBetModal from '@/components/PlaceBetModal';
 import { Button } from '@/components/ui/button';
-import { Rocket, LogOut } from 'lucide-react';
+import { Rocket, LogOut, Menu } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
 import { listTokens } from '@/app/actions'; // Import server action
@@ -69,6 +70,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     // State for managing the modal
     const [isBetModalOpen, setIsBetModalOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleOpenBetModal = () => {
         setIsBetModalOpen(true);
@@ -140,10 +142,10 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     </nav>
 
                     {/* User Info & Actions Panel */}
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-2">
                         {connected ? (
                             // --- Logged In State ---
-                            <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 border border-border/30 shadow-sm">
+                            <div className="hidden sm:flex items-center gap-3 p-2 rounded-lg bg-muted/30 border border-border/30 shadow-sm">
                                 {/* Balance Section */}
                                 <TooltipProvider delayDuration={100}>
                                     <Tooltip>
@@ -204,8 +206,30 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                     <SwapStxToChaButton size="sm" variant="ghost" buttonLabel="Load up CHA" className="text-xs h-7" />
                                 </div>
                             </div>
+                        ) : null}
+
+                        {/* Mobile CHA balance display - only show when connected */}
+                        {connected && (
+                            <div className="sm:hidden flex items-center rounded-md px-2 py-1 bg-muted/30 border border-border/30">
+                                <span className="text-xs mr-1">CHA:</span>
+                                <span className="text-xs font-mono font-medium text-primary">
+                                    {subnetBalanceLoading ? '...' : formatBalance(subnetBalance)}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Connect/Disconnect Button - Mobile version is more compact */}
+                        {connected ? (
+                            <Button
+                                onClick={disconnectWallet}
+                                variant="ghost"
+                                size="icon"
+                                className="sm:hidden h-8 w-8 text-muted-foreground hover:text-destructive/80"
+                                title="Sign Out"
+                            >
+                                <LogOut className="h-4 w-4" />
+                            </Button>
                         ) : (
-                            // --- Logged Out State ---
                             <Button
                                 onClick={connectWallet}
                                 disabled={isConnecting}
@@ -218,11 +242,14 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             </header>
 
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main className="flex-grow container mx-auto px-4 py-8 pb-[calc(var(--mobile-nav-height,70px)+2rem)] sm:pb-8">
                 {children}
             </main>
 
             <Footer />
+
+            {/* Mobile navigation */}
+            <MobileNav />
 
             {/* Modals and popups */}
             <PlaceBetModal
@@ -232,6 +259,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             />
 
             <FirstVisitPopup />
+
+            {/* Apply CSS variable for mobile nav height */}
+            <style jsx global>{`
+                :root {
+                    --mobile-nav-height: 70px;
+                }
+            `}</style>
         </div>
     );
 };

@@ -3,12 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BarChart2, Wallet } from 'lucide-react';
+import { Home, Info, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils'; // Assuming cn utility exists
 
 const navItems = [
-    { href: '/', label: 'Hub', icon: Home },
-    // { href: '/portfolio', label: 'Portfolio', icon: Wallet },
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/about', label: 'About', icon: Info },
     // Add other items as needed
 ];
 
@@ -16,7 +16,7 @@ const MobileNav = () => {
     const pathname = usePathname();
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 h-[var(--mobile-nav-height,70px)] bg-background border-t border-border/50 shadow-lg sm:hidden z-40">
+        <nav className="fixed bottom-0 left-0 right-0 h-[var(--mobile-nav-height,70px)] bg-background/95 backdrop-blur-sm border-t border-border/50 shadow-lg sm:hidden z-40">
             <div className="flex justify-around items-center h-full px-2">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;
