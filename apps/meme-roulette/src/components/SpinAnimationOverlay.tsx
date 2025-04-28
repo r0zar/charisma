@@ -642,7 +642,7 @@ const SpinAnimationOverlay = React.memo(({
 
             {/* Result Dialog - shown when animation completes */}
             <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-                <DialogContent className="bg-background/95 backdrop-blur-lg border-primary/30 p-0 max-w-xl overflow-visible">
+                <DialogContent className="bg-background/95 backdrop-blur-lg border-primary/30 p-0 max-w-xl overflow-visible z-[100]">
                     {displayToken && (
                         <div className="text-center animate-appear space-y-6 p-8">
                             <div className="space-y-3">
