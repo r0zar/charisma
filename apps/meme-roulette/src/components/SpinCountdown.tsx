@@ -5,9 +5,10 @@ import React from 'react';
 interface SpinCountdownProps {
     timeLeft: number; // Milliseconds until spin
     totalTime: number; // Milliseconds for the full duration (for potential visual)
+    label?: string; // Optional custom label
 }
 
-const SpinCountdown = ({ timeLeft, totalTime }: SpinCountdownProps) => {
+const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }: SpinCountdownProps) => {
     // Display time values
     const minutes = Math.floor(timeLeft / 60000);
     const seconds = Math.floor((timeLeft % 60000) / 1000);
@@ -68,7 +69,7 @@ const SpinCountdown = ({ timeLeft, totalTime }: SpinCountdownProps) => {
                     <div
                         className={`font-mono text-3xl font-bold numeric ${getTimeColor()}`}
                         aria-live="polite"
-                        aria-label={`Time left until spin: ${minutes} minutes ${seconds} seconds`}
+                        aria-label={`Time left: ${minutes} minutes ${seconds} seconds`}
                     >
                         {minutes}:{seconds.toString().padStart(2, '0')}
                     </div>
@@ -76,7 +77,7 @@ const SpinCountdown = ({ timeLeft, totalTime }: SpinCountdownProps) => {
             </div>
 
             <div className="mt-3 text-xs text-muted-foreground">
-                Time until pump
+                {label}
             </div>
         </div>
     );

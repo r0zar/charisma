@@ -260,12 +260,20 @@ export default function HubPage() {
     const hasAnyVotes = Object.values(tokenBets || {}).some(amount => amount > 0);
     const isSpinOver = feedData.endTime && new Date(feedData.endTime) < new Date();
     if (!hasAnyVotes && !isSpinActive && isSpinOver) {
+      // Calculate time until next round
+      const nextRoundTime = feedData.endTime ? feedData.endTime + spinDuration : Date.now() + spinDuration;
+      const timeUntilNextRound = Math.max(0, nextRoundTime - Date.now());
+
       return (
         <div className="flex flex-col items-center justify-center p-4 text-center h-full">
           <h2 className="text-xl font-bold mb-2">No Tokens Were Pumped</h2>
           <p className="mb-4">No one voted in this round. Get ready for the next round!</p>
           <div className="mb-4">
-            <SpinCountdown timeLeft={timeLeft} totalTime={spinDuration} />
+            <SpinCountdown
+              timeLeft={timeUntilNextRound}
+              totalTime={spinDuration}
+              label="Time until next round"
+            />
           </div>
           <Button onClick={handleRefresh}>Refresh</Button>
         </div>
@@ -304,7 +312,11 @@ export default function HubPage() {
               <TrendingUp className="h-5 w-5 text-primary" />
               Next Mass Buy In
             </h2>
-            <SpinCountdown timeLeft={timeLeft} totalTime={5 * 60 * 1000} />
+            <SpinCountdown
+              timeLeft={timeLeft}
+              totalTime={5 * 60 * 1000}
+              label={isSpinComplete ? "Time until next round" : "Time until mass buy"}
+            />
             <div className="text-center text-sm mt-3 h-5 font-medium" aria-live="polite">
               {isSpinComplete ? (
                 <span className="text-pump font-display">Pump Complete</span>
