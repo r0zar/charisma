@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     siteName: 'Meme Roulette',
     images: [
       {
-        url: '/opengraph-image.png',
+        url: '/og-image.png',
         width: 1024,
         height: 1024,
         alt: 'Meme Roulette - Group Token Pumper',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     title: 'Meme Roulette | Group Token Pumper',
     description: 'Collectively pump meme tokens on Stacks blockchain!',
     creator: '@CharismaBTC',
-    images: ['/twitter-image.png'],
+    images: ['/og-image.png'],
   },
 };
 
