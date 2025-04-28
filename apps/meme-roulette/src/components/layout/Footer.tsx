@@ -15,7 +15,7 @@ const Footer: React.FC<FooterProps> = (/* { onShowInstructions } */) => {
             <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span>© {new Date().getFullYear()} Charisma. All rights reserved.</span>
                 <div className="flex items-center gap-2">
-                    <span>Note: This is a demo app in testing mode. No mainnet tokens or transactions are involved at this time.</span>
+                    <span>Note: This is a demo app in testing mode. No mainnet swaps are involved at this time.</span>
                 </div>
                 <span>
                     <a href="https://github.com/r0zar/charisma" target="_blank" rel="noopener noreferrer">
