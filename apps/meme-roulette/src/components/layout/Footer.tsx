@@ -19,7 +19,7 @@ const Footer: React.FC<FooterProps> = (/* { onShowInstructions } */) => {
                 </div>
                 <span>
                     <a href="https://github.com/r0zar/charisma" target="_blank" rel="noopener noreferrer">
-                        <Github className="w-4 h-4" />
+                        <Github className="w-4 h-4" aria-hidden="true" />
                     </a>
                 </span>
             </div>
