@@ -7,8 +7,33 @@ import { Toaster } from '@/components/ui/sonner';
 import { spaceGrotesk, dmMono, inter } from '@/styles/fonts';
 
 export const metadata: Metadata = {
-  title: 'Group Token Pumper',
-  description: 'Use CHA to collectively pump a chosen meme token!',
+  title: 'Meme Roulette | Group Token Pumper',
+  description: 'Use CHA to collectively pump a chosen meme token on the Stacks blockchain!',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://meme-roulette.charisma.network'),
+  keywords: ['meme tokens', 'group pump', 'CHA', 'charisma', 'stacks blockchain', 'crypto'],
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://meme-roulette.charisma.network',
+    title: 'Meme Roulette | Group Token Pumper',
+    description: 'Collectively pump meme tokens on Stacks blockchain!',
+    siteName: 'Meme Roulette',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'Meme Roulette - Group Token Pumper',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Meme Roulette | Group Token Pumper',
+    description: 'Collectively pump meme tokens on Stacks blockchain!',
+    creator: '@charisma_tech',
+    images: ['/twitter-image'],
+  },
 };
 
 export default function RootLayout({

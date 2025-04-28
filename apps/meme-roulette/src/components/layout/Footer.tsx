@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Info } from 'lucide-react';
+import { Github } from 'lucide-react';
 
 // Define props for Footer
 interface FooterProps {
@@ -14,13 +14,14 @@ const Footer: React.FC<FooterProps> = (/* { onShowInstructions } */) => {
         <footer className="bg-muted/40 border-t border-border/40 py-4 text-center text-sm text-muted-foreground">
             <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span>© {new Date().getFullYear()} Charisma. All rights reserved.</span>
-                {/* Remove the button that triggers instructions from here */}
-                {/*
-                <Button variant="link" size="sm" onClick={onShowInstructions}>
-                    <Info size={14} className="mr-1" />
-                    Show Instructions
-                </Button>
-                */}
+                <div className="flex items-center gap-2">
+                    <span>Note: This is a demo app in testing mode. No mainnet tokens or transactions are involved at this time.</span>
+                </div>
+                <span>
+                    <a href="https://github.com/r0zar/charisma" target="_blank" rel="noopener noreferrer">
+                        <Github className="w-4 h-4" />
+                    </a>
+                </span>
             </div>
         </footer>
     );
