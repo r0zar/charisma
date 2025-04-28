@@ -47,6 +47,9 @@ const broadcast = (packet: SpinFeedData) => {
     }
 };
 
+// Export the broadcast function for use in other route handlers
+export { broadcast };
+
 // This function runs periodically, fetches state from KV, updates it, and broadcasts.
 const updateAndBroadcast = async (userId: string) => {
     const now = Date.now();

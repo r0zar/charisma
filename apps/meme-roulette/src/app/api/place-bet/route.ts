@@ -1,12 +1,59 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { incrementKVTokenBet, recordUserVote } from '@/lib/state';
+import { incrementKVTokenBet, recordUserVote, buildKVDataPacket } from '@/lib/state';
 import { listTokens } from '@/app/actions';
+import type { NewVoteData, SpinFeedData } from '@/types/spin';
 
 interface PlaceBetRequestBody {
     tokenId: string;
     chaAmount: number;
     userId?: string; // Add optional userId field
 }
+
+// Function to broadcast a new vote to all connected clients
+const broadcastNewVote = async (tokenId: string, amount: number, voteId: string, userId: string) => {
+    try {
+        // Get the base data packet
+        const basePacket = await buildKVDataPacket();
+
+        // Fetch tokens for the notification
+        const tokensResult = await listTokens();
+        const initialTokens = tokensResult.success && tokensResult.tokens
+            ? tokensResult.tokens.map(token => ({
+                id: token.contractId,
+                name: token.name,
+                symbol: token.symbol,
+                imageUrl: token.image || '/placeholder-token.png',
+                userBalance: 0
+            }))
+            : [];
+
+        // Create the new vote notification
+        const newVotePacket: SpinFeedData = {
+            ...basePacket,
+            type: 'new_vote',
+            initialTokens,
+            newVote: {
+                voteId,
+                tokenId,
+                amount,
+                timestamp: Date.now(),
+                userId
+            }
+        };
+
+        // Get the broadcast function from the stream route
+        // This is a dynamic import to avoid circular dependencies
+        const streamModule = await import('../stream/route');
+        if (typeof streamModule.broadcast === 'function') {
+            await streamModule.broadcast(newVotePacket);
+            console.log(`API/PlaceBet: Broadcasted new vote notification for ${tokenId} (${amount} CHA) from user ${userId}`);
+        } else {
+            console.error("API/PlaceBet: Failed to broadcast new vote - broadcast function not found");
+        }
+    } catch (error) {
+        console.error("API/PlaceBet: Error broadcasting new vote:", error);
+    }
+};
 
 export async function POST(request: NextRequest) {
     try {
@@ -44,7 +91,11 @@ export async function POST(request: NextRequest) {
         const vote = await recordUserVote(userId, tokenId, chaAmount);
 
         console.log(`API/PlaceBet: New total for ${tokenId} in KV: ${newAmountForToken}`);
-        // Note: The SSE stream will reflect this on its next broadcast.
+
+        // Broadcast the new vote to all connected clients
+        if (vote) {
+            await broadcastNewVote(tokenId, chaAmount, vote.id, userId);
+        }
 
         return NextResponse.json({
             success: true,

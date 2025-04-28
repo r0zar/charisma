@@ -1,7 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode, useRef, useEffect } from 'react';
 import type { SpinFeedData, Token, Vote } from '@/types/spin';
+import { toast } from '@/components/ui/sonner';
+import { Rocket } from 'lucide-react';
+import Image from 'next/image';
 
 // Define the shape of the context state
 export interface SpinState {
@@ -10,6 +13,8 @@ export interface SpinState {
     isFeedLoading: boolean;
     myBets: Vote[] | undefined;
     tokenBets: Record<string, number> | undefined;
+    lastProcessedVoteId: string | null;
+    currentUserId: string | null;
 }
 
 // Define the actions available on the context
@@ -19,6 +24,7 @@ export interface SpinActions {
     setIsFeedLoading: (loading: boolean) => void;
     setMyBets: (bets: Vote[] | undefined) => void;
     setTokenBets: (bets: Record<string, number> | undefined) => void;
+    setCurrentUserId: (userId: string | null) => void;
 }
 
 // Define the type for the context value, including the derived leaderboard
@@ -38,6 +44,76 @@ const initialState: SpinState = {
     isFeedLoading: true, // Assume loading initially
     myBets: undefined,
     tokenBets: undefined,
+    lastProcessedVoteId: null,
+    currentUserId: null,
+};
+
+// Helper to truncate Stacks address
+const truncateAddress = (address: string, length = 4) => {
+    if (!address) return "Anonymous";
+    if (address.length <= length * 2 + 3) return address;
+    return `${address.substring(0, length)}...${address.substring(address.length - length)}`;
+};
+
+// Helper to display vote notifications
+const showVoteNotification = (amount: number, token: Token, userId: string) => {
+    const tokenSymbol = token?.symbol || 'Unknown';
+    const displayAddress = truncateAddress(userId);
+    const tokenImage = token?.imageUrl || '/placeholder-token.png';
+
+    const notificationContent = (
+        <div className="flex items-start gap-2">
+            <div className="flex-shrink-0 mt-1">
+                <Image
+                    src={tokenImage}
+                    alt={tokenSymbol}
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                    unoptimized
+                />
+            </div>
+            <div className="flex-1">
+                {amount >= 50 ? (
+                    <>
+                        <div className="animate-shake font-bold">
+                            <span className="text-lg uppercase text-green-500">MEGA BUY!</span>
+                        </div>
+                        <div>
+                            <span className="font-medium">{displayAddress}</span> just committed <span className="text-primary font-bold">{amount} CHA</span> to {tokenSymbol}!
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className={amount >= 20 ? "font-bold" : ""}>
+                            {amount >= 20 && <span className="text-green-400 font-bold">BIG BUY! </span>}
+                            <span className="font-medium">{displayAddress}</span> committed <span className="text-primary font-bold">{amount} CHA</span> to {tokenSymbol}
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+
+    if (amount >= 50) {
+        // For large amounts (50+ CHA) - MEGA BUY with shake effect
+        toast.success(notificationContent, {
+            icon: <Rocket className="h-5 w-5 text-primary animate-bounce" />,
+            duration: 5000,
+            className: "bg-black/90 border-green-500"
+        });
+    } else if (amount >= 20) {
+        // For medium amounts (20-50 CHA)
+        toast.success(notificationContent, {
+            icon: <Rocket className="h-5 w-5 text-primary" />,
+            duration: 4000
+        });
+    } else {
+        // For regular amounts
+        toast.success(notificationContent, {
+            duration: 3000
+        });
+    }
 };
 
 // Define the provider component
@@ -46,16 +122,55 @@ export const SpinProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const actions: SpinActions = useMemo(() => ({
         setFeedData: (data) => {
-            console.log("[SpinContext] Received feed data:", data); // Log received data
-            console.log("[SpinContext] currentUserBets:", data.currentUserBets); // Add explicit logging for currentUserBets
+            setState(prevState => {
+                // Handle new vote notifications if present
+                if (data.type === 'new_vote' && data.newVote) {
+                    const { tokenId, amount, voteId, userId } = data.newVote;
 
-            setState(prevState => ({
-                ...prevState,
-                feedData: data, // Store the raw feed data
-                tokenBets: data.tokenVotes || {}, // Use tokenVotes from SpinFeedData
-                myBets: data.currentUserBets || prevState.myBets, // Update user's bets if present in feed data
-                isFeedLoading: false, // No longer loading once data arrives
-            }));
+                    // Skip if we've already processed this vote
+                    if (voteId === prevState.lastProcessedVoteId) {
+                        return prevState;
+                    }
+
+                    // Skip notifications for user's own votes
+                    if (userId && prevState.currentUserId && userId === prevState.currentUserId) {
+                        console.log(`[SpinContext] Skipping notification for user's own vote: ${voteId}`);
+                        return {
+                            ...prevState,
+                            feedData: data,
+                            tokenBets: data.tokenVotes || prevState.tokenBets,
+                            myBets: data.currentUserBets || prevState.myBets,
+                            isFeedLoading: false,
+                            lastProcessedVoteId: voteId
+                        };
+                    }
+
+                    // Find token info
+                    const token = data.initialTokens?.find(t => t.id === tokenId);
+
+                    // Show toast notification with token and user info
+                    showVoteNotification(amount, token || { id: tokenId, name: 'Unknown', symbol: tokenId.split('.').pop() || 'Unknown', imageUrl: '/placeholder-token.png', userBalance: 0 }, userId);
+
+                    // Return updated state with the new vote ID tracked
+                    return {
+                        ...prevState,
+                        feedData: data,
+                        tokenBets: data.tokenVotes || prevState.tokenBets,
+                        myBets: data.currentUserBets || prevState.myBets,
+                        isFeedLoading: false,
+                        lastProcessedVoteId: voteId
+                    };
+                }
+
+                // Regular data update (not a new vote notification)
+                return {
+                    ...prevState,
+                    feedData: data,
+                    tokenBets: data.tokenVotes || prevState.tokenBets,
+                    myBets: data.currentUserBets || prevState.myBets,
+                    isFeedLoading: false,
+                };
+            });
         },
         setIsFeedLoading: (loading) => {
             setState(prevState => ({ ...prevState, isFeedLoading: loading }));
@@ -69,6 +184,9 @@ export const SpinProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setTokenBets: (bets) => {
             setState(prevState => ({ ...prevState, tokenBets: bets }));
         },
+        setCurrentUserId: (userId) => {
+            setState(prevState => ({ ...prevState, currentUserId: userId }));
+        }
     }), []);
 
     // Calculate leaderboard from state

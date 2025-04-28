@@ -80,6 +80,8 @@ export default function HubPage() {
   const lockDuration = feedData?.lockDuration || 5 * 60 * 1000; // Use the dynamic value or default to 5 minutes
   const isBettingLocked = hasMounted && timeLeft > 0 && timeLeft <= lockDuration && !feedData?.winningTokenId;
   const isSpinComplete = hasMounted && !!feedData?.winningTokenId;
+  const isSpinActive = hasMounted && isBettingLocked && !isSpinComplete;
+  const spinDuration = feedData?.roundDuration || 5 * 60 * 1000; // Default to 5 minutes if not provided
 
   const totalBetSum = useMemo(() => {
     return Object.values(tokenBets || {}).reduce((sum, amount) => sum + amount, 0);
@@ -232,20 +234,52 @@ export default function HubPage() {
     );
   };
 
+  // Function to manually refresh the page
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  // Render content based on current state
   const renderContent = () => {
     if (!hasMounted || (isFeedLoading && !feedData)) {
       return <SkeletonLoader type="hub" />;
     }
 
-    const winningTokenId = feedData?.winningTokenId;
+    // Show placeholder when feed is disconnected
+    if (!feedData || !feedData.tokenVotes) {
+      return (
+        <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+          <h2 className="text-xl font-bold mb-2">Connection Lost</h2>
+          <p className="mb-4">We've lost connection to the feed. Please check your internet connection.</p>
+          <Button onClick={handleRefresh}>Refresh</Button>
+        </div>
+      );
+    }
 
+    // No votes in the current round
+    const hasAnyVotes = Object.values(tokenBets || {}).some(amount => amount > 0);
+    const isSpinOver = feedData.endTime && new Date(feedData.endTime) < new Date();
+    if (!hasAnyVotes && !isSpinActive && isSpinOver) {
+      return (
+        <div className="flex flex-col items-center justify-center p-4 text-center h-full">
+          <h2 className="text-xl font-bold mb-2">No Tokens Were Pumped</h2>
+          <p className="mb-4">No one voted in this round. Get ready for the next round!</p>
+          <div className="mb-4">
+            <SpinCountdown timeLeft={timeLeft} totalTime={spinDuration} />
+          </div>
+          <Button onClick={handleRefresh}>Refresh</Button>
+        </div>
+      );
+    }
+
+    // If the feed is done loading, render the main content
     return (
       <>
         {isBettingLocked && !showSpinAnimation && <LockOverlay timeLeft={timeLeft} />}
 
-        {showSpinAnimation && winningTokenId && (
+        {showSpinAnimation && feedData?.winningTokenId && (
           <SpinAnimationOverlay
-            winningTokenId={winningTokenId}
+            winningTokenId={feedData.winningTokenId}
             tokenBets={tokenBets || {}}
             tokenList={pageTokens}
             onAnimationComplete={handleAnimationComplete}

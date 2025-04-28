@@ -19,7 +19,7 @@ interface UseSpinFeedResult {
 export function useSpinFeed(): UseSpinFeedResult {
     const { actions } = useSpin();
     const { address } = useWallet();
-    const { setFeedData } = actions;
+    const { setFeedData, setCurrentUserId } = actions;
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const [localData, setLocalData] = useState<SpinFeedData | null>(null);
@@ -27,6 +27,12 @@ export function useSpinFeed(): UseSpinFeedResult {
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const offlineTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastMessageTimeRef = useRef<number>(Date.now());
+
+    // Set the current user ID in the SpinContext whenever the address changes
+    useEffect(() => {
+        console.log(`[useSpinFeed] Setting current user ID: ${address || null}`);
+        setCurrentUserId(address || null);
+    }, [address, setCurrentUserId]);
 
     const connect = useCallback(() => {
         if (eventSourceRef.current) {

@@ -370,6 +370,20 @@
     100% { transform: translateY(0); }
 }
 
+@keyframes shake {
+    0% { transform: translateX(0); }
+    10% { transform: translateX(-4px) rotate(-1deg); }
+    20% { transform: translateX(4px) rotate(1deg); }
+    30% { transform: translateX(-4px) rotate(-1deg); }
+    40% { transform: translateX(4px) rotate(1deg); }
+    50% { transform: translateX(-4px) rotate(-1deg); }
+    60% { transform: translateX(4px) rotate(1deg); }
+    70% { transform: translateX(-4px) rotate(-1deg); }
+    80% { transform: translateX(4px) rotate(1deg); }
+    90% { transform: translateX(-2px) rotate(0); }
+    100% { transform: translateX(0); }
+}
+
 .animate-pulse-glow {
     animation: pulse-glow 1.5s infinite alternate ease-in-out;
 }
@@ -396,6 +410,13 @@
 
 .animate-float {
     animation: float 3s infinite ease-in-out;
+}
+
+.animate-shake {
+    animation: shake 1s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
 }
 
 /* FLUID CONTAINER */

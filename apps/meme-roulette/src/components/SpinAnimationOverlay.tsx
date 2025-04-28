@@ -43,10 +43,8 @@ const SpinAnimationOverlay = React.memo(({
     const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
     const spotlightIndexRef = useRef<number | null>(null);
     const animationTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const progressUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
     const totalStepsRef = useRef(0);
     const currentStepRef = useRef(0);
-    const [progress, setProgress] = useState(0);
     const startTimeRef = useRef(0);
     const endTimeRef = useRef(0);
     const isAnimatingRef = useRef(false);
@@ -106,8 +104,29 @@ const SpinAnimationOverlay = React.memo(({
         // Calculate total bets to determine proportions
         const totalBets = idsWithBets.reduce((sum, id) => sum + (tokenBets[id] || 0), 0);
 
-        // Calculate target card count (min 20, max 50)
-        const targetCardCount = Math.min(50, Math.max(20, idsWithBets.length * 3));
+        // Grid factors: Numbers that make even grids on various screen sizes
+        const gridFactors = [4, 5, 6];
+
+        // Create a base number of cards that's proportional to available tokens
+        let initialTargetCount = Math.min(60, Math.max(20, idsWithBets.length * 3));
+
+        // Round to nearest multiple of a grid factor to ensure even grid
+        let bestFactor = gridFactors[0];
+        let minRemainder = initialTargetCount % bestFactor;
+
+        // Find the grid factor that gives the most even distribution
+        for (const factor of gridFactors) {
+            const remainder = initialTargetCount % factor;
+            if (remainder < minRemainder || (remainder === minRemainder && factor > bestFactor)) {
+                minRemainder = remainder;
+                bestFactor = factor;
+            }
+        }
+
+        // Adjust target count to be divisible by the best grid factor
+        const targetCardCount = initialTargetCount + (bestFactor - minRemainder) % bestFactor;
+
+        console.log(`SpinAnimation: Using grid factor ${bestFactor}, adjusted card count from ${initialTargetCount} to ${targetCardCount}`);
 
         // Create proportional cards
         const cards: Array<{
@@ -156,6 +175,38 @@ const SpinAnimationOverlay = React.memo(({
 
         // Log card generation results
         console.log(`SpinAnimation: Generated ${cards.length} cards for ${idsWithBets.length} tokens`);
+
+        // If the final number of cards isn't divisible by our grid factor, add some extra winner cards
+        const remainder = cards.length % bestFactor;
+        if (remainder !== 0) {
+            const extraNeeded = bestFactor - remainder;
+            console.log(`SpinAnimation: Adding ${extraNeeded} extra winner cards to even out the grid`);
+
+            // Find a winner token to duplicate
+            const winnerToken = tokenList.find(t => t.id === winningTokenId);
+            if (winnerToken) {
+                for (let i = 0; i < extraNeeded; i++) {
+                    cards.push({
+                        id: winningTokenId,
+                        token: winnerToken,
+                        betAmount: tokenBets[winningTokenId] || 0,
+                        isWinner: true,
+                        uniqueKey: `${winningTokenId}-extra-${i}`
+                    });
+                }
+            } else {
+                // If no winner token, duplicate the first token
+                if (cards.length > 0) {
+                    const firstCard = cards[0];
+                    for (let i = 0; i < extraNeeded; i++) {
+                        cards.push({
+                            ...firstCard,
+                            uniqueKey: `${firstCard.id}-extra-${i}`
+                        });
+                    }
+                }
+            }
+        }
 
         // Create a deterministic seed for shuffling based on winning token
         const shuffleSeed = simpleHash(winningTokenId);
@@ -217,31 +268,6 @@ const SpinAnimationOverlay = React.memo(({
         }
     }, [isClient, tokenBets, tokenList, winningTokenId]);
 
-    // Function to update progress display (separated to avoid re-renders)
-    const updateProgressDisplay = useCallback(() => {
-        if (!isClient || !isAnimatingRef.current) return;
-
-        // Instead of using linear time, we'll sync progress with animation slowdown
-        // This will make the progress bar fill up more slowly as the animation slows down
-        const now = Date.now();
-        const elapsed = Math.min(endTimeRef.current - startTimeRef.current, now - startTimeRef.current);
-        const linearProgress = Math.min(1, elapsed / (endTimeRef.current - startTimeRef.current));
-
-        // Apply a curve to slow down progress as animation slows down
-        // This will make progress match the animation timing better
-        // Using exponential out curve: 1 - Math.pow(2, -10 * t)
-        const curvedProgress = linearProgress < 0.9
-            ? linearProgress * 0.7 // First 90% of progress is slower
-            : 0.63 + ((linearProgress - 0.9) * 3.7); // Last 10% accelerates to catch up
-
-        setProgress(curvedProgress);
-
-        if (curvedProgress < 1) {
-            // Schedule next update at a reasonable frame rate
-            progressUpdateTimerRef.current = setTimeout(updateProgressDisplay, 100);
-        }
-    }, [isClient]);
-
     // Function to pick next spotlight index 
     const pickNextIndex = useCallback((currentIndex: number | null): number => {
         if (!isClient || finalWinnerIndexRef.current === null || tokenCardsRef.current.length === 0) return 0;
@@ -297,7 +323,6 @@ const SpinAnimationOverlay = React.memo(({
 
         // Clear any existing timers
         if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
-        if (progressUpdateTimerRef.current) clearTimeout(progressUpdateTimerRef.current);
 
         // Set this flag to prevent restart during animation
         isAnimatingRef.current = true;
@@ -324,9 +349,6 @@ const SpinAnimationOverlay = React.memo(({
         let currentIndex = 0;
         spotlightIndexRef.current = currentIndex;
         setSpotlightIndex(currentIndex);
-
-        // Start progress updates
-        updateProgressDisplay();
 
         // Calculate how many steps to take in which direction to land on the winner
         const calculatePath = () => {
@@ -377,7 +399,6 @@ const SpinAnimationOverlay = React.memo(({
                 currentIndex = finalWinnerIndexRef.current as number;
                 spotlightIndexRef.current = currentIndex;
                 setSpotlightIndex(currentIndex);
-                setProgress(1);
                 setHasLanded(true);
                 isAnimatingRef.current = false;
                 return;
@@ -409,7 +430,7 @@ const SpinAnimationOverlay = React.memo(({
 
         // Start the animation after a brief delay
         animationTimerRef.current = setTimeout(moveSpotlight, 100);
-    }, [isClient, updateProgressDisplay]);
+    }, [isClient, pickNextIndex]);
 
     // Set isClient flag on mount
     useEffect(() => {
@@ -439,7 +460,6 @@ const SpinAnimationOverlay = React.memo(({
     useEffect(() => {
         return () => {
             if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
-            if (progressUpdateTimerRef.current) clearTimeout(progressUpdateTimerRef.current);
             if (resetIntervalRef.current) clearInterval(resetIntervalRef.current);
             isAnimatingRef.current = false;
         };
@@ -453,18 +473,12 @@ const SpinAnimationOverlay = React.memo(({
         delay: 200
     });
 
-    // Progress bar animation
-    const progressBarSpring = useSpring({
-        width: `${progress * 100}%`,
-        config: { tension: 120, friction: 14 },
-    });
-
     // Use springs for smoother animations
     const spotlightSpring = useSpring({
-        scale: 1 + (progress || 0) * 0.1,
-        glow: (progress || 0) * 0.8,
-        pulseOpacity: 0.6 + (progress || 0) * 0.4,
-        accentColor: (progress || 0) > 0.5 ? 'rgb(255, 204, 0)' : 'rgb(255, 165, 0)',
+        scale: hasLanded ? 1 : 1.1,
+        glow: hasLanded ? 0 : 0.8,
+        pulseOpacity: hasLanded ? 0 : 0.8,
+        accentColor: 'rgb(255, 204, 0)',
         config: { tension: 280, friction: 120 }
     });
 
@@ -526,27 +540,14 @@ const SpinAnimationOverlay = React.memo(({
         );
     }
 
+    // Calculate columns based on screen size
+    const gridClass = "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 gap-2 md:gap-3";
+
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4 overflow-hidden">
-            {/* Progress indicator */}
-            {!hasLanded && (
-                <div className="w-full max-w-md mb-6 space-y-2">
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Selecting token...</span>
-                        <span>{Math.round(progress * 100)}%</span>
-                    </div>
-                    <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
-                        <animated.div
-                            className="h-full bg-primary rounded-full"
-                            style={progressBarSpring}
-                        />
-                    </div>
-                </div>
-            )}
-
             {/* Token Grid with Spotlight */}
             <div className="w-full max-w-5xl relative py-4 mb-8">
-                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                <div className={gridClass}>
                     {tokenCardsRef.current.map((card, index) => {
                         // Exactly compare current spotlight index with this card index
                         const isSpotlight = spotlightIndex === index;
@@ -559,37 +560,35 @@ const SpinAnimationOverlay = React.memo(({
                             boxShadow: winnerSpring.glow.to(g =>
                                 `0 0 ${8 + g * 24}px ${g * 12}px rgba(var(--color-primary), ${0.3 + g * 0.5})`)
                         } : isSpotlight && !hasLanded ? {
-                            // Dynamic spotlight styling that changes as progress increases
+                            // Dynamic spotlight styling
                             transform: spotlightSpring.scale.to(s => `scale(${s})`),
                             boxShadow: spotlightSpring.glow.to(g =>
                                 `0 0 ${g * 16}px ${g * 12}px rgba(var(--color-primary), ${0.2 + g * 0.3})`),
                             borderColor: spotlightSpring.accentColor,
-                            // No more increasing border width
                         } : {};
+
+                        const animationClass = isSpotlight && !hasLanded
+                            ? 'animate-pulse-slow'
+                            : '';
 
                         return (
                             <animated.div
                                 key={card.uniqueKey}
                                 style={style}
                                 className={`
-                                    relative w-16 h-16 md:w-20 md:h-20 p-2 rounded-lg 
+                                    relative aspect-square p-2 rounded-lg 
                                     flex flex-col items-center justify-center text-center
                                     transition-colors duration-100
                                     ${isSpotlight && !hasLanded ? 'border-2 z-10' : 'border'}
                                     ${hasLanded && !isFinalWinner ? 'opacity-30 grayscale' : 'opacity-100'}
                                     ${isFinalWinner && hasLanded ? 'bg-primary/20 border-2 border-primary' : 'bg-card/60 border-border/50'}
+                                    ${animationClass}
                                 `}
                             >
                                 {/* Spotlight overlay - only show if this is exactly the spotlight index */}
                                 {isSpotlight && !hasLanded && (
                                     <animated.div
-                                        className={`
-                                            absolute inset-0 rounded-lg
-                                            ${progress < 0.7 ? 'animate-pulse-slow' :
-                                                progress < 0.9 ? 'animate-pulse-medium' :
-                                                    'animate-pulse-fast'}
-                                            ${progress > 0.8 ? 'animate-subtle-rotate' : ''}
-                                        `}
+                                        className="absolute inset-0 rounded-lg animate-pulse-medium"
                                         style={{
                                             background: spotlightSpring.glow.to(g =>
                                                 `radial-gradient(circle, rgba(var(--color-primary), ${0.5 + g * 0.3}) 0%, rgba(var(--color-primary), ${0.2 + g * 0.1}) 70%, rgba(var(--color-primary), 0) 100%)`
@@ -599,20 +598,17 @@ const SpinAnimationOverlay = React.memo(({
                                     />
                                 )}
 
-                                <div className="relative">
+                                <div className="relative flex items-center justify-center h-full">
                                     <Image
                                         src={card.token.imageUrl || '/placeholder-token.png'}
                                         alt={card.token.name}
                                         width={40}
                                         height={40}
-                                        className={`
-                                            w-8 h-8 md:w-10 md:h-10 rounded-full mb-1 object-cover
-                                            ${isSpotlight && !hasLanded && progress > 0.8 ? 'animate-subtle-bounce' : ''}
-                                        `}
+                                        className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
                                         onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
                                     />
                                 </div>
-                                <p className="text-[10px] md:text-xs font-semibold truncate w-full text-foreground">
+                                <p className="text-[10px] md:text-xs font-semibold truncate w-full text-foreground mt-1">
                                     {card.token.symbol}
                                 </p>
                             </animated.div>

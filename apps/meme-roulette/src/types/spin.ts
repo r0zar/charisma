@@ -18,6 +18,17 @@ export interface Vote {
 }
 
 /**
+ * Represents data for a new vote notification
+ */
+export interface NewVoteData {
+    voteId: string; // Unique ID for this vote
+    tokenId: string; // ID of the token voted on
+    amount: number; // Amount of CHA committed
+    timestamp: number; // When the vote occurred
+    userId: string; // ID of the user who placed the vote
+}
+
+/**
  * Represents the overall state of a single token in the spin cycle.
  */
 export interface TokenSpinInfo {
@@ -29,7 +40,7 @@ export interface TokenSpinInfo {
 
 // Data structure for the Server-Sent Events feed
 export interface SpinFeedData {
-    type: 'update' | 'initial' | 'spin_result' | 'error';
+    type: 'update' | 'initial' | 'spin_result' | 'error' | 'new_vote';
     message?: string;
     lastUpdated: number; // Timestamp of the last data update
     initialTokens?: Token[]; // Optional: Sent only on the first connection message
@@ -41,4 +52,5 @@ export interface SpinFeedData {
     currentUserBets?: Vote[]; // Current user's bets in this round
     roundDuration: number; // Duration of the current round in milliseconds
     lockDuration?: number; // Duration of the lock period before spin in milliseconds
+    newVote?: NewVoteData; // Data for a new vote notification (only present when type is 'new_vote')
 }
