@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useSpring, animated, config } from 'react-spring';
 import { cn } from '@/lib/utils';
 import { TrendingUp, Rocket } from 'lucide-react';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface SpinAnimationOverlayProps {
     winningTokenId: string;
@@ -50,6 +51,7 @@ const SpinAnimationOverlay = React.memo(({
     const isAnimatingRef = useRef(false);
     const tokenCardsRef = useRef<Array<any>>([]);
     const finalWinnerIndexRef = useRef<number | null>(null);
+    const [showResultDialog, setShowResultDialog] = useState(false);
 
     // Generate token cards once on client-side only
     const generateTokenCards = useCallback(() => {
@@ -482,6 +484,15 @@ const SpinAnimationOverlay = React.memo(({
         config: { tension: 280, friction: 120 }
     });
 
+    // Show result dialog when animation completes
+    useEffect(() => {
+        if (hasLanded) {
+            setShowResultDialog(true);
+        } else {
+            setShowResultDialog(false);
+        }
+    }, [hasLanded]);
+
     // --- Countdown Timer for Auto-Reset ---
     useEffect(() => {
         if (!isClient) return;
@@ -510,9 +521,6 @@ const SpinAnimationOverlay = React.memo(({
         return () => { if (resetIntervalRef.current) clearInterval(resetIntervalRef.current); };
     }, [hasLanded, isClient, onAnimationComplete, spinScheduledAt]);
 
-    // Find the actual winner token details
-    const winnerTokenDetails = tokenList.find(t => t.id === winningTokenId);
-
     // Helper to format time
     const formatTime = (ms: number | null): string => {
         if (ms === null) return '--:--';
@@ -521,6 +529,20 @@ const SpinAnimationOverlay = React.memo(({
         const seconds = totalSeconds % 60;
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
+
+    // Find the actual winner token details
+    const winnerTokenDetails = tokenList.find(t => t.id === winningTokenId);
+
+    // Create a placeholder token for the "No Token" scenario if winningTokenId === 'none'
+    const placeholderToken = winningTokenId === 'none' ? {
+        id: 'none',
+        name: 'No Tokens Were Pumped',
+        symbol: 'None',
+        imageUrl: '/placeholder-token.png'
+    } : null;
+
+    // Use the winner token or the placeholder token
+    const displayToken = winnerTokenDetails || placeholderToken;
 
     // Server-side or initial client render - return minimal loading state
     if (typeof window === 'undefined' || !isClient) {
@@ -544,177 +566,181 @@ const SpinAnimationOverlay = React.memo(({
     const gridClass = "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-6 gap-2 md:gap-3";
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4 overflow-hidden">
-            {/* Token Grid with Spotlight */}
-            <div className="w-full max-w-5xl relative py-4 mb-8">
-                <div className={gridClass}>
-                    {tokenCardsRef.current.map((card, index) => {
-                        // Exactly compare current spotlight index with this card index
-                        const isSpotlight = spotlightIndex === index;
-                        // Remove isWinner - don't need to highlight all tokens of winner type
-                        const isFinalWinner = finalWinnerIndexRef.current === index;
+        <>
+            <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4 overflow-hidden">
+                {/* Token Grid with Spotlight */}
+                <div className="w-full max-w-5xl relative py-4 mb-8">
+                    <div className={gridClass}>
+                        {tokenCardsRef.current.map((card, index) => {
+                            // Exactly compare current spotlight index with this card index
+                            const isSpotlight = spotlightIndex === index;
+                            const isFinalWinner = finalWinnerIndexRef.current === index;
 
-                        // Apply special spring animation to final winner when landed
-                        const style = isFinalWinner && hasLanded ? {
-                            transform: winnerSpring.scale.to(s => `scale(${s})`),
-                            boxShadow: winnerSpring.glow.to(g =>
-                                `0 0 ${8 + g * 24}px ${g * 12}px rgba(var(--color-primary), ${0.3 + g * 0.5})`)
-                        } : isSpotlight && !hasLanded ? {
-                            // Dynamic spotlight styling
-                            transform: spotlightSpring.scale.to(s => `scale(${s})`),
-                            boxShadow: spotlightSpring.glow.to(g =>
-                                `0 0 ${g * 16}px ${g * 12}px rgba(var(--color-primary), ${0.2 + g * 0.3})`),
-                            borderColor: spotlightSpring.accentColor,
-                        } : {};
+                            // Apply special spring animation to final winner when landed
+                            const style = isFinalWinner && hasLanded ? {
+                                transform: winnerSpring.scale.to(s => `scale(${s})`),
+                                boxShadow: winnerSpring.glow.to(g =>
+                                    `0 0 ${8 + g * 24}px ${g * 12}px rgba(var(--color-primary), ${0.3 + g * 0.5})`)
+                            } : isSpotlight && !hasLanded ? {
+                                // Dynamic spotlight styling
+                                transform: spotlightSpring.scale.to(s => `scale(${s})`),
+                                boxShadow: spotlightSpring.glow.to(g =>
+                                    `0 0 ${g * 16}px ${g * 12}px rgba(var(--color-primary), ${0.2 + g * 0.3})`),
+                                borderColor: spotlightSpring.accentColor,
+                            } : {};
 
-                        const animationClass = isSpotlight && !hasLanded
-                            ? 'animate-pulse-slow'
-                            : '';
+                            const animationClass = isSpotlight && !hasLanded
+                                ? 'animate-pulse-slow'
+                                : '';
 
-                        return (
-                            <animated.div
-                                key={card.uniqueKey}
-                                style={style}
-                                className={`
-                                    relative aspect-square p-2 rounded-lg 
-                                    flex flex-col items-center justify-center text-center
-                                    transition-colors duration-100
-                                    ${isSpotlight && !hasLanded ? 'border-2 z-10' : 'border'}
-                                    ${hasLanded && !isFinalWinner ? 'opacity-30 grayscale' : 'opacity-100'}
-                                    ${isFinalWinner && hasLanded ? 'bg-primary/20 border-2 border-primary' : 'bg-card/60 border-border/50'}
-                                    ${animationClass}
-                                `}
-                            >
-                                {/* Spotlight overlay - only show if this is exactly the spotlight index */}
-                                {isSpotlight && !hasLanded && (
-                                    <animated.div
-                                        className="absolute inset-0 rounded-lg animate-pulse-medium"
-                                        style={{
-                                            background: spotlightSpring.glow.to(g =>
-                                                `radial-gradient(circle, rgba(var(--color-primary), ${0.5 + g * 0.3}) 0%, rgba(var(--color-primary), ${0.2 + g * 0.1}) 70%, rgba(var(--color-primary), 0) 100%)`
-                                            ),
-                                            opacity: spotlightSpring.pulseOpacity
-                                        }}
-                                    />
-                                )}
+                            return (
+                                <animated.div
+                                    key={card.uniqueKey}
+                                    style={style}
+                                    className={`
+                                        relative aspect-square p-2 rounded-lg 
+                                        flex flex-col items-center justify-center text-center
+                                        transition-colors duration-100
+                                        ${isSpotlight && !hasLanded ? 'border-2 z-10' : 'border'}
+                                        ${hasLanded && !isFinalWinner ? 'opacity-30 grayscale' : 'opacity-100'}
+                                        ${isFinalWinner && hasLanded ? 'bg-primary/20 border-2 border-primary' : 'bg-card/60 border-border/50'}
+                                        ${animationClass}
+                                    `}
+                                >
+                                    {/* Spotlight overlay - only show if this is exactly the spotlight index */}
+                                    {isSpotlight && !hasLanded && (
+                                        <animated.div
+                                            className="absolute inset-0 rounded-lg animate-pulse-medium"
+                                            style={{
+                                                background: spotlightSpring.glow.to(g =>
+                                                    `radial-gradient(circle, rgba(var(--color-primary), ${0.5 + g * 0.3}) 0%, rgba(var(--color-primary), ${0.2 + g * 0.1}) 70%, rgba(var(--color-primary), 0) 100%)`
+                                                ),
+                                                opacity: spotlightSpring.pulseOpacity
+                                            }}
+                                        />
+                                    )}
 
-                                <div className="relative flex items-center justify-center h-full">
-                                    <Image
-                                        src={card.token.imageUrl || '/placeholder-token.png'}
-                                        alt={card.token.name}
-                                        width={40}
-                                        height={40}
-                                        className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
-                                        onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
-                                    />
-                                </div>
-                                <p className="text-[10px] md:text-xs font-semibold truncate w-full text-foreground mt-1">
-                                    {card.token.symbol}
-                                </p>
-                            </animated.div>
-                        );
-                    })}
+                                    <div className="relative flex items-center justify-center h-full">
+                                        <Image
+                                            src={card.token.imageUrl || '/placeholder-token.png'}
+                                            alt={card.token.name}
+                                            width={40}
+                                            height={40}
+                                            className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
+                                            onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
+                                        />
+                                    </div>
+                                    <p className="text-[10px] md:text-xs font-semibold truncate w-full text-foreground mt-1">
+                                        {card.token.symbol}
+                                    </p>
+                                </animated.div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
-            {/* Result Announcement (shown when animation complete) */}
-            {hasLanded && winnerTokenDetails && (
-                <div className="text-center animate-appear space-y-6 max-w-xl mx-auto bg-card/40 p-8 rounded-2xl border border-primary/30 backdrop-blur-md">
-                    <div className="space-y-3">
-                        <h2 className="text-2xl md:text-4xl font-bold font-display tracking-tight text-pump animate-pulse-slow bg-gradient-to-r from-primary to-primary/80 bg-clip-text">
-                            Token Selected!
-                        </h2>
-                        <div className="flex items-center justify-center gap-3 px-6 py-4 rounded-xl glass-card max-w-xs mx-auto mt-2 animate-float">
-                            <div className="relative">
-                                <Image
-                                    src={winnerTokenDetails.imageUrl || '/placeholder-token.png'}
-                                    alt={winnerTokenDetails.name}
-                                    width={48}
-                                    height={48}
-                                    className="w-12 h-12 rounded-full object-cover border-2 border-primary animate-pulse-medium"
-                                />
-                                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs animate-subtle-bounce">
-                                    <TrendingUp className="h-3 w-3" />
+            {/* Result Dialog - shown when animation completes */}
+            <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+                <DialogContent className="bg-background/95 backdrop-blur-lg border-primary/30 p-0 max-w-xl overflow-visible">
+                    {displayToken && (
+                        <div className="text-center animate-appear space-y-6 p-8">
+                            <div className="space-y-3">
+                                <h2 className="text-2xl md:text-4xl font-bold font-display tracking-tight text-pump animate-pulse-slow bg-gradient-to-r from-primary to-primary/80 bg-clip-text">
+                                    Token Selected!
+                                </h2>
+                                <div className="flex items-center justify-center gap-3 px-6 py-4 rounded-xl glass-card max-w-xs mx-auto mt-2 animate-float">
+                                    <div className="relative">
+                                        <Image
+                                            src={displayToken.imageUrl || '/placeholder-token.png'}
+                                            alt={displayToken.name}
+                                            width={48}
+                                            height={48}
+                                            className="w-12 h-12 rounded-full object-cover border-2 border-primary animate-pulse-medium"
+                                        />
+                                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs animate-subtle-bounce">
+                                            <TrendingUp className="h-3 w-3" />
+                                        </div>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-xs text-muted-foreground">Selected Token</p>
+                                        <p className="text-2xl font-display font-bold">{displayToken.symbol}</p>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="text-left">
-                                <p className="text-xs text-muted-foreground">Selected Token</p>
-                                <p className="text-2xl font-display font-bold">{winnerTokenDetails.symbol}</p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="glass-card p-5 space-y-4 text-left max-w-md mx-auto">
-                        <h3 className="font-display text-lg font-medium flex items-center gap-2">
-                            <Rocket className="h-5 w-5 text-primary" />
-                            Group Pump Execution
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex gap-3 items-start">
-                                <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
-                                    <span className="text-sm font-bold text-primary">1</span>
+                            <div className="glass-card p-5 space-y-4 text-left max-w-md mx-auto">
+                                <h3 className="font-display text-lg font-medium flex items-center gap-2">
+                                    <Rocket className="h-5 w-5 text-primary" />
+                                    Group Pump Execution
+                                </h3>
+                                <div className="space-y-3">
+                                    <div className="flex gap-3 items-start">
+                                        <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
+                                            <span className="text-sm font-bold text-primary">1</span>
+                                        </div>
+                                        <p className="text-sm">
+                                            <span className="text-primary font-semibold numeric">All CHA</span> committed in this round will be used to purchase <span className="font-semibold">{displayToken.symbol}</span> tokens.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3 items-start">
+                                        <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
+                                            <span className="text-sm font-bold text-primary">2</span>
+                                        </div>
+                                        <p className="text-sm">
+                                            Each participant will receive <span className="font-semibold">{displayToken.symbol}</span> tokens equal to the value of <span className="text-primary font-semibold numeric">CHA</span> they committed.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3 items-start">
+                                        <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
+                                            <span className="text-sm font-bold text-primary">3</span>
+                                        </div>
+                                        <p className="text-sm">
+                                            Purchases will be executed in the same order that commitments were placed.
+                                        </p>
+                                    </div>
                                 </div>
-                                <p className="text-sm">
-                                    <span className="text-primary font-semibold numeric">All CHA</span> committed in this round will be used to purchase <span className="font-semibold">{winnerTokenDetails.symbol}</span> tokens.
-                                </p>
-                            </div>
-                            <div className="flex gap-3 items-start">
-                                <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
-                                    <span className="text-sm font-bold text-primary">2</span>
+
+                                <div className="pt-3 mt-2 border-t border-border/30 flex items-center justify-between">
+                                    <p className="text-sm text-muted-foreground">
+                                        Next round starts in:
+                                    </p>
+                                    <span className="font-mono text-lg font-semibold text-primary numeric">{formatTime(resetTimeLeft)}</span>
                                 </div>
-                                <p className="text-sm">
-                                    Each participant will receive <span className="font-semibold">{winnerTokenDetails.symbol}</span> tokens equal to the value of <span className="text-primary font-semibold numeric">CHA</span> they committed.
-                                </p>
                             </div>
-                            <div className="flex gap-3 items-start">
-                                <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
-                                    <span className="text-sm font-bold text-primary">3</span>
+
+                            <button
+                                onClick={onAnimationComplete}
+                                className="button-primary mt-4 mx-auto py-3 px-8"
+                            >
+                                View Results
+                            </button>
+                        </div>
+                    )}
+
+                    {hasLanded && !displayToken && (
+                        <div className="text-center animate-appear space-y-4 p-6">
+                            <div className="space-y-3">
+                                <h2 className="text-2xl md:text-3xl font-bold font-display text-warning mb-2">Selection Complete</h2>
+                                <div className="bg-muted/30 p-4 rounded-lg">
+                                    <p className="text-muted-foreground mb-2">
+                                        The selected token (ID: <span className="font-mono">{winningTokenId}</span>) is not in the current token list.
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        This may be a temporary issue. The purchase will still proceed as planned.
+                                    </p>
                                 </div>
-                                <p className="text-sm">
-                                    Purchases will be executed in the same order that commitments were placed.
-                                </p>
                             </div>
+                            <button
+                                onClick={onAnimationComplete}
+                                className="button-primary mt-4"
+                            >
+                                Continue to Results
+                            </button>
                         </div>
-
-                        <div className="pt-3 mt-2 border-t border-border/30 flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground">
-                                Next round starts in:
-                            </p>
-                            <span className="font-mono text-lg font-semibold text-primary numeric">{formatTime(resetTimeLeft)}</span>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={onAnimationComplete}
-                        className="button-primary mt-4 mx-auto py-3 px-8"
-                    >
-                        View Results
-                    </button>
-                </div>
-            )}
-
-            {/* Show a fallback message if winnerTokenDetails is missing */}
-            {hasLanded && !winnerTokenDetails && (
-                <div className="text-center animate-appear space-y-4 max-w-md mx-auto glass-card p-6">
-                    <div className="space-y-3">
-                        <h2 className="text-2xl md:text-3xl font-bold font-display text-warning mb-2">Selection Complete</h2>
-                        <div className="bg-muted/30 p-4 rounded-lg">
-                            <p className="text-muted-foreground mb-2">
-                                The selected token (ID: <span className="font-mono">{winningTokenId}</span>) is not in the current token list.
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                This may be a temporary issue. The purchase will still proceed as planned.
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onAnimationComplete}
-                        className="button-primary mt-4"
-                    >
-                        Continue to Results
-                    </button>
-                </div>
-            )}
+                    )}
+                </DialogContent>
+            </Dialog>
 
             {/* Add the animation classes to the animation layer in globals.css */}
             {hasLanded && (
@@ -765,7 +791,7 @@ const SpinAnimationOverlay = React.memo(({
                     }
                 `}</style>
             )}
-        </div>
+        </>
     );
 });
 
