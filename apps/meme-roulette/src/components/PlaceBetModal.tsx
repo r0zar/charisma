@@ -52,6 +52,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
     const [chaAmount, setChaAmount] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'search' | 'details'>('search');
 
     // Derive availableTokens directly from props
     const availableTokens = tokens || [];
@@ -70,8 +71,16 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
             setChaAmount('');
             setSearchTerm('');
             setIsLoading(false);
+            setActiveTab('search');
         }
     }, [isOpen]);
+
+    // Automatically switch to details tab when a token is selected on mobile
+    useEffect(() => {
+        if (selectedToken && window.innerWidth < 768) {
+            setActiveTab('details');
+        }
+    }, [selectedToken]);
 
     const handlePlaceBet = async () => {
         if (!selectedToken || !chaAmount) return;
@@ -156,20 +165,40 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                 }
             }}
         >
-            <DialogContent className="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px] p-0 max-h-[90vh] bg-card/95 backdrop-blur-md border-primary/20">
+            <DialogContent className="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px] p-0 overflow-hidden max-h-[95vh] bg-card/95 backdrop-blur-md border-primary/20">
                 <DialogHeader className="p-6 pb-4 bg-gradient-to-b from-card to-transparent">
-                    <DialogTitle className="text-2xl font-display tracking-tight flex items-center gap-2">
+                    <DialogTitle className="text-xl md:text-2xl font-display tracking-tight flex items-center gap-2">
                         <Rocket className="h-5 w-5 text-primary animate-float" />
                         Commit to Pump a Token
                     </DialogTitle>
-                    <DialogDescription className="text-base opacity-90">
-                        Search for and select the memecoin you want to commit CHA to. Then enter the amount of CHA you wish to commit. Tokens don't leave your wallet until everyone swaps together.
+                    <DialogDescription className="text-sm md:text-base opacity-90">
+                        Search for and select the memecoin you want to commit CHA to.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-4 overflow-y-hidden">
-                    <div className="flex flex-col gap-4 overflow-y-hidden">
-                        <div className="relative m-2">
+                {/* Mobile Tab Buttons */}
+                <div className="flex border-b border-border/30 md:hidden">
+                    <button
+                        type="button"
+                        className={`flex-1 py-2 text-sm font-medium ${activeTab === 'search' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('search')}
+                    >
+                        Find Token
+                    </button>
+                    <button
+                        type="button"
+                        className={`flex-1 py-2 text-sm font-medium ${activeTab === 'details' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('details')}
+                        disabled={!selectedToken}
+                    >
+                        Details
+                    </button>
+                </div>
+
+                <div className="flex flex-col md:grid md:grid-cols-2 md:gap-6 px-4 md:px-6 pb-4 overflow-hidden max-h-[calc(95vh-12rem)]">
+                    {/* Token Search Section - Hidden on mobile when details tab is active */}
+                    <div className={`flex flex-col gap-4 overflow-hidden ${activeTab === 'details' ? 'hidden md:flex' : 'flex'}`}>
+                        <div className="relative my-4 md:my-2">
                             <Input
                                 type="text"
                                 placeholder="Search token name or symbol..."
@@ -179,7 +208,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                             />
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         </div>
-                        <ScrollArea className="h-[400px] border border-border/50 rounded-xl glass-card m-2">
+                        <ScrollArea className="h-[40vh] md:h-[350px] border border-border/50 rounded-xl glass-card overflow-y-auto">
                             <div className="p-4 space-y-2">
                                 {filteredTokens.length === 0 && <p className="text-sm text-muted-foreground text-center">No tokens found.</p>}
                                 {filteredTokens.map((token) => (
@@ -210,9 +239,10 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                         </ScrollArea>
                     </div>
 
-                    <div className="flex flex-col justify-between gap-4">
+                    {/* Token Details Section - Hidden on mobile when search tab is active */}
+                    <div className={`flex flex-col gap-4 overflow-auto ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
                         {selectedToken ? (
-                            <div className="glass-card p-5 flex flex-col gap-4 m-2">
+                            <div className="glass-card p-4 md:p-5 flex flex-col gap-4 my-4 md:my-2">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
                                         <Image
@@ -220,22 +250,29 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                             alt={selectedToken.name}
                                             width={48}
                                             height={48}
-                                            className="rounded-full object-cover h-12 w-12 border-2 border-primary/30"
+                                            className="rounded-full object-cover h-10 w-10 md:h-12 md:w-12 border-2 border-primary/30"
                                             onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
                                         />
-                                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs font-bold">
                                             <TrendingUp className="h-3 w-3" />
                                         </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-xl font-display font-semibold">{selectedToken.name}</h3>
+                                    <div className="min-w-0">
+                                        <h3 className="text-lg md:text-xl font-display font-semibold truncate">{selectedToken.name}</h3>
                                         <p className="text-sm font-mono text-primary">{selectedToken.symbol}</p>
                                     </div>
-                                    <DialogClose asChild className="ml-auto">
-                                        <Button variant="ghost" size="icon" onClick={() => setSelectedToken(null)}>
+                                    <div className="ml-auto md:hidden">
+                                        <Button variant="ghost" size="icon" onClick={() => setActiveTab('search')}>
                                             <X className="h-4 w-4" />
                                         </Button>
-                                    </DialogClose>
+                                    </div>
+                                    <div className="hidden ml-auto md:block">
+                                        <DialogClose asChild>
+                                            <Button variant="ghost" size="icon" onClick={() => setSelectedToken(null)}>
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </DialogClose>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="cha-amount" className="text-sm font-medium font-display flex items-center">
@@ -291,25 +328,25 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="glass-card flex flex-col items-center justify-center h-full py-12 px-4">
+                            <div className="glass-card flex flex-col items-center justify-center h-[40vh] md:h-full py-12 px-4 my-4 md:my-2">
                                 <div className="text-primary/30 mb-3">
                                     <Rocket size={48} />
                                 </div>
                                 <p className="text-muted-foreground text-center">Select a token from the list to commit CHA</p>
                             </div>
                         )}
-
-                        <div className="flex-grow"></div>
-
-                        <Button
-                            type="button"
-                            onClick={handlePlaceBet}
-                            disabled={!canPlaceBet}
-                            className={`button-primary w-full mt-auto py-4 text-lg ${!canPlaceBet ? '' : 'animate-pulse-medium'}`}
-                        >
-                            {isLoading ? 'Committing...' : `Commit ${chaAmount || '0'} CHA`}
-                        </Button>
                     </div>
+                </div>
+
+                <div className="p-4 border-t border-border/30 bg-background/50">
+                    <Button
+                        type="button"
+                        onClick={handlePlaceBet}
+                        disabled={!canPlaceBet}
+                        className={`button-primary w-full py-3 md:py-4 text-base md:text-lg ${!canPlaceBet ? '' : 'animate-pulse-medium'}`}
+                    >
+                        {isLoading ? 'Committing...' : `Commit ${chaAmount || '0'} CHA`}
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
