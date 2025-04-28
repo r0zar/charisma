@@ -6,6 +6,22 @@ import { apiClient } from '@/lib/stacks-api-client'; // Import shared client
 import { calculatePendingBalanceDiff } from '@/lib/balance-diff';
 import type { QueuedTxIntent } from '@/lib/types'; // Added type import
 
+// --- CORS Headers --- 
+// Allow requests from frontend dev server or any origin in dev, restrict in prod if needed
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// --- Preflight OPTIONS Handler ---
+export async function OPTIONS(request: Request) {
+    return new NextResponse(null, {
+        status: 204, // No Content
+        headers: corsHeaders,
+    });
+}
+
 // Queue key
 const TX_QUEUE_KEY = 'stacks-tx-queue';
 
@@ -21,18 +37,18 @@ export async function GET(
 
     // --- Validation ---
     if (!contractId) {
-        return NextResponse.json({ error: 'Missing contractId' }, { status: 400 });
+        return NextResponse.json({ error: 'Missing contractId' }, { status: 400, headers: corsHeaders });
     }
     if (!address) {
-        return NextResponse.json({ error: 'Missing address' }, { status: 400 });
+        return NextResponse.json({ error: 'Missing address' }, { status: 400, headers: corsHeaders });
     }
 
     const [contractAddress, contractName] = contractId.split('.');
     if (!contractAddress || !contractName || !validateStacksAddress(contractAddress)) {
-        return NextResponse.json({ error: 'Invalid contractId format or address' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid contractId format or address' }, { status: 400, headers: corsHeaders });
     }
     if (!validateStacksAddress(address)) {
-        return NextResponse.json({ error: 'Invalid address' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid address' }, { status: 400, headers: corsHeaders });
     }
     // --- End Validation ---
 
@@ -63,7 +79,10 @@ export async function GET(
             }
         } catch (error) {
             console.error(`Error calling read-only function for ${contractId}, ${address}:`, error);
-            return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to fetch on-chain balance' }, { status: 500 });
+            return NextResponse.json(
+                { error: error instanceof Error ? error.message : 'Failed to fetch on-chain balance' },
+                { status: 500, headers: corsHeaders }
+            );
         }
 
         // --- 2. Fetch Pending Messages ---
@@ -82,12 +101,12 @@ export async function GET(
             onChainBalance: onChainBalance.toString(),
             pendingDiff: balanceDiff.toString(),
             preconfirmationBalance: preconfirmationBalance.toString(),
-        });
+        }, { headers: corsHeaders });
     } catch (error) {
         console.error('Error calculating preconfirmation balance:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Unknown server error' },
-            { status: 500 }
+            { status: 500, headers: corsHeaders }
         );
     }
 } 

@@ -38,4 +38,7 @@ export interface SpinFeedData {
     winningTokenId?: string | null; // ID of the winning token (if determined)
     tokenVotes: Record<string, number>; // Map of tokenId -> total committed CHA
     myVotes?: Vote[]; // Array of the current user's votes in this round
+    currentUserBets?: Vote[]; // Current user's bets in this round
+    roundDuration: number; // Duration of the current round in milliseconds
+    lockDuration?: number; // Duration of the lock period before spin in milliseconds
 }

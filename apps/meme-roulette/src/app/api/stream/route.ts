@@ -1,10 +1,8 @@
 import type { SpinFeedData, Token } from '@/types/spin';
-import { listTokens, TokenCacheData } from '@repo/tokens'; // Import from the package
 import { kv } from '@vercel/kv'; // Import kv directly if needed for specific checks
+import { listTokens } from '@/app/actions';
 import {
     initializeKVState,
-    fetchAndSetKVTokens,
-    getKVTokens,
     getKVLastTokenFetchTime,
     getKVSpinStatus,
     getKVTokenBets,
@@ -13,38 +11,14 @@ import {
     buildKVDataPacket,
     TOKEN_REFRESH_INTERVAL,
     UPDATE_INTERVAL, // Get interval constants from state module
-    KV_TOKEN_BETS // Import the KV key for token bets
-} from './state';
-
-// Base URL for token images if they are relative paths in the cache data
-const TOKEN_CACHE_API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://charisma-token-cache.vercel.app' : 'http://localhost:3000';
-
-// Helper to map TokenCacheData to our frontend Token type
-const mapTokenCacheToToken = (cacheToken: TokenCacheData): Token => {
-    let imageUrl = cacheToken.image || '/placeholder-token.png'; // Default placeholder
-    // Check if imageUrl is relative and needs the base URL prefix
-    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-        // Assuming relative path needs base URL. Adjust if cache service provides full URLs.
-        // This check might need refinement based on actual image URL format from cache
-        console.warn(`Token image URL for ${cacheToken.symbol} might be relative: ${imageUrl}. Attempting to prefix with base URL.`);
-        imageUrl = `${TOKEN_CACHE_API_BASE_URL}/${imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl}`;
-    } else if (imageUrl && imageUrl.startsWith('/')) {
-        // If it starts with '/', assume it's relative to the *meme-roulette* app's public dir (less likely for external service)
-        // Keep it as is for now, but might need adjustment.
-    }
-
-    return {
-        id: cacheToken.contract_principal!, // Use contract_principal as unique ID (verify this field is reliable)
-        name: cacheToken.name,
-        symbol: cacheToken.symbol,
-        imageUrl: imageUrl,
-        userBalance: 0,
-    };
-};
+    KV_TOKEN_BETS, // Import the KV key for token bets
+    getLockDuration,
+    getUserVotes // Import the getUserVotes function from the state module
+} from '@/lib/state';
+import { NextRequest } from 'next/server';
 
 // --- Initialization ---
 initializeKVState().catch(err => console.error("Initial KV state check/set failed:", err));
-fetchAndSetKVTokens().catch(err => console.error("Initial KV token fetch failed:", err));
 
 // --- Shared Logic (Interval Timer) ---
 let intervalId: NodeJS.Timeout | null = null;
@@ -74,16 +48,12 @@ const broadcast = (packet: SpinFeedData) => {
 };
 
 // This function runs periodically, fetches state from KV, updates it, and broadcasts.
-const updateAndBroadcast = async () => {
+const updateAndBroadcast = async (userId: string) => {
     const now = Date.now();
     let status = await getKVSpinStatus();
     let lastTokenFetch = await getKVLastTokenFetchTime();
 
-    // --- Token Refresh Logic ---
-    if (now - lastTokenFetch > TOKEN_REFRESH_INTERVAL) {
-        await fetchAndSetKVTokens(); // This updates tokens and fetch time in KV
-        // No need to re-fetch status here unless tokens affect spin logic (they don't currently)
-    }
+    // --- Token Refresh Logic (no longer needed, using listTokens directly) ---
 
     // --- Game Logic (Based on KV State) ---
     const timeLeft = status.spinScheduledAt - now;
@@ -91,7 +61,18 @@ const updateAndBroadcast = async () => {
     let needsReset = false;
     if (timeLeft <= 0 && !status.winningTokenId) {
         // Spin finished, determine winner
-        const currentTokens = await getKVTokens(); // Fetch tokens only when needed for winner selection
+        // Fetch current tokens from Dexterity instead of KV
+        const tokensResult = await listTokens();
+        const currentTokens = tokensResult.success && tokensResult.tokens
+            ? tokensResult.tokens.map(token => ({
+                id: token.contractId,
+                name: token.name,
+                symbol: token.symbol,
+                imageUrl: token.image || '/placeholder-token.png',
+                userBalance: 0
+            } as Token))
+            : [];
+
         const tokenBets = await getKVTokenBets(); // Get all token bets
         let winnerId: string | null = null;
 
@@ -100,7 +81,7 @@ const updateAndBroadcast = async () => {
         console.log("API/Stream: All token bets received:", JSON.stringify(tokenBets));
 
         // IMPORTANT: Only consider bets for tokens that actually exist in the current token list
-        // This prevents "ghost" tokens like DMG from appearing if they're not in the current token list
+        // This prevents "ghost" tokens from appearing if they're not in the current token list
         const validTokenIds = new Set(currentTokens.map(token => token.id));
 
         // Check if we have any valid bets at all
@@ -236,23 +217,40 @@ const updateAndBroadcast = async () => {
     // --- Broadcast --- 
     // Build packet with current bets and status (no initialTokens here)
     const dataPacket = await buildKVDataPacket();
+
+    // Add current user's votes if we have a valid user ID
+    if (userId && userId !== 'anonymous') {
+        try {
+            const userVotes = await getUserVotes(userId);
+            dataPacket.currentUserBets = userVotes;
+        } catch (error) {
+            console.error(`API/Stream: Error getting votes for user ${userId}:`, error);
+        }
+    }
+
     broadcast(dataPacket); // Use the broadcast helper
 };
 
 // --- Interval Management ---
-const startInterval = () => {
+const startInterval = (userId = 'anonymous') => {
     if (!intervalId) {
         console.log('API/Stream: Starting global update/broadcast interval.');
-        updateAndBroadcast().catch(err => console.error("Initial broadcast failed:", err));
+        updateAndBroadcast(userId).catch(err => console.error("Initial broadcast failed:", err));
         intervalId = setInterval(() => {
-            updateAndBroadcast().catch(err => console.error("Broadcast interval update failed:", err));
+            updateAndBroadcast(userId).catch(err => console.error("Broadcast interval update failed:", err));
         }, UPDATE_INTERVAL);
     }
 };
 
 // --- Route Handler ---
-export async function GET() {
+export async function GET(request: NextRequest) {
     let currentController: ReadableStreamDefaultController | null = null;
+
+    // Get user ID from query parameter
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId') || 'anonymous';
+
+    console.log(`API/Stream: Connection from user ${userId}`);
 
     const stream = new ReadableStream({
         async start(controller) {
@@ -262,25 +260,46 @@ export async function GET() {
 
             // --- Send Initial State --- 
             try {
-                // Fetch all necessary initial data
-                const initialTokens = await getKVTokens();
+                // Fetch tokens from Dexterity instead of KV
+                const tokensResult = await listTokens();
+                const initialTokens = tokensResult.success && tokensResult.tokens
+                    ? tokensResult.tokens.map(token => ({
+                        id: token.contractId,
+                        name: token.name,
+                        symbol: token.symbol,
+                        imageUrl: token.image || '/placeholder-token.png',
+                        userBalance: 0
+                    } as Token))
+                    : [];
+
                 const initialStatus = await getKVSpinStatus();
                 const initialBets = await getKVTokenBets();
+                const lockDuration = await getLockDuration();
+
+                // Get current user's votes if they have a wallet connected
+                const currentUserVotes = userId !== 'anonymous'
+                    ? await getUserVotes(userId)
+                    : [];
+
+                console.log(`API/Stream: Found ${currentUserVotes.length} votes for user ${userId}`);
 
                 // Construct the initial packet including tokens
                 const initialDataPacket: SpinFeedData = {
                     type: initialStatus.winningTokenId ? 'spin_result' : 'initial',
                     initialTokens: initialTokens,
-                    startTime: Date.now() - 1000, // Just for type compatibility, not used in this context
+                    startTime: initialStatus.spinScheduledAt - initialStatus.roundDuration,
                     endTime: initialStatus.spinScheduledAt,
                     tokenVotes: initialBets,
                     winningTokenId: initialStatus.winningTokenId ?? undefined,
                     lastUpdated: Date.now(),
+                    roundDuration: initialStatus.roundDuration,
+                    lockDuration: lockDuration,
+                    currentUserBets: currentUserVotes
                 };
 
                 const message = `data: ${JSON.stringify(initialDataPacket)}\n\n`;
                 controller.enqueue(new TextEncoder().encode(message));
-                console.log(`API/Stream: Sent initial state with ${initialTokens.length} tokens and ${Object.keys(initialBets).length} bet entries.`);
+                console.log(`API/Stream: Sent initial state with ${initialTokens.length} tokens, ${Object.keys(initialBets).length} bet entries, and ${currentUserVotes.length} user votes.`);
             } catch (e) {
                 console.error("API/Stream: Error sending initial data:", e);
                 try { if (currentController) { currentController.error(e); currentController.close(); } } catch { }
@@ -289,7 +308,7 @@ export async function GET() {
             }
 
             // Ensure the global interval is running for subsequent updates
-            startInterval();
+            startInterval(userId);
         },
         cancel(reason) {
             console.log('API/Stream: Client disconnected (cancelled)', reason);

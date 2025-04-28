@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSpin } from '@/contexts/SpinContext';
+import { useWallet } from '@/contexts/wallet-context';
 import type { SpinFeedData } from '@/types/spin';
 
 const API_STREAM_URL = '/api/stream';
@@ -17,7 +18,8 @@ interface UseSpinFeedResult {
 
 export function useSpinFeed(): UseSpinFeedResult {
     const { actions } = useSpin();
-    const { _updateFeedData } = actions;
+    const { address } = useWallet();
+    const { setFeedData } = actions;
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const [localData, setLocalData] = useState<SpinFeedData | null>(null);
@@ -32,10 +34,13 @@ export function useSpinFeed(): UseSpinFeedResult {
             return; // Avoid multiple connections
         }
 
-        console.log('useSpinFeed: Attempting to connect to', API_STREAM_URL);
+        // Add user ID to API URL if available
+        const apiUrl = address ? `${API_STREAM_URL}?userId=${address}` : API_STREAM_URL;
+
+        console.log(`useSpinFeed: Attempting to connect to ${apiUrl}`);
         setError(null);
 
-        const es = new EventSource(API_STREAM_URL);
+        const es = new EventSource(apiUrl);
         eventSourceRef.current = es;
 
         // Clear any pending reconnect timeout
@@ -62,7 +67,7 @@ export function useSpinFeed(): UseSpinFeedResult {
 
             try {
                 const parsedData: SpinFeedData = JSON.parse(event.data);
-                _updateFeedData(parsedData);
+                setFeedData(parsedData);
                 setLocalData(parsedData);
                 setError(null);
             } catch (e) {
@@ -91,7 +96,7 @@ export function useSpinFeed(): UseSpinFeedResult {
             // Start offline timer immediately on error to detect prolonged failure
             startOfflineTimer();
         };
-    }, [_updateFeedData]);
+    }, [address]);
 
     // Timer to detect prolonged disconnection
     const startOfflineTimer = () => {

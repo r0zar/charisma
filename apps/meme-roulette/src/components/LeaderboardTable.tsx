@@ -1,17 +1,18 @@
 'use client';
 
-import React from 'react';
-import { useSpin } from '@/contexts/SpinContext'; // Import the hook
+import React, { useMemo } from 'react';
+import { useSpin } from '@/contexts/SpinContext'; // Import the hook for tokenBets
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton"; // Assuming Skeleton component exists
 import type { Token } from '@/types/spin'; // Import Token type if needed for leaderboard item type
 import { Trophy, RefreshCw, Rocket, TrendingUp, Medal } from 'lucide-react';
 
-// No longer needs tokens passed as props
-// interface LeaderboardTableProps {
-//     tokens: Token[];
-// }
+interface LeaderboardTableProps {
+    tokens: Token[]; // Expect the full token list as a prop
+    tokenBets: Record<string, number>; // Expect tokenBets as a prop
+    isLoading: boolean; // Add loading state from HubPage
+}
 
 // Define the expected shape of a leaderboard item
 interface LeaderboardItem {
@@ -19,20 +20,32 @@ interface LeaderboardItem {
     totalBet: number;
 }
 
-export function LeaderboardTable(/* Removed props */) {
+export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTableProps) {
     // Get leaderboard data and loading status from context
     const {
         leaderboard,
         state: { isFeedLoading, isFeedConnected }
     } = useSpin();
 
+    // --- Calculate Leaderboard Data Here ---
+    const leaderboardData = useMemo(() => {
+        const bets = tokenBets || {};
+        return tokens
+            .map(token => ({
+                token,
+                totalBet: bets[token.id] || 0, // Use tokenBets prop
+            }))
+            .filter(item => item.totalBet > 0)
+            .sort((a, b) => b.totalBet - a.totalBet);
+    }, [tokens, tokenBets]);
+
     // Loading state: Show skeletons if feed is loading or not yet connected and leaderboard is empty
-    const isLoading = isFeedLoading || (!isFeedConnected && leaderboard.length === 0);
+    const showLoadingState = isLoading || leaderboardData.length === 0;
 
     // Calculate total for percentage calculation
-    const totalCHA = leaderboard.reduce((sum, item) => sum + item.totalBet, 0) || 1; // Avoid division by zero
+    const totalCHA = leaderboardData.reduce((sum, item) => sum + item.totalBet, 0) || 1; // Avoid division by zero
 
-    if (isLoading) {
+    if (showLoadingState) {
         return (
             <div className="glass-card p-8 text-center">
                 <div className="flex flex-col items-center justify-center gap-4">
@@ -57,7 +70,7 @@ export function LeaderboardTable(/* Removed props */) {
         );
     }
 
-    if (leaderboard.length === 0) {
+    if (leaderboardData.length === 0) {
         return (
             <div className="glass-card p-8 text-center">
                 <div className="flex flex-col items-center justify-center gap-4">
@@ -97,7 +110,7 @@ export function LeaderboardTable(/* Removed props */) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {leaderboard.map((item: LeaderboardItem, index: number) => {
+                    {leaderboardData.map((item: LeaderboardItem, index: number) => {
                         // Calculate percentage for this token
                         const percentage = (item.totalBet / totalCHA) * 100;
                         return (

@@ -12,26 +12,27 @@ import Confetti from 'react-confetti';
 import useWindowSize from '@/hooks/useWindowSize';
 import { HandCoins, Trophy, Rocket, TrendingUp, DollarSign } from 'lucide-react';
 import Image from 'next/image';
-import type { Vote, Token } from '@/types/spin';
+import type { Vote } from '@/types/spin';
+import { listTokens } from '@/app/actions';
+import type { Token as SwapClientToken } from '@/lib/swap-client';
+import type { Token as SpinToken } from '@/types/spin';
 import SpinAnimationOverlay from '@/components/SpinAnimationOverlay';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { InstructionsButton } from '@/components/InstructionsButton';
 
-const LOCK_DURATION_MS = 5 * 60 * 1000; // Time before spin when betting is locked
-
 export default function HubPage() {
   const {
     state: {
       feedData,
       isFeedLoading,
-      tokenList,
       tokenBets,
       myBets
-    },
-    leaderboard
+    }
   } = useSpin();
+  const [pageTokens, setPageTokens] = useState<SpinToken[]>([]);
+  const [loadingPageTokens, setLoadingPageTokens] = useState(true);
   const [isPlaceBetModalOpen, setIsPlaceBetModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -43,8 +44,41 @@ export default function HubPage() {
     setHasMounted(true);
   }, []);
 
+  useEffect(() => {
+    async function loadPageTokens() {
+      console.log("[HubPage] Fetching token list...");
+      setLoadingPageTokens(true);
+      try {
+        const result = await listTokens();
+        if (result.success && result.tokens) {
+          const mappedTokens: SpinToken[] = result.tokens.map((token: SwapClientToken) => ({
+            id: token.contractId,
+            contractId: token.contractId,
+            name: token.name,
+            symbol: token.symbol,
+            decimals: token.decimals,
+            imageUrl: token.image || '/placeholder-token.png',
+            userBalance: 0
+          }));
+          setPageTokens(mappedTokens);
+          console.log(`[HubPage] Stored ${mappedTokens.length} tokens.`);
+        } else {
+          console.error("[HubPage] Failed to list tokens:", result.error);
+          setPageTokens([]);
+        }
+      } catch (err) {
+        console.error("[HubPage] Error calling listTokens action:", err);
+        setPageTokens([]);
+      } finally {
+        setLoadingPageTokens(false);
+      }
+    }
+    loadPageTokens();
+  }, []);
+
   const spinTime = feedData?.endTime || 0;
-  const isBettingLocked = hasMounted && timeLeft > 0 && timeLeft <= LOCK_DURATION_MS && !feedData?.winningTokenId;
+  const lockDuration = feedData?.lockDuration || 5 * 60 * 1000; // Use the dynamic value or default to 5 minutes
+  const isBettingLocked = hasMounted && timeLeft > 0 && timeLeft <= lockDuration && !feedData?.winningTokenId;
   const isSpinComplete = hasMounted && !!feedData?.winningTokenId;
 
   const totalBetSum = useMemo(() => {
@@ -83,9 +117,9 @@ export default function HubPage() {
     }
   };
 
-  const getTokenInfo = useCallback((tokenId: string): Token | undefined => {
-    return tokenList.find(t => t.id === tokenId);
-  }, [tokenList]);
+  const getTokenInfo = useCallback((tokenId: string): SpinToken | undefined => {
+    return pageTokens.find((t: SpinToken) => t.id === tokenId);
+  }, [pageTokens]);
 
   const renderTimeLeft = () => {
     if (!spinTime || !hasMounted) return <div className="text-sm h-5">Loading...</div>;
@@ -106,7 +140,7 @@ export default function HubPage() {
   };
 
   const renderMyBetsSection = () => {
-    if (!hasMounted || (isFeedLoading && myBets.length === 0)) {
+    if (!hasMounted || (isFeedLoading && myBets?.length === 0)) {
       return (
         <>
           <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
@@ -118,7 +152,7 @@ export default function HubPage() {
       );
     }
 
-    if (myBets.length === 0) {
+    if (!myBets || myBets.length === 0) {
       return (
         <>
           <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
@@ -213,7 +247,7 @@ export default function HubPage() {
           <SpinAnimationOverlay
             winningTokenId={winningTokenId}
             tokenBets={tokenBets || {}}
-            tokenList={tokenList}
+            tokenList={pageTokens}
             onAnimationComplete={handleAnimationComplete}
             spinScheduledAt={feedData?.endTime || Date.now()}
           />
@@ -256,18 +290,19 @@ export default function HubPage() {
             <p className="text-3xl font-bold font-display text-primary mb-4 numeric" aria-live="polite">
               {totalBetSum.toLocaleString()} CHA
             </p>
-            <BetProgress current={totalBetSum} target={50000} />
+            <BetProgress current={totalBetSum} target={100} />
 
             {!isSpinComplete && !showSpinAnimation && (
               <div className="mt-5">
-                <button
+                <Button
+                  size="lg"
                   onClick={handlePlaceBetClick}
                   disabled={isBettingLocked}
                   className={`button-primary w-full py-4 text-lg shadow-lg ${isBettingLocked ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-medium'}`}
                 >
                   <Rocket className="h-5 w-5" />
                   {isBettingLocked ? 'Voting Locked' : 'Vote to Pump a Token'}
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -278,7 +313,11 @@ export default function HubPage() {
             <Trophy className="h-5 w-5 text-primary" />
             Token Leaderboard
           </h2>
-          <LeaderboardTable />
+          <LeaderboardTable
+            tokens={pageTokens}
+            tokenBets={tokenBets || {}}
+            isLoading={loadingPageTokens || isFeedLoading}
+          />
         </div>
 
         <div className={`mb-24 sm:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
@@ -288,7 +327,7 @@ export default function HubPage() {
         <PlaceBetModal
           isOpen={isPlaceBetModalOpen}
           onClose={() => setIsPlaceBetModalOpen(false)}
-          tokens={tokenList}
+          tokens={pageTokens}
         />
       </>
     );

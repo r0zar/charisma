@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { Token } from '@/types/spin';
+import { Token, Vote } from '@/types/spin';
+import { useWallet } from '@/contexts/wallet-context';
 import { useSpin } from '@/contexts/SpinContext';
 import { X, Search, Rocket, TrendingUp } from 'lucide-react';
 import {
@@ -14,6 +15,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from '@/components/ui/sonner';
 import { Label } from "@/components/ui/label";
+import { DepositCharismaButton } from '@/components/DepositCharismaButton';
+import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
+import { z } from 'zod';
+import { buttonVariants } from '@/components/ui/button';
 
 interface PlaceBetModalProps {
     isOpen: boolean;
@@ -21,21 +26,43 @@ interface PlaceBetModalProps {
     tokens: Token[];
 }
 
+// Helper to format balance (assuming 6 decimals by default)
+const formatBalance = (balance: string, decimals: number = 6) => {
+    try {
+        const num = BigInt(balance);
+        const divisor = BigInt(10 ** decimals);
+        const integerPart = num / divisor;
+        const fractionalPart = num % divisor;
+
+        if (fractionalPart === 0n) {
+            return integerPart.toLocaleString(); // Format whole number
+        } else {
+            // Pad fractional part, format integer, combine
+            const fractionalStr = fractionalPart.toString().padStart(decimals, '0');
+            return `${integerPart.toLocaleString()}.${fractionalStr}`;
+        }
+    } catch {
+        return '0'; // Fallback for invalid input
+    }
+};
+
 const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
-    const { actions } = useSpin();
+    const { subnetBalance, subnetBalanceLoading, address } = useWallet();
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
     const [chaAmount, setChaAmount] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Derive availableTokens directly from props
     const availableTokens = tokens || [];
-    const filteredTokens = useMemo(() => {
-        if (!searchTerm) return availableTokens;
-        return availableTokens.filter(t =>
+
+    // Derive filteredTokens directly based on searchTerm and availableTokens
+    const filteredTokens = searchTerm
+        ? availableTokens.filter(t =>
             t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             t.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [availableTokens, searchTerm]);
+        )
+        : availableTokens;
 
     useEffect(() => {
         if (!isOpen) {
@@ -55,19 +82,38 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
             return;
         }
 
+        // Check if user has enough balance (using BigInt for precision)
+        const amountInMicroCha = BigInt(Math.round(amount * 1_000_000)); // Assuming 6 decimals for CHA
+        const availableBalance = BigInt(subnetBalance);
+
+        if (amountInMicroCha > availableBalance) {
+            toast.error(
+                `Insufficient balance. You have ${availableBalance.toLocaleString()} CHA, ` +
+                `but need ${amountInMicroCha.toLocaleString()} CHA.`
+            );
+            return;
+        }
+
         setIsLoading(true);
         try {
+            // Use wallet address as the userId, or a fallback for testing
+            const userId = address || `anonymous_${Math.floor(Math.random() * 10000)}`;
+
             const response = await fetch('/api/place-bet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tokenId: selectedToken.id, chaAmount: amount })
+                body: JSON.stringify({
+                    tokenId: selectedToken.id,
+                    chaAmount: amount,
+                    userId
+                })
             });
 
             const result = await response.json();
 
             if (response.ok && result.success) {
                 toast.success(`Successfully committed ${amount} CHA to ${selectedToken.symbol}!`);
-                actions.placeBet(selectedToken.id, amount);
+
                 onClose();
             } else {
                 throw new Error(result.error || 'Failed to place bet');
@@ -82,7 +128,24 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
         }
     };
 
-    const canPlaceBet = selectedToken && parseFloat(chaAmount) > 0 && !isLoading;
+    const enteredAmountMicroCha = useMemo(() => {
+        try {
+            return BigInt(Math.round(parseFloat(chaAmount) * 1_000_000));
+        } catch {
+            return 0n;
+        }
+    }, [chaAmount]);
+
+    const availableBalanceBigInt = useMemo(() => BigInt(subnetBalance), [subnetBalance]);
+
+    const hasSufficientBalance = enteredAmountMicroCha > 0n && enteredAmountMicroCha <= availableBalanceBigInt;
+
+    const canPlaceBet =
+        selectedToken &&
+        enteredAmountMicroCha > 0n &&
+        hasSufficientBalance &&
+        !isLoading &&
+        !subnetBalanceLoading;
 
     return (
         <Dialog
@@ -97,16 +160,16 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                 <DialogHeader className="p-6 pb-4 bg-gradient-to-b from-card to-transparent">
                     <DialogTitle className="text-2xl font-display tracking-tight flex items-center gap-2">
                         <Rocket className="h-5 w-5 text-primary animate-float" />
-                        Commit CHA to Pump a Token
+                        Commit to Pump a Token
                     </DialogTitle>
                     <DialogDescription className="text-base opacity-90">
-                        Search for and select the memecoin you want to commit CHA to. Then enter the amount of CHA you wish to commit.
+                        Search for and select the memecoin you want to commit CHA to. Then enter the amount of CHA you wish to commit. Tokens don't leave your wallet until everyone swaps together.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pb-4 overflow-y-hidden">
                     <div className="flex flex-col gap-4 overflow-y-hidden">
-                        <div className="relative">
+                        <div className="relative m-2">
                             <Input
                                 type="text"
                                 placeholder="Search token name or symbol..."
@@ -116,7 +179,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                             />
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         </div>
-                        <ScrollArea className="h-[400px] border border-border/50 rounded-xl glass-card">
+                        <ScrollArea className="h-[400px] border border-border/50 rounded-xl glass-card m-2">
                             <div className="p-4 space-y-2">
                                 {filteredTokens.length === 0 && <p className="text-sm text-muted-foreground text-center">No tokens found.</p>}
                                 {filteredTokens.map((token) => (
@@ -149,7 +212,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
 
                     <div className="flex flex-col justify-between gap-4">
                         {selectedToken ? (
-                            <div className="glass-card p-5 flex flex-col gap-4">
+                            <div className="glass-card p-5 flex flex-col gap-4 m-2">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
                                         <Image
@@ -181,6 +244,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                     </Label>
                                     <Input
                                         id="cha-amount"
+                                        aria-describedby="cha-balance-hint"
                                         type="number"
                                         placeholder="Enter CHA amount to commit"
                                         value={chaAmount}
@@ -190,6 +254,30 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                         disabled={isLoading}
                                         className="text-lg font-mono input-field numeric"
                                     />
+                                    <p id="cha-balance-hint" className="text-xs text-muted-foreground mt-1.5">
+                                        Available: {subnetBalanceLoading ? '...' : formatBalance(subnetBalance)} CHA
+                                    </p>
+                                    {/* Show deposit button if balance is zero */}
+                                    {!subnetBalanceLoading && availableBalanceBigInt === 0n && (
+                                        <div className="mt-4 border-t border-border/30 pt-4">
+                                            <p className="text-sm text-center text-muted-foreground mb-2">
+                                                You need CHA to commit.
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <DepositCharismaButton
+                                                    className="flex-1"
+                                                    size="sm"
+                                                    // Close this modal after deposit starts
+                                                    onDepositSuccess={() => onClose()}
+                                                />
+                                                <SwapStxToChaButton
+                                                    className="flex-1"
+                                                    size="sm"
+                                                    onSwapSuccess={() => onClose()} // Close after swap too
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="bg-muted/40 p-3 rounded-lg border border-border/30">
                                     <p className="text-sm flex items-center justify-between">
