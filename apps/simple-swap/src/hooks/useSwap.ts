@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Route } from "@repo/dexterity";
 import { Cryptonomicon } from "@repo/cryptonomicon";
 import { getQuote, getRoutableTokens } from "../app/actions";
 import { swapClient, Token } from "../lib/swap-client";
 import { useWallet } from "../contexts/wallet-context";
+import { listPrices, KraxelPriceData } from '@repo/tokens';
 
 // Quote response mirrors server action structure
 interface QuoteResponse {
@@ -63,6 +64,11 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const [isLoadingQuote, setIsLoadingQuote] = useState(false);
     const [swapSuccessInfo, setSwapSuccessInfo] = useState<{ txId: string } | null>(null);
 
+    // Price state
+    const [tokenPrices, setTokenPrices] = useState<KraxelPriceData | null>(null);
+    const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+    const [priceError, setPriceError] = useState<string | null>(null);
+
     // Balance cache ref (will persist between renders but won't cause re-renders)
     const balanceCacheRef = useRef<BalanceCache>({});
 
@@ -78,6 +84,24 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     }, [walletAddress]);
 
     // ---------------------- Effects ----------------------
+    // Fetch token prices on mount
+    useEffect(() => {
+        async function fetchPrices() {
+            setIsLoadingPrices(true);
+            setPriceError(null);
+            try {
+                const prices = await listPrices();
+                setTokenPrices(prices);
+            } catch (err) {
+                console.error("Failed to fetch token prices:", err);
+                setPriceError("Could not load token prices.");
+            } finally {
+                setIsLoadingPrices(false);
+            }
+        }
+        fetchPrices();
+    }, []);
+
     // Token loading logic (server‑prefetched vs. client fetch)
     useEffect(() => {
         async function fetchTokensClient() {
@@ -227,6 +251,33 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         fetchQuote();
     }, [selectedFromToken, selectedToToken, microAmount]);
 
+    // ---------------------- Derived Values (USD) ----------------------
+    const { fromTokenValueUsd, toTokenValueUsd } = useMemo(() => {
+        let fromValue: number | null = null;
+        let toValue: number | null = null;
+
+        if (tokenPrices && selectedFromToken && displayAmount) {
+            const price = tokenPrices[selectedFromToken.contractId];
+            const amount = parseFloat(displayAmount);
+            if (price !== undefined && !isNaN(amount)) {
+                fromValue = amount * price;
+            }
+        }
+
+        if (tokenPrices && selectedToToken && quote?.amountOut) {
+            const price = tokenPrices[selectedToToken.contractId];
+            const amount = parseFloat(swapClient.formatTokenAmount(quote.amountOut, selectedToToken.decimals));
+            if (price !== undefined && !isNaN(amount)) {
+                toValue = amount * price;
+            }
+        }
+
+        return {
+            fromTokenValueUsd: fromValue,
+            toTokenValueUsd: toValue,
+        };
+    }, [tokenPrices, selectedFromToken, selectedToToken, displayAmount, quote, swapClient.formatTokenAmount]);
+
     // ---------------------- Handlers ----------------------
     async function fetchQuote() {
         if (!selectedFromToken || !selectedToToken) return;
@@ -299,12 +350,15 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         fromTokenBalance,
         toTokenBalance,
         userAddress,
+        tokenPrices,
 
         // loading flags
         isInitializing,
         isLoadingTokens,
         isLoadingRouteInfo,
         isLoadingQuote,
+        isLoadingPrices,
+        priceError,
 
         // helpers from swapClient
         formatTokenAmount: swapClient.formatTokenAmount,
@@ -322,5 +376,9 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         handleSwap,
         handleSwitchTokens,
         clearBalanceCache,
+
+        // derived values
+        fromTokenValueUsd,
+        toTokenValueUsd,
     } as const;
 } 

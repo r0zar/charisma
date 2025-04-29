@@ -42,7 +42,7 @@ export interface Token {
   identifier?: string;
   name: string;
   symbol: string;
-  decimals?: number;
+  decimals: number;
   supply?: number;
   image?: string;
   description?: string;
@@ -475,7 +475,7 @@ export class Cryptonomicon {
           identifier: metadata.identifier,
           name: metadata.name,
           symbol: metadata.symbol,
-          decimals: metadata.decimals,
+          decimals: metadata.decimals!,
           description: metadata.description || "",
           image: metadata.image || "",
           contract_principal: metadata.contract_principal || contractId
@@ -494,7 +494,7 @@ export class Cryptonomicon {
         identifier: undefined,
         name: name || "",
         symbol: symbol || "",
-        decimals: decimals,
+        decimals: decimals!,
         description: "",
         image: "",
         contract_principal: contractId

@@ -1,5 +1,5 @@
 {
-  "name": "@repo/tokens",
+  "name": "@repo/polyglot",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -31,6 +31,13 @@
   "jest": {
     "preset": "@repo/jest-presets/node"
   },
+  "dependencies": {
+    "@stacks/blockchain-api-client": "^8.8.0",
+    "@stacks/connect": "^8.1.9",
+    "@stacks/network": "^7",
+    "@stacks/transactions": "^7.0.5",
+    "@repo/stacks": "workspace:*"
+  },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@repo/eslint-config": "workspace:*",
@@ -40,10 +47,7 @@
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
-    "ts-jest": "^29.3.0",
-    "typescript": "5.8.2"
-  },
-  "dependencies": {
-    "cross-fetch": "^4.1.0"
+    "typescript": "5.8.2",
+    "ts-jest": "^29.3.0"
   }
 }

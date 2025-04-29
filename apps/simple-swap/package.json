@@ -15,6 +15,7 @@
     "@repo/cryptonomicon": "workspace:*",
     "@repo/dexterity": "workspace:*",
     "@repo/stacks": "workspace:*",
+    "@repo/tokens": "workspace:*",
     "@repo/logger": "workspace:*",
     "lucide-react": "^0.503.0",
     "class-variance-authority": "^0.7.0",

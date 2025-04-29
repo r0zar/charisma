@@ -23,6 +23,8 @@ const getExplorerUrl = (txId: string) => {
 
 export default function SwapInterface({ initialTokens = [], urlParams }: SwapInterfaceProps) {
   const swap = useSwap({ initialTokens });
+  // Extract the tokenPrices to a local constant to avoid linter errors
+  const tokenPrices = swap.tokenPrices || null;
   const [showDetails, setShowDetails] = useState(false);
   const [showRouteDetails, setShowRouteDetails] = useState(true);
   const [swapping, setSwapping] = useState(false);
@@ -44,6 +46,8 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     isLoadingTokens,
     isLoadingRouteInfo,
     isLoadingQuote,
+    isLoadingPrices,
+    priceError,
     formatTokenAmount,
     convertToMicroUnits,
     getTokenLogo,
@@ -53,6 +57,8 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     fromTokenBalance,
     toTokenBalance,
     userAddress,
+    fromTokenValueUsd,
+    toTokenValueUsd,
   } = swap;
 
   // Apply URL parameters when component loads
@@ -184,6 +190,83 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
   const routeFees = calculateRouteFees();
 
+  // Helper to format USD currency
+  const formatUsd = (value: number | null) => {
+    if (value === null || isNaN(value)) return null;
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  // Calculate price impact for the whole swap
+  const calculateTotalPriceImpact = () => {
+    if (!quote || !selectedFromToken || !selectedToToken || !tokenPrices) return null;
+
+    // Get prices, handling the ".stx" vs "stx" key difference
+    const getPrice = (contractId: string): number | undefined => {
+      return contractId === '.stx' ? tokenPrices['stx'] : tokenPrices[contractId];
+    };
+
+    const fromPrice = getPrice(selectedFromToken.contractId);
+    const toPrice = getPrice(selectedToToken.contractId);
+
+    if (fromPrice === undefined || toPrice === undefined) return null;
+
+    const inputValueUsd = Number(microAmount) * fromPrice / (10 ** selectedFromToken.decimals);
+    const outputValueUsd = Number(quote.amountOut) * toPrice / (10 ** selectedToToken.decimals);
+
+    if (isNaN(inputValueUsd) || isNaN(outputValueUsd) || inputValueUsd === 0) return null; // Avoid division by zero or NaN results
+
+    const priceImpact = ((outputValueUsd / inputValueUsd) - 1) * 100;
+
+    return {
+      inputValueUsd,
+      outputValueUsd,
+      priceImpact: isNaN(priceImpact) ? null : priceImpact // Ensure impact is not NaN
+    };
+  };
+
+  // Calculate price impact for each hop in the route
+  const calculateHopPriceImpacts = () => {
+    if (!quote || !tokenPrices) return [];
+
+    // Helper to get price, handling the ".stx" vs "stx" key difference
+    const getPrice = (contractId: string): number | undefined => {
+      return contractId === '.stx' ? tokenPrices['stx'] : tokenPrices[contractId];
+    };
+
+    const impacts = quote.route.hops.map((hop, index) => {
+      const fromToken = quote.route.path[index];
+      const toToken = quote.route.path[index + 1];
+
+      const fromPrice = getPrice(fromToken.contractId);
+      const toPrice = getPrice(toToken.contractId);
+
+      if (fromPrice === undefined || toPrice === undefined) {
+        return { impact: null, fromValueUsd: null, toValueUsd: null };
+      }
+
+      // Calculate USD values
+      const fromValueUsd = Number(hop.quote?.amountIn || 0) * fromPrice / (10 ** (fromToken.decimals || 6));
+      const toValueUsd = Number(hop.quote?.amountOut || 0) * toPrice / (10 ** (toToken.decimals || 6));
+
+      if (isNaN(fromValueUsd) || isNaN(toValueUsd) || fromValueUsd === 0) { // Avoid division by zero or NaN results
+        return { impact: null, fromValueUsd: isNaN(fromValueUsd) ? null : fromValueUsd, toValueUsd: isNaN(toValueUsd) ? null : toValueUsd };
+      }
+
+      const impact = ((toValueUsd / fromValueUsd) - 1) * 100;
+
+      return {
+        impact: isNaN(impact) ? null : impact, // Ensure impact is not NaN
+        fromValueUsd,
+        toValueUsd
+      };
+    });
+
+    return impacts;
+  };
+
+  const priceImpacts = calculateHopPriceImpacts();
+  const totalPriceImpact = calculateTotalPriceImpact();
+
   // Enhanced loading animation
   if (isInitializing || isLoadingTokens || isLoadingRouteInfo) {
     return (
@@ -303,6 +386,16 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
               />
             </div>
           </div>
+          <div className="text-xs text-muted-foreground mt-1.5 h-4 flex items-center">
+            {isLoadingPrices ? (
+              <div className="flex items-center space-x-1">
+                <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
+                <span className="animate-pulse">Loading price...</span>
+              </div>
+            ) : fromTokenValueUsd !== null ? (
+              <span>~{formatUsd(fromTokenValueUsd)}</span>
+            ) : null}
+          </div>
         </div>
 
         {/* Switch button */}
@@ -373,6 +466,28 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
               />
             </div>
           </div>
+          <div className="text-xs mt-1.5 h-4 flex items-center justify-between">
+            <div className="text-muted-foreground">
+              {isLoadingQuote ? null : // Don't show loading if quote is loading
+                isLoadingPrices ? (
+                  <div className="flex items-center space-x-1">
+                    <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
+                    <span className="animate-pulse">Loading price...</span>
+                  </div>
+                ) : toTokenValueUsd !== null ? (
+                  <span>~{formatUsd(toTokenValueUsd)}</span>
+                ) : null}
+            </div>
+            {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && !isLoadingQuote && (
+              <div className={`px-1.5 py-0.5 rounded-sm font-medium ${totalPriceImpact.priceImpact > 0
+                ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
+                : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+                }`}>
+                {totalPriceImpact.priceImpact > 0 ? '+' : ''}
+                {totalPriceImpact.priceImpact.toFixed(2)}% impact
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Route visualization - always show this section */}
@@ -432,7 +547,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                 </div>
               )}
 
-              {/* Path/Route visualization */}
+              {/* Path/Route visualization with price impacts */}
               {quote && (
                 <div className="flex flex-col pt-3 border-t border-border/30">
                   <button
@@ -445,19 +560,38 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                       </svg>
                       Route details ({quote.route.path.length - 1} {quote.route.path.length - 1 === 1 ? 'hop' : 'hops'})
                     </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-4 w-4 text-primary/70 transition-transform duration-200 ${showRouteDetails ? 'rotate-180' : ''}`}
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
+                    <div className="flex items-center gap-1">
+                      {/* Replace price impact with mini-path view */}
+                      {quote && quote.route.path.length > 0 && (
+                        <div className="flex items-center space-x-0.5">
+                          {quote.route.path.map((token, index) => (
+                            <React.Fragment key={token.contractId || index}>
+                              <div className="h-4 w-4 rounded-full bg-background flex items-center justify-center overflow-hidden border border-border/30">
+                                <TokenLogo token={token} size="sm" />
+                              </div>
+                              {index < quote.route.path.length - 1 && (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 text-primary/70 transition-transform duration-200 ${showRouteDetails ? 'rotate-180' : ''}`}
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
                   </button>
 
                   {showRouteDetails && (
                     <div className="flex flex-col space-y-2 mt-3 animate-[slideDown_0.2s_ease-out]">
-                      {/* Starting token */}
+                      {/* Starting token with USD value */}
                       <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
                         <div className="flex items-center mb-2">
                           <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
@@ -470,17 +604,25 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                                 ({formatTokenAmount(Number(microAmount), quote.route.path[0].decimals || 6)})
                               </span>
                             </div>
-                            <div className="text-xs text-muted-foreground">Start</div>
+                            <div className="text-xs text-muted-foreground flex items-center">
+                              <span>Start</span>
+                              {tokenPrices && tokenPrices[quote.route.path[0].contractId] && (
+                                <span className="ml-1">
+                                  ~{formatUsd(Number(microAmount) * tokenPrices[quote.route.path[0].contractId] / (10 ** (quote.route.path[0].decimals || 6)))}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Hops */}
+                      {/* Hops with price impact */}
                       {quote.route.hops.map((hop, idx) => {
                         const fromToken = quote.route.path[idx];
                         const toToken = quote.route.path[idx + 1];
                         const vaultName = hop.vault.name || 'Liquidity Pool';
                         const formattedFee = (hop.vault.fee / 10000).toFixed(2);
+                        const priceImpact = priceImpacts[idx];
 
                         return (
                           <div key={`hop-${idx}`} className="flex flex-col">
@@ -489,7 +631,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                               <div className="h-full border-l-2 border-dashed border-primary/30"></div>
                             </div>
 
-                            {/* Pool node */}
+                            {/* Pool node with price impact */}
                             <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-primary/30 border-dashed">
                               <div className="flex items-center mb-2">
                                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary/20 flex items-center justify-center">
@@ -499,6 +641,16 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                                   <div className="font-medium text-sm sm:text-base">{vaultName}</div>
                                   <div className="text-xs text-muted-foreground flex items-center">
                                     <span className="text-primary">{formattedFee} % fee to LP providers</span>
+                                    {/* Price impact badge */}
+                                    {priceImpact && priceImpact.impact !== null && (
+                                      <span className={`ml-2 px-1.5 py-0.5 rounded-sm ${priceImpact.impact > 0
+                                        ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
+                                        : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+                                        }`}>
+                                        {priceImpact.impact > 0 ? '+' : ''}
+                                        {priceImpact.impact.toFixed(2)}% impact
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -512,6 +664,10 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                                   <span className="ml-1 text-xs text-muted-foreground">
                                     {idx === 0 ? `(${formatTokenAmount(Number(microAmount), fromToken.decimals || 6)})` : `(${formatTokenAmount(Number(hop.quote?.amountIn), fromToken.decimals || 6)})`}
                                   </span>
+                                  {/* Add USD value */}
+                                  {priceImpact && priceImpact.fromValueUsd !== null && (
+                                    <span className="ml-1">~{formatUsd(priceImpact.fromValueUsd)}</span>
+                                  )}
                                 </div>
                                 <div className="flex items-center">
                                   <div className="h-5 w-5 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden mr-1.5">
@@ -521,6 +677,10 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                                   <span className="ml-1 text-xs text-muted-foreground">
                                     {`(${formatTokenAmount(Number(hop.quote?.amountOut), toToken.decimals || 6)})`}
                                   </span>
+                                  {/* Add USD value */}
+                                  {priceImpact && priceImpact.toValueUsd !== null && (
+                                    <span className="ml-1">~{formatUsd(priceImpact.toValueUsd)}</span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -539,7 +699,14 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                                   </div>
                                   <div className="ml-2 sm:ml-2.5">
                                     <div className="font-medium text-sm sm:text-base">{toToken.symbol}</div>
-                                    <div className="text-xs text-muted-foreground">Intermediate</div>
+                                    <div className="text-xs text-muted-foreground flex items-center">
+                                      <span>Intermediate</span>
+                                      {tokenPrices && tokenPrices[toToken.contractId] && (
+                                        <span className="ml-1">
+                                          ~{formatUsd(Number(hop.quote?.amountOut) * tokenPrices[toToken.contractId] / (10 ** (toToken.decimals || 6)))}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -548,7 +715,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                         );
                       })}
 
-                      {/* Final token */}
+                      {/* Final token with USD value */}
                       <div className="bg-green-500/10 dark:bg-green-900/20 rounded-xl p-2.5 sm:p-3.5 border border-green-500/30">
                         <div className="flex items-center">
                           <div className="h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
@@ -561,12 +728,47 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                                 ({formatTokenAmount(Number(quote.amountOut), quote.route.path[quote.route.path.length - 1].decimals || 6)})
                               </span>
                             </div>
-                            <div className="text-xs text-green-600 dark:text-green-400">Destination</div>
+                            <div className="flex items-center">
+                              <span className="text-xs text-green-600 dark:text-green-400">Destination</span>
+                              {tokenPrices && tokenPrices[quote.route.path[quote.route.path.length - 1].contractId] && (
+                                <span className="ml-1 text-xs text-muted-foreground">
+                                  ~{formatUsd(Number(quote.amountOut) * tokenPrices[quote.route.path[quote.route.path.length - 1].contractId] / (10 ** (quote.route.path[quote.route.path.length - 1].decimals || 6)))}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Total price impact summary */}
+              {quote && totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && (
+                <div className="flex justify-between py-3 border-t border-border/30">
+                  <span className="text-muted-foreground flex items-center">
+                    <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                    Total price impact
+                  </span>
+                  <div className="flex items-center">
+                    <div className="mr-2 text-xs flex">
+                      <span className="text-muted-foreground">Input:</span>
+                      <span className="ml-1 text-foreground/90">{formatUsd(totalPriceImpact.inputValueUsd)}</span>
+                      <span className="mx-1 text-muted-foreground">→</span>
+                      <span className="text-muted-foreground">Output:</span>
+                      <span className="ml-1 text-foreground/90">{formatUsd(totalPriceImpact.outputValueUsd)}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-sm text-xs font-medium ${totalPriceImpact.priceImpact > 0
+                      ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
+                      : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+                      }`}>
+                      {totalPriceImpact.priceImpact > 0 ? '+' : ''}
+                      {totalPriceImpact.priceImpact.toFixed(2)}% impact
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -580,7 +782,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
                     </svg>
                     Vault security
                   </span>
-                  <span className="font-medium text-foreground flex items-center bg-green-500/10 px-2 py-0.5 text-xs rounded text-green-700 dark:text-green-400">
+                  <span className="font-medium flex items-center bg-green-500/10 px-2 py-0.5 text-xs rounded text-green-700 dark:text-green-400">
                     <svg className="h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                       <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -594,7 +796,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
         </div>
 
         {/* Error with enhanced styling */}
-        {error && (
+        {(error || priceError) && (
           <div className="mb-5 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-700 dark:text-red-400 animate-[appear_0.3s_ease-out]">
             <div className="flex items-start space-x-3">
               <div className="h-6 w-6 flex-shrink-0 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mt-0.5">
@@ -604,7 +806,8 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
               </div>
               <div className="flex-1">
                 <h4 className="text-sm font-semibold mb-1">Transaction Error</h4>
-                <p className="text-xs leading-relaxed">{error}</p>
+                {error && <p className="text-xs leading-relaxed">{error}</p>}
+                {priceError && <p className="text-xs leading-relaxed mt-1">{priceError}</p>}
               </div>
             </div>
           </div>

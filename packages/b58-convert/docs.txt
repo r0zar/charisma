@@ -1,0 +1,848 @@
+```
+Function: * (multiply)
+Version: Clarity 1
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (* i1 i2...)
+Description: Multiplies a variable number of integer inputs. Throws on overflow.
+
+Function: + (add)
+Version: Clarity 1
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (+ i1 i2...)
+Description: Adds a variable number of integer inputs. Throws on overflow.
+
+Function: - (subtract)
+Version: Clarity 1
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (- i1 i2...)
+Description: Subtracts a variable number of integer inputs. Throws on underflow.
+
+Function: / (divide)
+Version: Clarity 1
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (/ i1 i2...)
+Description: Integer divides a variable number of integer inputs. Throws on division by zero.
+
+Function: < (less than)
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: bool
+Signature: (< i1 i2)
+Description: Compares two values of the same type, returns true if i1 < i2. Supports int, uint (Clarity 1), string-ascii, string-utf8, buff (Stacks 2.1).
+
+Function: <= (less than or equal)
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: bool
+Signature: (<= i1 i2)
+Description: Compares two values of the same type, returns true if i1 <= i2. Supports int, uint (Clarity 1), string-ascii, string-utf8, buff (Stacks 2.1).
+
+Function: > (greater than)
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: bool
+Signature: (> i1 i2)
+Description: Compares two values of the same type, returns true if i1 > i2. Supports int, uint (Clarity 1), string-ascii, string-utf8, buff (Stacks 2.1).
+
+Function: >= (greater than or equal)
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: bool
+Signature: (>= i1 i2)
+Description: Compares two values of the same type, returns true if i1 >= i2. Supports int, uint (Clarity 1), string-ascii, string-utf8, buff (Stacks 2.1).
+
+Function: and
+Version: Clarity 1
+Input: bool, ...
+Output: bool
+Signature: (and b1 b2 ...)
+Description: Returns true if all boolean inputs are true. Evaluates lazily and in-order.
+
+Function: append
+Version: Clarity 1
+Input: list A, A
+Output: list
+Signature: (append list-value value)
+Description: Appends a value to a list. Value must have the same type as list elements.
+
+Function: as-contract
+Version: Clarity 1
+Input: A
+Output: A
+Signature: (as-contract expr)
+Description: Executes expression with tx-sender set to the contract's principal. Returns the result of expr.
+
+Function: as-max-len?
+Version: Clarity 1
+Input: sequence_A, uint
+Output: (optional sequence_A)
+Signature: (as-max-len? sequence max_length)
+Description: Returns (some sequence) if sequence length is <= max_length, otherwise none. Applies to list, buff, string-ascii, string-utf8.
+
+Function: asserts!
+Version: Clarity 1
+Input: bool, C
+Output: bool
+Signature: (asserts! bool-expr thrown-value)
+Description: If bool-expr is true, returns true. If false, returns thrown-value and exits.
+
+Function: at-block
+Version: Clarity 1
+Input: (buff 32), A
+Output: A
+Signature: (at-block id-block-hash expr)
+Description: Evaluates expr in the context of the block identified by id-block-hash. expr must be read-only.
+
+Function: begin
+Version: Clarity 1
+Input: AnyType, ... A
+Output: A
+Signature: (begin expr1 expr2 expr3 ... expr-last)
+Description: Evaluates expressions in order, returns the value of the last expression.
+
+Function: bit-and
+Version: Clarity 2
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (bit-and i1 i2...)
+Description: Returns the result of bitwise ANDing variable number of integer inputs.
+
+Function: bit-not
+Version: Clarity 2
+Input: int | uint
+Output: int | uint
+Signature: (bit-not i1)
+Description: Returns the one's complement of an integer.
+
+Function: bit-or
+Version: Clarity 2
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (bit-or i1 i2...)
+Description: Returns the result of bitwise inclusive ORing variable number of integer inputs.
+
+Function: bit-shift-left
+Version: Clarity 2
+Input: int, uint | uint, uint
+Output: int | uint
+Signature: (bit-shift-left i1 shamt)
+Description: Shifts bits in i1 left by shamt modulo 128. Ignores arithmetic overflow.
+
+Function: bit-shift-right
+Version: Clarity 2
+Input: int, uint | uint, uint
+Output: int | uint
+Signature: (bit-shift-right i1 shamt)
+Description: Shifts bits in i1 right by shamt modulo 128. Zero-pads uints, preserves sign for ints. Ignores arithmetic overflow.
+
+Function: bit-xor
+Version: Clarity 2
+Input: int, ... | uint, ...
+Output: int | uint
+Signature: (bit-xor i1 i2...)
+Description: Returns the result of bitwise exclusive ORing variable number of integer inputs.
+
+Function: buff-to-int-be
+Version: Clarity 2
+Input: (buff 16)
+Output: int
+Signature: (buff-to-int-be buffer)
+Description: Converts a 16-byte buffer to a signed integer using big-endian encoding. (Stacks 2.1+)
+
+Function: buff-to-int-le
+Version: Clarity 2
+Input: (buff 16)
+Output: int
+Signature: (buff-to-int-le buffer)
+Description: Converts a 16-byte buffer to a signed integer using little-endian encoding. (Stacks 2.1+)
+
+Function: buff-to-uint-be
+Version: Clarity 2
+Input: (buff 16)
+Output: uint
+Signature: (buff-to-uint-be buffer)
+Description: Converts a 16-byte buffer to an unsigned integer using big-endian encoding. (Stacks 2.1+)
+
+Function: buff-to-uint-le
+Version: Clarity 2
+Input: (buff 16)
+Output: uint
+Signature: (buff-to-uint-le buffer)
+Description: Converts a 16-byte buffer to an unsigned integer using little-endian encoding. (Stacks 2.1+)
+
+Function: concat
+Version: Clarity 1
+Input: sequence_A, sequence_A
+Output: sequence_A
+Signature: (concat sequence1 sequence2)
+Description: Concatenates two sequences of the same type (list, buff, string-ascii, string-utf8).
+
+Function: contract-call?
+Version: Clarity 1
+Input: ContractName, PublicFunctionName, Arg0, ...
+Output: (response A B)
+Signature: (contract-call? .contract-name function-name arg0 arg1 ...)
+Description: Executes a public function of another contract. Aborts on err response.
+
+Function: contract-of
+Version: Clarity 1
+Input: Trait
+Output: principal
+Signature: (contract-of .contract-name)
+Description: Returns the principal of the contract implementing the trait.
+
+Function: default-to
+Version: Clarity 1
+Input: A, (optional A)
+Output: A
+Signature: (default-to default-value option-value)
+Description: Unpacks an optional: returns inner value if (some), otherwise returns default-value.
+
+Function: define-constant
+Version: Clarity 1
+Input: MethodSignature, MethodBody
+Output: Not Applicable
+Signature: (define-constant name expression)
+Description: Defines a private constant value evaluated at contract launch. Top-level only.
+
+Function: define-data-var
+Version: Clarity 1
+Input: VarName, TypeDefinition, Value
+Output: Not Applicable
+Signature: (define-data-var var-name type value)
+Description: Defines a new persisted variable, modifiable only by the current contract. Top-level only.
+
+Function: define-fungible-token
+Version: Clarity 1
+Input: TokenName, <uint>
+Output: Not Applicable
+Signature: (define-fungible-token token-name <total-supply>)
+Description: Defines a new fungible token class. Optional total-supply limits minting. Top-level only.
+
+Function: define-map
+Version: Clarity 1
+Input: MapName, TypeDefinition, TypeDefinition
+Output: Not Applicable
+Signature: (define-map map-name key-type value-type)
+Description: Defines a new data map, modifiable only by the current contract. Top-level only.
+
+Function: define-non-fungible-token
+Version: Clarity 1
+Input: AssetName, TypeSignature
+Output: Not Applicable
+Signature: (define-non-fungible-token asset-name asset-identifier-type)
+Description: Defines a new non-fungible token class. Assets identified by asset-identifier-type. Top-level only.
+
+Function: define-private
+Version: Clarity 1
+Input: MethodSignature, MethodBody
+Output: Not Applicable
+Signature: (define-private (function-name (arg-name-0 arg-type-0) ...) function-body)
+Description: Defines a private function callable only within the same contract. Top-level only.
+
+Function: define-public
+Version: Clarity 1
+Input: MethodSignature, MethodBody
+Output: Not Applicable
+Signature: (define-public (function-name (arg-name-0 arg-type-0) ...) function-body)
+Description: Defines a public function callable by users or other contracts. Must return ResponseType. Top-level only.
+
+Function: define-read-only
+Version: Clarity 1
+Input: MethodSignature, MethodBody
+Output: Not Applicable
+Signature: (define-read-only (function-name (arg-name-0 arg-type-0) ...) function-body)
+Description: Defines a public read-only function. Callable by users or other contracts. Cannot modify state. Top-level only.
+
+Function: define-trait
+Version: Clarity 1
+Input: VarName, [MethodSignature]
+Output: Not Applicable
+Signature: (define-trait trait-name ((func1-name (arg1-type ...) (return-type)) ...))
+Description: Defines a new trait definition. Used to specify function signatures for contract interfaces. Top-level only.
+
+Function: element-at
+Version: Clarity 1
+Input: sequence_A, uint
+Output: (optional A)
+Signature: (element-at? sequence index)
+Description: Returns the element at index in the sequence (list, buff, string-ascii, string-utf8). Returns none if index out of bounds. Clarity 1 used (element-at).
+
+Function: element-at?
+Version: Clarity 2
+Input: sequence_A, uint
+Output: (optional A)
+Signature: (element-at? sequence index)
+Description: Returns the element at index in the sequence (list, buff, string-ascii, string-utf8). Returns none if index out of bounds. Alias for element-at for backward compatibility.
+
+Function: err
+Version: Clarity 1
+Input: A
+Output: (response A B)
+Signature: (err value)
+Description: Constructs an err response type. Used for returning errors in public functions and rolling back state changes.
+
+Function: filter
+Version: Clarity 1
+Input: Function(A) -> bool, sequence_A
+Output: sequence_A
+Signature: (filter func sequence)
+Description: Applies func to each element of sequence, returns sequence with elements removed where func returned false. Applicable to list, buff, string-ascii, string-utf8. func must be a literal function name.
+
+Function: fold
+Version: Clarity 1
+Input: Function(A, B) -> B, sequence_A, B
+Output: B
+Signature: (fold func sequence_A initial_B)
+Description: Condenses sequence into a single value by recursively applying func. Applicable to list, buff, string-ascii, string-utf8. func must be a literal function name.
+
+Function: from-consensus-buff?
+Version: Clarity 2
+Input: type-signature(t), buff
+Output: (optional t)
+Signature: (from-consensus-buff? type-signature buffer)
+Description: Deserializes a buffer into a Clarity value using SIP-005 encoding. Returns none if deserialization fails.
+
+Function: ft-burn?
+Version: Clarity 1
+Input: TokenName, uint, principal
+Output: (response bool uint)
+Signature: (ft-burn? token-name amount sender)
+Description: Decreases sender's fungible token balance by amount, destroying tokens. Returns (ok true) on success, err code on failure.
+
+Function: ft-get-balance
+Version: Clarity 1
+Input: TokenName, principal
+Output: uint
+Signature: (ft-get-balance token-name principal)
+Description: Returns the fungible token balance for a principal.
+
+Function: ft-get-supply
+Version: Clarity 1
+Input: TokenName
+Output: uint
+Signature: (ft-get-supply token-name)
+Description: Returns the circulating supply of a fungible token.
+
+Function: ft-mint?
+Version: Clarity 1
+Input: TokenName, uint, principal
+Output: (response bool uint)
+Signature: (ft-mint? token-name amount recipient)
+Description: Increases recipient's fungible token balance by minting new tokens. Returns (ok true) on success, err code on failure.
+
+Function: ft-transfer?
+Version: Clarity 1
+Input: TokenName, uint, principal, principal
+Output: (response bool uint)
+Signature: (ft-transfer? token-name amount sender recipient)
+Description: Transfers fungible tokens from sender to recipient. Returns (ok true) on success, err code on failure. Requires guards.
+
+Function: get
+Version: Clarity 1
+Input: KeyName, (tuple) | (optional (tuple))
+Output: A
+Signature: (get key-name tuple)
+Description: Fetches the value associated with key-name from a tuple. Returns optional if input is optional tuple.
+
+Function: get-block-info?
+Version: Clarity 1 (Removed in Clarity 3)
+Input: BlockInfoPropertyName, uint
+Output: (optional buff) | (optional uint)
+Signature: (get-block-info? prop-name block-height)
+Description: Fetches information about a Stacks block at a given height (e.g., time, hash, miner). Returns none if block not found or property not available.
+
+Function: get-burn-block-info?
+Version: Clarity 2
+Input: BurnBlockInfoPropertyName, uint
+Output: (optional buff) | (optional (tuple (addrs (list 2 (tuple (hashbytes (buff 32)) (version (buff 1))))) (payout uint)))
+Signature: (get-burn-block-info? prop-name block-height)
+Description: Fetches information about a burnchain (Bitcoin) block at a given height (e.g., header hash, PoX addresses). Returns none if block height is out of range.
+
+Function: get-stacks-block-info?
+Version: Clarity 3
+Input: StacksBlockInfoPropertyName, uint
+Output: (optional buff), (optional uint)
+Signature: (get-stacks-block-info? prop-name stacks-block-height)
+Description: Fetches information about a Stacks block at a given height (e.g., time, header hash, id-header-hash). Returns none if block not found. Replaces get-block-info? for Stacks block info.
+
+Function: get-tenure-info?
+Version: Clarity 3
+Input: TenureInfoPropertyName, uint
+Output: (optional buff) | (optional uint)
+Signature: (get-tenure-info? prop-name stacks-block-height)
+Description: Fetches information about the tenure at a given Stacks block height (e.g., time, miner, block reward). Returns none if block not found. Replaces get-block-info? for tenure info.
+
+Function: hash160
+Version: Clarity 1
+Input: buff|uint|int
+Output: (buff 20)
+Signature: (hash160 value)
+Description: Computes RIPEMD160(SHA256(value)). Hashes little-endian for integers.
+
+Function: if
+Version: Clarity 1
+Input: bool, A, A
+Output: A
+Signature: (if bool1 expr1 expr2)
+Description: Evaluates expr1 if boolean is true, expr2 if false. Both expressions must return the same type.
+
+Function: impl-trait
+Version: Clarity 1
+Input: TraitIdentifier
+Output: Not Applicable
+Signature: (impl-trait trait-identifier)
+Description: Asserts that the contract implements the specified trait. Checked at publish time. Top-level only.
+
+Function: index-of
+Version: Clarity 1
+Input: sequence_A, A
+Output: (optional uint)
+Signature: (index-of? sequence item)
+Description: Returns the first index of item in sequence (list, buff, string-ascii, string-utf8). Returns none if not found or sequence is empty. Clarity 1 used (index-of).
+
+Function: index-of?
+Version: Clarity 2
+Input: sequence_A, A
+Output: (optional uint)
+Signature: (index-of? sequence item)
+Description: Returns the first index of item in sequence (list, buff, string-ascii, string-utf8). Returns none if not found or sequence is empty. Alias for index-of for backward compatibility.
+
+Function: int-to-ascii
+Version: Clarity 2
+Input: int | uint
+Output: (string-ascii 40)
+Signature: (int-to-ascii int-or-uint)
+Description: Converts an integer to its string-ascii representation. (Stacks 2.1+)
+
+Function: int-to-utf8
+Version: Clarity 2
+Input: int | uint
+Output: (string-utf8 40)
+Signature: (int-to-utf8 int-or-uint)
+Description: Converts an integer to its string-utf8 representation. (Stacks 2.1+)
+
+Function: is-eq
+Version: Clarity 1
+Input: A, A, ...
+Output: bool
+Signature: (is-eq v1 v2...)
+Description: Returns true if all input values are equal. Does not short-circuit. All values must be the same type.
+
+Function: is-err
+Version: Clarity 1
+Input: (response A B)
+Output: bool
+Signature: (is-err value)
+Description: Tests a response value, returns true if it's an err, false if ok.
+
+Function: is-none
+Version: Clarity 1
+Input: (optional A)
+Output: bool
+Signature: (is-none value)
+Description: Tests an optional value, returns true if none, false if some.
+
+Function: is-ok
+Version: Clarity 1
+Input: (response A B)
+Output: bool
+Signature: (is-ok value)
+Description: Tests a response value, returns true if it's ok, false if err.
+
+Function: is-some
+Version: Clarity 1
+Input: (optional A)
+Output: bool
+Signature: (is-some value)
+Description: Tests an optional value, returns true if some, false if none.
+
+Function: is-standard
+Version: Clarity 2
+Input: principal
+Output: bool
+Signature: (is-standard standard-or-contract-principal)
+Description: Tests if a principal matches the current network type (mainnet/testnet) for spending. (Stacks 2.1+)
+
+Function: keccak256
+Version: Clarity 1
+Input: buff|uint|int
+Output: (buff 32)
+Signature: (keccak256 value)
+Description: Computes KECCAK256(value). Hashes little-endian for integers. Differs from NIST SHA-3.
+
+Function: len
+Version: Clarity 1
+Input: sequence_A
+Output: uint
+Signature: (len sequence)
+Description: Returns the length of a sequence (list, buff, string-ascii, string-utf8).
+
+Function: let
+Version: Clarity 1
+Input: ((name1 AnyType) (name2 AnyType) ...), AnyType, ... A
+Output: A
+Signature: (let ((name1 expr1) (name2 expr2) ...) expr-body1 ... expr-body-last)
+Description: Defines local variables with sequential bindings and evaluates body expressions. Returns the last body expression's value.
+
+Function: list
+Version: Clarity 1
+Input: A, ...
+Output: (list A)
+Signature: (list expr1 expr2 expr3 ...)
+Description: Constructs a list from input values of the same type.
+
+Function: log2
+Version: Clarity 1
+Input: int | uint
+Output: int | uint
+Signature: (log2 n)
+Description: Returns floor(log base 2 of n). Fails on negative numbers.
+
+Function: map
+Version: Clarity 1
+Input: Function(A, B, ..., N) -> X, sequence_A, sequence_B, ..., sequence_N
+Output: (list X)
+Signature: (map func sequence_A sequence_B ... sequence_N)
+Description: Applies func to corresponding elements of input sequences, returns a list of results. Applicable to list, buff, string-ascii, string-utf8. func must be a literal function name.
+
+Function: map-delete
+Version: Clarity 1
+Input: MapName, tuple
+Output: bool
+Signature: (map-delete map-name key-tuple)
+Description: Removes an entry from a data map by key. Returns true if deleted, false if not found.
+
+Function: map-get?
+Version: Clarity 1
+Input: MapName, tuple
+Output: (optional (tuple))
+Signature: (map-get? map-name key-tuple)
+Description: Looks up an entry in a data map by key. Returns (some value) if found, none otherwise.
+
+Function: map-insert
+Version: Clarity 1
+Input: MapName, tuple_A, tuple_B
+Output: bool
+Signature: (map-insert map-name key-tuple value-tuple)
+Description: Inserts a new entry into a data map if the key does not exist. Returns true if inserted, false if key exists.
+
+Function: map-set
+Version: Clarity 1
+Input: MapName, tuple_A, tuple_B
+Output: bool
+Signature: (map-set map-name key-tuple value-tuple)
+Description: Sets or updates an entry in a data map by key. Overwrites if key exists. Always returns true.
+
+Function: match
+Version: Clarity 1
+Input: (optional A) name expression expression | (response A B) name expression name expression
+Output: C
+Signature: (match opt-input some-binding-name some-branch none-branch) | (match-resp input ok-binding-name ok-branch err-binding-name err-branch)
+Description: Destructures optional or response types. Evaluates branches based on type (some/none, ok/err). Binds inner value to name.
+
+Function: merge
+Version: Clarity 1
+Input: tuple, tuple
+Output: tuple
+Signature: (merge tuple { key1: val1 })
+Description: Returns a new tuple with combined fields from input tuples. Does not mutate inputs.
+
+Function: mod
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: int | uint
+Signature: (mod i1 i2)
+Description: Returns the integer remainder of i1 / i2. Throws on division by zero.
+
+Function: nft-burn?
+Version: Clarity 1
+Input: AssetName, A, principal
+Output: (response bool uint)
+Signature: (nft-burn? asset-class asset-identifier sender)
+Description: Burns a non-fungible asset owned by sender. Returns (ok true) on success, err code on failure.
+
+Function: nft-get-owner?
+Version: Clarity 1
+Input: AssetName, A
+Output: (optional principal)
+Signature: (nft-get-owner? asset-class asset-identifier)
+Description: Returns the owner of a non-fungible asset, or none if asset does not exist.
+
+Function: nft-mint?
+Version: Clarity 1
+Input: AssetName, A, principal
+Output: (response bool uint)
+Signature: (nft-mint? asset-class asset-identifier recipient)
+Description: Mints a new non-fungible asset and sets recipient as owner. Returns (ok true) on success, err code on failure.
+
+Function: nft-transfer?
+Version: Clarity 1
+Input: AssetName, A, principal, principal
+Output: (response bool uint)
+Signature: (nft-transfer? asset-class asset-identifier sender recipient)
+Description: Transfers a non-fungible asset from sender to recipient. Returns (ok true) on success, err code on failure. Requires guards.
+
+Function: not
+Version: Clarity 1
+Input: bool
+Output: bool
+Signature: (not b1)
+Description: Returns the inverse of a boolean input.
+
+Function: ok
+Version: Clarity 1
+Input: A
+Output: (response A B)
+Signature: (ok value)
+Description: Constructs an ok response type. Used for successful return values in public functions, materializing state changes.
+
+Function: or
+Version: Clarity 1
+Input: bool, ...
+Output: bool
+Signature: (or b1 b2 ...)
+Description: Returns true if any boolean inputs are true. Evaluates lazily and in-order.
+
+Function: pow
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: int | uint
+Signature: (pow i1 i2)
+Description: Returns i1 raised to the power of i2. Throws on overflow, negative exponent, or exponent > u32::MAX. Handles corner cases (0^0, 1^x, 0^x, x^1).
+
+Function: principal-construct?
+Version: Clarity 2
+Input: (buff 1), (buff 20), [(string-ascii 40)]
+Output: (response principal { error_code: uint, principal: (option principal) })
+Signature: (principal-construct? version-byte hash-bytes [name])
+Description: Constructs a standard or contract principal from version byte, hash bytes, and optional contract name. Returns response with principal or error details. (Stacks 2.1+)
+
+Function: principal-destruct?
+Version: Clarity 2
+Input: principal
+Output: (response (tuple (hash-bytes (buff 20)) (name (optional (string-ascii 40))) (version (buff 1))) (tuple (hash-bytes (buff 20)) (name (optional (string-ascii 40))) (version (buff 1))))
+Signature: (principal-destruct? principal-address)
+Description: Decomposes a principal into its version byte, hash bytes, and optional contract name. Returns response with components. (Stacks 2.1+)
+
+Function: principal-of?
+Version: Clarity 1
+Input: (buff 33)
+Output: (response principal uint)
+Signature: (principal-of? public-key)
+Description: Returns the principal derived from a public key. Returns err u1 if invalid key. (Stacks 2.1+ fixes bug).
+
+Function: print
+Version: Clarity 1
+Input: A
+Output: A
+Signature: (print expr)
+Description: Evaluates and returns expr. On dev nodes, prints the result to STDOUT.
+
+Function: replace-at?
+Version: Clarity 2
+Input: sequence_A, uint, A
+Output: (optional sequence_A)
+Signature: (replace-at? sequence index element)
+Description: Returns a new sequence with the element at index replaced. Returns none if index is out of bounds. Element type must match sequence element type.
+
+Function: secp256k1-recover?
+Version: Clarity 1
+Input: (buff 32), (buff 65)
+Output: (response (buff 33) uint)
+Signature: (secp256k1-recover? message-hash signature)
+Description: Recovers the public key from a message hash and signature. Returns err u1 if signature mismatch, err u2 if invalid signature.
+
+Function: secp256k1-verify
+Version: Clarity 1
+Input: (buff 32), (buff 64) | (buff 65), (buff 33)
+Output: bool
+Signature: (secp256k1-verify message-hash signature public-key)
+Description: Verifies that a signature of message-hash was signed by the private key corresponding to public-key.
+
+Function: sha256
+Version: Clarity 1
+Input: buff|uint|int
+Output: (buff 32)
+Signature: (sha256 value)
+Description: Computes SHA256(value). Hashes little-endian for integers.
+
+Function: sha512
+Version: Clarity 1
+Input: buff|uint|int
+Output: (buff 64)
+Signature: (sha512 value)
+Description: Computes SHA512(value). Hashes little-endian for integers.
+
+Function: sha512/256
+Version: Clarity 1
+Input: buff|uint|int
+Output: (buff 32)
+Signature: (sha512/256 value)
+Description: Computes SHA512/256(value). Hashes little-endian for integers.
+
+Function: slice?
+Version: Clarity 2
+Input: sequence_A, uint, uint
+Output: (optional sequence_A)
+Signature: (slice? sequence left-position right-position)
+Description: Returns a sub-sequence from left-position (inclusive) to right-position (exclusive). Returns empty sequence if positions are equal. Returns none if out of bounds or right < left.
+
+Function: some
+Version: Clarity 1
+Input: A
+Output: (optional A)
+Signature: (some value)
+Description: Constructs a some optional type.
+
+Function: sqrti
+Version: Clarity 1
+Input: int | uint
+Output: int | uint
+Signature: (sqrti n)
+Description: Returns the largest integer <= square root of n. Fails on negative numbers.
+
+Function: string-to-int?
+Version: Clarity 2
+Input: (string-ascii 1048576) | (string-utf8 262144)
+Output: (optional int)
+Signature: (string-to-int? string-value)
+Description: Converts a string to an optional signed integer. Returns none if invalid integer string. (Stacks 2.1+)
+
+Function: string-to-uint?
+Version: Clarity 2
+Input: (string-ascii 1048576) | (string-utf8 262144)
+Output: (optional uint)
+Signature: (string-to-uint? string-value)
+Description: Converts a string to an optional unsigned integer. Returns none if invalid integer string. (Stacks 2.1+)
+
+Function: stx-account
+Version: Clarity 2
+Input: principal
+Output: (tuple (locked uint) (unlock-height uint) (unlocked uint))
+Signature: (stx-account owner)
+Description: Queries the STX account balance and lock status for a principal.
+
+Function: stx-burn?
+Version: Clarity 1
+Input: uint, principal
+Output: (response bool uint)
+Signature: (stx-burn? amount sender)
+Description: Decreases sender's STX balance by amount, destroying STX. Sender must be tx-sender. Returns (ok true) on success, err code on failure.
+
+Function: stx-get-balance
+Version: Clarity 1
+Input: principal
+Output: uint
+Signature: (stx-get-balance owner)
+Description: Returns the total STX balance (unlocked + locked) for a principal in microstacks.
+
+Function: stx-transfer-memo?
+Version: Clarity 2
+Input: uint, principal, principal, buff
+Output: (response bool uint)
+Signature: (stx-transfer-memo? amount sender recipient memo)
+Description: Transfers STX with an attached memo. Similar to stx-transfer?.
+
+Function: stx-transfer?
+Version: Clarity 1
+Input: uint, principal, principal
+Output: (response bool uint)
+Signature: (stx-transfer? amount sender recipient)
+Description: Transfers STX from sender to recipient in microstacks. Sender must be tx-sender. Returns (ok true) on success, err code on failure.
+
+Function: to-consensus-buff?
+Version: Clarity 2
+Input: any
+Output: (optional buff)
+Signature: (to-consensus-buff? value)
+Description: Serializes a Clarity value into a buffer using SIP-005 encoding. Returns none if serialization exceeds max buffer size.
+
+Function: to-int
+Version: Clarity 1
+Input: uint
+Output: int
+Signature: (to-int u)
+Description: Converts a uint to an int. Aborts if uint is >= 2^127.
+
+Function: to-uint
+Version: Clarity 1
+Input: int
+Output: uint
+Signature: (to-uint i)
+Description: Converts an int to a uint. Aborts if int is negative.
+
+Function: try!
+Version: Clarity 1
+Input: (optional A) | (response A B)
+Output: A
+Signature: (try! option-input)
+Description: Unpacks optional or response. Returns inner value if some/ok. Returns none/err and exits if none/err.
+
+Function: tuple
+Version: Clarity 1
+Input: (key-name A), (key-name-2 B), ...
+Output: (tuple (key-name A) (key-name-2 B) ...)
+Signature: (tuple (key0 expr0) (key1 expr1) ...) or {key0: expr0, key1: expr, ...}
+Description: Constructs a typed tuple from key/expression pairs.
+
+Function: unwrap!
+Version: Clarity 1
+Input: (optional A) | (response A B), C
+Output: A
+Signature: (unwrap! option-input thrown-value)
+Description: Unpacks optional or response. Returns inner value if some/ok. Returns thrown-value and exits if none/err.
+
+Function: unwrap-err!
+Version: Clarity 1
+Input: (response A B), C
+Output: B
+Signature: (unwrap-err! response-input thrown-value)
+Description: Unpacks an err response. Returns inner value if err. Returns thrown-value and exits if ok.
+
+Function: unwrap-err-panic
+Version: Clarity 1
+Input: (response A B)
+Output: B
+Signature: (unwrap-err-panic response-input)
+Description: Unpacks an err response. Returns inner value if err. Throws runtime error if ok.
+
+Function: unwrap-panic
+Version: Clarity 1
+Input: (optional A) | (response A B)
+Output: A
+Signature: (unwrap-panic option-input)
+Description: Unpacks optional or response. Returns inner value if some/ok. Throws runtime error if none/err.
+
+Function: use-trait
+Version: Clarity 1
+Input: VarName, TraitIdentifier
+Output: Not Applicable
+Signature: (use-trait trait-alias trait-identifier)
+Description: Imports a trait definition from another contract using an alias. Top-level only.
+
+Function: var-get
+Version: Clarity 1
+Input: VarName
+Output: A
+Signature: (var-get var-name)
+Description: Looks up and returns the value of a data variable.
+
+Function: var-set
+Version: Clarity 1
+Input: VarName, AnyType
+Output: bool
+Signature: (var-set var-name expr1)
+Description: Sets the value of a data variable. Always returns true.
+
+Function: xor
+Version: Clarity 1
+Input: int, int | uint, uint | string-ascii, string-ascii | string-utf8, string-utf8 | buff, buff
+Output: int | uint
+Signature: (xor i1 i2)
+Description: Returns the result of bitwise exclusive ORing two values.
+```
