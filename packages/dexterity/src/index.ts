@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createBlazeClient, Blaze, StacksService } from "@repo/blaze";
+import { callReadOnlyFunction } from '@repo/polyglot'
 import { Cryptonomicon, Token, MetadataServiceConfig } from "@repo/cryptonomicon"; // Adjust path as needed
 import {
   bufferCV,
@@ -32,6 +33,8 @@ export interface Vault {
   engineContractId: string;
   tokenA: Token;
   tokenB: Token;
+  reservesA: number;
+  reservesB: number;
 }
 
 /**
@@ -409,6 +412,25 @@ export class Dexterity {
         return null;
       }
 
+      // Fetch reserves
+      let reservesA = 0;
+      let reservesB = 0;
+      try {
+        const reservesResult = await callReadOnlyFunction(
+          contractAddress, contractName,
+          'get-reserves-quote',
+          []
+        );
+        reservesA = Number(reservesResult.dx.value);
+        reservesB = Number(reservesResult.dy.value);
+
+      } catch (reserveError) {
+        if (this.cryptonomicon.config?.debug) {
+          console.warn(`Could not fetch reserves for ${contractId}:`, reserveError);
+        }
+        // Keep reserves as 0 if fetching fails
+      }
+
       // Create the vault object
       const vault: Vault = {
         contractId,
@@ -416,15 +438,17 @@ export class Dexterity {
         contractName,
         name: metadata.name,
         symbol: metadata.symbol,
-        decimals: metadata.decimals,
-        identifier: metadata.identifier,
+        decimals: metadata.decimals!,
+        identifier: metadata.identifier!,
         description: metadata.description || "",
         image: metadata.image || "",
         fee: metadata.lpRebatePercent ? Math.floor((Number(metadata.lpRebatePercent) / 100) * 1000000) : 0,
         externalPoolId: metadata.externalPoolId || "",
         engineContractId: metadata.engineContractId || "",
         tokenA: tokenAInfo,
-        tokenB: tokenBInfo
+        tokenB: tokenBInfo,
+        reservesA, // Assign fetched reserves
+        reservesB  // Assign fetched reserves
       };
 
       return vault;
@@ -922,9 +946,9 @@ export class Dexterity {
           : Pc.principal(sender).willSendLte(amount).ustx();
     }
     return condition === 'eq'
-      ? Pc.principal(sender).willSendEq(amount).ft(token.contractId as any, token.identifier)
-      : condition === 'gte' ? Pc.principal(sender).willSendGte(amount).ft(token.contractId as any, token.identifier)
-        : Pc.principal(sender).willSendLte(amount).ft(token.contractId as any, token.identifier);
+      ? Pc.principal(sender).willSendEq(amount).ft(token.contractId as any, token.identifier!)
+      : condition === 'gte' ? Pc.principal(sender).willSendGte(amount).ft(token.contractId as any, token.identifier!)
+        : Pc.principal(sender).willSendLte(amount).ft(token.contractId as any, token.identifier!);
   }
 
   /**

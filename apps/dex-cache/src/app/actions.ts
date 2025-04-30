@@ -51,24 +51,28 @@ export async function removeVaultFromList(contractId: string) {
 /** Force refresh vault data */
 export async function refreshVaultData(contractId: string) {
     if (!contractId) return { success: false, error: 'ContractId required' };
+    console.log(`Starting forced refresh for vault: ${contractId}`);
     try {
-        // Can't use getVaultData anymore since it doesn't have forceRefresh param
-        // Instead, let's use previewVault + confirmVault for a complete refresh
-        const preview = await previewVault(contractId);
-        if (!preview.success || !preview.lpToken || !preview.tokenA || !preview.tokenB) {
-            return { success: false, error: preview.error || 'Failed to fetch data for refresh' };
+        // Directly call getVaultData with refresh = true.
+        // This triggers the reserve fetching logic (primary + backup) inside getVaultData.
+        const refreshedVault = await getVaultData(contractId, true);
+
+        if (refreshedVault) {
+            // getVaultData handles saving the updated vault back to KV asynchronously
+            // if reserves were successfully updated.
+            console.log(`Refresh process initiated for ${contractId}. Revalidating path.`);
+            revalidatePath('/'); // Revalidate UI
+            return { success: true };
+        } else {
+            // This case might occur if the vault wasn't found in cache initially
+            // or if there was an error reading the cache within getVaultData.
+            console.error(`Refresh failed for ${contractId}: Vault not found or cache error during refresh process.`);
+            return { success: false, error: 'Vault not found or failed to process during refresh.' };
         }
 
-        const confirm = await confirmVault(contractId, preview.lpToken, preview.tokenA, preview.tokenB);
-        if (!confirm.success) {
-            return { success: false, error: confirm.error || 'Failed to save refreshed vault' };
-        }
-
-        revalidatePath('/');
-        return { success: true };
     } catch (error: any) {
-        console.error('Failed refresh vault', error);
-        return { success: false, error: error.message || 'Failed' };
+        console.error(`Failed refresh vault ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed during refresh' };
     }
 }
 
@@ -198,7 +202,7 @@ export async function previewVault(contractId: string): Promise<{
         }
 
         // 6. Use OpenAI to parse and normalize the data
-        console.log(`Step 4: Using AI to parse and normalize token data`);
+        console.log(`Step 4: Parsing and normalizing token data`);
         try {
             const parsedData = await parseTokenMetadata(lpToken, tokenA, tokenB);
 
@@ -272,6 +276,8 @@ export async function confirmVault(
                 engineContractId: lpToken.engineContractId || "",
                 tokenA,
                 tokenB,
+                reservesA: lpToken.reservesA || 0,
+                reservesB: lpToken.reservesB || 0
             };
         }
 
@@ -291,6 +297,8 @@ export async function confirmVault(
             symbol: vault.symbol,
             tokenA: { name: vault.tokenA?.name, symbol: vault.tokenA?.symbol },
             tokenB: { name: vault.tokenB?.name, symbol: vault.tokenB?.symbol },
+            reservesA: vault.reservesA,
+            reservesB: vault.reservesB
         });
 
         // 2. Save vault

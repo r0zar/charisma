@@ -49,4 +49,24 @@ describe("callReadOnlyFunction", () => {
     );
     console.log(result)
   });
+
+  it('should get reserves quote', async () => {
+    const result = await callReadOnlyFunction(
+      'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+      'the-sneaky-link',
+      'get-reserves-quote',
+      []
+    );
+    console.log('result', result);
+  })
+
+  it('should get balance', async () => {
+    const result = await callReadOnlyFunction(
+      'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+      'charisma-token',
+      'get-balance',
+      [principalCV('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link')]
+    );
+    console.log('result', result);
+  })
 });

@@ -2,7 +2,6 @@
 
 import { describe, it, expect, beforeAll, jest } from "@jest/globals";
 import { Dexterity, OPCODES, SwapOptions } from "..";
-import 'dotenv/config';
 
 // Test/fake private key
 const TEST_PRIVATE_KEY =
@@ -45,7 +44,7 @@ describe("@repo/dexterity", () => {
 
   // Test building a specific vault
   it('builds a vault by address', async () => {
-    const contractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
+    const contractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link';
     const vault = await Dexterity.buildVault(contractId);
 
     expect(vault).toBeDefined();
@@ -56,7 +55,9 @@ describe("@repo/dexterity", () => {
     console.log(`Vault ${vault?.name}:`, {
       tokenA: vault?.tokenA.symbol,
       tokenB: vault?.tokenB.symbol,
-      fee: vault?.fee
+      fee: vault?.fee,
+      reservesA: vault?.reservesA,
+      reservesB: vault?.reservesB
     });
   }, 15000);
 

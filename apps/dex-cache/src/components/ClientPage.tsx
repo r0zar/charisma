@@ -5,6 +5,12 @@ import { Vault } from '@repo/dexterity';
 import { useSearchParams } from 'next/navigation';
 import VaultList from './VaultList';
 import { previewVault, confirmVault } from '@/app/actions';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Helper: detect contract id
 const looksLikeContractId = (id: string) => id.includes('.') && id.length > 10;
@@ -121,116 +127,114 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
     };
 
     return (
-        <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 bg-gray-900 text-gray-100">
-            <div className="w-full max-w-6xl mx-auto">
+        <main className="max-w-[2000px] mx-auto flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 bg-background text-foreground">
+            <div className="w-full">
                 <header className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-gray-100">Dex Vault Cache</h1>
-                    <p className="text-gray-400 mt-2">
+                    <h1 className="text-3xl font-bold">Dex Vault Cache</h1>
+                    <p className="text-muted-foreground mt-2">
                         Add LP tokens from token-cache to create Vault objects for the DEX.
                     </p>
-                    <div className="mt-2">
-                        <label className="inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={debugMode}
-                                onChange={() => setDebugMode(!debugMode)}
-                            />
-                            <div className="relative w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            <span className="ml-3 text-sm font-medium text-gray-300">Debug Mode</span>
-                        </label>
+                    <div className="mt-4 flex items-center justify-center space-x-2">
+                        <Switch
+                            id="debug-mode"
+                            checked={debugMode}
+                            onCheckedChange={setDebugMode}
+                        />
+                        <Label htmlFor="debug-mode" className="text-sm font-medium text-muted-foreground">
+                            Debug Mode
+                        </Label>
                     </div>
                 </header>
 
-                {/* Search & Add Section */}
-                <div className="mb-8 bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
-                    {/* Error Message */}
+                {/* Search & Add Section - Apply theme bg/border */}
+                <div className="mb-8 bg-card p-6 rounded-lg shadow-lg border border-border">
+                    {/* Error Message - Use Alert component with destructive variant */}
                     {error && (
-                        <div className="mb-4 p-3 bg-red-900/50 text-red-200 rounded-md border border-red-700">
-                            <strong className="text-red-300">Error:</strong> {error}
-                        </div>
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
                     )}
 
                     {/* Step 1: Input + Preview Button */}
                     {!previewData && (
                         <div className="flex gap-3">
-                            <input
+                            <Input
                                 ref={inputRef}
                                 type="text"
-                                placeholder="Enter LP token contract ID"
-                                className="flex-grow px-3 py-2 border bg-gray-700 border-gray-600 rounded text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Enter LP token contract ID (e.g., SP...contract.token)"
                                 value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                                 disabled={isLoading}
+                                className="flex-grow"
                             />
-                            <button
+                            <Button
                                 onClick={handlePreview}
                                 disabled={!looksLikeContractId(searchTerm) || isLoading}
-                                className="px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? 'Loading...' : 'Preview Vault'}
-                            </button>
+                            </Button>
                         </div>
                     )}
 
                     {/* Step 2: Preview Data & Confirm/Cancel Buttons */}
                     {previewData && (
-                        <div className="animate-fadeIn">
-                            <h2 className="text-lg font-semibold mb-3 text-blue-300">
+                        <div className="animate-fadeIn space-y-6">
+                            <h2 className="text-lg font-semibold text-primary">
                                 Vault Preview
                                 {previewData.suggestedVault && (
-                                    <span className="text-green-300 text-sm ml-2">(AI Enhanced)</span>
+                                    <span className="text-green-500 text-sm ml-2">(AI Enhanced)</span>
                                 )}
                             </h2>
 
-                            {/* Debug Mode: Raw Data Display */}
+                            {/* Debug Mode: Raw Data Display - Apply theme bg/border */}
                             {debugMode && (
-                                <div className="mb-6 p-4 bg-gray-800 rounded-md border border-yellow-900 text-xs font-mono overflow-auto max-h-96">
+                                <div className="mb-6 p-4 bg-muted/50 rounded-md border border-yellow-500/50 text-xs font-mono overflow-auto max-h-96">
                                     <h3 className="font-bold text-md mb-2 text-yellow-400">Debug: Raw Data</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <h4 className="text-yellow-300 mb-1">LP Token:</h4>
-                                            <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(previewData.lpToken, null, 2)}</pre>
+                                            <pre className="text-muted-foreground whitespace-pre-wrap">{JSON.stringify(previewData.lpToken, null, 2)}</pre>
                                         </div>
                                         <div>
                                             <h4 className="text-yellow-300 mb-1">Token A:</h4>
-                                            <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(previewData.tokenA, null, 2)}</pre>
+                                            <pre className="text-muted-foreground whitespace-pre-wrap">{JSON.stringify(previewData.tokenA, null, 2)}</pre>
                                         </div>
                                         <div>
                                             <h4 className="text-yellow-300 mb-1">Token B:</h4>
-                                            <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(previewData.tokenB, null, 2)}</pre>
+                                            <pre className="text-muted-foreground whitespace-pre-wrap">{JSON.stringify(previewData.tokenB, null, 2)}</pre>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* AI Analysis Section (if available) */}
+                            {/* AI Analysis Section - Use Alert */}
                             {previewData.analysis && (
-                                <div className="mb-6 p-4 bg-gray-800 rounded-md border border-blue-900">
-                                    <h3 className="font-bold text-md mb-2 text-blue-400">AI Analysis</h3>
-                                    <p className="text-sm text-gray-300 whitespace-pre-line">{previewData.analysis}</p>
-                                </div>
+                                <Alert variant="default" className="mb-6 border-blue-500/50 bg-blue-500/5">
+                                    <AlertTitle className="text-blue-400">AI Analysis</AlertTitle>
+                                    <AlertDescription className="text-muted-foreground whitespace-pre-line">
+                                        {previewData.analysis}
+                                    </AlertDescription>
+                                </Alert>
                             )}
 
-                            {/* LP Token Info */}
-                            <div className="mb-6 p-4 bg-gray-700/50 rounded-md border border-gray-700">
+                            {/* LP Token Info - Apply theme bg/border */}
+                            <div className="mb-6 p-4 bg-muted/30 rounded-md border border-border">
                                 <div className="flex flex-col md:flex-row gap-4">
-                                    {/* LP Token Image */}
                                     {previewData.lpToken.image && (
                                         <div className="flex-shrink-0">
                                             <img
                                                 src={previewData.lpToken.image}
                                                 alt={`${previewData.lpToken.name} logo`}
-                                                className="w-24 h-24 rounded-md object-contain bg-white/10 p-2"
+                                                className="w-24 h-24 rounded-md object-contain bg-background/50 p-2 border border-border"
                                             />
                                         </div>
                                     )}
-
                                     <div className="flex-grow">
-                                        <h3 className="font-bold text-md mb-2 text-blue-200">
+                                        <h3 className="font-bold text-md mb-2 text-primary">
                                             LP Token: {previewData.lpToken.name} ({previewData.lpToken.symbol})
                                         </h3>
-                                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-300">
+                                        <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                                             <div>
                                                 <span className="font-medium text-gray-400">Contract:</span> {searchTerm}
                                             </div>
@@ -260,29 +264,26 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
                                 </div>
                             </div>
 
-                            {/* Token A/B Side by Side */}
+                            {/* Token A/B Side by Side - Apply theme bg/border */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                 {/* Token A */}
-                                <div className="p-4 bg-blue-900/30 rounded-md border border-blue-900/50">
-                                    <div className="flex flex-col gap-3">
-                                        {/* Token A Image */}
+                                <div className="p-4 bg-primary/5 rounded-md border border-primary/20">
+                                    <div className="flex flex-col gap-3 items-center">
                                         {previewData.tokenA.image && (
-                                            <div className="flex justify-center">
-                                                <img
-                                                    src={previewData.tokenA.image}
-                                                    alt={`${previewData.tokenA.name} logo`}
-                                                    className="w-16 h-16 rounded-md object-contain bg-blue-800/30 p-2"
-                                                />
-                                            </div>
+                                            <img
+                                                src={previewData.tokenA.image}
+                                                alt={`${previewData.tokenA.name} logo`}
+                                                className="w-16 h-16 rounded-md object-contain bg-background/50 p-2 border border-border"
+                                            />
                                         )}
-
-                                        <div>
-                                            <h3 className="font-bold text-md mb-2 text-blue-300">
+                                        <div className="text-center">
+                                            <h3 className="font-bold text-md mb-2 text-primary">
                                                 Token A: {previewData.tokenA.name} ({previewData.tokenA.symbol})
                                             </h3>
-                                            <div className="text-sm text-gray-300 space-y-1">
+                                            <div className="text-sm text-muted-foreground space-y-1">
                                                 <div><span className="font-medium text-gray-400">Contract:</span> {previewData.tokenA.contract_principal || previewData.tokenA.contractId || "Unknown"}</div>
                                                 <div><span className="font-medium text-gray-400">Decimals:</span> {previewData.tokenA.decimals}</div>
+                                                <div><span className="font-medium text-gray-400">Reserves:</span> {previewData.tokenA.reservesA} / {previewData.tokenA.reservesB}</div>
                                                 {previewData.tokenA.identifier && (
                                                     <div><span className="font-medium text-gray-400">Identifier:</span> {previewData.tokenA.identifier}</div>
                                                 )}
@@ -299,26 +300,23 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
                                 </div>
 
                                 {/* Token B */}
-                                <div className="p-4 bg-purple-900/30 rounded-md border border-purple-900/50">
-                                    <div className="flex flex-col gap-3">
-                                        {/* Token B Image */}
+                                <div className="p-4 bg-secondary/5 rounded-md border border-secondary/20">
+                                    <div className="flex flex-col gap-3 items-center">
                                         {previewData.tokenB.image && (
-                                            <div className="flex justify-center">
-                                                <img
-                                                    src={previewData.tokenB.image}
-                                                    alt={`${previewData.tokenB.name} logo`}
-                                                    className="w-16 h-16 rounded-md object-contain bg-purple-800/30 p-2"
-                                                />
-                                            </div>
+                                            <img
+                                                src={previewData.tokenB.image}
+                                                alt={`${previewData.tokenB.name} logo`}
+                                                className="w-16 h-16 rounded-md object-contain bg-background/50 p-2 border border-border"
+                                            />
                                         )}
-
-                                        <div>
-                                            <h3 className="font-bold text-md mb-2 text-purple-300">
+                                        <div className="text-center">
+                                            <h3 className="font-bold text-md mb-2 text-secondary">
                                                 Token B: {previewData.tokenB.name} ({previewData.tokenB.symbol})
                                             </h3>
-                                            <div className="text-sm text-gray-300 space-y-1">
+                                            <div className="text-sm text-muted-foreground space-y-1">
                                                 <div><span className="font-medium text-gray-400">Contract:</span> {previewData.tokenB.contract_principal || previewData.tokenB.contractId || "Unknown"}</div>
                                                 <div><span className="font-medium text-gray-400">Decimals:</span> {previewData.tokenB.decimals}</div>
+                                                <div><span className="font-medium text-gray-400">Reserves:</span> {previewData.tokenB.reservesA} / {previewData.tokenB.reservesB}</div>
                                                 {previewData.tokenB.identifier && (
                                                     <div><span className="font-medium text-gray-400">Identifier:</span> {previewData.tokenB.identifier}</div>
                                                 )}
@@ -337,20 +335,21 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
 
                             {/* Action Buttons */}
                             <div className="flex justify-end gap-3">
-                                <button
+                                <Button
+                                    variant="outline"
                                     onClick={handleCancelPreview}
                                     disabled={isLoading}
-                                    className="px-4 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600"
                                 >
                                     Cancel
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleConfirm}
                                     disabled={isLoading}
-                                    className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800"
+                                    variant="default" // Use default variant, can override bg if needed
+                                    className="bg-green-600 hover:bg-green-700" // Keep green confirm
                                 >
                                     {isLoading ? 'Saving...' : (previewData.suggestedVault ? 'Confirm & Save AI-Enhanced Vault' : 'Confirm & Save Vault')}
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     )}

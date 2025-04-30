@@ -1,9 +1,15 @@
 import { kv } from "@vercel/kv";
 import { Vault } from "@repo/dexterity";
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { principalCV, cvToValue, ClarityType } from '@stacks/transactions';
 
 // Cache constants
 const CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
 export const VAULT_LIST_KEY = "vault-list:dex";
+const RESERVE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Define an extended Vault type for internal use with timestamp
+type CachedVault = Vault & { reservesLastUpdatedAt?: number };
 
 // Helper to get the list of managed vault IDs
 export const getManagedVaultIds = async (): Promise<string[]> => {
@@ -84,32 +90,329 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
     }
 };
 
-// Read a vault from KV cache
-export const getVaultData = async (contractId: string, refresh?: boolean): Promise<Vault | null> => {
-    // Special exception for .stx or other special tokens
+// Helper function to build a vault structure from token metadata
+// This is similar to parts of confirmVault, but doesn't save, just constructs
+// It also doesn't rely on AI suggestions for this core path.
+function buildVaultStructureFromTokens(
+    contractId: string,
+    lpToken: any,
+    tokenA: any,
+    tokenB: any
+): CachedVault | null {
+    try {
+        const [contractAddress, contractName] = contractId.split('.');
+        if (!contractAddress || !contractName) {
+            console.error(`[buildVaultStructure] Invalid contractId format: ${contractId}`);
+            return null;
+        }
+        if (!lpToken || !tokenA || !tokenB) {
+            console.error(`[buildVaultStructure] Missing token data for ${contractId}`);
+            return null;
+        }
+
+        // Basic validation of required token fields
+        if (!tokenA.contractId || !tokenB.contractId || !lpToken.decimals || !lpToken.name || !lpToken.symbol) {
+            console.error(`[buildVaultStructure] Incomplete token metadata for ${contractId}`);
+            return null;
+        }
+
+
+        return {
+            contractId,
+            contractAddress,
+            contractName,
+            name: lpToken.name,
+            symbol: lpToken.symbol,
+            decimals: lpToken.decimals,
+            identifier: lpToken.identifier || '',
+            description: lpToken.description || "",
+            image: lpToken.image || "",
+            // Attempt to get fee - needs refinement based on actual lpToken structure
+            fee: lpToken.fee || (lpToken.properties?.fee) || 0, // Example placeholder
+            externalPoolId: lpToken.externalPoolId || (lpToken.properties?.externalPoolId) || "", // Example placeholder
+            engineContractId: lpToken.engineContractId || (lpToken.properties?.engineContractId) || "", // Example placeholder
+            tokenA,
+            tokenB,
+            reservesA: 0, // Initialize reserves, will be fetched later
+            reservesB: 0,
+            reservesLastUpdatedAt: 0 // Indicate reserves haven't been fetched yet
+        };
+    } catch (error) {
+        console.error(`[buildVaultStructure] Error constructing vault for ${contractId}:`, error);
+        return null;
+    }
+}
+
+// Helper to fetch and update reserves, trying primary then backup method
+async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedVault> {
+    const now = Date.now();
+    const contractId = cachedVault.contractId;
+    const [contractAddress, contractName] = contractId.split('.');
+    let reservesUpdated = false;
+    let primaryError: Error | null = null;
+
+    console.log(`Attempting to refresh reserves for ${contractId}...`);
+
+    // 1. Primary attempt: get-reserves-quote
+    try {
+        const reservesResult = await callReadOnlyFunction(
+            contractAddress, contractName,
+            'get-reserves-quote',
+            []
+        );
+
+        // Using dx/dy as fallback if reserve-a/reserve-b not present
+        const dxValue = reservesResult?.dx?.value;
+        const dyValue = reservesResult?.dy?.value;
+
+        const liveReservesA = dxValue !== null ? Number(dxValue) : (dyValue !== undefined ? Number(dyValue) : null);
+        const liveReservesB = dyValue !== null ? Number(dyValue) : (dxValue !== undefined ? Number(dxValue) : null);
+
+
+        if (liveReservesA !== null && liveReservesB !== null && !isNaN(liveReservesA) && !isNaN(liveReservesB) && liveReservesA > 0 && liveReservesB > 0) {
+            cachedVault.reservesA = liveReservesA;
+            cachedVault.reservesB = liveReservesB;
+            cachedVault.reservesLastUpdatedAt = now;
+            reservesUpdated = true;
+            console.log(`Successfully updated reserves via get-reserves-quote for ${contractId}: A=${liveReservesA}, B=${liveReservesB}.`);
+        } else {
+            console.warn(`Invalid or incomplete reserves structure from get-reserves-quote for ${contractId}:`, reservesResult);
+            // Set error to indicate primary method failed structurally, even if no exception was thrown
+            primaryError = new Error("Invalid structure from get-reserves-quote");
+        }
+    } catch (error) {
+        primaryError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`Primary reserve fetch (get-reserves-quote) failed for ${contractId}:`, primaryError.message);
+    }
+
+    // 2. Backup attempt: get-balance or STX balance (only if primary failed)
+    if (!reservesUpdated) {
+        console.warn(`Primary reserve fetch failed for ${contractId}. Attempting backup method...`);
+
+        const isTokenAStx = cachedVault.tokenA?.contractId === '.stx';
+        const isTokenBStx = cachedVault.tokenB?.contractId === '.stx';
+
+        if (!cachedVault.tokenA?.contractId || !cachedVault.tokenB?.contractId) {
+            console.error(`Cannot use backup method for ${contractId}: Missing token contract IDs.`);
+        } else {
+            try {
+                let backupReservesA: number | null = null;
+                let backupReservesB: number | null = null;
+
+                const vaultPrincipalAddress = contractId; // The vault's principal address IS its contractId
+
+                // --- Fetch Backup Reserve A ---
+                if (isTokenAStx) {
+                    console.log(`Fetching STX balance (Token A) for vault ${vaultPrincipalAddress}...`);
+                    try {
+                        const response = await fetch(`https://api.hiro.so/extended/v1/address/${vaultPrincipalAddress}/stx`);
+                        if (!response.ok) {
+                            throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
+                        }
+                        const data = await response.json();
+                        backupReservesA = data.balance ? Number(data.balance) : null;
+                        if (backupReservesA === null || isNaN(backupReservesA)) {
+                            console.error(`Invalid STX balance data received for ${vaultPrincipalAddress}:`, data);
+                            backupReservesA = null;
+                        }
+                    } catch (stxError) {
+                        console.error(`Failed fetching STX balance (Token A) for ${vaultPrincipalAddress}:`, stxError);
+                        backupReservesA = null;
+                    }
+                } else {
+                    console.log(`Fetching SIP10 balance (Token A: ${cachedVault.tokenA.contractId}) for vault ${vaultPrincipalAddress}...`);
+                    const [tokenAAddr, tokenAName] = cachedVault.tokenA.contractId.split('.');
+                    const balanceAResultCV = await callReadOnlyFunction(
+                        tokenAAddr, tokenAName, 'get-balance', [principalCV(vaultPrincipalAddress)]
+                    );
+                    // Revert to simpler parsing as requested
+                    const balanceAValue = balanceAResultCV?.value; // Assuming .value holds the direct balance
+                    backupReservesA = balanceAValue !== undefined && balanceAValue !== null && !isNaN(Number(balanceAValue)) ? Number(balanceAValue) : null;
+                    if (backupReservesA === null) {
+                        // Keep the error log, but adjust message slightly
+                        console.error(`Failed fetching SIP10 balance (Token A) or invalid value for ${cachedVault.tokenA.contractId} held by ${vaultPrincipalAddress}. Raw Result:`, balanceAResultCV);
+                    }
+                }
+
+                // --- Fetch Backup Reserve B ---
+                if (isTokenBStx) {
+                    console.log(`Fetching STX balance (Token B) for vault ${vaultPrincipalAddress}...`);
+                    try {
+                        const response = await fetch(`https://api.hiro.so/extended/v1/address/${vaultPrincipalAddress}/stx`);
+                        if (!response.ok) {
+                            throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
+                        }
+                        const data = await response.json();
+                        backupReservesB = data.balance ? Number(data.balance) : null;
+                        if (backupReservesB === null || isNaN(backupReservesB)) {
+                            console.error(`Invalid STX balance data received for ${vaultPrincipalAddress}:`, data);
+                            backupReservesB = null;
+                        }
+                    } catch (stxError) {
+                        console.error(`Failed fetching STX balance (Token B) for ${vaultPrincipalAddress}:`, stxError);
+                        backupReservesB = null;
+                    }
+                } else {
+                    console.log(`Fetching SIP10 balance (Token B: ${cachedVault.tokenB.contractId}) for vault ${vaultPrincipalAddress}...`);
+                    const [tokenBAddr, tokenBName] = cachedVault.tokenB.contractId.split('.');
+                    const balanceBResultCV = await callReadOnlyFunction(
+                        tokenBAddr, tokenBName, 'get-balance', [principalCV(vaultPrincipalAddress)]
+                    );
+                    // Revert to simpler parsing as requested
+                    const balanceBValue = balanceBResultCV?.value; // Assuming .value holds the direct balance
+                    backupReservesB = balanceBValue !== undefined && balanceBValue !== null && !isNaN(Number(balanceBValue)) ? Number(balanceBValue) : null;
+                    if (backupReservesB === null) {
+                        // Keep the error log, but adjust message slightly
+                        console.error(`Failed fetching SIP10 balance (Token B) or invalid value for ${cachedVault.tokenB.contractId} held by ${vaultPrincipalAddress}. Raw Result:`, balanceBResultCV);
+                    }
+                }
+
+                // --- Update Vault if successful ---
+                if (backupReservesA !== null && backupReservesB !== null) {
+                    cachedVault.reservesA = backupReservesA;
+                    cachedVault.reservesB = backupReservesB;
+                    cachedVault.reservesLastUpdatedAt = now;
+                    reservesUpdated = true;
+                    console.log(`Successfully updated reserves via backup (get-balance/STX) for ${contractId}: A=${backupReservesA}, B=${backupReservesB}.`);
+                } else {
+                    console.error(`Backup reserve fetch failed for ${contractId}: One or both balances could not be determined.`);
+                }
+
+            } catch (backupError) {
+                // Catch errors from splitting contract IDs or other unexpected issues
+                console.error(`Unexpected error during backup reserve fetch for ${contractId}:`, backupError);
+                if (primaryError) {
+                    console.error(`Primary fetch also failed: ${primaryError.message}`);
+                }
+            }
+        }
+    }
+
+    // 3. Finalize: Ensure reserves are numbers and return
+    cachedVault.reservesA = Number(cachedVault.reservesA || 0);
+    cachedVault.reservesB = Number(cachedVault.reservesB || 0);
+
+    if (!reservesUpdated) {
+        console.warn(`Failed to update reserves for ${contractId} using both methods. Returning potentially stale data.`);
+    }
+
+    return cachedVault;
+}
+
+// Read a vault from KV cache, revalidating reserves periodically
+export const getVaultData = async (contractId: string, refresh: boolean = false): Promise<Vault | null> => {
     const isSpecialToken = contractId === '.stx';
     if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
         console.warn(`Invalid contractId format passed to getVaultData: ${contractId}`);
         return null;
     }
     const cacheKey = getCacheKey(contractId);
+
     try {
-        const cached = await kv.get<Vault>(cacheKey);
+        // Attempt to get raw string data first for robust parsing
+        const rawCachedData = await kv.get<string | CachedVault>(cacheKey);
+        let cached: CachedVault | null = null;
+
+        if (!refresh && typeof rawCachedData === 'string') { // Only parse if not forcing refresh
+            try {
+                cached = JSON.parse(rawCachedData) as CachedVault;
+            } catch (parseError) {
+                console.error(`Failed to parse cached data for ${contractId}:`, parseError);
+                cached = null; // Treat as cache miss if parse fails
+            }
+        } else if (!refresh && typeof rawCachedData === 'object' && rawCachedData !== null) { // Only use if not forcing refresh
+            cached = rawCachedData as CachedVault;
+        }
+
+        // --- Logic Branching ---
+
+        // Branch 1: Cache Hit and No Refresh Requested
         if (cached && !refresh) {
-            console.log(`Cache hit for vault ${contractId}`);
-            return cached;
-        } else {
-            console.log(`Cache miss for vault ${contractId}`);
-            return null;
+            const now = Date.now();
+            const lastUpdated = cached.reservesLastUpdatedAt || 0;
+            const needsReserveRefresh = (now - lastUpdated) > RESERVE_REFRESH_INTERVAL_MS;
+
+            if (needsReserveRefresh) {
+                console.log(`[Cache Hit - Stale] Vault ${contractId}. Refreshing reserves...`);
+                const updatedCached = await fetchAndUpdateReserves(cached);
+                // Asynchronously save back to cache
+                saveVaultData(updatedCached).catch(saveErr => {
+                    console.error(`Failed async save after stale refresh for ${contractId}:`, saveErr);
+                });
+                return updatedCached;
+            } else {
+                console.log(`[Cache Hit - Fresh] Vault ${contractId}. Reserves are fresh.`);
+                cached.reservesA = Number(cached.reservesA || 0);
+                cached.reservesB = Number(cached.reservesB || 0);
+                return cached;
+            }
+        }
+        // Branch 2: Cache Miss OR Refresh Requested
+        else {
+            console.log(refresh ? `[Refresh Requested] Vault ${contractId}` : `[Cache Miss] Vault ${contractId}`);
+            console.log(`Fetching vault data from scratch for ${contractId}...`);
+
+            // 1. Fetch LP Token
+            const lpToken = await fetchTokenFromCache(contractId);
+            if (!lpToken) {
+                console.error(`[Fetch Scratch] Failed to fetch LP token ${contractId}`);
+                return null;
+            }
+
+            // 2. Extract underlying token contracts
+            const tokenAContract = lpToken.tokenAContract || (lpToken.properties?.tokenAContract) || (lpToken.tokenA?.contractId) || (lpToken.tokenA?.contract_principal);
+            const tokenBContract = lpToken.tokenBContract || (lpToken.properties?.tokenBContract) || (lpToken.tokenB?.contractId) || (lpToken.tokenB?.contract_principal);
+
+            if (!tokenAContract || !tokenBContract) {
+                console.error(`[Fetch Scratch] LP token ${contractId} missing underlying contract IDs.`);
+                return null;
+            }
+
+            // 3. Fetch Underlying Tokens
+            const [tokenA, tokenB] = await Promise.all([
+                fetchTokenFromCache(tokenAContract),
+                fetchTokenFromCache(tokenBContract)
+            ]);
+
+            if (!tokenA || !tokenB) {
+                console.error(`[Fetch Scratch] Failed to fetch one or both underlying tokens for ${contractId} (A: ${tokenAContract}, B: ${tokenBContract})`);
+                return null;
+            }
+
+            // Assign contractId if missing (can happen if fetched directly)
+            if (!tokenA.contractId) tokenA.contractId = tokenAContract;
+            if (!tokenB.contractId) tokenB.contractId = tokenBContract;
+
+
+            // 4. Build Initial Vault Structure
+            const initialVault = buildVaultStructureFromTokens(contractId, lpToken, tokenA, tokenB);
+            if (!initialVault) {
+                console.error(`[Fetch Scratch] Failed to build initial vault structure for ${contractId}`);
+                return null;
+            }
+
+            // 5. Fetch Reserves for the new structure
+            console.log(`[Fetch Scratch] Fetching reserves for newly built vault ${contractId}...`);
+            const vaultWithReserves = await fetchAndUpdateReserves(initialVault);
+
+            // 6. Save the complete vault data to cache
+            console.log(`[Fetch Scratch] Saving fully constructed vault ${contractId} to cache...`);
+            const saved = await saveVaultData(vaultWithReserves);
+            if (!saved) {
+                // Log error, but still return the data if we have it
+                console.error(`[Fetch Scratch] Failed to save vault ${contractId} to cache, but returning fetched data.`);
+            }
+
+            return vaultWithReserves; // Return the newly fetched and constructed vault
         }
     } catch (error) {
-        console.error(`Error reading vault cache for ${contractId}:`, error);
+        console.error(`Error in getVaultData for ${contractId}:`, error);
         return null;
     }
 };
 
-// Save vault to KV cache
-export const saveVaultData = async (vault: Vault): Promise<boolean> => {
+// Save vault to KV cache (accepts extended type)
+export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { // Accept extended type
     if (!vault || !vault.contractId) {
         console.error("Cannot save vault: missing contractId");
         return false;
@@ -117,9 +420,16 @@ export const saveVaultData = async (vault: Vault): Promise<boolean> => {
     try {
         const cacheKey = getCacheKey(vault.contractId);
 
+        // Ensure reserves are numbers and timestamp is set before saving
+        const vaultToSave = {
+            ...vault,
+            reservesA: Number(vault.reservesA || 0),
+            reservesB: Number(vault.reservesB || 0),
+            reservesLastUpdatedAt: vault.reservesLastUpdatedAt || Date.now()
+        };
+
         // Check if the Vercel KV connection is working
         try {
-            // Verify connection by doing a simple ping operation
             await kv.set('dex-cache:ping', 'ping-test', { ex: 60 });
             const pingResult = await kv.get('dex-cache:ping');
             if (pingResult !== 'ping-test') {
@@ -133,7 +443,9 @@ export const saveVaultData = async (vault: Vault): Promise<boolean> => {
 
         // Try to save the vault now that we know the connection works
         try {
-            await kv.set(cacheKey, vault, { ex: CACHE_DURATION_SECONDS });
+            // Use JSON.stringify for saving data to KV
+            await kv.set(cacheKey, JSON.stringify(vaultToSave), { ex: CACHE_DURATION_SECONDS });
+            console.log(`Successfully saved vault ${vault.contractId} to cache.`);
         } catch (setError) {
             console.error('Error during KV.set operation:', setError);
             throw new Error(`KV.set failed: ${setError instanceof Error ? setError.message : 'Unknown error'}`);
@@ -144,8 +456,6 @@ export const saveVaultData = async (vault: Vault): Promise<boolean> => {
             await addVaultIdToManagedList(vault.contractId);
         } catch (listError) {
             console.error('Error adding to managed vault list:', listError);
-            // We don't throw here, as the vault was saved successfully
-            // This is a non-critical error
         }
 
         return true;
@@ -165,22 +475,10 @@ export const getAllVaultData = async (): Promise<Vault[]> => {
         }
 
         console.log(`Fetching ${vaultIds.length} vaults from cache`);
-        const vaults: Vault[] = [];
 
-        // Fetch each vault in parallel
-        const vaultPromises = vaultIds.map(async (id) => {
-            try {
-                const vault = await getVaultData(id);
-                if (vault) {
-                    return vault;
-                }
-                console.warn(`Vault ${id} not found in cache`);
-                return null;
-            } catch (error) {
-                console.error(`Error fetching vault ${id}:`, error);
-                return null;
-            }
-        });
+        // Fetch each vault in parallel using the updated getVaultData
+        // Note: This will trigger reserve revalidation for stale entries
+        const vaultPromises = vaultIds.map(id => getVaultData(id));
 
         const results = await Promise.all(vaultPromises);
         return results.filter((v): v is Vault => v !== null);

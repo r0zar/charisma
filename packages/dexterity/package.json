@@ -34,6 +34,7 @@
   "dependencies": {
     "@repo/blaze": "workspace:*",
     "@repo/cryptonomicon": "workspace:*",
+    "@repo/polyglot": "workspace:*",
     "@stacks/transactions": "^7.0.5"
   },
   "devDependencies": {

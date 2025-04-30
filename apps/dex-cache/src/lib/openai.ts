@@ -79,6 +79,8 @@ export async function parseTokenMetadata(
                           engineContractId: string;
                           tokenA: Token; // First underlying token
                           tokenB: Token; // Second underlying token
+                          reservesA: number;
+                          reservesB: number;
                         }
                         
                         You should calculate the fee from lpRebatePercent, if available, by: Math.floor((lpRebatePercent / 100) * 1_000_000)
@@ -103,8 +105,7 @@ export async function parseTokenMetadata(
                 }
             ],
             response_format: { type: "json_object" },
-            temperature: 0.2,
-            max_tokens: 2048,
+            max_completion_tokens: 2048,
         });
 
         // Parse and return the AI's response
@@ -181,6 +182,8 @@ export async function parseTokenMetadata(
             engineContractId: lpTokenData.engineContractId || lpTokenData.properties?.engineContractId || '',
             tokenA: enhancedTokenA,
             tokenB: enhancedTokenB,
+            reservesA: lpTokenData.reservesA || 0,
+            reservesB: lpTokenData.reservesB || 0
         };
 
         return {
