@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         Dexterity.init({
             privateKey: PRIVATE_KEY,
             apiKey: HIRO_API_KEY, // Use API key for reads
-            debug: true, // Enable debug logging for cron job
+            debug: false, // Enable debug logging for cron job
         });
         console.log('[Cron Job] Dexterity initialized with cron key.');
 
