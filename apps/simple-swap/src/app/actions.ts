@@ -30,7 +30,7 @@ let vaultsLoaded = false;
 /**
  * Load vaults into Dexterity if not already loaded
  */
-async function ensureVaultsLoaded() {
+export async function ensureVaultsLoaded() {
     if (vaultsLoaded) return;
 
     console.log('[Server] Discovering and loading vaults into Dexterity...');
