@@ -108,43 +108,6 @@ export async function getQuote(
 }
 
 /**
- * Server action to execute a swap using Dexterity directly
- */
-export async function executeSwap(
-    route: Route
-): Promise<{ success: boolean; txId?: string; error?: string }> {
-    try {
-        console.log(`[Server] Executing swap with route: ${JSON.stringify(route).substring(0, 100)}...`);
-
-        // Make sure vaults are loaded
-        await ensureVaultsLoaded();
-
-        // Execute the swap using Dexterity
-        const result = await Dexterity.executeSwapRoute(route);
-
-        if (result instanceof Error) {
-            throw result;
-        }
-
-        // Handle different return types from Dexterity
-        const txId = typeof result === 'string'
-            ? result
-            : `tx-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
-
-        return {
-            success: true,
-            txId
-        };
-    } catch (error) {
-        console.error('[Server] Error executing swap:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error occurred'
-        };
-    }
-}
-
-/**
  * Get tokens that have valid swap routes
  * This filters out tokens that can't be used in any swaps
  */
