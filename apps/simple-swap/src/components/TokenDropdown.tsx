@@ -36,7 +36,7 @@ export default function TokenDropdown({ tokens, selected, onSelect, label }: Tok
         if (!search) return tokens;
         const q = search.toLowerCase();
         return tokens.filter(
-            (t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q) || t.contractId.toLowerCase().includes(q)
+            (t) => t.symbol?.toLowerCase()?.includes(q) || t.name?.toLowerCase()?.includes(q) || t.contractId?.toLowerCase()?.includes(q)
         );
     }, [tokens, search]);
 
