@@ -2,10 +2,7 @@
     "crons": [
         {
             "path": "/api/cron/hourly-buy",
-            "schedule": "*/2 * * * *",
-            "headers": {
-                "Authorization": "Bearer ${CRON_SECRET}"
-            }
+            "schedule": "*/2 * * * *"
         }
     ]
 }
