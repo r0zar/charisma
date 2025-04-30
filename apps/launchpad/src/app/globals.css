@@ -1,0 +1,84 @@
+/* ── globals.css ───────────────────────────────────────────── */
+@import "tailwindcss";
+
+/* LIGHT MODE TOKENS (unchanged hues) */
+@theme {
+  --color-primary:              hsl(26 93% 53%);   /* bitcoin orange */
+  --color-primary-foreground:   hsl(48 100% 98%);
+  --color-secondary:            hsl(15 60% 30%);   /* burnt sienna */
+  --color-secondary-foreground: hsl(210 40% 98%);
+  --color-destructive:          hsl(0 72% 51%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-muted:                hsl(220 9% 10%);
+  --color-muted-foreground:     hsl(215 14% 34%);
+  --color-accent:               hsl(210 40% 96.1%);
+  --color-accent-foreground:    hsl(222.2 47.4% 11.2%);
+  --color-border:               hsl(214.3 31.8% 91.4%);
+  --color-input:                var(--color-border);
+  --color-ring:                 var(--color-primary);
+
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(240 10% 3.9%);
+
+  --pattern-color: hsl(0 0% 94.1%); /* Light gray #f0f0f0 */
+
+  --radius: .5rem;
+  --font-sans: system-ui, "Geist Sans", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* aliases so legacy CSS still works */
+  --border: var(--color-border);
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+}
+
+/* DARK MODE OVERRIDES (same hues you used before) */
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+
+  @theme {
+    --color-background: hsl(240 10% 3.9%);
+    --color-foreground: hsl(0 0% 98%);
+    --color-border:     hsl(240 3.7% 15.9%);
+    --color-input:      var(--color-border);
+    --color-ring:       var(--color-primary);
+
+    --pattern-color: hsl(0 0% 0%); /* Dark gray #1a1a1a */
+  }
+}
+
+/* BASE LAYER ------------------------------------------------- */
+@layer base {
+  *     { @apply border-border; }
+  body  {
+    background-color: var(--color-background);
+    color:            var(--color-foreground);
+    font-family:      var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1;
+    text-rendering:   optimizeLegibility;
+  }
+  a     { color: color-mix(in lch,
+                           var(--color-foreground) 70%,
+                           var(--color-secondary)); }
+
+  img, svg, video { display:block; max-inline-size:100%; height:auto; }
+}
+
+/* UTILITIES -------------------------------------------------- */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .safe-area {
+    padding-inline: max(env(safe-area-inset-left),1rem)
+                    max(env(safe-area-inset-right),1rem);
+    padding-block-start: env(safe-area-inset-top);
+    padding-block-end:   env(safe-area-inset-bottom);
+  }
+}
+
+/* FLUID CONTAINER ------------------------------------------- */
+.container{
+  width:100%;
+  margin-inline:auto;
+  padding-inline:clamp(1rem,4vw,2rem);
+  max-width:80rem; /* 1280px */
+}
