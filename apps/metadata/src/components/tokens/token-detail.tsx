@@ -414,7 +414,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
     const displayImageUrl = unsavedImageUrl || imageUrl;
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
             {/* Header with Back Button and Contract ID */}
             <div className="mb-8 flex flex-col space-y-4">
                 <div className="flex items-center justify-between">

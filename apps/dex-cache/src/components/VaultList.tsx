@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins } from 'lucide-react';
+import Link from 'next/link';
 
 // Utility to truncate contract id for display
 const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
@@ -196,31 +197,32 @@ export default function VaultList({ vaults }: Props) {
 
                                 return (
                                     <React.Fragment key={v.contractId}>
-                                        <tr
-                                            className={`${isExpanded ? 'bg-muted/20' : 'hover:bg-muted/10'} cursor-pointer transition-colors`}
-                                            onClick={() => toggleExpand(v.contractId)}
-                                        >
-                                            <td className="p-4 whitespace-nowrap font-medium flex items-center gap-2">
-                                                {v.image && (
-                                                    <div className="flex-shrink-0 h-8 w-8">
-                                                        <img
-                                                            src={v.image}
-                                                            alt={`${v.name} logo`}
-                                                            className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <div className="font-semibold text-foreground">{v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span></div>
-                                                    {lastUpdated && (
-                                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                                            Updated: {formatTimestamp(lastUpdated)}
+                                        <tr className={`${isExpanded ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
+                                            <td className="p-4 whitespace-nowrap font-medium">
+                                                <Link href={`/vaults/${v.contractId}`} className="flex items-center gap-2 group">
+                                                    {v.image && (
+                                                        <div className="flex-shrink-0 h-8 w-8">
+                                                            <img
+                                                                src={v.image}
+                                                                alt={`${v.name} logo`}
+                                                                className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                            />
                                                         </div>
                                                     )}
-                                                </div>
-                                                <span className="ml-auto text-muted-foreground">
+                                                    <div>
+                                                        <div className="font-semibold text-foreground group-hover:text-primary group-hover:underline">
+                                                            {v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span>
+                                                        </div>
+                                                        {lastUpdated && (
+                                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                                Updated: {formatTimestamp(lastUpdated)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </Link>
+                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 rounded hover:bg-accent">
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                                </span>
+                                                </button>
                                             </td>
                                             <td className="p-4 whitespace-nowrap font-mono text-xs">
                                                 <Badge variant="outline">{truncateContractId(v.contractId)}</Badge>
@@ -250,171 +252,60 @@ export default function VaultList({ vaults }: Props) {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-center">
+                                            <td className="p-4 whitespace-nowrap">
                                                 <Badge variant="outline">{(v.fee / 10000).toFixed(2)}%</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <div className="text-xs">
-                                                    <div className="flex items-baseline gap-1 mb-0.5">
-                                                        <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
-                                                        <span className="text-primary font-medium">{formattedReservesA}</span>
-                                                        <span className="text-muted-foreground mr-1">{v.tokenA.symbol}</span>
-                                                        {usdValueA !== null && <span className="text-muted-foreground">({formattedUsdValueA})</span>}
-                                                    </div>
-                                                    <div className="flex items-baseline gap-1">
-                                                        <div className="w-2 h-2 rounded-full bg-secondary flex-shrink-0"></div>
-                                                        <span className="text-secondary font-medium">{formattedReservesB}</span>
-                                                        <span className="text-muted-foreground mr-1">{v.tokenB.symbol}</span>
-                                                        {usdValueB !== null && <span className="text-muted-foreground">({formattedUsdValueB})</span>}
-                                                    </div>
-                                                    {totalUsdValue !== null && (
-                                                        <div className="text-xs mt-1 pt-1 border-t border-border/50 text-muted-foreground">
-                                                            Total: <span className="font-medium text-foreground">{formattedTotalUsdValue}</span>
-                                                        </div>
-                                                    )}
+                                                <div className="flex flex-col items-start">
+                                                    <span className="font-medium text-foreground">
+                                                        {formattedTotalUsdValue}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {formattedReservesA} {v.tokenA.symbol} / {formattedReservesB} {v.tokenB.symbol}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <div className={`
-                                                    inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                                                    ${updateStatus.status === 'fresh' ? 'bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30' :
-                                                        updateStatus.status === 'normal' ? 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/30' :
-                                                            'bg-destructive/10 text-destructive border-destructive/20'}
-                                                `}>
-                                                    <span className={`w-2 h-2 rounded-full mr-1.5
-                                                        ${updateStatus.status === 'fresh' ? 'bg-green-500' :
-                                                            updateStatus.status === 'normal' ? 'bg-yellow-500' :
-                                                                'bg-destructive'}
-                                                    `}></span>
-                                                    {updateStatus.text}
-                                                </div>
+                                                <Badge
+                                                    variant={updateStatus.status === 'stale' ? 'destructive' : 'outline'}
+                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-green-500/50 text-green-600 bg-green-500/10 dark:text-green-400' : ''}`}
+                                                >
+                                                    {updateStatus.status}
+                                                </Badge>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap text-right">
-                                                <div className="flex gap-1 justify-end">
+                                            <td className="p-4 whitespace-nowrap text-right space-x-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => { e.stopPropagation(); handleRefresh(v.contractId); }}
+                                                    disabled={isRefreshing || isRemoving}
+                                                    title="Refresh Vault Data"
+                                                >
+                                                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                                {isDev && (
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        disabled={isRefreshing || isRemoving}
-                                                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRefresh(v.contractId); }}
-                                                        aria-label="Refresh vault"
-                                                        className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                                        onClick={(e) => { e.stopPropagation(); handleRemove(v.contractId); }}
+                                                        disabled={isRemoving || isRefreshing}
+                                                        title="Remove Vault (Dev Only)"
+                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     >
-                                                        {isRefreshing ? <RefreshCw className="animate-spin h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}
+                                                        <Trash2 className="w-4 h-4" />
                                                     </Button>
-                                                    {isDev && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            disabled={isRefreshing || isRemoving}
-                                                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRemove(v.contractId); }}
-                                                            aria-label="Remove vault"
-                                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                                        >
-                                                            {isRemoving ? <RefreshCw className="animate-spin h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                                                        </Button>
-                                                    )}
-                                                </div>
+                                                )}
                                             </td>
                                         </tr>
-
                                         {isExpanded && (
-                                            <tr className="bg-muted/10">
-                                                <td colSpan={7} className="p-0">
-                                                    <div className="p-6 text-sm border-y border-border">
-                                                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                                                            <div className="md:col-span-1 space-y-3">
-                                                                <h4 className="font-semibold text-foreground mb-2">LP Token Details</h4>
-                                                                <div className="space-y-1.5 text-xs text-muted-foreground">
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Contract ID:</span>
-                                                                        <Badge variant="outline" className="font-mono text-xs">{v.contractId}</Badge>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Identifier:</span>
-                                                                        <span>{v.identifier || '—'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Decimals:</span>
-                                                                        <span>{v.decimals}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Fee:</span>
-                                                                        <Badge variant="outline">{(v.fee / 10000).toFixed(2)}%</Badge>
-                                                                    </div>
-                                                                    {totalUsdValue !== null && (
-                                                                        <div className="flex justify-between items-center font-medium pt-1.5 border-t border-border/50">
-                                                                            <span className="text-foreground">Total Value:</span>
-                                                                            <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">{formattedTotalUsdValue}</Badge>
-                                                                        </div>
-                                                                    )}
-                                                                    {v.engineContractId && (
-                                                                        <div className="flex justify-between items-center">
-                                                                            <span>Engine:</span>
-                                                                            <span className="font-mono text-xs bg-accent px-1 rounded">{v.engineContractId}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {v.description && (
-                                                                        <div className="pt-2 text-xs italic border-t border-border/50">
-                                                                            {v.description}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="md:col-span-1 bg-primary/5 p-4 rounded-md border border-primary/20 space-y-3">
-                                                                <h4 className="font-semibold text-primary mb-2 flex items-center">
-                                                                    <img src={v.tokenA.image} alt="" className="w-5 h-5 mr-1.5 rounded-full bg-card p-px border border-border" /> {v.tokenA.name} ({v.tokenA.symbol})
-                                                                </h4>
-                                                                <div className="space-y-1.5 text-xs text-muted-foreground">
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Contract ID:</span>
-                                                                        <Badge variant="outline" className="font-mono text-xs">{v.tokenA.contractId}</Badge>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Decimals:</span>
-                                                                        <span>{v.tokenA.decimals}</span>
-                                                                    </div>
-                                                                    <div className="pt-1.5 border-t border-primary/20">
-                                                                        <div className="flex justify-between items-center">
-                                                                            <span>Reserves:</span>
-                                                                            <span className="text-foreground font-medium text-sm">{formattedReservesA}</span>
-                                                                        </div>
-                                                                        {usdValueA !== null && (
-                                                                            <div className="flex justify-between items-center text-xs">
-                                                                                <span>Value:</span>
-                                                                                <span className="text-green-400 font-medium">{formattedUsdValueA}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="md:col-span-1 bg-secondary/5 p-4 rounded-md border border-secondary/20 space-y-3">
-                                                                <h4 className="font-semibold text-secondary mb-2 flex items-center">
-                                                                    <img src={v.tokenB.image} alt="" className="w-5 h-5 mr-1.5 rounded-full bg-card p-px border border-border" /> {v.tokenB.name} ({v.tokenB.symbol})
-                                                                </h4>
-                                                                <div className="space-y-1.5 text-xs text-muted-foreground">
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Contract ID:</span>
-                                                                        <Badge variant="outline" className="font-mono text-xs">{v.tokenB.contractId}</Badge>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span>Decimals:</span>
-                                                                        <span>{v.tokenB.decimals}</span>
-                                                                    </div>
-                                                                    <div className="pt-1.5 border-t border-secondary/20">
-                                                                        <div className="flex justify-between items-center">
-                                                                            <span>Reserves:</span>
-                                                                            <span className="text-foreground font-medium text-sm">{formattedReservesB}</span>
-                                                                        </div>
-                                                                        {usdValueB !== null && (
-                                                                            <div className="flex justify-between items-center text-xs">
-                                                                                <span>Value:</span>
-                                                                                <span className="text-green-400 font-medium">{formattedUsdValueB}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                            <tr className="bg-muted/30 border-t border-border">
+                                                <td colSpan={7} className="p-4">
+                                                    <div className="text-xs space-y-2">
+                                                        <p><strong>Description:</strong> {v.description || 'N/A'}</p>
+                                                        <p><strong>Token A:</strong> {v.tokenA.contractId} ({formattedReservesA}) ~ {formattedUsdValueA}</p>
+                                                        <p><strong>Token B:</strong> {v.tokenB.contractId} ({formattedReservesB}) ~ {formattedUsdValueB}</p>
+                                                        <p><strong>Engine:</strong> {v.engineContractId || 'N/A'}</p>
+                                                        <p><strong>External ID:</strong> {v.externalPoolId || 'N/A'}</p>
                                                     </div>
                                                 </td>
                                             </tr>

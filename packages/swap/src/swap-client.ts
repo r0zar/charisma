@@ -82,11 +82,11 @@ export function createSwapClient(options: SwapClientOptions = {}) {
     const response = await fetch(url);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const errorData: any = await response.json().catch(() => ({ error: 'Unknown error' }));
       throw new Error(errorData.error || `Failed to fetch data from ${url}`);
     }
 
-    return await response.json();
+    return await response.json() as T;
   }
 
   // Client implementation

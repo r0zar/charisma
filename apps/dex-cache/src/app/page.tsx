@@ -1,4 +1,4 @@
-import { getVaultIds, getVault } from "./actions";
+import { getAllVaultData } from "@/lib/vaultService";
 import ClientWrapper from "@/components/ClientWrapper";
 import { Vault } from "@repo/dexterity";
 import { Metadata } from 'next';
@@ -16,15 +16,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  // Get the list of vault IDs
-  const vaultIds = await getVaultIds();
+  // Fetch all vault data using the optimized service
+  const vaults = await getAllVaultData();
 
-  // Fetch each vault individually
-  const vaultsPromises = vaultIds.map(id => getVault(id));
-  const vaultsResponses = await Promise.all(vaultsPromises);
+  // Filter out nulls just in case, though getAllVaultData should handle this
+  const validVaults = vaults.filter(Boolean) as Vault[];
 
-  // Filter out nulls and cast to Vault[] (nulls are removed by filter(Boolean))
-  const vaults = vaultsResponses.filter(Boolean) as Vault[];
-
-  return <ClientWrapper initialVaults={vaults} />;
+  return <ClientWrapper initialVaults={validVaults} />;
 }

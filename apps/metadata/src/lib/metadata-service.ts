@@ -27,11 +27,20 @@ export type TokenMetadata = z.infer<typeof MetadataSchema> & {
 };
 
 export class MetadataService {
-    // Using "metadata:" prefix instead of "sip10:"
+    // Using "metadata:" prefix for new storage
     private static readonly KEY_PREFIX = 'metadata:';
+    // Legacy prefix for backward compatibility
+    private static readonly LEGACY_KEY_PREFIX = 'sip10:';
 
     static async get(contractId: string): Promise<TokenMetadata> {
-        const metadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
+        // Try to get from metadata prefix first
+        let metadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
+
+        // If not found, try legacy prefix
+        if (!metadata) {
+            metadata = await kv.get<TokenMetadata>(`${this.LEGACY_KEY_PREFIX}${contractId}`);
+        }
+
         console.log(`Metadata: ${JSON.stringify(metadata)}`);
         if (!metadata) {
             console.log('Metadata not found for', contractId);
@@ -42,8 +51,12 @@ export class MetadataService {
 
     static async set(contractId: string, metadata: TokenMetadata) {
         try {
-            // Get existing metadata if it exists
-            const existingMetadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
+            // Get existing metadata if it exists (checking both prefixes)
+            let existingMetadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
+
+            if (!existingMetadata) {
+                existingMetadata = await kv.get<TokenMetadata>(`${this.LEGACY_KEY_PREFIX}${contractId}`);
+            }
 
             // Prepare metadata with updates
             const updatedMetadata = {
@@ -56,7 +69,7 @@ export class MetadataService {
             console.log('Validating metadata', updatedMetadata);
             const validatedMetadata = MetadataSchema.parse(updatedMetadata);
 
-            // Save to KV store
+            // Save to KV store using only the metadata prefix
             await kv.set(`${this.KEY_PREFIX}${contractId}`, validatedMetadata);
 
             return {
@@ -75,10 +88,12 @@ export class MetadataService {
 
     static async delete(contractId: string): Promise<boolean> {
         try {
-            // Delete the key from KV store
-            const deleted = await kv.del(`${this.KEY_PREFIX}${contractId}`);
-            console.log(`Deleted metadata for ${contractId}:`, deleted);
-            return deleted === 1;
+            // Delete the key from KV store (both prefixes)
+            const deletedMetadata = await kv.del(`${this.KEY_PREFIX}${contractId}`);
+            const deletedLegacy = await kv.del(`${this.LEGACY_KEY_PREFIX}${contractId}`);
+
+            console.log(`Deleted metadata for ${contractId}:`, { metadata: deletedMetadata, legacy: deletedLegacy });
+            return deletedMetadata === 1 || deletedLegacy === 1;
         } catch (error) {
             console.error(`Error deleting metadata for ${contractId}:`, error);
             throw new Error(`Failed to delete metadata: ${error instanceof Error ? error.message : String(error)}`);
@@ -86,20 +101,38 @@ export class MetadataService {
     }
 
     static async list(address?: string): Promise<TokenMetadata[]> {
-        // List keys with our prefix
-        const keys = await kv.keys(`${this.KEY_PREFIX}*`);
+        // List keys with both prefixes
+        const metadataKeys = await kv.keys(`${this.KEY_PREFIX}*`);
+        const legacyKeys = await kv.keys(`${this.LEGACY_KEY_PREFIX}*`);
+
+        // Combine keys and remove duplicates (when a key exists in both systems)
+        const allKeys = [...metadataKeys, ...legacyKeys];
+        const uniqueContractIds = new Set<string>();
+        const uniqueKeys: string[] = [];
+
+        allKeys.forEach(key => {
+            let prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
+            const contractId = key.replace(prefix, '');
+
+            if (!uniqueContractIds.has(contractId)) {
+                uniqueContractIds.add(contractId);
+                uniqueKeys.push(key);
+            }
+        });
 
         // Filter by address if provided
         const filteredKeys = address
-            ? keys.filter(key => {
-                const contractId = key.replace(this.KEY_PREFIX, '');
+            ? uniqueKeys.filter(key => {
+                let prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
+                const contractId = key.replace(prefix, '');
                 return contractId.startsWith(address);
             })
-            : keys;
+            : uniqueKeys;
 
         // Get all metadata
         const metadataPromises = filteredKeys.map(async (key) => {
-            const contractId = key.replace(this.KEY_PREFIX, '');
+            let prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
+            const contractId = key.replace(prefix, '');
             const metadata = await kv.get<TokenMetadata>(key);
             if (!metadata) return { contractId } as TokenMetadata;
             return { ...metadata, contractId };

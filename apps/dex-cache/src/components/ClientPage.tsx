@@ -21,7 +21,7 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [debugMode, setDebugMode] = useState(false);
+    const [debugMode, setDebugMode] = useState(true);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Preview state
@@ -129,23 +129,6 @@ export default function ClientPage({ initialVaults = [] }: { initialVaults?: Vau
     return (
         <main className="max-w-[2000px] mx-auto flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 bg-background text-foreground">
             <div className="w-full">
-                <header className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold">Dex Vault Cache</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Add LP tokens from token-cache to create Vault objects for the DEX.
-                    </p>
-                    <div className="mt-4 flex items-center justify-center space-x-2">
-                        <Switch
-                            id="debug-mode"
-                            checked={debugMode}
-                            onCheckedChange={setDebugMode}
-                        />
-                        <Label htmlFor="debug-mode" className="text-sm font-medium text-muted-foreground">
-                            Debug Mode
-                        </Label>
-                    </div>
-                </header>
-
                 {/* Search & Add Section - Apply theme bg/border */}
                 <div className="mb-8 bg-card p-6 rounded-lg shadow-lg border border-border">
                     {/* Error Message - Use Alert component with destructive variant */}

@@ -78,7 +78,6 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
         }
         const json = await res.json();
         if (json?.status === 'success' && json?.data) {
-            console.log(`Success token cache fetch for ${contractId}`);
             return json.data;
         } else {
             console.warn(`Token cache API returned non-success for ${contractId}: ${JSON.stringify(json)}`);
@@ -128,7 +127,7 @@ function buildVaultStructureFromTokens(
             description: lpToken.description || "",
             image: lpToken.image || "",
             // Attempt to get fee - needs refinement based on actual lpToken structure
-            fee: lpToken.fee || (lpToken.properties?.fee) || 0, // Example placeholder
+            fee: lpToken.fee || (lpToken.properties?.fee) || lpToken?.lpRebatePercent * 10000 || lpToken?.external?.fee || 0, // Example placeholder
             externalPoolId: lpToken.externalPoolId || (lpToken.properties?.externalPoolId) || "", // Example placeholder
             engineContractId: lpToken.engineContractId || (lpToken.properties?.engineContractId) || "", // Example placeholder
             tokenA,
@@ -174,7 +173,6 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
             cachedVault.reservesB = liveReservesB;
             cachedVault.reservesLastUpdatedAt = now;
             reservesUpdated = true;
-            console.log(`Successfully updated reserves via get-reserves-quote for ${contractId}: A=${liveReservesA}, B=${liveReservesB}.`);
         } else {
             console.warn(`Invalid or incomplete reserves structure from get-reserves-quote for ${contractId}:`, reservesResult);
             // Set error to indicate primary method failed structurally, even if no exception was thrown
@@ -203,7 +201,6 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
 
                 // --- Fetch Backup Reserve A ---
                 if (isTokenAStx) {
-                    console.log(`Fetching STX balance (Token A) for vault ${vaultPrincipalAddress}...`);
                     try {
                         const response = await fetch(`https://api.hiro.so/extended/v1/address/${vaultPrincipalAddress}/stx`);
                         if (!response.ok) {
@@ -220,7 +217,6 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
                         backupReservesA = null;
                     }
                 } else {
-                    console.log(`Fetching SIP10 balance (Token A: ${cachedVault.tokenA.contractId}) for vault ${vaultPrincipalAddress}...`);
                     const [tokenAAddr, tokenAName] = cachedVault.tokenA.contractId.split('.');
                     const balanceAResultCV = await callReadOnlyFunction(
                         tokenAAddr, tokenAName, 'get-balance', [principalCV(vaultPrincipalAddress)]
@@ -236,7 +232,6 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
 
                 // --- Fetch Backup Reserve B ---
                 if (isTokenBStx) {
-                    console.log(`Fetching STX balance (Token B) for vault ${vaultPrincipalAddress}...`);
                     try {
                         const response = await fetch(`https://api.hiro.so/extended/v1/address/${vaultPrincipalAddress}/stx`);
                         if (!response.ok) {
@@ -253,7 +248,6 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
                         backupReservesB = null;
                     }
                 } else {
-                    console.log(`Fetching SIP10 balance (Token B: ${cachedVault.tokenB.contractId}) for vault ${vaultPrincipalAddress}...`);
                     const [tokenBAddr, tokenBName] = cachedVault.tokenB.contractId.split('.');
                     const balanceBResultCV = await callReadOnlyFunction(
                         tokenBAddr, tokenBName, 'get-balance', [principalCV(vaultPrincipalAddress)]
@@ -273,7 +267,6 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
                     cachedVault.reservesB = backupReservesB;
                     cachedVault.reservesLastUpdatedAt = now;
                     reservesUpdated = true;
-                    console.log(`Successfully updated reserves via backup (get-balance/STX) for ${contractId}: A=${backupReservesA}, B=${backupReservesB}.`);
                 } else {
                     console.error(`Backup reserve fetch failed for ${contractId}: One or both balances could not be determined.`);
                 }
@@ -341,7 +334,6 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
                 });
                 return updatedCached;
             } else {
-                console.log(`[Cache Hit - Fresh] Vault ${contractId}. Reserves are fresh.`);
                 cached.reservesA = Number(cached.reservesA || 0);
                 cached.reservesB = Number(cached.reservesB || 0);
                 return cached;
@@ -350,7 +342,6 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
         // Branch 2: Cache Miss OR Refresh Requested
         else {
             console.log(refresh ? `[Refresh Requested] Vault ${contractId}` : `[Cache Miss] Vault ${contractId}`);
-            console.log(`Fetching vault data from scratch for ${contractId}...`);
 
             // 1. Fetch LP Token
             const lpToken = await fetchTokenFromCache(contractId);
@@ -428,24 +419,9 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
             reservesLastUpdatedAt: vault.reservesLastUpdatedAt || Date.now()
         };
 
-        // Check if the Vercel KV connection is working
-        try {
-            await kv.set('dex-cache:ping', 'ping-test', { ex: 60 });
-            const pingResult = await kv.get('dex-cache:ping');
-            if (pingResult !== 'ping-test') {
-                console.error('KV connection verification failed. Response:', pingResult);
-                throw new Error('Could not verify KV connection');
-            }
-        } catch (pingError) {
-            console.error('KV connection test failed:', pingError);
-            throw new Error(`KV connection not working: ${pingError instanceof Error ? pingError.message : 'Unknown error'}`);
-        }
-
-        // Try to save the vault now that we know the connection works
         try {
             // Use JSON.stringify for saving data to KV
             await kv.set(cacheKey, JSON.stringify(vaultToSave), { ex: CACHE_DURATION_SECONDS });
-            console.log(`Successfully saved vault ${vault.contractId} to cache.`);
         } catch (setError) {
             console.error('Error during KV.set operation:', setError);
             throw new Error(`KV.set failed: ${setError instanceof Error ? setError.message : 'Unknown error'}`);
