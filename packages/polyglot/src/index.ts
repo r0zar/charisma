@@ -65,7 +65,7 @@ export async function callReadOnlyFunction(
       }
     });
 
-    if (!data.result) return null;
+    if (!data?.result) return null;
     return cvToValue(hexToCV(data.result));
   } catch (error) {
     console.error(`Error calling ${contractAddress}:`, error);
