@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
                 // Adapt error reporting based on potential MutateResult structure
                 const errorMessage = typeof result.error === 'string' ? result.error : (result.error as any)?.message || 'Unknown broadcast error';
                 return NextResponse.json({ success: false, error: `Swap broadcast failed: ${errorMessage}` }, { status: 500 });
-            } else if ('txid' in result && result.txid) {
-                console.log(`[Cron Job] Swap executed successfully! Transaction ID: ${result.txid}`);
-                return NextResponse.json({ success: true, txid: result.txid });
+            } else if ('txId' in result && result.txId) {
+                console.log(`[Cron Job] Swap executed successfully! Transaction ID: ${result.txId}`);
+                return NextResponse.json({ success: true, txid: result.txId });
             } else {
                 console.error('[Cron Job] Unknown swap execution result format:', result);
                 return NextResponse.json({ success: false, error: 'Unknown swap execution result format' }, { status: 500 });
