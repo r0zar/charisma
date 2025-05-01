@@ -48,6 +48,7 @@ async function executePoolSwap(params: {
     signature: string;
     amount: bigint;
     uuid: string;
+    recipient: string;
     direction: 'a-to-b' | 'b-to-a';
 }): Promise<TxBroadcastResult> {
     console.log(`Calling /api/pools/swap-${params.direction} with params:`, params);
@@ -198,7 +199,7 @@ export const PoolSwapForm: React.FC<PoolSwapFormProps> = ({ poolInfo, contractId
                     uintCV(amount),
                     optionalCVOf(swapDirection === 'a-to-b' ?
                         bufferFromHex('0x00') :
-                        bufferFromHex('0x01'))
+                        bufferFromHex('0x01')),
                 ],
                 network,
                 senderAddress: walletAddress || poolAddress,
@@ -318,6 +319,7 @@ export const PoolSwapForm: React.FC<PoolSwapFormProps> = ({ poolInfo, contractId
                 signature: signature,
                 amount: amountBigInt,
                 uuid: uuid,
+                recipient: walletAddress!,
                 direction: swapDirection,
             });
 
@@ -349,7 +351,7 @@ export const PoolSwapForm: React.FC<PoolSwapFormProps> = ({ poolInfo, contractId
 
     // Disabled state if user has insufficient balance
     const hasInsufficientBalance =
-        amountInput && parseUnits(amountInput, inputToken.decimals) > currentInputBalance;
+        amountInput && parseUnits(amountInput, inputToken.decimals)! > currentInputBalance;
 
 
     return (

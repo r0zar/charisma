@@ -23,6 +23,7 @@ export function Header() {
         { href: "/dashboard", label: "Dashboard" },
         { href: "/tokens", label: "Tokens" },
         { href: "/pools", label: "Pools" },
+        { href: "/multihop", label: "Multi-Hop" },
     ]
 
     return (

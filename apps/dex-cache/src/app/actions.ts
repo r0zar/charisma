@@ -11,9 +11,13 @@ import {
 } from "@/lib/vaultService";
 import { kv } from '@vercel/kv';
 import { parseTokenMetadata } from '@/lib/openai';
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { principalCV, uintCV, bufferCVFromString, cvToValue, optionalCVOf } from '@stacks/transactions';
+import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 // Import getManagedVaultIds from vaultService but rename to avoid conflict
 import { getManagedVaultIds as getVaultIdsFromService } from "@/lib/vaultService";
+import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
 
 /**
  * Fetches the list of managed vault IDs from Vercel KV.
@@ -363,4 +367,149 @@ export async function getVault(contractId: string): Promise<Vault | null> {
 // Get managed vault IDs 
 export async function getVaultIds(): Promise<string[]> {
     return await getVaultIdsFromService();
+}
+
+// Helper to fetch STX balance
+async function fetchStxBalance(address: string): Promise<number> {
+    try {
+        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`);
+        if (!response.ok) {
+            throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        return Number(data.balance || 0);
+    } catch (error) {
+        console.error(`Failed fetching STX balance for ${address}:`, error);
+        return 0;
+    }
+}
+
+// Fetch token balance
+async function fetchTokenBalance(tokenContractId: string, address: string): Promise<number> {
+    try {
+        if (tokenContractId === '.stx') {
+            return await fetchStxBalance(address);
+        } else {
+            const [addr, name] = tokenContractId.split('.');
+            console.log(`Fetching token balance for ${tokenContractId} at ${addr}.${name}`);
+            const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(address)]);
+            console.log(balanceCV);
+            return cvToValue(balanceCV)?.value ? Number(cvToValue(balanceCV).value) : 0;
+        }
+    } catch (error) {
+        console.error(`Failed fetching token balance for ${tokenContractId}:`, error);
+        return 0;
+    }
+}
+
+// Get total supply of LP tokens
+async function fetchTotalSupply(vaultContractId: string): Promise<number> {
+    try {
+        const [addr, name] = vaultContractId.split('.');
+        const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
+        return cvToValue(supplyCV)?.value ? Number(cvToValue(supplyCV).value) : 0;
+    } catch (error) {
+        console.error(`Failed fetching total supply for ${vaultContractId}:`, error);
+        return 0;
+    }
+}
+
+// Fetch quote for adding or removing liquidity
+async function fetchQuote(vaultContractId: string, amount: number, opcode: string): Promise<{ dx: number; dy: number; dk: number } | null> {
+    try {
+        const [addr, name] = vaultContractId.split('.');
+        const quoteResultCV = await callReadOnlyFunction(
+            addr, name, 'quote', [
+            uintCV(amount),
+            optionalCVOf(bufferFromHex(opcode))
+        ]
+        );
+        return {
+            dx: Number(quoteResultCV.value.dx.value),
+            dy: Number(quoteResultCV.value.dy.value),
+            dk: Number(quoteResultCV.value.dk.value)
+        };
+    } catch (error) {
+        console.error(`Failed fetching quote for ${vaultContractId}:`, error);
+        return null;
+    }
+}
+
+// Server action to fetch add liquidity data (quote and total supply)
+export async function getAddLiquidityQuoteAndSupply(vaultContractId: string, targetLpAmount: number) {
+    try {
+        // Fetch total supply and quote in parallel
+        const [totalSupply, quote] = await Promise.all([
+            fetchTotalSupply(vaultContractId),
+            targetLpAmount > 0
+                ? fetchQuote(vaultContractId, targetLpAmount, OP_ADD_LIQUIDITY)
+                : Promise.resolve({ dx: 0, dy: 0, dk: 0 })
+        ]);
+
+        return {
+            totalSupply,
+            quote
+        };
+    } catch (error) {
+        console.error("Error in getAddLiquidityQuoteAndSupply:", error);
+        throw new Error("Failed to fetch add liquidity quote and supply");
+    }
+}
+
+// Server action to fetch remove liquidity data (quote only)
+export async function getRemoveLiquidityQuote(vaultContractId: string, targetLpAmountToBurn: number) {
+    try {
+        // Get quote if we have a valid LP amount
+        const quote = targetLpAmountToBurn > 0
+            ? await fetchQuote(vaultContractId, targetLpAmountToBurn, OP_REMOVE_LIQUIDITY)
+            : { dx: 0, dy: 0, dk: 0 };
+
+        return {
+            quote
+        };
+    } catch (error) {
+        console.error("Error in getRemoveLiquidityQuote:", error);
+        throw new Error("Failed to fetch remove liquidity quote");
+    }
+}
+
+// Server action to fetch swap quote
+export async function getSwapQuote(
+    vaultContractId: string,
+    amount: number,
+    isAToB: boolean
+) {
+    try {
+        // Determine the correct operation based on direction
+        const operationCode = isAToB ? OP_SWAP_A_TO_B : OP_SWAP_B_TO_A;
+
+        // Get quote for the swap
+        const quote = await fetchQuote(vaultContractId, amount, operationCode);
+
+        if (!quote) {
+            throw new Error("Failed to fetch swap quote");
+        }
+
+        return {
+            quote,
+            // Include which token is input and which is output
+            direction: {
+                inputToken: isAToB ? 'A' : 'B',
+                outputToken: isAToB ? 'B' : 'A'
+            }
+        };
+    } catch (error) {
+        console.error("Error in getSwapQuote:", error);
+        throw new Error("Failed to fetch swap quote");
+    }
+}
+
+// Convenience wrapper for A to B swap
+export async function getSwapAToB(vaultContractId: string, amountA: number) {
+    return getSwapQuote(vaultContractId, amountA, true);
+}
+
+// Convenience wrapper for B to A swap
+export async function getSwapBToA(vaultContractId: string, amountB: number) {
+    return getSwapQuote(vaultContractId, amountB, false);
 } 

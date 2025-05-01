@@ -7,7 +7,7 @@ import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins } from 'lucide-react';
+import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
 import Link from 'next/link';
 
 // Utility to truncate contract id for display
@@ -154,10 +154,10 @@ export default function VaultList({ vaults }: Props) {
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center">
-                    <Coins className="w-5 h-5 mr-2 text-primary" />
-                    Managed Vaults
+                    <Layers className="w-5 h-5 mr-2 text-primary" />
+                    Liquidity Pools
                     <Badge variant="secondary" className="ml-auto">
-                        {vaults.length} vault{vaults.length !== 1 ? 's' : ''}
+                        {vaults.length} pool{vaults.length !== 1 ? 's' : ''}
                     </Badge>
                 </CardTitle>
             </CardHeader>
@@ -198,7 +198,7 @@ export default function VaultList({ vaults }: Props) {
                                 return (
                                     <React.Fragment key={v.contractId}>
                                         <tr className={`${isExpanded ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
-                                            <td className="p-4 whitespace-nowrap font-medium">
+                                            <td className="p-4 whitespace-nowrap font-medium flex">
                                                 <Link href={`/vaults/${v.contractId}`} className="flex items-center gap-2 group">
                                                     {v.image && (
                                                         <div className="flex-shrink-0 h-8 w-8">
@@ -220,7 +220,7 @@ export default function VaultList({ vaults }: Props) {
                                                         )}
                                                     </div>
                                                 </Link>
-                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 rounded hover:bg-accent">
+                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-accent">
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
                                             </td>
@@ -298,14 +298,66 @@ export default function VaultList({ vaults }: Props) {
                                             </td>
                                         </tr>
                                         {isExpanded && (
-                                            <tr className="bg-muted/30 border-t border-border">
-                                                <td colSpan={7} className="p-4">
-                                                    <div className="text-xs space-y-2">
-                                                        <p><strong>Description:</strong> {v.description || 'N/A'}</p>
-                                                        <p><strong>Token A:</strong> {v.tokenA.contractId} ({formattedReservesA}) ~ {formattedUsdValueA}</p>
-                                                        <p><strong>Token B:</strong> {v.tokenB.contractId} ({formattedReservesB}) ~ {formattedUsdValueB}</p>
-                                                        <p><strong>Engine:</strong> {v.engineContractId || 'N/A'}</p>
-                                                        <p><strong>External ID:</strong> {v.externalPoolId || 'N/A'}</p>
+                                            <tr className="bg-muted/10 border-t border-border">
+                                                <td colSpan={7} className="px-6 py-5">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                        <div className="space-y-3">
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
+                                                                <p className="text-sm">{v.description || 'N/A'}</p>
+                                                            </div>
+
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-sm font-medium text-muted-foreground">Engine Contract</h4>
+                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
+                                                            </div>
+
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-sm font-medium text-muted-foreground">External Pool ID</h4>
+                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.externalPoolId || 'N/A'}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-4">
+                                                            <div>
+                                                                <h4 className="text-sm font-medium text-muted-foreground mb-2">Token Details</h4>
+                                                                <div className="bg-muted/30 rounded-lg p-3 mb-2">
+                                                                    <div className="flex items-center mb-1">
+                                                                        {v.tokenA.image && (
+                                                                            <img
+                                                                                src={v.tokenA.image}
+                                                                                alt={v.tokenA.symbol}
+                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                            />
+                                                                        )}
+                                                                        <h5 className="font-medium text-primary">{v.tokenA.symbol}</h5>
+                                                                    </div>
+                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenA.contractId}</p>
+                                                                    <div className="flex justify-between text-xs pl-7">
+                                                                        <span>Balance: {formattedReservesA}</span>
+                                                                        <span>Value: {formattedUsdValueA}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="bg-muted/30 rounded-lg p-3">
+                                                                    <div className="flex items-center mb-1">
+                                                                        {v.tokenB.image && (
+                                                                            <img
+                                                                                src={v.tokenB.image}
+                                                                                alt={v.tokenB.symbol}
+                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                            />
+                                                                        )}
+                                                                        <h5 className="font-medium text-secondary">{v.tokenB.symbol}</h5>
+                                                                    </div>
+                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenB.contractId}</p>
+                                                                    <div className="flex justify-between text-xs pl-7">
+                                                                        <span>Balance: {formattedReservesB}</span>
+                                                                        <span>Value: {formattedUsdValueB}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>

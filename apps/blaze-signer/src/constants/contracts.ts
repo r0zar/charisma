@@ -46,7 +46,7 @@ export function generateUUID(): string {
 
 /**
  * Utility to parse a contract string into its components
- * @param contractString - Full contract string (e.g., "SP2ZNGJ...KTBS.blaze-rc9")
+ * @param contractString - Full contract string (e.g., "SP2ZNGJ...KTBS.blaze-rc10")
  * @returns [contractAddress, contractName]
  */
 export function parseContract(contractString: string): [string, string] {

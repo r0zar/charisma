@@ -12,7 +12,7 @@ export interface SubnetWrapperParams {
 }
 
 export async function generateSubnetWrapper(params: SubnetWrapperParams) {
-    const templatePath = path.join(process.cwd(), '..', '..', 'apps', 'blaze-signer', 'src', 'contracts', 'subnet-wrapper.template.clar');
+    const templatePath = path.join(process.cwd(), 'lib', 'templates', 'subnet-wrapper.template.clar');
     const template = fs.readFileSync(templatePath, 'utf8');
 
     const rendered = Mustache.render(template, {

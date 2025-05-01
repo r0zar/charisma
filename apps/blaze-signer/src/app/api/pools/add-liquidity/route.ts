@@ -8,12 +8,10 @@ import {
     stringAsciiCV,
     type TxBroadcastResult,
     PostConditionMode,
+    principalCV,
 } from '@stacks/transactions';
 import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
-
-// TODO: Use environment variables for network and sender key
-const NETWORK: StacksNetwork = STACKS_MAINNET; // Or STACKS_TESTNET
 
 // Server-side private key for signing transactions (must be set via environment variable)
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -43,10 +41,9 @@ export async function POST(request: NextRequest) {
         );
     }
 
-
     try {
         const body = await request.json();
-        const { poolContractId, signatureA, signatureB, lpAmount, uuidA, uuidB } = body;
+        const { poolContractId, signatureA, signatureB, lpAmount, uuidA, uuidB, recipientA, recipientB } = body;
 
         // --- Basic Validation ---
         if (!poolContractId || !signatureA || !signatureB || typeof lpAmount === 'undefined' || !uuidA || !uuidB) {
@@ -54,6 +51,9 @@ export async function POST(request: NextRequest) {
         }
         if (!poolContractId.includes('.')) {
             return NextResponse.json({ success: false, message: 'Invalid pool contract ID format.' }, { status: 400, headers });
+        }
+        if (!recipientA || !recipientB) {
+            return NextResponse.json({ success: false, message: 'Missing recipient addresses.' }, { status: 400, headers });
         }
         // Add more validation for signature format, UUID format, lpAmount type/range if needed
         // --- End Validation ---
@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
                 stringAsciiCV(uuidA),      // UUID for token A
                 bufferFromHex(signatureB), // Signature for token B
                 stringAsciiCV(uuidB),      // UUID for token B
+                principalCV(recipientA),
+                principalCV(recipientB),
             ],
             senderKey: PRIVATE_KEY,
             network: STACKS_MAINNET,

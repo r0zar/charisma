@@ -6,12 +6,16 @@ import {
     stringAsciiCV,
     type TxBroadcastResult,
     PostConditionMode,
+    principalCV,
+    fetchCallReadOnlyFunction,
+    noneCV,
+    optionalCVOf,
+    cvToValue,
 } from '@stacks/transactions';
 import { STACKS_MAINNET, type StacksNetwork } from '@stacks/network';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
-// TODO: Use environment variables for network and sender key
-const NETWORK: StacksNetwork = STACKS_MAINNET; // Or STACKS_TESTNET
+const TOKEN_A_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6";
 
 // Server-side private key for signing transactions (must be set via environment variable)
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     try {
         const body = await request.json();
-        const { poolContractId, signature, amount, uuid } = body;
+        const { poolContractId, signature, amount, uuid, recipient } = body;
 
         // --- Basic Validation ---
         if (!poolContractId || !signature || typeof amount === 'undefined' || !uuid) {
@@ -53,6 +57,28 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: 'Invalid pool contract ID format.' }, { status: 400, headers });
         }
         // --- End Validation ---
+
+        // --- Recover Signer ---
+        const response = await fetchCallReadOnlyFunction({
+            contractAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+            contractName: 'blaze-rc10',
+            functionName: 'recover',
+            functionArgs: [
+                bufferFromHex(signature),
+                principalCV(TOKEN_A_CONTRACT_ID),
+                stringAsciiCV('TRANSFER_TOKENS'),
+                noneCV(),
+                optionalCVOf(uintCV(amount)),
+                optionalCVOf(principalCV(poolContractId)),
+                stringAsciiCV(uuid),
+            ],
+            network: 'mainnet',
+            senderAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS'
+        }).then(cvToValue);
+
+        const signer = response.value
+
+        console.log("API: Signer:", signer);
 
         const [contractAddress, contractName] = poolContractId.split('.');
         let amountBigInt: bigint;
@@ -71,6 +97,7 @@ export async function POST(request: NextRequest) {
                 uintCV(amountBigInt),     // Token amount to swap
                 bufferFromHex(signature), // Signature from the user
                 stringAsciiCV(uuid),      // UUID for the transaction
+                principalCV(recipient),
             ],
             senderKey: PRIVATE_KEY,
             network: STACKS_MAINNET,

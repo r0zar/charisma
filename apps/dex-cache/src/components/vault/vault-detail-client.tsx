@@ -20,9 +20,9 @@ interface VaultDetailClientProps {
     prices: Record<string, number>;
     analytics: {
         tvl: number;
-        volume24h: number;
-        apy: number;
-        lpHolders: number;
+        volume24h?: number;
+        apy?: number;
+        lpHolders?: number;
         // Add other analytics fields as needed
     };
 }
@@ -71,9 +71,6 @@ const TokenInfoCard = ({ token, reserves, price }: { token: any; reserves: numbe
         </Card>
     );
 };
-
-// TODO: Implement AddLiquidityModal, RemoveLiquidityModal, MetadataEditForm
-
 
 export default function VaultDetailClient({ vault, prices, analytics }: VaultDetailClientProps) {
     const { walletState } = useApp();
@@ -126,7 +123,7 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
                                     src={currentVaultData.image || '/placeholder.png'}
                                     alt={currentVaultData.name || 'Vault'}
                                     fill
-                                    className="rounded-lg object-cover border border-border"
+                                    className="rounded-lg object-cover"
                                     onError={(e) => { e.currentTarget.src = '/placeholder.png'; }} // Handle image errors
                                 />
                             </div>
@@ -141,7 +138,7 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Users className="w-3 h-3" />
-                                        <span>{formatNumber(analytics.lpHolders)} LP Holders</span>
+                                        <span>{formatNumber(analytics.lpHolders || 0)} LP Holders</span>
                                     </div>
                                 </div>
                             </div>
@@ -199,12 +196,12 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
                                     />
                                     <StatCard
                                         title="24h Volume"
-                                        value={formatNumber(analytics.volume24h, 'currency')}
+                                        value={formatNumber(analytics.volume24h || 0, 'currency')}
                                         icon={<ArrowUpDown className="w-5 h-5 text-primary" />}
                                     />
                                     <StatCard
                                         title="APY"
-                                        value={formatNumber(analytics.apy, 'percent')}
+                                        value={formatNumber(analytics.apy || 0, 'percent')}
                                         icon={<LineChart className="w-5 h-5 text-primary" />}
                                     />
                                 </div>
@@ -216,12 +213,12 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
                                 </div>
 
                                 {/* TODO: Activity Chart Placeholder */}
-                                <Card className="p-6 bg-muted/40">
+                                {/* <Card className="p-6 bg-muted/40">
                                     <h2 className="text-lg font-semibold mb-4">Activity</h2>
                                     <div className="h-[200px] flex items-center justify-center text-muted-foreground">
                                         Chart placeholder
                                     </div>
-                                </Card>
+                                </Card> */}
                             </TabsContent>
 
                             <TabsContent value="settings" className="space-y-6">

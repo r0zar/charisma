@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Vault } from '@repo/dexterity';
 import { useApp } from '@/lib/context/app-context';
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { principalCV, uintCV, bufferCVFromString, ClarityType, cvToValue } from '@stacks/transactions';
 import { request } from '@stacks/connect';
 import { STACKS_MAINNET } from "@stacks/network";
 import { toast } from "sonner";
 import debounce from 'lodash/debounce';
+import { getRemoveLiquidityQuote } from '@/app/actions';
+import { uintCV, bufferCVFromString, principalCV, cvToValue, Pc, optionalCVOf } from '@stacks/transactions';
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowUpDown, Minus, AlertCircle, Loader2 } from 'lucide-react'; // Updated icons
+import { ArrowUpDown, Minus, AlertCircle, Loader2 } from 'lucide-react';
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (
@@ -33,12 +35,11 @@ const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoadin
         </div>
     </div>
 );
-const BalanceInfo = ({ balance, symbol, decimals, required, isLoading }: any) => (
+const BalanceInfo = ({ balance, symbol, decimals, isLoading }: any) => (
     <div className="flex justify-between text-xs text-muted-foreground">
         <span>
             Balance: {isLoading ? '...' : (balance / (10 ** (decimals || 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol || '--'}
         </span>
-        {/* Required not typically shown for removing liquidity based on LP balance */}
     </div>
 );
 // --- End Placeholders ---
@@ -51,21 +52,6 @@ interface RemoveLiquidityModalProps {
 
 const OP_REMOVE_LIQUIDITY = '03'; // Opcode for remove liquidity
 
-// Helper to fetch STX balance manually (assuming it might be needed elsewhere, keep for now)
-async function fetchManualStxBalance(address: string): Promise<number> {
-    try {
-        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`);
-        if (!response.ok) {
-            throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        return Number(data.balance || 0);
-    } catch (error) {
-        console.error(`Failed fetching STX balance for ${address}:`, error);
-        return 0;
-    }
-}
-
 export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidityModalProps) {
     const { walletState } = useApp();
     const [isOpen, setIsOpen] = useState(false);
@@ -76,14 +62,14 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
     const [isQuoting, setIsQuoting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Client-side LP balance fetch function
     const fetchLpBalance = useCallback(async () => {
         if (!walletState.connected || !walletState.address) return;
         setIsLoadingBalance(true);
         try {
             const [addr, name] = vault.contractId.split('.');
-            // Use vault contractId and function name to get LP balance
             const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(walletState.address)]);
-            setLpBalance(cvToValue(balanceCV)?.value ? Number(cvToValue(balanceCV).value) : 0);
+            setLpBalance(cvToValue(balanceCV));
         } catch (error) {
             console.error("Error fetching LP balance:", error);
             toast.error("Failed to fetch LP token balance.");
@@ -93,29 +79,17 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
         }
     }, [walletState.connected, walletState.address, vault.contractId]);
 
-    const fetchQuote = useCallback(async (lpAmountToBurn: number) => {
-        if (lpAmountToBurn <= 0) {
+    // Fetch quote using server action
+    const fetchQuote = useCallback(async (targetLpAmountToBurn: number) => {
+        if (targetLpAmountToBurn <= 0) {
             setQuotedAmounts({ dx: 0, dy: 0, dk: 0 });
             return;
         }
         setIsQuoting(true);
         try {
-            const [addr, name] = vault.contractId.split('.');
-            const quoteResultCV = await callReadOnlyFunction(
-                addr, name, 'quote', [
-                uintCV(lpAmountToBurn),
-                bufferCVFromString(OP_REMOVE_LIQUIDITY)
-            ]);
-            const quoteResult = cvToValue(quoteResultCV)?.value;
-            if (quoteResult && typeof quoteResult === 'object' && 'dx' in quoteResult && 'dy' in quoteResult && 'dk' in quoteResult) {
-                setQuotedAmounts({
-                    dx: Number(quoteResult.dx.value),
-                    dy: Number(quoteResult.dy.value),
-                    dk: Number(quoteResult.dk.value) // dk here is the amount to burn
-                });
-            } else {
-                throw new Error("Invalid quote structure received");
-            }
+            // Use the server action
+            const result = await getRemoveLiquidityQuote(vault.contractId, targetLpAmountToBurn);
+            setQuotedAmounts(result.quote);
         } catch (error) {
             console.error("Error fetching remove quote:", error);
             toast.error("Failed to get liquidity removal quote.");
@@ -127,32 +101,34 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
 
     const debouncedFetchQuote = useCallback(debounce(fetchQuote, 300), [fetchQuote]);
 
-    // Fetch LP balance when modal opens and wallet is connected
+    // Initial data fetch when modal opens
     useEffect(() => {
         if (isOpen && walletState.connected) {
-            fetchLpBalance();
+            fetchLpBalance(); // Fetch LP balance first
         }
     }, [isOpen, walletState.connected, fetchLpBalance]);
 
-    // Fetch initial quote based on slider position and LP balance
+    // Fetch quote when LP balance/percentage change
     useEffect(() => {
-        if (lpBalance > 0) {
-            const initialLpAmountToBurn = Math.floor((amountPercent / 100) * lpBalance);
-            debouncedFetchQuote(initialLpAmountToBurn);
-        } else {
+        if (isOpen && walletState.connected && lpBalance > 0) {
+            const targetLpAmountToBurn = Math.floor((amountPercent / 100) * lpBalance);
+            debouncedFetchQuote(targetLpAmountToBurn);
+        }
+        else if (isOpen && walletState.connected) {
+            // If LP balance is 0 or not ready, clear quote
             setQuotedAmounts({ dx: 0, dy: 0, dk: 0 });
         }
-    }, [amountPercent, lpBalance, debouncedFetchQuote]);
+    }, [isOpen, walletState.connected, amountPercent, lpBalance, debouncedFetchQuote]);
 
     const handleSliderChange = (value: number[]) => {
         const percent = value[0];
         setAmountPercent(percent);
-        const lpAmountToBurn = Math.floor((percent / 100) * lpBalance);
-        debouncedFetchQuote(lpAmountToBurn);
+        // Quote fetching is now handled by the useEffect above
     };
 
     const handleRemoveLiquidity = async () => {
         if (!quotedAmounts || quotedAmounts.dk <= 0 || !walletState.connected) return;
+        // Re-check balance sufficiency just before submitting
         if (quotedAmounts.dk > lpBalance) {
             toast.error("Cannot remove more liquidity than you own.");
             return;
@@ -161,31 +137,71 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
         setIsProcessing(true);
         try {
             const [contractAddress, contractName] = vault.contractId.split('.');
-            const txOptions = {
-                contractAddress,
-                contractName,
+            const tokenAReceived = quotedAmounts?.dx || 0;
+            const tokenBReceived = quotedAmounts?.dy || 0;
+
+            // Assemble post conditions
+            const postConditions = [];
+
+            // PC for LP token burn (from user)
+            if (quotedAmounts.dk > 0) {
+                postConditions.push(
+                    Pc.principal(walletState.address).willSendEq(quotedAmounts.dk).ft(vault.contractId as `${string}.${string}`, vault.identifier!)
+                );
+            }
+
+            // PC for Token A received (from pool)
+            if (tokenAReceived > 0) {
+                if (vault.tokenA.contractId === '.stx') {
+                    postConditions.push(
+                        Pc.principal(vault.contractId).willSendEq(tokenAReceived).ustx()
+                    );
+                } else {
+                    postConditions.push(
+                        Pc.principal(vault.contractId).willSendEq(tokenAReceived).ft(vault.tokenA.contractId as `${string}.${string}`, vault.tokenA.identifier!)
+                    );
+                }
+            }
+
+            // PC for Token B received (from pool)
+            if (tokenBReceived > 0) {
+                if (vault.tokenB.contractId === '.stx') {
+                    postConditions.push(
+                        Pc.principal(vault.contractId).willSendEq(tokenBReceived).ustx()
+                    );
+                } else {
+                    postConditions.push(
+                        Pc.principal(vault.contractId).willSendEq(tokenBReceived).ft(vault.tokenB.contractId as `${string}.${string}`, vault.tokenB.identifier!)
+                    );
+                }
+            }
+
+            const params = {
+                contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
                 functionArgs: [
                     uintCV(quotedAmounts.dk), // amount is dk (LP tokens to burn)
-                    bufferCVFromString(OP_REMOVE_LIQUIDITY)
+                    optionalCVOf(bufferFromHex(OP_REMOVE_LIQUIDITY)) // Opcode as optional buffer
                 ],
-                network: STACKS_MAINNET,
+                network: "mainnet",
+                postConditions: postConditions, // Use the assembled array
                 appDetails: {
                     name: 'DEX Cache',
                     icon: typeof window !== 'undefined' ? window.location.origin + '/favicon.ico' : '/favicon.ico',
                 },
-                onFinish: (data: { txId: string }) => {
-                    toast.success("Remove Liquidity transaction submitted!", { description: `TxID: ${data.txId}` });
-                    setIsOpen(false);
-                    setTimeout(fetchLpBalance, 5000); // Refresh LP balance after 5s
-                },
-                onCancel: () => {
-                    toast.info("Transaction cancelled by user.");
-                },
             };
 
-            await request('stx_callContract' as any, txOptions); // Use updated method name
+            const result = await request('stx_callContract', params);
 
+            if (result && result.txid) {
+                toast.success("Remove Liquidity transaction submitted!", { description: `TxID: ${result.txid}` });
+                setIsOpen(false);
+                // Optionally trigger balance refresh
+                // setTimeout(fetchLpBalance, 5000);
+            } else {
+                const errorMessage = "Transaction failed or was rejected.";
+                throw new Error(`Submission Failed: ${errorMessage}`);
+            }
         } catch (error) {
             console.error("Remove Liquidity submission error:", error);
             const errorMessage = (error instanceof Error && error.message) || (typeof error === 'string' ? error : 'An unknown error occurred.');
@@ -249,7 +265,7 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
                                 price={prices[vault.contractId]} // Price of LP token might not be available
                                 label="You will burn (LP Tokens)"
                                 decimals={vault.decimals}
-                                isLoading={isQuoting}
+                                isLoading={isQuoting} // LP amount also depends on quote
                             />
                             <BalanceInfo
                                 balance={lpBalance}

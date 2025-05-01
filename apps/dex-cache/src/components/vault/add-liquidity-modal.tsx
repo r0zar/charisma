@@ -1,20 +1,23 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Vault } from '@repo/dexterity';
 import { useApp } from '@/lib/context/app-context';
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { principalCV, uintCV, bufferCVFromString, ClarityType, cvToValue } from '@stacks/transactions';
+import { toast } from "sonner";
+import debounce from 'lodash/debounce';
+import { getAddLiquidityQuoteAndSupply } from '@/app/actions';
 import { request } from '@stacks/connect';
 import { STACKS_MAINNET } from "@stacks/network";
-import { toast } from "sonner"; // Using sonner for toasts
-import debounce from 'lodash/debounce';
+import { uintCV, bufferCVFromString, principalCV, cvToValue, optionalCVOf, Pc, bufferCV } from '@stacks/transactions';
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { ClarityType } from '@stacks/transactions';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Wallet, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (
@@ -55,7 +58,7 @@ interface AddLiquidityModalProps {
 
 const OP_ADD_LIQUIDITY = '02'; // Opcode for add liquidity
 
-// Helper to fetch STX balance manually
+// Helper to fetch STX balance manually (client-side)
 async function fetchManualStxBalance(address: string): Promise<number> {
     try {
         const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`);
@@ -70,93 +73,107 @@ async function fetchManualStxBalance(address: string): Promise<number> {
     }
 }
 
+// Helper to fetch total supply (client-side)
+async function fetchTotalSupplyClient(vaultContractId: string): Promise<number> {
+    try {
+        const [addr, name] = vaultContractId.split('.');
+        const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
+        return cvToValue(supplyCV)
+    } catch (error) {
+        console.error(`Failed fetching total supply for ${vaultContractId}:`, error);
+        return 0;
+    }
+}
+
 export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalProps) {
     const { walletState } = useApp();
     const [isOpen, setIsOpen] = useState(false);
     const [amountPercent, setAmountPercent] = useState(50);
     const [quotedAmounts, setQuotedAmounts] = useState<{ dx: number; dy: number; dk: number } | null>(null);
     const [balances, setBalances] = useState<{ tokenA: number; tokenB: number; lp: number }>({ tokenA: 0, tokenB: 0, lp: 0 });
-    const [totalSupply, setTotalSupply] = useState(0); // State for total LP supply
+    const [totalSupply, setTotalSupply] = useState(0);
     const [maxLpTokens, setMaxLpTokens] = useState(0);
-    const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+    const [isLoadingData, setIsLoadingData] = useState(false); // Combined loading state
     const [isQuoting, setIsQuoting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const fetchBalancesAndSupply = useCallback(async () => {
+    // Client-side balance and total supply fetch function
+    const fetchInitialData = useCallback(async () => {
         if (!walletState.connected || !walletState.address) return;
-        setIsLoadingBalances(true);
+        setIsLoadingData(true);
         try {
-            const fetchBalance = async (tokenContractId: string, tokenDecimals: number) => {
+            const fetchBalance = async (tokenContractId: string) => {
                 if (tokenContractId === '.stx') {
                     return await fetchManualStxBalance(walletState.address);
                 } else {
                     const [addr, name] = tokenContractId.split('.');
                     const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(walletState.address)]);
-                    return cvToValue(balanceCV)?.value ? Number(cvToValue(balanceCV).value) : 0;
+                    return cvToValue(balanceCV)
                 }
             };
 
-            const fetchTotalSupply = async () => {
-                const [addr, name] = vault.contractId.split('.');
-                const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
-                return cvToValue(supplyCV)?.value ? Number(cvToValue(supplyCV).value) : 0;
-            };
-
+            // Fetch balances and total supply in parallel
             const [balA, balB, balLp, supply] = await Promise.all([
-                fetchBalance(vault.tokenA.contractId, vault.tokenA.decimals || 6),
-                fetchBalance(vault.tokenB.contractId, vault.tokenB.decimals || 6),
-                fetchBalance(vault.contractId, vault.decimals || 6),
-                fetchTotalSupply()
+                fetchBalance(vault.tokenA.contractId),
+                fetchBalance(vault.tokenB.contractId),
+                fetchBalance(vault.contractId), // LP token balance
+                fetchTotalSupplyClient(vault.contractId) // Fetch total supply client-side
             ]);
+
             setBalances({ tokenA: balA, tokenB: balB, lp: balLp });
             setTotalSupply(supply);
 
         } catch (error) {
-            console.error("Error fetching balances/supply:", error);
+            console.error("Error fetching initial data (balances/supply):", error);
             toast.error("Failed to fetch wallet balances or pool supply.");
             setBalances({ tokenA: 0, tokenB: 0, lp: 0 });
             setTotalSupply(0);
         } finally {
-            setIsLoadingBalances(false);
+            setIsLoadingData(false);
         }
     }, [walletState.connected, walletState.address, vault]);
 
-    // Calculate max potential LP tokens based on current reserves, total supply and user balances
+    // Calculate max potential LP tokens based on user balances and pool state
     useEffect(() => {
-        if (balances.tokenA === 0 || balances.tokenB === 0 || vault.reservesA === 0 || vault.reservesB === 0 || totalSupply === 0) {
+        // Ensure reserves are numbers
+        const reserveA = Number(vault.reservesA || 0);
+        const reserveB = Number(vault.reservesB || 0);
+
+        console.log('[maxLpTokens Calc] Inputs:', {
+            balanceA: balances.tokenA,
+            balanceB: balances.tokenB,
+            reserveA,
+            reserveB,
+            totalSupply
+        });
+
+        if (balances.tokenA === 0 || balances.tokenB === 0 || reserveA === 0 || reserveB === 0 || totalSupply === 0) {
+            console.log('[maxLpTokens Calc] Setting maxLpTokens to 0 due to zero input.');
             setMaxLpTokens(0);
             return;
         }
         // Estimate max LP tokens based on the limiting token balance relative to pool reserves
-        const maxFromA = (balances.tokenA / vault.reservesA) * totalSupply;
-        const maxFromB = (balances.tokenB / vault.reservesB) * totalSupply;
-        setMaxLpTokens(Math.floor(Math.min(maxFromA, maxFromB)));
+        const maxFromA = (balances.tokenA / reserveA) * totalSupply;
+        const maxFromB = (balances.tokenB / reserveB) * totalSupply;
+        const calculatedMax = Math.floor(Math.min(maxFromA, maxFromB));
+
+        console.log('[maxLpTokens Calc] Calculation:', { maxFromA, maxFromB, calculatedMax });
+        setMaxLpTokens(calculatedMax);
 
     }, [balances, vault.reservesA, vault.reservesB, totalSupply]);
 
-    const fetchQuote = useCallback(async (lpAmount: number) => {
-        if (lpAmount <= 0) {
+    // Fetch quote using server action
+    const fetchQuote = useCallback(async (targetLpAmount: number) => {
+        if (targetLpAmount <= 0 || maxLpTokens <= 0) { // Also check maxLpTokens
             setQuotedAmounts({ dx: 0, dy: 0, dk: 0 });
             return;
         }
         setIsQuoting(true);
         try {
-            const [addr, name] = vault.contractId.split('.');
-            const quoteResultCV = await callReadOnlyFunction(
-                addr, name, 'quote', [
-                uintCV(lpAmount),
-                bufferCVFromString(OP_ADD_LIQUIDITY)
-            ]);
-            const quoteResult = cvToValue(quoteResultCV)?.value;
-            if (quoteResult && typeof quoteResult === 'object' && 'dx' in quoteResult && 'dy' in quoteResult && 'dk' in quoteResult) {
-                setQuotedAmounts({
-                    dx: Number(quoteResult.dx.value),
-                    dy: Number(quoteResult.dy.value),
-                    dk: Number(quoteResult.dk.value)
-                });
-            } else {
-                throw new Error("Invalid quote structure received");
-            }
+            // Use the server action - supply is already fetched client-side
+            const result = await getAddLiquidityQuoteAndSupply(vault.contractId, targetLpAmount);
+            setQuotedAmounts(result.quote);
+            // No need to set total supply here anymore
         } catch (error) {
             console.error("Error fetching quote:", error);
             toast.error("Failed to get liquidity quote.");
@@ -164,55 +181,105 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
         } finally {
             setIsQuoting(false);
         }
-    }, [vault.contractId]);
+    }, [vault.contractId, maxLpTokens]);
 
     const debouncedFetchQuote = useCallback(debounce(fetchQuote, 300), [fetchQuote]);
 
-    // Fetch balances and supply when modal opens and wallet is connected
+    // Initial data fetch when modal opens
     useEffect(() => {
         if (isOpen && walletState.connected) {
-            fetchBalancesAndSupply();
+            fetchInitialData(); // Fetch balances and supply
         }
-    }, [isOpen, walletState.connected, fetchBalancesAndSupply]);
+    }, [isOpen, walletState.connected, fetchInitialData]);
 
-    // Fetch initial quote based on slider position and max LP
+    // Fetch quote when amountPercent or maxLpTokens change
     useEffect(() => {
-        if (maxLpTokens > 0) {
-            const initialLpAmount = Math.floor((amountPercent / 100) * maxLpTokens);
-            debouncedFetchQuote(initialLpAmount);
-        } else {
+        if (isOpen && walletState.connected && maxLpTokens > 0) {
+            const targetLpAmount = Math.floor((amountPercent / 100) * maxLpTokens);
+            // Ensure targetLpAmount is positive before fetching
+            if (targetLpAmount > 0) {
+                debouncedFetchQuote(targetLpAmount);
+            } else {
+                setQuotedAmounts({ dx: 0, dy: 0, dk: 0 });
+            }
+        }
+        else if (isOpen && walletState.connected) {
+            // If maxLp is 0 or balances/supply aren't ready, clear quote
             setQuotedAmounts({ dx: 0, dy: 0, dk: 0 });
         }
-    }, [amountPercent, maxLpTokens, debouncedFetchQuote]);
+    }, [isOpen, walletState.connected, amountPercent, maxLpTokens, debouncedFetchQuote]);
 
     const handleSliderChange = (value: number[]) => {
         const percent = value[0];
         setAmountPercent(percent);
-        const lpAmount = Math.floor((percent / 100) * maxLpTokens);
-        debouncedFetchQuote(lpAmount);
+        // Quote fetching is handled by the useEffect dependent on amountPercent and maxLpTokens
     };
 
     const handleAddLiquidity = async () => {
         if (!quotedAmounts || quotedAmounts.dk <= 0 || !walletState.connected) return;
+        // Re-check balance sufficiency just before submitting
+        const requiredTokenA = quotedAmounts?.dx || 0;
+        const requiredTokenB = quotedAmounts?.dy || 0;
+        if (balances.tokenA < requiredTokenA || balances.tokenB < requiredTokenB) {
+            toast.error("Insufficient balance for the required deposit amounts.");
+            return;
+        }
 
         setIsProcessing(true);
         try {
             const [contractAddress, contractName] = vault.contractId.split('.');
-            const txOptions = {
-                contract: `${contractAddress}.${contractName}` as any,
+
+            // Assemble post conditions correctly
+            const postConditions = [];
+            // Post condition for Token A
+            if (requiredTokenA > 0 && vault.tokenA.contractId !== '.stx') {
+                postConditions.push(
+                    Pc.principal(walletState.address).willSendEq(requiredTokenA).ft(vault.tokenA.contractId as `${string}.${string}`, vault.tokenA.identifier!)
+                );
+            } else if (requiredTokenA > 0 && vault.tokenA.contractId === '.stx') {
+                postConditions.push(
+                    Pc.principal(walletState.address).willSendEq(requiredTokenA).ustx() // Use .ustx() for STX
+                );
+            }
+            // Post condition for Token B
+            if (requiredTokenB > 0 && vault.tokenB.contractId !== '.stx') {
+                postConditions.push(
+                    Pc.principal(walletState.address).willSendEq(requiredTokenB).ft(vault.tokenB.contractId as `${string}.${string}`, vault.tokenB.identifier!)
+                );
+            } else if (requiredTokenB > 0 && vault.tokenB.contractId === '.stx') {
+                postConditions.push(
+                    Pc.principal(walletState.address).willSendEq(requiredTokenB).ustx() // Use .ustx() for STX
+                );
+            }
+
+            console.log([
+                uintCV(quotedAmounts.dk), // amount is dk (LP tokens)
+                optionalCVOf(bufferFromHex(OP_ADD_LIQUIDITY))
+            ])
+
+            const params = {
+                contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
-                arguments: [
+                functionArgs: [
                     uintCV(quotedAmounts.dk), // amount is dk (LP tokens)
-                    bufferCVFromString(OP_ADD_LIQUIDITY)
+                    optionalCVOf(bufferFromHex(OP_ADD_LIQUIDITY))
                 ],
+                postConditions, // Use the assembled array
             };
 
-            // Use request instead of openContractCall
-            await request('stx_callContract', txOptions); // Cast method name to any
+            const result = await request('stx_callContract', params);
 
+            if (result && result.txid) {
+                toast.success("Add Liquidity transaction submitted!", { description: `TxID: ${result.txid}` });
+                setIsOpen(false);
+                // Optionally trigger a balance refresh after a delay
+                // setTimeout(fetchInitialData, 5000); // Use fetchInitialData now
+            } else {
+                const errorMessage = "Transaction failed or was rejected.";
+                throw new Error(`Submission Failed: ${errorMessage}`);
+            }
         } catch (error) {
             console.error("Add Liquidity submission error:", error);
-            // Check if it's a known error structure from @stacks/connect or a generic error
             const errorMessage = (error instanceof Error && error.message) || (typeof error === 'string' ? error : 'An unknown error occurred.');
             toast.error("Failed to initiate transaction.", { description: errorMessage });
         } finally {
@@ -224,7 +291,8 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
     const requiredTokenA = quotedAmounts?.dx || 0;
     const requiredTokenB = quotedAmounts?.dy || 0;
     const hasSufficientBalance = balances.tokenA >= requiredTokenA && balances.tokenB >= requiredTokenB;
-    const canSubmit = hasSufficientBalance && currentLpAmount > 0 && !isProcessing && !isLoadingBalances && !isQuoting;
+    // Update canSubmit to use combined loading state
+    const canSubmit = hasSufficientBalance && currentLpAmount > 0 && !isProcessing && !isLoadingData && !isQuoting;
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -248,10 +316,10 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                             amount={currentLpAmount / (10 ** (vault.decimals || 6))}
                             symbol={vault.symbol}
                             imgSrc={vault.image}
-                            price={prices[vault.contractId]} // Price of LP token might not be available
+                            price={prices[vault.contractId]}
                             label="You will receive (LP Tokens)"
                             decimals={vault.decimals}
-                            isLoading={isQuoting}
+                            isLoading={isQuoting || isLoadingData} // Combine loading states
                         />
 
                         {/* Token A Deposit */}
@@ -263,14 +331,14 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                                 price={prices[vault.tokenA.contractId]}
                                 label="You will deposit"
                                 decimals={vault.tokenA.decimals}
-                                isLoading={isQuoting}
+                                isLoading={isQuoting || isLoadingData} // Combine loading states
                             />
                             <BalanceInfo
                                 balance={balances.tokenA}
                                 symbol={vault.tokenA.symbol}
                                 decimals={vault.tokenA.decimals}
                                 required={requiredTokenA}
-                                isLoading={isLoadingBalances}
+                                isLoading={isLoadingData} // Only balance loading
                             />
                         </div>
 
@@ -283,14 +351,14 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                                 price={prices[vault.tokenB.contractId]}
                                 label="You will deposit"
                                 decimals={vault.tokenB.decimals}
-                                isLoading={isQuoting}
+                                isLoading={isQuoting || isLoadingData} // Combine loading states
                             />
                             <BalanceInfo
                                 balance={balances.tokenB}
                                 symbol={vault.tokenB.symbol}
                                 decimals={vault.tokenB.decimals}
                                 required={requiredTokenB}
-                                isLoading={isLoadingBalances}
+                                isLoading={isLoadingData} // Only balance loading
                             />
                         </div>
 
@@ -302,7 +370,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                                 onValueChange={handleSliderChange}
                                 max={100}
                                 step={1}
-                                disabled={isLoadingBalances || maxLpTokens <= 0}
+                                disabled={isLoadingData || maxLpTokens <= 0} // Use combined loading state
                             />
                         </div>
 

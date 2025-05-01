@@ -1,0 +1,68 @@
+[project]
+name = "clarity"
+description = ""
+authors = []
+telemetry = false
+cache_dir = "./.cache"
+
+[contracts.charisma-traits-v1]
+path = "contracts/charisma-traits-v1.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.dungeon-master]
+path = "contracts/dungeon-master.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.welshcorgicoin-token]
+path = "contracts/welshcorgicoin-token.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.charisma-token]
+path = "contracts/charisma-token.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.blaze]
+path = "contracts/blaze.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.x-welshcorgicoin-token]
+path = "contracts/x-welshcorgicoin-token.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.x-charisma-token]
+path = "contracts/x-charisma-token.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.x-pool]
+path = "contracts/x-pool.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.x-vault]
+path = "contracts/x-vault.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.x-multihop]
+path = "contracts/x-multihop.clar"
+clarity_version = 3
+epoch = 3.0
+
+[repl.analysis]
+passes = ["check_checker"]
+check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
+
+# Check-checker settings:
+# trusted_sender: if true, inputs are trusted after tx_sender has been checked.
+# trusted_caller: if true, inputs are trusted after contract-caller has been checked.
+# callee_filter: if true, untrusted data may be passed into a private function without a
+# warning, if it gets checked inside. This check will also propagate up to the
+# caller.
+# More informations: https://www.hiro.so/blog/new-safety-checks-in-clarinet

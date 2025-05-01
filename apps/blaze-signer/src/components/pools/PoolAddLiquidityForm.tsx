@@ -47,6 +47,8 @@ async function executePoolAddLiquidity(params: {
     lpAmount: bigint; // Send as string to avoid JSON limitations with BigInt
     uuidA: string;
     uuidB: string;
+    recipientA: string;
+    recipientB: string;
 }): Promise<TxBroadcastResult> { // Return the raw broadcast result
     console.log("Calling /api/pools/add-liquidity with params:", params);
     const response = await fetch('/api/pools/add-liquidity', {
@@ -298,6 +300,8 @@ export const PoolAddLiquidityForm: React.FC<PoolAddLiquidityFormProps> = ({ pool
                 lpAmount: lpAmountBigInt,
                 uuidA: uuidA,
                 uuidB: uuidB,
+                recipientA: walletAddress!,
+                recipientB: walletAddress!,
             });
             setExecResult(result);
 
