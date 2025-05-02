@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Dexterity } from '@repo/dexterity';
 import { ensureVaultsLoaded } from '../../../actions'; // Reuse vault loading logic
+import { Dexterity } from '@/lib/dexterity-client';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
