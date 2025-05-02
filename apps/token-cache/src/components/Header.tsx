@@ -35,6 +35,12 @@ export default function Header() {
                         >
                             Inspect
                         </Link>
+                        <Link
+                            href="/stats"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Stats
+                        </Link>
                     </nav>
                 </div>
 
