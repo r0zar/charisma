@@ -1,6 +1,6 @@
 'use server';
 
-import { Dexterity, Route } from "@repo/dexterity";
+import { Dexterity, Route } from "@/lib/dexterity-client";
 import { QuoteResponse } from "../lib/swap-client";
 import type { Token } from "../lib/swap-client";
 
@@ -110,9 +110,7 @@ export async function getQuote(
 /**
  * Server action to execute a swap using Dexterity directly
  */
-export async function executeSwap(
-    route: Route
-): Promise<{ success: boolean; txId?: string; error?: string }> {
+export async function executeSwap(route: Route): Promise<{ success: boolean; txId?: string; error?: string }> {
     try {
         console.log(`[Server] Executing swap with route: ${JSON.stringify(route).substring(0, 100)}...`);
 

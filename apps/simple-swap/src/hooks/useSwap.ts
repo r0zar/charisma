@@ -1,10 +1,55 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import type { Route } from "@repo/dexterity";
 import { Cryptonomicon } from "@repo/cryptonomicon";
 import { getQuote, getRoutableTokens } from "../app/actions";
 import { swapClient, Token } from "../lib/swap-client";
 import { useWallet } from "../contexts/wallet-context";
 import { listPrices, KraxelPriceData } from '@repo/tokens';
+
+/**
+ * Vault instance representing a liquidity pool
+ */
+interface Vault {
+    contractId: string;
+    contractAddress: string;
+    contractName: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    identifier: string;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
+
+/**
+ * Route between tokens
+ */
+export interface Route {
+    path: Token[];
+    hops: Hop[];
+    amountIn: number;
+    amountOut: number;
+}
+
+/**
+ * Hop in a route
+ */
+export interface Hop {
+    vault: Vault;
+    tokenIn: Token;
+    tokenOut: Token;
+    opcode: number;
+    quote?: {
+        amountIn: number;
+        amountOut: number;
+    };
+}
 
 // Quote response mirrors server action structure
 interface QuoteResponse {
@@ -30,10 +75,7 @@ interface BalanceCache {
 }
 
 // Initialize Cryptonomicon
-const crypto = new Cryptonomicon({
-    network: "mainnet", // or "testnet" based on your app
-    debug: false
-});
+const crypto = new Cryptonomicon();
 
 export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // Get wallet state from context

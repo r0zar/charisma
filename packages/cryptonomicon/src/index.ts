@@ -21,6 +21,7 @@ export interface TokenMetadata {
   image_canonical_uri?: string;
   tx_id?: string;
   sender_address?: string;
+  contractId: string;
   contract_principal?: string;
   asset_identifier?: string;
   cached_image?: string;
@@ -87,9 +88,6 @@ export class Cryptonomicon {
     // Initialize StacksClient
     this.client = StacksClient.getInstance(config);
 
-    if (this.config.debug) {
-      console.debug("Cryptonomicon initialized with config:", this.config);
-    }
   }
 
   /**
@@ -232,6 +230,7 @@ export class Cryptonomicon {
           delete normalizedApiData.generated;
 
           apiMetadata = {
+            contractId: contractId,
             name: normalizedApiData.name,
             symbol: normalizedApiData.symbol,
             decimals: normalizedApiData.decimals,

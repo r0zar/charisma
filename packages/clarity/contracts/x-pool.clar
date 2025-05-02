@@ -1,4 +1,4 @@
-;; Title: Monkey D. Luffy
+;; Title: SUB_LINK
 ;; Version: 1.0.0
 ;; Description: 
 ;;   Implementation of the standard trait interface for liquidity pools on the Stacks blockchain.
@@ -7,7 +7,6 @@
 
 ;; Traits
 (impl-trait .charisma-traits-v1.sip010-ft-trait)
-;; (impl-trait .dexterity-traits-v0.liquidity-pool-trait)
 
 ;; Constants
 (define-constant DEPLOYER tx-sender)
@@ -15,7 +14,7 @@
 (define-constant ERR_UNAUTHORIZED (err u4031))
 (define-constant ERR_INVALID_OPERATION (err u4001))
 (define-constant PRECISION u1000000)
-(define-constant LP_REBATE u1000)
+(define-constant LP_REBATE u100)
 
 ;; Opcodes
 (define-constant OP_SWAP_A_TO_B 0x00)      ;; Swap token A for B
@@ -25,32 +24,32 @@
 (define-constant OP_LOOKUP_RESERVES 0x04)  ;; Read pool reserves
 
 ;; Define LP token
-(define-fungible-token luffy)
-(define-data-var token-uri (optional (string-utf8 256)) (some u"https://charisma-metadata.vercel.app/api/v1/metadata/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.monkey-d-luffy"))
+(define-fungible-token sublink)
+(define-data-var token-uri (optional (string-utf8 256)) (some u"https://charisma-metadata.vercel.app/api/v1/metadata/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link"))
 
 ;; --- SIP10 Functions ---
 
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
     (begin
         (asserts! (is-eq tx-sender sender) ERR_UNAUTHORIZED)
-        (try! (ft-transfer? luffy amount sender recipient))
+        (try! (ft-transfer? sublink amount sender recipient))
         (match memo to-print (print to-print) 0x0000)
         (ok true)))
 
 (define-read-only (get-name)
-    (ok "Monkey D. Luffy"))
+    (ok "SUB_LINK"))
 
 (define-read-only (get-symbol)
-    (ok "LUFFY"))
+    (ok "SL"))
 
 (define-read-only (get-decimals)
     (ok u6))
 
 (define-read-only (get-balance (who principal))
-    (ok (ft-get-balance luffy who)))
+    (ok (ft-get-balance sublink who)))
 
 (define-read-only (get-total-supply)
-    (ok (ft-get-supply luffy)))
+    (ok (ft-get-supply sublink)))
 
 (define-read-only (get-token-uri)
     (ok (var-get token-uri)))
@@ -63,7 +62,7 @@
 (define-public (burn (amount uint) (who principal))
     (begin
         (asserts! (is-eq tx-sender who) ERR_UNAUTHORIZED)
-        (try! (ft-burn? luffy amount who))
+        (try! (ft-burn? sublink amount who))
         (ok true)))
 
 ;; --- Core Functions ---
@@ -72,61 +71,55 @@
     (let (
         (delta (get-swap-quote amount OP_SWAP_A_TO_B)))
         ;; Transfer token A to pool
-        (try! (contract-call? .x-charisma-token transfer amount tx-sender CONTRACT none))
+        (try! (contract-call? .charisma-token transfer amount tx-sender CONTRACT none))
         ;; Transfer token B to sender
-        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 (define-public (swap-b-to-a (amount uint) (recipient principal))
     (let (
         (delta (get-swap-quote amount OP_SWAP_B_TO_A)))
         ;; Transfer token B to pool
-        (try! (contract-call? .x-welshcorgicoin-token transfer amount tx-sender CONTRACT none))
+        (try! (contract-call? .charisma-token-subnet-v1 transfer amount tx-sender CONTRACT none))
         ;; Transfer token A to sender
-        (try! (as-contract (contract-call? .x-charisma-token transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .charisma-token transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 (define-public (add-liquidity (amount uint) (recipient-a principal) (recipient-b principal))
     (let (
         (delta (get-liquidity-quote amount)))
-        (try! (contract-call? .x-charisma-token transfer (get dx delta) tx-sender CONTRACT none))
-        (try! (contract-call? .x-welshcorgicoin-token transfer (get dy delta) tx-sender CONTRACT none))
-        (try! (ft-mint? luffy (/ (get dk delta) u2) recipient-a))
-        (try! (ft-mint? luffy (/ (get dk delta) u2) recipient-b))
+        (try! (contract-call? .charisma-token transfer (get dx delta) tx-sender CONTRACT none))
+        (try! (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) tx-sender CONTRACT none))
+        (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-a))
+        (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-b))
         (ok delta)))
 
 (define-public (remove-liquidity (amount uint) (recipient-a principal) (recipient-b principal))
     (let (
         (delta (get-liquidity-quote amount)))
-        (try! (ft-burn? luffy (get dk delta) tx-sender))
-        (try! (as-contract (contract-call? .x-charisma-token transfer (get dx delta) CONTRACT recipient-a none)))
-        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer (get dy delta) CONTRACT recipient-b none)))
+        (try! (ft-burn? sublink (get dk delta) tx-sender))
+        (try! (as-contract (contract-call? .charisma-token transfer (get dx delta) CONTRACT recipient-a none)))
+        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) CONTRACT recipient-b none)))
         (ok delta)))
 
 ;; --- Subnet Functions ---
 
 (define-public (x-add-liquidity (amount uint) 
-    (signature-a (buff 65)) (uuid-a (string-ascii 36)) 
-    (signature-b (buff 65)) (uuid-b (string-ascii 36)))
+    (signature-a (buff 65)) (uuid-a (string-ascii 36)) (recipient-a principal) 
+    (signature-b (buff 65)) (uuid-b (string-ascii 36)) (recipient-b principal))
     (let (
         (delta (get-liquidity-quote amount))
         (amount-a (get dx delta))
-        (amount-b (get dy delta))
+        (amount-b (get dy delta)))
 
-        (signer-a (try! (contract-call? .blaze recover signature-a
-            .x-charisma-token "TRANSFER_TOKENS" none (some amount-a) (some CONTRACT) uuid-a)))
-
-        (signer-b (try! (contract-call? .blaze recover signature-b
-            .x-welshcorgicoin-token "TRANSFER_TOKENS" none (some amount-b) (some CONTRACT) uuid-b))))
-
-        (try! (contract-call? .x-charisma-token x-transfer signature-a amount-a uuid-a CONTRACT))
-        (try! (contract-call? .x-welshcorgicoin-token x-transfer signature-b amount-b uuid-b CONTRACT))
-        (try! (ft-mint? luffy (/ (get dk delta) u2) signer-a))
-        (try! (ft-mint? luffy (/ (get dk delta) u2) signer-b))
+        (try! (contract-call? .charisma-token x-transfer signature-a amount-a uuid-a CONTRACT))
+        (try! (contract-call? .charisma-token-subnet-v1 x-transfer signature-b amount-b uuid-b CONTRACT))
+        (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-a))
+        (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-b))
         (ok delta)))
 
 (define-public (x-remove-liquidity (amount uint) 
-    (signature (buff 65)) (uuid (string-ascii 36)))
+    (signature (buff 65)) (uuid (string-ascii 36)) (recipient principal))
     (let (
         (signer (try! (contract-call? .blaze execute signature "REMOVE_LIQUIDITY" none (some amount) none uuid)))
         (delta (get-liquidity-quote amount))
@@ -134,28 +127,28 @@
         (amount-b (get dy delta)))
         
         ;; Burn the LP tokens from the signer
-        (try! (ft-burn? luffy (get dk delta) signer))
+        (try! (ft-burn? sublink (get dk delta) signer))
         
         ;; Transfer tokens back to signer
-        (try! (as-contract (contract-call? .x-charisma-token transfer amount-a CONTRACT signer none)))
-        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer amount-b CONTRACT signer none)))
+        (try! (as-contract (contract-call? .charisma-token transfer amount-a CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer amount-b CONTRACT recipient none)))
         
         (ok delta)))
 
 (define-public (x-swap-a-to-b (amount uint) (signature (buff 65)) (uuid (string-ascii 36)) (recipient principal))
     (let ((delta (get-swap-quote amount OP_SWAP_A_TO_B)))
         ;; Transfer tokens to contract from signer
-        (try! (contract-call? .x-charisma-token x-transfer signature amount uuid CONTRACT))
+        (try! (contract-call? .charisma-token x-transfer signature amount uuid CONTRACT))
         ;; Transfer tokens to recipient from contract
-        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 (define-public (x-swap-b-to-a (amount uint) (signature (buff 65)) (uuid (string-ascii 36)) (recipient principal))
     (let ((delta (get-swap-quote amount OP_SWAP_B_TO_A)))
         ;; Transfer tokens to contract from signer
-        (try! (contract-call? .x-welshcorgicoin-token x-transfer signature amount uuid CONTRACT))
+        (try! (contract-call? .charisma-token-subnet-v1 x-transfer signature amount uuid CONTRACT))
         ;; Transfer tokens to recipient from contract
-        (try! (as-contract (contract-call? .x-charisma-token transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .charisma-token transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 ;; --- Helper Functions ---
@@ -165,8 +158,8 @@
 
 (define-private (get-reserves)
     { 
-      a: (unwrap-panic (contract-call? .x-charisma-token get-balance CONTRACT)), 
-      b: (unwrap-panic (contract-call? .x-welshcorgicoin-token get-balance CONTRACT))
+      a: (unwrap-panic (contract-call? .charisma-token get-balance CONTRACT)), 
+      b: (unwrap-panic (contract-call? .charisma-token-subnet-v1 get-balance CONTRACT))
     })
 
 ;; --- Quote Functions ---
@@ -190,7 +183,7 @@
 
 (define-read-only (get-liquidity-quote (amount uint))
     (let (
-        (k (ft-get-supply luffy))
+        (k (ft-get-supply sublink))
         (reserves (get-reserves)))
         {
           dx: (if (> k u0) (/ (* amount (get a reserves)) k) amount),
@@ -201,7 +194,7 @@
 (define-read-only (get-reserves-quote)
     (let (
         (reserves (get-reserves))
-        (supply (ft-get-supply luffy)))
+        (supply (ft-get-supply sublink)))
         {
           dx: (get a reserves),
           dy: (get b reserves),

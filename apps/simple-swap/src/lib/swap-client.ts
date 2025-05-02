@@ -1,6 +1,6 @@
 /** * Direct swap client for simple-swap, integrated with dex-cache
  */
-import { Dexterity, Route, Vault } from '@repo/dexterity';
+import { Dexterity, Route, Vault } from '@/lib/dexterity-client';
 import { getQuote as getQuoteAction } from '../app/actions';
 
 /**
@@ -27,15 +27,6 @@ export interface ApiError {
 }
 
 /**
- * Server action response interfaces
- */
-interface ServerActionResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-/**
  * Client configuration
  */
 export interface SwapClientOptions {
@@ -43,7 +34,6 @@ export interface SwapClientOptions {
    * URL for the dex-cache API (used for fetching vaults and tokens)
    */
   dexCacheUrl?: string;
-
   routerAddress?: string;
   routerName?: string;
 }
@@ -64,7 +54,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
     Dexterity.configureRouter(
       config.routerAddress,
       config.routerName,
-      { debug: true, maxHops: 2 }
+      { maxHops: 3, defaultSlippage: 0.01 }
     );
   }
 
@@ -334,6 +324,4 @@ export function createSwapClient(options: SwapClientOptions = {}) {
  * - Uses dex-cache API for vaults and tokens (primary source)
  * - Uses dexterity API for quotes and as fallback for tokens
  */
-export const swapClient = createSwapClient({
-  dexCacheUrl: "http://localhost:3003/api/v1"
-});
+export const swapClient = createSwapClient();

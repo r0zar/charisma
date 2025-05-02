@@ -1,7 +1,43 @@
 import { kv } from "@vercel/kv";
-import { Vault } from "@repo/dexterity";
 import { callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV, cvToValue, ClarityType } from '@stacks/transactions';
+
+/**
+ * Basic token information
+ */
+interface Token {
+    contractId: string;
+    identifier?: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    supply?: number;
+    image?: string;
+    description?: string;
+    contract_principal?: string;
+}
+
+/**
+ * Vault instance representing a liquidity pool
+ */
+interface Vault {
+    contractId: string;
+    contractAddress: string;
+    contractName: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    identifier: string;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
 
 // Cache constants
 const CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
@@ -126,7 +162,6 @@ function buildVaultStructureFromTokens(
             identifier: lpToken.identifier || '',
             description: lpToken.description || "",
             image: lpToken.image || "",
-            // Attempt to get fee - needs refinement based on actual lpToken structure
             fee: lpToken.fee || (lpToken.properties?.fee) || lpToken?.lpRebatePercent * 10000 || lpToken?.external?.fee || 0, // Example placeholder
             externalPoolId: lpToken.externalPoolId || (lpToken.properties?.externalPoolId) || "", // Example placeholder
             engineContractId: lpToken.engineContractId || (lpToken.properties?.engineContractId) || "", // Example placeholder

@@ -14,10 +14,11 @@ export default async function SwapPage({
 }: {
     searchParams: { [key: string]: string | string[] | undefined };
 }) {
+    const { fromSymbol, toSymbol, amount } = await searchParams;
     // Get URL parameters for pre-filling the swap form
-    const fromParam = searchParams.fromSymbol as string | undefined;
-    const toParam = searchParams.toSymbol as string | undefined;
-    const amountParam = searchParams.amount as string | undefined;
+    const fromParam = fromSymbol as string | undefined;
+    const toParam = toSymbol as string | undefined;
+    const amountParam = amount as string | undefined;
 
     // Prefetch tokens on the server
     const { success, tokens = [] } = await listTokens();

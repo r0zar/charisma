@@ -1,6 +1,6 @@
 'use server';
 
-import { Dexterity, Route } from "@repo/dexterity";
+import { Dexterity } from "@/lib/dexterity-client";
 import { QuoteResponse } from "../lib/swap-client";
 import type { Token } from "../lib/swap-client";
 
@@ -11,17 +11,14 @@ Dexterity.configureRouter(
     routerAddress,
     routerName,
     {
-        maxHops: 2,
-        debug: true,
+        maxHops: 3,
         defaultSlippage: 0.01,
+        debug: process.env.NODE_ENV === 'development',
     });
 
 // Make sure to initialize Dexterity
 if (typeof window === 'undefined') { // Server-side only
-    Dexterity.init({
-        apiKey: process.env.HIRO_API_KEY!,
-        debug: true,
-    });
+    Dexterity.init({ apiKey: process.env.HIRO_API_KEY! });
 }
 
 // Keep track of vault loading status
@@ -48,14 +45,6 @@ export async function ensureVaultsLoaded() {
                 return;
             }
         }
-
-        // Fallback to Dexterity discovery if dex-cache API fails
-        console.log('[Server] Fallback to direct vault discovery');
-        const vaults = await Dexterity.discoverAndLoad({
-            parallelRequests: 3,
-            maxVaultLoadLimit: 20
-        });
-        console.log(`[Server] Discovered and loaded ${vaults.length} vaults directly`);
         vaultsLoaded = true;
     } catch (error) {
         console.error('[Server] Error loading vaults:', error);
@@ -122,6 +111,7 @@ export async function getRoutableTokens(): Promise<{
 
         // Get all tokens from the Dexterity graph
         const graphStats = Dexterity.getGraphStats();
+        console.log(graphStats);
         const tokenIds = graphStats.tokenIds;
 
         console.log(`[Server] Found ${tokenIds.length} tokens in the routing graph`);
@@ -155,6 +145,7 @@ export async function listTokens(): Promise<{
         // Use Dexterity helper to collect unique tokens from loaded vaults
         const vaults = Dexterity.getVaults();
         const tokens = Dexterity.getAllVaultTokens(vaults);
+
 
         return {
             success: true,

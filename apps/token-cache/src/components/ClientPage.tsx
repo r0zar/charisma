@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { TokenMetadata } from "@repo/cryptonomicon";
 import TokenList from './TokenList';
 import { getAllTokenData } from "@/lib/tokenService";
+import { Card, CardContent } from "@/components/ui/card";
+import { Info } from 'lucide-react';
 
 export default function ClientPage({ initialTokens = [] }: { initialTokens?: TokenMetadata[] }) {
     const searchParams = useSearchParams();
@@ -18,16 +20,15 @@ export default function ClientPage({ initialTokens = [] }: { initialTokens?: Tok
     useEffect(() => {
         const urlSearchParam = searchParams.get('search');
         const contractIdParam = searchParams.get('contractId');
-
-        // Prioritize search over contractId param (if both exist)
-        const searchTerm = urlSearchParam || contractIdParam || '';
-        setSearchTerm(searchTerm);
+        const term = urlSearchParam || contractIdParam || '';
+        setSearchTerm(term);
     }, [searchParams]);
 
     // Effect to fetch token data if not provided
     useEffect(() => {
         if (initialTokens.length === 0) {
             const fetchData = async () => {
+                setIsLoading(true);
                 try {
                     const data = await getAllTokenData();
                     setTokens(data);
@@ -37,7 +38,6 @@ export default function ClientPage({ initialTokens = [] }: { initialTokens?: Tok
                     setIsLoading(false);
                 }
             };
-
             fetchData();
         }
     }, [initialTokens]);
@@ -48,83 +48,40 @@ export default function ClientPage({ initialTokens = [] }: { initialTokens?: Tok
     const exampleSearchUrl = exampleContractId ? `/?search=${exampleContractId}` : null;
 
     return (
-        <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 md:p-16 bg-gray-50 dark:bg-gray-900">
-            {/* Main content container with max width */}
-            <div className="w-full max-w-6xl mx-auto">
-                <header className="mb-8">
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center">SIP-10 Token Cache</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Explore and interact with Stacks SIP-10 fungible tokens</p>
-                </header>
-
-                {/* Introduction Text - Responsive Box */}
-                <div className="w-full text-left text-sm text-gray-600 dark:text-gray-400 mb-8 space-y-4 border border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-lg bg-white dark:bg-gray-800/30 shadow-sm">
+        <div className="w-full">
+            <Card className="mb-8">
+                <CardContent className="text-sm space-y-3">
                     <p className="flex items-start gap-3">
-                        <span className="text-lg mt-0.5 flex-shrink-0">🧱</span>
-                        <span className="break-words">
-                            This tool displays information for SIP-10 Fungible Tokens on the Stacks blockchain.
-                            Data is fetched using the Cryptonomicon library and cached via Vercel KV.
+                        <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                            This list displays cached SIP-10 token metadata. Use the search below or the
+                            <Link href="/inspect" className="text-primary hover:underline mx-1">Inspector Tool</Link>
+                            to check specific contract IDs.
                         </span>
                     </p>
                     <p className="flex items-start gap-3">
-                        <span className="text-lg mt-0.5 flex-shrink-0">🔍</span>
-                        <span className="break-words">
-                            You can search for tokens by name, symbol, or contract ID. If a token isn't listed, searching by its full contract ID
-                            (e.g., <code className="break-all text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token</code>) and clicking the "Lookup" button will attempt to fetch its data and add it to the list.
-                        </span>
-                    </p>
-                    <p className="flex items-start gap-3">
-                        <span className="text-lg mt-0.5 flex-shrink-0">🔗</span>
-                        <span className="break-words">
-                            You can directly link to a specific token by using the <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">?search=</code> URL parameter with the contract ID.
-                            {exampleSearchUrl && (
-                                <>
-                                    {' '}
-                                    Example:
-                                    <Link href={exampleSearchUrl} className="text-blue-500 hover:underline ml-1 break-all text-xs">
-                                        <code>{exampleSearchUrl}</code>
-                                    </Link>
-                                </>
-                            )}
-                        </span>
-                    </p>
-                    <p className="flex items-start gap-3">
-                        <span className="text-lg mt-0.5 flex-shrink-0">🔌</span>
-                        <span className="break-words">
-                            Token data is also available via a public API endpoint: <code className="break-all text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">/api/v1/sip10/[contractId]</code>.
+                        <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">
+                            API Endpoint: <code className="bg-muted px-1 py-0.5 rounded">/api/v1/sip10/[contractId]</code>
                             {exampleApiUrl && (
-                                <>
-                                    {' '}
-                                    Example:
-                                    <Link href={exampleApiUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline ml-1 break-all text-xs">
-                                        <code>{exampleApiUrl}</code>
-                                    </Link>
-                                </>
+                                <Link href={exampleApiUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline ml-1 break-all text-xs">
+                                    (Example)
+                                </Link>
                             )}
                         </span>
                     </p>
-                </div>
+                </CardContent>
+            </Card>
 
-                {/* Loading state or TokenList */}
-                {isLoading ? (
-                    <div className="text-center py-8">Loading tokens...</div>
-                ) : (
-                    <TokenList
-                        initialTokens={tokens}
-                        isDevelopment={isDevelopment}
-                        initialSearchTerm={searchTerm}
-                    />
-                )}
-
-                {/* Simple footer */}
-                <footer className="mt-12 text-center text-xs text-gray-500 dark:text-gray-400 pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <p>SIP-10 Token Explorer &copy; {new Date().getFullYear()}</p>
-                    <p className="mt-1">
-                        <Link href="/stats" className="text-blue-500 hover:underline">
-                            View Cache Statistics
-                        </Link>
-                    </p>
-                </footer>
-            </div>
-        </main>
+            {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading tokens...</div>
+            ) : (
+                <TokenList
+                    initialTokens={tokens}
+                    isDevelopment={isDevelopment}
+                    initialSearchTerm={searchTerm}
+                />
+            )}
+        </div>
     );
 } 

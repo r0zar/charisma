@@ -26,7 +26,6 @@
     "@repo/logger": "workspace:*",
     "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
-    "@repo/ui": "workspace:*",
     "@stacks/auth": "^7.0.5",
     "@stacks/blockchain-api-client": "^8.8.0",
     "@stacks/connect": "latest",

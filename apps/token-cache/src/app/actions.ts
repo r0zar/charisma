@@ -3,6 +3,8 @@
 import { kv } from "@vercel/kv";
 import { revalidatePath } from 'next/cache';
 import { getTokenData } from "@/lib/tokenService";
+import { Cryptonomicon, TokenMetadata } from "@repo/cryptonomicon";
+import { getCacheKey } from "@/lib/tokenService";
 
 const TOKEN_LIST_KEY = "token-list:sip10";
 
@@ -87,5 +89,90 @@ export async function refreshTokenData(contractId: string) {
     } catch (error: any) {
         console.error(`Failed to refresh data for ${contractId}:`, error);
         return { success: false, error: error.message || 'Failed to refresh data.' };
+    }
+}
+
+// Initialize Cryptonomicon directly for inspection purposes
+// Ensure configuration matches the one in tokenService if necessary
+const cryptonomicon = new Cryptonomicon({
+    debug: process.env.NODE_ENV === 'development',
+    network: process.env.NEXT_PUBLIC_NETWORK === 'testnet' ? 'testnet' : 'mainnet',
+    apiKey: process.env.HIRO_API_KEY,
+});
+
+interface InspectionResult {
+    contractId: string;
+    rawMetadata?: TokenMetadata | null; // Raw data fetched directly
+    cachedData?: TokenMetadata | null; // Current data in cache
+    fetchError?: string | null; // Error during the direct fetch
+    cacheError?: string | null; // Error fetching cached data
+}
+
+/**
+ * Fetches both raw and cached token metadata for inspection.
+ */
+export async function inspectTokenData(contractId: string): Promise<InspectionResult> {
+    if (!contractId || !contractId.includes('.')) {
+        return { contractId, fetchError: 'Invalid contract ID format.' };
+    }
+
+    const cacheKey = getCacheKey(contractId);
+    let rawMetadata: TokenMetadata | null = null;
+    let cachedData: TokenMetadata | null = null;
+    let fetchError: string | null = null;
+    let cacheError: string | null = null;
+
+    console.log(`[Inspect] Inspecting token: ${contractId}`);
+
+    // Attempt to fetch raw data directly
+    try {
+        console.log(`[Inspect] Fetching raw metadata for ${contractId} via Cryptonomicon...`);
+        rawMetadata = await cryptonomicon.getTokenMetadata(contractId);
+        console.log(`[Inspect] Raw metadata fetched for ${contractId}:`, rawMetadata ? 'Data found' : 'Not found');
+    } catch (error: any) {
+        console.error(`[Inspect] Error fetching raw metadata for ${contractId}:`, error);
+        fetchError = error.message || 'Failed to fetch raw metadata.';
+    }
+
+    // Attempt to fetch cached data
+    try {
+        console.log(`[Inspect] Fetching cached data for ${contractId} from key: ${cacheKey}`);
+        cachedData = await kv.get<TokenMetadata>(cacheKey);
+        console.log(`[Inspect] Cached data fetched for ${contractId}:`, cachedData ? 'Data found' : 'Not found');
+    } catch (error: any) {
+        console.error(`[Inspect] Error fetching cached data for ${contractId}:`, error);
+        cacheError = error.message || 'Failed to fetch cached data.';
+    }
+
+    return {
+        contractId,
+        rawMetadata,
+        cachedData,
+        fetchError,
+        cacheError,
+    };
+}
+
+/**
+ * Forces a refresh of the token data in the cache using the existing service function.
+ */
+export async function forceRefreshToken(contractId: string): Promise<{ success: boolean; data?: TokenMetadata | null; error?: string }> {
+    if (!contractId || !contractId.includes('.')) {
+        return { success: false, error: 'Invalid contract ID format.' };
+    }
+    console.log(`[Inspect] Forcing refresh for token: ${contractId}`);
+    try {
+        // Use the existing getTokenData function from the service with forceRefresh=true
+        const refreshedData = await getTokenData(contractId, true);
+        if (refreshedData) {
+            console.log(`[Inspect] Refresh successful for ${contractId}`);
+            return { success: true, data: refreshedData };
+        } else {
+            console.warn(`[Inspect] Refresh for ${contractId} completed but returned null data.`);
+            return { success: false, error: 'Refresh completed but no data was returned.' };
+        }
+    } catch (error: any) {
+        console.error(`[Inspect] Error during forced refresh for ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to force refresh token data.' };
     }
 } 

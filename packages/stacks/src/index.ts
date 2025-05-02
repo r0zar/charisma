@@ -20,32 +20,16 @@ import {
   signStructuredData,
 } from '@stacks/transactions';
 
-const API_ENDPOINTS = [
-  'https://api.hiro.so/',
-  'https://api.mainnet.hiro.so/',
-  'https://stacks-node-api.mainnet.stacks.co/',
-];
+const DEFAULT_API_ENDPOINT = 'https://api.hiro.so/';
 
 /**
  * Options for StacksClient
  */
 export interface StacksClientOptions {
   /**
-   * Default API key used for authentication with Stacks endpoints
+   * API key used for authentication with the Stacks endpoint
    */
   apiKey?: string;
-
-  /**
-   * Array of API keys for rotation
-   */
-  apiKeys?: string[];
-
-  /**
-   * API key rotation strategy
-   * - "loop": Cycle through keys sequentially
-   * - "random": Select a random key for each request
-   */
-  apiKeyRotation?: 'loop' | 'random';
 
   /**
    * Private key for server mode
@@ -77,6 +61,11 @@ export interface StacksClientOptions {
    * Custom logger (defaults to console)
    */
   logger?: Console;
+
+  /**
+   * Base URL for the Stacks API endpoint
+   */
+  baseUrl?: string;
 }
 
 /**
@@ -84,25 +73,22 @@ export interface StacksClientOptions {
  */
 const DEFAULT_OPTIONS: StacksClientOptions = {
   apiKey: '',
-  apiKeys: [],
-  apiKeyRotation: 'loop',
   privateKey: '',
   network: 'mainnet',
   retryDelay: 1000,
   maxRetries: 3,
   debug: false,
   logger: console,
+  baseUrl: DEFAULT_API_ENDPOINT,
 };
 
 /**
- * Singleton client for Stacks blockchain interactions with built-in redundancy
+ * Singleton client for Stacks blockchain interactions
  */
 export class StacksClient {
   protected static instance: StacksClient;
-  protected static currentKeyIndex = 0;
-  protected static currentClientIndex = 0;
   protected static options: StacksClientOptions;
-  protected clients: Client<paths, `${string}/${string}`>[];
+  protected client: Client<paths, `${string}/${string}`>;
   protected logger: Console;
 
   /**
@@ -113,68 +99,11 @@ export class StacksClient {
     StacksClient.options = { ...DEFAULT_OPTIONS, ...options };
     this.logger = StacksClient.options.logger || console;
 
-    // If we have a single apiKey but no apiKeys array, create one
-    if (StacksClient.options.apiKey && !StacksClient.options.apiKeys?.length) {
-      StacksClient.options.apiKeys = [StacksClient.options.apiKey];
-    }
-
-    // Create a client for each endpoint
-    this.clients = API_ENDPOINTS.map((endpoint) =>
-      createClient({ baseUrl: endpoint })
-    );
-
-    // Add API key handling middleware to each client
-    this.clients.forEach((client) => {
-      client.use({
-        onRequest({ request }) {
-          const apiKeys = StacksClient.options.apiKeys || [];
-          if (!apiKeys.length) return;
-          const key = StacksClient.getNextApiKey(
-            apiKeys,
-            StacksClient.options.apiKeyRotation
-          );
-          request.headers.set('x-api-key', key);
-        },
-      });
+    // Create the single client instance
+    this.client = createClient({
+      baseUrl: StacksClient.options.baseUrl || DEFAULT_API_ENDPOINT,
+      headers: { 'x-api-key': StacksClient.options.apiKey || '' }
     });
-  }
-
-  /**
-   * Get the next client in rotation for redundancy
-   */
-  private getCurrentClient(): Client<paths, `${string}/${string}`> {
-    const client = this.clients[StacksClient.currentClientIndex];
-    StacksClient.currentClientIndex =
-      (StacksClient.currentClientIndex + 1) % this.clients.length;
-    return client;
-  }
-
-  /**
-   * Rotate through API keys based on configured strategy
-   */
-  private static getNextApiKey(
-    apiKeys: string[],
-    rotationStrategy = 'loop'
-  ): string {
-    if (!apiKeys.length) return '';
-
-    if (rotationStrategy === 'random') {
-      const randomIndex = Math.floor(Math.random() * apiKeys.length);
-      return apiKeys[randomIndex];
-    } else {
-      // Default loop strategy
-      const key = apiKeys[StacksClient.currentKeyIndex];
-      StacksClient.currentKeyIndex =
-        (StacksClient.currentKeyIndex + 1) % apiKeys.length;
-      return key;
-    }
-  }
-
-  /**
-   * Manually set the current API key index
-   */
-  static setKeyIndex(index = 0): void {
-    StacksClient.currentKeyIndex = index;
   }
 
   /**
@@ -191,11 +120,17 @@ export class StacksClient {
   }
 
   /**
-   * Update client options
+   * Update client options (re-creates client if baseUrl or apiKey changes)
    */
   updateOptions(options: StacksClientOptions): void {
+    const oldOptions = { ...StacksClient.options };
     StacksClient.options = { ...StacksClient.options, ...options };
     this.logger = StacksClient.options.logger || console;
+
+    // Re-create client if baseUrl or apiKey changes
+    if (options.baseUrl !== oldOptions.baseUrl || options.apiKey !== oldOptions.apiKey) {
+      this.client = createClient({ baseUrl: StacksClient.options.baseUrl || DEFAULT_API_ENDPOINT, headers: { 'x-api-key': StacksClient.options.apiKey || '' } });
+    }
   }
 
   /**
@@ -244,7 +179,8 @@ export class StacksClient {
 
     while (attempt < maxRetries) {
       try {
-        const response = await this.getCurrentClient().POST(
+        // Use the single client instance directly
+        const response = await this.client.POST(
           `/v2/contracts/call-read/${address}/${name}/${method}` as any,
           {
             body: {
@@ -253,6 +189,29 @@ export class StacksClient {
             },
           }
         );
+
+        if (StacksClient.options.debug) {
+          // Log rate limit headers if they exist and remaining is low
+          const headers = response?.response?.headers;
+          if (headers) {
+            const rateRemainingStr = headers.get('ratelimit-remaining');
+            const rateRemaining = rateRemainingStr ? parseInt(rateRemainingStr, 10) : null;
+
+            // Only log if remaining is low (e.g., less than 50) or parsing failed
+            if (rateRemaining !== null && !isNaN(rateRemaining) && rateRemaining < 50) {
+              const rateLimit = headers.get('ratelimit-limit');
+              const rateReset = headers.get('ratelimit-reset');
+              const rateRemainingSec = headers.get('x-ratelimit-remaining-second');
+              const rateRemainingMonth = headers.get('x-ratelimit-remaining-month');
+              this.logger.warn(
+                `[STACKS READ] Rate Limit Approaching! Limit=${rateLimit || 'N/A'}, Remaining=${rateRemaining} (Sec: ${rateRemainingSec || 'N/A'}, Month: ${rateRemainingMonth || 'N/A'}), Reset=${rateReset || 'N/A'}s`
+              );
+            } else if (rateRemaining === null || isNaN(rateRemaining)) {
+              // Log if we couldn't parse the remaining value, as that might indicate an issue
+              this.logger.warn(`[STACKS READ] Could not parse rate limit remaining header: ${rateRemainingStr}`);
+            }
+          }
+        }
 
         if (!response?.data?.result) {
           throw new Error(`\nNo result from contract call ${method}`);
@@ -273,11 +232,16 @@ export class StacksClient {
 
         // Exponential backoff
         const retryDelay = StacksClient.options.retryDelay || 1000;
+        if (StacksClient.options.debug) {
+          this.logger.warn(`[STACKS READ] Attempt ${attempt} failed for ${contractId}.${method}. Retrying in ${attempt * retryDelay}ms...`);
+        }
         await new Promise((resolve) =>
           setTimeout(resolve, attempt * retryDelay)
         );
       }
     }
+    // Should be unreachable due to throw in catch block
+    throw new Error(`Failed to call ${contractId}.${method} unexpectedly.`);
   }
 
   /**
@@ -347,6 +311,7 @@ export class StacksClient {
       const transaction = await makeContractCall(transactionOptions);
 
       // Broadcast the transaction
+      // Relies on the network context set during transaction creation
       const broadcastResponse = await broadcastTransaction({ transaction });
 
       // Check for errors

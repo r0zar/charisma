@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { Vault } from "@repo/dexterity";
 import {
     fetchTokenFromCache,
     getVaultData,
@@ -18,6 +17,43 @@ import { bufferFromHex } from '@stacks/transactions/dist/cl';
 // Import getManagedVaultIds from vaultService but rename to avoid conflict
 import { getManagedVaultIds as getVaultIdsFromService } from "@/lib/vaultService";
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
+
+/**
+ * Basic token information
+ */
+interface Token {
+    contractId: string;
+    identifier?: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    supply?: number;
+    image?: string;
+    description?: string;
+    contract_principal?: string;
+}
+
+/**
+ * Vault instance representing a liquidity pool
+ */
+interface Vault {
+    contractId: string;
+    contractAddress: string;
+    contractName: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    identifier: string;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
 
 /**
  * Fetches the list of managed vault IDs from Vercel KV.
@@ -109,14 +145,13 @@ export async function previewVault(contractId: string): Promise<{
     lpToken?: any;
     tokenA?: any;
     tokenB?: any;
-    suggestedVault?: Vault;
-    analysis?: string;
     error?: string;
+    requiresManualInput?: boolean;
 }> {
     // Special exception for .stx or other special tokens
     const isSpecialToken = contractId === '.stx';
     if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
-        return { success: false, error: 'Invalid contract ID format.' };
+        return { success: false, error: 'Invalid contract ID format.', requiresManualInput: false };
     }
 
     console.log(`Starting preview for ${contractId}`);
@@ -127,28 +162,9 @@ export async function previewVault(contractId: string): Promise<{
         if (!lpToken) {
             return {
                 success: false,
-                error: `Failed to fetch LP token metadata for ${contractId}. Is it in token-cache?`
+                error: `Failed to fetch LP token metadata for ${contractId}. Is it in token-cache?`,
+                requiresManualInput: false
             };
-        }
-
-        // 2. If the LP token already contains tokenA and tokenB with complete data,
-        // we can try to process it directly with the LLM
-        if (lpToken.tokenA && lpToken.tokenB) {
-            console.log('LP token already contains embedded token data, using OpenAI to parse directly');
-            try {
-                const parsedData = await parseTokenMetadata(lpToken, lpToken.tokenA, lpToken.tokenB);
-                return {
-                    success: true,
-                    lpToken: parsedData.normalizedLpToken || lpToken,
-                    tokenA: parsedData.normalizedTokenA || lpToken.tokenA,
-                    tokenB: parsedData.normalizedTokenB || lpToken.tokenB,
-                    suggestedVault: parsedData.suggestedVault,
-                    analysis: parsedData.analysis
-                };
-            } catch (aiError) {
-                console.error('Direct AI parsing failed:', aiError);
-                // Continue with regular flow if this fails
-            }
         }
 
         // 3. Extract token contract IDs from various possible locations
@@ -162,11 +178,13 @@ export async function previewVault(contractId: string): Promise<{
             (lpToken.tokenB?.contractId) ||
             (lpToken.tokenB?.contract_principal);
 
+        // If contracts couldn't be determined, return success but indicate manual input is needed
         if (!tokenAContract || !tokenBContract) {
+            console.warn(`Could not automatically determine Token A/B contracts for ${contractId}. Requires manual input.`);
             return {
-                success: false,
+                success: true,
                 lpToken,
-                error: `LP token metadata is missing tokenA/B contracts. Got: ${JSON.stringify(lpToken)}`
+                requiresManualInput: true,
             };
         }
 
@@ -181,7 +199,8 @@ export async function previewVault(contractId: string): Promise<{
                 return {
                     success: false,
                     lpToken,
-                    error: `Failed to fetch Token A (${tokenAContract}) from token-cache.`
+                    error: `Failed to fetch Token A (${tokenAContract}) from token-cache.`,
+                    requiresManualInput: false
                 };
             }
         } else {
@@ -198,43 +217,29 @@ export async function previewVault(contractId: string): Promise<{
                     success: false,
                     lpToken,
                     tokenA,
-                    error: `Failed to fetch Token B (${tokenBContract}) from token-cache.`
+                    error: `Failed to fetch Token B (${tokenBContract}) from token-cache.`,
+                    requiresManualInput: false
                 };
             }
         } else {
             console.log(`Using Token B from LP token data: ${tokenB.name} (${tokenB.symbol})`);
         }
 
-        // 6. Use OpenAI to parse and normalize the data
-        console.log(`Step 4: Parsing and normalizing token data`);
-        try {
-            const parsedData = await parseTokenMetadata(lpToken, tokenA, tokenB);
+        // Return fetched data directly
+        return {
+            success: true,
+            lpToken, // Return original LP token data
+            tokenA, // Return original/fetched Token A
+            tokenB, // Return original/fetched Token B
+            requiresManualInput: false
+        };
 
-            // Return both the original data AND the AI-enhanced data
-            return {
-                success: true,
-                lpToken: parsedData.normalizedLpToken || lpToken,
-                tokenA: parsedData.normalizedTokenA || tokenA,
-                tokenB: parsedData.normalizedTokenB || tokenB,
-                suggestedVault: parsedData.suggestedVault,
-                analysis: parsedData.analysis
-            };
-        } catch (aiError) {
-            console.error('AI parsing failed, continuing with original data:', aiError);
-            // If OpenAI parsing fails, continue with original data
-            return {
-                success: true,
-                lpToken,
-                tokenA,
-                tokenB,
-                analysis: "AI parsing failed. Using original token data."
-            };
-        }
     } catch (error: any) {
         console.error(`Error previewing vault ${contractId}:`, error);
         return {
             success: false,
-            error: error.message || 'An unexpected error occurred'
+            error: error.message || 'An unexpected error occurred',
+            requiresManualInput: false
         };
     }
 }
@@ -244,8 +249,7 @@ export async function confirmVault(
     contractId: string,
     lpToken: any,
     tokenA: any,
-    tokenB: any,
-    suggestedVault?: Vault
+    tokenB: any
 ): Promise<{
     success: boolean;
     error?: string;
@@ -254,36 +258,28 @@ export async function confirmVault(
     try {
         console.log(`Confirming vault ${contractId}`);
 
-        let vault: Vault;
+        // 1. Construct vault object manually
+        console.log('Building vault manually from token data');
+        const [contractAddress, contractName] = contractId.split('.');
 
-        // Use the suggested vault from AI if available, otherwise build manually
-        if (suggestedVault && suggestedVault.contractId === contractId) {
-            console.log('Using AI-suggested vault structure');
-            vault = suggestedVault;
-        } else {
-            // 1. Construct vault object manually
-            console.log('Building vault manually from token data');
-            const [contractAddress, contractName] = contractId.split('.');
-
-            vault = {
-                contractId,
-                contractAddress,
-                contractName,
-                name: lpToken.name,
-                symbol: lpToken.symbol,
-                decimals: lpToken.decimals,
-                identifier: lpToken.identifier || '',
-                description: lpToken.description || "",
-                image: lpToken.image || "",
-                fee: lpToken.lpRebatePercent ? Math.floor((Number(lpToken.lpRebatePercent) / 100) * 1_000_000) : 0,
-                externalPoolId: lpToken.externalPoolId || "",
-                engineContractId: lpToken.engineContractId || "",
-                tokenA,
-                tokenB,
-                reservesA: lpToken.reservesA || 0,
-                reservesB: lpToken.reservesB || 0
-            };
-        }
+        const vault: Vault = {
+            contractId,
+            contractAddress,
+            contractName,
+            name: lpToken.name,
+            symbol: lpToken.symbol,
+            decimals: lpToken.decimals,
+            identifier: lpToken.identifier || '',
+            description: lpToken.description || "",
+            image: lpToken.image || "",
+            fee: lpToken.lpRebatePercent ? Math.floor((Number(lpToken.lpRebatePercent) / 100) * 1_000_000) : 0,
+            externalPoolId: lpToken.externalPoolId || "",
+            engineContractId: lpToken.engineContractId || "",
+            tokenA,
+            tokenB,
+            reservesA: lpToken.reservesA || 0,
+            reservesB: lpToken.reservesB || 0
+        };
 
         // Validate required fields
         console.log('Validating vault data...');
@@ -512,4 +508,61 @@ export async function getSwapAToB(vaultContractId: string, amountA: number) {
 // Convenience wrapper for B to A swap
 export async function getSwapBToA(vaultContractId: string, amountB: number) {
     return getSwapQuote(vaultContractId, amountB, false);
+}
+
+// New action to fetch specific tokens and analyze, used after manual input
+export async function fetchTokensAndAnalyze(
+    lpToken: any, // Original LP token data, used for analysis context
+    tokenAContractId: string,
+    tokenBContractId: string
+): Promise<{
+    success: boolean;
+    tokenA?: any; // The fetched Token A
+    tokenB?: any; // The fetched Token B
+    error?: string;
+}> {
+    if (!lpToken || !tokenAContractId || !tokenBContractId) {
+        return { success: false, error: 'Missing required input for fetching tokens.' };
+    }
+
+    console.log(`Fetching manually provided tokens: A=${tokenAContractId}, B=${tokenBContractId}`);
+    let tokenA: any;
+    let tokenB: any;
+
+    try {
+        // 1. Fetch Token A metadata
+        console.log(`Fetching Token A (${tokenAContractId})`);
+        tokenA = await fetchTokenFromCache(tokenAContractId);
+        if (!tokenA) {
+            return {
+                success: false,
+                error: `Failed to fetch Token A (${tokenAContractId}) from token-cache.`
+            };
+        }
+
+        // 2. Fetch Token B metadata
+        console.log(`Fetching Token B (${tokenBContractId})`);
+        tokenB = await fetchTokenFromCache(tokenBContractId);
+        if (!tokenB) {
+            return {
+                success: false,
+                tokenA, // Return A even if B failed
+                error: `Failed to fetch Token B (${tokenBContractId}) from token-cache.`
+            };
+        }
+
+        // Return fetched data directly
+        return {
+            success: true,
+            tokenA, // Return fetched Token A
+            tokenB, // Return fetched Token B
+        };
+
+    } catch (error: any) {
+        console.error(`Error fetching/analyzing manual tokens:`, error);
+        return {
+            success: false,
+            error: error.message || 'An unexpected error occurred during manual token fetch'
+        };
+    }
 } 
