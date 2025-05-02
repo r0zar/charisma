@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic'; // Import dynamic
 import { inspectTokenData, forceRefreshToken } from '@/app/actions';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Search, RefreshCw, Database, Server } from 'lucide-react';
 import { toast } from "sonner";
-import ReactJson from 'react-json-view'; // Use a JSON viewer
+
+// Dynamically import ReactJson with SSR disabled
+const ReactJson = dynamic(() => import('react-json-view'), {
+    ssr: false,
+    loading: () => <p className="text-sm text-muted-foreground p-4">Loading JSON viewer...</p>
+});
 
 // Helper: detect contract id
 const looksLikeContractId = (id: string) => id.includes('.') && id.length > 10;
