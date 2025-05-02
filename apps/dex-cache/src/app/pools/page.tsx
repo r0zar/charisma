@@ -1,9 +1,18 @@
 import React from 'react';
 import { getVaultIds, getVault } from "../actions";
 import VaultList from '@/components/VaultList';
-import { Vault } from '@repo/dexterity';
 import { Metadata } from 'next';
 import { Coins } from 'lucide-react';
+
+interface Vault {
+  name: string;
+  symbol: string;
+  description: string;
+  image: string;
+  fee: number;
+  externalPoolId: string;
+  engineContractId: string;
+}
 
 // Define metadata for better SEO
 export const metadata: Metadata = {
@@ -30,7 +39,7 @@ export default async function ExplorePoolsPage() {
     const vaultResults = await Promise.all(vaultPromises);
 
     // 3. Filter out any null results (vaults that couldn't be fetched)
-    vaults = vaultResults.filter((v): v is Vault => v !== null);
+    vaults = vaultResults.filter((v) => v !== null);
 
   } catch (error: any) {
     console.error("Error fetching vault data for pools page:", error);

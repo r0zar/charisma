@@ -1,7 +1,33 @@
 import OpenAI from 'openai';
-import { Vault } from '@repo/dexterity';
 
-// Initialize OpenAI client
+interface Token {
+    contractId: string;
+    identifier?: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    image: string;
+}
+
+interface Vault {
+    contractId: string;
+    contractAddress: string;
+    contractName: string;
+    name: string;
+    identifier: string;
+    symbol: string;
+    decimals: number;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
+
 const apiKey = process.env.OPENAI_API_KEY || '';
 if (!apiKey && process.env.NODE_ENV === 'development') {
     console.warn('⚠️ OPENAI_API_KEY not set. AI parsing will not work.');

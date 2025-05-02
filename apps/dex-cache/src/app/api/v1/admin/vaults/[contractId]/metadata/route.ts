@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVaultData, saveVaultData } from '@/lib/vaultService';
 // import { verifyMessageSignature } from '@stacks/encryption'; // Middleware handles this
 import { withAdminAuth } from '@/lib/auth'; // Import the middleware
-import { Vault } from '@repo/dexterity';
+
+interface Vault {
+    name: string;
+    symbol: string;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+}
 
 // Define which fields are allowed to be updated via this API
 const ALLOWED_METADATA_FIELDS: ReadonlyArray<keyof Vault> = [
@@ -25,7 +34,7 @@ const handleUpdateMetadata = async (request: NextRequest, { params }: { params: 
         return NextResponse.json({ success: false, error: 'Invalid vaultId format' }, { status: 400 });
     }
 
-    let newMetadataObject: Partial<Vault>;
+    let newMetadataObject: Partial<any>;
     try {
         // Expecting the raw metadata object in the body now
         newMetadataObject = await request.json();

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Vault } from '@repo/dexterity';
 import { useApp } from '@/lib/context/app-context';
 import { request } from '@stacks/connect';
 import { STACKS_MAINNET } from "@stacks/network";
@@ -17,6 +16,32 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowUpDown, Minus, AlertCircle, Loader2 } from 'lucide-react';
+
+interface Token {
+    contractId: string;
+    identifier?: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    image: string;
+}
+
+interface Vault {
+    contractId: string;
+    name: string;
+    identifier: string;
+    symbol: string;
+    decimals: number;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (

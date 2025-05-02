@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Vault } from '@repo/dexterity';
 import { removeVault, refreshVaultData } from '@/app/actions';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
 import Link from 'next/link';
+
+interface Vault {
+    contractId: string;
+    name: string;
+    symbol: string;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+}
 
 // Utility to truncate contract id for display
 const truncateContractId = (id: string, prefix = 4, suffix = 4) => {

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Vault } from '@repo/dexterity';
 import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +8,31 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+
+interface Token {
+    contractId: string;
+    identifier?: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    image: string;
+}
+
+interface Vault {
+    contractId: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
 
 interface MetadataEditFormProps {
     vault: Vault & { reservesA: number; reservesB: number };

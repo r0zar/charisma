@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Vault } from '@repo/dexterity';
 import { useSearchParams } from 'next/navigation';
 import VaultList from './VaultList';
 import { previewVault, confirmVault, fetchTokensAndAnalyze } from '@/app/actions';
@@ -13,6 +12,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, HelpCircle, Info, Edit, ExternalLink } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+
+interface Vault {
+    contractId: string;
+    name: string;
+    symbol: string;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    reservesA: number;
+    reservesB: number;
+}
 
 // Helper: detect contract id
 const looksLikeContractId = (id: string) => id.includes('.') && id.length > 10;

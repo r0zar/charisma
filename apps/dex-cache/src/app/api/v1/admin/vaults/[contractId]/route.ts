@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getVaultData, saveVaultData } from '@/lib/vaultService';
-import { Vault } from '@repo/dexterity';
 import { withAdminAuth } from '@/lib/auth'; // Import the HOF
 
 // TODO: Add authentication/authorization check here for admin access
@@ -66,7 +65,7 @@ const patchHandler = async (request: NextRequest, { params }: VaultParams) => {
         return NextResponse.json({ status: 'error', message: 'Invalid Contract ID format' }, { status: 400 });
     }
 
-    let updates: Partial<Vault>;
+    let updates: Partial<any>;
     try {
         updates = await request.json();
     } catch (error) {

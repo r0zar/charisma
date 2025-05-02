@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Vault } from '@repo/dexterity'; // Assuming type import
 import { useApp } from '@/lib/context/app-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,32 @@ import Image from 'next/image';
 import { AddLiquidityModal } from './add-liquidity-modal';
 import { RemoveLiquidityModal } from './remove-liquidity-modal';
 import { MetadataEditForm } from './metadata-edit-form'; // Import the new form
+
+interface Token {
+    contractId: string;
+    identifier?: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    image: string;
+}
+
+interface Vault {
+    contractId: string;
+    name: string;
+    identifier: string;
+    symbol: string;
+    decimals: number;
+    description: string;
+    image: string;
+    fee: number;
+    externalPoolId: string;
+    engineContractId: string;
+    tokenA: Token;
+    tokenB: Token;
+    reservesA: number;
+    reservesB: number;
+}
 
 // Define the props based on data passed from page.tsx
 interface VaultDetailClientProps {

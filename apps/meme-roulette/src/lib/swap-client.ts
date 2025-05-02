@@ -1,7 +1,7 @@
 /** * Direct swap client for simple-swap, integrated with dex-cache
  */
-import { Dexterity, Route, Vault } from '@repo/dexterity';
 import { getQuote as getQuoteAction } from '../app/actions';
+import { Dexterity, Route, Vault } from './dexterity-client';
 
 /**
  * API response interfaces
