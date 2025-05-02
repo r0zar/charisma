@@ -1,17 +1,6 @@
-'use client'; // PoolImporter uses client-side hooks
-
 import React from 'react';
 import PoolImporter from '@/components/PoolImporter';
-import { Metadata } from 'next';
-import { ListPlus } from 'lucide-react'; // Import an icon
-
-// Basic metadata for the page
-// export const metadata: Metadata = {
-//   title: 'Manage Vault Listings | Charisma Invest',
-//   description: 'Add, preview, and manage vault listings for Charisma Invest.',
-// };
-// Note: Metadata API currently doesn't work in Client Components.
-// It needs to be exported from a Server Component, possibly the layout or a parent page.
+import { ListPlus } from 'lucide-react';
 
 export default function ListingPage() {
     return (
@@ -25,11 +14,7 @@ export default function ListingPage() {
                 Enter the contract ID of the LP token to begin the preview process.
             </p>
 
-            {/* Render the importer component */}
             <PoolImporter />
-            {/* PoolImporter seems to have its own main container and padding, 
-                so we don't need extra wrapping here. If it causes layout issues,
-                we might need to adjust PoolImporter or add specific styling here. */}
         </main>
     );
 } 

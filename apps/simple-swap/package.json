@@ -11,17 +11,20 @@
     "start": "next start"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.4",
     "@repo/blaze": "workspace:*",
     "@repo/cryptonomicon": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@repo/logger": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.503.0",
-    "class-variance-authority": "^0.7.0",
     "next": "^15.2.1",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.2.1",

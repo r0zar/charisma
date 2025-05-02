@@ -189,6 +189,7 @@ export class Cryptonomicon {
         decimals: 6,
         description: "The native token of the Stacks blockchain.",
         image: "https://charisma.rocks/stx-logo.png", // Use a placeholder or official logo URL
+        contractId: ".stx",
         contract_principal: ".stx",
       };
     }

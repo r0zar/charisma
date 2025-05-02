@@ -56,6 +56,7 @@ export interface Quote {
     expectedPrice: number;
     minimumReceived: number;
     fee: number;
+    opcode: number;
 }
 
 /**
@@ -75,7 +76,9 @@ export const OPCODES = {
     SWAP_B_TO_A: 0x01,      // Swap token B for token A
     ADD_LIQUIDITY: 0x02,    // Add liquidity to pool
     REMOVE_LIQUIDITY: 0x03, // Remove liquidity from pool
-    LOOKUP_RESERVES: 0x04   // Get reserves information
+    LOOKUP_RESERVES: 0x04,  // Get reserves information
+    OP_DEPOSIT: 0x05,       // Deposit into subnet/bridge
+    OP_WITHDRAW: 0x06       // Withdraw from subnet/bridge
 };
 
 /**
@@ -269,6 +272,15 @@ export class Dexterity {
                 tokenBInfo.contractId = tokenBContract;
             }
 
+            if (!tokenAInfo.identifier) {
+                console.log(metadata)
+            }
+
+            if (!tokenBInfo.identifier) {
+                console.log(metadata)
+            }
+
+
             // Fetch reserves
             let reservesA = 0;
             let reservesB = 0;
@@ -334,7 +346,8 @@ export class Dexterity {
                 amountOut: delta.dy,
                 expectedPrice: delta.dy / amount,
                 minimumReceived: Math.floor(delta.dy * (1 - this.config.defaultSlippage)),
-                fee: vault.fee
+                fee: vault.fee,
+                opcode
             };
         } catch (error) {
             return new Error(`Failed to get quote: ${error}`);
@@ -350,31 +363,21 @@ export class Dexterity {
         opcode: number
     ): Promise<Delta | null> {
         try {
-            // Build opcode cv
-            const opcodeCV = this.opcodeCV(opcode);
+            // hack for newer vaults
+            const opcodeCV = this.opcodeCV(opcode)
 
             // Make the contract call
-            const result: any = await this.client.call(
-                vault.contractId,
-                'quote',
-                [uintCV(amount), opcodeCV]
-            );
+            const result = await callReadOnlyFunction(vault.contractAddress, vault.contractName, 'quote', [uintCV(amount), opcodeCV]);
 
             // Parse the result
-            if (result && typeof result === 'object' && 'dx' in result && 'dy' in result && 'dk' in result) {
-                return {
-                    dx: Number(result.dx.value || 0),
-                    dy: Number(result.dy.value || 0),
-                    dk: Number(result.dk.value || 0)
-                };
-            }
+            return {
+                dx: Number(result.value.dx.value || 0),
+                dy: Number(result.value.dy.value || 0),
+                dk: Number(result.value.dk.value || 0)
+            };
 
-            return null;
         } catch (error) {
             console.error(`Error calling contract ${vault.contractId}.quote:`, error);
-            if (this.config.debug) {
-                console.error(`Error calling contract ${vault.contractId}.quote:`, error);
-            }
             return null;
         }
     }
@@ -583,32 +586,55 @@ export class Dexterity {
                     .filter(edge => edge.target.contractId === tokenOut.contractId);
 
                 if (matchingEdges.length === 0) {
-                    throw new Error(`No direct connection found between ${tokenIn.symbol} and ${tokenOut.symbol}`);
+                    console.warn(`EvaluateRoute: No direct vault edge found between ${tokenIn.symbol} (${tokenIn.contractId}) and ${tokenOut.symbol} (${tokenOut.contractId}) for hop ${i + 1}. Path invalid.`);
+                    throw new Error(`Internal Error: No vault found for hop ${i + 1} between ${tokenIn.symbol} and ${tokenOut.symbol}`);
                 }
 
                 // Get quotes for all edges and select the best one
                 const edgeQuotes = await Promise.all(matchingEdges.map(async edge => {
-                    // Determine if it's A->B or B->A based on the vault's token order
-                    const isAtoB = tokenIn.contractId === edge.vault.tokenA.contractId;
-                    const opcode = isAtoB ? OPCODES.SWAP_A_TO_B : OPCODES.SWAP_B_TO_A;
+                    // Determine opcode based on token types and vault order
+                    const isInSubnet = tokenIn.contractId.includes('-subnet');
+                    const isOutSubnet = tokenOut.contractId.includes('-subnet');
+                    let opcode: number;
 
-                    const quote = await this.callVaultQuote(edge.vault, currentAmount, opcode);
-                    return { edge, opcode, quote };
+                    if (!isInSubnet && isOutSubnet) {
+                        opcode = OPCODES.OP_DEPOSIT;
+                    } else if (isInSubnet && !isOutSubnet) {
+                        opcode = OPCODES.OP_WITHDRAW;
+                    } else {
+                        // Standard swap (both subnet or both not subnet)
+                        const isAtoB = tokenIn.contractId === edge.vault.tokenA.contractId;
+                        opcode = isAtoB ? OPCODES.SWAP_A_TO_B : OPCODES.SWAP_B_TO_A;
+                    }
+
+                    try {
+                        const quote = await this.callVaultQuote(edge.vault, currentAmount, opcode);
+                        return { edge, opcode, quote };
+                    } catch (error) {
+                        console.error(`[Dexterity] Error quoting vault ${edge.vault.contractId}:`, error);
+                        return { edge, opcode, quote: error }; // Return error object for handling
+                    }
                 }));
 
                 // Find best quote (highest output amount)
                 const bestEdgeQuote = edgeQuotes.reduce((best, current) => {
                     if (current.quote instanceof Error) return best;
                     if (best.quote instanceof Error) return current;
-                    return (current.quote as Quote).amountOut > (best.quote as Quote).amountOut ? current : best;
+                    // Compare amountOut, ensuring we handle the potentially added opcode property
+                    const currentAmountOut = (current.quote as Quote).amountOut;
+                    const bestAmountOut = (best.quote as Quote).amountOut;
+                    return currentAmountOut > bestAmountOut ? current : best;
                 });
 
                 if (bestEdgeQuote.quote instanceof Error) {
+                    // If the best quote is an error, log it and try the next path
+                    console.warn(`Error quoting edge for vault ${bestEdgeQuote.edge.vault.contractId}:`, bestEdgeQuote.quote.message);
+                    // Propagate the error to indicate this path is invalid
                     throw bestEdgeQuote.quote;
                 }
 
                 // Add the hop with the best quote
-                const quote = bestEdgeQuote.quote as Quote;
+                const quoteResult = bestEdgeQuote.quote as Quote;
                 hops.push({
                     vault: bestEdgeQuote.edge.vault,
                     opcode: bestEdgeQuote.opcode,
@@ -616,12 +642,12 @@ export class Dexterity {
                     tokenOut,
                     quote: {
                         amountIn: currentAmount,
-                        amountOut: quote.amountOut,
+                        amountOut: quoteResult.amountOut,
                     },
                 });
 
                 // Update amount for next hop
-                currentAmount = quote.amountOut;
+                currentAmount = quoteResult.amountOut;
             }
 
             // Create the route
@@ -717,7 +743,7 @@ export class Dexterity {
     /**
      * Build transaction for a multi-hop swap
      */
-    static async buildSwapTransaction(route: Route, amount: number) {
+    static async buildSwapTransaction(route: Route) {
         // Ensure client is initialized
         if (!this.client) this.init();
 
@@ -731,7 +757,7 @@ export class Dexterity {
 
         // Build post conditions
         for (const hop of route.hops) {
-            const hopAmountIn = hop.quote?.amountIn ?? amount;
+            const hopAmountIn = hop.quote?.amountIn ?? route.amountIn;
             const hopAmountOut = hop.quote?.amountOut ?? 0;
 
             // Get vault-specific post conditions
@@ -740,7 +766,8 @@ export class Dexterity {
                 hop.tokenIn,
                 hop.tokenOut,
                 hopAmountIn,
-                hopAmountOut
+                hopAmountOut,
+                hop.opcode
             );
 
             // Combine by token
@@ -759,7 +786,7 @@ export class Dexterity {
 
         // Build function args for the router
         const functionArgs = [
-            uintCV(amount),
+            uintCV(route.amountIn),
             ...route.hops.map((hop) =>
                 tupleCV({
                     pool: principalCV(hop.vault.contractId),
@@ -807,27 +834,44 @@ export class Dexterity {
         tokenIn: Token,
         tokenOut: Token,
         amountIn: number,
-        amountOut: number
+        amountOut: number,
+        opcode: number
     ) {
-        // Apply slippage tolerance
-        const maxAmountIn = BigInt(Math.floor(amountIn * (1 + this.config.defaultSlippage)));
-        const minAmountOut = BigInt(Math.floor(amountOut * (1 - this.config.defaultSlippage)));
-
         // Assume signer as sender
         const signer = await this.client.signer.getAddress()
 
-        const postConditions = [
-            this.createPostCondition(tokenIn, maxAmountIn, signer, 'lte'),
-            this.createPostCondition(tokenOut, minAmountOut, vault.externalPoolId || vault.contractId, 'gte'),
-        ];
+        const postConditions: PostCondition[] = [];
 
-        // For wrapper contract, use external pool ID if available
-        if (vault.externalPoolId) {
-            // Add additional post condition for specific external pool
-            if (vault.externalPoolId === 'SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.univ2-core' ||
-                vault.externalPoolId.startsWith('SP20X3DC5R091J8B6YPQT638J8NR1W83KN6TN5BJY.univ2-pool-v1')
-            ) {
-                postConditions.push(this.createPostCondition(tokenIn, BigInt(0), vault.externalPoolId, 'gte'));
+        if (opcode === OPCODES.OP_DEPOSIT) {
+            // DEPOSIT: User sends exact tokenIn amount
+            const exactAmountIn = BigInt(amountIn);
+            postConditions.push(this.createPostCondition(tokenIn, exactAmountIn, signer, 'eq'));
+
+        } else if (opcode === OPCODES.OP_WITHDRAW) {
+            // WITHDRAW: Vault sends exact tokenOut amount
+            const exactAmountOut = BigInt(amountOut);
+            // Sender is the vault contract itself for a withdrawal
+            postConditions.push(this.createPostCondition(tokenOut, exactAmountOut, vault.externalPoolId || vault.contractId, 'eq'));
+
+        } else { // Standard Swaps (A_TO_B or B_TO_A)
+            // Apply slippage tolerance
+            const maxAmountIn = BigInt(Math.floor(amountIn * (1 + this.config.defaultSlippage)));
+            const minAmountOut = BigInt(Math.floor(amountOut * (1 - this.config.defaultSlippage)));
+
+            // Standard swap post conditions with slippage
+            postConditions.push(this.createPostCondition(tokenIn, maxAmountIn, signer, 'lte'));
+            postConditions.push(this.createPostCondition(tokenOut, minAmountOut, vault.externalPoolId || vault.contractId, 'gte'));
+
+            // Handle specific external pool logic if needed (kept from original code)
+            if (vault.externalPoolId) {
+                // Add additional post condition for specific external pool
+                if (vault.externalPoolId === 'SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.univ2-core' ||
+                    vault.externalPoolId.startsWith('SP20X3DC5R091J8B6YPQT638J8NR1W83KN6TN5BJY.univ2-pool-v1')
+                ) {
+                    // This condition seems specific, ensure it's still relevant.
+                    // It checks that the signer sends >= 0 to the external pool.
+                    postConditions.push(this.createPostCondition(tokenIn, BigInt(0), vault.externalPoolId, 'gte'));
+                }
             }
         }
 
@@ -864,7 +908,7 @@ export class Dexterity {
         }
 
         // Build transaction for the route
-        const txConfig = await this.buildSwapTransaction(route, amount);
+        const txConfig = await this.buildSwapTransaction(route);
 
         // Handle post conditions
         if (options.disablePostConditions) {
@@ -887,9 +931,10 @@ export class Dexterity {
         route: Route,
         options: SwapOptions = {}
     ) {
-
         // Build transaction for the route
-        const txConfig = await this.buildSwapTransaction(route, route.amountIn);
+        const txConfig = await this.buildSwapTransaction(route);
+
+        console.log(txConfig)
 
         // Handle post conditions
         if (options.disablePostConditions) {

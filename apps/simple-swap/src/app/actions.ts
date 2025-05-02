@@ -34,10 +34,11 @@ export async function ensureVaultsLoaded() {
     try {
         // Fetch vaults from dex-cache API first
         const dexCacheUrl = process.env.NEXT_PUBLIC_DEX_CACHE_URL || 'http://localhost:3003/api/v1';
-        const response = await fetch(`${dexCacheUrl}/vaults`, { cache: 'no-store' });
+        const response = await fetch(`${dexCacheUrl}/vaults`);
 
         if (response.ok) {
             const data = await response.json();
+            console.log(data.data)
             if (data.status === 'success' && Array.isArray(data.data)) {
                 console.log(`[Server] Loading ${data.data.length} vaults from dex-cache`);
                 Dexterity.loadVaults(data.data);
@@ -111,7 +112,6 @@ export async function getRoutableTokens(): Promise<{
 
         // Get all tokens from the Dexterity graph
         const graphStats = Dexterity.getGraphStats();
-        console.log(graphStats);
         const tokenIds = graphStats.tokenIds;
 
         console.log(`[Server] Found ${tokenIds.length} tokens in the routing graph`);

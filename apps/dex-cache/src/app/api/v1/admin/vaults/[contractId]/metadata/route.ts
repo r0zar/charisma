@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVaultData, saveVaultData } from '@/lib/vaultService';
 // import { verifyMessageSignature } from '@stacks/encryption'; // Middleware handles this
 import { withAdminAuth } from '@/lib/auth'; // Import the middleware
+import { revalidatePath } from 'next/cache'; // Import revalidatePath
 
 interface Vault {
     name: string;
@@ -13,18 +14,6 @@ interface Vault {
     engineContractId: string;
 }
 
-// Define which fields are allowed to be updated via this API
-const ALLOWED_METADATA_FIELDS: ReadonlyArray<keyof Vault> = [
-    'name',
-    'symbol',
-    'description',
-    'image',
-    'fee',
-    'externalPoolId',
-    'engineContractId',
-    // 'properties' might need careful handling depending on its structure
-];
-
 // Define the core handler logic
 const handleUpdateMetadata = async (request: NextRequest, { params }: { params: { contractId: string } }) => {
     // Middleware has already authenticated the admin
@@ -34,7 +23,7 @@ const handleUpdateMetadata = async (request: NextRequest, { params }: { params: 
         return NextResponse.json({ success: false, error: 'Invalid vaultId format' }, { status: 400 });
     }
 
-    let newMetadataObject: Partial<any>;
+    let newMetadataObject: Record<string, any>; // Use a more general type now
     try {
         // Expecting the raw metadata object in the body now
         newMetadataObject = await request.json();
@@ -55,19 +44,24 @@ const handleUpdateMetadata = async (request: NextRequest, { params }: { params: 
             return NextResponse.json({ success: false, error: 'Vault not found' }, { status: 404 });
         }
 
-        // --- Merge Allowed Fields --- 
-        const mergedVaultData = { ...existingVault };
-        let changesMade = false;
+        // --- Merge Submitted Data --- 
+        // Perform a shallow merge. Any key in newMetadataObject will overwrite the existing one.
+        // Be cautious: This could overwrite critical fields if they are included in the request body.
+        const mergedVaultData = {
+            ...existingVault,
+            ...newMetadataObject
+        };
 
-        for (const key of ALLOWED_METADATA_FIELDS) {
-            if (key in newMetadataObject && newMetadataObject[key] !== existingVault[key]) {
-                (mergedVaultData as any)[key] = newMetadataObject[key];
-                changesMade = true;
-            }
-        }
-
-        if (!changesMade) {
-            return NextResponse.json({ success: true, message: 'No changes detected', updatedMetadata: existingVault });
+        // --- Check if changes were actually made --- 
+        // Compare stringified versions to see if the merged data is different from the original.
+        // This prevents unnecessary saves and cache revalidations.
+        if (JSON.stringify(existingVault) === JSON.stringify(mergedVaultData)) {
+            console.log(`No effective changes detected for vault: ${vaultId}`);
+            return NextResponse.json({
+                success: true,
+                message: 'No effective changes detected',
+                updatedMetadata: existingVault
+            });
         }
 
         // --- Save Merged Data --- 
@@ -75,6 +69,12 @@ const handleUpdateMetadata = async (request: NextRequest, { params }: { params: 
         if (!saved) {
             throw new Error('Failed to save updated vault data to KV store');
         }
+
+        // --- Invalidate Cache --- 
+        // Use revalidatePath to clear the cache for the specific vault page
+        const vaultPagePath = `/vaults/${vaultId}`;
+        revalidatePath(vaultPagePath, 'page'); // Invalidate the page cache
+        console.log(`Cache revalidated for path: ${vaultPagePath}`);
 
         console.log(`Admin successfully updated metadata for vault: ${vaultId}`);
         return NextResponse.json({ success: true, updatedMetadata: mergedVaultData });

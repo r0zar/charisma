@@ -102,7 +102,7 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
     const [currentVaultData, setCurrentVaultData] = React.useState(vault); // For potential updates like metadata
 
     // Calculate derived values
-    const feePercent = vault.fee ? (vault.fee / 10000).toFixed(2) : 'N/A'; // Assuming fee is basis points
+    const feePercent = vault.fee ? (vault.fee / 10000).toFixed(2) : 0; // Assuming fee is basis points
 
     const handleMetadataUpdate = (updatedMetadata: Partial<Vault>) => {
         // Update the state, which will re-render child components including the form

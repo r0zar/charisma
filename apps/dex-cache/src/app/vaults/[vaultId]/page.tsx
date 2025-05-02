@@ -81,6 +81,15 @@ export default async function VaultPage({ params }: VaultPageProps) {
             ...vaultData,
             reservesA: Number(vaultData.reservesA ?? 0),
             reservesB: Number(vaultData.reservesB ?? 0),
+            // Ensure token images are strings
+            tokenA: {
+                ...vaultData.tokenA,
+                image: vaultData.tokenA.image || '', // Default to empty string
+            },
+            tokenB: {
+                ...vaultData.tokenB,
+                image: vaultData.tokenB.image || '', // Default to empty string
+            },
         };
 
         // Calculate analytics with real TVL

@@ -12,7 +12,7 @@ export function Header() {
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                            <Coins className="h-4 w-4 text-primary" />
+                            <Coins className="h-4 w-4 text-primary" aria-hidden={true} />
                         </div>
                         <span className="hidden tracking-tight text-foreground sm:inline-block">
                             <span className="font-bold">Charisma</span>{" "}
