@@ -3,18 +3,37 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { AppProvider } from "@/lib/context/app-context";
-import Link from "next/link";
-import { WalletConnector } from "@/components/wallet-connector";
-import { Inter } from "next/font/google";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "Charisma DEX Cache",
-  description: "Cache service for Charisma DEX",
+  title: "Charisma Vault Listing Manager",
+  description: "Preview and manage liquidity pool vaults for the Charisma DEX.",
+  icons: {
+    icon: '/favicon.ico',
+  },
+  openGraph: {
+    title: "Charisma Vault Listing Manager",
+    description: "Preview and manage liquidity pool vaults for the Charisma DEX.",
+    url: 'https://invest.charisma.rocks',
+    siteName: 'Charisma Invest',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 953,
+        height: 529,
+        alt: 'Charisma Vault Listing Manager Interface',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Charisma Vault Listing Manager",
+    description: "Preview and manage liquidity pool vaults for the Charisma DEX.",
+  },
 };
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => (

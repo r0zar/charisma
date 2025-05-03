@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import PoolImporter from '@/components/PoolImporter';
-import { ListPlus } from 'lucide-react';
+import { ListPlus, Loader2 } from 'lucide-react';
+
+// Define a simple loading fallback component
+function ListingLoadingFallback() {
+    return (
+        <div className="flex items-center justify-center p-8 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            Loading listing tool...
+        </div>
+    );
+}
 
 export default function ListingPage() {
     return (
@@ -14,7 +24,10 @@ export default function ListingPage() {
                 Enter the contract ID of the LP token to begin the preview process.
             </p>
 
-            <PoolImporter />
+            {/* Wrap PoolImporter in Suspense */}
+            <Suspense fallback={<ListingLoadingFallback />}>
+                <PoolImporter />
+            </Suspense>
         </main>
     );
 } 
