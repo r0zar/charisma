@@ -8,14 +8,14 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Charisma Vault Listing Manager",
-  description: "Preview and manage liquidity pool vaults for the Charisma DEX.",
+  title: "Charisma Invest | Maximize Your Stacks Yield",
+  description: "Explore liquidity pools, automated strategies, and maximize your yield opportunities on Stacks with Charisma Invest.",
   icons: {
     icon: '/favicon.ico',
   },
   openGraph: {
-    title: "Charisma Vault Listing Manager",
-    description: "Preview and manage liquidity pool vaults for the Charisma DEX.",
+    title: "Charisma Invest | Maximize Your Stacks Yield",
+    description: "Explore liquidity pools, automated strategies, and maximize your yield opportunities on Stacks with Charisma Invest.",
     url: 'https://invest.charisma.rocks',
     siteName: 'Charisma Invest',
     images: [
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 953,
         height: 529,
-        alt: 'Charisma Vault Listing Manager Interface',
+        alt: 'Charisma Invest Interface for Yield Maximization Strategies',
       },
     ],
     locale: 'en_US',
@@ -31,8 +31,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Charisma Vault Listing Manager",
-    description: "Preview and manage liquidity pool vaults for the Charisma DEX.",
+    title: "Charisma Invest | Maximize Your Stacks Yield",
+    description: "Explore liquidity pools, automated strategies, and maximize your yield opportunities on Stacks with Charisma Invest.",
   },
 };
 
