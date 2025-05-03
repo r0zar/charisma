@@ -24,6 +24,14 @@ if (typeof window === 'undefined') { // Server-side only
 // Keep track of vault loading status
 let vaultsLoaded = false;
 
+// Get the omit list from environment variables (comma-separated)
+const vaultOmitListString = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v9';
+const vaultOmitSet = new Set(vaultOmitListString.split(',').map(id => id.trim()).filter(id => id));
+
+if (vaultOmitSet.size > 0) {
+    console.log(`[Server] Vault Omit List active: Excluding ${vaultOmitSet.size} vaults:`, Array.from(vaultOmitSet));
+}
+
 /**
  * Load vaults into Dexterity if not already loaded
  */
@@ -38,14 +46,25 @@ export async function ensureVaultsLoaded() {
 
         if (response.ok) {
             const data = await response.json();
-            console.log(data.data)
+
             if (data.status === 'success' && Array.isArray(data.data)) {
-                console.log(`[Server] Loading ${data.data.length} vaults from dex-cache`);
-                Dexterity.loadVaults(data.data);
+                // Filter the vaults based on the omit list
+                const allVaults = data.data;
+                const filteredVaults = allVaults.filter((vault: any) => !vaultOmitSet.has(vault.contractId));
+
+                const omittedCount = allVaults.length - filteredVaults.length;
+                if (omittedCount > 0) {
+                    console.log(`[Server] Omitted ${omittedCount} vaults based on the list.`);
+                }
+
+                console.log(`[Server] Loading ${filteredVaults.length} vaults from dex-cache after filtering`);
+                Dexterity.loadVaults(filteredVaults); // Load only the filtered vaults
                 vaultsLoaded = true;
                 return;
             }
         }
+        // If fetching or filtering fails, still mark as loaded to avoid retries, but log it.
+        console.warn('[Server] Could not load vaults from dex-cache or data was invalid. Proceeding without cached vaults.');
         vaultsLoaded = true;
     } catch (error) {
         console.error('[Server] Error loading vaults:', error);

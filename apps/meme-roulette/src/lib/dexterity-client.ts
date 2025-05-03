@@ -56,6 +56,7 @@ export interface Quote {
     expectedPrice: number;
     minimumReceived: number;
     fee: number;
+    opcode: number;
 }
 
 /**
@@ -75,7 +76,9 @@ export const OPCODES = {
     SWAP_B_TO_A: 0x01,      // Swap token B for token A
     ADD_LIQUIDITY: 0x02,    // Add liquidity to pool
     REMOVE_LIQUIDITY: 0x03, // Remove liquidity from pool
-    LOOKUP_RESERVES: 0x04   // Get reserves information
+    LOOKUP_RESERVES: 0x04,  // Get reserves information
+    OP_DEPOSIT: 0x05,       // Deposit into subnet/bridge
+    OP_WITHDRAW: 0x06       // Withdraw from subnet/bridge
 };
 
 /**
@@ -101,88 +104,6 @@ export interface Hop {
         amountOut: number;
     };
 }
-
-/**
- * Default pool trait for contract discovery
- */
-const POOL_TRAIT = {
-    maps: [],
-    epoch: "Epoch30",
-    functions: [
-        {
-            args: [
-                { name: "amount", type: "uint128" },
-                {
-                    name: "opcode",
-                    type: { optional: { buffer: { length: 16 } } }
-                }
-            ],
-            name: "execute",
-            access: "public",
-            outputs: {
-                type: {
-                    response: {
-                        ok: {
-                            tuple: [
-                                { name: "dk", type: "uint128" },
-                                { name: "dx", type: "uint128" },
-                                { name: "dy", type: "uint128" }
-                            ]
-                        },
-                        error: "uint128"
-                    }
-                }
-            }
-        },
-        {
-            args: [
-                { name: "amount", type: "uint128" },
-                {
-                    name: "opcode",
-                    type: { optional: { buffer: { length: 16 } } }
-                }
-            ],
-            name: "quote",
-            access: "read_only",
-            outputs: {
-                type: {
-                    response: {
-                        ok: {
-                            tuple: [
-                                { name: "dk", type: "uint128" },
-                                { name: "dx", type: "uint128" },
-                                { name: "dy", type: "uint128" }
-                            ]
-                        },
-                        error: "uint128"
-                    }
-                }
-            }
-        }
-    ],
-    variables: [],
-    clarity_version: "Clarity3",
-    fungible_tokens: [],
-    non_fungible_tokens: []
-};
-
-/**
- * Contracts to skip during discovery
- */
-const DEFAULT_BLACKLIST = [
-    'SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.chdollar',
-    'SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.dmg-runes',
-    'SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.uahdmg',
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.abtc-dog-vault-wrapper-alex',
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshi-nakamoto-liquidity',
-    'SP20VRJRCZ3FQG7RE4QSPFPQC24J92TKDXJVHWEAW.phoenix-charismatic',
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.a-fistful-of-dollars',
-    'SP26PZG61DH667XCX51TZNBHXM4HG4M6B2HWVM47V.dmgsbtc-lp-token',
-    'SP26PZG61DH667XCX51TZNBHXM4HG4M6B2HWVM47V.lp-token',
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.theyre-taking-our-jerbs',
-    'SP2F66ASMYZ9M8EEVD4S76RCF9X15WZD2EQFR5MV1.stxsbtc-lp-token',
-    'SP23B2ZSDG9WKWPCKRERP6PV81FWNB4NECV6MKKAC.stxcha-lp-token',
-];
 
 /**
  * Graph edge connecting tokens in the routing graph
@@ -279,75 +200,6 @@ export class Dexterity {
     }
 
     /**
-     * Discover all liquidity vaults
-     */
-    static async discover(options: DiscoveryOptions = {}): Promise<Vault[]> {
-        // Ensure cryptonomicon is initialized
-        if (!this.cryptonomicon) this.init();
-
-        // Merge default blacklist with provided options
-        const blacklist = [...DEFAULT_BLACKLIST, ...(options.blacklist || [])];
-        const continueOnError = options.continueOnError ?? true;
-        const parallelRequests = options.parallelRequests ?? 10;
-        const maxVaultLoadLimit = options.maxVaultLoadLimit ?? 100;
-
-        // Search for contracts with the POOL_TRAIT
-        const contracts = await this.cryptonomicon.searchContractsByTrait(POOL_TRAIT, blacklist);
-
-        const maxAllowed = Math.min(contracts.length, maxVaultLoadLimit);
-
-        if (this.cryptonomicon.config?.debug) {
-            console.debug(`Discovered ${contracts.length} potential pools, processing ${maxAllowed}...`);
-        }
-
-        // Process contracts in parallel batches
-        const vaults: Vault[] = [];
-        const failedPools: { contractId: string, error: any }[] = [];
-
-        for (let i = 0; i < maxAllowed; i += parallelRequests) {
-            const batch = contracts.slice(i, i + parallelRequests);
-
-            // Use allSettled to handle failures gracefully
-            const batchResults = await Promise.allSettled(
-                batch.map((contract: any) => this.buildVault(contract.contract_id))
-            );
-
-            // Process results, handling both successes and failures
-            for (let j = 0; j < batchResults.length; j++) {
-                const result = batchResults[j];
-                const contractId = batch[j].contract_id;
-
-                if (result.status === 'fulfilled' && result.value !== null) {
-                    vaults.push(result.value);
-                } else {
-                    // Record the failure
-                    const error = result.status === 'rejected' ? result.reason : 'Null vault returned';
-                    failedPools.push({ contractId, error });
-
-                    if (this.cryptonomicon.config?.debug) {
-                        console.warn(`Failed to build vault for ${contractId}: ${error}`);
-                    }
-
-                    // If we're not continuing on error, throw
-                    if (!continueOnError) {
-                        throw new Error(`Failed to build vault for ${contractId}: ${error}`);
-                    }
-                }
-            }
-        }
-
-        // Log summary if debug enabled
-        if (this.cryptonomicon.config?.debug) {
-            if (failedPools.length > 0) {
-                console.warn(`Failed to load ${failedPools.length} pools out of ${maxAllowed}`);
-            }
-            console.log(`Successfully loaded ${vaults.length} vaults`);
-        }
-
-        return vaults;
-    }
-
-    /**
      * Get vaults containing a specific token
      */
     static getVaultsWithToken(vaults: Vault[], tokenId: string): Vault[] {
@@ -411,6 +263,23 @@ export class Dexterity {
             if (!tokenAInfo || !tokenBInfo) {
                 return null;
             }
+
+            if (!tokenAInfo.contractId) {
+                tokenAInfo.contractId = tokenAContract;
+            }
+
+            if (!tokenBInfo.contractId) {
+                tokenBInfo.contractId = tokenBContract;
+            }
+
+            if (!tokenAInfo.identifier) {
+                console.log(metadata)
+            }
+
+            if (!tokenBInfo.identifier) {
+                console.log(metadata)
+            }
+
 
             // Fetch reserves
             let reservesA = 0;
@@ -477,7 +346,8 @@ export class Dexterity {
                 amountOut: delta.dy,
                 expectedPrice: delta.dy / amount,
                 minimumReceived: Math.floor(delta.dy * (1 - this.config.defaultSlippage)),
-                fee: vault.fee
+                fee: vault.fee,
+                opcode
             };
         } catch (error) {
             return new Error(`Failed to get quote: ${error}`);
@@ -493,31 +363,27 @@ export class Dexterity {
         opcode: number
     ): Promise<Delta | null> {
         try {
-            // Build opcode cv
-            const opcodeCV = this.opcodeCV(opcode);
+            // hack for newer vaults
+            const opcodeCV = this.opcodeCV(opcode)
+
+            // workaround for newer vaults
+            const args = [uintCV(amount), opcodeCV]
+            if (vault.engineContractId === 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v9') {
+                args.push(principalCV(vault.contractAddress))
+            }
 
             // Make the contract call
-            const result: any = await this.client.call(
-                vault.contractId,
-                'quote',
-                [uintCV(amount), opcodeCV]
-            );
+            const result = await callReadOnlyFunction(vault.contractAddress, vault.contractName, 'quote', args);
 
             // Parse the result
-            if (result && typeof result === 'object' && 'dx' in result && 'dy' in result && 'dk' in result) {
-                return {
-                    dx: Number(result.dx.value || 0),
-                    dy: Number(result.dy.value || 0),
-                    dk: Number(result.dk.value || 0)
-                };
-            }
+            return {
+                dx: Number(result.value.dx.value || 0),
+                dy: Number(result.value.dy.value || 0),
+                dk: Number(result.value.dk.value || 0)
+            };
 
-            return null;
         } catch (error) {
             console.error(`Error calling contract ${vault.contractId}.quote:`, error);
-            if (this.config.debug) {
-                console.error(`Error calling contract ${vault.contractId}.quote:`, error);
-            }
             return null;
         }
     }
@@ -686,15 +552,6 @@ export class Dexterity {
     }
 
     /**
-     * Discover vaults and load them into the router graph
-     */
-    static async discoverAndLoad(options: DiscoveryOptions = {}): Promise<Vault[]> {
-        const vaults = await this.discover(options);
-        this.loadVaults(vaults);
-        return vaults;
-    }
-
-    /**
      * Find all routes between two tokens
      */
     static findRoute(fromTokenId: string, toTokenId: string): Token[][] {
@@ -735,32 +592,55 @@ export class Dexterity {
                     .filter(edge => edge.target.contractId === tokenOut.contractId);
 
                 if (matchingEdges.length === 0) {
-                    throw new Error(`No direct connection found between ${tokenIn.symbol} and ${tokenOut.symbol}`);
+                    console.warn(`EvaluateRoute: No direct vault edge found between ${tokenIn.symbol} (${tokenIn.contractId}) and ${tokenOut.symbol} (${tokenOut.contractId}) for hop ${i + 1}. Path invalid.`);
+                    throw new Error(`Internal Error: No vault found for hop ${i + 1} between ${tokenIn.symbol} and ${tokenOut.symbol}`);
                 }
 
                 // Get quotes for all edges and select the best one
                 const edgeQuotes = await Promise.all(matchingEdges.map(async edge => {
-                    // Determine if it's A->B or B->A based on the vault's token order
-                    const isAtoB = tokenIn.contractId === edge.vault.tokenA.contractId;
-                    const opcode = isAtoB ? OPCODES.SWAP_A_TO_B : OPCODES.SWAP_B_TO_A;
+                    // Determine opcode based on token types and vault order
+                    const isInSubnet = tokenIn.contractId.includes('-subnet');
+                    const isOutSubnet = tokenOut.contractId.includes('-subnet');
+                    let opcode: number;
 
-                    const quote = await this.callVaultQuote(edge.vault, currentAmount, opcode);
-                    return { edge, opcode, quote };
+                    if (!isInSubnet && isOutSubnet) {
+                        opcode = OPCODES.OP_DEPOSIT;
+                    } else if (isInSubnet && !isOutSubnet) {
+                        opcode = OPCODES.OP_WITHDRAW;
+                    } else {
+                        // Standard swap (both subnet or both not subnet)
+                        const isAtoB = tokenIn.contractId === edge.vault.tokenA.contractId;
+                        opcode = isAtoB ? OPCODES.SWAP_A_TO_B : OPCODES.SWAP_B_TO_A;
+                    }
+
+                    try {
+                        const quote = await this.callVaultQuote(edge.vault, currentAmount, opcode);
+                        return { edge, opcode, quote };
+                    } catch (error) {
+                        console.error(`[Dexterity] Error quoting vault ${edge.vault.contractId}:`, error);
+                        return { edge, opcode, quote: error }; // Return error object for handling
+                    }
                 }));
 
                 // Find best quote (highest output amount)
                 const bestEdgeQuote = edgeQuotes.reduce((best, current) => {
                     if (current.quote instanceof Error) return best;
                     if (best.quote instanceof Error) return current;
-                    return (current.quote as Quote).amountOut > (best.quote as Quote).amountOut ? current : best;
+                    // Compare amountOut, ensuring we handle the potentially added opcode property
+                    const currentAmountOut = (current.quote as Quote).amountOut;
+                    const bestAmountOut = (best.quote as Quote).amountOut;
+                    return currentAmountOut > bestAmountOut ? current : best;
                 });
 
                 if (bestEdgeQuote.quote instanceof Error) {
+                    // If the best quote is an error, log it and try the next path
+                    console.warn(`Error quoting edge for vault ${bestEdgeQuote.edge.vault.contractId}:`, bestEdgeQuote.quote.message);
+                    // Propagate the error to indicate this path is invalid
                     throw bestEdgeQuote.quote;
                 }
 
                 // Add the hop with the best quote
-                const quote = bestEdgeQuote.quote as Quote;
+                const quoteResult = bestEdgeQuote.quote as Quote;
                 hops.push({
                     vault: bestEdgeQuote.edge.vault,
                     opcode: bestEdgeQuote.opcode,
@@ -768,12 +648,12 @@ export class Dexterity {
                     tokenOut,
                     quote: {
                         amountIn: currentAmount,
-                        amountOut: quote.amountOut,
+                        amountOut: quoteResult.amountOut,
                     },
                 });
 
                 // Update amount for next hop
-                currentAmount = quote.amountOut;
+                currentAmount = quoteResult.amountOut;
             }
 
             // Create the route
@@ -869,7 +749,7 @@ export class Dexterity {
     /**
      * Build transaction for a multi-hop swap
      */
-    static async buildSwapTransaction(route: Route, amount: number) {
+    static async buildSwapTransaction(route: Route) {
         // Ensure client is initialized
         if (!this.client) this.init();
 
@@ -883,7 +763,7 @@ export class Dexterity {
 
         // Build post conditions
         for (const hop of route.hops) {
-            const hopAmountIn = hop.quote?.amountIn ?? amount;
+            const hopAmountIn = hop.quote?.amountIn ?? route.amountIn;
             const hopAmountOut = hop.quote?.amountOut ?? 0;
 
             // Get vault-specific post conditions
@@ -892,7 +772,8 @@ export class Dexterity {
                 hop.tokenIn,
                 hop.tokenOut,
                 hopAmountIn,
-                hopAmountOut
+                hopAmountOut,
+                hop.opcode
             );
 
             // Combine by token
@@ -901,7 +782,7 @@ export class Dexterity {
                 if (pcMap.has(key)) {
                     // Add amounts for existing token PC
                     const existingPC = pcMap.get(key);
-                    existingPC.amount = Number(existingPC.amount) + Number(pc.amount);
+                    existingPC.amount = BigInt(existingPC.amount) + BigInt(pc.amount);
                 } else {
                     // Create new entry for this token PC
                     pcMap.set(key, { ...pc });
@@ -911,7 +792,7 @@ export class Dexterity {
 
         // Build function args for the router
         const functionArgs = [
-            uintCV(amount),
+            uintCV(route.amountIn),
             ...route.hops.map((hop) =>
                 tupleCV({
                     pool: principalCV(hop.vault.contractId),
@@ -935,7 +816,7 @@ export class Dexterity {
      */
     static createPostCondition(
         token: Token,
-        amount: number,
+        amount: bigint,
         sender: string,
         condition: 'eq' | 'gte' | 'lte' = 'eq'
     ): PostCondition {
@@ -959,27 +840,44 @@ export class Dexterity {
         tokenIn: Token,
         tokenOut: Token,
         amountIn: number,
-        amountOut: number
+        amountOut: number,
+        opcode: number
     ) {
-        // Apply slippage tolerance
-        const maxAmountIn = Math.floor(amountIn * (1 + this.config.defaultSlippage));
-        const minAmountOut = Math.floor(amountOut * (1 - this.config.defaultSlippage));
-
         // Assume signer as sender
         const signer = await this.client.signer.getAddress()
 
-        const postConditions = [
-            this.createPostCondition(tokenIn, maxAmountIn, signer, 'lte'),
-            this.createPostCondition(tokenOut, minAmountOut, vault.externalPoolId || vault.contractId, 'gte'),
-        ];
+        const postConditions: PostCondition[] = [];
 
-        // For wrapper contract, use external pool ID if available
-        if (vault.externalPoolId) {
-            // Add additional post condition for specific external pool
-            if (vault.externalPoolId === 'SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.univ2-core' ||
-                vault.externalPoolId.startsWith('SP20X3DC5R091J8B6YPQT638J8NR1W83KN6TN5BJY.univ2-pool-v1')
-            ) {
-                postConditions.push(this.createPostCondition(tokenIn, 0, vault.externalPoolId, 'gte'));
+        if (opcode === OPCODES.OP_DEPOSIT) {
+            // DEPOSIT: User sends exact tokenIn amount
+            const exactAmountIn = BigInt(amountIn);
+            postConditions.push(this.createPostCondition(tokenIn, exactAmountIn, signer, 'eq'));
+
+        } else if (opcode === OPCODES.OP_WITHDRAW) {
+            // WITHDRAW: Vault sends exact tokenOut amount
+            const exactAmountOut = BigInt(amountOut);
+            // Sender is the vault contract itself for a withdrawal
+            postConditions.push(this.createPostCondition(tokenOut, exactAmountOut, vault.externalPoolId || vault.contractId, 'eq'));
+
+        } else { // Standard Swaps (A_TO_B or B_TO_A)
+            // Apply slippage tolerance
+            const maxAmountIn = BigInt(Math.floor(amountIn * (1 + this.config.defaultSlippage)));
+            const minAmountOut = BigInt(Math.floor(amountOut * (1 - this.config.defaultSlippage)));
+
+            // Standard swap post conditions with slippage
+            postConditions.push(this.createPostCondition(tokenIn, maxAmountIn, signer, 'lte'));
+            postConditions.push(this.createPostCondition(tokenOut, minAmountOut, vault.externalPoolId || vault.contractId, 'gte'));
+
+            // Handle specific external pool logic if needed (kept from original code)
+            if (vault.externalPoolId) {
+                // Add additional post condition for specific external pool
+                if (vault.externalPoolId === 'SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.univ2-core' ||
+                    vault.externalPoolId.startsWith('SP20X3DC5R091J8B6YPQT638J8NR1W83KN6TN5BJY.univ2-pool-v1')
+                ) {
+                    // This condition seems specific, ensure it's still relevant.
+                    // It checks that the signer sends >= 0 to the external pool.
+                    postConditions.push(this.createPostCondition(tokenIn, BigInt(0), vault.externalPoolId, 'gte'));
+                }
             }
         }
 
@@ -1016,7 +914,7 @@ export class Dexterity {
         }
 
         // Build transaction for the route
-        const txConfig = await this.buildSwapTransaction(route, amount);
+        const txConfig = await this.buildSwapTransaction(route);
 
         // Handle post conditions
         if (options.disablePostConditions) {
@@ -1039,9 +937,10 @@ export class Dexterity {
         route: Route,
         options: SwapOptions = {}
     ) {
-
         // Build transaction for the route
-        const txConfig = await this.buildSwapTransaction(route, route.amountIn);
+        const txConfig = await this.buildSwapTransaction(route);
+
+        console.log(txConfig)
 
         // Handle post conditions
         if (options.disablePostConditions) {

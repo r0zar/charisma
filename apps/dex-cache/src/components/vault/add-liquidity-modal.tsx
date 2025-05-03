@@ -179,7 +179,8 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
         // Estimate max LP tokens based on the limiting token balance relative to pool reserves
         const maxFromA = (balances.tokenA / reserveA) * totalSupply;
         const maxFromB = (balances.tokenB / reserveB) * totalSupply;
-        const calculatedMax = Math.floor(Math.min(maxFromA, maxFromB));
+        const calculatedMax = Math.min(maxFromA, maxFromB);
+        console.log('calculatedMax', calculatedMax);
 
         console.log('[maxLpTokens Calc] Calculation:', { maxFromA, maxFromB, calculatedMax });
         setMaxLpTokens(calculatedMax);

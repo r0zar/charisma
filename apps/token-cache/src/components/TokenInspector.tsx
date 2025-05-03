@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic'; // Import dynamic
-import { inspectTokenData, forceRefreshToken } from '@/app/actions';
+import { inspectTokenData, forceRefreshToken, updateCachedTokenData } from '@/app/actions';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Search, RefreshCw, Database, Server } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Database, Server, Save, Edit } from 'lucide-react';
 import { toast } from "sonner";
 
 // Dynamically import ReactJson with SSR disabled
@@ -31,8 +31,47 @@ export default function TokenInspector() {
     const [contractId, setContractId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [inspectionResult, setInspectionResult] = useState<InspectionResult | null>(null);
     const [lastInspectedId, setLastInspectedId] = useState<string | null>(null);
+    const [editedCachedData, setEditedCachedData] = useState<any>(null);
+    const [isEditing, setIsEditing] = useState(false);
+
+    useEffect(() => {
+        if (inspectionResult?.cachedData) {
+            setEditedCachedData(inspectionResult.cachedData);
+            setIsEditing(false);
+        } else {
+            setEditedCachedData(null);
+            setIsEditing(false);
+        }
+    }, [inspectionResult]);
+
+    const handleCacheEdit = useCallback((edit: any) => {
+        setEditedCachedData(edit.updated_src);
+        if (!isEditing) setIsEditing(true);
+        return true;
+    }, [isEditing]);
+
+    const handleSaveChanges = async () => {
+        if (!lastInspectedId || !editedCachedData || !isEditing) return;
+
+        setIsSaving(true);
+        try {
+            const result = await updateCachedTokenData(lastInspectedId, editedCachedData);
+            if (result.success) {
+                toast.success("Cache updated successfully!");
+                setIsEditing(false);
+                setInspectionResult(prev => prev ? { ...prev, cachedData: editedCachedData } : null);
+            } else {
+                toast.error("Failed to save changes", { description: result.error });
+            }
+        } catch (err: any) {
+            toast.error("Failed to save changes", { description: err.message || 'Unknown error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleInspect = async () => {
         if (!looksLikeContractId(contractId)) {
@@ -40,14 +79,17 @@ export default function TokenInspector() {
             return;
         }
         setIsLoading(true);
-        setInspectionResult(null); // Clear previous results
+        setIsEditing(false);
+        setInspectionResult(null);
         setLastInspectedId(contractId);
         try {
             const result = await inspectTokenData(contractId);
             setInspectionResult(result);
+            setEditedCachedData(result.cachedData || null);
         } catch (err: any) {
             toast.error("Inspection failed", { description: err.message || 'Unknown error' });
-            setInspectionResult({ contractId, fetchError: err.message }); // Show error within results
+            setInspectionResult({ contractId, fetchError: err.message });
+            setEditedCachedData(null);
         } finally {
             setIsLoading(false);
         }
@@ -56,13 +98,14 @@ export default function TokenInspector() {
     const handleRefresh = async () => {
         if (!lastInspectedId) return;
         setIsRefreshing(true);
+        setIsEditing(false);
         try {
             const result = await forceRefreshToken(lastInspectedId);
             if (result.success) {
                 toast.success("Cache refreshed successfully!");
-                // Re-inspect to show the updated cached data
                 const reInspectResult = await inspectTokenData(lastInspectedId);
                 setInspectionResult(reInspectResult);
+                setEditedCachedData(reInspectResult.cachedData || null);
             } else {
                 toast.error("Cache refresh failed", { description: result.error });
             }
@@ -72,6 +115,8 @@ export default function TokenInspector() {
             setIsRefreshing(false);
         }
     };
+
+    const hasChanges = isEditing && JSON.stringify(editedCachedData) !== JSON.stringify(inspectionResult?.cachedData);
 
     return (
         <div className="w-full space-y-6">
@@ -108,13 +153,25 @@ export default function TokenInspector() {
                 <div className="space-y-4 animate-fadeIn">
                     <h2 className="text-xl font-semibold border-b pb-2">Inspection Results for: <code className='text-primary bg-muted px-1 rounded-sm'>{inspectionResult.contractId}</code></h2>
 
-                    {/* Action Button (Refresh Cache) */}
-                    <div className="text-right">
+                    {/* Action Buttons (Refresh Cache, Save Changes) */}
+                    <div className="flex justify-end gap-2">
+                        {isEditing && (
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={handleSaveChanges}
+                                disabled={isSaving || isLoading || isRefreshing || !hasChanges}
+                                className="bg-green-600 hover:bg-green-700"
+                            >
+                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                {isSaving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        )}
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleRefresh}
-                            disabled={isRefreshing || isLoading || !lastInspectedId}
+                            disabled={isRefreshing || isLoading || isSaving || !lastInspectedId || isEditing}
                         >
                             {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                             {isRefreshing ? 'Refreshing Cache...' : 'Force Refresh Cache'}
@@ -150,12 +207,14 @@ export default function TokenInspector() {
                             </CardContent>
                         </Card>
 
-                        {/* Cached Data Card */}
+                        {/* Cached Data Card (Now Editable) */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-green-500">
-                                    <Database className="w-5 h-5" />
-                                    Cached Data (Vercel KV)
+                                <CardTitle className="flex items-center justify-between gap-2 text-green-500">
+                                    <div className="flex items-center gap-2">
+                                        <Database className="w-5 h-5" />
+                                        Cached Data (Vercel KV)
+                                    </div>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -166,12 +225,15 @@ export default function TokenInspector() {
                                     </Alert>
                                 ) : (
                                     <ReactJson
-                                        src={inspectionResult.cachedData || { message: "No cached data found." }}
+                                        src={editedCachedData || { message: "No cached data found or not loaded." }}
                                         theme="ocean"
                                         iconStyle="square"
                                         displayObjectSize={false}
                                         displayDataTypes={false}
-                                        enableClipboard={false}
+                                        enableClipboard={true}
+                                        onEdit={handleCacheEdit}
+                                        onAdd={handleCacheEdit}
+                                        onDelete={handleCacheEdit}
                                         style={{ padding: '1rem', borderRadius: '0.5rem', background: 'hsl(var(--muted))' }}
                                     />
                                 )}

@@ -175,4 +175,34 @@ export async function forceRefreshToken(contractId: string): Promise<{ success: 
         console.error(`[Inspect] Error during forced refresh for ${contractId}:`, error);
         return { success: false, error: error.message || 'Failed to force refresh token data.' };
     }
+}
+
+export async function updateCachedTokenData(contractId: string, newData: any): Promise<{ success: boolean, error?: string }> {
+    'use server';
+
+    if (!contractId || typeof contractId !== 'string') {
+        return { success: false, error: 'Invalid Contract ID provided.' };
+    }
+
+    if (newData === undefined || newData === null) {
+        return { success: false, error: 'Invalid data provided for update.' };
+    }
+
+    const cacheKey = `token-metadata:${contractId.toLowerCase()}`;
+
+    try {
+        // Validate if newData is actually valid JSON (it should be an object/array from react-json-view)
+        // Although react-json-view passes an object, let's ensure it's structurally sound if needed,
+        // basic check here assumes react-json-view provides valid structure.
+        if (typeof newData !== 'object') {
+            throw new Error('Data must be a valid JSON object or array.');
+        }
+
+        await kv.set(cacheKey, newData);
+        console.log(`Cache updated successfully for ${contractId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error(`Error updating cache for ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to update cache in Vercel KV.' };
+    }
 } 

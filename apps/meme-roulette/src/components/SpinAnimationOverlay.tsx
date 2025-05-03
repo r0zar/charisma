@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import type { Token } from '@/types/spin';
-import { Button } from '@/components/ui/button';
 import { useSpring, animated, config } from 'react-spring';
-import { cn } from '@/lib/utils';
 import { TrendingUp, Rocket } from 'lucide-react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 
 interface SpinAnimationOverlayProps {
     winningTokenId: string;
@@ -643,6 +641,9 @@ const SpinAnimationOverlay = React.memo(({
             {/* Result Dialog - shown when animation completes */}
             <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
                 <DialogContent className="bg-background/95 backdrop-blur-lg border-primary/30 p-0 max-w-xl overflow-visible z-[100]">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Token Selection Results</DialogTitle>
+                    </DialogHeader>
                     {displayToken && (
                         <div className="text-center animate-appear space-y-6 p-8">
                             <div className="space-y-3">

@@ -4,6 +4,9 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { connect } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { getUserTokenBalance } from '@repo/balances';
+import { request } from '@stacks/connect';
+import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
+import { v4 as uuidv4 } from 'uuid';
 
 // Default Charisma token contract (mainnet) – override in env if necessary
 const CHARISMA_TOKEN_CONTRACT_ID =
@@ -27,6 +30,7 @@ interface WalletContextType {
     stxBalanceLoading: boolean;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
+    placeBet: (amount: number, tokenId: string) => Promise<{ success: boolean; uuid?: string; error?: string }>;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -41,6 +45,7 @@ const WalletContext = createContext<WalletContextType>({
     stxBalanceLoading: false,
     connectWallet: async () => { },
     disconnectWallet: () => { },
+    placeBet: async () => ({ success: false, error: 'Wallet not connected' })
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -170,6 +175,60 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     }, [connected, address]);
 
+    // New: placeBet implements off-chain signing and intent queuing
+    const placeBet = async (amount: number, tokenId: string): Promise<{ success: boolean; uuid?: string; error?: string }> => {
+        if (!connected || !address) {
+            return { success: false, error: 'Wallet not connected' };
+        }
+        const SUB_LINK_VAULT_CONTRACT_ID = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v9';
+        try {
+            const uuid = uuidv4();
+            const PROTOCOL_NAME = 'BLAZE_PROTOCOL';
+            const PROTOCOL_VERSION = 'v1.0';
+            const vault = CHARISMA_TOKEN_CONTRACT_ID;
+            // Build SIP-018 domain and message
+            const domain = tupleCV({
+                name: stringAsciiCV(PROTOCOL_NAME),
+                version: stringAsciiCV(PROTOCOL_VERSION),
+                'chain-id': uintCV(1),
+            });
+            const message = tupleCV({
+                contract: principalCV(vault),
+                intent: stringAsciiCV('TRANSFER_TOKENS'),
+                opcode: noneCV(),
+                amount: optionalCVOf(uintCV(amount)),
+                target: optionalCVOf(principalCV(SUB_LINK_VAULT_CONTRACT_ID)),
+                uuid: stringAsciiCV(uuid),
+            });
+            // Request wallet signature
+            const sigData = await request('stx_signStructuredMessage', { domain, message });
+            const signature = sigData?.signature;
+            if (!signature) throw new Error('Signature failed');
+            // Queue the signed intent on server
+            const response = await fetch('/api/multihop/queue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    // Just store the essential signature components
+                    signature,
+                    uuid,
+                    amount: amount.toString(),
+                    recipient: address,
+                    tokenId: tokenId, // Include tokenId in the request
+                    target: SUB_LINK_VAULT_CONTRACT_ID
+                }),
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || 'Failed to queue intent');
+            }
+            return { success: true, uuid };
+        } catch (error: any) {
+            console.error('placeBet error:', error);
+            return { success: false, error: error.message || String(error) };
+        }
+    };
+
     return (
         <WalletContext.Provider
             value={{
@@ -184,6 +243,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 stxBalanceLoading,
                 connectWallet,
                 disconnectWallet,
+                placeBet
             }}
         >
             {children}

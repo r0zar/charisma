@@ -75,13 +75,6 @@ export const addVaultIdToManagedList = async (contractId: string): Promise<void>
     }
 };
 
-// Resolve base URL for token-cache API
-const getTokenCacheBase = () => {
-    const explicit = process.env.TOKEN_CACHE_ENDPOINT;
-    if (explicit) return explicit;
-    return 'http://localhost:3001'; // Fallback for local dev
-};
-
 // Fetch token metadata from token-cache API (can be LP token or underlying token)
 export const fetchTokenFromCache = async (contractId: string): Promise<any | null> => {
     // Special case for STX token
@@ -99,7 +92,7 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
         };
     }
 
-    const base = getTokenCacheBase();
+    const base = process.env.TOKEN_CACHE_ENDPOINT || 'http://localhost:3001'
     if (!base) {
         console.error("Token Cache endpoint/host not configured.");
         return null;
@@ -107,7 +100,7 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
     const url = `${base}/api/v1/sip10/${encodeURIComponent(contractId)}`;
     console.log(`Fetching token from cache: ${url}`);
     try {
-        const res = await fetch(url, { cache: 'no-store' });
+        const res = await fetch(url);
         if (!res.ok) {
             console.warn(`Failed token cache fetch for ${contractId} (${res.status}): ${url}`);
             return null;

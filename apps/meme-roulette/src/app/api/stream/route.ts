@@ -17,6 +17,10 @@ import {
 } from '@/lib/state';
 import { NextRequest } from 'next/server';
 
+// Add at top of file:
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3010');
+
 // --- Initialization ---
 initializeKVState().catch(err => console.error("Initial KV state check/set failed:", err));
 
@@ -184,6 +188,13 @@ const updateAndBroadcast = async (userId: string) => {
 
         await setKVWinningToken(winnerId);
         status.winningTokenId = winnerId; // Update local copy for broadcast
+        // Trigger execution of queued intents now that winner is determined
+        try {
+            await fetch(`${BASE_URL}/api/multihop/process`, { method: 'POST', cache: 'no-store' });
+            console.log('API/Stream: Triggered processing of queued intents.');
+        } catch (e) {
+            console.error('API/Stream: Failed to trigger intent processing:', e);
+        }
 
     } else if (status.winningTokenId && timeLeft <= -60000) {
         console.log('API/Stream: Resetting KV for next spin (after 60s delay)');

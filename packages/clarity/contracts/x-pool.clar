@@ -71,25 +71,25 @@
     (let (
         (delta (get-swap-quote amount OP_SWAP_A_TO_B)))
         ;; Transfer token A to pool
-        (try! (contract-call? .charisma-token transfer amount tx-sender CONTRACT none))
+        (try! (contract-call? .x-charisma-token transfer amount tx-sender CONTRACT none))
         ;; Transfer token B to sender
-        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 (define-public (swap-b-to-a (amount uint) (recipient principal))
     (let (
         (delta (get-swap-quote amount OP_SWAP_B_TO_A)))
         ;; Transfer token B to pool
-        (try! (contract-call? .charisma-token-subnet-v1 transfer amount tx-sender CONTRACT none))
+        (try! (contract-call? .x-welshcorgicoin-token transfer amount tx-sender CONTRACT none))
         ;; Transfer token A to sender
-        (try! (as-contract (contract-call? .charisma-token transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .x-charisma-token transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 (define-public (add-liquidity (amount uint) (recipient-a principal) (recipient-b principal))
     (let (
         (delta (get-liquidity-quote amount)))
-        (try! (contract-call? .charisma-token transfer (get dx delta) tx-sender CONTRACT none))
-        (try! (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) tx-sender CONTRACT none))
+        (try! (contract-call? .x-charisma-token transfer (get dx delta) tx-sender CONTRACT none))
+        (try! (contract-call? .x-welshcorgicoin-token transfer (get dy delta) tx-sender CONTRACT none))
         (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-a))
         (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-b))
         (ok delta)))
@@ -98,8 +98,8 @@
     (let (
         (delta (get-liquidity-quote amount)))
         (try! (ft-burn? sublink (get dk delta) tx-sender))
-        (try! (as-contract (contract-call? .charisma-token transfer (get dx delta) CONTRACT recipient-a none)))
-        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) CONTRACT recipient-b none)))
+        (try! (as-contract (contract-call? .x-charisma-token transfer (get dx delta) CONTRACT recipient-a none)))
+        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer (get dy delta) CONTRACT recipient-b none)))
         (ok delta)))
 
 ;; --- Subnet Functions ---
@@ -112,8 +112,8 @@
         (amount-a (get dx delta))
         (amount-b (get dy delta)))
 
-        (try! (contract-call? .charisma-token x-transfer signature-a amount-a uuid-a CONTRACT))
-        (try! (contract-call? .charisma-token-subnet-v1 x-transfer signature-b amount-b uuid-b CONTRACT))
+        (try! (contract-call? .x-charisma-token x-transfer signature-a amount-a uuid-a CONTRACT))
+        (try! (contract-call? .x-welshcorgicoin-token x-transfer signature-b amount-b uuid-b CONTRACT))
         (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-a))
         (try! (ft-mint? sublink (/ (get dk delta) u2) recipient-b))
         (ok delta)))
@@ -130,25 +130,25 @@
         (try! (ft-burn? sublink (get dk delta) signer))
         
         ;; Transfer tokens back to signer
-        (try! (as-contract (contract-call? .charisma-token transfer amount-a CONTRACT recipient none)))
-        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer amount-b CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .x-charisma-token transfer amount-a CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer amount-b CONTRACT recipient none)))
         
         (ok delta)))
 
 (define-public (x-swap-a-to-b (amount uint) (signature (buff 65)) (uuid (string-ascii 36)) (recipient principal))
     (let ((delta (get-swap-quote amount OP_SWAP_A_TO_B)))
         ;; Transfer tokens to contract from signer
-        (try! (contract-call? .charisma-token x-transfer signature amount uuid CONTRACT))
+        (try! (contract-call? .x-charisma-token x-transfer signature amount uuid CONTRACT))
         ;; Transfer tokens to recipient from contract
-        (try! (as-contract (contract-call? .charisma-token-subnet-v1 transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .x-welshcorgicoin-token transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 (define-public (x-swap-b-to-a (amount uint) (signature (buff 65)) (uuid (string-ascii 36)) (recipient principal))
     (let ((delta (get-swap-quote amount OP_SWAP_B_TO_A)))
         ;; Transfer tokens to contract from signer
-        (try! (contract-call? .charisma-token-subnet-v1 x-transfer signature amount uuid CONTRACT))
+        (try! (contract-call? .x-welshcorgicoin-token x-transfer signature amount uuid CONTRACT))
         ;; Transfer tokens to recipient from contract
-        (try! (as-contract (contract-call? .charisma-token transfer (get dy delta) CONTRACT recipient none)))
+        (try! (as-contract (contract-call? .x-charisma-token transfer (get dy delta) CONTRACT recipient none)))
         (ok delta)))
 
 ;; --- Helper Functions ---
@@ -158,8 +158,8 @@
 
 (define-private (get-reserves)
     { 
-      a: (unwrap-panic (contract-call? .charisma-token get-balance CONTRACT)), 
-      b: (unwrap-panic (contract-call? .charisma-token-subnet-v1 get-balance CONTRACT))
+      a: (unwrap-panic (contract-call? .x-charisma-token get-balance CONTRACT)), 
+      b: (unwrap-panic (contract-call? .x-welshcorgicoin-token get-balance CONTRACT))
     })
 
 ;; --- Quote Functions ---

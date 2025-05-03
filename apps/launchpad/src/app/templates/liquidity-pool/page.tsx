@@ -420,10 +420,10 @@ function LiquidityPoolWizard() {
 
             // Calculate the total liquidity amounts for post-conditions
             const totalTokenAAmount = initialTokenRatio.useRatio
-                ? initialTokenRatio.token1Amount * Math.pow(10, tokenADecimals)
+                ? Math.floor(initialTokenRatio.token1Amount * Math.pow(10, tokenADecimals))
                 : 0;
             const totalTokenBAmount = initialTokenRatio.useRatio
-                ? initialTokenRatio.token2Amount * Math.pow(10, tokenBDecimals)
+                ? Math.floor(initialTokenRatio.token2Amount * Math.pow(10, tokenBDecimals))
                 : 0;
 
             // Generate the liquidity pool contract code

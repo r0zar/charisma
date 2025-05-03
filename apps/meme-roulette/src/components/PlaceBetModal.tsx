@@ -47,7 +47,7 @@ const formatBalance = (balance: string, decimals: number = 6) => {
 };
 
 const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
-    const { subnetBalance, subnetBalanceLoading, address } = useWallet();
+    const { subnetBalance, subnetBalanceLoading, address, placeBet } = useWallet();
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
     const [chaAmount, setChaAmount] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
@@ -105,29 +105,16 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
 
         setIsLoading(true);
         try {
-            // Use wallet address as the userId, or a fallback for testing
-            const userId = address || `anonymous_${Math.floor(Math.random() * 10000)}`;
+            // Sign and queue the bet with both amount and token ID
+            const microAmount = Number(amountInMicroCha);
+            const result = await placeBet(microAmount, selectedToken.id);
 
-            const response = await fetch('/api/place-bet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tokenId: selectedToken.id,
-                    chaAmount: amount,
-                    userId
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                toast.success(`Successfully committed ${amount} CHA to ${selectedToken.symbol}!`);
-
-                onClose();
-            } else {
+            if (!result.success) {
                 throw new Error(result.error || 'Failed to place bet');
             }
 
+            toast.success(`Committed ${amount} CHA to ${selectedToken.symbol}! (UUID: ${result.uuid})`);
+            onClose();
         } catch (error: any) {
             console.error("Error committing CHA:", error);
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

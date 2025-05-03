@@ -7,7 +7,13 @@ import {
     stringAsciiCV,
     uintCV,
     principalCV,
+    contractPrincipalCV,
+    noneCV,
+    tupleCV,
+    ClarityValue,
 } from "@stacks/transactions";
+import { bufferFromHex } from "@stacks/transactions/dist/cl";
+import { z } from "zod";
 
 interface ExecuteMessageParams {
     messageType: "TRANSFER_TOKENS" | "TRANSFER_TOKENS_LTE" | "REDEEM_BEARER";
@@ -171,4 +177,85 @@ export async function executeRedeem({
         recipient,
         uuid
     });
-} 
+}
+
+
+
+// --- Zod Schema for Input Validation ---
+export const HopSchema = z.object({
+    vault: z.string().includes('.').min(3), // Basic validation SP...ADDR.CONTRACT
+    opcode: z.string().length(2).optional(), // Optional hex string (0x00 or 0x01)
+    signature: z.string().length(130).optional(), // Optional hex string 0x + 65 bytes * 2 hex chars
+    uuid: z.string().max(36).optional(),
+});
+
+export const ApiPayloadSchema = z.object({
+    numHops: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    amount: z.string().regex(/^[1-9][0-9]*$/, "Amount must be a positive integer string"),
+    recipient: z.string().min(3).regex(/^[SPST].*/, "Invalid principal format"), // Basic principal validation
+    hops: z.array(HopSchema).min(1).max(3),
+});
+
+type ValidatedPayload = z.infer<typeof ApiPayloadSchema>;
+
+// --- Utility Function for Preparing Transaction Args ---
+export function prepareMultihopTxArgs(payload: ValidatedPayload): { functionName: string, functionArgs: ClarityValue[] } {
+    const { numHops, amount: amountString, recipient, hops } = payload;
+
+    // --- Convert Frontend Data to Clarity Values ---
+    const amountCV = uintCV(BigInt(amountString));
+    const recipientCV = principalCV(recipient);
+
+    const formatHopForApi = (hopData: z.infer<typeof HopSchema>, index: number): ClarityValue => {
+        const [vaultAddr, vaultName] = hopData.vault.split('.');
+        const vaultTraitCV = contractPrincipalCV(vaultAddr, vaultName);
+        const opcodeCV = hopData.opcode
+            ? bufferFromHex(hopData.opcode) // Assuming opcode is hex without 0x prefix
+            : noneCV();
+
+        if (index === 0 && numHops > 0) {
+            // Hop 1 requires signature and uuid from payload
+            if (!hopData.signature || !hopData.uuid) {
+                throw new Error("Internal Server Error: Missing signature/uuid for Hop 1 during CV construction.");
+            }
+            const signatureCV = bufferFromHex(hopData.signature); // Assuming signature is hex without 0x prefix
+            const uuidCV = stringAsciiCV(hopData.uuid);
+            return tupleCV({
+                vault: vaultTraitCV,
+                opcode: opcodeCV,
+                signature: signatureCV,
+                uuid: uuidCV
+            });
+        } else {
+            // Subsequent hops only need vault and opcode
+            return tupleCV({
+                vault: vaultTraitCV,
+                opcode: opcodeCV
+            });
+        }
+    };
+
+    const hopCVs = hops.map(formatHopForApi);
+    console.log("Util: Hop CVs:", JSON.stringify(hopCVs, null, 2));
+
+    // --- Select Function and Args ---
+    let functionName = '';
+    let functionArgs: ClarityValue[] = [];
+
+    if (numHops === 1) {
+        functionName = 'x-swap-1';
+        functionArgs = [amountCV, hopCVs[0], recipientCV];
+    } else if (numHops === 2) {
+        functionName = 'x-swap-2';
+        functionArgs = [amountCV, hopCVs[0], hopCVs[1], recipientCV];
+    } else if (numHops === 3) {
+        functionName = 'x-swap-3';
+        functionArgs = [amountCV, hopCVs[0], hopCVs[1], hopCVs[2], recipientCV];
+    } else {
+        throw new Error("Invalid number of hops after validation.");
+    }
+
+    console.log("Util: Function Args:", functionArgs);
+
+    return { functionName, functionArgs };
+}

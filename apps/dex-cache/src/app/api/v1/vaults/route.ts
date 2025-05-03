@@ -21,8 +21,6 @@ export async function GET(request: Request) {
         const data = await getAllVaultData();
         console.log(`Returning ${data.length} vaults`);
 
-        console.log(data)
-
         return NextResponse.json({
             status: 'success',
             data,
