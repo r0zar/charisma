@@ -4,11 +4,6 @@ import { listTokens } from '../actions';
 import SwapInterface from '@/components/swap-interface';
 import { Header } from '@/components/header';
 
-export const metadata: Metadata = {
-    title: 'Swap Tokens | SimpleSwap',
-    description: 'Swap tokens on the Stacks blockchain with the best rates and minimal fees.',
-};
-
 export default async function SwapPage({
     searchParams,
 }: {
