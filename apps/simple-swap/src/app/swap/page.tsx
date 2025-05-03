@@ -50,7 +50,7 @@ export default async function SwapPage({
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-medium">Isolated Vault Security</h3>
-                                            <p className="text-sm text-muted-foreground mt-1">Every liquidity pool lives in its <strong>own Clarity contract principal</strong>. Funds are sandboxed &mdash; a flaw in one vault cannot drain another.</p>
+                                            <p className="text-sm text-muted-foreground mt-1">Every liquidity pool lives in its <strong>own Clarity contract principal</strong>. Funds are sandboxed &mdash; actions in one vault cannot affect another.</p>
                                         </div>
                                     </div>
 
