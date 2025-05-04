@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import VaultList from './VaultList';
-import { previewVault, confirmVault, fetchTokensAndAnalyze } from '@/app/actions';
+import { previewVault, fetchTokensAndAnalyze } from '@/app/actions';
+import { useApp } from '@/lib/context/app-context';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -39,6 +40,7 @@ interface PreviewDataState {
 
 export default function PoolImporter({ initialVaults = [] }: { initialVaults?: Vault[] }) {
     const searchParams = useSearchParams();
+    const { walletState, fetchWithAdminAuth } = useApp();
     const [vaults, setVaults] = useState<Vault[]>(initialVaults);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -169,10 +171,14 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
         }
     };
 
-    // Step 2: Confirm and save the vault
+    // Step 2: Confirm and save the vault via API route
     const handleConfirm = async () => {
         if (!previewData || !previewData.lpToken || !previewData.tokenA || !previewData.tokenB || previewData.requiresManualInput) {
             setError('Cannot confirm: Missing complete token data.');
+            return;
+        }
+        if (!fetchWithAdminAuth) {
+            setError('Admin authentication function not available. Cannot confirm.');
             return;
         }
 
@@ -201,25 +207,44 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
             return;
         }
 
-        try {
-            const result = await confirmVault(
-                vaultContractId,
-                modifiedLpToken,
-                previewData.tokenA,
-                previewData.tokenB
-            );
+        // Prepare the request body for the API (NO contractId here)
+        const requestBody = {
+            lpToken: modifiedLpToken,
+            tokenA: previewData.tokenA,
+            tokenB: previewData.tokenB,
+        };
 
-            if (result.success) {
+        try {
+            // Construct dynamic URL
+            const apiUrl = `/api/v1/admin/vaults/${encodeURIComponent(vaultContractId)}/confirm`;
+            console.log(`Calling ${apiUrl} with admin auth...`);
+
+            // Use fetchWithAdminAuth to call the NEW dynamic API route
+            const response = await fetchWithAdminAuth(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.status === 'success') {
+                console.log('Vault confirmed successfully via API.');
                 if (result.vault && setVaults) {
                     setVaults(prevVaults => [...(prevVaults || []), result.vault as Vault]);
                 }
                 setPreviewData(null);
                 setSearchTerm('');
                 setError(null);
+                handleCancelPreview();
             } else {
-                setError(result.error || 'Failed to save vault');
+                console.error('API Error Response:', result);
+                setError(result.message || 'Failed to save vault via API');
             }
         } catch (err: any) {
+            console.error('Fetch Error during confirm:', err);
             setError(err.message || 'An unexpected error occurred while saving');
         } finally {
             setIsLoading(false);

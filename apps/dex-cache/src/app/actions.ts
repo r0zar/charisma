@@ -245,7 +245,8 @@ export async function previewVault(contractId: string): Promise<{
 }
 
 // STEP 2: Confirm and save the vault after preview
-export async function confirmVault(
+// Keep the function, but remove export. It's now a local helper for addVault.
+async function confirmVault(
     contractId: string,
     lpToken: any,
     tokenA: any,
@@ -256,7 +257,7 @@ export async function confirmVault(
     vault?: Vault;
 }> {
     try {
-        console.log(`Confirming vault ${contractId}`);
+        console.log(`Confirming vault ${contractId} (called internally)`);
 
         // 1. Construct vault object manually
         console.log('Building vault manually from token data');
