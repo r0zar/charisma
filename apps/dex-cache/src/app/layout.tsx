@@ -33,6 +33,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "Charisma Invest | Maximize Your Stacks Yield",
     description: "Explore liquidity pools, automated strategies, and maximize your yield opportunities on Stacks with Charisma Invest.",
+    images: ['/og-image.png'],
   },
 };
 

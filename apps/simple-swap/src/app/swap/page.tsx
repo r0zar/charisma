@@ -4,6 +4,48 @@ import { listTokens } from '../actions';
 import SwapInterface from '@/components/swap-interface';
 import { Header } from '@/components/header';
 
+type Props = {
+    searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export async function generateMetadata(
+    { searchParams }: Props
+): Promise<Metadata> {
+    const fromSymbol = (searchParams.fromSymbol as string) || 'STX';
+    const toSymbol = (searchParams.toSymbol as string) || 'CHA';
+    const amount = (searchParams.amount as string) || '1';
+
+    const title = `Swap ${amount} ${fromSymbol} to ${toSymbol} | Charisma Swap`;
+    const description = `Swap ${amount} ${fromSymbol} to ${toSymbol} on Charisma Swap`;
+    const ogImageUrl = `https://swap.charisma.rocks/api/og?fromSymbol=${fromSymbol}&toSymbol=${toSymbol}&amount=${amount}`;
+    const pageUrl = `https://swap.charisma.rocks/swap?fromSymbol=${fromSymbol}&toSymbol=${toSymbol}&amount=${amount}`;
+
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+            url: pageUrl,
+            images: [
+                {
+                    url: ogImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: title,
+                },
+            ],
+            type: 'website',
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description,
+            images: [ogImageUrl],
+        },
+    };
+}
+
 export default async function SwapPage({
     searchParams,
 }: {

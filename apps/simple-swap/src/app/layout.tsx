@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
     description: 'Swap tokens securely and efficiently on the Stacks blockchain with Charisma Swap.',
+    images: ['/og-image.png'],
   },
 };
 
