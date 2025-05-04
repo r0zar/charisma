@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '48px',
+              gap: '60px',
               position: 'relative',
               width: '100%',
               maxWidth: '1000px',
@@ -108,17 +108,17 @@ export async function GET(request: NextRequest) {
             {/* Title with gradient */}
             <div
               style={{
-                fontSize: '72px',
-                fontWeight: '800',
+                fontSize: '96px',
+                fontWeight: '900',
                 background: 'linear-gradient(135deg, hsl(25 100% 58%), hsl(360 100% 67%))', // primary to secondary
                 backgroundClip: 'text',
                 color: 'transparent',
                 letterSpacing: '-0.02em',
                 textAlign: 'center',
-                lineHeight: '1.1',
+                lineHeight: '0.9',
               }}
             >
-              Swap {fromSymbol} to {toSymbol}
+              Charisma
             </div>
 
             {/* Swap Section */}
@@ -281,36 +281,19 @@ export async function GET(request: NextRequest) {
               </div>
             </div>
 
-            {/* Footer with Charisma branding */}
+            {/* Footer */}
             <div
               style={{
+                fontSize: '32px',
+                color: 'hsla(0, 0%, 100%, 0.6)',
+                fontWeight: '600',
+                letterSpacing: '0.1em',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 gap: '12px',
-                marginTop: '24px',
               }}
             >
-              <div
-                style={{
-                  fontSize: '36px',
-                  fontWeight: '700',
-                  color: 'hsl(25 100% 58%)',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                CHARISMA
-              </div>
-              <div
-                style={{
-                  fontSize: '24px',
-                  color: 'hsla(0, 0%, 100%, 0.6)',
-                  fontWeight: '500',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                swap.charisma.rocks
-              </div>
+              swap.charisma.rocks
             </div>
           </div>
 
