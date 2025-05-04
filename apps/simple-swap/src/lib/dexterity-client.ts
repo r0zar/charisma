@@ -371,9 +371,9 @@ export class Dexterity {
 
             // Parse the result
             return {
-                dx: Number(result.value.dx.value || 0),
-                dy: Number(result.value.dy.value || 0),
-                dk: Number(result.value.dk.value || 0)
+                dx: Number(result?.value.dx.value || 0),
+                dy: Number(result?.value.dy.value || 0),
+                dk: Number(result?.value.dk.value || 0)
             };
 
         } catch (error) {

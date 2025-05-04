@@ -11,9 +11,10 @@ type Props = {
 export async function generateMetadata(
     { searchParams }: Props
 ): Promise<Metadata> {
-    const fromSymbol = (searchParams.fromSymbol as string) || 'STX';
-    const toSymbol = (searchParams.toSymbol as string) || 'CHA';
-    const amount = (searchParams.amount as string) || '1';
+    const params = await searchParams;
+    const fromSymbol = (params.fromSymbol as string) || 'STX';
+    const toSymbol = (params.toSymbol as string) || 'CHA';
+    const amount = (params.amount as string) || '1';
 
     const title = `Swap ${amount} ${fromSymbol} to ${toSymbol} | Charisma Swap`;
     const description = `Swap ${amount} ${fromSymbol} to ${toSymbol} on Charisma Swap`;
