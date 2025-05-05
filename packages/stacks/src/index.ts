@@ -297,7 +297,7 @@ export class StacksClient {
         postConditions: options.postConditions,
         postConditionMode: options.postConditionMode || PostConditionMode.Deny,
         sponsored: options.sponsored,
-        fee: options.fee || 1000
+        fee: options.fee || 200
       };
 
       if (options.nonce) {
