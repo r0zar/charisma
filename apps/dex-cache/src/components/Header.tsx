@@ -29,14 +29,14 @@ export default function Header() {
                         </Link>
                     </nav>
 
-                    {/* <nav className="flex items-center space-x-6 text-sm font-medium">
+                    <nav className="flex items-center space-x-6 text-sm font-medium">
                         <Link
                             href="/listing"
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >
                             Listings
                         </Link>
-                    </nav> */}
+                    </nav>
                 </div>
 
                 <div className="relative flex items-center gap-4">
