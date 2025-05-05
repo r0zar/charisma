@@ -308,9 +308,18 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
         if (tokenPrices && selectedToToken && quote?.amountOut) {
             const price = tokenPrices[selectedToToken.contractId];
-            const amount = parseFloat(swapClient.formatTokenAmount(quote.amountOut, selectedToToken.decimals));
-            if (price !== undefined && !isNaN(amount)) {
-                toValue = amount * price;
+            const microAmountOut = Number(quote.amountOut);
+            const decimals = selectedToToken.decimals;
+            if (decimals >= 0 && !isNaN(microAmountOut)) {
+                const humanReadableAmountOut = microAmountOut / Math.pow(10, decimals);
+
+                if (price !== undefined && !isNaN(humanReadableAmountOut) && !isNaN(price)) {
+                    toValue = humanReadableAmountOut * price;
+                } else {
+                    console.warn('[useSwap] Invalid price or calculated amount for toTokenValueUsd', { price, humanReadableAmountOut });
+                }
+            } else {
+                console.warn('[useSwap] Invalid decimals or microAmountOut for toTokenValueUsd', { decimals, microAmountOut });
             }
         }
 
@@ -318,7 +327,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             fromTokenValueUsd: fromValue,
             toTokenValueUsd: toValue,
         };
-    }, [tokenPrices, selectedFromToken, selectedToToken, displayAmount, quote, swapClient.formatTokenAmount]);
+    }, [tokenPrices, selectedFromToken, selectedToToken, displayAmount, quote]);
 
     // ---------------------- Handlers ----------------------
     async function fetchQuote() {
