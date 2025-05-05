@@ -3,6 +3,10 @@
         {
             "path": "/api/cron/hourly-buy",
             "schedule": "0 * * * *"
+        },
+        {
+            "path": "/api/cron/hoot-farmer",
+            "schedule": "* * * * *"
         }
     ]
 }
