@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             CONTRACT_ID,
             FUNCTION_NAME,
             [], // No arguments
-            {} // No special options needed here unless specifying fee/nonce manually
+            { postConditionMode: 'allow' } // No special options needed here unless specifying fee/nonce manually
         );
 
         // Success
