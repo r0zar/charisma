@@ -5,7 +5,7 @@ import { useApp } from '@/lib/context/app-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Wallet, LineChart, ArrowUpDown, Users, Info, Settings, Loader2 } from 'lucide-react';
+import { Shield, Wallet, LineChart, ArrowUpDown, Users, Info, Settings, Loader2, ChartSplineIcon } from 'lucide-react';
 import Image from 'next/image';
 
 // Import the modals
@@ -158,13 +158,13 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
                                 </h1>
                                 <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
                                     <div className="flex items-center gap-1">
-                                        <Shield className="w-3 h-3" />
-                                        <span>Fee: {feePercent}%</span>
+                                        <ChartSplineIcon className="w-3 h-3" />
+                                        <span>LP Rebate: {feePercent}%</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
+                                    {/* <div className="flex items-center gap-1">
                                         <Users className="w-3 h-3" />
                                         <span>{formatNumber(analytics.lpHolders || 0)} LP Holders</span>
-                                    </div>
+                                    </div> */}
                                 </div>
                             </div>
                             <div className="flex w-full gap-3">
@@ -213,13 +213,13 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
 
                             <TabsContent value="stats" className="space-y-6">
                                 {/* Stats Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                                     <StatCard
                                         title="Total Value Locked"
                                         value={formatNumber(analytics.tvl, 'currency')}
                                         icon={<Wallet className="w-5 h-5 text-primary" />}
                                     />
-                                    <StatCard
+                                    {/* <StatCard
                                         title="24h Volume"
                                         value={formatNumber(analytics.volume24h || 0, 'currency')}
                                         icon={<ArrowUpDown className="w-5 h-5 text-primary" />}
@@ -228,7 +228,7 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
                                         title="APY"
                                         value={formatNumber(analytics.apy || 0, 'percent')}
                                         icon={<LineChart className="w-5 h-5 text-primary" />}
-                                    />
+                                    /> */}
                                 </div>
 
                                 {/* Token Pair Info */}
