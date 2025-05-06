@@ -29,11 +29,17 @@ export default function DocsPage() {
     /* snippets */
     const schemaFT = `
 {
-  "name":    "Stacker Coin",
-  "symbol":  "STKR",
+  "name": "B-CHA LP Token",
+  "symbol": "B-CHA-LP",
   "decimals": 6,
-  "description": "Utility token for the Stacker DAO",
-  "image": "https://cdn.charisma.app/stkr.png"
+  "identifier": "B-CHA-LP",
+  "description": "Liquidity pool token for the B-CHA pair",
+  "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6...",
+  "properties": {
+    "tokenAContract": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.beri",
+    "tokenBContract": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token",
+    "swapFeePercent": 1
+  }
 }`;
     const schemaNFT = `
 {
@@ -47,11 +53,17 @@ export default function DocsPage() {
   ]
 }`;
     const curlUpload = `
-curl -X POST \\
-  https://charisma.app/api/v1/metadata/SP2...XYZ.stkr \\
-  -H 'content-type: application/json' \\
-  -H 'x-signature: SIGNATURE' \\
-  -H 'x-public-key: PUBKEY' \\
+curl -X POST \
+  https://charisma.app/api/v1/metadata/SP2...XYZ.stkr \
+  -H 'content-type: application/json' \
+  -H 'x-signature: SIGNATURE' \
+  -H 'x-public-key: PUBKEY' \
+  --data '${schemaFT}'`;
+    const curlUploadApiKey = `
+curl -X POST \
+  https://charisma.app/api/v1/metadata/SP2...XYZ.stkr \
+  -H 'content-type: application/json' \
+  -H 'x-api-key: YOUR_API_KEY' \
   --data '${schemaFT}'`;
     const curlFetch =
         "curl https://charisma.app/api/v1/metadata/SP2...XYZ.stkr";
@@ -165,7 +177,7 @@ curl -X POST \\
                         <tr className="border-b border-border/50">
                             <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">POST</code></td>
                             <td className="py-3 px-4">Create / replace JSON</td>
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code></td>
+                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code> <br /> or <code className="px-1 bg-muted rounded text-sm">x-api-key</code></td>
                         </tr>
                         <tr className="border-b border-border/50">
                             <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">DELETE</code></td>
@@ -175,8 +187,11 @@ curl -X POST \\
                     </tbody>
                 </table>
 
-                <h4 className="text-lg font-semibold mt-8 mb-4">Example POST</h4>
+                <h4 className="text-lg font-semibold mt-8 mb-4">Example POST (with Signature)</h4>
                 <Code code={curlUpload} lang="bash" />
+
+                <h4 className="text-lg font-semibold mt-8 mb-4">Example POST (with API Key)</h4>
+                <Code code={curlUploadApiKey} lang="bash" />
 
                 <h4 className="text-lg font-semibold mt-8 mb-4">Example GET</h4>
                 <Code code={curlFetch} lang="bash" />
@@ -184,7 +199,11 @@ curl -X POST \\
                 {/* security */}
                 <H2 id="security">Signature Security</H2>
                 <p className="my-4">
-                    Every mutating request must include an{" "}
+                    Every mutating request (POST, DELETE) must be authenticated. There are two methods:
+                </p>
+                <h3 className="text-xl font-semibold mt-6 mb-3">1. Wallet Signature (Preferred for dApp Integrations)</h3>
+                <p className="my-4">
+                    Include an{" "}
                     <code className="px-1 bg-muted rounded text-sm">x-signature</code> header—an RSV signature of the{" "}
                     <em>contractId</em> string—plus <code className="px-1 bg-muted rounded text-sm">x-public-key</code>. On the
                     server we:
@@ -198,6 +217,15 @@ curl -X POST \\
                     </li>
                 </ol>
                 <p className="my-4">If any step fails → <code className="px-1 bg-muted rounded text-sm">401 Unauthorized</code>.</p>
+
+                <h3 className="text-xl font-semibold mt-6 mb-3">2. API Key (Convenient for Server-to-Server)</h3>
+                <p className="my-4">
+                    Alternatively, for POST requests, you can use an API key. Include an{" "}
+                    <code className="px-1 bg-muted rounded text-sm">x-api-key</code> header with your provisioned API key.
+                    If this header is present and the key is valid, the signature and ownership verification steps are bypassed.
+                    This method is useful for backend services or scripts where managing wallet signatures is cumbersome.
+                    The API key is configured via the <code className="px-1 bg-muted rounded text-sm">METADATA_API_KEY</code> environment variable on the server.
+                </p>
 
                 {/* tips */}
                 <H2 id="tips">Tips & Limits</H2>

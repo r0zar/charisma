@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { StacksClient } from "@repo/stacks";
-import { principalCV } from "@stacks/transactions";
+import { callReadOnlyFunction } from "@repo/polyglot";
+import { cvToValue, principalCV } from "@stacks/transactions";
 
 /**
  * Interface for token metadata
@@ -55,16 +55,12 @@ export interface Token {
  */
 export interface MetadataServiceConfig {
   apiKey?: string;
-  apiKeys?: string[];
-  apiKeyRotation?: "loop" | "random";
   proxy?: string;
   ipfsGateway?: string;
   stxAddress?: string;
   debug?: boolean;
-  network?: 'mainnet' | 'testnet';
-  retryDelay?: number;
   privateKey?: string;
-  maxRetries?: number;
+  metadataApiBaseUrl?: string;
 }
 
 /**
@@ -72,103 +68,15 @@ export interface MetadataServiceConfig {
  */
 export class Cryptonomicon {
   config: MetadataServiceConfig;
-  private client: StacksClient;
-  private static currentKeyIndex = 0;
 
   constructor(config: MetadataServiceConfig = {}) {
     this.config = {
-      apiKey: "",
+      apiKey: config.apiKey || "",
+      metadataApiBaseUrl: 'https://metadata.charisma.rocks',
       ipfsGateway: "https://ipfs.io/ipfs/",
-      debug: false,
-      network: 'mainnet',
-      retryDelay: 3000,
+      debug: config.debug || false,
       ...config
     };
-
-    // Initialize StacksClient
-    this.client = StacksClient.getInstance(config);
-
-  }
-
-  /**
-   * Get the next API key based on the rotation strategy
-   */
-  private getNextApiKey(): string {
-    const apiKeys = this.config.apiKeys?.length ? this.config.apiKeys : [this.config.apiKey || ""];
-    if (!apiKeys.length) return "";
-
-    const rotationStrategy = this.config.apiKeyRotation || "loop";
-
-    if (rotationStrategy === "random") {
-      const randomIndex = Math.floor(Math.random() * apiKeys.length);
-      return apiKeys[randomIndex];
-    } else {
-      // Default loop strategy
-      const key = apiKeys[Cryptonomicon.currentKeyIndex];
-      Cryptonomicon.currentKeyIndex = (Cryptonomicon.currentKeyIndex + 1) % apiKeys.length;
-      return key;
-    }
-  }
-
-  /**
-   * Get request headers with API key
-   */
-  private getRequestHeaders(): Headers {
-    const headers = new Headers({ 'Content-Type': 'application/json' });
-    const apiKey = this.getNextApiKey();
-
-    if (apiKey) headers.set('x-api-key', apiKey);
-
-    return headers;
-  }
-
-  /**
-   * Fetch from metadata API with API key rotation
-   */
-  private async fetchMetadata(path: string): Promise<Response> {
-    // Use base URL
-    const baseUrl = "https://api.hiro.so";
-    // Make the fetch request with API key
-    return fetch(`${baseUrl}${path}`, {
-      headers: this.getRequestHeaders()
-    });
-  }
-
-  /**
-   * Call a read-only contract method
-   */
-  async callReadOnly(
-    contractId: string,
-    method: string,
-    args: any[] = []
-  ): Promise<any> {
-    try {
-      if (!this.config.proxy) {
-        throw new Error("Proxy URL not configured");
-      }
-
-      const response = await fetch(this.config.proxy, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contractId,
-          method,
-          args,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to call ${contractId}.${method}: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      if (this.config.debug) {
-        console.error(`Failed to call ${contractId}.${method}:`, error);
-      }
-      throw error;
-    }
   }
 
   /**
@@ -194,6 +102,49 @@ export class Cryptonomicon {
       };
     }
 
+    let customSourceMetadata: Partial<TokenMetadata> = {}; // Initialize for custom API data
+    // 1. Attempt to fetch from custom metadata API if configured
+    if (this.config.metadataApiBaseUrl) {
+      try {
+        const customApiUrl = `${this.config.metadataApiBaseUrl}/api/v1/metadata/${contractId}`.replace(/([^:]\/)\/+/g, "$1");
+        if (this.config.debug) console.debug(`[${contractId}] Attempting to fetch from custom metadata API: ${customApiUrl}`);
+        const response = await fetch(customApiUrl);
+
+        if (response.ok) {
+          const customData = await response.json() as Partial<TokenMetadata>;
+          console.log(`[${contractId}] Custom API Data:`, customData);
+          if (this.config.debug) console.debug(`[${contractId}] Custom API Data:`, customData);
+
+          // Populate customSourceMetadata if data is useful, primarily name, description, image
+          // but include any other relevant fields from the custom API response.
+          if (customData && (customData.name || customData.description || customData.image)) {
+            if (this.config.debug) console.debug(`[${contractId}] Data from custom metadata API will be used for merging.`);
+            customSourceMetadata = {
+              // Map all potential fields from customData that align with TokenMetadata
+              ...customData, // Spread all fields from customData first
+              // Explicitly ensure types or fallbacks for critical/expected fields if necessary
+              name: customData.name || undefined,
+              description: customData.description || undefined,
+              image: customData.image || undefined,
+              // Convert total_supply if it exists and is a string/number
+              total_supply: customData.total_supply !== undefined ? Number(customData.total_supply) : undefined,
+            };
+          } else {
+            if (this.config.debug) console.warn(`[${contractId}] Custom API data did not contain expected fields (name, description, image) or was empty.`);
+          }
+        } else {
+          if (this.config.debug) console.warn(`[${contractId}] Custom metadata API request failed: ${response.status} ${response.statusText}`);
+        }
+      } catch (customApiError) {
+        if (this.config.debug) {
+          console.warn(`[${contractId}] Error fetching from custom metadata API:`, customApiError);
+        }
+        // If custom API fetch fails, customSourceMetadata remains empty, and we fall through
+      }
+    }
+
+    console.log(`[${contractId}] Custom Source Metadata:`, customSourceMetadata);
+
     let externalMetadata: Partial<TokenMetadata> = {};
     let fallbackContractData: Partial<TokenMetadata> = {};
     let apiMetadata: Partial<TokenMetadata> = {};
@@ -216,7 +167,11 @@ export class Cryptonomicon {
       // 2. Attempt to fetch from Hiro API
       try {
         const path = `/metadata/v1/ft/${contractId}`;
-        const response = await this.fetchMetadata(path); // Uses Hiro API keys
+        const baseUrl = "https://api.hiro.so";
+        const headers = new Headers({ 'Content-Type': 'application/json' });
+        const apiKey = this.config.apiKey || "";
+        if (apiKey) headers.set('x-api-key', apiKey);
+        const response = await fetch(`${baseUrl}${path}`, { headers });
 
         if (response.ok) {
           const rawApiData: any = await response.json();
@@ -285,20 +240,26 @@ export class Cryptonomicon {
         }
       }
 
-      // 4. Merge data: Prioritize External -> API -> Contract Fallback (for non-supply fields)
+      // 4. Merge data: Prioritize External -> Custom API -> Hiro API -> Contract Fallback
       const finalMetadata: Partial<TokenMetadata> = {
-        // Start with the least specific source (contract calls for name/symbol/decimals)
-        ...this.filterUndefined(fallbackContractData),
-        // Layer on API data (overwrites contract data if present, including its potentially incorrect supply)
+        ...this.filterUndefined(externalMetadata),         // Most precedent for many fields
+        ...this.filterUndefined(fallbackContractData),     // Least precedent
         ...this.filterUndefined(apiMetadata),
-        // Layer on External URI data (overwrites API/contract data if present, including its potentially incorrect supply)
-        ...this.filterUndefined(externalMetadata),
-        // Set non-critical fields defaults if they are still undefined after merges
-        description: externalMetadata.description || apiMetadata.description || fallbackContractData.description || "",
-        image: externalMetadata.image || apiMetadata.image || fallbackContractData.image || "",
-        // Ensure contract_principal and token_uri are set
-        token_uri: tokenUri || undefined,
-        contract_principal: contractId,
+        ...this.filterUndefined(customSourceMetadata),     // Data from your custom API
+
+        // Explicitly set description and image with fallback chain
+        description: externalMetadata.description || customSourceMetadata.description || apiMetadata.description || fallbackContractData.description || "",
+        image: externalMetadata.image || customSourceMetadata.image || apiMetadata.image || fallbackContractData.image || "",
+
+        // token_uri: prioritize external, then custom, then direct contract call result (tokenUri)
+        token_uri: externalMetadata.token_uri || customSourceMetadata.token_uri || tokenUri || undefined,
+        contract_principal: contractId, // Always set this to the requested contractId
+
+        // Consolidate identifier and asset_identifier, prioritizing external, then custom, then api
+        identifier: externalMetadata.identifier || customSourceMetadata.identifier || apiMetadata.identifier || undefined,
+        asset_identifier: externalMetadata.asset_identifier || customSourceMetadata.asset_identifier ||
+          externalMetadata.identifier || customSourceMetadata.identifier ||
+          apiMetadata.identifier || undefined, // apiMetadata might only have 'identifier'
       };
 
       // 4b. Override total_supply with the on-chain value if fetched successfully
@@ -413,7 +374,6 @@ export class Cryptonomicon {
         lpRebatePercent: externalData.lpRebatePercent || externalData.properties?.swapFeePercent || externalData.properties?.lpRebatePercent, // Include top-level fee
         tokenAContract: externalData.tokenAContract || externalData.properties?.tokenAContract,
         tokenBContract: externalData.tokenBContract || externalData.properties?.tokenBContract,
-        external: externalData,
       });
 
     } catch (error) {
@@ -429,19 +389,21 @@ export class Cryptonomicon {
    */
   async getTokenUri(contractId: string): Promise<string | null> {
     try {
-      // Use StacksClient to call the contract directly
-      const result = await this.client.callReadOnly(contractId, "get-token-uri");
-
-      if (typeof result === 'string') {
-        return result;
-      } else if (result && typeof result === 'object' && 'value' in result) {
-        return result.value as string;
+      const [contractAddress, contractName] = contractId.split('.');
+      if (!contractAddress || !contractName) {
+        if (this.config.debug) console.warn(`Invalid contractId for getTokenUri: ${contractId}`);
+        return null;
       }
-
-      return null;
+      const result = await callReadOnlyFunction(
+        contractAddress,
+        contractName,
+        "get-token-uri",
+        []
+      );
+      return result?.value?.value;
     } catch (error) {
       if (this.config.debug) {
-        console.error("Failed to get token URI:", error);
+        console.error(`Failed to get token URI for ${contractId}:`, error);
       }
       return null;
     }
@@ -512,13 +474,23 @@ export class Cryptonomicon {
    */
   async getTokenSymbol(contractId: string): Promise<string> {
     try {
-      const result = await this.client.callReadOnly(contractId, "get-symbol");
-      return typeof result === 'string' ? result : (result as any)?.value || '';
+      const [contractAddress, contractName] = contractId.split('.');
+      if (!contractAddress || !contractName) {
+        if (this.config.debug) console.warn(`Invalid contractId for getTokenSymbol: ${contractId}`);
+        return contractId.split('.')[1] || "UNKNOWN"; // Original fallback
+      }
+      const result = await callReadOnlyFunction(
+        contractAddress,
+        contractName,
+        "get-symbol",
+        []
+      );
+      return result?.value;
     } catch (error) {
       if (this.config.debug) {
         console.warn(`Failed to get symbol for ${contractId}:`, error);
       }
-      return contractId.split('.')[1] || "UNKNOWN"; // Use contract name as fallback
+      return contractId.split('.')[1] || "UNKNOWN"; // Fallback to contract name part
     }
   }
 
@@ -527,13 +499,23 @@ export class Cryptonomicon {
    */
   async getTokenName(contractId: string): Promise<string> {
     try {
-      const result = await this.client.callReadOnly(contractId, "get-name");
-      return typeof result === 'string' ? result : (result as any)?.value || '';
+      const [contractAddress, contractName] = contractId.split('.');
+      if (!contractAddress || !contractName) {
+        if (this.config.debug) console.warn(`Invalid contractId for getTokenName: ${contractId}`);
+        return contractId.split('.')[1] || "Unknown Token"; // Original fallback
+      }
+      const result = await callReadOnlyFunction(
+        contractAddress,
+        contractName,
+        "get-name",
+        []
+      );
+      return result?.value;
     } catch (error) {
       if (this.config.debug) {
         console.warn(`Failed to get name for ${contractId}:`, error);
       }
-      return contractId.split('.')[1] || "Unknown Token"; // Use contract name as fallback
+      return contractId.split('.')[1] || "Unknown Token"; // Fallback to contract name part
     }
   }
 
@@ -542,13 +524,23 @@ export class Cryptonomicon {
    */
   async getTokenDecimals(contractId: string): Promise<number> {
     try {
-      const result = await this.client.callReadOnly(contractId, "get-decimals");
-      return typeof result === 'number' ? result : Number(result);
+      const [contractAddress, contractName] = contractId.split('.');
+      if (!contractAddress || !contractName) {
+        if (this.config.debug) console.warn(`Invalid contractId for getTokenDecimals: ${contractId}`);
+        return 6; // Original fallback
+      }
+      const result = await callReadOnlyFunction(
+        contractAddress,
+        contractName,
+        "get-decimals",
+        []
+      );
+      return result?.value;
     } catch (error) {
       if (this.config.debug) {
         console.warn(`Failed to get decimals for ${contractId}:`, error);
       }
-      return 6; // Default to 6 decimals if we can't determine
+      return 6; // Default to 6 decimals if contract call fails
     }
   }
 
@@ -557,8 +549,18 @@ export class Cryptonomicon {
    */
   async getTokenSupply(contractId: string): Promise<number> {
     try {
-      const result = await this.client.callReadOnly(contractId, "get-total-supply");
-      return typeof result === 'number' ? result : Number(result);
+      const [contractAddress, contractName] = contractId.split('.');
+      if (!contractAddress || !contractName) {
+        if (this.config.debug) console.warn(`Invalid contractId for getTokenSupply: ${contractId}`);
+        return 0; // Original fallback
+      }
+      const result = await callReadOnlyFunction(
+        contractAddress,
+        contractName,
+        "get-total-supply",
+        []
+      );
+      return result?.value;
     } catch (error) {
       if (this.config.debug) {
         console.warn(`Failed to get total supply for ${contractId}:`, error);
@@ -570,17 +572,23 @@ export class Cryptonomicon {
   /**
    * Get token balance for a contract
    */
-  async getTokenBalance(tokenContract: string, holderContract: string): Promise<number> {
+  async getTokenBalance(tokenContractId: string, holderPrincipal: string): Promise<number> {
     try {
-      const result = await this.client.callReadOnly(
-        tokenContract,
+      const [contractAddress, contractName] = tokenContractId.split('.');
+      if (!contractAddress || !contractName) {
+        if (this.config.debug) console.warn(`Invalid tokenContractId for getTokenBalance: ${tokenContractId}`);
+        return 0; // Original fallback
+      }
+      const result = await callReadOnlyFunction(
+        contractAddress,
+        contractName,
         "get-balance",
-        [principalCV(holderContract)]
+        [principalCV(holderPrincipal)]
       );
-      return typeof result === 'number' ? result : Number(result);
+      return result?.value;
     } catch (error) {
       if (this.config.debug) {
-        console.warn(`Failed to get balance for ${tokenContract} of ${holderContract}:`, error);
+        console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}:`, error);
       }
       return 0;
     }
@@ -591,8 +599,11 @@ export class Cryptonomicon {
    */
   async getStxBalance(address: string): Promise<number> {
     try {
+      const headers = new Headers({ 'Content-Type': 'application/json' }); // Content-Type might not be strictly necessary for a GET request but keeping for consistency
+      const apiKey = this.config.apiKey || "";
+      if (apiKey) headers.set('x-api-key', apiKey);
       const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`, {
-        headers: this.getRequestHeaders()
+        headers: headers
       });
 
       if (!response.ok) {
@@ -606,90 +617,6 @@ export class Cryptonomicon {
         console.warn(`Failed to get STX balance for ${address}:`, error);
       }
       return 0;
-    }
-  }
-
-  /**
-   * Update metadata for a token
-   * 
-   * @param contractId The contract ID to update metadata for
-   * @param metadata The metadata to update
-   * @param signature The signature for authentication
-   * @param publicKey The publicKey for authentication
-   * @returns Promise resolving to success or error
-   */
-  async updateMetadata(
-    contractId: string,
-    metadata: TokenMetadata,
-    signature: string,
-    publicKey: string,
-  ): Promise<boolean> {
-    const uri = await this.getTokenUri(contractId);
-    if (!uri) {
-      throw new Error("No token URI configured for contract");
-    }
-    const response = await fetch(uri, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-signature': signature,
-        'x-public-key': publicKey,
-      },
-      body: JSON.stringify(metadata)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to persist metadata: ${response.statusText}`)
-    } else {
-      return true;
-    }
-  }
-
-  /**
-   * Search for tokens using Hiro's metadata API
-   * 
-   * @param options Search options
-   * @returns Array of token information
-   */
-  async searchTokens(
-    options: {
-      name?: string;
-      symbol?: string;
-      address?: string;
-      offset?: number;
-      limit?: number;
-      order_by?: string;
-      order?: 'asc' | 'desc';
-    } = {}
-  ): Promise<any[]> {
-    try {
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      if (options.name) queryParams.append('name', options.name);
-      if (options.symbol) queryParams.append('symbol', options.symbol);
-      if (options.address) queryParams.append('address', options.address);
-      if (options.offset !== undefined) queryParams.append('offset', options.offset.toString());
-      if (options.limit !== undefined) queryParams.append('limit', options.limit.toString());
-      if (options.order_by) queryParams.append('order_by', options.order_by);
-      if (options.order) queryParams.append('order', options.order);
-
-      // Use our metadata fetcher with API key rotation
-      const response = await this.fetchMetadata(`/metadata/v1/ft?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        if (this.config.debug) {
-          console.warn(`Failed to fetch tokens from Hiro API: ${response.status}`);
-        }
-        return [];
-      }
-
-      const data: any = await response.json();
-      return data.results || [];
-    } catch (error) {
-      if (this.config.debug) {
-        console.error('Error searching tokens:', error);
-      }
-      return [];
     }
   }
 
@@ -708,7 +635,11 @@ export class Cryptonomicon {
       try {
         const path = `/extended/v1/contract/by_trait?trait_abi=${encodeURIComponent(JSON.stringify(trait))}&limit=50&offset=${offset}`;
 
-        const response = await this.fetchMetadata(path);
+        const baseUrl = "https://api.hiro.so";
+        const headers = new Headers({ 'Content-Type': 'application/json' });
+        const apiKey = this.config.apiKey || "";
+        if (apiKey) headers.set('x-api-key', apiKey);
+        const response = await fetch(`${baseUrl}${path}`, { headers });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch contracts: ${response.status}`);

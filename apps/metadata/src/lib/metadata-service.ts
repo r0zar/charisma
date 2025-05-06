@@ -72,6 +72,63 @@ export class MetadataService {
             // Save to KV store using only the metadata prefix
             await kv.set(`${this.KEY_PREFIX}${contractId}`, validatedMetadata);
 
+            // --- BEGIN CACHE REFRESH LOGIC ---
+            const cacheRefreshBaseUrl = 'https://tokens.charisma.rocks/api/v1/sip10';
+            const refreshPromises: Promise<void>[] = [];
+
+            // 1. Refresh cache for the current token itself
+            refreshPromises.push(
+                fetch(`${cacheRefreshBaseUrl}/${contractId}`)
+                    .then(res => {
+                        if (!res.ok) {
+                            console.warn(`Cache refresh for ${contractId} failed: ${res.status} ${res.statusText}`);
+                        } else {
+                            console.log(`Cache refresh successfully triggered for ${contractId}`);
+                        }
+                    })
+                    .catch(err => console.error(`Error triggering cache refresh for ${contractId}:`, err))
+            );
+
+            // 2. If it's an LP token, refresh base tokens
+            if (validatedMetadata.properties?.tokenAContract) {
+                const tokenA = validatedMetadata.properties.tokenAContract;
+                refreshPromises.push(
+                    fetch(`${cacheRefreshBaseUrl}/${tokenA}`)
+                        .then(res => {
+                            if (!res.ok) {
+                                console.warn(`Cache refresh for LP base token ${tokenA} failed: ${res.status} ${res.statusText}`);
+                            } else {
+                                console.log(`Cache refresh successfully triggered for LP base token ${tokenA}`);
+                            }
+                        })
+                        .catch(err => console.error(`Error triggering cache refresh for LP base token ${tokenA}:`, err))
+                );
+            }
+            if (validatedMetadata.properties?.tokenBContract) {
+                const tokenB = validatedMetadata.properties.tokenBContract;
+                refreshPromises.push(
+                    fetch(`${cacheRefreshBaseUrl}/${tokenB}`)
+                        .then(res => {
+                            if (!res.ok) {
+                                console.warn(`Cache refresh for LP base token ${tokenB} failed: ${res.status} ${res.statusText}`);
+                            } else {
+                                console.log(`Cache refresh successfully triggered for LP base token ${tokenB}`);
+                            }
+                        })
+                        .catch(err => console.error(`Error triggering cache refresh for LP base token ${tokenB}:`, err))
+                );
+            }
+
+            // Execute all refresh promises but don't await them (fire-and-forget)
+            Promise.allSettled(refreshPromises).then(results => {
+                results.forEach(result => {
+                    if (result.status === 'rejected') {
+                        console.error('A cache refresh promise was rejected:', result.reason);
+                    }
+                });
+            });
+            // --- END CACHE REFRESH LOGIC ---
+
             return {
                 success: true,
                 contractId,

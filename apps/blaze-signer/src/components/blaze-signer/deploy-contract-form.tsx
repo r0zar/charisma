@@ -2,7 +2,7 @@
 
 import React, { useState, ChangeEvent } from "react"
 import { StacksNetwork } from "@stacks/network"
-import { Loader2 } from "@repo/ui/icons"
+import { Loader2 } from "lucide-react"
 import { request } from "@stacks/connect"
 
 interface DeployContractFormProps {

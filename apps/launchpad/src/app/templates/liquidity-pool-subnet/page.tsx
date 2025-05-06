@@ -789,7 +789,7 @@ const LiquidityConfigStep = ({
                                     </div>
                                     <Input
                                         id="lpTokenSymbol"
-                                        placeholder={`${formState.tokenA || 'T1'}-${formState.tokenB || 'T2'}-LP`}
+                                        placeholder={`${formState.tokenA || 'T1'}-${formState.tokenB || 'T2'}`}
                                         disabled={true}
                                         className="bg-muted/20"
                                     />

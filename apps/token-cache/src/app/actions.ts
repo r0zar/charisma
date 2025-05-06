@@ -2,7 +2,7 @@
 
 import { kv } from "@vercel/kv";
 import { revalidatePath } from 'next/cache';
-import { getTokenData } from "@/lib/tokenService";
+import { addContractIdToManagedList, getTokenData } from "@/lib/tokenService";
 import { Cryptonomicon, TokenMetadata } from "@repo/cryptonomicon";
 import { getCacheKey } from "@/lib/tokenService";
 
@@ -66,38 +66,7 @@ export async function removeTokenFromList(contractId: string) {
  * @param contractId The contract ID to add.
  */
 export async function addTokenToList(contractId: string) {
-    // Strict check for development environment
-    // if (process.env.NODE_ENV !== 'development') {
-    //     return { success: false, error: 'This action is only available in development mode.' };
-    // }
-
-    if (!contractId) {
-        return { success: false, error: 'Contract ID is required.' };
-    }
-
-    try {
-        console.log(`Attempting to add ${contractId} to set ${TOKEN_LIST_KEY}...`);
-        // Use sadd to add the item to the set. It returns the number of elements added.
-        const addedCount = await kv.sadd(TOKEN_LIST_KEY, contractId);
-
-        if (addedCount > 0) {
-            console.log(`Successfully added ${contractId} to list.`);
-            // Revalidate the home page path to try and reflect the change
-            revalidatePath('/');
-            return { success: true, message: `${contractId} added to the list.` };
-        } else {
-            console.log(`${contractId} already exists in the list.`);
-            // Still a success, but indicate it wasn't a new addition if desired,
-            // or just return success as it's in the list.
-            // For simplicity, let's consider it a success if it's present or added.
-            revalidatePath('/'); // Revalidate even if it already existed, in case other state depends on it
-            return { success: true, message: `${contractId} already in the list.` };
-        }
-
-    } catch (error: any) {
-        console.error(`Failed to add ${contractId} to list:`, error);
-        return { success: false, error: error.message || 'Failed to update list in KV.' };
-    }
+    addContractIdToManagedList(contractId);
 }
 
 /**
@@ -139,7 +108,6 @@ export async function refreshTokenData(contractId: string) {
 // Ensure configuration matches the one in tokenService if necessary
 const cryptonomicon = new Cryptonomicon({
     debug: process.env.NODE_ENV === 'development',
-    network: process.env.NEXT_PUBLIC_NETWORK === 'testnet' ? 'testnet' : 'mainnet',
     apiKey: process.env.HIRO_API_KEY,
 });
 
@@ -253,4 +221,4 @@ export async function updateCachedTokenData(contractId: string, newData: any): P
         console.error(`Error updating cache for ${contractId}:`, error);
         return { success: false, error: error.message || 'Failed to update cache in Vercel KV.' };
     }
-} 
+}

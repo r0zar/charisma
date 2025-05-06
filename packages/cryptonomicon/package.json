@@ -32,7 +32,7 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@repo/stacks": "workspace:*"
+    "@repo/polyglot": "workspace:*"
   },
   "peerDependencies": {
     "@stacks/blockchain-api-client": "^8.8.0",

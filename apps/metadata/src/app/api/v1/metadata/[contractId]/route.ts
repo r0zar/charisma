@@ -62,31 +62,50 @@ export async function POST(
             );
         }
 
-        // ── auth headers ──
-        const signature = request.headers.get('x-signature');
-        const publicKey = request.headers.get('x-public-key');
-        if (!signature || !publicKey) {
-            return NextResponse.json(
-                { error: 'Missing authentication headers' },
-                { status: 401, headers }
-            );
+        // ── API Key auth ──
+        const apiKey = request.headers.get('x-api-key');
+        const envApiKey = process.env.METADATA_API_KEY;
+
+        let isAuthorized = false;
+
+        if (apiKey && envApiKey && apiKey === envApiKey) {
+            isAuthorized = true;
+        } else {
+            // ── Signature auth (existing logic) ──
+            const signature = request.headers.get('x-signature');
+            const publicKey = request.headers.get('x-public-key');
+
+            if (!signature || !publicKey) {
+                return NextResponse.json(
+                    { error: 'Missing authentication headers' },
+                    { status: 401, headers }
+                );
+            }
+
+            const isValidSig = verifyMessageSignatureRsv({ message: contractId, publicKey, signature });
+            if (!isValidSig) {
+                return NextResponse.json(
+                    { error: 'Invalid signature' },
+                    { status: 401, headers }
+                );
+            }
+
+            const signerAddress = getAddressFromPublicKey(publicKey, TransactionVersion.Mainnet);
+            if (signerAddress !== getContractAddress(contractId)) {
+                return NextResponse.json(
+                    { error: 'Not authorized to modify this contract metadata' },
+                    { status: 403, headers },
+                );
+            }
+            isAuthorized = true;
         }
 
-        // ── verify signature ──
-        const isValidSig = verifyMessageSignatureRsv({ message: contractId, publicKey, signature });
-        if (!isValidSig) {
+        if (!isAuthorized) {
+            // This case should ideally be caught by one of the auth methods,
+            // but as a fallback:
             return NextResponse.json(
-                { error: 'Invalid signature' },
+                { error: 'Authentication failed' },
                 { status: 401, headers }
-            );
-        }
-
-        // ── verify ownership ──
-        const signerAddress = getAddressFromPublicKey(publicKey, TransactionVersion.Mainnet);
-        if (signerAddress !== getContractAddress(contractId)) {
-            return NextResponse.json(
-                { error: 'Not authorized to modify this contract metadata' },
-                { status: 403, headers },
             );
         }
 

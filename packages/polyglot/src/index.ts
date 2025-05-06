@@ -1,5 +1,6 @@
 import { ClarityValue, cvToHex, cvToValue, hexToCV } from "@stacks/transactions";
 import { apiClient } from "./blockchain-api-client";
+import { TransactionResults } from "@stacks/stacks-blockchain-api-types";
 
 // Define the structure for the contract interface based on the API docs
 interface ContractInterface {
@@ -8,6 +9,17 @@ interface ContractInterface {
   maps: unknown[];
   fungible_tokens: unknown[];
   non_fungible_tokens: unknown[];
+}
+
+// Define the structure for the contract info based on the API docs
+interface ContractInfo {
+  tx_id: string;
+  canonical: boolean;
+  contract_id: string;
+  block_height: number;
+  clarity_version: number;
+  source_code: string;
+  abi: string; // This is a JSON string, could be parsed into a more specific type if needed
 }
 
 /**
@@ -72,3 +84,66 @@ export async function callReadOnlyFunction(
     return null;
   }
 }
+
+/**
+ * Fetches the information for a specified smart contract.
+ * @param contract_id The Stacks address and name of the contract (e.g., SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.satoshibles).
+ * @param unanchored Optional boolean to include transaction data from unanchored microblocks.
+ * @returns A promise that resolves to the contract information.
+ */
+export async function getContractInfo(
+  contract_id: string,
+  unanchored?: boolean
+): Promise<ContractInfo | null> {
+  try {
+    const { data } = await apiClient.GET(`/extended/v1/contract/${contract_id}` as any, {
+      params: {
+        query: {
+          unanchored,
+        },
+      },
+    });
+    return data as ContractInfo;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      console.warn(`Contract not found: ${contract_id}`);
+      return null;
+    }
+    console.error("Error fetching contract info:", error);
+    throw new Error("Failed to fetch contract info.");
+  }
+}
+
+export const getRecentTransactions = async (params?: {
+  limit?: number;
+  offset?: number;
+  type?: Array<"coinbase" | "token_transfer" | "smart_contract" | "contract_call" | "poison_microblock">;
+  unanchored?: boolean;
+}) => {
+  const txs = await apiClient.GET(`/v2/transactions/list` as any, {
+    limit: params?.limit ?? 96,
+    offset: params?.offset,
+    type: params?.type,
+    unanchored: params?.unanchored ?? false,
+  });
+  return txs as unknown as TransactionResults;
+};
+
+export const getMempoolTransactions = async (params?: {
+  sender_address?: string;
+  recipient_address?: string;
+  address?: string;
+  limit?: number;
+  offset?: number;
+  unanchored?: boolean;
+}) => {
+  const txs = await apiClient.GET(`/v2/transactions/mempool` as any, {
+    limit: params?.limit ?? 20,
+    offset: params?.offset,
+    senderAddress: params?.sender_address,
+    recipientAddress: params?.recipient_address,
+    address: params?.address,
+    unanchored: params?.unanchored ?? false,
+  });
+  return txs as unknown as TransactionResults;
+};

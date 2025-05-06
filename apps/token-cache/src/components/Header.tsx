@@ -36,6 +36,12 @@ export default function Header() {
                             Inspect
                         </Link>
                         <Link
+                            href="/admin/bulk-import"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Bulk Import
+                        </Link>
+                        <Link
                             href="/stats"
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >

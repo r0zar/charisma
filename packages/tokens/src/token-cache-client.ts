@@ -44,7 +44,7 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
     return {
         contractId,
         name: defaultName,
-        description: 'Default data – cache unavailable',
+        description: 'Default data - cache unavailable',
         image: null,
         lastUpdated: null,
         decimals: 6, // sensible default until fetched

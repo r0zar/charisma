@@ -16,12 +16,13 @@ interface Token {
     description?: string;
     image?: string;
     decimals?: number;
+    identifier?: string;
     isSubnet?: boolean;
     isLpToken?: boolean;
     total_supply?: string | null;
 }
 
-interface EnhancedToken extends Token {
+export interface EnhancedToken extends Token {
     contract_principal?: string;
 }
 
@@ -40,8 +41,8 @@ export const TokenSelectionStep = ({
     isLoadingTokens,
     tokenLoadError
 }: {
-    onSelectToken1: (token: string, address: string) => void;
-    onSelectToken2: (token: string, address: string) => void;
+    onSelectToken1: (token: EnhancedToken) => void;
+    onSelectToken2: (token: EnhancedToken) => void;
     token1Symbol: string;
     excludedToken?: string;
     predefinedTokens: Token[];
@@ -58,7 +59,13 @@ export const TokenSelectionStep = ({
     const [fetchedToken, setFetchedToken] = useState<EnhancedToken | null>(null);
 
     // Token list state
-    const [filteredTokens, setFilteredTokens] = useState<EnhancedToken[]>(predefinedTokens as EnhancedToken[]);
+    const mapToEnhanced = (token: Token): EnhancedToken => ({
+        ...token,
+        contract_principal: token.address,
+        identifier: token.identifier || token.symbol,
+    });
+
+    const [filteredTokens, setFilteredTokens] = useState<EnhancedToken[]>(predefinedTokens.map(mapToEnhanced));
     const [searchQuery, setSearchQuery] = useState("");
 
     // State to track image loading errors for the token list
@@ -98,19 +105,20 @@ export const TokenSelectionStep = ({
             const tokenInfo = tokenData.data || tokenData;
 
             // Check if custom token is LP
-            const isLp = tokenInfo.symbol?.toUpperCase().includes('-LP') || tokenInfo.name?.toUpperCase().includes('-LP') || false;
+            const isLp = tokenInfo.symbol?.toUpperCase().includes('-LP') || tokenInfo.name?.toUpperCase().includes('-LP') || tokenInfo.properties?.tokenAContract || tokenInfo.properties?.tokenBContract || false;
 
             const enhancedToken: EnhancedToken = {
                 symbol: tokenInfo.symbol || 'Unknown',
                 name: tokenInfo.name || tokenInfo.symbol || 'Unknown Token',
                 address: tokenInfo.contract_principal || contractId,
                 description: tokenInfo.description || `${tokenInfo.symbol || 'Custom'} token`,
-                image: tokenInfo.image || tokenInfo.image_uri || '',
-                contract_principal: contractId,
+                image: tokenInfo.image || tokenInfo.image_uri || '/placeholder-icon.svg',
+                contract_principal: tokenInfo.contract_principal || contractId,
                 decimals: tokenInfo.decimals === undefined ? 6 : Number(tokenInfo.decimals),
+                identifier: tokenInfo.identifier || tokenInfo.name || tokenInfo.symbol,
                 isSubnet: tokenInfo.isSubnet || false,
                 isLpToken: isLp,
-                total_supply: tokenInfo.total_supply || null
+                total_supply: tokenInfo.total_supply ? String(tokenInfo.total_supply) : null
             };
 
             setFetchedToken(enhancedToken);
@@ -125,18 +133,18 @@ export const TokenSelectionStep = ({
 
     // Update filtered tokens when predefinedTokens change
     useEffect(() => {
-        setFilteredTokens(predefinedTokens as EnhancedToken[]);
+        setFilteredTokens(predefinedTokens.map(mapToEnhanced));
     }, [predefinedTokens]);
 
     // Filter tokens based on search query
     useEffect(() => {
         if (!searchQuery) {
-            setFilteredTokens(predefinedTokens as EnhancedToken[]);
+            setFilteredTokens(predefinedTokens.map(mapToEnhanced));
             return;
         }
 
         const query = searchQuery.toLowerCase();
-        const filtered = (predefinedTokens as EnhancedToken[]).filter(
+        const filtered = (predefinedTokens.map(mapToEnhanced)).filter(
             token =>
                 token.symbol.toLowerCase().includes(query) ||
                 token.name.toLowerCase().includes(query) ||
@@ -155,10 +163,10 @@ export const TokenSelectionStep = ({
         setCustomError(null);
 
         if (!selectingToken2) {
-            onSelectToken1(fetchedToken.symbol, fetchedToken.address);
+            onSelectToken1(fetchedToken);
             setSelectingToken2(true);
         } else {
-            onSelectToken2(fetchedToken.symbol, fetchedToken.address);
+            onSelectToken2(fetchedToken);
         }
 
         setShowCustomInput(false);
@@ -307,7 +315,7 @@ export const TokenSelectionStep = ({
                                             key={token.address + token.symbol}
                                             className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
                                             onClick={() => {
-                                                onSelectToken1(token.symbol, token.address);
+                                                onSelectToken1(token);
                                                 setSelectingToken2(true);
                                             }}
                                         >
@@ -486,19 +494,19 @@ export const TokenSelectionStep = ({
                                 <div className="text-center text-destructive mb-4">
                                     {tokenLoadError}
                                 </div>
-                            ) : filteredTokens.filter(token => token.symbol !== excludedToken).length === 0 ? (
+                            ) : filteredTokens.filter(token => token.symbol !== excludedToken && token.address !== token1Symbol).length === 0 ? (
                                 <div className="text-center py-8">
                                     <p className="text-muted-foreground">No tokens found. Try a different search.</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     {filteredTokens
-                                        .filter((token) => token.symbol !== excludedToken)
+                                        .filter((token) => token.symbol !== excludedToken && token.address !== token1Symbol)
                                         .map((token) => (
                                             <Card
                                                 key={token.address + token.symbol}
                                                 className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
-                                                onClick={() => onSelectToken2(token.symbol, token.address)}
+                                                onClick={() => onSelectToken2(token)}
                                             >
                                                 {/* LP Token Badge */}
                                                 {token.isLpToken && (

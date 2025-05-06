@@ -1,5 +1,5 @@
-import { describe, it, expect } from "@jest/globals";
-import { callReadOnlyFunction, getContractInterface } from "../index";
+import { describe, it, expect, jest } from "@jest/globals";
+import { callReadOnlyFunction, getContractInterface, getContractInfo } from "../index";
 import { cvToHex, principalCV } from "@stacks/transactions";
 
 describe("getContractInterface", () => {
@@ -69,4 +69,50 @@ describe("callReadOnlyFunction", () => {
     );
     console.log('result', result);
   })
+});
+
+describe("getContractInfo", () => {
+  it("should fetch info for a known contract (lp pool)", async () => {
+    const contract_id = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link";
+
+    try {
+      const data = await getContractInfo(contract_id);
+
+      console.log(data);
+
+      expect(data).toBeDefined();
+      expect(data).not.toBeNull();
+      if (data) { // Type guard
+        expect(typeof data.tx_id).toBe("string");
+        expect(typeof data.canonical).toBe("boolean");
+        expect(data.contract_id).toBe(contract_id);
+        expect(typeof data.block_height).toBe("number");
+        expect(typeof data.source_code).toBe("string");
+        expect(typeof data.abi).toBe("string"); // ABI is a JSON string
+      }
+    } catch (error) {
+      console.error("Integration test failed for getContractInfo (known contract):", error);
+      throw error;
+    }
+  }, 15000);
+
+  it("should return null for a non-existent contract", async () => {
+    const contract_id = "SP000000000000000000002Q6VF78.this-contract-does-not-exist";
+    // Mock console.warn to check if it's called
+    const consoleWarnSpy = jest.spyOn(console, 'warn');
+
+    try {
+      const data = await getContractInfo(contract_id);
+      expect(data).toBeNull();
+      // Check if console.warn was called with the specific message
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Contract not found: ${contract_id}`);
+    } catch (error) {
+      // This test expects a null return, not an error throw for 404s
+      console.error("Integration test failed for getContractInfo (non-existent contract):", error);
+      throw error;
+    } finally {
+      // Restore original console.warn
+      consoleWarnSpy.mockRestore();
+    }
+  }, 15000);
 });

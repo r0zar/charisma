@@ -49,11 +49,12 @@ import {
 import { PostCondition } from "@stacks/connect/dist/types/methods";
 import { Pc } from "@stacks/transactions";
 // Import the newly created step component
-import { TokenSelectionStep } from "@/components/liquidity-pool-wizard/token-selection-step";
+import { TokenSelectionStep, type EnhancedToken as WizardToken } from "@/components/liquidity-pool-wizard/token-selection-step";
 import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-step";
 import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
 import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
 import { getTokenMetadataCached, listTokens, TokenCacheData } from "@repo/tokens"; // Import the clients
+import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly } from '@/app/actions'; // Make sure this path is correct
 
 
 // Metadata constants
@@ -186,33 +187,38 @@ function LiquidityPoolWizard() {
 
             // Fetch both token details concurrently
             Promise.all([
-                getTokenMetadataCached(tokenA_Param),
-                getTokenMetadataCached(tokenB_Param)
-            ]).then(([detailsA, detailsB]) => {
-                console.log("Fetched Token Details:", { detailsA, detailsB });
+                fetchTokenMetadataPairDirectly(tokenA_Param, tokenB_Param)
+            ]).then(([result]) => {
+                console.log("Fetched Token Details:", result);
 
-                if (detailsA) {
-                    setToken1(detailsA.symbol);
-                    setToken1Details(detailsA);
+                if (result.token1Meta) {
+                    setToken1(result.token1Meta.symbol);
+                    setToken1Details({
+                        ...result.token1Meta,
+                        decimals: result.token1Meta.decimals!,
+                        total_supply: result.token1Meta.total_supply !== undefined ? String(result.token1Meta.total_supply) : undefined,
+                    });
                 } else {
                     console.error("Failed to fetch details for Token A:", tokenA_Param);
-                    sonnerToast.error("Error", { description: `Could not fetch details for token ${tokenA_Param}` });
-                    // Optionally redirect or stop processing
+                    setToken1Details(null);
                 }
 
-                if (detailsB) {
-                    setToken2(detailsB.symbol);
-                    setToken2Details(detailsB);
+                if (result.token2Meta) {
+                    setToken2(result.token2Meta.symbol);
+                    setToken2Details({
+                        ...result.token2Meta,
+                        decimals: result.token2Meta.decimals!,
+                        total_supply: result.token2Meta.total_supply !== undefined ? String(result.token2Meta.total_supply) : undefined,
+                    });
                 } else {
                     console.error("Failed to fetch details for Token B:", tokenB_Param);
-                    sonnerToast.error("Error", { description: `Could not fetch details for token ${tokenB_Param}` });
-                    // Optionally redirect or stop processing
+                    setToken2Details(null);
                 }
 
                 // Auto-generate names ONLY if both fetches succeeded and name isn't already set
-                if (detailsA && detailsB && !poolName) {
-                    const generatedPoolName = `${detailsA.symbol}-${detailsB.symbol} LP Token`;
-                    const generatedLpSymbol = `${detailsA.symbol}-${detailsB.symbol}-LP`;
+                if (result.token1Meta && result.token2Meta && !poolName) {
+                    const generatedPoolName = `${result.token1Meta.symbol}-${result.token2Meta.symbol} Liquidity`;
+                    const generatedLpSymbol = `${result.token1Meta.symbol}-${result.token2Meta.symbol}`;
                     console.log(`Auto-generating state: Pool Name='${generatedPoolName}', LP Symbol='${generatedLpSymbol}'`);
                     setPoolName(generatedPoolName);
                     setLpTokenSymbol(generatedLpSymbol);
@@ -240,13 +246,16 @@ function LiquidityPoolWizard() {
                 }
 
                 // Advance the wizard step directly to Review & Deploy only after processing
-                if (detailsA && detailsB) { // Ensure we have details before advancing
+                if (result.token1Meta && result.token2Meta) { // Ensure we have details before advancing
                     console.log("Advancing wizard to REVIEW_DEPLOY");
                     setCurrentStep(WizardStep.REVIEW_DEPLOY); // Go directly to the final step
+                } else {
+                    // If one or both fetches failed, stay on the current step or handle error
+                    sonnerToast.error("Token Data Error", { description: "Could not fetch details for one or both tokens. Please verify contract IDs and try again." });
                 }
-            }).catch(error => {
-                console.error("Error fetching token details in Promise.all:", error);
-                sonnerToast.error("Error Fetching Tokens", { description: "Could not load details for both tokens." });
+            }).catch(err => {
+                console.error("Error fetching token pair details:", err);
+                sonnerToast.error("Lookup Failed", { description: err.message || "Could not fetch token details." });
             });
         }
     }, [searchParams]); // Rerun only when search params change
@@ -312,7 +321,7 @@ function LiquidityPoolWizard() {
 
     // Automatically generate LP token symbol if not set
     const effectiveLpTokenSymbol = lpTokenSymbol ||
-        (token1 && token2 ? `${token1}-${token2}-LP` : 'LP');
+        (token1 && token2 ? `${token1}-${token2}` : 'LP');
 
     // Full contract identifier
     const contractIdentifier = stxAddress ? `${stxAddress}.${contractName}` : '';
@@ -379,21 +388,29 @@ function LiquidityPoolWizard() {
             setIsDeploying(true);
             sonnerToast.info("Preparing Deployment", { description: "Fetching token information..." });
 
-            const [token1Meta, token2Meta] = await Promise.all([
-                getTokenMetadataCached(token1Address),
-                getTokenMetadataCached(token2Address)
-            ]);
+            console.log({ token1Details })
+            console.log({ token2Details })
 
-            // Check for metadata and decimals - Ignore the 'error' field, only check required fields
-            if (typeof token1Meta.decimals !== 'number' || typeof token2Meta.decimals !== 'number') {
+            // Ensure both tokens were fetched successfully before proceeding
+            if (!token1Details || !token2Details) {
+                sonnerToast.error("Token Data Error", {
+                    description: "Failed to fetch metadata for one or both tokens. Cannot proceed with deployment.",
+                });
+                setIsDeploying(false);
+                return;
+            }
+
+            // Check for metadata and decimals - Now directly use token1Meta and token2Meta
+            if (typeof token1Details.decimals !== 'number' || typeof token2Details.decimals !== 'number') {
                 sonnerToast.error("Token Data Error", {
                     description: `Failed to fetch required token decimals. Please ensure both tokens have valid metadata.`,
                 });
                 setIsDeploying(false);
                 return;
             }
+
             // Check for identifier which is crucial for FT post conditions
-            if (!token1Meta.identifier || !token2Meta.identifier) {
+            if (!token1Details.identifier || !token2Details.identifier) {
                 sonnerToast.error("Token Data Error", {
                     description: "Failed to fetch token asset identifier needed for deployment."
                 });
@@ -401,13 +418,13 @@ function LiquidityPoolWizard() {
                 return;
             }
 
-            const tokenADecimals = token1Meta.decimals;
-            const tokenBDecimals = token2Meta.decimals;
+            const tokenADecimals = token1Details.decimals;
+            const tokenBDecimals = token2Details.decimals;
             const lpTokenDecimals = 6;
 
             // Log the token information for debugging
-            console.log("Token A metadata:", token1Meta);
-            console.log("Token B metadata:", token2Meta);
+            console.log("Token A metadata:", token1Details);
+            console.log("Token B metadata:", token2Details);
             console.log("Using token decimals:", { tokenADecimals, tokenBDecimals, lpTokenDecimals });
 
             // Check if tokens are STX
@@ -468,7 +485,7 @@ function LiquidityPoolWizard() {
                                 address: stxAddress!,
                                 condition: 'eq',
                                 amount: BigInt(totalTokenAAmount),
-                                asset: `${token1Address}::${token1Meta.identifier}` as any
+                                asset: `${token1Address}::${token1Details.identifier}` as any
                             }
                     );
                 }
@@ -490,7 +507,7 @@ function LiquidityPoolWizard() {
                                 address: stxAddress!,
                                 condition: 'eq',
                                 amount: BigInt(totalTokenBAmount),
-                                asset: `${token2Address}::${token2Meta.identifier}` as any
+                                asset: `${token2Address}::${token2Details.identifier}` as any
                             }
                     );
                 }
@@ -604,8 +621,8 @@ function LiquidityPoolWizard() {
 
             // Define the metadata structure with desired naming convention
             const currentMetadata: Partial<TokenMetadata> = {
-                name: `${token1}-${token2} LP Token`, // e.g., B-CHR LP Token
-                symbol: `${token1}-${token2}-LP`,    // e.g., B-CHR-LP
+                name: `${token1}-${token2} Liquidity`, // e.g., B-CHR Liquidity
+                symbol: `${token1}-${token2}`,    // e.g., B-CHR
                 description: `Liquidity pool token for the ${token1}-${token2} pair`,
                 decimals: 6, // Standard for LP tokens
                 // Add lpRebatePercent to top level for dex-cache compatibility
@@ -673,24 +690,49 @@ function LiquidityPoolWizard() {
         }
     };
 
-    // Helper functions for token selection
-    const handleSelectToken1 = (symbol: string, address: string) => {
-        setToken1(symbol);
-        setToken1Address(address);
-        setToken1Image(findTokenImage(symbol, address));
-        // Auto-generate pool name
-        setPoolName(`${symbol} Liquidity Pool`);
+    // Helper function to adapt WizardToken (EnhancedToken) to TokenCacheData
+    const adaptWizardTokenToCacheData = (wizardToken: WizardToken): TokenCacheData => {
+        return {
+            ...wizardToken, // Spread existing compatible fields
+            contractId: wizardToken.address,
+            contract_principal: wizardToken.address,
+            decimals: wizardToken.decimals ?? 0,
+            total_supply: wizardToken.total_supply !== undefined && wizardToken.total_supply !== null
+                ? String(wizardToken.total_supply)
+                : undefined,
+            identifier: wizardToken.identifier || wizardToken.symbol,
+            name: wizardToken.name || wizardToken.symbol || 'Unknown Token',
+            symbol: wizardToken.symbol || 'UNK',
+            // Ensure any other fields *required* by TokenCacheData and not present on WizardToken
+            // are explicitly added here with default/null values.
+            // For example, if TokenCacheData requires 'ft', 'nft', 'lastRefreshed', they must be handled.
+            // Assuming for now they are optional or will be added to WizardToken if strictly required.
+        } as TokenCacheData;
     };
 
-    const handleSelectToken2 = (symbol: string, address: string) => {
-        setToken2(symbol);
-        setToken2Address(address);
-        setToken2Image(findTokenImage(symbol, address));
-        // Update pool name to reflect the token pair
-        setPoolName(`${token1}-${symbol} Liquidity Pool`);
+    const handleSelectToken1 = (selectedToken: WizardToken) => {
+        setToken1(selectedToken.symbol);
+        setToken1Address(selectedToken.address);
+        setToken1Image(selectedToken.image);
+        setToken1Details(adaptWizardTokenToCacheData(selectedToken));
+        // Auto-generate pool name if token2 is not yet selected or if pool name is empty
+        if (!token2 || !poolName) {
+            setPoolName(`${selectedToken.symbol} Liquidity Pool`);
+        }
+        // Do not automatically advance here, let TokenSelectionStep handle it
+    };
 
-        // Move to next step
-        nextStep();
+    const handleSelectToken2 = (selectedToken: WizardToken) => {
+        setToken2(selectedToken.symbol);
+        setToken2Address(selectedToken.address);
+        setToken2Image(selectedToken.image);
+        setToken2Details(adaptWizardTokenToCacheData(selectedToken));
+        // Update pool name to reflect the token pair if token1 is set
+        if (token1) {
+            setPoolName(`${token1}-${selectedToken.symbol} Liquidity Pool`);
+        }
+        // TokenSelectionStep will call nextStep after this if it's the final selection in that component
+        nextStep(); // Explicitly call next step after second token selection
     };
 
     // Check metadata when the component mounts or when key dependencies change
@@ -714,29 +756,21 @@ function LiquidityPoolWizard() {
         return foundToken?.image ?? undefined;
     };
 
-    // Map TokenCacheData from CONTEXT to the simpler Token structure expected by TokenSelectionStep
-    // ADDING ROBUST FALLBACKS for potentially invalid/missing data
-    const predefinedTokensForStep: Token[] = tokens.map((token, index) => {
-        // Provide safe defaults if essential fields are missing/invalid
-        const safeContractId = (typeof token.contractId === 'string' && token.contractId.length > 0)
-            ? token.contractId
-            : `invalid-token-${index}`; // Use index for a unique fallback ID
-        const safeSymbol = (typeof token.symbol === 'string' && token.symbol.length > 0)
-            ? token.symbol
-            : '???';
-        const safeName = (typeof token.name === 'string' && token.name.length > 0)
-            ? token.name
-            : `Unnamed Token ${index}`;
-
+    const predefinedTokensForStep: Token[] = tokens.filter(t => {
+        if (t.contractId && t.symbol && t.name) {
+            return true;
+        }
+        return false;
+    }).map((token, index) => {
         // Check for subnet using contract_principal from the original TokenCacheData
         const isSubnet = !!token.contract_principal?.includes('subnet');
         // Check if it's an LP token by looking for specific properties
         const isLpToken = !!(token.tokenAContract && token.tokenBContract);
 
         return {
-            symbol: safeSymbol,
-            name: safeName,
-            address: safeContractId, // Ensure address is always a valid string
+            symbol: token.symbol,
+            name: token.name,
+            address: token.contractId, // Ensure address is always a valid string
             description: token.description ?? undefined,
             image: token.image ?? undefined,
             decimals: token.decimals,
@@ -745,6 +779,9 @@ function LiquidityPoolWizard() {
             total_supply: token.total_supply ?? null,
         };
     });
+
+    const [isLoadingToken1Details, setIsLoadingToken1Details] = useState(false);
+    const [isLoadingToken2Details, setIsLoadingToken2Details] = useState(false);
 
     if (!authenticated) {
         return (

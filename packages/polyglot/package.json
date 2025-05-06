@@ -32,11 +32,12 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
+    "@repo/stacks": "workspace:*",
     "@stacks/blockchain-api-client": "^8.8.0",
     "@stacks/connect": "^8.1.9",
     "@stacks/network": "^7",
-    "@stacks/transactions": "^7.0.5",
-    "@repo/stacks": "workspace:*"
+    "@stacks/stacks-blockchain-api-types": "^7.14.1",
+    "@stacks/transactions": "^7.0.5"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
@@ -47,7 +48,7 @@
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
-    "typescript": "5.8.2",
-    "ts-jest": "^29.3.0"
+    "ts-jest": "^29.3.0",
+    "typescript": "5.8.2"
   }
 }

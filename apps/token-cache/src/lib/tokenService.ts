@@ -4,19 +4,12 @@ import { kv } from "@vercel/kv";
 // Initialize Cryptonomicon (adjust config as needed)
 const cryptonomicon = new Cryptonomicon({
     debug: true,
-    network: process.env.NEXT_PUBLIC_NETWORK === 'testnet' ? 'testnet' : 'mainnet',
     apiKey: process.env.HIRO_API_KEY,
-    // Add any other specific configurations for Cryptonomicon here
-    // e.g., apiKeys, proxy, etc.
 });
 
 // Define the cache duration (30 days in seconds)
 const CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60;
-export const TOKEN_LIST_KEY = "token-list:sip10"; // <-- EXPORT
-
-// --- REMOVED Hardcoded list ---
-// const HARDCODED_TOKEN_IDS = [...];
-// --- ---
+export const TOKEN_LIST_KEY = "token-list:sip10";
 
 /**
  * Fetches the list of managed token contract IDs from Vercel KV.

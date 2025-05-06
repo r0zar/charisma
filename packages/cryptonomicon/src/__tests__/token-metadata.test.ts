@@ -13,8 +13,6 @@ let cryptonomicon: Cryptonomicon;
 beforeAll(() => {
   cryptonomicon = new Cryptonomicon({
     debug: true,
-    apiKeys: apiKeys,
-    apiKeyRotation: "loop"
   });
 });
 
