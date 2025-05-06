@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/lib/context/app-context';
 import { toast } from "sonner";
 import debounce from 'lodash/debounce';
-import { getAddLiquidityQuoteAndSupply } from '@/app/actions';
+import { getAddLiquidityQuoteAndSupply, getAddLiquidityInitialData } from '@/app/actions';
 import { request } from '@stacks/connect';
 import { STACKS_MAINNET } from "@stacks/network";
 import { uintCV, bufferCVFromString, principalCV, cvToValue, optionalCVOf, Pc, bufferCV } from '@stacks/transactions';
@@ -82,33 +82,6 @@ interface AddLiquidityModalProps {
 
 const OP_ADD_LIQUIDITY = '02'; // Opcode for add liquidity
 
-// Helper to fetch STX balance manually (client-side)
-async function fetchManualStxBalance(address: string): Promise<number> {
-    try {
-        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`);
-        if (!response.ok) {
-            throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        return Number(data.balance || 0);
-    } catch (error) {
-        console.error(`Failed fetching STX balance for ${address}:`, error);
-        return 0;
-    }
-}
-
-// Helper to fetch total supply (client-side)
-async function fetchTotalSupplyClient(vaultContractId: string): Promise<number> {
-    try {
-        const [addr, name] = vaultContractId.split('.');
-        const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
-        return cvToValue(supplyCV)
-    } catch (error) {
-        console.error(`Failed fetching total supply for ${vaultContractId}:`, error);
-        return 0;
-    }
-}
-
 export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalProps) {
     const { walletState } = useApp();
     const [isOpen, setIsOpen] = useState(false);
@@ -120,42 +93,6 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
     const [isLoadingData, setIsLoadingData] = useState(false); // Combined loading state
     const [isQuoting, setIsQuoting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-
-    // Client-side balance and total supply fetch function
-    const fetchInitialData = useCallback(async () => {
-        if (!walletState.connected || !walletState.address) return;
-        setIsLoadingData(true);
-        try {
-            const fetchBalance = async (tokenContractId: string) => {
-                if (tokenContractId === '.stx') {
-                    return await fetchManualStxBalance(walletState.address);
-                } else {
-                    const [addr, name] = tokenContractId.split('.');
-                    const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(walletState.address)]);
-                    return cvToValue(balanceCV)
-                }
-            };
-
-            // Fetch balances and total supply in parallel
-            const [balA, balB, balLp, supply] = await Promise.all([
-                fetchBalance(vault.tokenA.contractId),
-                fetchBalance(vault.tokenB.contractId),
-                fetchBalance(vault.contractId), // LP token balance
-                fetchTotalSupplyClient(vault.contractId) // Fetch total supply client-side
-            ]);
-
-            setBalances({ tokenA: balA, tokenB: balB, lp: balLp });
-            setTotalSupply(supply);
-
-        } catch (error) {
-            console.error("Error fetching initial data (balances/supply):", error);
-            toast.error("Failed to fetch wallet balances or pool supply.");
-            setBalances({ tokenA: 0, tokenB: 0, lp: 0 });
-            setTotalSupply(0);
-        } finally {
-            setIsLoadingData(false);
-        }
-    }, [walletState.connected, walletState.address, vault]);
 
     // Calculate max potential LP tokens based on user balances and pool state
     useEffect(() => {
@@ -210,12 +147,53 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
 
     const debouncedFetchQuote = useCallback(debounce(fetchQuote, 300), [fetchQuote]);
 
-    // Initial data fetch when modal opens
+    // Initial data fetch using server action when modal opens
     useEffect(() => {
-        if (isOpen && walletState.connected) {
-            fetchInitialData(); // Fetch balances and supply
+        if (isOpen && walletState.connected && walletState.address) {
+            const fetchData = async () => {
+                setIsLoadingData(true);
+                setBalances({ tokenA: 0, tokenB: 0, lp: 0 }); // Reset while loading
+                setTotalSupply(0);
+                setMaxLpTokens(0); // Reset max LP tokens
+                setQuotedAmounts(null); // Reset quote
+                try {
+                    const result = await getAddLiquidityInitialData(
+                        vault.contractId,
+                        vault.tokenA.contractId,
+                        vault.tokenB.contractId,
+                        walletState.address!
+                    );
+
+                    console.log('[Add Liquidity Modal] Initial data:', result);
+
+                    if (result.success && result.data) {
+                        setBalances({
+                            tokenA: result.data.tokenABalance,
+                            tokenB: result.data.tokenBBalance,
+                            lp: result.data.lpBalance
+                        });
+                        setTotalSupply(result.data.totalSupply);
+                    } else {
+                        throw new Error(result.error || "Failed to fetch initial data.");
+                    }
+                } catch (error) {
+                    console.error("Error fetching initial data via server action:", error);
+                    toast.error("Failed to fetch wallet balances or pool supply.");
+                    setBalances({ tokenA: 0, tokenB: 0, lp: 0 });
+                    setTotalSupply(0);
+                } finally {
+                    setIsLoadingData(false);
+                }
+            };
+            fetchData();
+        } else if (!walletState.connected) {
+            // Reset if wallet disconnects while modal is open
+            setBalances({ tokenA: 0, tokenB: 0, lp: 0 });
+            setTotalSupply(0);
+            setMaxLpTokens(0);
+            setQuotedAmounts(null);
         }
-    }, [isOpen, walletState.connected, fetchInitialData]);
+    }, [isOpen, walletState.connected, walletState.address, vault.contractId, vault.tokenA.contractId, vault.tokenB.contractId]); // Add dependencies
 
     // Fetch quote when amountPercent or maxLpTokens change
     useEffect(() => {
@@ -241,7 +219,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
     };
 
     const handleAddLiquidity = async () => {
-        if (!quotedAmounts || quotedAmounts.dk <= 0 || !walletState.connected) return;
+        if (!quotedAmounts || quotedAmounts.dk <= 0 || !walletState.connected || !walletState.address) return;
         // Re-check balance sufficiency just before submitting
         const requiredTokenA = quotedAmounts?.dx || 0;
         const requiredTokenB = quotedAmounts?.dy || 0;
@@ -297,8 +275,8 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
             if (result && result.txid) {
                 toast.success("Add Liquidity transaction submitted!", { description: `TxID: ${result.txid}` });
                 setIsOpen(false);
-                // Optionally trigger a balance refresh after a delay
-                // setTimeout(fetchInitialData, 5000); // Use fetchInitialData now
+                // Optionally trigger a balance refresh after a delay - maybe call the fetchData again?
+                // setTimeout(fetchData, 5000); // Consider if needed
             } else {
                 const errorMessage = "Transaction failed or was rejected.";
                 throw new Error(`Submission Failed: ${errorMessage}`);
@@ -400,7 +378,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                         </div>
 
                         {/* Alert for insufficient balance */}
-                        {!hasSufficientBalance && requiredTokenA > 0 && requiredTokenB > 0 && (
+                        {!hasSufficientBalance && requiredTokenA > 0 && requiredTokenB > 0 && !isLoadingData && ( // Added !isLoadingData check
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>Insufficient balance for one or both tokens.</AlertDescription>

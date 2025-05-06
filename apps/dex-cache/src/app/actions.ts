@@ -388,10 +388,8 @@ async function fetchTokenBalance(tokenContractId: string, address: string): Prom
             return await fetchStxBalance(address);
         } else {
             const [addr, name] = tokenContractId.split('.');
-            console.log(`Fetching token balance for ${tokenContractId} at ${addr}.${name}`);
             const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(address)]);
-            console.log(balanceCV);
-            return cvToValue(balanceCV)?.value ? Number(cvToValue(balanceCV).value) : 0;
+            return cvToValue(balanceCV) ? Number(cvToValue(balanceCV)) : 0;
         }
     } catch (error) {
         console.error(`Failed fetching token balance for ${tokenContractId}:`, error);
@@ -404,7 +402,7 @@ async function fetchTotalSupply(vaultContractId: string): Promise<number> {
     try {
         const [addr, name] = vaultContractId.split('.');
         const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
-        return cvToValue(supplyCV)?.value ? Number(cvToValue(supplyCV).value) : 0;
+        return cvToValue(supplyCV) ? Number(cvToValue(supplyCV)) : 0;
     } catch (error) {
         console.error(`Failed fetching total supply for ${vaultContractId}:`, error);
         return 0;
@@ -564,6 +562,48 @@ export async function fetchTokensAndAnalyze(
         return {
             success: false,
             error: error.message || 'An unexpected error occurred during manual token fetch'
+        };
+    }
+}
+
+/**
+ * Server action to fetch initial data needed for the Add Liquidity modal:
+ * - Token A balance for the user
+ * - Token B balance for the user
+ * - LP Token balance for the user
+ * - LP Token total supply
+ */
+export async function getAddLiquidityInitialData(
+    vaultContractId: string,
+    tokenAContractId: string,
+    tokenBContractId: string,
+    userAddress: string
+) {
+    try {
+        console.log(`[Server Action] Fetching initial data for ${vaultContractId} / ${userAddress}`);
+        const [tokenABalance, tokenBBalance, lpBalance, totalSupply] = await Promise.all([
+            fetchTokenBalance(tokenAContractId, userAddress),
+            fetchTokenBalance(tokenBContractId, userAddress),
+            fetchTokenBalance(vaultContractId, userAddress), // LP token balance
+            fetchTotalSupply(vaultContractId)
+        ]);
+
+        console.log(`[Server Action] Data fetched: A=${tokenABalance}, B=${tokenBBalance}, LP=${lpBalance}, Supply=${totalSupply}`);
+
+        return {
+            success: true,
+            data: {
+                tokenABalance,
+                tokenBBalance,
+                lpBalance,
+                totalSupply
+            }
+        };
+    } catch (error) {
+        console.error("Error in getAddLiquidityInitialData:", error);
+        return {
+            success: false,
+            error: "Failed to fetch initial liquidity data."
         };
     }
 } 
