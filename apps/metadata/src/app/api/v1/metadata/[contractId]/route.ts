@@ -83,7 +83,6 @@ export async function POST(
 
         // ── verify ownership ──
         const signerAddress = getAddressFromPublicKey(publicKey, TransactionVersion.Mainnet);
-        console.log('signerAddress', signerAddress);
         if (signerAddress !== getContractAddress(contractId)) {
             return NextResponse.json(
                 { error: 'Not authorized to modify this contract metadata' },

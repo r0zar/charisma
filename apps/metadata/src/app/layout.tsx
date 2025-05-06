@@ -152,7 +152,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
 
               <div className="flex items-center space-x-1">
                 <a
-                  href="https://github.com/charisma-labs"
+                  href="https://github.com/r0zar/charisma"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="GitHub"
@@ -176,7 +176,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
                 </a>
 
                 <a
-                  href="https://twitter.com/CharismaLabs"
+                  href="https://x.com/CharismaBTC"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Twitter"

@@ -12,18 +12,20 @@ import { Plus, Info, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
+import { isLPToken } from '@/lib/utils';
 
 interface TokensListProps {
     limit?: number;
+    filterType?: 'all' | 'sip10' | 'lp';
 }
 
-export function TokensList({ limit }: TokensListProps) {
+export function TokensList({ limit, filterType = 'all' }: TokensListProps) {
     const router = useRouter();
     const { toast } = useToast();
     const { stxAddress, tokens, loading, authenticated, fetchTokens } = useApp();
     const [firstLoad, setFirstLoad] = useState(true);
 
-    console.log("TokensList Render - Auth:", authenticated, "Addr:", stxAddress, "Loading:", loading, "Tokens:", tokens);
+    console.log("TokensList Render - Auth:", authenticated, "Addr:", stxAddress, "Loading:", loading, "Tokens:", tokens, "Filter:", filterType);
 
     useEffect(() => {
         console.log("TokensList useEffect triggered. Auth:", authenticated, "Addr:", stxAddress);
@@ -52,10 +54,20 @@ export function TokensList({ limit }: TokensListProps) {
         loadTokens();
     }, [authenticated, stxAddress, fetchTokens, toast]);
 
-    // Ensure tokens is an array before using slice or map
-    const displayedTokens = tokens && Array.isArray(tokens)
-        ? (limit ? tokens.slice(0, limit) : tokens)
-        : [];
+    // Ensure tokens is an array before filtering and slicing
+    const allTokens = tokens && Array.isArray(tokens) ? tokens : [];
+
+    const filteredTokens = allTokens.filter(token => {
+        if (filterType === 'lp') {
+            return isLPToken(token);
+        }
+        if (filterType === 'sip10') {
+            return !isLPToken(token);
+        }
+        return true; // 'all' or any other case
+    });
+
+    const displayedTokens = limit ? filteredTokens.slice(0, limit) : filteredTokens;
 
     // Show loading state on first load
     if (firstLoad && loading) {
@@ -196,6 +208,7 @@ interface TokenCardProps {
 function TokenCard({ token, index }: TokenCardProps) {
     const router = useRouter();
     const contractId = token.contractId || '';
+    const isLp = isLPToken(token);
 
     const handleNavigate = () => {
         if (contractId) {
@@ -242,15 +255,22 @@ function TokenCard({ token, index }: TokenCardProps) {
                             </svg>
                         </div>
                     )}
+                    {isLp && (
+                        <Badge variant="secondary" className="absolute top-2 right-2 z-10 whitespace-nowrap">
+                            LP Token
+                        </Badge>
+                    )}
                 </div>
                 <div className="pt-6 flex-grow p-6">
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2 flex items-center justify-between gap-2">
                         <h3 className="font-medium text-lg truncate">{token.name || 'Unnamed Token'}</h3>
-                        {token.symbol && (
-                            <Badge variant="outline" className="ml-auto">
-                                ${token.symbol}
-                            </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {token.symbol && (
+                                <Badge variant="outline">
+                                    ${token.symbol}
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                     <p className="text-muted-foreground text-sm truncate font-mono mb-3">{contractId}</p>
                     <p className="text-sm text-muted-foreground line-clamp-3">

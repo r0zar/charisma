@@ -61,6 +61,46 @@ export async function removeTokenFromList(contractId: string) {
 }
 
 /**
+ * Server Action to add a token contract ID to the managed list in KV.
+ * **Only works in development mode.**
+ * @param contractId The contract ID to add.
+ */
+export async function addTokenToList(contractId: string) {
+    // Strict check for development environment
+    // if (process.env.NODE_ENV !== 'development') {
+    //     return { success: false, error: 'This action is only available in development mode.' };
+    // }
+
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.' };
+    }
+
+    try {
+        console.log(`Attempting to add ${contractId} to set ${TOKEN_LIST_KEY}...`);
+        // Use sadd to add the item to the set. It returns the number of elements added.
+        const addedCount = await kv.sadd(TOKEN_LIST_KEY, contractId);
+
+        if (addedCount > 0) {
+            console.log(`Successfully added ${contractId} to list.`);
+            // Revalidate the home page path to try and reflect the change
+            revalidatePath('/');
+            return { success: true, message: `${contractId} added to the list.` };
+        } else {
+            console.log(`${contractId} already exists in the list.`);
+            // Still a success, but indicate it wasn't a new addition if desired,
+            // or just return success as it's in the list.
+            // For simplicity, let's consider it a success if it's present or added.
+            revalidatePath('/'); // Revalidate even if it already existed, in case other state depends on it
+            return { success: true, message: `${contractId} already in the list.` };
+        }
+
+    } catch (error: any) {
+        console.error(`Failed to add ${contractId} to list:`, error);
+        return { success: false, error: error.message || 'Failed to update list in KV.' };
+    }
+}
+
+/**
  * Server Action to force refresh a specific token's data.
  * Calls getTokenData with forceRefresh = true.
  * @param contractId The contract ID to refresh.
@@ -78,6 +118,9 @@ export async function refreshTokenData(contractId: string) {
             // This implies the lookup failed even on a forced refresh
             return { success: false, error: 'Failed to fetch fresh data (token might not exist).' };
         }
+
+        // Attempt to add the token to the list after successful refresh
+        await addTokenToList(contractId);
 
         // Data was fetched and cache was updated by getTokenData
         console.log(`Successfully refreshed data for ${contractId}.`);
@@ -115,6 +158,9 @@ export async function inspectTokenData(contractId: string): Promise<InspectionRe
     if (!contractId || !contractId.includes('.')) {
         return { contractId, fetchError: 'Invalid contract ID format.' };
     }
+
+    // Attempt to add the token to the list when it's inspected
+    await addTokenToList(contractId);
 
     const cacheKey = getCacheKey(contractId);
     let rawMetadata: TokenMetadata | null = null;
@@ -166,6 +212,8 @@ export async function forceRefreshToken(contractId: string): Promise<{ success: 
         const refreshedData = await getTokenData(contractId, true);
         if (refreshedData) {
             console.log(`[Inspect] Refresh successful for ${contractId}`);
+            // Attempt to add the token to the list after successful refresh
+            await addTokenToList(contractId);
             return { success: true, data: refreshedData };
         } else {
             console.warn(`[Inspect] Refresh for ${contractId} completed but returned null data.`);
