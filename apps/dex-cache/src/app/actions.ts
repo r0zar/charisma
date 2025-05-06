@@ -606,4 +606,28 @@ export async function getAddLiquidityInitialData(
             error: "Failed to fetch initial liquidity data."
         };
     }
+}
+
+/**
+ * Server action to fetch the user's LP token balance for a specific vault.
+ */
+export async function getLpTokenBalance(
+    vaultContractId: string,
+    userAddress: string
+): Promise<{ success: boolean; balance?: number; error?: string }> {
+    try {
+        console.log(`[Server Action] Fetching LP balance for ${vaultContractId} / ${userAddress}`);
+        const balance = await fetchTokenBalance(vaultContractId, userAddress);
+        console.log(`[Server Action] LP Balance fetched: ${balance}`);
+        return {
+            success: true,
+            balance
+        };
+    } catch (error) {
+        console.error(`Error in getLpTokenBalance for ${vaultContractId} / ${userAddress}:`, error);
+        return {
+            success: false,
+            error: "Failed to fetch LP token balance."
+        };
+    }
 } 

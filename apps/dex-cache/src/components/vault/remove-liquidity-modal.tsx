@@ -6,7 +6,7 @@ import { request } from '@stacks/connect';
 import { STACKS_MAINNET } from "@stacks/network";
 import { toast } from "sonner";
 import debounce from 'lodash/debounce';
-import { getRemoveLiquidityQuote } from '@/app/actions';
+import { getRemoveLiquidityQuote, getLpTokenBalance } from '@/app/actions';
 import { uintCV, bufferCVFromString, principalCV, cvToValue, Pc, optionalCVOf } from '@stacks/transactions';
 import { callReadOnlyFunction } from '@repo/polyglot';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
@@ -87,23 +87,6 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
     const [isQuoting, setIsQuoting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Client-side LP balance fetch function
-    const fetchLpBalance = useCallback(async () => {
-        if (!walletState.connected || !walletState.address) return;
-        setIsLoadingBalance(true);
-        try {
-            const [addr, name] = vault.contractId.split('.');
-            const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(walletState.address)]);
-            setLpBalance(cvToValue(balanceCV));
-        } catch (error) {
-            console.error("Error fetching LP balance:", error);
-            toast.error("Failed to fetch LP token balance.");
-            setLpBalance(0);
-        } finally {
-            setIsLoadingBalance(false);
-        }
-    }, [walletState.connected, walletState.address, vault.contractId]);
-
     // Fetch quote using server action
     const fetchQuote = useCallback(async (targetLpAmountToBurn: number) => {
         if (targetLpAmountToBurn <= 0) {
@@ -128,10 +111,32 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
 
     // Initial data fetch when modal opens
     useEffect(() => {
-        if (isOpen && walletState.connected) {
-            fetchLpBalance(); // Fetch LP balance first
+        if (isOpen && walletState.connected && walletState.address) {
+            const fetchBalance = async () => {
+                setIsLoadingBalance(true);
+                setLpBalance(0); // Reset while loading
+                setQuotedAmounts(null); // Reset quote as it depends on balance
+                try {
+                    const result = await getLpTokenBalance(vault.contractId, walletState.address!);
+                    if (result.success && typeof result.balance === 'number') {
+                        setLpBalance(result.balance);
+                    } else {
+                        throw new Error(result.error || "Failed to fetch LP balance.");
+                    }
+                } catch (error) {
+                    console.error("Error fetching LP balance via server action:", error);
+                    toast.error("Failed to fetch your LP token balance.");
+                    setLpBalance(0);
+                } finally {
+                    setIsLoadingBalance(false);
+                }
+            };
+            fetchBalance();
+        } else if (!walletState.connected) {
+            setLpBalance(0);
+            setQuotedAmounts(null);
         }
-    }, [isOpen, walletState.connected, fetchLpBalance]);
+    }, [isOpen, walletState.connected, walletState.address, vault.contractId]);
 
     // Fetch quote when LP balance/percentage change
     useEffect(() => {
