@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
         // 5. Execute the Swap
         console.log(`[Cron Job] Attempting to swap ${AMOUNT_IN} uSTX (${TOKEN_IN}) for ${TOKEN_OUT}...`);
-        const result = await Dexterity.executeSwap(TOKEN_IN, TOKEN_OUT, AMOUNT_IN, { fee: 200 });
+        const result = await Dexterity.executeSwap(TOKEN_IN, TOKEN_OUT, AMOUNT_IN, { fee: 250 });
 
         console.log(result)
         return NextResponse.json(result);
