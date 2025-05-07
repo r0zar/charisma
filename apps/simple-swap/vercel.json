@@ -10,7 +10,11 @@
         },
         {
             "path": "/api/cron/hoot-farmer",
-            "schedule": "5 * * * *"
+            "schedule": "15 * * * *"
+        },
+        {
+            "path": "/api/cron/hoot-farmer",
+            "schedule": "45 * * * *"
         }
     ]
 }
