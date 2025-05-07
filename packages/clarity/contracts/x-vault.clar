@@ -22,13 +22,21 @@
         (operation (get-byte opcode u0)))
         (if (is-eq operation OP_SWAP_A_TO_B) (swap-a-to-b amount recipient)
         (if (is-eq operation OP_SWAP_B_TO_A) (swap-b-to-a amount recipient)
-        ERR_INVALID_OPERATION))))
+        (if (is-eq operation OP_ADD_LIQUIDITY) (add-liquidity amount recipient)
+        (if (is-eq operation OP_REMOVE_LIQUIDITY) (remove-liquidity amount recipient)
+        ERR_INVALID_OPERATION))))))
 
 (define-public (swap-a-to-b (amount uint) (recipient principal))
     (contract-call? .x-pool swap-a-to-b amount recipient))
 
 (define-public (swap-b-to-a (amount uint) (recipient principal))
     (contract-call? .x-pool swap-b-to-a amount recipient))
+
+(define-public (add-liquidity (amount uint) (recipient principal))
+    (contract-call? .x-pool add-liquidity amount recipient recipient))
+
+(define-public (remove-liquidity (amount uint) (recipient principal))
+    (contract-call? .x-pool remove-liquidity amount recipient recipient))
 
 ;; --- Subnet Functions ---
 
