@@ -6,7 +6,7 @@
         },
         {
             "path": "/api/cron/hoot-farmer",
-            "schedule": "*/10 * * * *"
+            "schedule": "5 * * * *"
         }
     ]
 }
