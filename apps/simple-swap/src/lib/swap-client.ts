@@ -228,9 +228,9 @@ export function createSwapClient(options: SwapClientOptions = {}) {
       try {
         const response = await Dexterity.executeSwapRoute(route);
 
-        // Check if response is an object and has txId
-        if (typeof response === 'object' && response !== null && 'txId' in response && typeof response.txId === 'string') {
-          return { txId: response.txId };
+        // Check if response is an object and has txid
+        if (typeof response === 'object' && response !== null && 'txid' in response && typeof response.txid === 'string') {
+          return { txId: response.txid };
         }
 
         // If it's not a string txId or the expected object, assume failure

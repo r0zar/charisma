@@ -12,8 +12,14 @@ import {
     uintCV,
     PostCondition,
     Pc,
-    FungiblePostCondition
+    FungiblePostCondition,
+    broadcastTransaction,
+    makeContractCall,
+    PostConditionMode,
+    SignedMultiSigContractCallOptions,
+    SignedContractCallOptions
 } from "@stacks/transactions";
+import StacksClient from "@repo/stacks";
 
 /**
  * Vault instance representing a liquidity pool
@@ -907,8 +913,6 @@ export class Dexterity {
             return new Error("No valid route found for swap");
         }
 
-        console.log(route)
-
         // Build transaction for the route
         const txConfig = await this.buildSwapTransaction(route);
 
@@ -921,7 +925,7 @@ export class Dexterity {
         }
 
         // Execute the transaction using Blaze client
-        return this.client.execute(
+        return this.callContractFunction(
             `${txConfig.contractAddress}.${txConfig.contractName}`,
             txConfig.functionName,
             txConfig.functionArgs,
@@ -945,11 +949,88 @@ export class Dexterity {
         }
 
         // Execute the transaction using Blaze client
-        return this.client.execute(
+        return this.callContractFunction(
             `${txConfig.contractAddress}.${txConfig.contractName}`,
             txConfig.functionName,
             txConfig.functionArgs,
             { ...options, ...txConfig }
         );
+    }
+
+    /**
+   * Call a public function (state-changing) on a smart contract
+   *
+   * @param contractId - Fully qualified contract identifier (address.contract-name)
+   * @param functionName - Name of the function to call
+   * @param args - Array of Clarity values to pass to the function
+   * @param senderAddress - Address of the sender
+   * @param postConditions - Optional post conditions
+   * @param options - Additional options (fee, nonce, etc.)
+   * @returns Transaction ID if successful
+   */
+    static async callContractFunction(
+        contractId: string,
+        functionName: string,
+        args: ClarityValue[] = [],
+        options: any = {}
+    ) {
+
+        // Parse contract ID
+        const [contractAddress, contractName] = contractId.split('.');
+
+        // Check if there is a private key supplied
+        if (!process.env.PRIVATE_KEY) {
+            // If not supplied, try to use the Stacks Connect library for client-side signing
+            const { request } = await import('@stacks/connect');
+            const response = await request('stx_callContract', {
+                contract: contractId as any,
+                functionName,
+                functionArgs: args,
+                network: 'mainnet',
+                postConditions: options.postConditions,
+                postConditionMode: options.postConditionMode || 'deny',
+            });
+            return response
+        } else {
+            // If in secure environment, use the private key to sign the transaction
+            const transactionOptions:
+                | SignedContractCallOptions
+                | SignedMultiSigContractCallOptions = {
+                contractAddress,
+                contractName,
+                functionName,
+                functionArgs: args,
+                senderKey: process.env.PRIVATE_KEY,
+                network: 'mainnet',
+                postConditions: options.postConditions,
+                postConditionMode: options.postConditionMode || PostConditionMode.Deny,
+                fee: options.fee || 200
+            };
+
+            if (options.nonce) {
+                transactionOptions.nonce = options.nonce;
+            }
+
+            if (options.fee) {
+                transactionOptions.fee = options.fee;
+            }
+
+            // Create the transaction
+            const transaction = await makeContractCall(transactionOptions);
+
+            // Broadcast the transaction
+            // Relies on the network context set during transaction creation
+            const broadcastResponse = await broadcastTransaction({ transaction });
+
+            // Check for errors
+            if ('error' in broadcastResponse) {
+                throw new Error(
+                    `Failed to broadcast transaction: ${broadcastResponse.error} - ${broadcastResponse.reason}`
+                );
+            }
+
+            // Return transaction ID
+            return broadcastResponse
+        }
     }
 }
