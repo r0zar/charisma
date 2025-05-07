@@ -770,6 +770,8 @@ export class Dexterity {
                 hop.opcode
             );
 
+            console.log(pcs)
+
             // Combine by token
             for (const pc of pcs as FungiblePostCondition[]) {
                 const key = `${pc.address}-${pc.asset ?? 'STX'}}`;
@@ -933,8 +935,6 @@ export class Dexterity {
     ) {
         // Build transaction for the route
         const txConfig = await this.buildSwapTransaction(route);
-
-        console.log(txConfig)
 
         // Handle post conditions
         if (options.disablePostConditions) {
