@@ -46,26 +46,7 @@ export async function GET(request: NextRequest) {
         const result = await Dexterity.executeSwap(TOKEN_IN, TOKEN_OUT, AMOUNT_IN, { fee: 200 });
 
         console.log(result)
-
-        // 6. Handle Result
-        if (result instanceof Error) {
-            console.error('[Cron Job] Swap execution failed:', result);
-            return NextResponse.json({ success: false, error: `Swap execution failed: ${result.message}` }, { status: 500 });
-        } else {
-            // Check if it's a broadcast result with a txid or an error structure
-            if ('error' in result && result.error) {
-                console.error('[Cron Job] Swap transaction broadcast failed:', result.error);
-                // Adapt error reporting based on potential MutateResult structure
-                const errorMessage = typeof result.error === 'string' ? result.error : (result.error as any)?.message || 'Unknown broadcast error';
-                return NextResponse.json({ success: false, error: `Swap broadcast failed: ${errorMessage}` }, { status: 500 });
-            } else if ('txId' in result && result.txId) {
-                console.log(`[Cron Job] Swap executed successfully! Transaction ID: ${result.txId}`);
-                return NextResponse.json({ success: true, txid: result.txId });
-            } else {
-                console.error('[Cron Job] Unknown swap execution result format:', result);
-                return NextResponse.json({ success: false, error: 'Unknown swap execution result format' }, { status: 500 });
-            }
-        }
+        return NextResponse.json(result);
 
     } catch (error) {
         console.error('[Cron Job] Unexpected error:', error);
