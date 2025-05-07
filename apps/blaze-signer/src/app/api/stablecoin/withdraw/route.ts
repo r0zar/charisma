@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getTokenPrice, usdToTokens, getTokenDecimals } from "../utils"
-import { subBalance, getBalance, subStable, getStable, addUsdFees, getUsdFees } from "@/lib/stablecoin/state"
+import { subBalance, getBalance, subStable, getStable, addUsdFees, getUsdFees, totalSupply, totalStableSupply } from "@/lib/stablecoin/state"
 
 export async function POST(req: Request) {
     try {
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         }
 
         // 2. send CHA tokens to user (no CHA fee)
-        const okCha = await subBalance(sender, tokens) // protocol source of CHA? previously subtract from pool+fee? We'll just ensure pool has.
+        const okCha = await subBalance("_VAULT", tokens)
         if (!okCha) {
             // revert stable burn? skip for now
             return NextResponse.json({ error: "Insufficient CHA pool" }, { status: 400 })

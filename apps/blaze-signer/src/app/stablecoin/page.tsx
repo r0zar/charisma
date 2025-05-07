@@ -24,6 +24,7 @@ import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { getTokenMetadataCached } from "@repo/tokens"
 import { StatCard } from "@/components/ui/stat-card"
+import { Alert } from "@/components/ui/alert"
 
 export default function StablecoinPage() {
     const { connected, address: walletAddr } = useWallet()
@@ -48,6 +49,7 @@ export default function StablecoinPage() {
     const [feeTokens, setFeeTokens] = useState<number>(0)
     const [feePoolToken, setFeePoolToken] = useState<number>(0)
     const [feePoolUsd, setFeePoolUsd] = useState<number>(0)
+    const [collateralInput, setCollateralInput] = useState<string>("") // human tokens
 
     // Helper – converts token integer (6 decimals) into uintCV
     const toUintCV = (val: number) => uintCV(BigInt(Math.floor(val)))
@@ -76,6 +78,10 @@ export default function StablecoinPage() {
     }, [])
 
     const factor = React.useMemo(() => 10 ** decimals, [decimals])
+    const collateralUsd = (supply != null ? (supply + feePoolToken) * (price || 0) / factor : 0)
+    const stableUsd = stableSupply != null ? stableSupply / 100 : 0
+    const collateralRatioPercent = stableUsd > 0 ? (collateralUsd / stableUsd) * 100 : 0
+    const bufferPercent = collateralRatioPercent - 250
 
     // Auto-calculate boundTokens when price or usdAmount changes
     React.useEffect(() => {
@@ -100,7 +106,6 @@ export default function StablecoinPage() {
                 setSupply(json.totalSupply)
                 setStableBal(json.stableBalance)
                 setStableSupply(json.stableSupply)
-                setFeePoolToken(json.tokenFeePool)
                 setFeePoolUsd(json.usdFeePool)
             }
         } catch (err) { console.error('balance fetch error', err) }
@@ -271,18 +276,76 @@ export default function StablecoinPage() {
         }
     }
 
+    const handleCollateralDeposit = async () => {
+        if (!walletAddr) { setStatus('Connect wallet'); return }
+        const amt = parseFloat(collateralInput)
+        if (!amt || amt <= 0) { setStatus('Invalid amount'); return }
+        const atomic = Math.floor(amt * factor)
+        try {
+            setStatus('Depositing collateral…')
+            const res = await fetch('/api/stablecoin/collateral/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tokenContractId: WELSHCORGICOIN_CONTRACT, amountTokens: atomic, sender: walletAddr })
+            })
+            const json = await res.json()
+            if (!res.ok) throw new Error(json.error || 'Deposit fail')
+            setStatus(`Collateral deposited. New balance ${(json.newBalance / factor).toLocaleString()}`)
+            setCollateralInput("")
+            await refreshBalances()
+        } catch (err) { setStatus(err instanceof Error ? err.message : String(err)) }
+    }
+
+    const handleCollateralWithdraw = async () => {
+        if (!walletAddr) { setStatus('Connect wallet'); return }
+        const amt = parseFloat(collateralInput)
+        if (!amt || amt <= 0) { setStatus('Invalid amount'); return }
+        const atomic = Math.floor(amt * factor)
+        try {
+            setStatus('Withdrawing collateral…')
+            const res = await fetch('/api/stablecoin/collateral/withdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tokenContractId: WELSHCORGICOIN_CONTRACT, amountTokens: atomic, sender: walletAddr })
+            })
+            const json = await res.json()
+            if (!res.ok) throw new Error(json.error || 'Withdraw fail')
+            setStatus(`Collateral withdrawn. New balance ${(json.newBalance / factor).toLocaleString()}`)
+            setCollateralInput("")
+            await refreshBalances()
+        } catch (err) { setStatus(err instanceof Error ? err.message : String(err)) }
+    }
+
     return (
         <div className="container py-8 max-w-2xl">
-            <h1 className="text-3xl font-bold mb-6">Blaze Stables</h1>
+            <h1 className="text-3xl font-bold mb-6">Blaze Stablecoins</h1>
+
+            <div className="mb-6 rounded-md border p-4 text-sm bg-muted/10">
+                <p className="mb-2 font-medium">How it works</p>
+                <ul className="list-disc pl-5 space-y-1">
+                    <li><span className="font-semibold">Permissionless collateral:</span> anyone can deposit WELSH into the vault at any time (see "Provide / Withdraw WELSH" below) and instantly boost the system collateral ratio.</li>
+                    <li>When you supply collateral you keep ownership – your personal WELSH balance increases and can be withdrawn whenever the system remains above the 250&nbsp;% requirement.</li>
+                    <li>Every USD stable that is minted must leave the vault at <span className="font-semibold">≥ 250&nbsp;%</span> collateral.  If a mint would drop below this level it is rejected automatically.</li>
+                    <li>A <span className="font-semibold">1 % fee</span> is collected on every mint (in WELSH) and every redeem (in USD).</li>
+                    <li>Mint-fees are <span className="font-semibold">rebated</span> to all WELSH providers automatically, proportional to the amount of collateral they have supplied – watch your "Your WELSH" card grow when new USD is minted.</li>
+                    <li>USD redeem-fees accumulate in a pool that is periodically used to <span className="font-semibold">market-buy WELSH on the DEX</span>; the purchased WELSH is sent to the vault and automatically distributed to all collateral providers.</li>
+                </ul>
+            </div>
+
+            {status && (
+                <Alert variant={/(error|failed|insufficient|rejected)/i.test(status) ? 'destructive' : 'default'} className="mb-6">
+                    {status}
+                </Alert>
+            )}
 
             {walletAddr && (
                 <div className="space-y-6 mb-6">
                     {/* User balances */}
                     <div>
                         <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Your Balances</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-                            <StatCard title="Your WELSH" icon="coins" value={balance != null ? (balance / factor).toLocaleString(undefined, { maximumFractionDigits: decimals }) + ' WELSH' : '…'} />
-                            <StatCard title="Your USD" icon="dollar" value={stableBal != null ? (stableBal / 100).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) + ' USD' : '…'} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <StatCard title="Your Deposited Collateral" icon="coins" value={balance != null ? (balance / factor).toLocaleString(undefined, { maximumFractionDigits: decimals }) + ' WELSH' : '…'} />
+                            <StatCard title="Your USD Stablecoins" icon="dollar" value={stableBal != null ? (stableBal / 100).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) + ' USD' : '…'} />
                         </div>
                     </div>
 
@@ -291,9 +354,11 @@ export default function StablecoinPage() {
                         <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Platform Metrics</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <StatCard title="WELSH Supply" icon="database" value={supply != null ? (supply / factor).toLocaleString(undefined, { maximumFractionDigits: decimals }) : '…'} />
+                            <StatCard title="WELSH Supply USD" icon="dollar" value={price && supply != null ? collateralUsd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' USD' : '…'} />
                             <StatCard title="Stable Supply" icon="bank" value={stableSupply != null ? (stableSupply / 100).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) + ' USD' : '…'} />
-                            <StatCard title="WELSH Fees" icon="coins" value={feePoolToken != null ? (feePoolToken / factor).toLocaleString(undefined, { maximumFractionDigits: decimals }) : '…'} />
                             <StatCard title="USD Fees" icon="dollar" value={feePoolUsd != null ? (feePoolUsd / 100).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) : '…'} />
+                            <StatCard title="Collateral Ratio" icon="shield" value={stableUsd ? collateralRatioPercent.toFixed(1) + '%' : '…'} />
+                            <StatCard title="Buffer / Requirement" icon="alert" value={stableUsd ? bufferPercent.toFixed(1) + '% / 250%' : '…'} />
                         </div>
                     </div>
                 </div>
@@ -301,7 +366,7 @@ export default function StablecoinPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Deposit / Withdraw</CardTitle>
+                    <CardTitle>Mint USD Stablecoins</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
@@ -349,13 +414,10 @@ export default function StablecoinPage() {
 
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Button onClick={handleDeposit} disabled={isSigning || !usdAmount || !price}>
-                            Deposit
+                            Mint
                         </Button>
                         <Button variant="secondary" onClick={handleWithdraw} disabled={isSigning || !usdAmount || !price}>
-                            Withdraw
-                        </Button>
-                        <Button variant="destructive" onClick={async () => { await fetch('/api/stablecoin/reset', { method: 'POST' }); refreshBalances(); setStatus('All balances reset') }}>
-                            Reset (Admin)
+                            Redeem
                         </Button>
                     </div>
 
@@ -378,6 +440,35 @@ export default function StablecoinPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Collateral management */}
+            <Card className="mt-8">
+                <CardHeader>
+                    <CardTitle>Provide / Withdraw WELSH Collateral</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Input
+                        type="number"
+                        min={0}
+                        step="0.000001"
+                        placeholder="100.0 WELSH"
+                        value={collateralInput}
+                        onChange={(e) => setCollateralInput(e.target.value)}
+                    />
+                    <div className="flex gap-4">
+                        <Button onClick={handleCollateralDeposit} disabled={!collateralInput}>Deposit WELSH</Button>
+                        <Button variant="secondary" onClick={handleCollateralWithdraw} disabled={!collateralInput}>Withdraw WELSH</Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {walletAddr && (
+                <p className="text-xs text-muted-foreground text-right mt-4">
+                    <button className="underline hover:text-primary" onClick={async () => { await fetch('/api/stablecoin/reset', { method: 'POST' }); refreshBalances(); setStatus('All balances reset') }}>
+                        Admin reset
+                    </button>
+                </p>
+            )}
         </div>
     )
 } 

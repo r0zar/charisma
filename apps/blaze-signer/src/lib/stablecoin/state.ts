@@ -2,7 +2,7 @@ import { kv } from "@vercel/kv"
 
 const HASH_KEY = "stablecoin:balances"
 const HASH_STABLE = "stablecoin:stable" // tracks minted stable tokens per user (USD units * 10^2?)
-const KEY_FEES_TOKEN = "stablecoin:fees:token" // integer token collected as fees
+const KEY_FEES_TOKEN = "stablecoin:fees:token" // integer token units collected as fees
 const KEY_FEES_USD = "stablecoin:fees:usd" // integer cents collected
 
 export async function getBalance(addr: string): Promise<number> {
@@ -74,4 +74,22 @@ export async function addUsdFees(delta: number): Promise<void> {
 export async function getUsdFees(): Promise<number> {
     const v = await kv.get(KEY_FEES_USD) as string | null
     return v ? Number(v) : 0
+}
+
+export async function distributeTokenFees(): Promise<void> {
+    const feeStr = await kv.get(KEY_FEES_TOKEN) as string | null
+    const fee = feeStr ? Number(feeStr) : 0
+    if (fee <= 0) return
+    const entries = await kv.hgetall(HASH_KEY) as Record<string, string>
+    const addrs = Object.keys(entries)
+    const totals = Object.values(entries).reduce((s, v) => s + Number(v), 0)
+    if (totals === 0) { await kv.del(KEY_FEES_TOKEN); return }
+    for (const addr of addrs) {
+        const bal = Number(entries[addr])
+        const share = Math.floor(fee * bal / totals)
+        if (share > 0) {
+            await kv.hincrby(HASH_KEY, addr, share)
+        }
+    }
+    await kv.del(KEY_FEES_TOKEN)
 } 
