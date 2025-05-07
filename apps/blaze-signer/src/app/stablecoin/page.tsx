@@ -30,7 +30,7 @@ export default function StablecoinPage() {
     const { connected, address: walletAddr } = useWallet()
     const network: StacksNetwork = STACKS_MAINNET
 
-    const [usdAmount, setUsdAmount] = useState(0) // User inputs USD value
+    const [usdAmount, setUsdAmount] = useState(100) // User inputs USD value
     const [boundTokens, setBoundTokens] = useState(0)
     const [marginPct, setMarginPct] = useState(10) // user-selected margin percentage
     const [tokensNeededAtomic, setTokensNeededAtomic] = useState<number>(0)
@@ -49,7 +49,7 @@ export default function StablecoinPage() {
     const [feeTokens, setFeeTokens] = useState<number>(0)
     const [feePoolToken, setFeePoolToken] = useState<number>(0)
     const [feePoolUsd, setFeePoolUsd] = useState<number>(0)
-    const [collateralInput, setCollateralInput] = useState<string>("") // human tokens
+    const [collateralInput, setCollateralInput] = useState<string>("1000000") // human tokens
 
     // Helper – converts token integer (6 decimals) into uintCV
     const toUintCV = (val: number) => uintCV(BigInt(Math.floor(val)))
