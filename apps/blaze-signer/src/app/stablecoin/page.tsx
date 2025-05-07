@@ -81,7 +81,6 @@ export default function StablecoinPage() {
     const collateralUsd = (supply != null ? (supply + feePoolToken) * (price || 0) / factor : 0)
     const stableUsd = stableSupply != null ? stableSupply / 100 : 0
     const collateralRatioPercent = stableUsd > 0 ? (collateralUsd / stableUsd) * 100 : 0
-    const bufferPercent = stableUsd > 0 ? (stableUsd / collateralUsd) * 100 : 0 - 250
 
     // Auto-calculate boundTokens when price or usdAmount changes
     React.useEffect(() => {
@@ -358,7 +357,6 @@ export default function StablecoinPage() {
                             <StatCard title="Stable Supply" icon="bank" value={stableSupply != null ? (stableSupply / 100).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) + ' USD' : '…'} />
                             <StatCard title="USD Fees" icon="dollar" value={feePoolUsd != null ? (feePoolUsd / 100).toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 }) : '…'} />
                             <StatCard title="Collateral Ratio" icon="shield" value={stableUsd ? collateralRatioPercent.toFixed(1) + '%' : '…'} />
-                            <StatCard title="Current / Maximum" icon="alert" value={stableUsd ? bufferPercent.toFixed(1) + '% / 250%' : '…'} />
                         </div>
                     </div>
                 </div>
