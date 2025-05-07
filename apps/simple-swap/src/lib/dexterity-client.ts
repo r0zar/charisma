@@ -770,8 +770,6 @@ export class Dexterity {
                 hop.opcode
             );
 
-            console.log(pcs)
-
             // Combine by token
             for (const pc of pcs as FungiblePostCondition[]) {
                 const key = `${pc.address}-${pc.asset ?? 'STX'}}`;
@@ -908,6 +906,8 @@ export class Dexterity {
         if (route.hops.length === 0) {
             return new Error("No valid route found for swap");
         }
+
+        console.log(route)
 
         // Build transaction for the route
         const txConfig = await this.buildSwapTransaction(route);
