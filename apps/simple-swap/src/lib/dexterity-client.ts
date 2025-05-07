@@ -1004,7 +1004,7 @@ export class Dexterity {
                 network: 'mainnet',
                 postConditions: options.postConditions,
                 postConditionMode: options.postConditionMode || PostConditionMode.Deny,
-                fee: options.fee || 500
+                fee: options.fee || 1000
             };
 
             if (options.nonce) {
