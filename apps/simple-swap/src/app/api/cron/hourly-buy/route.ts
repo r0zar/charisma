@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
         console.log(`[Cron Job] Attempting to swap ${AMOUNT_IN} uSTX (${TOKEN_IN}) for ${TOKEN_OUT}...`);
         const result = await Dexterity.executeSwap(TOKEN_IN, TOKEN_OUT, AMOUNT_IN, { fee: 200 });
 
+        console.log(result)
+
         // 6. Handle Result
         if (result instanceof Error) {
             console.error('[Cron Job] Swap execution failed:', result);
