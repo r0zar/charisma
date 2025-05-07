@@ -24,6 +24,7 @@ export function Header() {
         { href: "/tokens", label: "Tokens" },
         { href: "/pools", label: "Pools" },
         { href: "/multihop", label: "Multi-Hop" },
+        { href: "/stablecoin", label: "Stablecoin" },
     ]
 
     return (
