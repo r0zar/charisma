@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAddressFromPrivateKey, getAddressFromPublicKey, makeContractDeploy, PostConditionMode } from '@stacks/transactions';
+import { broadcastTransaction, fetchCallReadOnlyFunction, getAddressFromPrivateKey, getAddressFromPublicKey, makeContractDeploy, PostConditionMode } from '@stacks/transactions';
 import { z } from 'zod';
+import { generateLiquidityPoolContract, LiquidityPoolOptions } from '@/lib/templates/liquidity-pool-contract-template';
+import { fetchTokenMetadataPairDirectly } from '@/app/actions';
 
 // Define the expected payload for LP deployment
 const StacksContractAddressRegex = /^S[A-Z0-9]+\.[a-zA-Z0-9-]+$/;
@@ -9,17 +11,17 @@ const PositiveIntegerStringRegex = /^\d+$/;
 const LPPropertiesSchema = z.object({
     tokenAContract: z.string().regex(StacksContractAddressRegex, "Invalid Stacks contract address format for Token A"),
     tokenBContract: z.string().regex(StacksContractAddressRegex, "Invalid Stacks contract address format for Token B"),
-    swapFeePercent: z.number().min(0).optional(), // e.g., 1 for 1%, 0.1 for 0.1%
-    initialLiquidityTokenA: z.string().regex(PositiveIntegerStringRegex, "Initial liquidity for Token A must be a positive integer string (atomic units)"),
-    initialLiquidityTokenB: z.string().regex(PositiveIntegerStringRegex, "Initial liquidity for Token B must be a positive integer string (atomic units)"),
+    swapFeePercent: z.number().min(0).max(10).optional(), // e.g., 1 for 1%, 0.1 for 0.1%
+    // initialLiquidityTokenA: z.string().regex(PositiveIntegerStringRegex, "Initial liquidity for Token A must be a positive integer string (atomic units)"),
+    // initialLiquidityTokenB: z.string().regex(PositiveIntegerStringRegex, "Initial liquidity for Token B must be a positive integer string (atomic units)"),
     // Allow other properties as well
 }).passthrough();
 
 const LPDeployPayloadSchema = z.object({
     name: z.string().min(1, "LP Token Name is required"),
     symbol: z.string().min(1).max(10, "LP Token Symbol must be 1-10 characters"),
-    decimals: z.number().int().min(0).max(18, "LP Token Decimals must be between 0 and 18"),
-    identifier: z.string().min(1, "Identifier is required"), // Often same as symbol for LPs
+    // decimals: z.number().int().min(0).max(18, "LP Token Decimals must be between 0 and 18"),
+    // identifier: z.string().min(1, "Identifier is required"), // Often same as symbol for LPs
     description: z.string().optional(),
     image: z.string().url("Image must be a valid URL").optional(),
     properties: LPPropertiesSchema,
@@ -67,9 +69,17 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+
+        const deployerPrivateKey = process.env.PRIVATE_KEY;
+        if (!deployerPrivateKey) {
+            console.error('PRIVATE_KEY environment variable is not set.');
+            return NextResponse.json({ error: 'Service configuration error: Deployer private key missing' }, { status: 500, headers: corsHeaders });
+        }
+
+        const launchpadDeployerAddress = getAddressFromPrivateKey(deployerPrivateKey);
+
         // 1. Prepare for and call the metadata API
-        const launchpadDeployerAddress = process.env.LAUNCHPAD_DEPLOYER_ADDRESS;
-        const metadataServiceApiKey = process.env.METADATA_API_KEY; // Key for calling metadata service
+        const metadataServiceApiKey = process.env.LAUNCHPAD_API_KEY; // Key for calling metadata service
 
         if (!launchpadDeployerAddress) {
             console.error('LAUNCHPAD_DEPLOYER_ADDRESS environment variable is not set.');
@@ -82,7 +92,7 @@ export async function POST(request: NextRequest) {
 
         // Construct the contractId for the new LP token.
         // Assuming payload.identifier is the unique contract name (e.g., "my-lp-token").
-        const lpContractName = payload.identifier;
+        const lpContractName = payload.symbol.toLowerCase();
         const lpContractIdForMetadata = `${launchpadDeployerAddress}.${lpContractName}`;
 
         // Prepare the metadata payload to send to the metadata service.
@@ -90,8 +100,8 @@ export async function POST(request: NextRequest) {
         const metadataToPost = {
             name: payload.name,
             symbol: payload.symbol,
-            decimals: payload.decimals,
-            identifier: payload.identifier, // The 'identifier' field for the metadata object itself
+            decimals: 6,
+            identifier: payload.symbol, // The 'identifier' field for the metadata object itself
             description: payload.description,
             image: payload.image,
             properties: payload.properties, // payload.properties is of LPPropertiesSchema, which includes liquidity info.
@@ -122,30 +132,27 @@ export async function POST(request: NextRequest) {
         const metadataResult = await metadataResponse.json();
         console.log('Metadata API call successful:', metadataResult);
 
-        // TODO: Implement the actual LP deployment logic here.
-        // This might involve:
-        // 1. Using the lpContractIdForMetadata (or parts of it) for deployment.
-        // 2. Validating token contracts on-chain.
-        // 3. Interacting with a factory contract to deploy the LP.
-        // 4. Storing deployment details.
-        // 5. Returning transaction IDs or LP contract details.
+        const baseTokens = await fetchTokenMetadataPairDirectly(metadataToPost.properties.tokenAContract, metadataToPost.properties.tokenBContract);
 
-        console.log('Received LP deployment request:', payload);
-
-        const deployerPrivateKey = process.env.LAUNCHPAD_DEPLOYER_PRIVATE_KEY;
-        if (!deployerPrivateKey) {
-            console.error('LAUNCHPAD_DEPLOYER_PRIVATE_KEY environment variable is not set.');
-            return NextResponse.json({ error: 'Service configuration error: Deployer private key missing' }, { status: 500, headers: corsHeaders });
+        const liquidityPoolOptions: LiquidityPoolOptions = {
+            tokenA: metadataToPost.properties.tokenAContract,
+            tokenB: metadataToPost.properties.tokenBContract,
+            lpTokenName: metadataToPost.name,
+            lpTokenSymbol: metadataToPost.symbol,
+            swapFee: metadataToPost.properties.swapFeePercent || 1,
+            initialLiquidityA: 0,
+            initialLiquidityB: 0,
+            tokenADecimals: baseTokens.token1Meta?.decimals!,
+            tokenBDecimals: baseTokens.token2Meta?.decimals!,
+            contractIdentifier: lpContractIdForMetadata
         }
 
-        const deployerPublicKey = getAddressFromPrivateKey(deployerPrivateKey);
-        const deployerAddress = getAddressFromPublicKey(deployerPublicKey);
+        const poolCodeBody = generateLiquidityPoolContract(liquidityPoolOptions);
 
-        const poolCodeBody = `(define-public (hello (name (string-ascii 10))) (ok (concat "hello " name)))`
 
         const txOptions = {
             clarityVersion: 3,
-            contractName: lpContractIdForMetadata,
+            contractName: lpContractName,
             codeBody: poolCodeBody,
             fee: 10000,
             postConditionMode: PostConditionMode.Deny,
@@ -153,7 +160,9 @@ export async function POST(request: NextRequest) {
             senderKey: deployerPrivateKey
         }
 
-        const deployTxResult = await makeContractDeploy(txOptions)
+        const transaction = await makeContractDeploy(txOptions)
+
+        const deployTxResult = await broadcastTransaction({ transaction })
 
         console.log('Deploy transaction result:', deployTxResult);
 
@@ -163,7 +172,7 @@ export async function POST(request: NextRequest) {
             message: 'LP metadata created/updated. Deployment request received and validated. Further processing pending.',
             data: payload,
             metadataServiceResponse: metadataResult,
-            deployedLpContractIdHint: lpContractIdForMetadata
+            deployTxResult: deployTxResult
         }, { status: 202, headers: corsHeaders }); // 202 Accepted indicates processing has started
 
     } catch (error) {

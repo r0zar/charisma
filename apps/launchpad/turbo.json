@@ -18,7 +18,8 @@
         "OPENAI_API_KEY",
         "METADATA_API_KEY",
         "LAUNCHPAD_API_KEY",
-        "LAUNCHPAD_DEPLOYER_ADDRESS"
+        "LAUNCHPAD_DEPLOYER_ADDRESS",
+        "PRIVATE_KEY"
       ]
     }
   }
