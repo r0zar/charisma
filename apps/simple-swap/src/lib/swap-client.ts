@@ -257,8 +257,8 @@ export function createSwapClient(options: SwapClientOptions = {}) {
      */
     formatTokenAmount(amount: number, decimals: number): string {
       return (amount / Math.pow(10, decimals)).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 6
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
       });
     },
 

@@ -149,7 +149,6 @@ export async function POST(request: NextRequest) {
 
         const poolCodeBody = generateLiquidityPoolContract(liquidityPoolOptions);
 
-
         const txOptions = {
             clarityVersion: 3,
             contractName: lpContractName,
