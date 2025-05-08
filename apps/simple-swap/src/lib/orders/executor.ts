@@ -14,6 +14,8 @@ import { log } from '@repo/logger';
 async function getCurrentPrice(order: LimitOrder): Promise<number | undefined> {
     // use conditionToken if provided, otherwise default to outputToken
     const watchedToken = order.conditionToken || order.outputToken;
+    log({ orderUuid: order.uuid, inputToken: order.inputToken, conditionToken: order.conditionToken, outputToken: order.outputToken }, `Determining watched token for price check.`);
+    log({ orderUuid: order.uuid, watchedToken }, `Watched token selected.`);
     const pair = `${order.inputToken}-${watchedToken}`;
     log({ orderUuid: order.uuid, pair }, `Fetching latest price for pair ${pair}`);
     const price = await getLatestPrice(pair);

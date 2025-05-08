@@ -8,7 +8,7 @@ interface ToggleProps {
 }
 
 function ModeToggle({ mode, onChange }: ToggleProps) {
-    const orderDisabled = true;
+    const orderDisabled = false;
     return (
         <div className="flex items-center border border-border/40 rounded-md overflow-hidden text-xs select-none">
             {(['swap', 'order'] as const).map((m) => {
