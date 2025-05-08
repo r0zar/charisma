@@ -28,10 +28,6 @@ let vaultsLoaded = false;
 const vaultOmitListString = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v9';
 const vaultOmitSet = new Set(vaultOmitListString.split(',').map(id => id.trim()).filter(id => id));
 
-if (vaultOmitSet.size > 0) {
-    console.log(`[Server] Vault Omit List active: Excluding ${vaultOmitSet.size} vaults:`, Array.from(vaultOmitSet));
-}
-
 /**
  * Load vaults into Dexterity if not already loaded
  */
