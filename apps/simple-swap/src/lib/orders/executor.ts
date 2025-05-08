@@ -12,6 +12,7 @@ import { log } from '@repo/logger';
  * replace it with a real oracle or DEX quote service.
  */
 async function getCurrentPrice(order: LimitOrder): Promise<number | undefined> {
+    console.log('getCurrentPrice', order);
     // use conditionToken if provided, otherwise default to outputToken
     const watchedToken = order.conditionToken || order.outputToken;
     log({ orderUuid: order.uuid, watchedToken }, `Watched token selected.`);

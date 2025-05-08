@@ -13,7 +13,7 @@ if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
 } else {
     describe('orders store (kv)', () => {
         const baseReq: NewOrderRequest = {
-            owner: 'SPTESTOWNER111111111111111111111111111111111',
+            owner: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
             inputToken: 'SPTOKENA.subnet-a',
             outputToken: 'SPTOKENB.token-b',
             amountIn: '1000',

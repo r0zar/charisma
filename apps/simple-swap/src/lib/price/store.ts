@@ -6,7 +6,7 @@ const PREFIX = 'price:token';
 const RETENTION_MS = Number(process.env.PRICE_RETENTION_MS ?? 1000 * 60 * 60 * 24 * 7);
 
 // only persist if price deviates more than this fraction (e.g. 0.002 = 0.2%) from last stored price
-const EPSILON = Number(process.env.PRICE_EPSILON ?? 0);
+const EPSILON = Number(process.env.PRICE_EPSILON ?? 0.0001);
 
 export async function addPriceSnapshot(contractId: string, price: number, timestamp: number = Date.now()): Promise<void> {
     const key = `${PREFIX}:${contractId}`;
