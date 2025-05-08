@@ -288,17 +288,25 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     const prevMode = prevModeRef.current;
     prevModeRef.current = mode;
 
+    console.log(`Mode changed: ${prevMode} -> ${mode}. Condition token: ${conditionToken?.symbol}`);
+
     // Only default condition token when switching *into* order mode and it's not already set
     if (mode === 'order' && prevMode !== 'order' && !conditionToken) {
+      console.log('Attempting to default to Charisma for Order mode...');
       // Locate the base (main-net) Charisma token in the available list
       const charismaBase = displayTokens.find(
         (t) => t.contractId.includes('.charisma-token') && !t.contractId.includes('-subnet')
       );
 
-      if (!charismaBase) return; // Charisma token not available yet
+      if (!charismaBase) {
+        console.log('Charisma base token not found in displayTokens yet.');
+        return;
+      }
 
-      // 1. Select Charisma as the base FROM token (only if not already set - might be redundant now)
-      // setBaseSelectedFromToken(charismaBase);
+      console.log('Found Charisma base token:', charismaBase);
+
+      // 1. Select Charisma as the base FROM token - REQUIRED for subnet toggle effect
+      setBaseSelectedFromToken(charismaBase);
 
       // 2. Enable subnet mode for FROM token
       setUseSubnetFrom(true);
@@ -307,11 +315,11 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
       const counterparts = tokenCounterparts.get(charismaBase.contractId);
       const charismaToSet = counterparts?.subnet ?? charismaBase;
       setConditionToken(charismaToSet);
-      // console.log({ conditionTokenSet: charismaToSet }, 'Defaulted condition token to Charisma on entering Order mode'); // Use console.log if needed for debugging
+      console.log('Defaulted From token base to Charisma, enabled subnet, set Condition token to Charisma:', charismaToSet);
     }
     // No else needed - we don't want to interfere if the mode is not 'order' or if a token is already selected
 
-  }, [mode, conditionToken, displayTokens, tokenCounterparts, setUseSubnetFrom, setConditionToken]);
+  }, [mode, conditionToken, displayTokens, tokenCounterparts, setBaseSelectedFromToken, setUseSubnetFrom, setConditionToken]);
 
   // Enhanced swap handler with state transitions
   const handleEnhancedSwap = async () => {
