@@ -18,9 +18,9 @@ export async function POST(req: Request) {
         const newCollateralRaw = currentSupplyRaw + feePool - amountTokens;
         const stableCents = await totalStableSupply();
         const collateralUsdCents = Math.floor(newCollateralRaw * price * 100 / factor);
-        const minCollateralCents = Math.ceil(stableCents * 2.5);
+        const minCollateralCents = Math.ceil(stableCents * 1.5);
         if (collateralUsdCents < minCollateralCents) {
-            return NextResponse.json({ error: 'Collateral ratio below 250%' }, { status: 400 });
+            return NextResponse.json({ error: 'Collateral ratio below 150%' }, { status: 400 });
         }
         const ok = await subBalance(sender, amountTokens);
         if (!ok) return NextResponse.json({ error: 'Insufficient collateral' }, { status: 400 });

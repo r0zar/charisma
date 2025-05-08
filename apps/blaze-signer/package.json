@@ -24,6 +24,7 @@
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-tabs": "^1.1.9",
     "@repo/logger": "workspace:*",
+    "@repo/polyglot": "workspace:*",
     "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@stacks/auth": "^7.0.5",

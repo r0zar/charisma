@@ -6,23 +6,18 @@ import {
     PostConditionMode,
     uintCV,
     principalCV,
-    contractPrincipalCV,
     stringAsciiCV,
-    tupleCV,
     noneCV,
-    ClarityValue,
-    fetchCallReadOnlyFunction,
+    cvToValue,
     optionalCVOf,
-    cvToValue, // Import type
 } from '@stacks/transactions';
+import { callReadOnlyFunction } from '@repo/polyglot';
 import { STACKS_MAINNET, StacksNetwork } from '@stacks/network'; // Or use config
-import { z } from 'zod'; // For input validation
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
-import { ApiPayloadSchema, prepareMultihopTxArgs } from '@/lib/execute-service';
+import { ApiPayloadSchema } from '@/lib/execute-service';
 
 // TODO: Move to shared constants or config
-const MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc5";
-const TOKEN_A_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6";
+const MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9";
 
 
 // --- API Route Handler ---
@@ -37,7 +32,6 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-
         // Validate input shape
         const validationResult = ApiPayloadSchema.safeParse(body);
         if (!validationResult.success) {
@@ -46,54 +40,68 @@ export async function POST(request: Request) {
         }
         const validatedData = validationResult.data;
 
-        // Further validation/checks
-        if (validatedData.hops.length !== validatedData.numHops) {
-            return NextResponse.json({ error: `Payload validation failed: numHops (${validatedData.numHops}) does not match hops array length (${validatedData.hops.length})` }, { status: 400 });
-        }
-        if (validatedData.numHops > 0 && (!validatedData.hops[0].signature || !validatedData.hops[0].uuid)) {
-            return NextResponse.json({ error: 'Payload validation failed: Signature and UUID are required for Hop 1' }, { status: 400 });
-        }
+        // --- Deserialize function args & postconditions from hex ---
+        const { deserializeCV } = await import('@stacks/transactions/dist/clarity/deserialize');
+        const { deserializePostConditionWire } = await import('@stacks/transactions/dist/wire/serialization');
+        const { wireToPostCondition } = await import('@stacks/transactions/dist/postcondition');
 
-        const [multihopAddr, multihopName] = MULTIHOP_CONTRACT_ID.split('.');
+        const functionArgs = validatedData.tx.functionArgs.map((hex) => deserializeCV(hex));
+        const postConditions = validatedData.tx.postConditions.map((hex) =>
+            wireToPostCondition(deserializePostConditionWire(hex))
+        );
 
-        // --- Recover Signer ---
-        const response = await fetchCallReadOnlyFunction({
-            contractAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
-            contractName: 'blaze-rc10',
-            functionName: 'recover',
-            functionArgs: [
-                bufferFromHex(validatedData.hops[0]?.signature!),
-                principalCV(TOKEN_A_CONTRACT_ID),
+        // Extract token and amount from first tuple arg for recover check
+        const inTuple: any = functionArgs[0];
+        const inputTokenCV = inTuple.value.token;
+        const amountCV = inTuple.value.amount;
+        const inputTokenStr = cvToValue(inputTokenCV) as string;
+        const amountU = (amountCV.value as bigint).toString();
+
+        const response = await callReadOnlyFunction(
+            'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+            'blaze-v1',
+            'recover',
+            [
+                bufferFromHex(validatedData.signature),
+                principalCV(inputTokenStr),
                 stringAsciiCV('TRANSFER_TOKENS'),
                 noneCV(),
-                optionalCVOf(uintCV(BigInt(validatedData.amount))), // Use validated amount
-                optionalCVOf(principalCV('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.monkey-d-luffy-rc11')), // Example target, adjust if needed
-                stringAsciiCV(validatedData.hops[0]?.uuid!),
+                optionalCVOf(uintCV(BigInt(amountU))),
+                optionalCVOf(principalCV(MULTIHOP_CONTRACT_ID)),
+                stringAsciiCV(validatedData.uuid),
             ],
-            network: 'mainnet', // Use configured network
-            senderAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS' // Or any valid sender for read-only call
-        }).then(cvToValue);
+        );
+        console.log('response', response);
 
-        const signer = response.value
+        const signerCV = response.value;
+        const signer = cvToValue(signerCV) as string;
 
-        console.log("API: Signer:", signer);
-
-        // --- Prepare Transaction Args using Utility Function ---
-        const { functionName, functionArgs } = prepareMultihopTxArgs(validatedData);
+        // --- Verbose Debug Logging ---
+        console.log("\n=========== MULTIHOP EXECUTION DEBUG ===========");
+        console.log("Recovered signer (public key hash):", signer);
+        console.log("Amount (u):", amountU);
+        console.log("Input token:", inputTokenStr);
+        console.log("Function:", validatedData.tx.functionName);
+        console.log("Args count:", functionArgs.length);
+        console.log("===============================================\n");
 
         // --- Create and Broadcast Transaction ---
-        console.log(`API: Preparing ${functionName} call to ${multihopAddr}.${multihopName}`);
+        console.log(`API: Preparing ${validatedData.tx.functionName} call to ${validatedData.tx.contractAddress}.${validatedData.tx.contractName}`);
+        console.log("API: Function Args:", functionArgs[1]);
         const txOptions = {
-            contractAddress: multihopAddr,
-            contractName: multihopName,
-            functionName,
+            contractAddress: validatedData.tx.contractAddress,
+            contractName: validatedData.tx.contractName,
+            functionName: validatedData.tx.functionName,
             functionArgs,
             senderKey: privateKey,
             network,
             anchorMode: AnchorMode.Any, // Or Microblock if preferred
-            postConditionMode: PostConditionMode.Deny, // Recommended for safety
-            fee: 1000, // Optional: Estimate or set a fee
+            postConditionMode: PostConditionMode.Allow,
+            postConditions,
+            fee: 1500, // Optional: Estimate or set a fee
         };
+
+        console.log(postConditions)
 
         const transaction = await makeContractCall(txOptions);
 

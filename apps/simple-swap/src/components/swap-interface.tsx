@@ -5,13 +5,15 @@ import TokenDropdown from "./TokenDropdown";
 import { useSwap } from "../hooks/useSwap";
 import type { Token } from "../lib/swap-client";
 import TokenLogo from "./TokenLogo";
-import { Flame } from 'lucide-react';
+import { ArrowDown, ClockArrowUp, Flame } from 'lucide-react';
 import TokenInputSection from './swap-interface/TokenInputSection';
 import TokenOutputSection from './swap-interface/TokenOutputSection';
 import SwapDetails from './swap-interface/swap-details';
 import LoadingState from './swap-interface/loading-state';
 import SwapButton from './swap-interface/swap-button';
 import SwapHeader from './swap-interface/swap-header';
+import LimitConditionSection from './swap-interface/LimitConditionSection';
+import { Button } from "./ui/button";
 
 interface SwapInterfaceProps {
   initialTokens?: Token[];
@@ -32,8 +34,6 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
   const swap = useSwap({ initialTokens });
   // Extract the tokenPrices to a local constant to avoid linter errors
   const tokenPrices = swap.tokenPrices || null;
-  const [showDetails, setShowDetails] = useState(false);
-  const [showRouteDetails, setShowRouteDetails] = useState(true);
   const [swapping, setSwapping] = useState(false);
   const [securityLevel, setSecurityLevel] = useState<'high' | 'medium' | 'low'>('high');
 
@@ -45,6 +45,12 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
   // This helps manage the state before the useEffect updates the actual selected token in useSwap
   const [baseSelectedFromToken, setBaseSelectedFromToken] = useState<Token | null>(null);
   const [baseSelectedToToken, setBaseSelectedToToken] = useState<Token | null>(null);
+
+  // market vs limit
+  const [mode, setMode] = useState<'swap' | 'order'>('swap');
+  const [targetPrice, setTargetPrice] = useState('');
+  const [conditionToken, setConditionToken] = useState<Token | null>(null);
+  const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
 
   const {
     selectedTokens,
@@ -75,6 +81,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     userAddress,
     fromTokenValueUsd,
     toTokenValueUsd,
+    createTriggeredSwap,
   } = swap;
 
   // --- Start: Logic for display tokens and checking counterparts ---
@@ -129,6 +136,16 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
       : token.contractId;
     const counterparts = tokenCounterparts.get(baseId);
     return !!(counterparts?.mainnet && counterparts?.subnet);
+  }, [tokenCounterparts]);
+
+  // after tokenCounterparts memoization
+  const subnetDisplayTokens = useMemo(() => {
+    const subs: Token[] = [];
+    tokenCounterparts.forEach(({ subnet }) => {
+      if (subnet) subs.push(subnet);
+    });
+    // Sort alphabetically for consistency
+    return subs.sort((a, b) => a.symbol.localeCompare(b.symbol));
   }, [tokenCounterparts]);
   // --- End: Logic for display tokens and checking counterparts ---
 
@@ -239,6 +256,56 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     else setSecurityLevel('low');
   }, [quote]);
 
+  // Get USD price helper
+  const getUsdPrice = useCallback((contractId: string): number | undefined => {
+    if (!tokenPrices) return undefined;
+    return contractId === '.stx' ? tokenPrices['stx'] : tokenPrices[contractId];
+  }, [tokenPrices]);
+
+  // default target price when token changes
+  useEffect(() => {
+    if (mode !== 'order') return;
+    if (!conditionToken) return;
+    const price = getUsdPrice(conditionToken.contractId);
+    if (price !== undefined && targetPrice === '') {
+      setTargetPrice(price.toFixed(4));
+    }
+  }, [conditionToken, mode, getUsdPrice, targetPrice]);
+
+  const handleBumpPrice = (percent: number) => {
+    const current = parseFloat(targetPrice || '0');
+    if (isNaN(current) || current === 0) return;
+    const updated = current * (1 + percent);
+    setTargetPrice(updated.toFixed(4));
+  };
+
+  // When user switches to Trigger mode, default the "from" and condition tokens to Charisma
+  // and enable subnet mode for the "from" token.
+  useEffect(() => {
+    if (mode !== 'order') return;
+
+    // If we already set the condition token to Charisma once, skip further runs
+    if (conditionToken && conditionToken.contractId.includes('charisma-token')) return;
+
+    // Locate the base (main-net) Charisma token in the available list
+    const charismaBase = displayTokens.find(
+      (t) => t.contractId.includes('.charisma-token') && !t.contractId.includes('-subnet')
+    );
+
+    if (!charismaBase) return; // Charisma token not available yet
+
+    // 1. Select Charisma as the base FROM token
+    setBaseSelectedFromToken(charismaBase);
+
+    // 2. Enable subnet mode so the actual token becomes the subnet variant
+    setUseSubnetFrom(true);
+
+    // 3. Set the condition token to Charisma (prefer subnet variant if present)
+    const counterparts = tokenCounterparts.get(charismaBase.contractId);
+    const charismaSubnet = counterparts?.subnet ?? charismaBase;
+    setConditionToken(charismaSubnet);
+  }, [mode, conditionToken, displayTokens, tokenCounterparts, setBaseSelectedFromToken, setUseSubnetFrom, setConditionToken]);
+
   // Enhanced swap handler with state transitions
   const handleEnhancedSwap = async () => {
     setSwapping(true);
@@ -249,6 +316,20 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     } finally {
       setSwapping(false);
     }
+  };
+
+  const handleSwapTokensClick = () => {
+    // update useSwap internal selections
+    handleSwitchTokens();
+
+    // swap base token selections as well
+    setBaseSelectedFromToken(baseSelectedToToken);
+    setBaseSelectedToToken(baseSelectedFromToken);
+
+    // reset subnet toggles
+    const prev = useSubnetFrom;
+    setUseSubnetFrom(useSubnetTo);
+    setUseSubnetTo(prev);
   };
 
   // Calculate estimated LP fees from the route if available
@@ -310,8 +391,6 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
       return null;
     }
   };
-
-  const routeFees = calculateRouteFees();
 
   // Helper to format USD currency
   const formatUsd = (value: number | null) => {
@@ -451,23 +530,57 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     ? (shiftDirection === 'to-subnet' ? 'You receive in subnet' : 'You receive in mainnet')
     : 'You receive';
 
+  // ---- Limit order creation ----
+  async function handleCreateLimitOrder() {
+    if (!selectedFromToken || !selectedToToken) return;
+    if (!displayAmount || Number(displayAmount) <= 0) return;
+    if (!targetPrice) return;
+
+    try {
+      await createTriggeredSwap({
+        conditionToken: conditionToken || selectedToToken,
+        targetPrice,
+        direction: conditionDir,
+        amountDisplay: displayAmount,
+      });
+    } catch (err) {
+      console.error('Error creating triggered swap:', err);
+    }
+  }
+
   return (
     <div className="glass-card overflow-hidden shadow-xl border border-border/60">
       {/* Header - Use SwapHeader component */}
       <SwapHeader
         securityLevel={securityLevel}
         userAddress={userAddress}
+        mode={mode}
+        onModeChange={setMode}
       />
 
       <div className="p-6">
+        {/* Limit order condition builder */}
+        {mode === 'order' && (
+          <LimitConditionSection
+            displayTokens={displayTokens}
+            selectedToken={conditionToken || displayedToToken}
+            onSelectToken={(t) => setConditionToken(t)}
+            targetPrice={targetPrice}
+            onTargetChange={setTargetPrice}
+            direction={conditionDir}
+            onDirectionChange={setConditionDir}
+            onBump={handleBumpPrice}
+          />
+        )}
+
+
         {/* From section - Use TokenInputSection */}
         <TokenInputSection
           label={fromLabel}
           selectedToken={selectedFromToken}
-          displayedToken={displayedFromToken}
+          displayedToken={mode === 'order' ? selectedFromToken : displayedFromToken}
           displayAmount={displayAmount}
           onAmountChange={(v) => {
-            // Logic to handle amount change and update microAmount
             if (/^[0-9]*\.?[0-9]*$/.test(v) || v === "") {
               setDisplayAmount(v);
               if (selectedFromToken) {
@@ -476,19 +589,27 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
             }
           }}
           balance={currentFromBalance}
-          displayTokens={displayTokens}
+          displayTokens={mode === 'order' ? subnetDisplayTokens : displayTokens}
           onSelectToken={(t) => {
             console.log("Selected base FROM token:", t.symbol);
             setBaseSelectedFromToken(t);
-            setUseSubnetFrom(false); // Reset subnet toggle on new base selection
-            // Actual token update happens in useEffect
+            // In order mode we ALWAYS use subnet version
+            if (mode === 'order') {
+              setUseSubnetFrom(true);
+            } else {
+              setUseSubnetFrom(false);
+            }
           }}
-          hasBothVersions={hasBothVersions(selectedFromToken)}
-          isSubnetSelected={useSubnetFrom}
-          onToggleSubnet={() => setUseSubnetFrom(!useSubnetFrom)}
+          hasBothVersions={mode === 'order' ? true : hasBothVersions(selectedFromToken)}
+          isSubnetSelected={mode === 'order' ? true : useSubnetFrom}
+          onToggleSubnet={() => {
+            if (mode !== 'order') {
+              setUseSubnetFrom(!useSubnetFrom);
+            }
+          }}
           isLoadingPrice={isLoadingPrices}
           tokenValueUsd={formatUsd(fromTokenValueUsd)}
-          formatUsd={formatUsd} // Pass the function itself if needed within component
+          formatUsd={formatUsd}
           onSetMax={() => {
             setDisplayAmount(currentFromBalance);
             if (selectedFromToken) {
@@ -497,19 +618,11 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
           }}
         />
 
-        {/* Switch button */}
-        <div className="relative h-10 flex justify-center">
-          <button
-            onClick={handleSwitchTokens} // handleSwitchTokens in useSwap needs to be aware of base tokens and toggles potentially
-            className="absolute z-10 rounded-full p-2.5 shadow-md transition-all"
-            style={{
-              background: "linear-gradient(to bottom right, var(--color-background), var(--color-muted))"
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <polyline points="19 12 12 19 5 12"></polyline>
-            </svg>
+        {/* Vertical switch button between From and To */}
+        <div className="relative h-10 my-2 flex justify-center">
+
+          <button onClick={handleSwapTokensClick} className="cursor-pointer rounded-full p-2 shadow bg-muted hover:bg-muted/70 transition-transform active:scale-95">
+            <ArrowDown className="w-5 h-5 text-primary" />
           </button>
         </div>
 
@@ -564,6 +677,13 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
           formatUsd={formatUsd}
         />
 
+        {/* Route disclaimer for orders */}
+        {mode === 'order' && quote && (
+          <p className="mt-1 text-xs italic text-muted-foreground text-center">
+            Route shown for reference - orders swap routes are optimised at the time of execution.
+          </p>
+        )}
+
         {/* Error with enhanced styling */}
         {(error || priceError) && (
           <div className="mb-5 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-700 dark:text-red-400 animate-[appear_0.3s_ease-out]">
@@ -614,7 +734,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
         )}
 
         {/* Enhanced swap button - Use SwapButton component */}
-        <SwapButton
+        {mode === 'swap' && <SwapButton
           quote={quote}
           isLoadingQuote={isLoadingQuote}
           swapping={swapping}
@@ -622,7 +742,22 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
           selectedFromToken={selectedFromToken}
           selectedToToken={selectedToToken}
           displayAmount={displayAmount}
-        />
+        />}
+
+        {mode === 'order' && (
+          <div className="mt-6">
+            <Button
+              onClick={handleCreateLimitOrder}
+              className="relative w-full rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 font-semibold shadow-lg overflow-hidden hover:shadow-xl transition-transform transform hover:-translate-y-0.5 active:scale-95 focus:outline-none"
+            >
+              <span className="absolute inset-0 rounded-xl bg-secondary opacity-20 animate-pulse" />
+              <span className="relative z-10 flex items-center justify-center">
+                <ClockArrowUp className="w-4 h-4 mr-2" />
+                Create Swap Order
+              </span>
+            </Button>
+          </div>
+        )}
 
         {/* Security note */}
         <div className="mt-4 text-xs text-muted-foreground flex items-center justify-center">

@@ -18,7 +18,8 @@
         "HIRO_API_KEY",
         "OPENAI_API_KEY",
         "NEXT_PUBLIC_DEX_CACHE_URL",
-        "CRON_SECRET"
+        "CRON_SECRET",
+        "SIGNER_URL"
       ]
     }
   }

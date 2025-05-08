@@ -4,21 +4,27 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev -p 3002",
+    "build": "next build",
     "lint": "next lint",
     "check-types": "tsc --noEmit",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.13",
+    "@radix-ui/react-tabs": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.4",
     "@repo/blaze": "workspace:*",
     "@repo/cryptonomicon": "workspace:*",
+    "@repo/logger": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
-    "@repo/logger": "workspace:*",
-    "@stacks/connect": "^8",
+    "@stacks/connect": "latest",
+    "@stacks/network": "latest",
+    "@stacks/transactions": "latest",
+    "@vercel/kv": "^3",
     "@vercel/og": "^0.6.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -26,7 +32,9 @@
     "next": "^15.2.1",
     "react": "^19",
     "react-dom": "^19",
-    "tailwind-merge": "^3.2.0"
+    "sonner": "^2.0.3",
+    "tailwind-merge": "^3.2.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.2.1",
@@ -38,9 +46,11 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
     "eslint": "^9.24.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.1.3"
   }
 }

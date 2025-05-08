@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Blaze, StacksService } from "@repo/blaze";
+// import removed Blaze
 import { callReadOnlyFunction } from '@repo/polyglot'
 import { Cryptonomicon, Token, MetadataServiceConfig } from "@repo/cryptonomicon"; // Adjust path as needed
 import {
@@ -19,7 +19,6 @@ import {
     SignedMultiSigContractCallOptions,
     SignedContractCallOptions
 } from "@stacks/transactions";
-import StacksClient from "@repo/stacks";
 
 /**
  * Vault instance representing a liquidity pool
@@ -142,7 +141,8 @@ export interface SwapOptions {
 
 export class Dexterity {
     // Static properties
-    static client: Blaze;
+    // static client removed
+    static sender: string;
     static cryptonomicon: Cryptonomicon;
 
     // Router graph components
@@ -160,12 +160,8 @@ export class Dexterity {
      * Initialize the discovery service with appropriate configuration
      */
     static init(options: MetadataServiceConfig = {}) {
-        this.client = new Blaze({
-            disableCache: true,
-            services: [StacksService],
-            ...options,
-        });
         this.cryptonomicon = new Cryptonomicon(options);
+        if (options.stxAddress) this.sender = options.stxAddress;
     }
 
     /**
@@ -182,8 +178,10 @@ export class Dexterity {
             maxHops?: number;
             defaultSlippage?: number;
             debug?: boolean;
-        }
+        },
+        sender?: string,
     ) {
+        if (sender) this.sender = sender;
         this.config.routerAddress = routerAddress;
         this.config.routerName = routerName;
 
@@ -750,8 +748,8 @@ export class Dexterity {
      * Build transaction for a multi-hop swap
      */
     static async buildSwapTransaction(route: Route) {
-        // Ensure client is initialized
-        if (!this.client) this.init();
+        // Ensure cryptonomicon is initialized
+        if (!this.cryptonomicon) this.init();
 
         // Check if router information is available
         if (!this.config.routerAddress || !this.config.routerName) {
@@ -773,7 +771,7 @@ export class Dexterity {
                 hop.tokenOut,
                 hopAmountIn,
                 hopAmountOut,
-                hop.opcode
+                hop.opcode,
             );
 
             // Combine by token
@@ -793,7 +791,7 @@ export class Dexterity {
         // Build function args for the router
         const functionArgs = [
             uintCV(route.amountIn),
-            ...route.hops.map((hop) =>
+            ...route.hops.map((hop: Hop) =>
                 tupleCV({
                     pool: principalCV(hop.vault.contractId),
                     opcode: this.opcodeCV(hop.opcode)
@@ -841,17 +839,18 @@ export class Dexterity {
         tokenOut: Token,
         amountIn: number,
         amountOut: number,
-        opcode: number
+        opcode: number,
     ) {
-        // Assume signer as sender
-        const signer = await this.client.signer.getAddress()
+        // Ensure cryptonomicon is initialized
+        if (!this.cryptonomicon) this.init();
+        console.log(this.sender);
 
         const postConditions: PostCondition[] = [];
 
         if (opcode === OPCODES.OP_DEPOSIT) {
             // DEPOSIT: User sends exact tokenIn amount
             const exactAmountIn = BigInt(amountIn);
-            postConditions.push(this.createPostCondition(tokenIn, exactAmountIn, signer, 'eq'));
+            postConditions.push(this.createPostCondition(tokenIn, exactAmountIn, this.sender, 'eq'));
 
         } else if (opcode === OPCODES.OP_WITHDRAW) {
             // WITHDRAW: Vault sends exact tokenOut amount
@@ -865,7 +864,7 @@ export class Dexterity {
             const minAmountOut = BigInt(Math.floor(amountOut * (1 - this.config.defaultSlippage)));
 
             // Standard swap post conditions with slippage
-            postConditions.push(this.createPostCondition(tokenIn, maxAmountIn, signer, 'lte'));
+            postConditions.push(this.createPostCondition(tokenIn, maxAmountIn, this.sender, 'lte'));
             postConditions.push(this.createPostCondition(tokenOut, minAmountOut, vault.externalPoolId || vault.contractId, 'gte'));
 
             // Handle specific external pool logic if needed (kept from original code)
@@ -899,8 +898,8 @@ export class Dexterity {
         amount: number,
         options: SwapOptions = {}
     ) {
-        // Make sure client is initialized
-        if (!this.client) this.init();
+        // Ensure cryptonomicon is initialized
+        if (!this.cryptonomicon) this.init();
 
         // Find the best route
         const routeResult = await this.findBestRoute(fromTokenId, toTokenId, amount);
@@ -1032,5 +1031,120 @@ export class Dexterity {
             // Return transaction ID
             return broadcastResponse
         }
+    }
+
+    /**
+     * Build transaction config (with hex-encoded args and PCs) for the new x-swap router used by orders/blaze-signer
+     */
+    static async buildXSwapTransaction(
+        route: Route,
+        meta: {
+            amountIn: number | string;
+            signature: string; // 65-byte hex (no 0x)
+            uuid: string;
+            recipient: string; // principal string
+        }
+    ) {
+        // Ensure router configured
+        if (!this.config.routerAddress || !this.config.routerName) {
+            throw new Error('Router address/name not configured');
+        }
+
+        // Helper imports (pulled lazily to avoid tree-shaking issues in browser)
+        const {
+            uintCV,
+            principalCV,
+            contractPrincipalCV,
+            tupleCV,
+        } = await import('@stacks/transactions');
+        const { bufferFromHex } = await import('@stacks/transactions/dist/cl');
+        const { serializeCV } = await import('@stacks/transactions/dist/clarity/serialize');
+        const { Pc } = await import('@stacks/transactions');
+        const { postConditionToHex } = await import('@stacks/transactions/dist/postcondition');
+
+        // -------- Build Clarity Args --------
+        const amountU = BigInt(meta.amountIn);
+        const amountCV = uintCV(amountU);
+        const recipientCV = principalCV(meta.recipient);
+
+        const hopCVs = await Promise.all(
+            route.hops.map(async (hop: Hop) => {
+                const [addr, name] = hop.vault.contractId.split('.');
+                const opcodeHex = hop.opcode.toString(16).padStart(2, '0');
+                return tupleCV({
+                    vault: contractPrincipalCV(addr, name),
+                    opcode: bufferFromHex(opcodeHex),
+                });
+            })
+        );
+
+        // Build in/out tuples
+        const assetId = (t: Token) => `${t.contractId}${t.identifier ? '::' + t.identifier : ''}`;
+
+        const inputTokenContract = route.path[0].contractId;
+        const inputTokenAsset = assetId(route.path[0]);
+        const inCV = tupleCV({
+            token: contractPrincipalCV(inputTokenContract.split('.')[0], inputTokenContract.split('.')[1]),
+            amount: amountCV,
+            signature: bufferFromHex(meta.signature),
+            uuid: (await import('@stacks/transactions')).stringAsciiCV(meta.uuid),
+        });
+
+        const outputTokenContract = route.path[route.path.length - 1].contractId;
+        const outputTokenAsset = assetId(route.path[route.path.length - 1]);
+        const outCV = tupleCV({
+            token: contractPrincipalCV(outputTokenContract.split('.')[0], outputTokenContract.split('.')[1]),
+            to: recipientCV,
+        });
+
+        const functionArgsCV = [inCV, ...hopCVs, outCV];
+
+        // -------- Build Post-conditions --------
+        const routerCID = `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9`;
+
+        // Aggregate by principal|token
+        const pcMap = new Map<string, bigint>();
+        const add = (principal: string, tokenId: string, amt: bigint) => {
+            const key = `${principal}|${tokenId}`;
+            pcMap.set(key, (pcMap.get(key) ?? 0n) + amt);
+        };
+
+        // Use hop.quote amounts if present else calculate based on meta.amountIn cascade
+        route.hops.forEach((hop) => {
+            const amtIn = BigInt(hop.quote?.amountIn ?? 0);
+            const amtOut = BigInt(hop.quote?.amountOut ?? 0);
+
+            if (!hop.tokenIn.contractId.includes('-subnet')) add(routerCID, assetId(hop.tokenIn), amtIn);
+            if (!hop.tokenOut.contractId.includes('-subnet')) {
+                // If the vault is a sub-link vault, use the tokenIn contractId as the principal (the subnet)
+                const contractOut = hop.vault.contractId.includes('sub-link') ? hop.tokenIn.contractId : hop.vault.contractId;
+                add(contractOut, assetId(hop.tokenOut), amtOut)
+            };
+        });
+
+        const lastHop = route.hops[route.hops.length - 1];
+        const finalAmountOut = BigInt(lastHop.quote?.amountOut ?? 0);
+        add(routerCID, outputTokenAsset, finalAmountOut);
+
+        const postConditions = Array.from(pcMap.entries()).map(([key, amount]) => {
+            const [principal, tokenId] = key.split('|');
+            if (tokenId === '.stx::stx') {
+                return Pc.principal(principal).willSendEq(amount).ustx();
+            }
+            const [contractPart, identPart] = tokenId.split('::');
+            return Pc.principal(principal).willSendEq(amount).ft(contractPart as any, identPart);
+        });
+
+        // -------- Hex-encode --------
+        const functionArgs = functionArgsCV.map((cv) => serializeCV(cv));
+        const pcsHex = postConditions.map((pc) => postConditionToHex(pc));
+
+        return {
+            contractAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+            contractName: 'x-multihop-rc9',
+            functionName: `x-swap-${route.hops.length}`,
+            functionArgs,
+            postConditions: pcsHex,
+        };
     }
 }

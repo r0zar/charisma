@@ -410,7 +410,7 @@ export default function SwapDetails({
 
                     {/* Total price impact summary */}
                     {quote && totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && (
-                        <div className="flex justify-between items-center py-3 border-t border-border/30 flex-wrap gap-y-1">
+                        <div className="flex justify-between items-center pt-3 border-t border-border/30 flex-wrap gap-y-1">
                             <span className="text-muted-foreground flex items-center whitespace-nowrap">
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>

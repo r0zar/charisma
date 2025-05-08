@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { Token } from '../../lib/swap-client'; // Assuming Token type is needed
+import { Button } from '../ui/button';
 // Import QuoteResponse type if needed, or simplify props
 
 interface Vault {
@@ -127,7 +128,7 @@ export default function SwapButton({
                             <polyline points="7 23 3 19 7 15"></polyline>
                             <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
                         </svg>
-                        Execute Secure Swap
+                        Execute Instant Swap
                     </>
                 )}
             </span>
@@ -135,7 +136,7 @@ export default function SwapButton({
     }
 
     return (
-        <button
+        <Button
             disabled={isDisabled}
             onClick={handleSwap}
             className={`w-full py-3.5 rounded-xl font-medium text-white shadow-lg transition-all transform relative overflow-hidden ${isDisabled
@@ -151,6 +152,6 @@ export default function SwapButton({
                     <div className="absolute inset-0 bg-white h-full w-1/3 blur-xl transform -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]"></div>
                 </div>
             )}
-        </button>
+        </Button>
     );
 } 

@@ -2,6 +2,14 @@ import { fetch } from 'cross-fetch';
 
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
 
+// Charisma Credits contract
+export const CHARISMA_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
+export const WELSH_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1"
+export const MALI_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.mali-token-subnet-v1"
+export const CHARISMA_TOKEN_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"
+export const WELSHCORGICOIN_CONTRACT = "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
+export const MALI_TOKEN_CONTRACT = "SPKBV3CZB15CM3CVMCMRX56WRYKDY5P5CTQQXSN0.belgian-malinois"
+
 /**
  * Represents the structure of the price data returned by the Kraxel API.
  * It's a record where keys are token identifiers (e.g., 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex')
@@ -25,6 +33,9 @@ export async function listPrices(): Promise<KraxelPriceData> {
     try {
         const data: KraxelPriceData = await response.json();
         data['.stx'] = data['stx'];
+        data[CHARISMA_SUBNET_CONTRACT] = data[CHARISMA_TOKEN_CONTRACT];
+        data[WELSH_SUBNET_CONTRACT] = data[WELSHCORGICOIN_CONTRACT];
+        data[MALI_SUBNET_CONTRACT] = data[MALI_TOKEN_CONTRACT];
         return data;
     } catch (error) {
         throw new Error(`Failed to parse price data from Kraxel API: ${error instanceof Error ? error.message : String(error)}`);

@@ -22,19 +22,24 @@ import {
     TupleData,
 } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl'; // Helper for buffer
-import { request, openContractCall, SignatureData } from "@stacks/connect"; // Revert to request() pattern
+import { request, SignatureData } from "@stacks/connect"; // use request for contract calls
 import { v4 as uuidv4 } from "uuid"; // Import uuid
 import { Loader2 } from 'lucide-react'; // For loading state
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // For status/errors
-import { BLAZE_SIGNER_CONTRACT, BLAZE_PROTOCOL_NAME, BLAZE_PROTOCOL_VERSION } from "@/constants/contracts";
+import {
+    BLAZE_PROTOCOL_NAME,
+    BLAZE_PROTOCOL_VERSION,
+    CHARISMA_CREDITS_CONTRACT,
+    WELSH_CREDITS_CONTRACT,
+} from "@/constants/contracts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// TODO: Replace with actual multihop contract ID
-const MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc5";
+// Multihop router contract (testing)
+const MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9";
 // TODO: Define these based on blaze standards if different
 
-const TOKEN_A_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6";
-const TOKEN_B_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-rc2";
+const TOKEN_A_SUBNET = CHARISMA_CREDITS_CONTRACT;
+const TOKEN_B_SUBNET = WELSH_CREDITS_CONTRACT;
 
 // Refined types
 interface HopInputDetails {
@@ -53,7 +58,7 @@ export const MultihopTester: React.FC = () => {
     const { address: walletAddress, connected: isWalletConnected } = useWallet();
     const network: StacksNetwork = STACKS_MAINNET; // Or get from context/config
 
-    const [numHops, setNumHops] = useState<1 | 2 | 3>(1);
+    const [numHops, setNumHops] = useState<1 | 2 | 3 | 4 | 5>(1);
     const [amountInput, setAmountInput] = useState<string>(''); // Use string for input
     const [recipient, setRecipient] = useState<string>('');
     const [hops, setHops] = useState<HopState[]>([{ vault: '', opcode: '00' }]);
@@ -70,7 +75,7 @@ export const MultihopTester: React.FC = () => {
     const [uuidForApi, setUuidForApi] = useState<string | null>(null);
 
     const handleNumHopsChange = (value: string) => {
-        const n = parseInt(value, 10) as 1 | 2 | 3;
+        const n = parseInt(value, 10) as 1 | 2 | 3 | 4 | 5;
         setNumHops(n);
         setHops(prevHops => {
             const newHops = [...prevHops];
@@ -181,11 +186,6 @@ export const MultihopTester: React.FC = () => {
                 const hop1Vault = hops[0].vault;
                 // Determine opcode CV based on selected direction for Hop 1
                 const hop1Direction = swapDirections[0];
-                const hop1OpcodeClarityValue = hop1Direction === 'a-to-b'
-                    ? optionalCVOf(bufferFromHex('00'))
-                    : hop1Direction === 'b-to-a'
-                        ? optionalCVOf(bufferFromHex('01'))
-                        : noneCV(); // Should not happen with default
 
                 if (!hop1Vault) throw new Error("Vault contract for Hop 1 is required for signing.");
 
@@ -200,14 +200,17 @@ export const MultihopTester: React.FC = () => {
                     // Note: Pool forms don't include contract-address in domain, following that pattern.
                 });
 
+                // Determine subnet token for signing (matches first hop input)
+                const signingSubnetToken = hop1Direction === 'a-to-b' ? TOKEN_A_SUBNET : TOKEN_B_SUBNET;
+
                 // Define structured data message payload matching x-execute verification needs
                 // The recipient for the signed message is the multihop contract itself.
                 const message = tupleCV({
-                    contract: principalCV(TOKEN_A_CONTRACT_ID),
+                    contract: principalCV(signingSubnetToken),
                     intent: stringAsciiCV('TRANSFER_TOKENS'),
-                    opcode: noneCV(),//hop1OpcodeClarityValue,
+                    opcode: noneCV(),
                     amount: optionalCVOf(uintCV(amount)),
-                    target: optionalCVOf(principalCV('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.monkey-d-luffy-rc11')),
+                    target: optionalCVOf(principalCV(MULTIHOP_CONTRACT_ID)),
                     uuid: uuidClarityValue,
                 });
 
@@ -253,6 +256,22 @@ export const MultihopTester: React.FC = () => {
         }
     };
 
+    // --- Helper: Build preview of API payload ---
+    const buildPreviewPayload = () => {
+        if (!amountInput) return null;
+        const inputToken = swapDirections[0] === 'a-to-b' ? TOKEN_A_SUBNET : TOKEN_B_SUBNET;
+        const outputToken = swapDirections[numHops - 1] === 'a-to-b' ? TOKEN_B_SUBNET : TOKEN_A_SUBNET;
+        return {
+            amount: amountInput || '0',
+            recipient: recipient || '<recipient>',
+            signature: signatureForApi ?? '<signature>',
+            uuid: uuidForApi ?? '<uuid>',
+            inputToken,
+            outputToken,
+            hops: hops.map(({ vault, opcode }) => ({ vault, opcode })),
+        };
+    };
+
     // Step 2: Call the backend API with signed data
     const handleExecuteApiCall = async () => {
         if (!isWalletConnected) {
@@ -281,20 +300,20 @@ export const MultihopTester: React.FC = () => {
         setTxResult(null);
 
         try {
-            // Prepare payload for the API
+            // Determine input/output tokens based on swap directions
+            const inputToken = swapDirections[0] === 'a-to-b' ? TOKEN_A_SUBNET : TOKEN_B_SUBNET;
+            const outputToken = swapDirections[numHops - 1] === 'a-to-b' ? TOKEN_B_SUBNET : TOKEN_A_SUBNET;
+
             const apiPayload = {
-                numHops: numHops,
-                amount: amountInput, // Send amount as string
-                recipient: recipient, // Send recipient principal string
-                hops: hops.map((hop, index) => ({
-                    vault: hop.vault, // Contract ID string
-                    opcode: hop.opcode, // Hex string (e.g., 0x00)
-                    // Only include signature/uuid for the first hop
-                    ...(index === 0 && {
-                        // Use state variables holding the sig/uuid
-                        signature: signatureForApi ?? (() => { throw new Error("API Signature missing") })(), // Raw hex
-                        uuid: uuidForApi ?? (() => { throw new Error("API UUID missing") })()
-                    })
+                amount: amountInput,
+                recipient,
+                signature: signatureForApi ?? (() => { throw new Error('Missing signature') })(),
+                uuid: uuidForApi ?? (() => { throw new Error('Missing uuid') })(),
+                inputToken,
+                outputToken,
+                hops: hops.map((hop) => ({
+                    vault: hop.vault,
+                    opcode: hop.opcode,
                 })),
             };
 
@@ -338,6 +357,56 @@ export const MultihopTester: React.FC = () => {
         }
     };
 
+    // Helper to open a contract call using stacks-connect request()
+    const openCall = async (functionName: string, functionArgs: ClarityValue[]) => {
+        console.log("Opening contract call:", MULTIHOP_CONTRACT_ID, functionName, functionArgs);
+        const result = await request("stx_callContract", {
+            contract: MULTIHOP_CONTRACT_ID,
+            functionName,
+            functionArgs,
+        })
+        console.log("Contract call result:", result);
+    };
+
+    const handleTestXDeposit = async () => {
+        if (!signatureForApi || !uuidForApi) {
+            alert('Generate signature first');
+            return;
+        }
+        const inputToken = swapDirections[0] === 'a-to-b' ? TOKEN_A_SUBNET : TOKEN_B_SUBNET;
+        const [inAddr, inName] = inputToken.split('.') as [string, string];
+        const tuple = tupleCV({
+            token: contractPrincipalCV(inAddr, inName),
+            amount: uintCV(BigInt(amountInput || '0')),
+            signature: bufferFromHex(signatureForApi),
+            uuid: stringAsciiCV(uuidForApi!),
+        });
+        await openCall('test-x-deposit', [tuple]);
+    };
+
+    const handleTestExecute = async () => {
+        const firstHop = hops[0];
+        if (!firstHop?.vault) {
+            alert('Vault required');
+            return;
+        }
+        const [vAddr, vName] = firstHop.vault.split('.') as [string, string];
+        const opTuple = tupleCV({
+            vault: contractPrincipalCV(vAddr, vName),
+            opcode: bufferFromHex(firstHop.opcode || '00'),
+        });
+        await openCall('test-execute', [opTuple, uintCV(BigInt(amountInput || '0'))]);
+    };
+
+    const handleTestWithdraw = async () => {
+        const outputToken = swapDirections[numHops - 1] === 'a-to-b' ? TOKEN_B_SUBNET : TOKEN_A_SUBNET;
+        const outTuple = tupleCV({
+            token: principalCV(outputToken),
+            to: principalCV(recipient || walletAddress || 'SP...'),
+        });
+        await openCall('test-withdraw', [outTuple, uintCV(BigInt(amountInput || '0'))]);
+    };
+
     return (
         <div className="space-y-6">
             {!isWalletConnected && (
@@ -348,8 +417,8 @@ export const MultihopTester: React.FC = () => {
             )}
             <div>
                 <Label>Number of Hops</Label>
-                <RadioGroup defaultValue="1" onValueChange={handleNumHopsChange} className="flex space-x-4 mt-2">
-                    {[1, 2, 3].map(n => (
+                <RadioGroup defaultValue="1" onValueChange={handleNumHopsChange} className="flex space-x-4 mt-2 flex-wrap gap-2">
+                    {[1, 2, 3, 4, 5].map(n => (
                         <div key={n} className="flex items-center space-x-2">
                             <RadioGroupItem value={String(n)} id={`r${n}`} disabled={!isWalletConnected || isLoading} />
                             <Label htmlFor={`r${n}`}>{n} Hop{n > 1 ? 's' : ''}</Label>
@@ -421,6 +490,21 @@ export const MultihopTester: React.FC = () => {
                     )}
                 </div>
             ))}
+
+            {/* JSON Preview */}
+            <div className="border rounded p-4 bg-muted/10">
+                <h4 className="font-medium mb-2">Route Preview (JSON)</h4>
+                <pre className="whitespace-pre-wrap text-xs overflow-auto max-h-60">
+                    {JSON.stringify(buildPreviewPayload(), null, 2)}
+                </pre>
+            </div>
+
+            {/* Test Functions */}
+            <div className="flex flex-wrap gap-2 my-4">
+                <Button variant="secondary" onClick={handleTestXDeposit} disabled={!signatureForApi || !uuidForApi || !amountInput}>test-x-deposit</Button>
+                <Button variant="secondary" onClick={handleTestExecute} disabled={!amountInput || !hops[0]?.vault}>test-execute</Button>
+                <Button variant="secondary" onClick={handleTestWithdraw} disabled={!amountInput || !recipient}>test-withdraw</Button>
+            </div>
 
             {/* Button Container */}
             <div className="flex flex-col sm:flex-row gap-4">

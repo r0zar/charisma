@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         const newCollateralRaw = currentSupplyRaw + feePool + amountTokens;
         const stableCents = await totalStableSupply();
         const collateralUsdCents = Math.floor(newCollateralRaw * price * 100 / factor);
-        const minCollateralCents = Math.ceil(stableCents * 2.5);
+        const minCollateralCents = Math.ceil(stableCents * 1.5);
         // deposit only improves collateral so always allowed
         await addBalance(sender, amountTokens);
         const bal = await getBalance(sender);

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Cryptonomicon } from "@repo/cryptonomicon";
 import { getQuote, getRoutableTokens } from "../app/actions";
-import { swapClient, Token } from "../lib/swap-client";
+import { createSwapClient, Token } from "../lib/swap-client";
 import { useWallet } from "../contexts/wallet-context";
 import { listPrices, KraxelPriceData } from '@repo/tokens';
+import { signTriggeredSwap } from "@/lib/swap-client";
 
 /**
  * Vault instance representing a liquidity pool
@@ -113,6 +114,9 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
     // Balance cache ref (will persist between renders but won't cause re-renders)
     const balanceCacheRef = useRef<BalanceCache>({});
+
+    // Initialize swap client
+    const swapClient = createSwapClient({ stxAddress: walletAddress });
 
     // Update userAddress when wallet address changes
     useEffect(() => {
@@ -386,6 +390,54 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         setMicroAmount(swapClient.convertToMicroUnits(displayAmount, selectedToToken.decimals));
     }
 
+    /**
+     * Create a triggered swap order (off-chain limit order)
+     */
+    async function createTriggeredSwap(opts: {
+        conditionToken: Token;
+        targetPrice: string;
+        direction: 'lt' | 'gt';
+        amountDisplay: string;
+    }) {
+        if (!walletAddress) throw new Error('Connect wallet');
+        const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
+
+        const micro = swapClient.convertToMicroUnits(opts.amountDisplay, selectedFromToken?.decimals || 6);
+
+        const signature = await signTriggeredSwap({
+            subnetTokenContractId: selectedFromToken?.contractId!,
+            uuid,
+            amountMicro: BigInt(micro),
+            multihopContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
+        });
+
+        const payload = {
+            owner: walletAddress,
+            inputToken: selectedFromToken?.contractId,
+            outputToken: selectedToToken?.contractId,
+            amountIn: micro,
+            targetPrice: opts.targetPrice,
+            direction: opts.direction,
+            conditionToken: opts.conditionToken.contractId,
+            recipient: walletAddress,
+            signature,
+            uuid,
+        };
+
+        const res = await fetch('/api/v1/orders/new', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const j = await res.json().catch(() => ({ error: 'unknown' }));
+            throw new Error(j.error || 'Order create failed');
+        }
+
+        return await res.json();
+    }
+
     // ---------------------- Return API ----------------------
     return {
         // data
@@ -427,9 +479,10 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         handleSwap,
         handleSwitchTokens,
         clearBalanceCache,
+        createTriggeredSwap,
 
         // derived values
         fromTokenValueUsd,
         toTokenValueUsd,
-    } as const;
+    };
 } 

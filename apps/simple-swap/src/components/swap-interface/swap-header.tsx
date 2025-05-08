@@ -2,18 +2,50 @@
 
 import React from 'react';
 
+interface ToggleProps {
+    mode: 'swap' | 'order';
+    onChange: (m: 'swap' | 'order') => void;
+}
+
+function ModeToggle({ mode, onChange }: ToggleProps) {
+    const orderDisabled = true;
+    return (
+        <div className="flex items-center border border-border/40 rounded-md overflow-hidden text-xs select-none">
+            {(['swap', 'order'] as const).map((m) => {
+                const isDisabled = orderDisabled && m === 'order';
+                const isActive = mode === m;
+                return (
+                    <button
+                        key={m}
+                        className={`relative px-2.5 py-1 transition-colors ${isActive ? 'bg-primary text-primary-foreground' : 'bg-transparent'} ${isDisabled ? 'cursor-not-allowed text-muted-foreground/60 hover:bg-transparent' : 'hover:bg-muted'}`}
+                        onClick={() => {
+                            if (isDisabled) return;
+                            onChange(m);
+                        }}
+                    >
+                        {m === 'swap' ? 'Swap' : 'Order'}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 interface SwapHeaderProps {
     securityLevel: 'high' | 'medium' | 'low' | null;
     userAddress: string | null;
+    mode: 'swap' | 'order';
+    onModeChange: (m: 'swap' | 'order') => void;
 }
 
 export default function SwapHeader({
     securityLevel,
-    userAddress
+    mode,
+    onModeChange
 }: SwapHeaderProps) {
     return (
         <div className="border-b border-border/30 p-5 flex justify-between items-center bg-gradient-to-r from-card to-card/90">
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-3">
                 <h2 className="text-lg font-semibold text-foreground">Secure Token Swap</h2>
 
                 {/* Security level indicator */}
@@ -27,17 +59,8 @@ export default function SwapHeader({
                 )}
             </div>
 
-            <div className="flex items-center shrink-0">
-                {userAddress && (
-                    <div className="flex items-center text-xs text-muted-foreground px-2 py-1 bg-muted/40 rounded-md cursor-pointer hover:bg-muted/60 transition-colors max-w-[120px] sm:max-w-none"
-                        title={userAddress}>
-                        <svg className="h-3 w-3 mr-1 text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                        {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
-                    </div>
-                )}
+            <div className="flex items-center gap-3 shrink-0">
+                <ModeToggle mode={mode} onChange={onModeChange} />
             </div>
         </div>
     );

@@ -323,8 +323,8 @@ export default function StablecoinPage() {
                 <p className="mb-2 font-medium">How it works</p>
                 <ul className="list-disc pl-5 space-y-1">
                     <li><span className="font-semibold">Permissionless collateral:</span> anyone can deposit WELSH into the vault at any time (see "Provide / Withdraw WELSH" below) and instantly boost the system collateral ratio.</li>
-                    <li>When you supply collateral you keep ownership – your personal WELSH balance increases and can be withdrawn whenever the system remains above the 250&nbsp;% requirement.</li>
-                    <li>Every USD stable that is minted must leave the vault at <span className="font-semibold">≥ 250&nbsp;%</span> collateral.  If a mint would drop below this level it is rejected automatically.</li>
+                    <li>When you supply collateral you keep ownership – your personal WELSH balance increases and can be withdrawn whenever the system remains above the 150&nbsp;% requirement.</li>
+                    <li>Every USD stable that is minted must leave the vault at <span className="font-semibold">≥ 150&nbsp;%</span> collateral.  If a mint would drop below this level it is rejected automatically.</li>
                     <li>A <span className="font-semibold">1 % fee</span> is collected on every mint (in WELSH) and every redeem (in USD).</li>
                     <li>Mint-fees are <span className="font-semibold">rebated</span> to all WELSH providers automatically, proportional to the amount of collateral they have supplied – watch your "Your WELSH" card grow when new USD is minted.</li>
                     <li>USD redeem-fees accumulate in a pool that is periodically used to <span className="font-semibold">market-buy WELSH on the DEX</span>; the purchased WELSH is sent to the vault and automatically distributed to all collateral providers.</li>

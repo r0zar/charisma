@@ -7,6 +7,14 @@
         {
             "path": "/api/cron/hoot-farmer",
             "schedule": "*/3 * * * *"
+        },
+        {
+            "path": "/api/cron/price",
+            "schedule": "*/1 * * * *"
+        },
+        {
+            "path": "/api/cron/orders",
+            "schedule": "*/1 * * * *"
         }
     ]
 }

@@ -2,6 +2,8 @@
  */
 import { Dexterity, Route, Vault } from '@/lib/dexterity-client';
 import { getQuote as getQuoteAction } from '../app/actions';
+import { request } from '@stacks/connect';
+import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf } from '@stacks/transactions';
 
 /**
  * API response interfaces
@@ -31,10 +33,20 @@ export interface ApiError {
  */
 export interface SwapClientOptions {
   /**
+   * Address of the account orchestrating the multihopswaps
+   */
+  stxAddress?: string;
+  /**
    * URL for the dex-cache API (used for fetching vaults and tokens)
    */
   dexCacheUrl?: string;
+  /**
+   * Address of the router contract
+   */
   routerAddress?: string;
+  /**
+   * Name of the router contract
+   */
   routerName?: string;
 }
 
@@ -49,12 +61,17 @@ export function createSwapClient(options: SwapClientOptions = {}) {
     routerName: options.routerName || 'multihop'
   };
 
+  if (options.stxAddress) {
+    Dexterity.init({ stxAddress: options.stxAddress });
+  }
+
   // Configure Dexterity if router info provided
   if (config.routerAddress && config.routerName) {
     Dexterity.configureRouter(
       config.routerAddress,
       config.routerName,
-      { maxHops: 3, defaultSlippage: 0.01 }
+      { maxHops: 3, defaultSlippage: 0.01 },
+      options.stxAddress
     );
   }
 
@@ -318,10 +335,40 @@ export function createSwapClient(options: SwapClientOptions = {}) {
   };
 }
 
-/**
- * Default swap client instance
- * 
- * - Uses dex-cache API for vaults and tokens (primary source)
- * - Uses dexterity API for quotes and as fallback for tokens
- */
-export const swapClient = createSwapClient();
+export async function signTriggeredSwap({
+  subnetTokenContractId,
+  uuid,
+  amountMicro,
+  multihopContractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
+  intent = 'TRANSFER_TOKENS',
+  domainName = 'BLAZE_PROTOCOL',
+  version = 'v1.0',
+}: {
+  subnetTokenContractId: string;
+  uuid: string;
+  amountMicro: bigint; // already in micro units
+  multihopContractId?: string;
+  intent?: string;
+  domainName?: string;
+  version?: string;
+}): Promise<string> {
+  const domain = tupleCV({
+    name: stringAsciiCV(domainName),
+    version: stringAsciiCV(version),
+    'chain-id': uintCV(1),
+  });
+
+  const message = tupleCV({
+    contract: principalCV(subnetTokenContractId),
+    intent: stringAsciiCV(intent),
+    opcode: noneCV(),
+    amount: optionalCVOf(uintCV(amountMicro)),
+    target: optionalCVOf(principalCV(multihopContractId)),
+    uuid: stringAsciiCV(uuid),
+  });
+
+  // @ts-ignore – upstream types don't include method yet
+  const res = await request('stx_signStructuredMessage', { domain, message });
+  if (!res?.signature) throw new Error('User cancelled the signature');
+  return res.signature as string; // raw 65-byte hex
+}

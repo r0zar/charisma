@@ -26,12 +26,20 @@ export function Header() {
                         </Link>
                         <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-muted-foreground/70 cursor-not-allowed">
-                                Tokens
+                                Orders
                             </span>
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded-full border border-border/50">
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted-foreground/20 text-muted-foreground rounded-full border border-border/50">
                                 Soon
                             </span>
                         </div>
+                        {/* <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-muted-foreground/70 cursor-not-allowed">
+                                Tokens
+                            </span>
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted-foreground/20 text-muted-foreground rounded-full border border-border/50">
+                                Soon
+                            </span>
+                        </div> */}
                     </nav>
                 </div>
 

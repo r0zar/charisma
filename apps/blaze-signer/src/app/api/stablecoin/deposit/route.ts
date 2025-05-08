@@ -35,9 +35,9 @@ export async function POST(req: Request) {
         const newStableCents = (await totalStableSupply()) + Math.round(usdAmount * 100)
         // collateral USD cents
         const collateralUsdCents = Math.floor(newCollateralRaw * price * 100 / (10 ** decimals))
-        const minCollateralCents = Math.ceil(newStableCents * 2.5)
+        const minCollateralCents = Math.ceil(newStableCents * 1.5)
         if (collateralUsdCents < minCollateralCents) {
-            return NextResponse.json({ error: "Collateral ratio would fall below 250%" }, { status: 400 })
+            return NextResponse.json({ error: "Collateral ratio would fall below 150%" }, { status: 400 })
         }
 
         await Promise.all([

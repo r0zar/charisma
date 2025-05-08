@@ -1,3 +1,6 @@
+;; Traits
+(impl-trait .charisma-traits-v1.vault-trait)
+
 ;; Constants
 (define-constant DEPLOYER tx-sender)
 (define-constant CONTRACT (as-contract tx-sender))
@@ -12,18 +15,18 @@
 
 ;; --- Helper Functions ---
 
-(define-private (get-byte (opcode (buff 16)) (position uint))
-    (unwrap-panic (element-at? opcode position)))
+(define-private (get-byte (opcode (optional (buff 16))) (position uint))
+    (default-to 0x00 (element-at? (default-to 0x00 opcode) position)))
 
 ;; --- Core Functions ---
 
-(define-public (execute (amount uint) (opcode (buff 16)) (recipient principal))
+(define-public (execute (amount uint) (opcode (optional (buff 16))))
     (let (
         (operation (get-byte opcode u0)))
-        (if (is-eq operation OP_SWAP_A_TO_B) (swap-a-to-b amount recipient)
-        (if (is-eq operation OP_SWAP_B_TO_A) (swap-b-to-a amount recipient)
-        (if (is-eq operation OP_ADD_LIQUIDITY) (add-liquidity amount recipient)
-        (if (is-eq operation OP_REMOVE_LIQUIDITY) (remove-liquidity amount recipient)
+        (if (is-eq operation OP_SWAP_A_TO_B) (swap-a-to-b amount tx-sender)
+        (if (is-eq operation OP_SWAP_B_TO_A) (swap-b-to-a amount tx-sender)
+        (if (is-eq operation OP_ADD_LIQUIDITY) (add-liquidity amount tx-sender)
+        (if (is-eq operation OP_REMOVE_LIQUIDITY) (remove-liquidity amount tx-sender)
         ERR_INVALID_OPERATION))))))
 
 (define-public (swap-a-to-b (amount uint) (recipient principal))
@@ -42,7 +45,7 @@
 
 (define-public (x-execute (amount uint) (opcode (buff 16)) (signature (buff 65)) (uuid (string-ascii 36)) (recipient principal))
     (let (
-        (operation (get-byte opcode u0)))
+        (operation (get-byte (some opcode) u0)))
         (if (is-eq operation OP_SWAP_A_TO_B) (x-swap-a-to-b amount signature uuid recipient)
         (if (is-eq operation OP_SWAP_B_TO_A) (x-swap-b-to-a amount signature uuid recipient)
         ERR_INVALID_OPERATION))))
