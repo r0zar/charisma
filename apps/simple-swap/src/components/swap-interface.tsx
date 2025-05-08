@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import TokenDropdown from "./TokenDropdown";
 import { useSwap } from "../hooks/useSwap";
 import type { Token } from "../lib/swap-client";
@@ -51,6 +51,9 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
   const [targetPrice, setTargetPrice] = useState('');
   const [conditionToken, setConditionToken] = useState<Token | null>(null);
   const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
+
+  // Ref to track previous mode
+  const prevModeRef = useRef<string>(mode);
 
   const {
     selectedTokens,
@@ -279,32 +282,36 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     setTargetPrice(updated.toFixed(4));
   };
 
-  // When user switches to Trigger mode, default the "from" and condition tokens to Charisma
-  // and enable subnet mode for the "from" token.
+  // Effect to handle mode changes, specifically defaulting for 'order' mode
   useEffect(() => {
-    if (mode !== 'order') return;
+    // Update prevModeRef *after* checking the condition
+    const prevMode = prevModeRef.current;
+    prevModeRef.current = mode;
 
-    // If we already set the condition token to Charisma once, skip further runs
-    if (conditionToken && conditionToken.contractId.includes('charisma-token')) return;
+    // Only default condition token when switching *into* order mode and it's not already set
+    if (mode === 'order' && prevMode !== 'order' && !conditionToken) {
+      // Locate the base (main-net) Charisma token in the available list
+      const charismaBase = displayTokens.find(
+        (t) => t.contractId.includes('.charisma-token') && !t.contractId.includes('-subnet')
+      );
 
-    // Locate the base (main-net) Charisma token in the available list
-    const charismaBase = displayTokens.find(
-      (t) => t.contractId.includes('.charisma-token') && !t.contractId.includes('-subnet')
-    );
+      if (!charismaBase) return; // Charisma token not available yet
 
-    if (!charismaBase) return; // Charisma token not available yet
+      // 1. Select Charisma as the base FROM token (only if not already set - might be redundant now)
+      // setBaseSelectedFromToken(charismaBase);
 
-    // 1. Select Charisma as the base FROM token
-    setBaseSelectedFromToken(charismaBase);
+      // 2. Enable subnet mode for FROM token
+      setUseSubnetFrom(true);
 
-    // 2. Enable subnet mode so the actual token becomes the subnet variant
-    setUseSubnetFrom(true);
+      // 3. Set the condition token to Charisma (prefer subnet variant if present)
+      const counterparts = tokenCounterparts.get(charismaBase.contractId);
+      const charismaToSet = counterparts?.subnet ?? charismaBase;
+      setConditionToken(charismaToSet);
+      // console.log({ conditionTokenSet: charismaToSet }, 'Defaulted condition token to Charisma on entering Order mode'); // Use console.log if needed for debugging
+    }
+    // No else needed - we don't want to interfere if the mode is not 'order' or if a token is already selected
 
-    // 3. Set the condition token to Charisma (prefer subnet variant if present)
-    const counterparts = tokenCounterparts.get(charismaBase.contractId);
-    const charismaSubnet = counterparts?.subnet ?? charismaBase;
-    setConditionToken(charismaSubnet);
-  }, [mode, conditionToken, displayTokens, tokenCounterparts, setBaseSelectedFromToken, setUseSubnetFrom, setConditionToken]);
+  }, [mode, conditionToken, displayTokens, tokenCounterparts, setUseSubnetFrom, setConditionToken]);
 
   // Enhanced swap handler with state transitions
   const handleEnhancedSwap = async () => {
