@@ -17,7 +17,7 @@ function ModeToggle({ mode, onChange }: ToggleProps) {
                 return (
                     <button
                         key={m}
-                        className={`relative px-2.5 py-1 transition-colors ${isActive ? 'bg-primary text-primary-foreground' : 'bg-transparent'} ${isDisabled ? 'cursor-not-allowed text-muted-foreground/60 hover:bg-transparent' : 'hover:bg-muted'}`}
+                        className={`cursor-pointer relative px-2.5 py-1 transition-colors ${isActive ? 'bg-primary text-primary-foreground' : 'bg-transparent'} ${isDisabled ? 'cursor-not-allowed text-muted-foreground/60 hover:bg-transparent' : 'hover:bg-muted'}`}
                         onClick={() => {
                             if (isDisabled) return;
                             onChange(m);

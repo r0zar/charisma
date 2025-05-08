@@ -24,14 +24,17 @@ export function Header() {
                         <Link href="/swap" className="text-sm font-medium hover:text-primary transition-colors">
                             Swap
                         </Link>
-                        <div className="flex items-center gap-1.5">
+                        <Link href="/orders" className="text-sm font-medium hover:text-primary transition-colors">
+                            Orders
+                        </Link>
+                        {/* <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-muted-foreground/70 cursor-not-allowed">
                                 Orders
                             </span>
                             <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted-foreground/20 text-muted-foreground rounded-full border border-border/50">
                                 Soon
                             </span>
-                        </div>
+                        </div> */}
                         {/* <div className="flex items-center gap-1.5">
                             <span className="text-sm font-medium text-muted-foreground/70 cursor-not-allowed">
                                 Tokens

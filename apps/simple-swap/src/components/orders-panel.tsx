@@ -207,7 +207,7 @@ export default function OrdersPanel() {
         <>
             <Card className="bg-transparent border-none container">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 md:px-0 pt-6 md:pt-0">
-                    <CardHeader className="flex-row items-center gap-3 p-0">
+                    <CardHeader className="flex-row items-center gap-3 px-1">
                         <ClipboardList className="h-6 w-6 text-primary" />
                         <div>
                             <CardTitle>My Orders</CardTitle>
@@ -350,12 +350,12 @@ export default function OrdersPanel() {
                                                 <td className="px-2 py-2">
                                                     {o.status === "open" && (
                                                         <div className="flex gap-2">
-                                                            <Button variant="secondary" size="sm" onClick={() => executeNow(o.uuid)}>
+                                                            <button className="cursor-pointer hover:bg-primary/80 px-2 py-1 rounded-md bg-primary text-primary-foreground" onClick={() => executeNow(o.uuid)}>
                                                                 Execute
-                                                            </Button>
-                                                            <Button variant="outline" size="sm" onClick={() => setConfirmUuid(o.uuid)}>
+                                                            </button>
+                                                            <button className="cursor-pointer hover:bg-destructive/80 px-2 py-1 rounded-md bg-destructive text-destructive-foreground" onClick={() => setConfirmUuid(o.uuid)}>
                                                                 Cancel
-                                                            </Button>
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </td>
