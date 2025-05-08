@@ -3,29 +3,27 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { addPriceSnapshot } from '@/lib/price/store';
-
-/**
- * Provide a simple way to fetch price for a given token pair.
- * In production you should replace this with a real oracle or DEX query.
- */
-async function fetchPrice(pair: string): Promise<number> {
-    // Example: call your price oracle endpoint here.
-    // For now we return a random price between 0.9 and 1.1 to simulate.
-    const base = 1;
-    const variance = Math.random() * 0.2 - 0.1; // ±10%
-    return base + variance;
-}
+import { listPrices } from '@repo/tokens';
 
 export async function GET() {
-    const pairs = (process.env.PRICE_PAIRS ?? 'tokenA-tokenB').split(',').map((p) => p.trim()).filter(Boolean);
     const now = Date.now();
+    let count = 0;
 
     try {
-        for (const pair of pairs) {
-            const price = await fetchPrice(pair);
-            await addPriceSnapshot(pair, price, now);
+        // Fetch all token prices (USD values) from the source
+        const prices = await listPrices();
+
+        // Store each token's price individually
+        for (const [contractId, price] of Object.entries(prices)) {
+            // Skip tokens without a valid price
+            if (typeof price !== 'number' || isNaN(price)) continue;
+
+            // Use contractId as the key for storage
+            await addPriceSnapshot(contractId, price, now);
+            count++;
         }
-        return NextResponse.json({ status: 'success', pairs, timestamp: now });
+
+        return NextResponse.json({ status: 'success', count, timestamp: now });
     } catch (err) {
         console.error('Price snapshot cron failed', err);
         return NextResponse.json({ error: 'Failed to snapshot prices' }, { status: 500 });
