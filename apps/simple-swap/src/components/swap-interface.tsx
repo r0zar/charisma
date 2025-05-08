@@ -571,7 +571,10 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
           <LimitConditionSection
             displayTokens={displayTokens}
             selectedToken={conditionToken || displayedToToken}
-            onSelectToken={(t) => setConditionToken(t)}
+            onSelectToken={(t) => {
+              setConditionToken(t);
+              setTargetPrice(''); // Reset price when condition token changes
+            }}
             targetPrice={targetPrice}
             onTargetChange={setTargetPrice}
             direction={conditionDir}
