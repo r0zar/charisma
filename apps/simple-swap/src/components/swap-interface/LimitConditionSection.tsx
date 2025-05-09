@@ -31,7 +31,7 @@ export default function LimitConditionSection({
     onDirectionChange,
     onBump,
 }: Props) {
-    const [showChart, setShowChart] = useState(false);
+    const [showChart, setShowChart] = useState(true);
     const SUSDT_ID = 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
 
     const handleReset = () => {

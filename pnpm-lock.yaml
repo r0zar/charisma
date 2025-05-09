@@ -901,6 +901,9 @@ importers:
       '@stacks/connect':
         specifier: latest
         version: 8.1.9
+      '@stacks/encryption':
+        specifier: latest
+        version: 7.0.6
       '@stacks/network':
         specifier: latest
         version: 7.0.2
@@ -1374,9 +1377,15 @@ importers:
       '@stacks/connect':
         specifier: ^8.1.9
         version: 8.1.9
+      '@stacks/encryption':
+        specifier: latest
+        version: 7.0.6
+      '@stacks/network':
+        specifier: latest
+        version: 7.0.2
       '@stacks/transactions':
-        specifier: ^7.0.5
-        version: 7.0.5
+        specifier: latest
+        version: 7.0.6
     devDependencies:
       '@jest/globals':
         specifier: ^29.7.0
@@ -5773,6 +5782,19 @@ packages:
 
   /@stacks/encryption@7.0.5:
     resolution: {integrity: sha512-X42ZuUPX6vRb3JCt5nkqFunef9EeOLfHXjsKUD2HcOJT7hgC6p6VNTs5iwy/aOQMZdVsxFYAy56m5DbStPU06Q==}
+    dependencies:
+      '@noble/hashes': 1.1.5
+      '@noble/secp256k1': 1.7.1
+      '@scure/bip39': 1.1.0
+      '@stacks/common': 7.0.2
+      base64-js: 1.5.1
+      bs58: 5.0.0
+      ripemd160-min: 0.0.6
+      varuint-bitcoin: 1.1.2
+    dev: false
+
+  /@stacks/encryption@7.0.6:
+    resolution: {integrity: sha512-tUaYmsaRHRS95eeVBrfctAixFwL2yZHjDltC3dgQ+JjpcYNnWuvPOWoEEENwSU/t/Dj0b/xGSd1YW7z9CFd+cQ==}
     dependencies:
       '@noble/hashes': 1.1.5
       '@noble/secp256k1': 1.7.1

@@ -22,6 +22,7 @@
     "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@stacks/connect": "latest",
+    "@stacks/encryption": "latest",
     "@stacks/network": "latest",
     "@stacks/transactions": "latest",
     "@vercel/kv": "^3",

@@ -34,7 +34,9 @@
   "dependencies": {
     "@stacks/blockchain-api-client": "^8.8.0",
     "@stacks/connect": "^8.1.9",
-    "@stacks/transactions": "^7.0.5"
+    "@stacks/transactions": "latest",
+    "@stacks/encryption": "latest",
+    "@stacks/network": "latest"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

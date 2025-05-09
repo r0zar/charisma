@@ -13,6 +13,7 @@ import { ClipboardList, Copy, Check, Zap, Trash2 } from "lucide-react";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./ui/tooltip";
+import { signedFetch } from "@repo/stacks";
 
 interface BadgeProps {
     status: LimitOrder["status"];
@@ -186,7 +187,7 @@ export default function OrdersPanel() {
 
     const cancelOrder = async (uuid: string) => {
         try {
-            const res = await fetch(`/api/v1/orders/${uuid}/cancel`, { method: "PATCH" });
+            const res = await signedFetch(`/api/v1/orders/${uuid}/cancel`, { method: "PATCH", message: uuid });
             if (!res.ok) {
                 const j = await res.json().catch(() => ({}));
                 throw new Error(j.error || "Cancel failed");
@@ -203,7 +204,7 @@ export default function OrdersPanel() {
     const executeNow = async (uuid: string) => {
         toast.info("Submitting order for execution...", { duration: 5000 });
         try {
-            const res = await fetch(`/api/v1/orders/${uuid}/execute`, { method: 'POST' });
+            const res = await signedFetch(`/api/v1/orders/${uuid}/execute`, { method: 'POST', message: uuid });
             const j = await res.json();
             if (!res.ok) throw new Error(j.error || 'Execution failed');
             toast.success(`Execution submitted: ${j.txid.substring(0, 10)}...`);

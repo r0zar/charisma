@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getOrder, fillOrder } from '@/lib/orders/store';
 import { LimitOrder } from '@/lib/orders/types';
 import { getQuote } from '@/app/actions';
+import { verifySignedRequest } from '@repo/stacks';
+
+const ORDERS_API_KEY = process.env.ORDERS_API_KEY || process.env.METADATA_API_KEY; // fallback
 
 async function executeTrade(order: LimitOrder): Promise<string> {
     // fetch quote to build hops
@@ -43,13 +46,33 @@ async function executeTrade(order: LimitOrder): Promise<string> {
     return data.txid;
 }
 
-export async function POST(_req: Request, { params }: { params: { uuid: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { uuid: string } }) {
     try {
-        const { uuid } = await params;
+        const { uuid } = params;
+
         const order = await getOrder(uuid);
         if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         if (order.status !== 'open') return NextResponse.json({ error: 'Order not open' }, { status: 400 });
 
+        /* ────────────── Authorization ────────────── */
+        if (ORDERS_API_KEY) {
+            const apiKey = req.headers.get('x-api-key');
+            if (apiKey === ORDERS_API_KEY) {
+                // privileged key ok
+            } else {
+                const authRes = await verifySignedRequest(req, { message: uuid, expectedAddress: order.owner });
+                if (!authRes.ok) {
+                    return NextResponse.json({ error: authRes.error }, { status: authRes.status });
+                }
+            }
+        } else {
+            const authRes = await verifySignedRequest(req, { message: uuid, expectedAddress: order.owner });
+            if (!authRes.ok) {
+                return NextResponse.json({ error: authRes.error }, { status: authRes.status });
+            }
+        }
+
+        /* ────────────── Execute ────────────── */
         const txid = await executeTrade(order);
         await fillOrder(order.uuid, txid);
         return NextResponse.json({ status: 'success', txid });

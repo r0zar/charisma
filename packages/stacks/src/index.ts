@@ -331,3 +331,16 @@ export class StacksClient {
 }
 
 export default StacksClient;
+
+export {
+  verifySignedRequest,
+  type SignerAuthOptions,
+  type SignerAuthResult,
+} from './auth/verify-signer';
+
+export {
+  signMessage,
+  buildSignatureHeaders,
+  type SignedMessage,
+  signedFetch,
+} from './auth/client';

@@ -1,11 +1,19 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { addPriceSnapshot } from '@/lib/price/store';
 import { listPrices } from '@repo/tokens';
 
-export async function GET() {
+const CRON_SECRET = process.env.CRON_SECRET;
+
+export async function GET(request: NextRequest) {
+    // Authorization check
+    const authHeader = request.headers.get('authorization');
+    if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const now = Date.now();
     let count = 0;
 

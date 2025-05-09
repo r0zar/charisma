@@ -71,7 +71,6 @@ export async function POST(request: Request) {
                 stringAsciiCV(validatedData.uuid),
             ],
         );
-        console.log('response', response);
 
         const signerCV = response.value;
         const signer = cvToValue(signerCV) as string;
@@ -100,8 +99,6 @@ export async function POST(request: Request) {
             postConditions,
             fee: 1500, // Optional: Estimate or set a fee
         };
-
-        console.log(postConditions)
 
         const transaction = await makeContractCall(txOptions);
 
