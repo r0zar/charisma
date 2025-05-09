@@ -88,6 +88,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const [isInitializing, setIsInitializing] = useState(true);
     const [isLoadingRouteInfo, setIsLoadingRouteInfo] = useState(false);
     const [isLoadingTokens, setIsLoadingTokens] = useState(false);
+    const [mode, setMode] = useState<'swap' | 'order'>('swap');
 
     // User address state - now derived from wallet context
     const [userAddress, setUserAddress] = useState<string>("");
@@ -385,9 +386,9 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         return !!(counterparts?.mainnet && counterparts?.subnet);
     }, [tokenCounterparts]);
 
-    // Safe setter that optionally forces subnet version
+    // Safe setter that optionally forces subnet version if in order mode
     const setSelectedFromTokenSafe = (t: Token) => {
-        if (!t.contractId.includes('-subnet')) return
+        if (!t.contractId.includes('-subnet') && mode === 'order') return
         setSelectedFromToken(t);
     }
 
@@ -519,6 +520,10 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         toTokenBalance,
         userAddress,
         tokenPrices,
+
+        // mode
+        mode,
+        setMode,
 
         // token display helpers (mainnet / subnet)
         displayTokens,

@@ -48,16 +48,14 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
   const [baseSelectedToToken, setBaseSelectedToToken] = useState<Token | null>(null);
 
   // market vs limit
-  const [mode, setMode] = useState<'swap' | 'order'>('swap');
   const [targetPrice, setTargetPrice] = useState('');
   const [conditionToken, setConditionToken] = useState<Token | null>(null);
   const [baseToken, setBaseToken] = useState<Token | null>(null); // null = USD
   const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
 
-  // Ref to track previous mode
-  const prevModeRef = useRef<string>(mode);
-
   const {
+    mode,
+    setMode,
     selectedTokens,
     selectedFromToken,
     setSelectedFromTokenSafe,
@@ -93,6 +91,9 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     subnetDisplayTokens,
     hasBothVersions,
   } = swap;
+
+  // Ref to track previous mode
+  const prevModeRef = useRef<string>(mode);
 
   // DCA dialog control
   const [dcaDialogOpen, setDcaDialogOpen] = useState(false);
