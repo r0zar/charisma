@@ -126,7 +126,7 @@ export default function TokenOutputSection({
                             <span>~{tokenValueUsd}</span>
                         ) : null}
                 </div>
-                {!isLoadingQuote && priceImpactDisplay} {/* Render the passed price impact display node */}
+                {/* {!isLoadingQuote && priceImpactDisplay} Render the passed price impact display node */}
             </div>
 
             {/* collapsible chart */}
