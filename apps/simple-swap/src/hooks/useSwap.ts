@@ -399,6 +399,8 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         targetPrice: string;
         direction: 'lt' | 'gt';
         amountDisplay: string;
+        validFrom?: string;
+        validTo?: string;
     }) {
         if (!walletAddress) throw new Error('Connect wallet');
         const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
@@ -412,7 +414,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             multihopContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
         });
 
-        const payload = {
+        const payload: Record<string, unknown> = {
             owner: walletAddress,
             inputToken: selectedFromToken?.contractId,
             outputToken: selectedToToken?.contractId,
@@ -425,6 +427,9 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             signature,
             uuid,
         };
+
+        if (opts.validFrom) payload.validFrom = opts.validFrom;
+        if (opts.validTo) payload.validTo = opts.validTo;
 
         const res = await fetch('/api/v1/orders/new', {
             method: 'POST',

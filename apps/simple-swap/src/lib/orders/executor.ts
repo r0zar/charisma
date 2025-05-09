@@ -1,4 +1,4 @@
-import { listOrders, fillOrder } from './store';
+import { listOrders, fillOrder, updateOrder } from './store';
 import { LimitOrder } from './types';
 import { getLatestPrice } from '@/lib/price/store';
 import { getQuote } from '@/app/actions';
@@ -112,6 +112,29 @@ export async function processOpenOrders(): Promise<string[]> {
             continue; // another worker processing
         }
         log({ orderUuid: order.uuid }, 'Lock acquired successfully');
+
+        // -------------------------------------------------------------
+        // 1. Check execution window (validFrom / validTo)
+        // -------------------------------------------------------------
+        const now = Date.now();
+        const validFromMs = order.validFrom ? Date.parse(order.validFrom) : undefined;
+        const validToMs = order.validTo ? Date.parse(order.validTo) : undefined;
+
+        // If order is not yet active
+        if (validFromMs !== undefined && now < validFromMs) {
+            log({ orderUuid: order.uuid, validFrom: order.validFrom }, 'Order not yet within execution window. Releasing lock.');
+            await releaseLock(order.uuid);
+            continue;
+        }
+
+        // If order has expired
+        if (validToMs !== undefined && now > validToMs) {
+            log({ orderUuid: order.uuid, validTo: order.validTo }, 'Order expired. Marking cancelled.');
+            order.status = 'cancelled';
+            await updateOrder(order);
+            await releaseLock(order.uuid);
+            continue;
+        }
 
         try {
             log({ orderUuid: order.uuid, conditionToken: order.conditionToken }, 'Fetching current price for condition token');

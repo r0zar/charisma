@@ -22,6 +22,14 @@ export interface LimitOrder {
     status: 'open' | 'filled' | 'cancelled';
     createdAt: string; // ISO
     txid?: string;
+
+    /**
+     * Optional ISO 8601 timestamps that bound when the order can be executed.
+     * If omitted, the order is valid immediately (validFrom) and/or never
+     * expires (validTo).
+     */
+    validFrom?: string;
+    validTo?: string;
 }
 
 export type NewOrderRequest = Omit<LimitOrder, 'status' | 'createdAt' | 'txid' | 'id'>; 

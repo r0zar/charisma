@@ -6,7 +6,7 @@ import type { LimitOrder } from "@/lib/orders/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import TokenLogo from "./TokenLogo";
 import { ClipboardList, Copy, Check } from "lucide-react";
@@ -78,6 +78,18 @@ function formatRelativeTime(dateString: string) {
         // Fall back to date if more than a month ago
         return date.toLocaleDateString();
     }
+}
+
+// Helper to format execution window text
+function formatExecWindow(order: LimitOrder): string {
+    const from = order.validFrom ? new Date(order.validFrom) : null;
+    const to = order.validTo ? new Date(order.validTo) : null;
+
+    if (!from && !to) return 'Anytime';
+    if (from && !to) return `After ${from.toLocaleString()}`;
+    if (!from && to) return `Before ${to.toLocaleString()}`;
+    if (from && to) return `${from.toLocaleString()} – ${to.toLocaleString()}`;
+    return 'Anytime';
 }
 
 export default function OrdersPanel() {
@@ -304,7 +316,7 @@ export default function OrdersPanel() {
                         </div>
                     )}
                     {error && <p className="text-sm text-destructive mb-4">{error}</p>}
-                    {(filteredOrders.length === 0 && !loading) ? (
+                    {!loading && (filteredOrders.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                             <ClipboardList className="h-12 w-12 mb-3 text-primary/60" />
                             <p className="text-sm mb-1">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</p>
@@ -359,6 +371,11 @@ export default function OrdersPanel() {
                                                             )}
                                                         </button>
                                                     </div>
+                                                    {(o.validFrom || o.validTo) && (
+                                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                                            {formatExecWindow(o)}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-2 flex items-center gap-2">
                                                     <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
@@ -391,10 +408,22 @@ export default function OrdersPanel() {
                                                 <td className="px-2 py-2">
                                                     {o.status === "open" && (
                                                         <div className="flex gap-2">
-                                                            <button className="cursor-pointer hover:bg-primary/80 px-2 py-1 rounded-md bg-primary text-primary-foreground" onClick={() => executeNow(o.uuid)}>
+                                                            <button
+                                                                className="cursor-pointer hover:bg-primary/80 px-2 py-1 rounded-md bg-primary text-primary-foreground"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    executeNow(o.uuid);
+                                                                }}
+                                                            >
                                                                 Execute
                                                             </button>
-                                                            <button className="cursor-pointer hover:bg-destructive/80 px-2 py-1 rounded-md bg-destructive text-destructive-foreground" onClick={() => setConfirmUuid(o.uuid)}>
+                                                            <button
+                                                                className="cursor-pointer hover:bg-destructive/80 px-2 py-1 rounded-md bg-destructive text-destructive-foreground"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setConfirmUuid(o.uuid);
+                                                                }}
+                                                            >
                                                                 Cancel
                                                             </button>
                                                         </div>
@@ -437,6 +466,14 @@ export default function OrdersPanel() {
                                                                                 <span className="text-muted-foreground">Owner:</span>
                                                                                 <span className="font-mono text-xs truncate max-w-[400px]" title={o.owner}>{o.owner}</span>
                                                                             </div>
+                                                                            {(o.validFrom || o.validTo) && (
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">Execution Window:</span>
+                                                                                    <span className="font-mono text-xs text-right max-w-[320px] truncate" title={formatExecWindow(o)}>
+                                                                                        {formatExecWindow(o)}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -496,7 +533,7 @@ export default function OrdersPanel() {
                                 </tbody>
                             </table>
                         </div>
-                    )}
+                    ))}
                 </CardContent>
             </Card>
 
@@ -505,8 +542,8 @@ export default function OrdersPanel() {
                 <Dialog open onOpenChange={(open) => { if (!open) setConfirmUuid(null); }}>
                     <DialogContent>
                         <DialogHeader>
-                            <CardTitle>Cancel Order</CardTitle>
-                            <CardDescription>Are you sure you want to cancel this order?</CardDescription>
+                            <DialogTitle>Cancel Order</DialogTitle>
+                            <DialogDescription>Are you sure you want to cancel this order?</DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="flex justify-end gap-2 pt-4">
                             <Button variant="outline" onClick={() => setConfirmUuid(null)}>Dismiss</Button>

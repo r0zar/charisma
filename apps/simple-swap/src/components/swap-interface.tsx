@@ -5,7 +5,7 @@ import TokenDropdown from "./TokenDropdown";
 import { useSwap } from "../hooks/useSwap";
 import type { Token } from "../lib/swap-client";
 import TokenLogo from "./TokenLogo";
-import { ArrowDown, ClockArrowUp, Flame } from 'lucide-react';
+import { ArrowDown, ClockArrowUp, Flame, Repeat } from 'lucide-react';
 import TokenInputSection from './swap-interface/TokenInputSection';
 import TokenOutputSection from './swap-interface/TokenOutputSection';
 import SwapDetails from './swap-interface/swap-details';
@@ -15,6 +15,7 @@ import SwapHeader from './swap-interface/swap-header';
 import LimitConditionSection from './swap-interface/LimitConditionSection';
 import { Button } from "./ui/button";
 import MiniTokenChartWrapper from './mini-token-chart-wrapper';
+import { DcaDialog } from "./dca-dialog";
 
 interface SwapInterfaceProps {
   initialTokens?: Token[];
@@ -77,6 +78,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     priceError,
     formatTokenAmount,
     convertToMicroUnits,
+    convertFromMicroUnits,
     getTokenLogo,
     handleSwap,
     handleSwitchTokens,
@@ -88,6 +90,9 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     toTokenValueUsd,
     createTriggeredSwap,
   } = swap;
+
+  // DCA dialog control
+  const [dcaDialogOpen, setDcaDialogOpen] = useState(false);
 
   // --- Start: Logic for display tokens and checking counterparts ---
   const { displayTokens, tokenCounterparts } = useMemo(() => {
@@ -587,6 +592,53 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     }
   }
 
+  // ---- DCA Orders creation ----
+  async function handleCreateDcaOrders({ slices, intervalHours }: { slices: number; intervalHours: number }) {
+    if (!selectedFromToken || !selectedToToken) return;
+    if (!displayAmount || Number(displayAmount) <= 0) return;
+    if (!targetPrice) return;
+
+    const totalAmount = convertToMicroUnits(displayAmount, selectedFromToken.decimals);
+    const sliceAmountMicro = (BigInt(totalAmount) / BigInt(slices)).toString();
+
+    const nowMs = Date.now();
+    const intervalMs = intervalHours * 60 * 60 * 1000;
+
+    for (let i = 0; i < slices; i++) {
+      const validFrom = new Date(nowMs + i * intervalMs).toISOString();
+      const validTo = new Date(nowMs + (i + 1) * intervalMs).toISOString();
+
+      try {
+        await createTriggeredSwap({
+          conditionToken: conditionToken || selectedToToken,
+          baseToken,
+          targetPrice,
+          direction: conditionDir,
+          amountDisplay: convertFromMicroUnits(sliceAmountMicro, selectedFromToken.decimals),
+          validFrom,
+          validTo,
+        });
+      } catch (err) {
+        console.error('DCA slice creation failed:', err);
+      }
+    }
+
+    // Optionally notify user
+  }
+
+  // Callback for DcaDialog to create a single slice order
+  async function createSingleOrder({ amountDisplay, validFrom, validTo }: { amountDisplay: string; validFrom: string; validTo: string }) {
+    await createTriggeredSwap({
+      conditionToken: conditionToken || selectedToToken!,
+      baseToken,
+      targetPrice,
+      direction: conditionDir,
+      amountDisplay,
+      validFrom,
+      validTo,
+    });
+  }
+
   return (
     <div className="glass-card overflow-hidden shadow-xl border border-border/60">
       {/* Header */}
@@ -787,18 +839,43 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
         {mode === 'order' && (
           <div className="mt-6">
-            <Button
-              onClick={handleCreateLimitOrder}
-              className="relative w-full rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 font-semibold shadow-lg overflow-hidden hover:shadow-xl transition-transform transform hover:-translate-y-0.5 active:scale-95 focus:outline-none"
-            >
-              <span className="absolute inset-0 rounded-xl bg-secondary opacity-20 animate-pulse" />
-              <span className="relative z-10 flex items-center justify-center">
-                <ClockArrowUp className="w-4 h-4 mr-2" />
-                Create Swap Order
-              </span>
-            </Button>
+            <div className="flex w-full shadow-lg">
+              <Button
+                onClick={handleCreateLimitOrder}
+                className="relative flex-1 rounded-r-none bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 font-semibold overflow-hidden hover:brightness-110 transition-transform active:scale-95 focus:outline-none rounded-l-xl"
+              >
+                <span className="absolute inset-0 opacity-10 animate-pulse" />
+                <span className="relative z-10 flex items-center justify-center">
+                  <ClockArrowUp className="w-4 h-4 mr-2" />
+                  Create Swap Order
+                </span>
+              </Button>
+
+              {/* DCA trigger button */}
+              <Button
+                className="relative w-12 h-auto rounded-l-none bg-gradient-to-r from-purple-700 to-purple-800 text-white overflow-hidden hover:brightness-110 transition-transform active:scale-95 focus:outline-none rounded-r-xl border-l border-white/20"
+                title="Create DCA orders"
+                onClick={() => setDcaDialogOpen(true)}
+              >
+                <Repeat className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         )}
+
+        {/* DCA dialog */}
+        <DcaDialog
+          open={dcaDialogOpen}
+          onOpenChange={setDcaDialogOpen}
+          defaultAmount={displayAmount}
+          fromToken={selectedFromToken}
+          toToken={selectedToToken}
+          conditionToken={conditionToken || selectedToToken}
+          baseToken={baseToken}
+          targetPrice={targetPrice}
+          direction={conditionDir}
+          createOrder={createSingleOrder}
+        />
       </div>
     </div>
   );

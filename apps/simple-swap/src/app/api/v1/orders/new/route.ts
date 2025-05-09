@@ -30,7 +30,27 @@ const schema: z.ZodType<NewOrderRequest> = z.object({
     signature: z.string().length(130),
     uuid: z.string().uuid(),
     baseAsset: z.string().optional(),
+    validFrom: z.string().datetime().optional(),
+    validTo: z.string().datetime().optional(),
 }).passthrough();
+
+// Ensure validFrom < validTo when both provided
+const validatedSchema = schema.superRefine((data, ctx) => {
+    if (data.validFrom && data.validTo) {
+        const fromTs = Date.parse(data.validFrom);
+        const toTs = Date.parse(data.validTo);
+        if (Number.isNaN(fromTs) || Number.isNaN(toTs)) {
+            // datetime() already validates format, extra guard
+            return;
+        }
+        if (fromTs >= toTs) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'validTo must be later than validFrom',
+            });
+        }
+    }
+});
 
 const BLAZE_CONTRACT_ADDRESS = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const BLAZE_CONTRACT_NAME = 'blaze-v1';
@@ -39,7 +59,7 @@ const MULTIHOP_CONTRACT_ID = process.env.MULTIHOP_CONTRACT_ID ?? 'SP2ZNGJ85ENDY6
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const parsed = schema.parse(body);
+        const parsed = validatedSchema.parse(body);
 
         if (!parsed.recipient) {
             parsed.recipient = parsed.owner;
