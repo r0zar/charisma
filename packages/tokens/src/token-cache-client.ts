@@ -71,7 +71,7 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
         const response = await fetch(url);
 
         if (!response.ok) {
-            console.error(`Token-cache API error for ${contractId}: ${response.status} ${response.statusText}`);
+            console.warn(`Token-cache API error for ${contractId}: ${response.status} ${response.statusText}`);
             return createDefaultTokenData(contractId);
         }
 

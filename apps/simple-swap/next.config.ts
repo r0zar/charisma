@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: 'https',
@@ -16,6 +18,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: '**',
+      },
+      {
+        hostname: 'ipfs',
+      },
+      {
+        hostname: '*',
       },
     ],
   },

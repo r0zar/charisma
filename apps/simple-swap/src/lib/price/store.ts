@@ -23,7 +23,6 @@ export async function addPriceSnapshot(contractId: string, price: number, timest
 
     // cleanup old entries
     const cutoff = timestamp - RETENTION_MS;
-    // @ts-ignore - zremrangebyscore exists at runtime
     await kv.zremrangebyscore(key, 0, cutoff);
 }
 
@@ -36,8 +35,12 @@ export async function getLatestPrice(contractId: string): Promise<number | undef
 
 export async function getPricesInRange(contractId: string, fromTimestamp: number, toTimestamp: number): Promise<[number, number][]> {
     const key = `${PREFIX}:${contractId}`;
-    // @ts-ignore - zrangebyscore exists in runtime
-    const res = await kv.zrangebyscore(key, fromTimestamp, toTimestamp, { withScores: true });
+    const res = await kv.zrange<number[]>(key, fromTimestamp, toTimestamp, {
+        byScore: true,
+        withScores: true
+    });
+    // data is returned as alternating price, ts, price, ts...
+    // so we need to pair them up
     const out: [number, number][] = [];
     for (let i = 0; i < res.length; i += 2) {
         const price = Number(res[i]);
@@ -45,4 +48,4 @@ export async function getPricesInRange(contractId: string, fromTimestamp: number
         out.push([ts, price]);
     }
     return out;
-} 
+}

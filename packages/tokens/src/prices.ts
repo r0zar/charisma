@@ -10,12 +10,15 @@ export const CHARISMA_TOKEN_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55K
 export const WELSHCORGICOIN_CONTRACT = "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
 export const MALI_TOKEN_CONTRACT = "SPKBV3CZB15CM3CVMCMRX56WRYKDY5P5CTQQXSN0.belgian-malinois"
 
+type TokenContractId = string;
+type PriceUSD = string | number;
+
 /**
  * Represents the structure of the price data returned by the Kraxel API.
  * It's a record where keys are token identifiers (e.g., 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex')
  * and values are their corresponding prices as numbers.
  */
-export type KraxelPriceData = Record<string, number>;
+export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
 
 /**
  * Fetches the latest token prices from the Kraxel API.
