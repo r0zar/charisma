@@ -588,9 +588,10 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
       if (condSymbol) params.set('conditionToken', condSymbol);
     }
     const shareUrl = `${window.location.origin}/swap?${params.toString()}`;
+    const toTag = selectedToToken ? `$${selectedToToken.symbol}` : '';
     const text = mode === 'order'
-      ? `Planning a triggered swap on Charisma: ${displayAmount || ''} ${selectedFromToken?.symbol} when price ${conditionDir === 'lt' ? '≤' : '≥'} ${targetPrice}. Try it:`
-      : `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${selectedToToken?.symbol} on Charisma:`;
+      ? `Planning a triggered swap on Charisma: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} when price ${conditionDir === 'lt' ? '≤' : '≥'} ${targetPrice}. Try it:`
+      : `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${toTag} on Charisma:`;
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(tweetUrl, '_blank');
   };

@@ -161,10 +161,10 @@ export async function GET(request: NextRequest) {
             gap: '24px',
           }}
         >
-          {toLogo ? (
+          {fromLogo ? (
             <img
-              src={toLogo}
-              alt={toSymbol}
+              src={fromLogo}
+              alt={fromSymbol}
               style={{
                 width: '140px',
                 height: '140px',
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
                 color: 'hsl(360 100% 67%)',
               }}
             >
-              {toSymbol.slice(0, 2)}
+              {fromSymbol.slice(0, 2)}
             </div>
           )}
           <div
@@ -198,9 +198,12 @@ export async function GET(request: NextRequest) {
               fontWeight: '800',
               color: 'white',
               lineHeight: '1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div style={{ display: 'flex' }}>{outputAmount}</div>
+            <div style={{ display: 'flex' }}>{amount}</div>
           </div>
           <div
             style={{
@@ -208,9 +211,12 @@ export async function GET(request: NextRequest) {
               fontWeight: '700',
               color: 'hsl(360 100% 67%)',
               letterSpacing: '0.05em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div style={{ display: 'flex' }}>{toSymbol}</div>
+            <div style={{ display: 'flex' }}>{fromSymbol}</div>
           </div>
         </div>
 
@@ -248,10 +254,10 @@ export async function GET(request: NextRequest) {
             gap: '24px',
           }}
         >
-          {fromLogo ? (
+          {toLogo ? (
             <img
-              src={fromLogo}
-              alt={fromSymbol}
+              src={toLogo}
+              alt={toSymbol}
               style={{
                 width: '140px',
                 height: '140px',
@@ -276,7 +282,7 @@ export async function GET(request: NextRequest) {
                 color: 'hsl(25 100% 58%)',
               }}
             >
-              {fromSymbol.slice(0, 2)}
+              {toSymbol.slice(0, 2)}
             </div>
           )}
           <div
@@ -285,9 +291,12 @@ export async function GET(request: NextRequest) {
               fontWeight: '800',
               color: 'white',
               lineHeight: '1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div style={{ display: 'flex' }}>{amount}</div>
+            <div style={{ display: 'flex' }}>{outputAmount}</div>
           </div>
           <div
             style={{
@@ -295,9 +304,12 @@ export async function GET(request: NextRequest) {
               fontWeight: '700',
               color: 'hsl(25 100% 58%)',
               letterSpacing: '0.05em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div style={{ display: 'flex' }}>{fromSymbol}</div>
+            <div style={{ display: 'flex' }}>{toSymbol}</div>
           </div>
         </div>
       </div>
