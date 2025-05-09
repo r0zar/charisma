@@ -12,7 +12,6 @@ import { log } from '@repo/logger';
  * replace it with a real oracle or DEX quote service.
  */
 async function getCurrentPrice(order: LimitOrder): Promise<number | undefined> {
-    console.log('getCurrentPrice', order);
     // use conditionToken if provided, otherwise default to outputToken
     const watchedToken = order.conditionToken || order.outputToken;
     log({ orderUuid: order.uuid, watchedToken }, `Watched token selected.`);
@@ -32,7 +31,12 @@ async function getCurrentPrice(order: LimitOrder): Promise<number | undefined> {
  * You can point SIGNER_URL env var at the blaze-signer instance.
  */
 async function executeTrade(order: LimitOrder): Promise<string> {
-    const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn);
+    const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn,
+        // THEORY: this is messing up the new multihop router, so we're excluding it for now
+        // https://explorer.hiro.so/txid/0x9d22f18b06839ec8d051de4638a96be7bba5db8040dcf76cc73502380f0d308b?chain=mainnet
+        { excludeVaultIds: ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-cha-vault-wrapper-alex'] }
+    );
+
     if (!quoteRes.success || !quoteRes.data) throw new Error('Route fetch failed');
 
     const tx = await Dexterity.buildXSwapTransaction(

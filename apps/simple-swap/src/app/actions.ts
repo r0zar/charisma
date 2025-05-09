@@ -74,7 +74,8 @@ export async function ensureVaultsLoaded() {
 export async function getQuote(
     fromTokenId: string,
     toTokenId: string,
-    amount: string | number
+    amount: string | number,
+    options: { excludeVaultIds?: string[] } = {}
 ): Promise<{ success: boolean; data?: QuoteResponse; error?: string }> {
     try {
         console.log(`[Server] Getting quote for ${fromTokenId} -> ${toTokenId} with amount ${amount}`);
@@ -90,7 +91,7 @@ export async function getQuote(
         }
 
         // Get quote directly from Dexterity
-        const quoteResult = await Dexterity.getQuote(fromTokenId, toTokenId, amountNum);
+        const quoteResult = await Dexterity.getQuote(fromTokenId, toTokenId, amountNum, options);
 
         // Handle error case
         if (quoteResult instanceof Error) {

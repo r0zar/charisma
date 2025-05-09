@@ -712,7 +712,12 @@ export class Dexterity {
     /**
      * Get a quote for swapping tokens
      */
-    static async getQuote(fromTokenId: string, toTokenId: string, amount: number): Promise<{
+    static async getQuote(
+        fromTokenId: string,
+        toTokenId: string,
+        amount: number,
+        options: { excludeVaultIds?: string[] } = {},
+    ): Promise<{
         route: Route;
         amountIn: number;
         amountOut: number;
@@ -720,22 +725,47 @@ export class Dexterity {
         minimumReceived: number;
     } | Error> {
         try {
-            // Find best route
-            const route = await this.findBestRoute(fromTokenId, toTokenId, amount);
+            const { excludeVaultIds = [] } = options;
 
-            if (route instanceof Error) {
-                return route;
+            // Gather all possible paths between tokens
+            const paths = this.findAllPaths(fromTokenId, toTokenId);
+
+            if (paths.length === 0) {
+                return new Error(`No paths found from ${fromTokenId} to ${toTokenId}`);
             }
 
-            // Calculate minimum received with slippage
-            const minimumReceived = Math.floor(route.amountOut * (1 - this.config.defaultSlippage));
+            // Evaluate each path
+            const routeResults = await Promise.all(
+                paths.map((path) => this.evaluateRoute(path, amount))
+            );
+
+            // Filter out errored routes
+            let validRoutes = routeResults.filter((r): r is Route => !(r instanceof Error));
+
+            // If an exclusion list is provided, filter out any route containing those vaults
+            if (excludeVaultIds.length > 0) {
+                validRoutes = validRoutes.filter(
+                    (r) => !r.hops.some((h) => excludeVaultIds.includes(h.vault.contractId))
+                );
+            }
+
+            if (validRoutes.length === 0) {
+                return new Error(`No valid routes found with the given constraints`);
+            }
+
+            // Select the route with highest output amount
+            const bestRoute = validRoutes.sort((a, b) => b.amountOut - a.amountOut)[0];
+
+            const minimumReceived = Math.floor(
+                bestRoute.amountOut * (1 - this.config.defaultSlippage)
+            );
 
             return {
-                route,
+                route: bestRoute,
                 amountIn: amount,
-                amountOut: route.amountOut,
-                expectedPrice: route.amountOut / amount,
-                minimumReceived
+                amountOut: bestRoute.amountOut,
+                expectedPrice: bestRoute.amountOut / amount,
+                minimumReceived,
             };
         } catch (error) {
             return error instanceof Error
