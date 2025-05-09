@@ -385,15 +385,6 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         return !!(counterparts?.mainnet && counterparts?.subnet);
     }, [tokenCounterparts]);
 
-    // Helper to retrieve subnet counterpart
-    const getSubnetVariant = useCallback((t: Token | null): Token | null => {
-        if (!t) return null;
-        if (t.contractId.includes('-subnet')) return t;
-        const baseId = t.contractId;
-        const cp = tokenCounterparts.get(baseId);
-        return cp?.subnet ?? null;
-    }, [tokenCounterparts]);
-
     // Safe setter that optionally forces subnet version
     const setSelectedFromTokenSafe = (t: Token) => {
         if (!t.contractId.includes('-subnet')) return
