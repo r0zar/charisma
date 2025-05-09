@@ -623,9 +623,23 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     }
     const shareUrl = `${window.location.origin}/swap?${params.toString()}`;
     const toTag = selectedToToken ? `$${selectedToToken.symbol}` : '';
-    const text = mode === 'order'
-      ? `Planning a order on Charisma: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} when price ${conditionDir === 'lt' ? '≤' : '≥'} ${targetPrice}. `
-      : `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${toTag} on Charisma:`;
+
+    let text: string;
+
+    if (mode === 'order') {
+      // Limit/triggered order tweet copy remains unchanged for now
+      text = `Planning an order on Charisma: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} when price ${conditionDir === 'lt' ? '≤' : '≥'} ${targetPrice}. `;
+    } else {
+      // Swap mode
+      if (shiftDirection === 'to-subnet') {
+        text = `Subnet deposit: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} (subnet) via Charisma`;
+      } else if (shiftDirection === 'from-subnet') {
+        text = `Subnet swap: ${displayAmount || ''} ${selectedFromToken?.symbol} (subnet) → ${toTag} via Charisma`;
+      } else {
+        text = `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${toTag} on Charisma`;
+      }
+    }
+
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(tweetUrl, '_blank');
   };
