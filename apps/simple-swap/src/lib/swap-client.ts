@@ -216,7 +216,8 @@ export function createSwapClient(options: SwapClientOptions = {}) {
 
       try {
         // Call the server action to get a quote
-        const response = await getQuoteAction(fromTokenId, toTokenId, amount.toString());
+        const response = await getQuoteAction(fromTokenId, toTokenId, amount.toString(),
+          { excludeVaultIds: ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-cha-vault-wrapper-alex'] });
 
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to get quote');
