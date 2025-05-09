@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { listTokens } from '../actions';
 import SwapInterface from '@/components/swap-interface';
@@ -47,11 +47,7 @@ export async function generateMetadata(
     };
 }
 
-export default async function SwapPage({
-    searchParams,
-}: {
-    searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function SwapPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
     // URL params are now read directly by the client component; no pre-processing needed here.
 
     // Prefetch tokens on the server
@@ -65,7 +61,9 @@ export default async function SwapPage({
                     <div className="grid md:grid-cols-3 gap-8">
                         {/* Main Swap UI */}
                         <div className="md:col-span-2">
-                            <SwapInterface initialTokens={tokens} />
+                            <Suspense fallback={null}>
+                                <SwapInterface initialTokens={tokens} />
+                            </Suspense>
                         </div>
 
                         {/* Sidebar */}
