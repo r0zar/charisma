@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
     // Get parameters from the URL
     const fromSymbol = searchParams.get('fromSymbol') || 'STX';
     const toSymbol = searchParams.get('toSymbol') || 'CHA';
+    const fromSubnetFlag = searchParams.get('fromSubnet');
+    const toSubnetFlag = searchParams.get('toSubnet');
     const amount = searchParams.get('amount') || '1';
     const modeParam = searchParams.get('mode') || 'swap';
     const targetPriceParam = searchParams.get('targetPrice');
@@ -31,8 +33,20 @@ export async function GET(request: NextRequest) {
     const { tokens = [] } = await listTokens();
 
     // Find the token data for the from and to symbols
-    const fromToken = tokens.find(token => token.symbol === fromSymbol);
-    const toToken = tokens.find(token => token.symbol === toSymbol);
+    const fromToken = tokens.find(token => {
+      if (token.symbol !== fromSymbol) return false;
+      const wantSubnet = fromSubnetFlag === '1' || fromSubnetFlag === 'true';
+      const isSubnet = token.contractId.includes('-subnet');
+      return wantSubnet ? isSubnet : !isSubnet;
+    });
+
+    const toToken = tokens.find(token => {
+      if (token.symbol !== toSymbol) return false;
+      const wantSubnet = toSubnetFlag === '1' || toSubnetFlag === 'true';
+      const isSubnet = token.contractId.includes('-subnet');
+      return wantSubnet ? isSubnet : !isSubnet;
+    });
+
     const conditionToken = tokens.find(token => token.symbol === conditionTokenParam);
 
     // Get token logos

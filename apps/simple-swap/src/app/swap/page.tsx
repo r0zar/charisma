@@ -22,7 +22,7 @@ export async function generateMetadata(
     if (toSymbol) query.set('toSymbol', toSymbol);
     if (amount) query.set('amount', amount);
 
-    const extraKeys = ['mode', 'targetPrice', 'direction', 'conditionToken', 'baseAsset'] as const;
+    const extraKeys = ['mode', 'targetPrice', 'direction', 'conditionToken', 'baseAsset', 'fromSubnet', 'toSubnet'] as const;
     extraKeys.forEach((k) => {
         const v = params[k];
         if (typeof v === 'string' && v !== '') query.set(k, v);

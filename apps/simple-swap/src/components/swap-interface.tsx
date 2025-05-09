@@ -111,6 +111,8 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     direction: searchParams.get('direction') as 'lt' | 'gt' | undefined,
     conditionToken: searchParams.get('conditionToken') ?? undefined,
     baseAsset: searchParams.get('baseAsset') ?? undefined,
+    fromSubnet: searchParams.get('fromSubnet') ?? undefined,
+    toSubnet: searchParams.get('toSubnet') ?? undefined,
   }).current;
 
   const [initDone, setInitDone] = useState(false);
@@ -197,6 +199,13 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     if (amount && !isNaN(Number(amount))) {
       setDisplayAmount(amount);
     }
+
+    // Apply subnet toggle preferences from deep link
+    const fromSubnetFlag = initialParams.fromSubnet === '1' || initialParams.fromSubnet === 'true';
+    const toSubnetFlag = initialParams.toSubnet === '1' || initialParams.toSubnet === 'true';
+
+    if (fromSubnetFlag) setUseSubnetFrom(true);
+    if (toSubnetFlag) setUseSubnetTo(true);
 
     if (initialParams.conditionToken) {
       const t = displayTokens.find(tok => tok.symbol.toLowerCase() === initialParams.conditionToken!.toLowerCase());
@@ -601,6 +610,8 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     if (selectedFromToken) params.set('fromSymbol', selectedFromToken.symbol);
     if (selectedToToken) params.set('toSymbol', selectedToToken.symbol);
     if (displayAmount) params.set('amount', displayAmount);
+    if (useSubnetFrom) params.set('fromSubnet', '1');
+    if (useSubnetTo) params.set('toSubnet', '1');
     if (mode === 'order') {
       params.set('mode', 'order');
       if (targetPrice) params.set('targetPrice', targetPrice);
