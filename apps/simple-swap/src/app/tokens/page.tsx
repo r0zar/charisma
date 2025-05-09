@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { Header } from "../../components/header";
 import { listTokenSummaries } from "../token-actions";
 import TokensPageClient from "@/components/tokens-page-client";
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
     title: "Tokens | SimpleSwap",
@@ -16,7 +17,9 @@ export default async function TokensPage() {
             <Header />
 
             <main className="flex-1 container max-w-6xl mx-auto px-4 py-8">
-                <TokensPageClient tokens={tokens} />
+                <Suspense fallback={<div>Loading...</div>}>
+                    <TokensPageClient tokens={tokens} />
+                </Suspense>
             </main>
         </div>
     );
