@@ -16,10 +16,24 @@ export async function generateMetadata(
     const toSymbol = (params.toSymbol as string) || 'CHA';
     const amount = (params.amount as string) || '1';
 
+    // Collect all recognised deep-link parameters
+    const query = new URLSearchParams();
+    if (fromSymbol) query.set('fromSymbol', fromSymbol);
+    if (toSymbol) query.set('toSymbol', toSymbol);
+    if (amount) query.set('amount', amount);
+
+    const extraKeys = ['mode', 'targetPrice', 'direction', 'conditionToken', 'baseAsset'] as const;
+    extraKeys.forEach((k) => {
+        const v = params[k];
+        if (typeof v === 'string' && v !== '') query.set(k, v);
+    });
+
     const title = `Swap ${amount} ${fromSymbol} to ${toSymbol} | Charisma Swap`;
     const description = `Swap ${amount} ${fromSymbol} to ${toSymbol} on Charisma Swap`;
-    const ogImageUrl = `https://swap.charisma.rocks/api/og?fromSymbol=${fromSymbol}&toSymbol=${toSymbol}&amount=${amount}`;
-    const pageUrl = `https://swap.charisma.rocks/swap?fromSymbol=${fromSymbol}&toSymbol=${toSymbol}&amount=${amount}`;
+
+    const base = 'https://swap.charisma.rocks';
+    const ogImageUrl = `${base}/api/og?${query.toString()}`;
+    const pageUrl = `${base}/swap?${query.toString()}`;
 
     return {
         title,
