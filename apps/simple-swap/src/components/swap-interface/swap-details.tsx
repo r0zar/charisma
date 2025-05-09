@@ -110,7 +110,7 @@ export default function SwapDetails({
 
     // For clearer UI terminology
     const operationType = isSubnetShift
-        ? (shiftDirection === 'to-subnet' ? 'Deposit' : 'Withdraw')
+        ? (shiftDirection === 'to-subnet' ? 'Deposit' : 'Swap')
         : 'Swap';
 
     return (

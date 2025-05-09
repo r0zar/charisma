@@ -564,11 +564,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
   const shiftDirection = getShiftDirection();
 
-  // Custom labels based on operation type
-  const fromLabel = isSubnetShift
-    ? (shiftDirection === 'to-subnet' ? 'You deposit' : 'You withdraw')
-    : 'You pay';
-
+  // Custom label based on operation type
   const toLabel = isSubnetShift
     ? (shiftDirection === 'to-subnet' ? 'You receive in subnet' : 'You receive in mainnet')
     : 'You receive';
@@ -669,7 +665,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
         {/* From section - Use TokenInputSection */}
         <TokenInputSection
-          label={fromLabel}
+          label={'You send'}
           selectedToken={selectedFromToken}
           displayedToken={mode === 'order' ? selectedFromToken : displayedFromToken}
           displayAmount={displayAmount}
