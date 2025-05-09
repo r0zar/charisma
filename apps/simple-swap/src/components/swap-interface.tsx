@@ -197,6 +197,16 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
       setDisplayAmount(amount);
     }
 
+    if (initialParams.conditionToken) {
+      const t = displayTokens.find(tok => tok.symbol.toLowerCase() === initialParams.conditionToken!.toLowerCase());
+      if (t) setConditionToken(t);
+    }
+
+    if (initialParams.baseAsset) {
+      const t = displayTokens.find(tok => tok.symbol.toLowerCase() === initialParams.baseAsset!.toLowerCase());
+      if (t) setBaseToken(t);
+    }
+
     setInitDone(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayTokens]);
@@ -594,9 +604,10 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
       params.set('mode', 'order');
       if (targetPrice) params.set('targetPrice', targetPrice);
       params.set('direction', conditionDir);
-      // Include the condition token symbol so OG card can render the correct logo
+      // Include extra order params for deep-linking
       const condSymbol = (conditionToken || selectedToToken)?.symbol;
       if (condSymbol) params.set('conditionToken', condSymbol);
+      if (baseToken) params.set('baseAsset', baseToken.symbol);
     }
     const shareUrl = `${window.location.origin}/swap?${params.toString()}`;
     const toTag = selectedToToken ? `$${selectedToToken.symbol}` : '';
