@@ -14,6 +14,7 @@ import SwapButton from './swap-interface/swap-button';
 import SwapHeader from './swap-interface/swap-header';
 import LimitConditionSection from './swap-interface/LimitConditionSection';
 import { Button } from "./ui/button";
+import MiniTokenChartWrapper from './mini-token-chart-wrapper';
 
 interface SwapInterfaceProps {
   initialTokens?: Token[];
@@ -50,6 +51,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
   const [mode, setMode] = useState<'swap' | 'order'>('swap');
   const [targetPrice, setTargetPrice] = useState('');
   const [conditionToken, setConditionToken] = useState<Token | null>(null);
+  const [baseToken, setBaseToken] = useState<Token | null>(null); // null = USD
   const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
 
   // Ref to track previous mode
@@ -274,6 +276,27 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
       setTargetPrice(price.toFixed(4));
     }
   }, [conditionToken, mode, getUsdPrice, targetPrice]);
+
+  // Update target price when condition/base token or prices change
+  useEffect(() => {
+    if (mode !== 'order') return;
+    if (!conditionToken) return;
+    if (!tokenPrices || Object.keys(tokenPrices).length === 0) return;
+
+    const getPrice = (t: Token | null): number | undefined => {
+      if (!t) return undefined;
+      if (t.contractId === '.stx') return tokenPrices['stx'];
+      return tokenPrices[t.contractId];
+    };
+
+    const condPrice = getPrice(conditionToken);
+    const basePrice = baseToken ? getPrice(baseToken) : tokenPrices['SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt'];
+
+    if (condPrice !== undefined && basePrice && basePrice !== 0) {
+      const ratio = condPrice / basePrice;
+      setTargetPrice(ratio.toFixed(4));
+    }
+  }, [conditionToken, baseToken, tokenPrices, mode]);
 
   const handleBumpPrice = (percent: number) => {
     const current = parseFloat(targetPrice || '0');
@@ -554,6 +577,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     try {
       await createTriggeredSwap({
         conditionToken: conditionToken || selectedToToken,
+        baseToken,
         targetPrice,
         direction: conditionDir,
         amountDisplay: displayAmount,
@@ -565,30 +589,29 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
   return (
     <div className="glass-card overflow-hidden shadow-xl border border-border/60">
-      {/* Header - Use SwapHeader component */}
-      <SwapHeader
-        securityLevel={securityLevel}
-        userAddress={userAddress}
-        mode={mode}
-        onModeChange={setMode}
-      />
+      {/* Header */}
+      <SwapHeader securityLevel={securityLevel} userAddress={userAddress} mode={mode} onModeChange={setMode} />
 
       <div className="p-6">
-        {/* Limit order condition builder */}
+        {/* Limit order builder */}
         {mode === 'order' && (
-          <LimitConditionSection
-            displayTokens={displayTokens}
-            selectedToken={conditionToken || displayedToToken}
-            onSelectToken={(t) => {
-              setConditionToken(t);
-              setTargetPrice(''); // Reset price when condition token changes
-            }}
-            targetPrice={targetPrice}
-            onTargetChange={setTargetPrice}
-            direction={conditionDir}
-            onDirectionChange={setConditionDir}
-            onBump={handleBumpPrice}
-          />
+          <>
+            <LimitConditionSection
+              displayTokens={displayTokens}
+              selectedToken={conditionToken || displayedToToken}
+              baseToken={baseToken}
+              onSelectToken={(t) => {
+                setConditionToken(t);
+                setTargetPrice(''); // Reset price when condition token changes
+              }}
+              onSelectBaseToken={(t) => { setBaseToken(t); setTargetPrice(''); }}
+              targetPrice={targetPrice}
+              onTargetChange={setTargetPrice}
+              direction={conditionDir}
+              onDirectionChange={setConditionDir}
+              onBump={handleBumpPrice}
+            />
+          </>
         )}
 
 
@@ -680,7 +703,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
           }
         />
 
-        {/* Route visualization - Use SwapDetails component */}
+        {/* Route visualization - Swap details */}
         <SwapDetails
           quote={quote}
           selectedToToken={selectedToToken}
@@ -776,15 +799,8 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
             </Button>
           </div>
         )}
-
-        {/* Security note */}
-        <div className="mt-4 text-xs text-muted-foreground flex items-center justify-center">
-          <svg className="h-3 w-3 mr-1 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-          Protected by automatic post-conditions and isolated vaults
-        </div>
       </div>
     </div>
   );
+
 }

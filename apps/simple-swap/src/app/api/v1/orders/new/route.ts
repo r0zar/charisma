@@ -18,7 +18,7 @@ const schema: z.ZodType<NewOrderRequest> = z.object({
     outputToken: z.string().includes('.'),
     amountIn: z
         .string()
-        .regex(/^\d+$/i, { message: 'amountIn must be integer numeric string' })
+        .regex(/^[0-9]+$/i, { message: 'amountIn must be integer numeric string' })
         .refine((v) => BigInt(v) > 0n, { message: 'amountIn must be positive' }),
     targetPrice: z
         .string()
@@ -29,7 +29,8 @@ const schema: z.ZodType<NewOrderRequest> = z.object({
     recipient: z.string().min(3),
     signature: z.string().length(130),
     uuid: z.string().uuid(),
-});
+    baseAsset: z.string().optional(),
+}).passthrough();
 
 const BLAZE_CONTRACT_ADDRESS = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const BLAZE_CONTRACT_NAME = 'blaze-v1';

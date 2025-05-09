@@ -1,9 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Token } from '../../lib/swap-client';
 import TokenDropdown from '../TokenDropdown';
-import { Flame } from 'lucide-react';
+import { Flame, ChevronDown } from 'lucide-react';
+import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 
 interface TokenInputSectionProps {
     label: string;
@@ -41,16 +42,22 @@ export default function TokenInputSection({
     formatUsd,
     onSetMax,
 }: TokenInputSectionProps) {
+    const [showChart, setShowChart] = useState(false);
+
     return (
         <div className="bg-muted/20 rounded-2xl p-4 sm:p-5 mb-1 backdrop-blur-sm border border-muted/40 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0 mb-2">
-                <div className="flex items-center">
+                <div className="flex items-center gap-1">
                     <label className="text-sm text-foreground/80 font-medium">{label}</label>
-                    {/* Display amount/symbol of the *actual* selected token */}
-                    {selectedToken && displayAmount && Number(displayAmount) > 0 && (
-                        <span className="ml-2 text-xs px-1.5 py-0.5 font-mono bg-primary/10 text-primary rounded">
-                            {displayAmount} {selectedToken.symbol}
-                        </span>
+                    {selectedToken && (
+                        <button
+                            type="button"
+                            onClick={() => setShowChart(!showChart)}
+                            className="text-muted-foreground hover:text-foreground p-0.5 rounded-md"
+                            title={showChart ? 'Hide price chart' : 'Show price chart'}
+                        >
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
+                        </button>
                     )}
                 </div>
 
@@ -112,6 +119,13 @@ export default function TokenInputSection({
                     <span>~{tokenValueUsd}</span>
                 ) : null}
             </div>
+
+            {/* collapsible chart */}
+            {showChart && selectedToken && (
+                <div className="mt-4">
+                    <ConditionTokenChartWrapper token={selectedToken} targetPrice="" onTargetPriceChange={() => { }} />
+                </div>
+            )}
         </div>
     );
 } 

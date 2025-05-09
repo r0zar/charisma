@@ -28,4 +28,7 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json(series);
-} 
+}
+
+// Price series can update frequently; cache for 30 seconds to balance freshness and load
+export const revalidate = 30; 

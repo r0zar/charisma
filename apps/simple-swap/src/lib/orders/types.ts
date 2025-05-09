@@ -15,6 +15,7 @@ export interface LimitOrder {
      * this order triggers. If omitted, the outputToken will be used.
      */
     conditionToken: string;
+    baseAsset?: string; // optional base asset contract id or 'USD'
     recipient: string;
     signature: string; // 65-byte hex without 0x
     uuid: string; // uuid from signed message

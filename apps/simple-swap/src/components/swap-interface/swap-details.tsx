@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { Token } from '../../lib/swap-client';
 import TokenLogo from '../TokenLogo';
 import Image from 'next/image';
+import { KraxelPriceData } from '@repo/tokens';
 
 // Copied type definitions from useSwap.ts
 interface Vault {
@@ -55,7 +56,7 @@ interface SwapDetailsProps {
     quote: QuoteResponse | null;
     selectedToToken: Token | null;
     microAmount: string;
-    tokenPrices: Record<string, number> | null;
+    tokenPrices: KraxelPriceData;
     totalPriceImpact: {
         inputValueUsd: number;
         outputValueUsd: number;

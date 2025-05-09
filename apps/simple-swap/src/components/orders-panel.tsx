@@ -21,6 +21,8 @@ interface BadgeProps {
 interface DisplayOrder extends LimitOrder {
     inputTokenMeta: TokenCacheData;
     outputTokenMeta: TokenCacheData;
+    conditionTokenMeta: TokenCacheData;
+    baseAssetMeta?: TokenCacheData | null;
 }
 
 const StatusBadge: React.FC<BadgeProps> = ({ status }) => {
@@ -123,10 +125,27 @@ export default function OrdersPanel() {
                         currentMetaCache.set(order.outputToken, outputMeta);
                     }
 
+                    let baseMeta: TokenCacheData | null = null;
+                    const baseId = (order as any).baseAsset ?? (order as any).base_asset ?? (order as any).baseAssetId ?? (order as any).base_asset_id;
+                    if (baseId && baseId !== 'USD') {
+                        baseMeta = currentMetaCache.get(baseId) || await getTokenMetadataCached(baseId);
+                        currentMetaCache.set(baseId, baseMeta);
+                    }
+
+                    // Fetch condition token meta (might duplicate output token)
+                    let conditionMeta = currentMetaCache.get(order.conditionToken);
+                    if (!conditionMeta) {
+                        conditionMeta = await getTokenMetadataCached(order.conditionToken);
+                        currentMetaCache.set(order.conditionToken, conditionMeta);
+                    }
+
                     newDisplayOrders.push({
                         ...order,
+                        baseAsset: baseId ?? 'USD',
                         inputTokenMeta: inputMeta,
                         outputTokenMeta: outputMeta,
+                        conditionTokenMeta: conditionMeta,
+                        baseAssetMeta: baseMeta,
                     });
                 }
                 setDisplayOrders(newDisplayOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -232,10 +251,11 @@ export default function OrdersPanel() {
                                 <thead>
                                     <tr className="text-left border-b border-border/70 whitespace-nowrap">
                                         <th className="px-4 py-2">When</th>
-                                        <th className="px-4 py-2">Pair</th>
+                                        <th className="px-4 py-2">Swap</th>
                                         <th className="px-4 py-2 text-right">Amount</th>
-                                        <th className="px-4 py-2 text-right">Target</th>
-                                        <th className="px-2 py-2">Dir</th>
+                                        <th className="px-4 py-2">If Price Ratio</th>
+                                        <th className="px-4 py-2 text-right">Is</th>
+                                        <th className="px-2 py-2">Than</th>
                                         <th className="px-4 py-2">Status</th>
                                         <th className="px-2 py-2"></th>
                                     </tr>
@@ -258,6 +278,9 @@ export default function OrdersPanel() {
                                             </td>
                                             <td className="px-4 py-2 text-right">
                                                 <div className="h-5 w-14 bg-muted rounded ml-auto"></div>
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                <div className="h-5 w-20 rounded-full bg-muted"></div>
                                             </td>
                                             <td className="px-4 py-2 text-right">
                                                 <div className="h-5 w-12 bg-muted rounded ml-auto"></div>
@@ -297,10 +320,11 @@ export default function OrdersPanel() {
                                 <thead>
                                     <tr className="text-left border-b border-border/70 whitespace-nowrap">
                                         <th className="px-4 py-2">When</th>
-                                        <th className="px-4 py-2">Pair</th>
-                                        <th className="px-4 py-2 text-right">Amount</th>
-                                        <th className="px-4 py-2 text-right">Target</th>
-                                        <th className="px-2 py-2">Dir</th>
+                                        <th className="px-4 py-2">Swap</th>
+                                        <th className="px-4 py-2 text-center">Amount</th>
+                                        <th className="px-4 py-2">If Price Ratio</th>
+                                        <th className="px-4 py-2 text-center">Is</th>
+                                        <th className="px-2 py-2 text-center">Than</th>
                                         <th className="px-4 py-2">Status</th>
                                         <th className="px-2 py-2"></th>
                                     </tr>
@@ -343,9 +367,26 @@ export default function OrdersPanel() {
                                                     <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
                                                     <span>{o.outputTokenMeta.symbol}</span>
                                                 </td>
-                                                <td className="px-4 py-2 text-right">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals)}</td>
-                                                <td className="px-4 py-2 text-right">${Number(o.targetPrice).toLocaleString()}</td>
-                                                <td className="px-2 py-2 font-mono text-xs uppercase">{o.direction}</td>
+                                                <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals)}</td>
+                                                <td className="px-4 py-2">
+                                                    <span className="flex items-center gap-1">
+                                                        <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
+                                                        {o.conditionTokenMeta.symbol}
+                                                        <span className="mx-1 text-muted-foreground">/</span>
+                                                        {o.baseAsset === 'USD' || !o.baseAsset ? 'USD' : (
+                                                            o.baseAssetMeta ? (
+                                                                <span className="flex items-center gap-1">
+                                                                    <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
+                                                                    {o.baseAssetMeta.symbol}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
+                                                            )
+                                                        )}
+                                                    </span>
+                                                </td>
+                                                <td className="px-2 py-2 font-mono text-lg text-center mx-2">{o.direction === 'lt' ? '≤' : '≥'}</td>
+                                                <td className="px-4 py-2 text-center">{Number(o.targetPrice).toLocaleString()}</td>
                                                 <td className="px-4 py-2"><StatusBadge status={o.status} /></td>
                                                 <td className="px-2 py-2">
                                                     {o.status === "open" && (
@@ -362,7 +403,7 @@ export default function OrdersPanel() {
                                             </tr>
                                             {expandedRow === o.uuid && (
                                                 <tr className="bg-muted/10 animate-[slideDown_0.2s_ease-out]">
-                                                    <td colSpan={7} className="p-4">
+                                                    <td colSpan={8} className="p-4">
                                                         <div className="text-sm">
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                 <div className="space-y-3">
@@ -437,13 +478,9 @@ export default function OrdersPanel() {
                                                                                     href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
                                                                                     target="_blank"
                                                                                     rel="noopener noreferrer"
-                                                                                    className="text-primary hover:underline flex items-center gap-1 font-mono text-xs"
-                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    className="text-primary hover:underline font-mono truncate max-w-[200px]"
                                                                                 >
                                                                                     {o.txid.substring(0, 10)}...
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                                    </svg>
                                                                                 </a>
                                                                             </div>
                                                                         </div>
@@ -463,26 +500,21 @@ export default function OrdersPanel() {
                 </CardContent>
             </Card>
 
+            {/* Cancel confirmation dialog */}
             {confirmUuid && (
-                <Dialog open onOpenChange={() => setConfirmUuid(null)}>
+                <Dialog open onOpenChange={(open) => { if (!open) setConfirmUuid(null); }}>
                     <DialogContent>
                         <DialogHeader>
-                            <h3 className="text-lg font-semibold">Cancel order?</h3>
+                            <CardTitle>Cancel Order</CardTitle>
+                            <CardDescription>Are you sure you want to cancel this order?</CardDescription>
                         </DialogHeader>
-                        <p className="text-sm text-muted-foreground mb-4">
-                            This action cannot be undone.
-                        </p>
-                        <DialogFooter>
-                            <Button variant="secondary" onClick={() => setConfirmUuid(null)}>
-                                Close
-                            </Button>
-                            <Button variant="destructive" onClick={() => cancelOrder(confirmUuid)}>
-                                Cancel Order
-                            </Button>
+                        <DialogFooter className="flex justify-end gap-2 pt-4">
+                            <Button variant="outline" onClick={() => setConfirmUuid(null)}>Dismiss</Button>
+                            <Button variant="destructive" onClick={() => cancelOrder(confirmUuid)}>Confirm</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
             )}
         </>
     );
-} 
+}

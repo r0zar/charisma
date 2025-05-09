@@ -16,4 +16,6 @@ export async function GET() {
         name: t.name,
     }));
     return NextResponse.json(out);
-} 
+}
+
+export const revalidate = 600; // cache token list for 10 minutes 

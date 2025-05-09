@@ -16,7 +16,7 @@ interface TokenDropdownProps {
     tokens: Token[];
     selected?: Token | null;
     onSelect: (t: Token) => void;
-    label: string;
+    label?: string;
 }
 
 export default function TokenDropdown({ tokens, selected, onSelect, label }: TokenDropdownProps) {

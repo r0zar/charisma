@@ -108,7 +108,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const [swapSuccessInfo, setSwapSuccessInfo] = useState<{ txId: string } | null>(null);
 
     // Price state
-    const [tokenPrices, setTokenPrices] = useState<KraxelPriceData | null>(null);
+    const [tokenPrices, setTokenPrices] = useState<KraxelPriceData>({});
     const [isLoadingPrices, setIsLoadingPrices] = useState(false);
     const [priceError, setPriceError] = useState<string | null>(null);
 
@@ -395,6 +395,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
      */
     async function createTriggeredSwap(opts: {
         conditionToken: Token;
+        baseToken: Token | null;
         targetPrice: string;
         direction: 'lt' | 'gt';
         amountDisplay: string;
@@ -419,6 +420,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             targetPrice: opts.targetPrice,
             direction: opts.direction,
             conditionToken: opts.conditionToken.contractId,
+            baseAsset: opts.baseToken ? opts.baseToken.contractId : 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
             recipient: walletAddress,
             signature,
             uuid,

@@ -11,7 +11,7 @@ export const WELSHCORGICOIN_CONTRACT = "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2
 export const MALI_TOKEN_CONTRACT = "SPKBV3CZB15CM3CVMCMRX56WRYKDY5P5CTQQXSN0.belgian-malinois"
 
 type TokenContractId = string;
-type PriceUSD = string | number;
+type PriceUSD = number;
 
 /**
  * Represents the structure of the price data returned by the Kraxel API.

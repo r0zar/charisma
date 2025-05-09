@@ -1,14 +1,17 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Token } from '../../lib/swap-client';
 import TokenDropdown from '../TokenDropdown';
-import { AlarmClockCheck } from 'lucide-react';
+import { AlarmClockCheck, ChevronDown } from 'lucide-react';
+import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 
 interface Props {
     displayTokens: Token[];
     selectedToken: Token | null;
     onSelectToken: (t: Token) => void;
+    baseToken: Token | null; // null means USD
+    onSelectBaseToken: (t: Token | null) => void;
     targetPrice: string;
     onTargetChange: (v: string) => void;
     direction: 'lt' | 'gt';
@@ -19,6 +22,8 @@ interface Props {
 export default function LimitConditionSection({
     displayTokens,
     selectedToken,
+    baseToken,
+    onSelectBaseToken,
     onSelectToken,
     targetPrice,
     onTargetChange,
@@ -26,6 +31,9 @@ export default function LimitConditionSection({
     onDirectionChange,
     onBump,
 }: Props) {
+    const [showChart, setShowChart] = useState(false);
+    const SUSDT_ID = 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
+
     const handleReset = () => {
         onTargetChange('');
     };
@@ -33,7 +41,21 @@ export default function LimitConditionSection({
     return (
         <div>
             <div className="bg-muted/20 rounded-2xl p-4 sm:p-5 mb-1 backdrop-blur-sm border border-muted/40 shadow-sm">
-                <label className="block text-sm text-foreground/80 font-medium mb-2">When</label>
+                {/* Header row with toggle */}
+                <div className="flex items-center gap-1 mb-2">
+                    <label className="text-sm text-foreground/80 font-medium">When</label>
+                    {selectedToken && (
+                        <button
+                            type="button"
+                            onClick={() => setShowChart(!showChart)}
+                            className="text-muted-foreground hover:text-foreground p-0.5 rounded-md"
+                            title={showChart ? 'Hide price chart' : 'Show price chart'}
+                        >
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
+                        </button>
+                    )}
+                </div>
+
                 <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-5">
                     {/* Token selector */}
                     <div className="w-full sm:w-32 shrink-0">
@@ -43,6 +65,31 @@ export default function LimitConditionSection({
                             onSelect={onSelectToken}
                             label=""
                         />
+                    </div>
+
+                    <div>/</div>
+
+                    {/* Base asset selector (USD + tokens) */}
+                    <div className="w-full sm:w-32 shrink-0">
+                        {(() => {
+                            // Build options with synthetic USD first then tokens
+                            const usdToken: Token = { contractId: 'USD', symbol: 'USD', name: 'US Dollar', decimals: 2 } as Token;
+                            const options: Token[] = [usdToken, ...displayTokens];
+
+                            // Determine currently selected object
+                            const selected = baseToken ?? options.find(o => o.contractId === SUSDT_ID) ?? usdToken;
+
+                            return (
+                                <TokenDropdown
+                                    tokens={options}
+                                    selected={selected}
+                                    onSelect={(t) => {
+                                        if (t.contractId === 'USD') onSelectBaseToken(null);
+                                        else onSelectBaseToken(t.contractId === SUSDT_ID ? null : t);
+                                    }}
+                                />
+                            );
+                        })()}
                     </div>
 
                     {/* Direction toggle */}
@@ -61,9 +108,8 @@ export default function LimitConditionSection({
                         ))}
                     </div>
 
-                    {/* Price input with $ prefix and +/- buttons */}
+                    {/* Price input with base symbol suffix */}
                     <div className="flex items-center gap-1 flex-1 min-w-[8rem]">
-                        <span className="text-muted-foreground text-xl mb-0.5 font-light">$</span>
                         <input
                             value={targetPrice}
                             onChange={(e) => {
@@ -73,17 +119,27 @@ export default function LimitConditionSection({
                                 }
                             }}
                             placeholder="0.00"
-                            className="w-18 bg-transparent border-none text-xl font-medium focus:outline-none placeholder:text-muted-foreground/50"
+                            className="w-24 bg-transparent border-none text-xl font-medium focus:outline-none placeholder:text-muted-foreground/50"
                         />
 
                         <div className="flex flex-row gap-0.5 shrink-0">
                             <button onClick={() => onBump(0.01)} className="cursor-pointer hover:bg-muted-foreground/10 text-xs px-1.5 py-0.5 bg-muted-foreground/5 rounded">+</button>
                             <button onClick={() => onBump(-0.01)} className="cursor-pointer hover:bg-muted-foreground/10 text-xs px-1.5 py-0.5 bg-muted-foreground/5 rounded">-</button>
                         </div>
-                        {/* spacer to take up right side of flex */}
-                        <div className="flex-1" ></div>
                     </div>
                 </div>
+
+                {/* Collapsible chart */}
+                {showChart && selectedToken && (
+                    <div className="mt-4">
+                        <ConditionTokenChartWrapper
+                            token={selectedToken}
+                            baseToken={baseToken}
+                            targetPrice={targetPrice}
+                            onTargetPriceChange={onTargetChange}
+                        />
+                    </div>
+                )}
             </div>
             {/* spacer between condition builder and from-section */}
             <div className="my-2 flex justify-center">
