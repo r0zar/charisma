@@ -44,6 +44,9 @@ export async function generateMetadata(
             description,
             images: [ogImageUrl],
         },
+        other: {
+            'og:logo': 'https://charisma.rocks/charisma.png',
+        },
     };
 }
 
