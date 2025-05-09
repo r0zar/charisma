@@ -118,202 +118,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Create the OG image
-    const mainContent = modeParam === 'order' ? (
-      // ----- ORDER MODE -----
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', width: '100%', justifyContent: 'center' }}>
-        {/* Condition description */}
-        <div style={{ fontSize: '56px', fontWeight: 700, color: 'white', textAlign: 'center', lineHeight: 1.2, display: 'flex', justifyContent: 'center' }}>
-          Triggered Swap
-        </div>
-        <div style={{ fontSize: '46px', fontWeight: 600, color: 'hsl(25 100% 58%)', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ display: 'flex' }}>Swap {amount}</div>
-          {fromLogo ? (
-            <img src={fromLogo} width="48" height="48" style={{ borderRadius: '50%', marginLeft: '12px' }} />
-          ) : (
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'hsla(25, 100%, 58%, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: '800', color: 'hsl(25 100% 58%)', marginLeft: '12px' }}>{fromSymbol.slice(0, 2)}</div>
-          )}
-        </div>
-        <div style={{ fontSize: '40px', fontWeight: 500, color: 'white', textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span>when </span>
-            {conditionToken?.image ? (
-              <img src={conditionToken.image} width="32" height="32" style={{ borderRadius: '50%', marginLeft: '6px', marginRight: '6px' }} />
-            ) : (
-              <span style={{ marginLeft: '6px', marginRight: '6px', fontWeight: '600' }}>{(conditionTokenParam ? conditionTokenParam.toUpperCase() : toSymbol)}</span>
-            )}
-            <span>{directionParam === 'lt' ? 'is less than' : 'is greater than'} {targetPriceParam ?? '?'}</span>
-          </div>
-        </div>
-        {sparkUrl && (
-          <img src={sparkUrl} width="300" height="120" style={{ borderRadius: '12px' }} />
-        )}
-      </div>
-    ) : (
-      // ----- SWAP MODE -----
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '48px', width: '100%' }}>
-        {/* To Token (now on the left) */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '24px',
-          }}
-        >
-          {fromLogo ? (
-            <img
-              src={fromLogo}
-              alt={fromSymbol}
-              style={{
-                width: '140px',
-                height: '140px',
-                borderRadius: '50%',
-                border: '6px solid hsla(0, 0%, 100%, 0.1)',
-                objectFit: 'cover',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '140px',
-                height: '140px',
-                borderRadius: '50%',
-                backgroundColor: 'hsla(360, 100%, 67%, 0.2)',
-                border: '6px solid hsla(0, 0%, 100%, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '48px',
-                fontWeight: '800',
-                color: 'hsl(360 100% 67%)',
-              }}
-            >
-              {fromSymbol.slice(0, 2)}
-            </div>
-          )}
-          <div
-            style={{
-              fontSize: '72px',
-              fontWeight: '800',
-              color: 'white',
-              lineHeight: '1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{ display: 'flex' }}>{amount}</div>
-          </div>
-          <div
-            style={{
-              fontSize: '42px',
-              fontWeight: '700',
-              color: 'hsl(360 100% 67%)',
-              letterSpacing: '0.05em',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{ display: 'flex' }}>{fromSymbol}</div>
-          </div>
-        </div>
-
-        {/* Arrow */}
-        <div
-          style={{
-            fontSize: '96px',
-            color: 'hsl(25 100% 58%)',
-            fontWeight: '300',
-            display: 'flex',
-            alignItems: 'center',
-            position: 'relative',
-          }}
-        >
-          <svg
-            width="96"
-            height="96"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 12h14m0 0-7-7m7 7-7 7" />
-          </svg>
-        </div>
-
-        {/* From Token (now on the right) */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '24px',
-          }}
-        >
-          {toLogo ? (
-            <img
-              src={toLogo}
-              alt={toSymbol}
-              style={{
-                width: '140px',
-                height: '140px',
-                borderRadius: '50%',
-                border: '6px solid hsla(0, 0%, 100%, 0.1)',
-                objectFit: 'cover',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '140px',
-                height: '140px',
-                borderRadius: '50%',
-                backgroundColor: 'hsla(25, 100%, 58%, 0.2)',
-                border: '6px solid hsla(0, 0%, 100%, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '48px',
-                fontWeight: '800',
-                color: 'hsl(25 100% 58%)',
-              }}
-            >
-              {toSymbol.slice(0, 2)}
-            </div>
-          )}
-          <div
-            style={{
-              fontSize: '72px',
-              fontWeight: '800',
-              color: 'white',
-              lineHeight: '1',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{ display: 'flex' }}>{outputAmount}</div>
-          </div>
-          <div
-            style={{
-              fontSize: '42px',
-              fontWeight: '700',
-              color: 'hsl(25 100% 58%)',
-              letterSpacing: '0.05em',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{ display: 'flex' }}>{toSymbol}</div>
-          </div>
-        </div>
-      </div>
-    );
 
     // Create modern OG card
     return new ImageResponse(
@@ -410,6 +214,12 @@ export async function GET(request: NextRequest) {
                       ) : (
                         <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: 'hsla(25, 100%, 58%, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: '800', color: 'hsl(25 100% 58%)', marginLeft: '16px' }}>{fromSymbol.slice(0, 2)}</div>
                       )}
+                      <div style={{ display: 'flex' }}> to </div>
+                      {toLogo ? (
+                        <img src={toLogo} width="72" height="72" style={{ borderRadius: '50%', marginLeft: '4px' }} />
+                      ) : (
+                        <div style={{ width: '72px', height: '72px', borderRadius: '50%', backgroundColor: 'hsla(25, 100%, 58%, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: '800', color: 'hsl(25 100% 58%)', marginLeft: '16px' }}>{toSymbol.slice(0, 2)}</div>
+                      )}
                     </div>
                   </div>
                   <div style={{
@@ -471,7 +281,168 @@ export async function GET(request: NextRequest) {
             ) : (
               /* Swap mode content */
               <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-                {mainContent}
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '48px', width: '100%' }}>
+                  {/* To Token (now on the left) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '24px',
+                    }}
+                  >
+                    {fromLogo ? (
+                      <img
+                        src={fromLogo}
+                        alt={fromSymbol}
+                        style={{
+                          width: '140px',
+                          height: '140px',
+                          borderRadius: '50%',
+                          border: '6px solid hsla(0, 0%, 100%, 0.1)',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '140px',
+                          height: '140px',
+                          borderRadius: '50%',
+                          backgroundColor: 'hsla(360, 100%, 67%, 0.2)',
+                          border: '6px solid hsla(0, 0%, 100%, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '48px',
+                          fontWeight: '800',
+                          color: 'hsl(360 100% 67%)',
+                        }}
+                      >
+                        {fromSymbol.slice(0, 2)}
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontSize: '72px',
+                        fontWeight: '800',
+                        color: 'white',
+                        lineHeight: '1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex' }}>{amount}</div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '42px',
+                        fontWeight: '700',
+                        color: 'hsl(360 100% 67%)',
+                        letterSpacing: '0.05em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex' }}>{fromSymbol}</div>
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div
+                    style={{
+                      fontSize: '96px',
+                      color: 'hsl(25 100% 58%)',
+                      fontWeight: '300',
+                      display: 'flex',
+                      alignItems: 'center',
+                      position: 'relative',
+                    }}
+                  >
+                    <svg
+                      width="96"
+                      height="96"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14m0 0-7-7m7 7-7 7" />
+                    </svg>
+                  </div>
+
+                  {/* From Token (now on the right) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '24px',
+                    }}
+                  >
+                    {toLogo ? (
+                      <img
+                        src={toLogo}
+                        alt={toSymbol}
+                        style={{
+                          width: '140px',
+                          height: '140px',
+                          borderRadius: '50%',
+                          border: '6px solid hsla(0, 0%, 100%, 0.1)',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '140px',
+                          height: '140px',
+                          borderRadius: '50%',
+                          backgroundColor: 'hsla(25, 100%, 58%, 0.2)',
+                          border: '6px solid hsla(0, 0%, 100%, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '48px',
+                          fontWeight: '800',
+                          color: 'hsl(25 100% 58%)',
+                        }}
+                      >
+                        {toSymbol.slice(0, 2)}
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontSize: '72px',
+                        fontWeight: '800',
+                        color: 'white',
+                        lineHeight: '1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex' }}>{outputAmount}</div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '42px',
+                        fontWeight: '700',
+                        color: 'hsl(25 100% 58%)',
+                        letterSpacing: '0.05em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex' }}>{toSymbol}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
