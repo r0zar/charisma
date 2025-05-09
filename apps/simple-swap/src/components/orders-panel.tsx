@@ -377,12 +377,14 @@ export default function OrdersPanel() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-2 flex items-center gap-2">
-                                                    <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
-                                                    <span>{o.inputTokenMeta.symbol}</span>
-                                                    <span className="mx-1 text-muted-foreground">→</span>
-                                                    <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
-                                                    <span>{o.outputTokenMeta.symbol}</span>
+                                                <td className="px-4 py-2">
+                                                    <span className="flex items-center gap-1">
+                                                        <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
+                                                        <span>{o.inputTokenMeta.symbol}</span>
+                                                        <span className="mx-1 text-muted-foreground">→</span>
+                                                        <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
+                                                        <span>{o.outputTokenMeta.symbol}</span>
+                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals)}</td>
                                                 <td className="px-4 py-2">
