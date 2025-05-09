@@ -16,14 +16,11 @@ import LimitConditionSection from './swap-interface/LimitConditionSection';
 import { Button } from "./ui/button";
 import MiniTokenChartWrapper from './mini-token-chart-wrapper';
 import { DcaDialog } from "./dca-dialog";
+import { useSearchParams } from "next/navigation";
 
 interface SwapInterfaceProps {
   initialTokens?: Token[];
-  urlParams?: {
-    fromSymbol?: string;
-    toSymbol?: string;
-    amount?: string;
-  };
+  urlParams?: any;
 }
 
 // Helper function to get explorer URL
@@ -32,7 +29,9 @@ const getExplorerUrl = (txId: string) => {
   return `https://explorer.stacks.co/txid/${txId}`;
 };
 
-export default function SwapInterface({ initialTokens = [], urlParams }: SwapInterfaceProps) {
+const USD_PRECISION = 6;
+
+export default function SwapInterface({ initialTokens = [], urlParams: _unused }: SwapInterfaceProps) {
   const swap = useSwap({ initialTokens });
   // Extract the tokenPrices to a local constant to avoid linter errors
   const tokenPrices = swap.tokenPrices || null;
@@ -89,76 +88,31 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     fromTokenValueUsd,
     toTokenValueUsd,
     createTriggeredSwap,
+    displayTokens,
+    tokenCounterparts,
+    subnetDisplayTokens,
+    hasBothVersions,
   } = swap;
 
   // DCA dialog control
   const [dcaDialogOpen, setDcaDialogOpen] = useState(false);
 
-  // --- Start: Logic for display tokens and checking counterparts ---
-  const { displayTokens, tokenCounterparts } = useMemo(() => {
-    if (!selectedTokens || selectedTokens.length === 0) {
-      return { displayTokens: [], tokenCounterparts: new Map() };
-    }
+  // -------------------------------------------------------------------
+  // One-time deep-link parameters pulled from the URL (client-only)
+  // -------------------------------------------------------------------
+  const searchParams = useSearchParams();
+  const initialParams = useRef({
+    fromSymbol: searchParams.get('fromSymbol') ?? undefined,
+    toSymbol: searchParams.get('toSymbol') ?? undefined,
+    amount: searchParams.get('amount') ?? undefined,
+    mode: searchParams.get('mode') as 'swap' | 'order' | undefined,
+    targetPrice: searchParams.get('targetPrice') ?? undefined,
+    direction: searchParams.get('direction') as 'lt' | 'gt' | undefined,
+    conditionToken: searchParams.get('conditionToken') ?? undefined,
+    baseAsset: searchParams.get('baseAsset') ?? undefined,
+  }).current;
 
-    const tokenMapForDisplay = new Map<string, Token>();
-    const counterpartMap = new Map<string, { mainnet: Token | null, subnet: Token | null }>();
-
-    // First pass: identify mainnet/subnet versions and populate counterpartMap
-    for (const token of selectedTokens) {
-      const isSubnet = token.contractId.includes('-subnet');
-      const baseId = isSubnet
-        ? token.contractId.substring(0, token.contractId.lastIndexOf('-subnet'))
-        : token.contractId;
-
-      if (!counterpartMap.has(baseId)) {
-        counterpartMap.set(baseId, { mainnet: null, subnet: null });
-      }
-
-      const entry = counterpartMap.get(baseId)!;
-      if (isSubnet) {
-        entry.subnet = token;
-      } else {
-        entry.mainnet = token;
-      }
-    }
-
-    // Second pass: create the display list, preferring mainnet tokens
-    for (const [baseId, counterparts] of counterpartMap.entries()) {
-      const tokenToShow = counterparts.mainnet ?? counterparts.subnet; // Prefer mainnet, fallback to subnet
-      if (tokenToShow) {
-        tokenMapForDisplay.set(baseId, tokenToShow);
-      }
-    }
-
-    // Sort the display tokens alphabetically by symbol for consistency
-    const sortedDisplayTokens = Array.from(tokenMapForDisplay.values()).sort((a, b) => a.symbol.localeCompare(b.symbol));
-
-    return { displayTokens: sortedDisplayTokens, tokenCounterparts: counterpartMap };
-  }, [selectedTokens]); // Re-run only when the full token list changes
-
-
-  // Helper to check if both mainnet and subnet versions exist for a given token
-  const hasBothVersions = useCallback((token: Token | null): boolean => {
-    if (!token) return false;
-    const isSubnet = token.contractId.includes('-subnet');
-    const baseId = isSubnet
-      ? token.contractId.substring(0, token.contractId.lastIndexOf('-subnet'))
-      : token.contractId;
-    const counterparts = tokenCounterparts.get(baseId);
-    return !!(counterparts?.mainnet && counterparts?.subnet);
-  }, [tokenCounterparts]);
-
-  // after tokenCounterparts memoization
-  const subnetDisplayTokens = useMemo(() => {
-    const subs: Token[] = [];
-    tokenCounterparts.forEach(({ subnet }) => {
-      if (subnet) subs.push(subnet);
-    });
-    // Sort alphabetically for consistency
-    return subs.sort((a, b) => a.symbol.localeCompare(b.symbol));
-  }, [tokenCounterparts]);
-  // --- End: Logic for display tokens and checking counterparts ---
-
+  const [initDone, setInitDone] = useState(false);
 
   // Effect to update the ACTUAL selectedFromToken in useSwap based on the toggle
   useEffect(() => {
@@ -206,54 +160,35 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
   }, [baseSelectedToToken, useSubnetTo, tokenCounterparts, setSelectedToToken, selectedToToken?.contractId]);
 
 
-  // Apply URL parameters when component loads - uses base tokens for initial find
+  // -------------------------------------------------------------------
+  // Initialise component state from deep-link once tokens & lists are ready
+  // -------------------------------------------------------------------
   useEffect(() => {
-    if (!urlParams || !displayTokens?.length || (!urlParams.fromSymbol && !urlParams.toSymbol)) {
-      return;
+    if (initDone || !displayTokens.length) return;
+
+    const { mode: m, targetPrice: tp, direction: dir, fromSymbol, toSymbol, amount } = initialParams;
+
+    if (m === 'order') setMode('order');
+    if (tp) setTargetPrice(tp);
+    if (dir === 'lt' || dir === 'gt') setConditionDir(dir);
+
+    if (fromSymbol) {
+      const t = displayTokens.find(tok => tok.symbol.toLowerCase() === fromSymbol.toLowerCase());
+      if (t) setBaseSelectedFromToken(t);
     }
 
-    // Only apply URL params once when tokens are loaded and base hasn't been set yet
-    if (baseSelectedFromToken && baseSelectedToToken) {
-      return;
+    if (toSymbol) {
+      const t = displayTokens.find(tok => tok.symbol.toLowerCase() === toSymbol.toLowerCase());
+      if (t) setBaseSelectedToToken(t);
     }
 
-    // Find base tokens by symbol (case insensitive)
-    if (urlParams.fromSymbol && !baseSelectedFromToken) {
-      const fromToken = displayTokens.find(
-        (token: Token) =>
-          token.symbol.toLowerCase() === urlParams.fromSymbol?.toLowerCase()
-      );
-      if (fromToken) {
-        console.log("Setting base FROM token from URL:", fromToken.symbol);
-        // Set the base token first
-        setBaseSelectedFromToken(fromToken);
-        // Reset toggle state, useEffect will handle setting the actual non-subnet token initially
-        setUseSubnetFrom(false);
-      }
+    if (amount && !isNaN(Number(amount))) {
+      setDisplayAmount(amount);
     }
 
-    if (urlParams.toSymbol && !baseSelectedToToken) {
-      const toToken = displayTokens.find(
-        (token: Token) =>
-          token.symbol.toLowerCase() === urlParams.toSymbol?.toLowerCase()
-      );
-      if (toToken) {
-        console.log("Setting base TO token from URL:", toToken.symbol);
-        // Set the base token first
-        setBaseSelectedToToken(toToken);
-        // Reset toggle state, useEffect will handle setting the actual non-subnet token initially
-        setUseSubnetTo(false);
-      }
-    }
-
-    // Set initial amount if provided - Note: microAmount recalculates in the useEffect above
-    if (urlParams.amount && !isNaN(Number(urlParams.amount))) {
-      setDisplayAmount(urlParams.amount);
-    }
-    // Use displayTokens here as it's the source for finding URL params
-    // baseSelectedFrom/ToToken ensure it runs only once
-  }, [displayTokens, urlParams, baseSelectedFromToken, baseSelectedToToken, setDisplayAmount]);
-
+    setInitDone(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayTokens]);
 
   // Determine routing efficiency based on path
   useEffect(() => {
@@ -275,16 +210,18 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
   // default target price when token changes
   useEffect(() => {
     if (mode !== 'order') return;
+    if (initialParams.targetPrice) return; // don't override deep-linked preset
     if (!conditionToken) return;
     const price = getUsdPrice(conditionToken.contractId);
     if (price !== undefined && targetPrice === '') {
-      setTargetPrice(price.toFixed(4));
+      setTargetPrice(price.toFixed(USD_PRECISION));
     }
   }, [conditionToken, mode, getUsdPrice, targetPrice]);
 
   // Update target price when condition/base token or prices change
   useEffect(() => {
     if (mode !== 'order') return;
+    if (initialParams.targetPrice) return; // don't override deep-linked preset
     if (!conditionToken) return;
     if (!tokenPrices || Object.keys(tokenPrices).length === 0) return;
 
@@ -299,7 +236,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
     if (condPrice !== undefined && basePrice && basePrice !== 0) {
       const ratio = condPrice / basePrice;
-      setTargetPrice(ratio.toFixed(4));
+      setTargetPrice(ratio.toFixed(USD_PRECISION));
     }
   }, [conditionToken, baseToken, tokenPrices, mode]);
 
@@ -307,7 +244,7 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     const current = parseFloat(targetPrice || '0');
     if (isNaN(current) || current === 0) return;
     const updated = current * (1 + percent);
-    setTargetPrice(updated.toFixed(4));
+    setTargetPrice(updated.toFixed(USD_PRECISION));
   };
 
   // Effect to handle mode changes, specifically defaulting for 'order' mode
@@ -318,8 +255,8 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
 
     console.log(`Mode changed: ${prevMode} -> ${mode}. Condition token: ${conditionToken?.symbol}`);
 
-    // Only default condition token when switching *into* order mode and it's not already set
-    if (mode === 'order' && prevMode !== 'order' && !conditionToken) {
+    // Only default condition token when switching *into* order mode and not deep-linked tokens
+    if (mode === 'order' && prevMode !== 'order' && !conditionToken && !initialParams.fromSymbol && !initialParams.toSymbol) {
       console.log('Attempting to default to Charisma for Order mode...');
       // Locate the base (main-net) Charisma token in the available list
       const charismaBase = displayTokens.find(
@@ -635,10 +572,33 @@ export default function SwapInterface({ initialTokens = [], urlParams }: SwapInt
     });
   }
 
+  // Share handler
+  const handleShare = () => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (selectedFromToken) params.set('fromSymbol', selectedFromToken.symbol);
+    if (selectedToToken) params.set('toSymbol', selectedToToken.symbol);
+    if (displayAmount) params.set('amount', displayAmount);
+    if (mode === 'order') {
+      params.set('mode', 'order');
+      if (targetPrice) params.set('targetPrice', targetPrice);
+      params.set('direction', conditionDir);
+      // Include the condition token symbol so OG card can render the correct logo
+      const condSymbol = (conditionToken || selectedToToken)?.symbol;
+      if (condSymbol) params.set('conditionToken', condSymbol);
+    }
+    const shareUrl = `${window.location.origin}/swap?${params.toString()}`;
+    const text = mode === 'order'
+      ? `Planning a triggered swap on Charisma: ${displayAmount || ''} ${selectedFromToken?.symbol} when price ${conditionDir === 'lt' ? '≤' : '≥'} ${targetPrice}. Try it:`
+      : `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${selectedToToken?.symbol} on Charisma:`;
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(tweetUrl, '_blank');
+  };
+
   return (
     <div className="glass-card overflow-hidden shadow-xl border border-border/60">
       {/* Header */}
-      <SwapHeader securityLevel={securityLevel} userAddress={userAddress} mode={mode} onModeChange={setMode} />
+      <SwapHeader securityLevel={securityLevel} userAddress={userAddress} mode={mode} onModeChange={setMode} onShare={handleShare} />
 
       <div className="p-6">
         {/* Limit order builder */}

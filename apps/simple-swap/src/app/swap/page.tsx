@@ -52,11 +52,7 @@ export default async function SwapPage({
 }: {
     searchParams: { [key: string]: string | string[] | undefined };
 }) {
-    const { fromSymbol, toSymbol, amount } = await searchParams;
-    // Get URL parameters for pre-filling the swap form
-    const fromParam = fromSymbol as string | undefined;
-    const toParam = toSymbol as string | undefined;
-    const amountParam = amount as string | undefined;
+    // URL params are now read directly by the client component; no pre-processing needed here.
 
     // Prefetch tokens on the server
     const { success, tokens = [] } = await listTokens();
@@ -69,14 +65,7 @@ export default async function SwapPage({
                     <div className="grid md:grid-cols-3 gap-8">
                         {/* Main Swap UI */}
                         <div className="md:col-span-2">
-                            <SwapInterface
-                                initialTokens={tokens}
-                                urlParams={{
-                                    fromSymbol: fromParam,
-                                    toSymbol: toParam,
-                                    amount: amountParam
-                                }}
-                            />
+                            <SwapInterface initialTokens={tokens} />
                         </div>
 
                         {/* Sidebar */}

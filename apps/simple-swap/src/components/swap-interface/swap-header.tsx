@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { Twitter } from 'lucide-react';
 
 interface ToggleProps {
     mode: 'swap' | 'order';
@@ -36,12 +37,14 @@ interface SwapHeaderProps {
     userAddress: string | null;
     mode: 'swap' | 'order';
     onModeChange: (m: 'swap' | 'order') => void;
+    onShare: () => void;
 }
 
 export default function SwapHeader({
     securityLevel,
     mode,
-    onModeChange
+    onModeChange,
+    onShare
 }: SwapHeaderProps) {
     return (
         <div className="border-b border-border/30 p-5 flex justify-between items-center bg-gradient-to-r from-card to-card/90">
@@ -61,6 +64,13 @@ export default function SwapHeader({
 
             <div className="flex items-center gap-3 shrink-0">
                 <ModeToggle mode={mode} onChange={onModeChange} />
+                <button
+                    onClick={onShare}
+                    title="Share this swap"
+                    className="cursor-pointer ml-2 p-2 hover:bg-muted rounded-full transition-colors"
+                >
+                    <Twitter className="h-4 w-4 text-primary" />
+                </button>
             </div>
         </div>
     );

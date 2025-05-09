@@ -333,6 +333,58 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         };
     }, [tokenPrices, selectedFromToken, selectedToToken, displayAmount, quote]);
 
+    // --------------------------------------------------------------
+    // Token mapping helpers (mainnet vs. subnet versions)
+    // --------------------------------------------------------------
+    const { displayTokens, tokenCounterparts } = useMemo(() => {
+        if (!selectedTokens || selectedTokens.length === 0) {
+            return { displayTokens: [], tokenCounterparts: new Map<string, { mainnet: Token | null; subnet: Token | null }>() };
+        }
+
+        const tokenMapForDisplay = new Map<string, Token>();
+        const counterpartMap = new Map<string, { mainnet: Token | null; subnet: Token | null }>();
+
+        // First pass: index tokens by base id (strip "-subnet" suffix)
+        for (const token of selectedTokens) {
+            const isSubnet = token.contractId.includes('-subnet');
+            const baseId = isSubnet
+                ? token.contractId.substring(0, token.contractId.lastIndexOf('-subnet'))
+                : token.contractId;
+
+            if (!counterpartMap.has(baseId)) {
+                counterpartMap.set(baseId, { mainnet: null, subnet: null });
+            }
+
+            const entry = counterpartMap.get(baseId)!;
+            if (isSubnet) entry.subnet = token; else entry.mainnet = token;
+        }
+
+        // Build display list (prefer mainnet versions)
+        for (const [baseId, counterparts] of counterpartMap.entries()) {
+            const tokenToShow = counterparts.mainnet ?? counterparts.subnet;
+            if (tokenToShow) tokenMapForDisplay.set(baseId, tokenToShow);
+        }
+
+        const sortedDisplayTokens = Array.from(tokenMapForDisplay.values()).sort((a, b) => a.symbol.localeCompare(b.symbol));
+
+        return { displayTokens: sortedDisplayTokens, tokenCounterparts: counterpartMap };
+    }, [selectedTokens]);
+
+    // List of subnet tokens for quick access
+    const subnetDisplayTokens = useMemo(() => {
+        const subs: Token[] = [];
+        tokenCounterparts.forEach(({ subnet }) => { if (subnet) subs.push(subnet); });
+        return subs.sort((a, b) => a.symbol.localeCompare(b.symbol));
+    }, [tokenCounterparts]);
+
+    const hasBothVersions = useCallback((token: Token | null): boolean => {
+        if (!token) return false;
+        const isSubnet = token.contractId.includes('-subnet');
+        const baseId = isSubnet ? token.contractId.substring(0, token.contractId.lastIndexOf('-subnet')) : token.contractId;
+        const counterparts = tokenCounterparts.get(baseId);
+        return !!(counterparts?.mainnet && counterparts?.subnet);
+    }, [tokenCounterparts]);
+
     // ---------------------- Handlers ----------------------
     async function fetchQuote() {
         if (!selectedFromToken || !selectedToToken) return;
@@ -461,6 +513,12 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         toTokenBalance,
         userAddress,
         tokenPrices,
+
+        // token display helpers (mainnet / subnet)
+        displayTokens,
+        tokenCounterparts,
+        subnetDisplayTokens,
+        hasBothVersions,
 
         // loading flags
         isInitializing,
