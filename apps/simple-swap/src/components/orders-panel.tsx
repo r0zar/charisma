@@ -9,9 +9,10 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import TokenLogo from "./TokenLogo";
-import { ClipboardList, Copy, Check } from "lucide-react";
+import { ClipboardList, Copy, Check, Zap, Trash2 } from "lucide-react";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { toast } from "sonner";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./ui/tooltip";
 
 interface BadgeProps {
     status: LimitOrder["status"];
@@ -235,7 +236,7 @@ export default function OrdersPanel() {
     }
 
     return (
-        <>
+        <TooltipProvider delayDuration={200}>
             <Card className="bg-transparent border-none container">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 md:px-0 pt-6 md:pt-0">
                     <CardHeader className="flex-row items-center gap-3 px-1">
@@ -410,24 +411,41 @@ export default function OrdersPanel() {
                                                 <td className="px-2 py-2">
                                                     {o.status === "open" && (
                                                         <div className="flex gap-2">
-                                                            <button
-                                                                className="cursor-pointer hover:bg-primary/80 px-2 py-1 rounded-md bg-primary text-primary-foreground"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    executeNow(o.uuid);
-                                                                }}
-                                                            >
-                                                                Execute
-                                                            </button>
-                                                            <button
-                                                                className="cursor-pointer hover:bg-destructive/80 px-2 py-1 rounded-md bg-destructive text-destructive-foreground"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setConfirmUuid(o.uuid);
-                                                                }}
-                                                            >
-                                                                Cancel
-                                                            </button>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="secondary"
+                                                                        size="icon"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            executeNow(o.uuid);
+                                                                        }}
+                                                                    >
+                                                                        <Zap className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top">
+                                                                    Execute this order immediately at the current market price.
+                                                                </TooltipContent>
+                                                            </Tooltip>
+
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setConfirmUuid(o.uuid);
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top">
+                                                                    Cancel this order.
+                                                                </TooltipContent>
+                                                            </Tooltip>
                                                         </div>
                                                     )}
                                                 </td>
@@ -554,6 +572,6 @@ export default function OrdersPanel() {
                     </DialogContent>
                 </Dialog>
             )}
-        </>
+        </TooltipProvider>
     );
 }
