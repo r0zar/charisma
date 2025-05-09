@@ -385,6 +385,21 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         return !!(counterparts?.mainnet && counterparts?.subnet);
     }, [tokenCounterparts]);
 
+    // Helper to retrieve subnet counterpart
+    const getSubnetVariant = useCallback((t: Token | null): Token | null => {
+        if (!t) return null;
+        if (t.contractId.includes('-subnet')) return t;
+        const baseId = t.contractId;
+        const cp = tokenCounterparts.get(baseId);
+        return cp?.subnet ?? null;
+    }, [tokenCounterparts]);
+
+    // Safe setter that optionally forces subnet version
+    const setSelectedFromTokenSafe = (t: Token) => {
+        if (!t.contractId.includes('-subnet')) return
+        setSelectedFromToken(t);
+    }
+
     // ---------------------- Handlers ----------------------
     async function fetchQuote() {
         if (!selectedFromToken || !selectedToToken) return;
@@ -536,7 +551,6 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
         // setters & handlers
         setDisplayAmount,
-        setSelectedFromToken,
         setSelectedToToken,
         setMicroAmount,
         setUserAddress,
@@ -545,6 +559,9 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         handleSwitchTokens,
         clearBalanceCache,
         createTriggeredSwap,
+
+        // safe setters
+        setSelectedFromTokenSafe,
 
         // derived values
         fromTokenValueUsd,

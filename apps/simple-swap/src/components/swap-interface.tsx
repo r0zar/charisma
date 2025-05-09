@@ -60,7 +60,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
   const {
     selectedTokens,
     selectedFromToken,
-    setSelectedFromToken,
+    setSelectedFromTokenSafe,
     selectedToToken,
     setSelectedToToken,
     displayAmount,
@@ -131,11 +131,22 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     // Only update if the target token exists and is different from the current actual token
     if (targetToken && targetToken.contractId !== selectedFromToken?.contractId) {
       console.log(`Setting ACTUAL From Token: ${targetToken.symbol} (${targetToken.contractId}) based on toggle ${useSubnetFrom}`);
-      setSelectedFromToken(targetToken);
+      setSelectedFromTokenSafe(targetToken);
       // Recalculate microAmount when the underlying token (and thus decimals) might change
       setMicroAmount(convertToMicroUnits(displayAmount, targetToken.decimals));
     }
-  }, [baseSelectedFromToken, useSubnetFrom, tokenCounterparts, setSelectedFromToken, selectedFromToken?.contractId, setMicroAmount, displayAmount, convertToMicroUnits]);
+  }, [baseSelectedFromToken, useSubnetFrom, tokenCounterparts, setSelectedFromTokenSafe, selectedFromToken?.contractId, setMicroAmount, displayAmount, convertToMicroUnits]);
+
+  // Effect to set from token after switching to order mode IF fromtoken does not have -subnet
+  useEffect(() => {
+    if (mode === 'order' && !selectedTokens[0].contractId.includes('-subnet')) {
+      const subnetTokens = selectedTokens.filter(t => t.contractId.includes('-subnet'));
+      if (subnetTokens.length > 0) {
+        console.log(subnetTokens[0])
+        setSelectedFromTokenSafe(subnetTokens[0]);
+      }
+    }
+  }, [mode, selectedTokens, setSelectedFromTokenSafe]);
 
 
   // Effect to update the ACTUAL selectedToToken in useSwap based on the toggle
