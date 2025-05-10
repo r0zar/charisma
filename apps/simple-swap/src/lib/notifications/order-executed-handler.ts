@@ -76,10 +76,9 @@ export async function sendOrderExecutedNotification(
         );
 
         const amountInFormatted = formatTokenAmount(inputToken, amountIn);
-        const inputTokenName = getSimpleTokenName(inputToken);
         const outputTokenName = getSimpleTokenName(outputToken);
 
-        const message = `🚀 Order Executed! 🚀\n\nYour limit order (${uuid.substring(0, 8)}...) to swap ${amountInFormatted} for ${outputTokenName} has been successfully processed.\n\nTransaction ID: ${txid}\n(View on explorer: https://explorer.hiro.so/txid/${txid}?chain=mainnet)`; // Assuming mainnet for explorer link
+        const message = `Order Executed!\n\nYour order (${uuid.substring(0, 8)}...) to swap ${amountInFormatted} for ${outputTokenName} has been successfully processed.\n\nTransaction ID: ${txid}\n(View on explorer: https://explorer.hiro.so/txid/${txid}?chain=mainnet)`; // Assuming mainnet for explorer link
 
         for (const notifyChannel of channelsToNotify) {
             try {
