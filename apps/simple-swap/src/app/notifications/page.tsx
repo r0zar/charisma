@@ -246,7 +246,7 @@ export default function NotificationSettingsPage() {
                             <div className="mt-3 flex items-center">
                                 <input
                                     type="text"
-                                    placeholder={`Enter ${channelTyped} ID / Number`}
+                                    placeholder={channelTyped === 'telegram' ? "Enter numerical Telegram Chat ID" : `Enter ${channelTyped} ID / Number`}
                                     value={recipientIds[recipientIdKey] || ''}
                                     onChange={(e) => handleRecipientIdChange(recipientIdKey, e.target.value)}
                                     onBlur={() => handleRecipientIdSave(recipientIdKey)}
@@ -254,6 +254,17 @@ export default function NotificationSettingsPage() {
                                     disabled={isSaving || !userPrincipal}
                                 />
                             </div>
+                            {channelTyped === 'telegram' && (
+                                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                                    <p>
+                                        To get your <strong>numerical Telegram Chat ID</strong>:
+                                        Search for <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@userinfobot</a> on Telegram and start a chat with it. It will reply with your ID.
+                                    </p>
+                                    <p>
+                                        <strong>Important:</strong> You also need to start a chat with our notification bot, <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@BuiltOnBitcoin_bot</a>, so it has permission to send you messages.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
