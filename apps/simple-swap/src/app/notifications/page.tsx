@@ -46,14 +46,14 @@ async function saveNotificationSettingsApi(
 
 interface OrderExecutedChannelUIToggleState {
     telegram: boolean;
-    discord: boolean;
-    sms: boolean;
+    // discord: boolean;
+    // sms: boolean;
 }
 
 interface OrderExecutedChannelRecipientIDs {
     telegram?: string;
-    discord?: string;
-    sms?: string;
+    // discord?: string;
+    // sms?: string;
 }
 
 export default function NotificationSettingsPage() {
@@ -65,8 +65,8 @@ export default function NotificationSettingsPage() {
 
     const [uiToggleState, setUiToggleState] = useState<OrderExecutedChannelUIToggleState>({
         telegram: false,
-        discord: false,
-        sms: false,
+        // discord: false,
+        // sms: false,
     });
     const [recipientIds, setRecipientIds] = useState<OrderExecutedChannelRecipientIDs>({});
 
@@ -79,13 +79,13 @@ export default function NotificationSettingsPage() {
                 const prefs = fetchedSettings.orderExecuted || { telegram: getDefaultChannelPref(), discord: getDefaultChannelPref(), sms: getDefaultChannelPref() };
                 setUiToggleState({
                     telegram: prefs.telegram?.enabled || false,
-                    discord: prefs.discord?.enabled || false,
-                    sms: prefs.sms?.enabled || false,
+                    // discord: prefs.discord?.enabled || false,
+                    // sms: prefs.sms?.enabled || false,
                 });
                 setRecipientIds({
                     telegram: prefs.telegram?.recipientId,
-                    discord: prefs.discord?.recipientId,
-                    sms: prefs.sms?.recipientId,
+                    // discord: prefs.discord?.recipientId,
+                    // sms: prefs.sms?.recipientId,
                 });
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -107,14 +107,14 @@ export default function NotificationSettingsPage() {
                     enabled: uiToggleState.telegram,
                     recipientId: uiToggleState.telegram ? (recipientIds.telegram || '') : '',
                 },
-                discord: {
-                    enabled: uiToggleState.discord,
-                    recipientId: uiToggleState.discord ? (recipientIds.discord || '') : '',
-                },
-                sms: {
-                    enabled: uiToggleState.sms,
-                    recipientId: uiToggleState.sms ? (recipientIds.sms || '') : '',
-                },
+                // discord: {
+                //     enabled: uiToggleState.discord,
+                //     recipientId: uiToggleState.discord ? (recipientIds.discord || '') : '',
+                // },
+                // sms: {
+                //     enabled: uiToggleState.sms,
+                //     recipientId: uiToggleState.sms ? (recipientIds.sms || '') : '',
+                // },
             },
         };
     };
@@ -134,8 +134,8 @@ export default function NotificationSettingsPage() {
             if (saved.orderExecuted) {
                 setRecipientIds({
                     telegram: saved.orderExecuted.telegram?.recipientId || '',
-                    discord: saved.orderExecuted.discord?.recipientId || '',
-                    sms: saved.orderExecuted.sms?.recipientId || '',
+                    // discord: saved.orderExecuted.discord?.recipientId || '',
+                    // sms: saved.orderExecuted.sms?.recipientId || '',
                 });
             }
             console.log('Settings saved successfully.');
@@ -159,14 +159,14 @@ export default function NotificationSettingsPage() {
                     enabled: newUiState.telegram,
                     recipientId: newUiState.telegram ? (recipientIds.telegram || '') : '',
                 },
-                discord: {
-                    enabled: newUiState.discord,
-                    recipientId: newUiState.discord ? (recipientIds.discord || '') : '',
-                },
-                sms: {
-                    enabled: newUiState.sms,
-                    recipientId: newUiState.sms ? (recipientIds.sms || '') : '',
-                },
+                // discord: {
+                //     enabled: newUiState.discord,
+                //     recipientId: newUiState.discord ? (recipientIds.discord || '') : '',
+                // },
+                // sms: {
+                //     enabled: newUiState.sms,
+                //     recipientId: newUiState.sms ? (recipientIds.sms || '') : '',
+                // },
             },
         };
 
