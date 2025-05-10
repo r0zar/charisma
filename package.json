@@ -5,8 +5,6 @@
     "build": "turbo run build",
     "clean": "turbo run clean",
     "dev": "turbo run dev --concurrency=30",
-    "dev:blaze": "pnpm --filter blaze-signer dev:with-deps",
-    "dev:blaze:watch": "pnpm --filter blaze-signer dev:watch",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo run lint",
     "test": "turbo run test",

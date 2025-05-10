@@ -1,6 +1,6 @@
 {
-  "name": "Kitchen sink",
-  "description": "Multiple frameworks, both frontend and backend",
+  "name": "Charisma",
+  "description": "Charisma is a suite of tools for building on the Stacks network.",
   "template": "https://vercel.com/templates/remix/turborepo-kitchensink",
   "maintainedByCoreTeam": true
 }

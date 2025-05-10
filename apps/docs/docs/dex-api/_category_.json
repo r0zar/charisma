@@ -1,0 +1,10 @@
+{
+    "label": "DEX API",
+    "position": 2,
+    "link": {
+        "type": "generated-index",
+        "title": "Charisma DEX API",
+        "slug": "/api/overview",
+        "description": "HTTP endpoints for quoting, placing and managing swaps on Charisma DEX."
+    }
+}
