@@ -21,13 +21,48 @@ export type SignerAuthResult =
     | { ok: true; signer: string }
     | { ok: false; status: 401 | 403; error: string };
 
+export interface SignatureVerificationOptions {
+    /** The exact message that must have been signed. */
+    message: string;
+    /** Optional network (defaults to mainnet). */
+    network?: StacksNetwork;
+    /** Override header names (lower-case). */
+    headers?: {
+        sig?: string;
+        pub?: string;
+    };
+}
+
+export type SignatureVerificationResult =
+    | { ok: true; signer: string }
+    | { ok: false; status: 401; error: string };
+
 export async function verifySignedRequest(
     req: Request,
     opts: SignerAuthOptions,
 ): Promise<SignerAuthResult> {
+    const { expectedAddress, ...verificationOpts } = opts;
+
+    const verificationResult = await verifySignatureAndGetSigner(req, verificationOpts);
+
+    if (!verificationResult.ok) {
+        return verificationResult; // Forward the error (status 401)
+    }
+
+    // Signature is valid, now check if the signer matches the expected address
+    if (verificationResult.signer !== expectedAddress) {
+        return { ok: false, status: 403, error: 'Not authorised' };
+    }
+
+    return { ok: true, signer: verificationResult.signer };
+}
+
+export async function verifySignatureAndGetSigner(
+    req: Request,
+    opts: SignatureVerificationOptions,
+): Promise<SignatureVerificationResult> {
     const {
         message,
-        expectedAddress,
         network = STACKS_MAINNET,
         headers: hdr = {},
     } = opts;
@@ -47,10 +82,6 @@ export async function verifySignedRequest(
         return { ok: false, status: 401, error: 'Invalid signature' };
     }
 
-    const signer = getAddressFromPublicKey(publicKey, network);
-    if (signer !== expectedAddress) {
-        return { ok: false, status: 403, error: 'Not authorised' };
-    }
-
+    const signer = getAddressFromPublicKey(publicKey, network as any); // network will have a default
     return { ok: true, signer };
 } 

@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@charisma/notifier": "workspace:^",
     "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-tabs": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.4",
@@ -25,7 +26,7 @@
     "@stacks/encryption": "latest",
     "@stacks/network": "latest",
     "@stacks/transactions": "latest",
-    "@vercel/kv": "^3",
+    "@vercel/kv": "^3.0.0",
     "@vercel/og": "^0.6.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

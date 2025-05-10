@@ -5,6 +5,7 @@ import { getQuote } from '@/app/actions';
 import { kv } from '@vercel/kv';
 import { Dexterity } from '../dexterity-client';
 import { log } from '@repo/logger';
+import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 
 /**
  * Fetches the current price for a given token pair.
@@ -162,6 +163,12 @@ export async function processOpenOrders(): Promise<string[]> {
             const txid = await executeTrade(order);
             log({ orderUuid: order.uuid, txid }, 'Trade executed successfully. Marking order as filled.');
             await fillOrder(order.uuid, txid);
+
+            // Send notification (fire-and-forget style, errors handled within the function)
+            sendOrderExecutedNotification(order, txid).catch(err => {
+                log({ orderUuid: order.uuid, error: err }, 'Failed to dispatch order execution notification task.');
+            });
+
             filled.push(order.uuid);
             // lock will expire; no need manual release
             log({ orderUuid: order.uuid }, 'Order processed and filled. Lock will auto-expire.');
