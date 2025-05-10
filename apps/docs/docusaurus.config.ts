@@ -107,7 +107,7 @@ const config: Config = {
           items: [
             {
               label: 'DEX',
-              to: '/docs/intro',
+              to: '/docs/dex-api/overview',
             },
             {
               label: 'Blaze',
