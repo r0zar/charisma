@@ -1,4 +1,5 @@
-import type {ReactNode} from 'react';
+import React from 'react';
+import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
@@ -11,38 +12,41 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
+    title: 'Clear & Actionable API Docs',
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Charisma's API documentation is designed to be straightforward and
+        easy to navigate, helping you integrate with our DEX quickly and
+        efficiently.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Build Powerful DeFi Apps',
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Our documentation empowers you to focus on innovation. Leverage the
+        Charisma DEX API to build powerful decentralized finance
+        applications, from automated trading bots to novel reward systems.
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Comprehensive & Developer-Centric',
     Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Explore detailed endpoint specifications, practical examples, and
+        guides on advanced use cases. We provide the resources you need to
+        succeed in building on Charisma.
       </>
     ),
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({ title, Svg, description }: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
