@@ -9,4 +9,4 @@ import TabItem from '@theme/TabItem';
 
 # Charisma
 
-**Mission:** The development of open-source apps, protocols and developer tools for **Bitcoin DeFi** to accelerate humanity toward hyper-bitcoinization, in order to fix our deeply flawed global financial system.
+**Mission:** The development of open-source apps, protocols and developer tools for Bitcoin DeFi to accelerate humanity toward hyper-bitcoinization, in order to fix our deeply flawed global financial system.
