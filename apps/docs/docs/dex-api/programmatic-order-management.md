@@ -1,5 +1,6 @@
 ---
 sidebar_label: 'Programmatic Orders'
+sidebar_position: 3
 title: 'Programmatic Order Management & Developer Use Cases'
 ---
 

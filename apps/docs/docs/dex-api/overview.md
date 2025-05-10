@@ -1,65 +1,38 @@
 ---
 slug: overview
 sidebar_position: 1
-title: API Overview
+title: Introduction to the Charisma DEX
 ---
 
-# Charisma DEX REST API (v1)
+# Charisma DEX: Composability and Power Through Vaults
 
-The Charisma DEX exposes a minimal set of **public, CORS-enabled** HTTP endpoints so anyone can fetch live pricing data, create off-chain limit orders, and execute trades on the Stacks network.
+**The Charisma Decentralized Exchange (DEX) is engineered for flexibility and power on the Stacks blockchain, distinguished by its innovative Vault architecture. This system enables seamless interoperability between diverse smart contracts, creating a highly composable environment for developers.**
 
-> Base URL (production): `https://swap.charisma.rocks/api/v1`
->
-> Unless otherwise noted, all endpoints accept and return `application/json`.
+At its heart, the Charisma DEX facilitates token swaps, but its true strength lies in the **`vault-trait`**. This interface standardizes how contracts interact by defining an `execute` function that accepts serialized arguments in a command pattern. This transforms various on-chain applications—liquidity pools like [`x-pool.clar`](https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1), bridges, loan protocols, and more—into compatible modules that can be chained together in sophisticated ways, as exemplified by the [`x-multihop.clar`](https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9) router.
 
-## Versioning
+Our goal is to provide reliable infrastructure for trading and to empower developers to build next-generation financial applications by leveraging this unified execution layer.
 
-All stable endpoints are prefixed with `/api/v1`.
+## Key Aspects of the Charisma DEX
 
-## Authorization
+*   **Vault Architecture & Composability**: The `vault-trait` and its standardized `execute` function allow different types of smart contracts (liquidity pools, bridges, etc.) to be treated as interchangeable modules. This enables complex sequences of operations and the creation of novel financial products.
+*   **Open & Accessible**: The DEX offers public HTTP endpoints for accessing live pricing data, querying orders, and initiating trades that can trigger these composable vault operations.
+*   **Off-Chain Order Management**: Create and manage limit or triggered orders off-chain, which can then execute intricate on-chain logic through the vault system.
+*   **Programmatic Control**: A comprehensive API allows developers to integrate DEX functionalities and the power of vault compositions into their applications, automate trading strategies, or build custom trading interfaces.
+*   **Focus on Security**: Order creation and execution require cryptographic signatures, ensuring that actions, including complex vault interactions, are authorized by the asset owner.
+*   **Developer Empowerment**: Beyond simple swaps, the DEX API and vault system enable sophisticated use cases, such as building custom oracles that trigger multi-step vault operations, intricate reward systems, and automated portfolio management tools that span multiple protocols.
 
-Read-only endpoints (`GET` requests) are public—no credential required.
+## Navigating These Documents
 
-For state-changing endpoints (`POST`, `PATCH`, etc.):
+This section provides the information you need to understand and interact with the Charisma DEX and its vault architecture:
 
-*   The `/orders/new` endpoint is **publicly accessible** but requires a valid **signature** corresponding to the owner of the assets for the order being created. This signature proves authorship of the order (intent). Signed orders can be considered bearer assets: anyone holding a valid signed order can submit it. Developer API keys are **not** supported for `/orders/new`.
+*   **Programmatic Order Management**: Dive deep into [advanced order creation, cancellation, and execution strategies](./programmatic-order-management.md). This guide details how to leverage the API to build your own oracle systems, implement automated trading bots that utilize vault compositions, create innovative reward mechanisms, and manage the full order lifecycle. It also covers key technical considerations for developers.
+*   **Core API Endpoints**: Detailed information on specific functionalities:
+    *   [Quoting](./quote.md): Get the best price for a token swap, potentially across multiple vaults.
+    *   [Orders Overview](./orders.md): General information about orders on the DEX.
+    *   [Creating Orders](./orders-new.md): How to submit new limit or triggered orders that can interact with the vault system.
+    *   [Managing Orders](./orders-uuid.md): Fetch, [cancel](./orders-cancel.md), or [force execute](./orders-execute.md) existing orders.
+*   **Technical Summary**: For a concise overview of the REST API, including base URLs, authentication, and error models, see the [DEX API Technical Summary](./api-technical-summary.md).
 
-*   Other state-changing endpoints (e.g., `/orders/{uuid}/cancel`, `/orders/{uuid}/execute`) must prove the caller is authorised using **one** of the following:
+**The Charisma DEX, with its powerful vault architecture, aims to be a cornerstone for decentralized finance on Stacks, offering a highly adaptable trading venue and a versatile toolkit for developers.**
 
-    1.  **signature** (recommended)
-        •   Sign a deterministic message (usually a UUID or the JSON payload) with the private key that controls the relevant account.
-        •   Include the 65-byte compressed signature (hex, no `0x`) in the request body or `Authorization` header as documented per route.
-
-    2.  **Developer API key**
-        •   Pass `x-api-key: <token>` in the headers. Keys are issued by Charisma so external services (bots, oracles, backend apps) can create or manage orders programmatically.
-
-If an API key is supplied for endpoints that support it, signature verification is skipped.
-
-Each endpoint specifies which method(s) it accepts.
-
-## Error model
-
-Every error response follows the same shape:
-
-```json
-{
-  "success": false,
-  "error": "Human-readable message"
-}
-```
-
-HTTP status codes follow standard semantics (400 = bad request, 401/403 = auth failure, 500 = server error).
-
----
-
-## Endpoints
-
-| Method | Path | Auth | Description |
-| ------ | ---- | ---- | ----------- |
-| `GET` | `/quote` | Public | Calculate best route & output amount for a token pair |
-| `GET` | `/orders` | Public | List limit orders (optional owner filter) |
-| `POST` | `/orders/new` | Public (Signature required) | Create a new limit/triggered order |
-| `GET` | `/orders/{uuid}` | Public | Fetch a single order by its UUID |
-| `PATCH` | `/orders/{uuid}/cancel` | Signature **or** API key | Cancel an open order |
-| `POST` | `/orders/{uuid}/execute` | Signature **or** API key | Force immediate execution |
-
+We encourage you to explore these documents to see how you can utilize the Charisma DEX for your trading needs or development projects. 
