@@ -923,7 +923,7 @@ function LiquidityPoolWizard() {
 
                             <div>
                                 <h3 className="font-medium mb-1">Deployment Cost</h3>
-                                <p className="text-sm text-muted-foreground">50 STX</p>
+                                <p className="text-sm text-muted-foreground">0 STX</p>
                             </div>
 
                             <div>
