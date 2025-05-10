@@ -848,6 +848,7 @@ export class Dexterity {
         sender: string,
         condition: 'eq' | 'gte' | 'lte' = 'eq'
     ): PostCondition {
+        console.log(token, amount, sender, condition);
         if (token.contractId === ".stx") {
             return condition === 'eq'
                 ? Pc.principal(sender).willSendEq(amount).ustx()
