@@ -98,8 +98,6 @@ export async function getQuote(
             throw quoteResult;
         }
 
-        console.log(`[Server] Quote generated using Dexterity directly`);
-
         return {
             success: true,
             data: quoteResult
