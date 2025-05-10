@@ -40,8 +40,9 @@ export class TelegramSender implements IChannelSender {
 
         try {
             // The recipient.id for Telegram should be the chat_id
-            await this.bot.telegram.sendMessage(notification.recipient.id, notification.message);
+            const result = await this.bot.telegram.sendMessage(notification.recipient.id, notification.message);
             console.log(`Telegram message sent to ${notification.recipient.id}`);
+            console.log(result);
         } catch (error) {
             console.error(`Failed to send Telegram message to ${notification.recipient.id}:`, error);
             throw error; // Re-throw the error to be handled by the caller
