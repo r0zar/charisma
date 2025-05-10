@@ -19,7 +19,10 @@
         "OPENAI_API_KEY",
         "NEXT_PUBLIC_DEX_CACHE_URL",
         "CRON_SECRET",
-        "SIGNER_URL"
+        "SIGNER_URL",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_PHONE_NUMBER"
       ]
     }
   }
