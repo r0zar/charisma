@@ -1,7 +1,7 @@
 ---
 slug: overview
 sidebar_position: 1
-title: Overview
+title: API Overview
 ---
 
 # Blaze API (v1)

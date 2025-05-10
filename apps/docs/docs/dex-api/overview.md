@@ -1,7 +1,7 @@
 ---
 slug: overview
 sidebar_position: 1
-title: Overview
+title: API Overview
 ---
 
 # Charisma DEX REST API (v1)
