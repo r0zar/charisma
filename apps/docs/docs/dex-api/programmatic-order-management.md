@@ -40,7 +40,7 @@ With `POST /orders/new` and `POST /orders/{uuid}/execute`, your application can 
 ### Example: Custom Event-Driven Swaps
 
 *   **Monitor**: Your application tracks new NFT mints for a specific collection.
-*   **Create**: When a user of your platform successfully mints a rare NFT from that collection, you want to reward them. You use `POST /orders/new` to create an order to swap 10 STX from your treasury into 50 YOUR_REWARD_TOKEN, setting the user's address as the `recipient`. The order could be a market order or a limit order.
+*   **Create**: When a user of your platform successfully mints a rare NFT from that collection, you want to reward them. You use `POST /orders/new` to create an order to swap 10 STX from your treasury into 50 YOUR_REWARD_TOKEN, setting the user's address as the `recipient`. 
 *   **Execute**: You immediately call `POST /orders/{uuid}/execute` for the newly created order to ensure the reward swap happens promptly.
 
 ## Creative Applications & Use Cases
