@@ -31,7 +31,7 @@ export function TokenPurchaseForm() {
 
     const tokenAmount =
         selectedPrice && parseFloat(usdAmount)
-            ? parseFloat(usdAmount) / selectedPrice
+            ? Math.floor((parseFloat(usdAmount) / selectedPrice) * selectedToToken.decimals)
             : 0;
 
     const handleCheckout = async () => {
@@ -45,7 +45,7 @@ export function TokenPurchaseForm() {
             selectedTokenName: selectedToToken.name, // Assuming selectedToToken has a 'name' property
             selectedTokenDecimals: selectedToToken.decimals.toString(),
             usdAmount: usdAmount, // Original string value, e.g., "50"
-            calculatedTokenAmount: tokenAmount.toFixed(selectedToToken.decimals),
+            calculatedTokenAmount: tokenAmount,
             fiatCurrency: "USD", // Assuming USD, make dynamic if needed
             // Add any other relevant form values here
         };
@@ -55,7 +55,7 @@ export function TokenPurchaseForm() {
             body: JSON.stringify({
                 // Core fields your endpoint expects
                 userId: userAddress,
-                tokenAmount: tokenAmount.toFixed(selectedToToken.decimals), // For display or core logic
+                tokenAmount: tokenAmount, // For display or core logic
                 tokenType: selectedToToken.contractId, // Changed from symbol to contractId
                 amount: parseFloat(usdAmount) * 100, // Amount in cents for Stripe
 

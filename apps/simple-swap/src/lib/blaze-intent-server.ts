@@ -39,7 +39,7 @@ interface BlazeSignedIntentData {
 interface IntentRecordData {
     pid: string;
     userId: string;
-    tokenAmount: string;
+    tokenAmount: number;
     tokenType: string;
     amount: number; // Fiat amount
     currency: string;
@@ -74,7 +74,6 @@ export async function buildAndSignBlazeIntent(input: BlazeIntentInput): Promise<
     const message = tupleCV({
         contract: principalCV(input.contract),
         intent: stringAsciiCV(input.intent),
-        // Ensure input.opcode is a hex string when calling bufferFromHex
         opcode: input.opcode ? someCV(bufferFromHex(input.opcode)) : noneCV(),
         amount: typeof input.amount === 'number' ? someCV(uintCV(input.amount)) : noneCV(),
         target: input.target ? someCV(principalCV(input.target)) : noneCV(),
