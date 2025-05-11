@@ -42,7 +42,7 @@ const TRACKED_TOKENS_KEY = "tracked-tokens";       // Key for the token contract
 // --- End Client Setup ---
 
 // Signer contract identifier for recovery
-const BLAZE_SIGNER_CONTRACT_ID = process.env.BLAZE_SIGNER_CONTRACT_ID || "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10";
+const BLAZE_SIGNER_CONTRACT_ID = process.env.BLAZE_SIGNER_CONTRACT_ID || "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1";
 const [BLAZE_SIGNER_ADDRESS, BLAZE_SIGNER_NAME] = BLAZE_SIGNER_CONTRACT_ID.split(".");
 
 export async function POST(req: NextRequest) {

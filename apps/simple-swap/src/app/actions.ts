@@ -3,6 +3,8 @@
 import { Dexterity } from "@/lib/dexterity-client";
 import { QuoteResponse } from "../lib/swap-client";
 import type { Token } from "../lib/swap-client";
+import { kv } from "@vercel/kv";
+import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Adjust path as needed
 
 // Configure Dexterity router
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
@@ -172,4 +174,67 @@ export async function listTokens(): Promise<{
             error: error instanceof Error ? error.message : 'Unknown error occurred'
         };
     }
-} 
+}
+
+
+/**
+ * Get pending Stripe payment intents from the database
+ */
+
+
+interface BlazeSignedIntent {
+    intent: {
+        contract: string;
+        intent: string;
+        opcode: string | null;
+        amount: number;
+        target: string;
+        uuid: string;
+    };
+    sig: string;
+    pubKey: string;
+    hash: string;
+}
+
+interface IntentRecord {
+    pid: string;
+    userId: string;
+    tokenAmount: string;
+    tokenType: string;
+    amount: number;
+    currency: string;
+    status: string;
+    createdAt: number;
+    blaze: BlazeSignedIntent;
+}
+
+export async function getAllIntents(): Promise<IntentRecord[]> {
+    const keys = await kv.keys('intent:*');
+
+    const all = await Promise.all(
+        keys.map(async (key) => {
+            const data = await kv.get<IntentRecord>(key);
+            return data;
+        })
+    );
+
+    return all
+        .filter((i): i is IntentRecord => !!i)
+        .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function manuallyProcessBlazeIntentAction(pid: string): Promise<{ id: string, status: string, error?: string, blazeResponse?: any } | null> {
+    console.log(`Server action manuallyProcessBlazeIntentAction called for PID: ${pid}`);
+    try {
+        const result = await processSingleBlazeIntentByPid(pid);
+        if (!result) {
+            // This case might occur if processSingleBlazeIntentByPid itself returns null, though current implementation returns an object.
+            return { id: pid, status: 'error', error: 'Processing function returned null unexpectedly.' };
+        }
+        return result;
+    } catch (error) {
+        console.error(`Error in manuallyProcessBlazeIntentAction for PID ${pid}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error in server action';
+        return { id: pid, status: 'error', error: errorMessage };
+    }
+}
