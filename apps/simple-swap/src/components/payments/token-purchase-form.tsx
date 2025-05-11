@@ -7,6 +7,8 @@ import { useSwap } from "@/hooks/useSwap";
 import { PurchaseDialog } from "./checkout";
 import TokenDropdown from "@/components/TokenDropdown";
 import { CHARISMA_TOKEN_SUBNET } from "@/lib/constants";
+import { callReadOnlyFunction } from "@repo/polyglot";
+import { getTokenMetadataCached } from "@repo/tokens";
 
 export function TokenPurchaseForm() {
     const [usdAmount, setUsdAmount] = useState("5");
@@ -23,7 +25,9 @@ export function TokenPurchaseForm() {
 
     // set selected token to charisma token
     useEffect(() => {
-        setSelectedToToken(displayTokens.find(token => token.contractId.includes('charisma-token')) ?? null);
+        getTokenMetadataCached(CHARISMA_TOKEN_SUBNET).then(token => {
+            setSelectedToToken(token as any);
+        });
     }, [displayTokens]);
 
     const selectedPrice =
@@ -31,7 +35,7 @@ export function TokenPurchaseForm() {
 
     const tokenAmount =
         selectedPrice && parseFloat(usdAmount)
-            ? Math.floor((parseFloat(usdAmount) / selectedPrice) * selectedToToken.decimals)
+            ? Math.floor((parseFloat(usdAmount) / selectedPrice) * 10 ** selectedToToken.decimals)
             : 0;
 
     const handleCheckout = async () => {
@@ -93,7 +97,7 @@ export function TokenPurchaseForm() {
                     <div>
                         <label className="text-sm mb-1 block">Token</label>
                         <TokenDropdown
-                            tokens={displayTokens.filter(token => token.contractId.includes('charisma-token'))}
+                            tokens={[selectedToToken as any]}
                             selected={selectedToToken}
                             onSelect={setSelectedToToken}
                             label=""
@@ -103,7 +107,7 @@ export function TokenPurchaseForm() {
                 <div className="text-sm text-muted-foreground">
                     You'll receive approx{" "}
                     <span className="text-foreground font-semibold">
-                        {tokenAmount.toFixed(4)} {selectedToToken?.symbol}
+                        {tokenAmount / 10 ** selectedToToken?.decimals!} {selectedToToken?.symbol}
                     </span>
                 </div>
                 <Button className="button-primary w-full" onClick={handleCheckout}>

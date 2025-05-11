@@ -36,7 +36,7 @@ export function PurchaseDialog({
                                 <div>
                                     <div className="text-muted-foreground">Buying</div>
                                     <div className="font-semibold text-xl">
-                                        {tokenAmount.toFixed(tokenDecimals)} {tokenSymbol}
+                                        {tokenAmount / 10 ** tokenDecimals} {tokenSymbol}
                                     </div>
                                 </div>
                                 <div>
