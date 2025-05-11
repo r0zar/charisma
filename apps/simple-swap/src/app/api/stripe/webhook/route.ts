@@ -51,7 +51,13 @@ export async function POST(req: NextRequest) {
             return new Response('Already processed', { status: 200 });
         }
 
-        console.log(`[Webhook] Processing intent: ${stripeIntentId}`);
+        console.log(`[Webhook] Processing intent: ${stripeIntentId}`, {
+            userId,
+            tokenAmount,
+            tokenType,
+            amount,
+            currency,
+        });
 
         const blaze = await buildAndSignBlazeIntent({
             contract: CHARISMA_TOKEN_SUBNET,
