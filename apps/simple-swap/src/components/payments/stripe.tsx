@@ -48,20 +48,20 @@ function CheckoutForm() {
     );
 }
 
-export default function StripePaymentForm() {
+export default function StripePaymentForm({ tokenAmount, tokenType, amount }: { tokenAmount: number, tokenType: string, amount: number }) {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
 
     const { address } = useWallet();
 
     useEffect(() => {
         if (!address) return;
-        fetch("/api/create-payment-intent", {
+        fetch("/api/stripe/checkout", {
             method: "POST",
             body: JSON.stringify({
                 userId: address,            // required
-                tokenAmount: 1,              // required
-                tokenType: CHARISMA_TOKEN_SUBNET,              // required
-                amount: 100                   // required
+                tokenAmount: tokenAmount,              // required
+                tokenType: tokenType,              // required
+                amount: amount                   // required
             }),
             headers: { "Content-Type": "application/json" },
         })

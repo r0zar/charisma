@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Cryptonomicon } from "@repo/cryptonomicon";
-import { getQuote, getRoutableTokens } from "../app/actions";
+import { getQuote, getRoutableTokens, listTokens } from "../app/actions";
 import { createSwapClient, Token } from "../lib/swap-client";
 import { useWallet } from "../contexts/wallet-context";
 import { listPrices, KraxelPriceData } from '@repo/tokens';
@@ -155,20 +155,34 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             setIsLoadingTokens(true);
             setError(null);
             try {
-                const result = await getRoutableTokens();
-                if (result.success && result.tokens) {
-                    const tokensWithMeta = result.tokens.map((t: any) => ({
-                        ...t,
-                        name: t.name ?? "",
-                        symbol: t.symbol ?? "",
-                        decimals: t.decimals ?? 6,
-                        image: t.image ?? "",
-                    }));
-                    setSelectedTokens(tokensWithMeta);
-                    setRouteableTokenIds(new Set(tokensWithMeta.map((t) => t.contractId)));
-                } else {
-                    setError("Failed to load tokens with routes");
+                // Step 1: Fetch all tokens with full metadata
+                const allTokensResult = await listTokens();
+
+                if (!allTokensResult.success || !allTokensResult.tokens) {
+                    setError("Failed to load token list.");
+                    setIsLoadingTokens(false); // Ensure loading state is reset
+                    setIsInitializing(false);
+                    return;
                 }
+
+                // Step 2: Fetch the IDs of routable tokens
+                const routableIdsResult = await getRoutableTokens();
+
+                if (!routableIdsResult.success || !routableIdsResult.tokens) {
+                    setError("Failed to determine routable tokens.");
+                    setIsLoadingTokens(false); // Ensure loading state is reset
+                    setIsInitializing(false);
+                    return;
+                }
+                const routableTokenIdsSet = new Set(routableIdsResult.tokens.map(t => t.contractId));
+
+                // Step 3: Filter all tokens to get full metadata for only routable ones
+                // Ensure allTokensResult.tokens is not undefined before filtering
+                const routableTokensWithMeta = (allTokensResult.tokens || []).filter(t => routableTokenIdsSet.has(t.contractId));
+
+                setSelectedTokens(routableTokensWithMeta);
+                setRouteableTokenIds(routableTokenIdsSet);
+
             } catch (err) {
                 setError("Failed to load tokens. Please try again later.");
             } finally {
@@ -183,7 +197,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         } else {
             fetchTokensClient();
         }
-    }, [initialTokens]);
+    }, []);
 
     // Auto‑select default tokens when list ready
     useEffect(() => {
