@@ -11,16 +11,18 @@ import {
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/wallet-context";
-import { CHARISMA_TOKEN_SUBNET } from "@/lib/constants";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const RETURN_URL = process.env.NODE_ENV === "development" ? "http://localhost:3002/fiat" : "https://swap.charisma.rocks/fiat";
 
+// New inner component for the form content
 function CheckoutForm() {
     const stripe = useStripe();
     const elements = useElements();
     const [loading, setLoading] = useState(false);
+    const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
+    const [canSubmitPayment, setCanSubmitPayment] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,43 +36,51 @@ function CheckoutForm() {
             },
         });
 
-        if (error) console.error(error.message);
+        if (error) {
+            console.error(error.message);
+            // Optionally, display the error to the user
+        }
         setLoading(false);
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <PaymentElement />
-            <Button type="submit" disabled={!stripe || loading} className="w-full">
+            <PaymentElement
+                onReady={() => setIsPaymentElementReady(true)}
+                onChange={(event) => setCanSubmitPayment(event.complete)}
+            />
+            <Button type="submit" disabled={!stripe || loading || !isPaymentElementReady || !canSubmitPayment} className="w-full">
                 {loading ? "Processing…" : "Submit Payment"}
             </Button>
         </form>
     );
 }
 
+// Parent component that provides the Elements context
 export default function StripePaymentForm({ tokenAmount, tokenType, amount }: { tokenAmount: number, tokenType: string, amount: number }) {
     const [clientSecret, setClientSecret] = useState<string | null>(null);
-
     const { address } = useWallet();
 
     useEffect(() => {
         if (!address) return;
+        // Fetch client secret from your backend
         fetch("/api/stripe/checkout", {
             method: "POST",
-            body: JSON.stringify({
-                userId: address,            // required
-                tokenAmount: tokenAmount,              // required
-                tokenType: tokenType,              // required
-                amount: amount                   // required
-            }),
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: address,
+                tokenAmount: tokenAmount,
+                tokenType: tokenType,
+                amount: amount,
+            }),
         })
+            .then((res) => res.json())
+            .then((data) => setClientSecret(data.clientSecret));
+    }, [address, tokenAmount, tokenType, amount]); // Added dependencies that affect clientSecret
 
-            .then(res => res.json())
-            .then(data => setClientSecret(data.clientSecret));
-    }, [address]);
-
-    if (!clientSecret) return <p>Loading payment form…</p>;
+    if (!clientSecret) {
+        return <p>Loading payment form…</p>;
+    }
 
     return (
         <Elements stripe={stripePromise} options={{ clientSecret }}>
