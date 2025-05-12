@@ -153,7 +153,7 @@ export async function fetchStxBalance(address: string): Promise<number> {
     const response = await fetch(`/extended/v1/address/${address}/stx`, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.HIRO_API_KEY}`
+        'x-api-key': process.env.HIRO_API_KEY as string
       }
     });
     if (!response.ok) {
