@@ -240,7 +240,7 @@ export async function processPendingStripeIntents(): Promise<{ id: string, statu
             const broadcastResult = await processAndBroadcastBlazeIntent(intentRecord.blaze, intentRecord.network || 'mainnet');
 
             if (broadcastResult.success) {
-                console.log(`Successfully broadcasted Blaze intent (broadcast) for ${intentRecord.pid}:`, broadcastResult.data);
+                console.log(`Successfully broadcasted Blaze intent (broadcast) for ${intentRecord.pid}:`, broadcastResult);
                 await kv.set(key, { ...intentRecord, status: 'broadcast_success', txid: broadcastResult.txid, blazeResponse: broadcastResult.data });
                 results.push({ id: intentRecord.pid, status: 'broadcast_success', txid: broadcastResult.txid, blazeResponse: broadcastResult.data });
             } else {
