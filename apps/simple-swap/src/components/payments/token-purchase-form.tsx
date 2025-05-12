@@ -91,6 +91,7 @@ export function TokenPurchaseForm() {
                             onChange={(e) => setUsdAmount(e.target.value)}
                             className="input-field"
                             min={1}
+                            max={20}
                             step={1}
                         />
                     </div>
