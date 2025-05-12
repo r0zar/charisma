@@ -62,7 +62,7 @@ export default function StripePaymentForm({ tokenAmount, tokenType, amount }: { 
     const { address } = useWallet();
 
     useEffect(() => {
-        if (!address) return;
+        if (!address || !tokenAmount || !tokenType || !amount) return;
         // Fetch client secret from your backend
         fetch("/api/stripe/checkout", {
             method: "POST",
