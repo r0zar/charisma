@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
             return new Response("Token price unavailable", { status: 400 });
         }
         // Calculate quoted price from amount/tokenAmount (amount is in cents, so divide by 100)
-        const quotedPrice = (amount / 100) * (12 ** token.decimals) / tokenAmount;
+        const quotedPrice = (amount / 100) * (10 ** token.decimals) / tokenAmount;
         const diff = Math.abs(currentPrice - quotedPrice) / quotedPrice;
         if (diff > 0.01) {
             return new Response("Token price changed by more than 1%. Please refresh and try again.", { status: 409 });
