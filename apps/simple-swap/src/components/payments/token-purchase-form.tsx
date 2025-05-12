@@ -15,7 +15,7 @@ export default function TokenPurchaseForm() {
     const [error, setError] = useState("");
     const [reserveBalance, setReserveBalance] = useState<bigint | null>(null);
     const [reserveError, setReserveError] = useState("");
-    const MAX_USD_AMOUNT = 2000;
+    const MAX_USD_AMOUNT = 20;
 
     const {
         displayTokens,
