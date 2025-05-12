@@ -147,3 +147,22 @@ export const getMempoolTransactions = async (params?: {
   });
   return txs as unknown as TransactionResults;
 };
+
+export async function fetchStxBalance(address: string): Promise<number> {
+  try {
+    const response = await fetch(`/extended/v1/address/${address}/stx`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.HIRO_API_KEY}`
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json() as { balance: string };
+    return Number(data.balance || 0);
+  } catch (error) {
+    console.error(`Failed fetching STX balance for ${address}:`, error);
+    return 0;
+  }
+}

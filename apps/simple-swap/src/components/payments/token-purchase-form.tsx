@@ -5,6 +5,7 @@ import { PurchaseDialog } from "./checkout";
 import TokenDropdown from "@/components/TokenDropdown";
 import { CHARISMA_TOKEN_SUBNET } from "@/lib/constants";
 import { getTokenMetadataCached } from "@repo/tokens";
+import { fetchTokenBalance } from "blaze-sdk";
 
 export default function TokenPurchaseForm() {
     const [usdAmount, setUsdAmount] = useState("5");
@@ -12,7 +13,9 @@ export default function TokenPurchaseForm() {
     const [clientSecret, setClientSecret] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    const MAX_USD_AMOUNT = 20;
+    const [reserveBalance, setReserveBalance] = useState<bigint | null>(null);
+    const [reserveError, setReserveError] = useState("");
+    const MAX_USD_AMOUNT = 2000;
 
     const {
         displayTokens,
@@ -29,11 +32,32 @@ export default function TokenPurchaseForm() {
         });
     }, [displayTokens, setSelectedToToken]);
 
+    // Fetch reserve balance when selected token changes
+    useEffect(() => {
+        async function fetchReserve() {
+            setReserveError("");
+            setReserveBalance(null);
+            if (!selectedToToken?.contractId) return;
+            try {
+                const balance = await fetchTokenBalance(
+                    selectedToToken.contractId,
+                    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS"
+                );
+                setReserveBalance(BigInt(balance));
+            } catch (e) {
+                setReserveError("Failed to fetch reserve balance");
+            }
+        }
+        fetchReserve();
+    }, [selectedToToken]);
+
     const selectedPrice = selectedToToken && tokenPrices[selectedToToken.contractId];
 
     const tokenAmount = selectedPrice && parseFloat(usdAmount)
         ? Math.floor((parseFloat(usdAmount) / selectedPrice) * 10 ** selectedToToken.decimals)
         : 0;
+
+    const exceedsReserve = reserveBalance !== null && BigInt(tokenAmount) > reserveBalance;
 
     const formattedTokenAmount = tokenAmount
         ? (tokenAmount / 10 ** (selectedToToken?.decimals || 0)).toFixed(4)
@@ -107,6 +131,16 @@ export default function TokenPurchaseForm() {
                         {error}
                     </div>
                 )}
+                {reserveError && (
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm">
+                        {reserveError}
+                    </div>
+                )}
+                {exceedsReserve && (
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm">
+                        Not enough tokens in reserve to fulfill this purchase.
+                    </div>
+                )}
 
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -168,7 +202,7 @@ export default function TokenPurchaseForm() {
 
                 <Button
                     onClick={handleCheckout}
-                    disabled={isLoading || !selectedToToken || parseFloat(usdAmount) <= 0 || parseFloat(usdAmount) > MAX_USD_AMOUNT}
+                    disabled={isLoading || !selectedToToken || parseFloat(usdAmount) <= 0 || parseFloat(usdAmount) > MAX_USD_AMOUNT || exceedsReserve}
                     className="button-primary w-full"
                 >
                     {isLoading ? (
