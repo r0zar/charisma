@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe, Appearance } from "@stripe/stripe-js";
 import {
     Elements,
     PaymentElement,
@@ -82,8 +82,20 @@ export default function StripePaymentForm({ tokenAmount, tokenType, amount }: { 
         return <p>Loading payment form…</p>;
     }
 
+    // Stripe Appearance API for custom styling
+    const appearance: Appearance = {
+        theme: 'night',
+        variables: {
+            colorPrimary: 'hsl(25 100% 58%)', // Tailwind slate-50
+            colorBackground: 'hsl(223 47% 15%)', // Tailwind slate-50
+            colorText: 'hsl(0 0% 95%)', // Tailwind slate-900
+            borderRadius: '12px', // rounded-xl
+        },
+
+    };
+
     return (
-        <Elements stripe={stripePromise} options={{ clientSecret }}>
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
             <CheckoutForm />
         </Elements>
     );

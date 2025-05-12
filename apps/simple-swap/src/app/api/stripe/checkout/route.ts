@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency: "usd",
-            automatic_payment_methods: { enabled: true },
+            // Allow card and cashapp payments, but disable Amazon Pay and Klarna
+            payment_method_types: ["card", "cashapp"],
             metadata: {
                 userId,
                 tokenAmount,
