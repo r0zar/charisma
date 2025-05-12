@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/cron/hourly-buy",
-            "schedule": "0 * * * *"
+            "schedule": "*/10 * * * *"
         },
         {
             "path": "/api/cron/hoot-farmer",
