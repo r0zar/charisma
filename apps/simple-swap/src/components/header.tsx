@@ -30,6 +30,9 @@ export function Header() {
                         <Link href="/tokens" className="text-sm font-medium hover:text-primary transition-colors">
                             Tokens
                         </Link>
+                        <Link href="/fiat" className="text-sm font-medium hover:text-primary transition-colors">
+                            Buy With Card
+                        </Link>
                     </nav>
                 </div>
 

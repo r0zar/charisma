@@ -6,6 +6,7 @@ import TokenDropdown from "@/components/TokenDropdown";
 import { CHARISMA_TOKEN_SUBNET } from "@/lib/constants";
 import { getTokenMetadataCached } from "@repo/tokens";
 import { fetchTokenBalance } from "blaze-sdk";
+import { toast } from "sonner";
 
 export default function TokenPurchaseForm() {
     const [usdAmount, setUsdAmount] = useState("5");
@@ -96,10 +97,14 @@ export default function TokenPurchaseForm() {
                 },
             });
 
-            const data = await res.json();
+            let data: any = {};
+            try {
+                data = await res.json();
+            } catch { }
 
             if (!res.ok) {
-                throw new Error(data.message || "Something went wrong");
+                toast.error(data?.message || "Something went wrong");
+                return;
             }
 
             if (data?.clientSecret) {
@@ -107,14 +112,14 @@ export default function TokenPurchaseForm() {
                 setDialogOpen(true);
             }
         } catch (err) {
-            setError((err as Error).message || "Failed to process checkout. Please try again.");
+            toast.error((err as Error).message || "Failed to process checkout. Please try again.");
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="glass-card p-6 max-w-md mx-auto animate-[appear_0.3s_ease-out]">
+        <div className="glass-card p-6 bg-card max-w-md mx-auto animate-[appear_0.3s_ease-out]">
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold">Purchase Tokens</h2>
@@ -126,11 +131,6 @@ export default function TokenPurchaseForm() {
                     </div>
                 </div>
 
-                {error && (
-                    <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm">
-                        {error}
-                    </div>
-                )}
                 {reserveError && (
                     <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm">
                         {reserveError}
