@@ -153,7 +153,7 @@ export default function TokenPurchaseDashboard() {
             </div>
 
             {/* Admin section - only visible in development */}
-            {!isDevelopment && (
+            {isDevelopment && (
                 <div className="container pb-12 mb-12">
                     <div className="glass-card border-dashed border-primary/30">
                         <div className="p-6">
