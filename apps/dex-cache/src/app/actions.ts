@@ -369,7 +369,12 @@ export async function getVaultIds(): Promise<string[]> {
 // Helper to fetch STX balance
 async function fetchStxBalance(address: string): Promise<number> {
     try {
-        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`);
+        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.HIRO_API_KEY}`
+            }
+        });
         if (!response.ok) {
             throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
         }
@@ -389,7 +394,7 @@ async function fetchTokenBalance(tokenContractId: string, address: string): Prom
         } else {
             const [addr, name] = tokenContractId.split('.');
             const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(address)]);
-            return cvToValue(balanceCV) ? Number(cvToValue(balanceCV)) : 0;
+            return Number(balanceCV.value);
         }
     } catch (error) {
         console.error(`Failed fetching token balance for ${tokenContractId}:`, error);
@@ -402,7 +407,7 @@ async function fetchTotalSupply(vaultContractId: string): Promise<number> {
     try {
         const [addr, name] = vaultContractId.split('.');
         const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
-        return cvToValue(supplyCV) ? Number(cvToValue(supplyCV)) : 0;
+        return Number(supplyCV.value);
     } catch (error) {
         console.error(`Failed fetching total supply for ${vaultContractId}:`, error);
         return 0;
