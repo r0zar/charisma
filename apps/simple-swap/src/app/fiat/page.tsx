@@ -9,7 +9,7 @@ import { getAllIntents } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { manuallyProcessBlazeIntentAction } from "@/app/actions";
 import { Header } from "@/components/header";
-import { TokenPurchaseForm } from "@/components/payments/token-purchase-form";
+import TokenPurchaseForm from "@/components/payments/token-purchase-form";
 import { IntentGrid } from "@/components/payments/IntentGrid";
 
 interface BlazeSignedIntent {
@@ -71,9 +71,7 @@ export default function AdminDashboard() {
         <>
             <Header />
             <div className="max-w-2xl mx-auto py-10">
-                <ScrollArea className="rounded-2xl border bg-muted p-6 shadow-inner">
-                    <TokenPurchaseForm />
-                </ScrollArea>
+                <TokenPurchaseForm />
             </div>
             <div className="max-w-[2100px] mx-auto py-10">
 
