@@ -6,6 +6,7 @@ import { kv } from '@vercel/kv';
 import { Dexterity } from '../dexterity-client';
 import { log } from '@repo/logger';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
+import { executeMultihopSwap } from 'blaze-sdk';
 
 /**
  * Fetches the current price for a given token pair.
@@ -31,42 +32,25 @@ async function getCurrentPrice(order: LimitOrder): Promise<number | undefined> {
  * Executes the trade on-chain via the signer API and returns the txid.
  * You can point SIGNER_URL env var at the blaze-signer instance.
  */
-async function executeTrade(order: LimitOrder): Promise<string> {
+export async function executeTrade(order: LimitOrder): Promise<string> {
     const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn,
-        // THEORY: this is messing up the new multihop router, so we're excluding it for now
-        // https://explorer.hiro.so/txid/0x9d22f18b06839ec8d051de4638a96be7bba5db8040dcf76cc73502380f0d308b?chain=mainnet
         { excludeVaultIds: ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-cha-vault-wrapper-alex'] }
     );
 
     if (!quoteRes.success || !quoteRes.data) throw new Error('Route fetch failed');
 
-    const tx = await Dexterity.buildXSwapTransaction(
+    const result = await executeMultihopSwap(
         quoteRes.data.route,
         {
             amountIn: order.amountIn,
             signature: order.signature,
             uuid: order.uuid,
             recipient: order.recipient,
-        }
+        },
+        process.env.PRIVATE_KEY!
     );
 
-    const payload = {
-        tx,
-        signature: order.signature,
-        uuid: order.uuid,
-    };
-
-    const url = `${process.env.SIGNER_URL ?? 'http://localhost:3005'}/api/multihop/execute`;
-
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) throw new Error(`Signer ${res.status}`);
-    const data = (await res.json()) as { txid: string };
-    return data.txid;
+    return result.txid;
 }
 
 /**

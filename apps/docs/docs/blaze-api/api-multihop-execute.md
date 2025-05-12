@@ -1,6 +1,6 @@
 ---
 slug: multihop-execute
-sidebar_position: 3
+sidebar_position: 102
 title: POST /multihop/execute
 ---
 
@@ -45,7 +45,7 @@ This endpoint is ideal for complex token paths where intermediate assets must be
 ## Example (cURL)
 
 ```bash title="2-hop route"
-curl -X POST https://blaze.charisma.rocks/api/v1/multihop/execute \
+curl -X POST https://blaze.charisma.rocks/api/multihop/execute \
   -H "Content-Type: application/json" \
   -d @route.json
 ```

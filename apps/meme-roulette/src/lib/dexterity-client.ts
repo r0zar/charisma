@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Blaze, StacksService } from "@repo/blaze";
 import { callReadOnlyFunction } from '@repo/polyglot'
 import { Cryptonomicon, Token, MetadataServiceConfig } from "@repo/cryptonomicon"; // Adjust path as needed
 import {
@@ -136,7 +135,6 @@ export interface SwapOptions {
 
 export class Dexterity {
     // Static properties
-    static client: Blaze;
     static cryptonomicon: Cryptonomicon;
 
     // Router graph components
@@ -154,11 +152,6 @@ export class Dexterity {
      * Initialize the discovery service with appropriate configuration
      */
     static init(options: MetadataServiceConfig = {}) {
-        this.client = new Blaze({
-            disableCache: true,
-            services: [StacksService],
-            ...options,
-        });
         this.cryptonomicon = new Cryptonomicon(options);
     }
 
@@ -750,8 +743,6 @@ export class Dexterity {
      * Build transaction for a multi-hop swap
      */
     static async buildSwapTransaction(route: Route) {
-        // Ensure client is initialized
-        if (!this.client) this.init();
 
         // Check if router information is available
         if (!this.config.routerAddress || !this.config.routerName) {
@@ -844,7 +835,7 @@ export class Dexterity {
         opcode: number
     ) {
         // Assume signer as sender
-        const signer = await this.client.signer.getAddress()
+        const signer = ''
 
         const postConditions: PostCondition[] = [];
 
@@ -899,8 +890,6 @@ export class Dexterity {
         amount: number,
         options: SwapOptions = {}
     ) {
-        // Make sure client is initialized
-        if (!this.client) this.init();
 
         // Find the best route
         const routeResult = await this.findBestRoute(fromTokenId, toTokenId, amount);
@@ -925,12 +914,12 @@ export class Dexterity {
         }
 
         // Execute the transaction using Blaze client
-        return this.client.execute(
-            `${txConfig.contractAddress}.${txConfig.contractName}`,
-            txConfig.functionName,
-            txConfig.functionArgs,
-            { ...options, ...txConfig }
-        );
+        // return this.client.execute(
+        //     `${txConfig.contractAddress}.${txConfig.contractName}`,
+        //     txConfig.functionName,
+        //     txConfig.functionArgs,
+        //     { ...options, ...txConfig }
+        // );
     }
 
     static async executeSwapRoute(
@@ -951,11 +940,11 @@ export class Dexterity {
         }
 
         // Execute the transaction using Blaze client
-        return this.client.execute(
-            `${txConfig.contractAddress}.${txConfig.contractName}`,
-            txConfig.functionName,
-            txConfig.functionArgs,
-            { ...options, ...txConfig }
-        );
+        // return this.client.execute(
+        //     `${txConfig.contractAddress}.${txConfig.contractName}`,
+        //     txConfig.functionName,
+        //     txConfig.functionArgs,
+        //     { ...options, ...txConfig }
+        // );
     }
 }

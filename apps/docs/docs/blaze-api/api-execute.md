@@ -1,6 +1,6 @@
 ---
 slug: execute
-sidebar_position: 2
+sidebar_position: 101
 title: POST /execute
 ---
 
@@ -45,7 +45,7 @@ _The exact structure of the signed data (which includes `contractId` as the `con
 This example shows submitting an intent to transfer tokens using a hypothetical `charisma-token-subnet`.
 
 ```bash
-curl -X POST https://blaze.charisma.rocks/api/v1/execute \
+curl -X POST https://blaze.charisma.rocks/api/execute \
   -H "Content-Type: application/json" \
   -d '{
     "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet",

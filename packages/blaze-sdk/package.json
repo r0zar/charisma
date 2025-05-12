@@ -1,5 +1,5 @@
 {
-  "name": "@repo/blaze",
+  "name": "blaze-sdk",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -32,10 +32,11 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@repo/stacks": "workspace:*",
-    "@stacks/blockchain-api-client": "^8.8.0",
-    "@stacks/connect": "^8.1.8",
-    "@stacks/transactions": "^7.0.5"
+    "@stacks/connect": "^8",
+    "@stacks/transactions": "^7",
+    "@stacks/network": "^7",
+    "@repo/polyglot": "workspace:*",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

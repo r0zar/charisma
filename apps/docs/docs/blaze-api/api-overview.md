@@ -1,20 +1,16 @@
 ---
 slug: overview
-sidebar_position: 1
+sidebar_position: 100
 title: API Overview
 ---
 
-# Blaze API (v1)
+# Blaze API (Experimental)
 
 Blaze is Charisma's execution layer: a cluster of highly-available solvers that accept signed intents, build the necessary Clarity transactions based on the intent and live oracle data, and submit them to the Stacks network on your behalf.
 
-> Base URL (production): `https://blaze.charisma.rocks/api/v1`
+> Base URL (production): `https://blaze.charisma.rocks/api/`
 >
 > Unless otherwise noted, all endpoints accept and return `application/json`.
-
-## Versioning
-
-Stable endpoints are prefixed with `/api/v1` and follow semantic versioning. Breaking changes will bump the major (`v1 → v2`).
 
 ## Authorization
 
