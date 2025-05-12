@@ -93,10 +93,10 @@ export default function TokenPurchaseDashboard() {
                             Fast & Secure Token Purchases
                         </Badge>
                         <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-balance">
-                            Buy <span className="text-primary">Charisma</span> Tokens
+                            Buy <span className="text-primary">SIP10</span> Tokens
                         </h1>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                            Direct delivery to your wallet on the Charisma subnet
+                            Direct delivery to your wallet on the Blaze subnet
                         </p>
                     </div>
                 </div>
