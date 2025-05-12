@@ -11,6 +11,7 @@ import { manuallyProcessBlazeIntentAction } from "@/app/actions";
 import { Header } from "@/components/header";
 import TokenPurchaseForm from "@/components/payments/token-purchase-form";
 import { IntentGrid } from "@/components/payments/IntentGrid";
+import { isDevelopment } from "@/lib/utils";
 
 interface BlazeSignedIntent {
     intent: {
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
             </div>
             <div className="max-w-[2100px] mx-auto py-10">
 
-                <IntentGrid intents={intents} processingPid={processingPid} onManualProcess={handleManualProcess} />
+                {isDevelopment && <IntentGrid intents={intents} processingPid={processingPid} onManualProcess={handleManualProcess} />}
             </div>
         </>
     );
