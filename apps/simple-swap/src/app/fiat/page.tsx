@@ -96,7 +96,7 @@ export default function TokenPurchaseDashboard() {
                             Buy <span className="text-primary">SIP10</span> Tokens
                         </h1>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                            Direct delivery to your wallet on the Blaze subnet
+                            Direct delivery to your wallet within seconds
                         </p>
                     </div>
                 </div>
