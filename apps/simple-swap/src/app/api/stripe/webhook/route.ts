@@ -62,8 +62,7 @@ export async function POST(req: NextRequest) {
         const blaze = await buildAndSignBlazeIntent({
             contract: CHARISMA_TOKEN_SUBNET,
             intent: 'TRANSFER_TOKENS',
-            // amount: Number(tokenAmount),
-            amount: 1,
+            amount: Number(tokenAmount),
             target: userId,
             uuid: stripeIntentId,
             senderKey: BLAZE_SIGNER_PRIVATE_KEY!,
