@@ -200,10 +200,10 @@ async function processAndBroadcastBlazeIntent(
         console.log(`Broadcasting Stacks tx for intent ${intentDetails.uuid} (${intentDetails.intent}) to ${intentDetails.contract} calling ${functionName}`);
         const transaction: StacksTransactionWire = await makeContractCall(txOptions);
 
-        console.log(`Transaction: ${transaction}`);
-
         // Corrected: broadcastTransaction expects an object with transaction and network
         const broadcastResponse = await broadcastTransaction({ transaction: transaction, network: networkInstance });
+
+        console.log(broadcastResponse);
 
         return { success: true, ...broadcastResponse }
 
