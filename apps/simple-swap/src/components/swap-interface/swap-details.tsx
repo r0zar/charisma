@@ -118,8 +118,18 @@ export default function SwapDetails({
         operationType = 'Swap';
     }
 
+    // Show high price impact warning if needed
+    const showHighImpactWarning = totalPriceImpact && totalPriceImpact.priceImpact !== null && (totalPriceImpact.priceImpact > 20 || totalPriceImpact.priceImpact < -20);
+
     return (
         <div className="mb-5 border border-border/40 rounded-xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
+            {/* High price impact warning */}
+            {showHighImpactWarning && (
+                <div className="flex items-center bg-yellow-200 dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-200 px-4 py-2 border-b border-yellow-400/5 animate-[appear_0.3s_ease-out]">
+                    <svg className="h-5 w-5 mr-2 text-yellow-600 dark:text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span className="font-semibold">Warning: High price impact!</span>
+                </div>
+            )}
             <button
                 onClick={() => setShowDetails(!showDetails)}
                 className="w-full flex justify-between items-center p-4 hover:bg-muted/10 transition-colors"
@@ -309,10 +319,14 @@ export default function SwapDetails({
                                                                     </span>
                                                                 )}
                                                                 {/* Price impact badge */}
-                                                                {priceImpact && priceImpact.impact !== null && (
-                                                                    <span className={`px-1.5 py-0.5 rounded-sm ${priceImpact.impact > 0
-                                                                        ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
-                                                                        : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+                                                                {priceImpact && priceImpact.impact !== null && Math.abs(priceImpact.impact) > 0 && (
+                                                                    <span className={`px-1.5 py-0.5 rounded-sm ${Math.abs(priceImpact.impact) < 5
+                                                                        ? 'text-muted-foreground bg-muted/20'
+                                                                        : priceImpact.impact > 5
+                                                                            ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
+                                                                            : priceImpact.impact < -5
+                                                                                ? 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+                                                                                : ''
                                                                         }`}>
                                                                         {priceImpact.impact > 0 ? '+' : ''}
                                                                         {priceImpact.impact.toFixed(2)}% impact
