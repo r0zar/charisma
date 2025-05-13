@@ -130,7 +130,7 @@ const TemplatesPage = () => {
                         'Deferred and gasless transactions',
                         'Off-chain oracle logic integration',
                     ],
-                    enabled: true
+                    enabled: false
                 },
                 {
                     id: 'liquidity-pool-subnet',
@@ -144,7 +144,7 @@ const TemplatesPage = () => {
                         'Dollar-cost averaging (DCA) automation',
                         'Perpetual trading with dynamic funding',
                     ],
-                    enabled: true
+                    enabled: false
                 }
             ]
         }

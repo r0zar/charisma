@@ -24,6 +24,7 @@ import {
  * Vault instance representing a liquidity pool
  */
 export interface Vault {
+    type: string;
     contractId: string;
     contractAddress: string;
     contractName: string;
@@ -306,6 +307,7 @@ export class Dexterity {
 
             // Create the vault object
             const vault: Vault = {
+                type: metadata.type,
                 contractId,
                 contractAddress,
                 contractName,
@@ -597,8 +599,8 @@ export class Dexterity {
                 // Get quotes for all edges and select the best one
                 const edgeQuotes = await Promise.all(matchingEdges.map(async edge => {
                     // Determine opcode based on token types and vault order
-                    const isInSubnet = tokenIn.contractId.includes('-subnet');
-                    const isOutSubnet = tokenOut.contractId.includes('-subnet');
+                    const isInSubnet = tokenIn.type === 'SUBNET';
+                    const isOutSubnet = tokenOut.type === 'SUBNET';
                     let opcode: number;
 
                     if (!isInSubnet && isOutSubnet) {
@@ -1143,8 +1145,8 @@ export class Dexterity {
             const amtIn = BigInt(hop.quote?.amountIn ?? 0);
             const amtOut = BigInt(hop.quote?.amountOut ?? 0);
 
-            if (!hop.tokenIn.contractId.includes('-subnet')) add(routerCID, assetId(hop.tokenIn), amtIn);
-            if (!hop.tokenOut.contractId.includes('-subnet')) {
+            if (hop.tokenIn.type !== 'SUBNET') add(routerCID, assetId(hop.tokenIn), amtIn);
+            if (hop.tokenOut.type !== 'SUBNET') {
                 // If the vault is a sub-link vault, use the tokenIn contractId as the principal (the subnet)
                 const contractOut = hop.vault.contractId.includes('sub-link') ? hop.tokenIn.contractId : hop.vault.contractId;
                 add(contractOut, assetId(hop.tokenOut), amtOut)

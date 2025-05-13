@@ -94,7 +94,7 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
         };
     }
 
-    const base = process.env.TOKEN_CACHE_ENDPOINT || 'http://localhost:3001'
+    const base = process.env.TOKEN_CACHE_ENDPOINT || 'http://localhost:3000'
     if (!base) {
         console.error("Token Cache endpoint/host not configured.");
         return null;

@@ -184,9 +184,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError('Image size should be less than 5MB');
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setError('Image size should be less than 10MB');
             return;
         }
 
@@ -643,7 +643,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                             {uploading ? 'Uploading...' : 'Drag & drop or click to upload'}
                                         </p>
                                         <p className="text-xs text-muted-foreground mb-3">
-                                            PNG, JPG or SVG (max 5MB)
+                                            PNG, JPG or SVG (max 10MB)
                                         </p>
                                         <input
                                             type="file"

@@ -10,6 +10,7 @@ import { signTriggeredSwap } from "@/lib/swap-client";
  * Vault instance representing a liquidity pool
  */
 interface Vault {
+    type: string;
     contractId: string;
     contractAddress: string;
     contractName: string;
@@ -351,53 +352,56 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // --------------------------------------------------------------
     // Token mapping helpers (mainnet vs. subnet versions)
     // --------------------------------------------------------------
-    const { displayTokens, tokenCounterparts } = useMemo(() => {
+    const { displayTokens, subnetDisplayTokens, tokenCounterparts } = useMemo(() => {
         if (!selectedTokens || selectedTokens.length === 0) {
-            return { displayTokens: [], tokenCounterparts: new Map<string, { mainnet: Token | null; subnet: Token | null }>() };
+            return {
+                displayTokens: [],
+                subnetDisplayTokens: [],
+                tokenCounterparts: new Map<string, { mainnet: Token | null; subnet: Token | null }>()
+            };
         }
 
-        const tokenMapForDisplay = new Map<string, Token>();
-        const counterpartMap = new Map<string, { mainnet: Token | null; subnet: Token | null }>();
+        // Mainnet tokens: type !== 'SUBNET'
+        const mainnetTokens = selectedTokens.filter(t => t.type !== 'SUBNET');
+        // Subnet tokens: type === 'SUBNET'
+        const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
 
-        // First pass: index tokens by base id (strip "-subnet" suffix)
-        for (const token of selectedTokens) {
-            const isSubnet = token.contractId.includes('-subnet');
-            const baseId = isSubnet
-                ? token.contractId.substring(0, token.contractId.lastIndexOf('-subnet'))
-                : token.contractId;
-
-            if (!counterpartMap.has(baseId)) {
-                counterpartMap.set(baseId, { mainnet: null, subnet: null });
+        // Map base contractId to { mainnet, subnet }
+        const tokenCounterparts = new Map<string, { mainnet: Token | null; subnet: Token | null }>();
+        for (const mainnet of mainnetTokens) {
+            tokenCounterparts.set(mainnet.contractId, { mainnet, subnet: null });
+        }
+        for (const subnet of subnetTokens) {
+            if (!subnet.base) continue; // Skip if base is undefined
+            const baseId = subnet.base;
+            if (!tokenCounterparts.has(baseId)) {
+                tokenCounterparts.set(baseId, { mainnet: null, subnet });
+            } else {
+                tokenCounterparts.get(baseId)!.subnet = subnet;
             }
-
-            const entry = counterpartMap.get(baseId)!;
-            if (isSubnet) entry.subnet = token; else entry.mainnet = token;
         }
 
-        // Build display list (prefer mainnet versions)
-        for (const [baseId, counterparts] of counterpartMap.entries()) {
-            const tokenToShow = counterparts.mainnet ?? counterparts.subnet;
-            if (tokenToShow) tokenMapForDisplay.set(baseId, tokenToShow);
-        }
+        // displayTokens: only mainnet tokens
+        // subnetDisplayTokens: only subnet tokens
+        const sortedDisplayTokens = mainnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
+        const sortedSubnetTokens = subnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
 
-        const sortedDisplayTokens = Array.from(tokenMapForDisplay.values()).sort((a, b) => a.symbol.localeCompare(b.symbol));
-
-        return { displayTokens: sortedDisplayTokens, tokenCounterparts: counterpartMap };
+        return {
+            displayTokens: sortedDisplayTokens,
+            subnetDisplayTokens: sortedSubnetTokens,
+            tokenCounterparts
+        };
     }, [selectedTokens]);
-
-    // List of subnet tokens for quick access
-    const subnetDisplayTokens = useMemo(() => {
-        const subs: Token[] = [];
-        tokenCounterparts.forEach(({ subnet }) => { if (subnet) subs.push(subnet); });
-        return subs.sort((a, b) => a.symbol.localeCompare(b.symbol));
-    }, [tokenCounterparts]);
 
     const hasBothVersions = useCallback((token: Token | null): boolean => {
         if (!token) return false;
-        const isSubnet = token.contractId.includes('-subnet');
-        const baseId = isSubnet ? token.contractId.substring(0, token.contractId.lastIndexOf('-subnet')) : token.contractId;
-        const counterparts = tokenCounterparts.get(baseId);
-        return !!(counterparts?.mainnet && counterparts?.subnet);
+        if (token.type === 'SUBNET') {
+            // Subnet token: check if mainnet exists
+            return !!(token.base && tokenCounterparts.get(token.base)?.mainnet);
+        } else {
+            // Mainnet token: check if subnet exists
+            return !!tokenCounterparts.get(token.contractId)?.subnet;
+        }
     }, [tokenCounterparts]);
 
     // Safe setter that optionally forces subnet version if in order mode
@@ -541,8 +545,8 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
         // token display helpers (mainnet / subnet)
         displayTokens,
-        tokenCounterparts,
         subnetDisplayTokens,
+        tokenCounterparts,
         hasBothVersions,
 
         // loading flags

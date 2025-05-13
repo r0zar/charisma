@@ -30,6 +30,7 @@ import { recoverSigner } from '../core';
 export interface Token {
     contractId: string;    // Format: "address.contract-name"
     identifier?: string;   // Optional token identifier for FTs
+    type: string;
 }
 
 export interface Hop {
@@ -37,6 +38,7 @@ export interface Hop {
     tokenOut: Token;       // Output token for this hop
     vault: {               // Vault contract that performs the swap
         contractId: string;
+        type: string;
     };
     opcode: number;        // Opcode for the vault operation
     quote?: {              // Optional quote information
@@ -192,13 +194,13 @@ export function buildPostConditions(route: Route, routerCID: string): PostCondit
         const amtOut = BigInt(hop.quote?.amountOut ?? 0);
 
         // Only add non-subnet tokens to post conditions
-        if (!hop.tokenIn.contractId.includes('-subnet')) {
+        if (hop.tokenIn.type !== 'SUBNET') {
             add(routerCID, getAssetId(hop.tokenIn), amtIn);
         }
 
-        if (!hop.tokenOut.contractId.includes('-subnet')) {
+        if (hop.tokenOut.type !== 'SUBNET') {
             // If the vault is a sub-link vault, use the tokenIn contractId as the principal
-            const contractOut = hop.vault.contractId.includes('sub-link')
+            const contractOut = hop.vault.type === 'SUBLINK'
                 ? hop.tokenIn.contractId
                 : hop.vault.contractId;
 
@@ -206,10 +208,15 @@ export function buildPostConditions(route: Route, routerCID: string): PostCondit
         }
     });
 
-    // Add the final output post condition
-    const lastHop = route.hops[route.hops.length - 1];
-    const finalAmountOut = BigInt(lastHop.quote?.amountOut ?? 0);
-    add(routerCID, getAssetId(route.path[route.path.length - 1]), finalAmountOut);
+    // Add the multihop withdraw post condition
+    const transferToken = route.path[route.path.length - 1];
+
+    // Only add non-subnet tokens to post conditions
+    if (transferToken.type !== 'SUBNET') {
+        const lastHop = route.hops[route.hops.length - 1];
+        const finalAmountOut = BigInt(lastHop.quote?.amountOut ?? 0);
+        add(routerCID, getAssetId(transferToken), finalAmountOut);
+    }
 
     // Create post conditions from the aggregated map
     return Array.from(pcMap.entries()).map(([key, amount]) => {

@@ -40,6 +40,7 @@ export interface TokenMetadata {
  * Basic token information
  */
 export interface Token {
+  type: string;
   contractId: string;
   identifier?: string;
   name: string;
@@ -418,6 +419,7 @@ export class Cryptonomicon {
     // Handle special case for STX token
     if (contractId === ".stx") {
       return {
+        type: '',
         contractId: ".stx",
         identifier: "STX",
         name: "Stacks Token",
@@ -435,6 +437,7 @@ export class Cryptonomicon {
 
       if (metadata) {
         return {
+          type: metadata.type,
           contractId,
           identifier: metadata.identifier,
           name: metadata.name,
@@ -454,6 +457,7 @@ export class Cryptonomicon {
       ]);
 
       return {
+        type: '',
         contractId,
         identifier: undefined,
         name: name || "",

@@ -10,6 +10,8 @@ import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf } fro
  */
 export interface Token {
   contractId: string;
+  base?: string;
+  type: string;
   name: string;
   symbol: string;
   decimals: number;
@@ -149,6 +151,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
             if (!tokenMap.has(vault.contractId)) {
               tokenMap.set(vault.contractId, {
                 contractId: vault.contractId,
+                type: vault.type,
                 name: vault.name,
                 symbol: vault.symbol,
                 decimals: vault.decimals,
@@ -160,6 +163,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
             if (vault.tokenA && vault.tokenA.contractId && !tokenMap.has(vault.tokenA.contractId)) {
               tokenMap.set(vault.tokenA.contractId, {
                 contractId: vault.tokenA.contractId,
+                type: vault.tokenA.type,
                 name: vault.tokenA.name || '',
                 symbol: vault.tokenA.symbol || '',
                 decimals: vault.tokenA.decimals || 0,
@@ -171,6 +175,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
             if (vault.tokenB && vault.tokenB.contractId && !tokenMap.has(vault.tokenB.contractId)) {
               tokenMap.set(vault.tokenB.contractId, {
                 contractId: vault.tokenB.contractId,
+                type: vault.tokenB.type,
                 name: vault.tokenB.name || '',
                 symbol: vault.tokenB.symbol || '',
                 decimals: vault.tokenB.decimals || 0,

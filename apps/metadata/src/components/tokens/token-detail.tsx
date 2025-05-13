@@ -50,6 +50,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
         identifier: '',
         description: '',
         imagePrompt: '',
+        type: '',
+        base: '',
+        protocol: '',
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -119,6 +122,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                         identifier: data.identifier || '',
                         description: data.description || '',
                         imagePrompt: '', // Reset prompt on load
+                        type: data.type || '',
+                        base: data.base || '',
+                        protocol: data.protocol || '',
                     });
                     if (data.image) {
                         setImageUrl(data.image);
@@ -138,6 +144,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                     setImageUrl(''); // Clear image url
                     setUnsavedImageUrl('');
                     const initialData = {
+                        type: '',
+                        base: '',
+                        protocol: '',
                         name: 'New Token',
                         symbol: defaultSymbol,
                         decimals: 6,
@@ -240,9 +249,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
             return;
         }
 
-        // Validate file size (max 5MB, adjusted from 25MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError('Image size should be less than 5MB');
+        // Validate file size (max 10MB, adjusted from 25MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setError('Image size should be less than 10MB');
             return;
         }
 
@@ -409,6 +418,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                 identifier: data.identifier || '',
                 description: data.description || '',
                 imagePrompt: '', // Keep image prompt separate
+                type: data.type || '',
+                base: data.base || '',
+                protocol: data.protocol || '',
             });
 
             // Update image URL state with the saved one
@@ -770,7 +782,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                             {uploading ? 'Uploading...' : 'Drag & drop or click to upload'}
                                         </p>
                                         <p className="text-xs text-muted-foreground mb-3">
-                                            PNG, JPG or SVG (max 5MB)
+                                            PNG, JPG or SVG (max 10MB)
                                         </p>
                                         <input
                                             type="file"

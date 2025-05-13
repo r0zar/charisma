@@ -187,9 +187,9 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError('Image size should be less than 5MB');
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setError('Image size should be less than 10MB');
             return;
         }
 

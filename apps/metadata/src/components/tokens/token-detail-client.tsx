@@ -33,6 +33,9 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
         prompt: initialMetadata?.prompt || '',
         symbol: initialMetadata?.symbol || '',
         decimals: initialMetadata?.decimals || 0,
+        type: initialMetadata?.type || '',
+        base: initialMetadata?.base || '',
+        protocol: initialMetadata?.protocol || '',
     });
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState<string>('');
@@ -70,6 +73,9 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                         prompt: parsedDraft.prompt || '',
                         symbol: parsedDraft.symbol || '',
                         decimals: parsedDraft.decimals || 0,
+                        type: parsedDraft.type || '',
+                        base: parsedDraft.base || '',
+                        protocol: parsedDraft.protocol || '',
                     });
                     if (parsedDraft.image) {
                         setImageUrl(parsedDraft.image);
@@ -121,6 +127,9 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                     prompt: data.prompt || '',
                     symbol: data.symbol || '',
                     decimals: data.decimals || 0,
+                    type: data.type || '',
+                    base: data.base || '',
+                    protocol: data.protocol || '',
                 });
                 setImageUrl(data.image || '');
 

@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
     const fromToken = tokens.find(token => {
       if (token.symbol !== fromSymbol) return false;
       const wantSubnet = fromSubnetFlag === '1' || fromSubnetFlag === 'true';
-      const isSubnet = token.contractId.includes('-subnet');
+      const isSubnet = token.contractId.type === 'SUBNET';
       return wantSubnet ? isSubnet : !isSubnet;
     });
 
     const toToken = tokens.find(token => {
       if (token.symbol !== toSymbol) return false;
       const wantSubnet = toSubnetFlag === '1' || toSubnetFlag === 'true';
-      const isSubnet = token.contractId.includes('-subnet');
+      const isSubnet = token.contractId.type === 'SUBNET';
       return wantSubnet ? isSubnet : !isSubnet;
     });
 

@@ -592,8 +592,8 @@ export class Dexterity {
                 // Get quotes for all edges and select the best one
                 const edgeQuotes = await Promise.all(matchingEdges.map(async edge => {
                     // Determine opcode based on token types and vault order
-                    const isInSubnet = tokenIn.contractId.includes('-subnet');
-                    const isOutSubnet = tokenOut.contractId.includes('-subnet');
+                    const isInSubnet = tokenIn.type === 'SUBNET';
+                    const isOutSubnet = tokenOut.type === 'SUBNET';
                     let opcode: number;
 
                     if (!isInSubnet && isOutSubnet) {

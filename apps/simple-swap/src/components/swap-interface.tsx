@@ -142,8 +142,8 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
 
   // Effect to set from token after switching to order mode IF fromtoken does not have -subnet
   useEffect(() => {
-    if (mode === 'order' && !selectedTokens[0].contractId.includes('-subnet')) {
-      const subnetTokens = selectedTokens.filter(t => t.contractId.includes('-subnet'));
+    if (mode === 'order' && selectedFromToken?.type !== 'SUBNET') {
+      const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
       if (subnetTokens.length > 0) {
         console.log(subnetTokens[0])
         setSelectedFromTokenSafe(subnetTokens[0]);
@@ -156,15 +156,15 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
   useEffect(() => {
     if (!baseSelectedToToken) return; // Only run if a base token is selected
 
-    const isBaseSubnet = baseSelectedToToken.contractId.includes('-subnet');
-    const baseId = isBaseSubnet
-      ? baseSelectedToToken.contractId.substring(0, baseSelectedToToken.contractId.lastIndexOf('-subnet'))
-      : baseSelectedToToken.contractId;
+    const isBaseSubnet = baseSelectedToToken.type === 'SUBNET';
+    const baseId = isBaseSubnet ? baseSelectedToToken.base! : baseSelectedToToken.contractId;
     const counterparts = tokenCounterparts.get(baseId);
 
     if (!counterparts) return;
 
     const targetToken = useSubnetTo ? counterparts.subnet : counterparts.mainnet;
+
+    console.log(`targetToken: ${targetToken?.symbol} (${targetToken?.contractId})`);
 
     // Only update if the target token exists and is different from the current actual token
     if (targetToken && targetToken.contractId !== selectedToToken?.contractId) {
@@ -343,66 +343,6 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     setUseSubnetTo(prev);
   };
 
-  // Calculate estimated LP fees from the route if available
-  const calculateRouteFees = () => {
-    // Uses selectedFromToken which is correctly set by useEffect
-    if (!quote || !quote.route || !quote.route.hops || quote.route.hops.length === 0 || !selectedFromToken) {
-      return null;
-    }
-
-    try {
-      // Each vault typically charges a fee (e.g., 0.3%)
-      // We'll show the number of hops and estimated structure
-      const totalHops = quote.route.hops.length;
-
-      // Let's prepare information about each hop's fee, with the token it's paid in
-      const hopFees = quote.route.hops.map((hop, index) => {
-        const token = index === 0 ? selectedFromToken : quote.route.path[index]; // Use actual token
-        const tokenSymbol = token?.symbol || '?';
-
-        // The fee could be stored in different formats:
-        // - As a decimal (0.003 = 0.3%)
-        // - As basis points (30 = 0.3%)
-        // - As a percentage directly (0.3 = 0.3%)
-        let feePercentage = 0.3; // Default fallback
-
-        if (hop.vault.fee !== undefined) {
-          const rawFee = Number(hop.vault.fee);
-          if (!isNaN(rawFee)) {
-            // If fee is very large (>100), assume it's in basis points (e.g., 30 = 0.3%)
-            if (rawFee > 100) {
-              feePercentage = rawFee / 10000;
-            }
-            // If fee is moderate (0.01-100), assume it's already a percentage
-            else if (rawFee >= 0.01 && rawFee <= 100) {
-              feePercentage = rawFee;
-            }
-            // If fee is very small (<0.01), assume it's a decimal representation (e.g., 0.003 = 0.3%)
-            else if (rawFee < 0.01 && rawFee > 0) {
-              feePercentage = rawFee * 100;
-            }
-          }
-        }
-
-        return {
-          token: tokenSymbol,
-          percentage: feePercentage,
-          vault: hop.vault,
-          opcode: hop.opcode,
-          quote: hop.quote
-        };
-      });
-
-      return {
-        totalHops,
-        hopFees
-      };
-    } catch (err) {
-      console.error('Error calculating route fees:', err);
-      return null;
-    }
-  };
-
   // Helper to format USD currency
   const formatUsd = (value: number | null) => {
     if (value === null || isNaN(value)) return null;
@@ -483,22 +423,18 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
 
   // Determine which token is currently displayed in the 'From' dropdown (could be base or subnet)
   const displayedFromToken = displayTokens.find(dt => {
-    const baseId = dt.contractId.includes('-subnet')
-      ? dt.contractId.substring(0, dt.contractId.lastIndexOf('-subnet'))
-      : dt.contractId;
-    const selectedBaseId = selectedFromToken?.contractId.includes('-subnet')
-      ? selectedFromToken.contractId.substring(0, selectedFromToken.contractId.lastIndexOf('-subnet'))
+    const baseId = dt.type === 'SUBNET' ? dt.base! : dt.contractId;
+    const selectedBaseId = selectedFromToken?.type === 'SUBNET'
+      ? selectedFromToken.base!
       : selectedFromToken?.contractId;
     return baseId === selectedBaseId;
   }) || null;
 
   // Determine which token is currently displayed in the 'To' dropdown
   const displayedToToken = displayTokens.find(dt => {
-    const baseId = dt.contractId.includes('-subnet')
-      ? dt.contractId.substring(0, dt.contractId.lastIndexOf('-subnet'))
-      : dt.contractId;
-    const selectedBaseId = selectedToToken?.contractId.includes('-subnet')
-      ? selectedToToken.contractId.substring(0, selectedToToken.contractId.lastIndexOf('-subnet'))
+    const baseId = dt.type === 'SUBNET' ? dt.base! : dt.contractId;
+    const selectedBaseId = selectedToToken?.type === 'SUBNET'
+      ? selectedToToken.base!
       : selectedToToken?.contractId;
     return baseId === selectedBaseId;
   }) || null;
@@ -519,9 +455,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
 
   // Determine if this is a subnet shift operation
   const isSubnetShift = quote?.route.hops.some(hop =>
-    hop.vault.name === 'SUB_LINK' ||
-    hop.vault.contractName === 'SUB_LINK' ||
-    hop.vault.symbol === 'SL'
+    hop.vault.type === 'SUBLINK'
   );
 
   // Get shift direction for label customization
@@ -554,40 +488,6 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     } catch (err) {
       console.error('Error creating triggered swap:', err);
     }
-  }
-
-  // ---- DCA Orders creation ----
-  async function handleCreateDcaOrders({ slices, intervalHours }: { slices: number; intervalHours: number }) {
-    if (!selectedFromToken || !selectedToToken) return;
-    if (!displayAmount || Number(displayAmount) <= 0) return;
-    if (!targetPrice) return;
-
-    const totalAmount = convertToMicroUnits(displayAmount, selectedFromToken.decimals);
-    const sliceAmountMicro = (BigInt(totalAmount) / BigInt(slices)).toString();
-
-    const nowMs = Date.now();
-    const intervalMs = intervalHours * 60 * 60 * 1000;
-
-    for (let i = 0; i < slices; i++) {
-      const validFrom = new Date(nowMs + i * intervalMs).toISOString();
-      const validTo = new Date(nowMs + (i + 1) * intervalMs).toISOString();
-
-      try {
-        await createTriggeredSwap({
-          conditionToken: conditionToken || selectedToToken,
-          baseToken,
-          targetPrice,
-          direction: conditionDir,
-          amountDisplay: convertFromMicroUnits(sliceAmountMicro, selectedFromToken.decimals),
-          validFrom,
-          validTo,
-        });
-      } catch (err) {
-        console.error('DCA slice creation failed:', err);
-      }
-    }
-
-    // Optionally notify user
   }
 
   // Callback for DcaDialog to create a single slice order
@@ -741,7 +641,17 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
           }}
           hasBothVersions={hasBothVersions(selectedToToken)}
           isSubnetSelected={useSubnetTo}
-          onToggleSubnet={() => setUseSubnetTo(!useSubnetTo)}
+          onToggleSubnet={() => {
+            // Always set baseSelectedToToken to the mainnet token for the current selection
+            if (selectedToToken) {
+              const baseId = selectedToToken.type === 'SUBNET'
+                ? selectedToToken.base
+                : selectedToToken.contractId;
+              const mainnetToken = displayTokens.find(t => t.contractId === baseId);
+              if (mainnetToken) setBaseSelectedToToken(mainnetToken);
+            }
+            setUseSubnetTo(!useSubnetTo);
+          }}
           isLoadingQuote={isLoadingQuote}
           isLoadingPrice={isLoadingPrices}
           tokenValueUsd={formatUsd(toTokenValueUsd)}
