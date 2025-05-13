@@ -73,8 +73,9 @@ export const getTokenData = async (
 
     try {
         // 1. Check cache first (unless forcing refresh)
+        let cachedData: TokenMetadata | null = null;
         if (!forceRefresh) {
-            const cachedData = await kv.get<TokenMetadata>(cacheKey);
+            cachedData = await kv.get<TokenMetadata>(cacheKey);
             if (cachedData) {
                 // console.log(`Cache hit for ${contractId}`);
 
@@ -92,6 +93,8 @@ export const getTokenData = async (
             }
             console.log(`Cache miss for ${contractId}, fetching from source.`);
         } else {
+            // If forceRefresh, still get the cached data as baseline
+            cachedData = await kv.get<TokenMetadata>(cacheKey);
             console.log(`Force refresh requested for ${contractId}, fetching from source.`);
         }
 
@@ -99,6 +102,7 @@ export const getTokenData = async (
         const tokenMetadata = await cryptonomicon.getTokenMetadata(contractId);
         console.log(`Token metadata: ${JSON.stringify(tokenMetadata)}`);
 
+        let mergedData: TokenMetadata | null = null;
         if (tokenMetadata) {
             // Ensure contract_principal is set
             if (!tokenMetadata.contract_principal) {
@@ -108,14 +112,27 @@ export const getTokenData = async (
             // Add the last refreshed timestamp before caching
             tokenMetadata.lastRefreshed = Date.now();
 
-            // 3. Cache the fetched data
-            await kv.set(cacheKey, tokenMetadata, { ex: CACHE_DURATION_SECONDS });
+            // Merge: use cachedData as baseline, only overwrite with defined fields from tokenMetadata
+            if (cachedData) {
+                mergedData = { ...cachedData };
+                for (const key of Object.keys(tokenMetadata)) {
+                    const value = (tokenMetadata as any)[key];
+                    if (value !== undefined) {
+                        (mergedData as any)[key] = value;
+                    }
+                }
+            } else {
+                mergedData = tokenMetadata;
+            }
+
+            // 3. Cache the merged data
+            await kv.set(cacheKey, mergedData, { ex: CACHE_DURATION_SECONDS });
             console.log(`Cached data for ${contractId}`);
 
-            return tokenMetadata;
+            return mergedData;
         } else {
             console.warn(`Failed to fetch metadata for ${contractId}`);
-            return null;
+            return cachedData; // Return cached data if available, else null
         }
     } catch (error) {
         console.error(`Error fetching or caching data for ${contractId}:`, error);

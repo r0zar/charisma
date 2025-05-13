@@ -204,7 +204,7 @@ export async function updateCachedTokenData(contractId: string, newData: any): P
         return { success: false, error: 'Invalid data provided for update.' };
     }
 
-    const cacheKey = `token-metadata:${contractId.toLowerCase()}`;
+    const cacheKey = getCacheKey(contractId);
 
     try {
         // Validate if newData is actually valid JSON (it should be an object/array from react-json-view)

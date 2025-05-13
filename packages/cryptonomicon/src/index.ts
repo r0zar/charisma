@@ -7,6 +7,7 @@ import { cvToValue, principalCV } from "@stacks/transactions";
  * Interface for token metadata
  */
 export interface TokenMetadata {
+  type: string;
   sip?: number;
   name: string;
   description: string;
@@ -91,6 +92,7 @@ export class Cryptonomicon {
     if (contractId === ".stx") {
       // Predefined metadata for native STX
       return {
+        type: "",
         sip: 10, // STX conforms to SIP-010 interface conceptually
         name: "Stacks Token",
         symbol: "STX",
