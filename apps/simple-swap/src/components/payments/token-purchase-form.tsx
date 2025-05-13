@@ -19,19 +19,28 @@ export default function TokenPurchaseForm() {
     const MAX_USD_AMOUNT = 20;
 
     const {
-        displayTokens,
+        subnetDisplayTokens,
         selectedToToken,
         setSelectedToToken,
         tokenPrices,
         userAddress,
     } = useSwap();
 
-    // Set selected token to charisma token
+    // Set selected token to charisma token or first available subnet token
     useEffect(() => {
-        getTokenMetadataCached(CHARISMA_TOKEN_SUBNET).then(token => {
-            setSelectedToToken(token as any);
-        });
-    }, [displayTokens, setSelectedToToken]);
+        // Only proceed if there are subnet tokens and no token is currently selected
+        if (subnetDisplayTokens && subnetDisplayTokens.length > 0 && !selectedToToken) {
+            const charismaToken = subnetDisplayTokens.find(
+                (token) => token.contractId === CHARISMA_TOKEN_SUBNET
+            );
+            if (charismaToken) {
+                setSelectedToToken(charismaToken);
+            } else {
+                setSelectedToToken(subnetDisplayTokens[0]); // Default to the first available subnet token
+            }
+        }
+        // Adding subnetDisplayTokens to dependency array as its change should trigger this effect.
+    }, [subnetDisplayTokens, selectedToToken, setSelectedToToken]);
 
     // Fetch reserve balance when selected token changes
     useEffect(() => {
@@ -146,10 +155,10 @@ export default function TokenPurchaseForm() {
                     <div className="space-y-2">
                         <label className="block text-sm font-medium">Token</label>
                         <TokenDropdown
-                            tokens={[selectedToToken as any]}
+                            tokens={subnetDisplayTokens || []}
                             selected={selectedToToken}
                             onSelect={setSelectedToToken}
-                            label=""
+                            label="Select a token to purchase"
                         />
                     </div>
 

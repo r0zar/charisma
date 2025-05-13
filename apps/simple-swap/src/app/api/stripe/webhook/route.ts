@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { kv } from '@vercel/kv';
 import { buildAndSignBlazeIntent } from '@/lib/blaze-intent-server';
-import { CHARISMA_TOKEN_SUBNET, RESERVES_PRIVATE_KEY } from '@/lib/constants';
+import { RESERVES_PRIVATE_KEY } from '@/lib/constants';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: '2025-04-30.basil',
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         });
 
         const blaze = await buildAndSignBlazeIntent({
-            contract: CHARISMA_TOKEN_SUBNET,
+            contract: tokenType,
             intent: 'TRANSFER_TOKENS',
             amount: Number(tokenAmount),
             target: userId,
