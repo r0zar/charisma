@@ -28,19 +28,10 @@ export default function TokenPurchaseForm() {
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
-        // Only proceed if there are subnet tokens and no token is currently selected
-        if (subnetDisplayTokens && subnetDisplayTokens.length > 0 && !selectedToToken) {
-            const charismaToken = subnetDisplayTokens.find(
-                (token) => token.contractId === CHARISMA_TOKEN_SUBNET
-            );
-            if (charismaToken) {
-                setSelectedToToken(charismaToken);
-            } else {
-                setSelectedToToken(subnetDisplayTokens[0]); // Default to the first available subnet token
-            }
+        if (subnetDisplayTokens && subnetDisplayTokens.length > 0) {
+            setSelectedToToken(subnetDisplayTokens[0]);
         }
-        // Adding subnetDisplayTokens to dependency array as its change should trigger this effect.
-    }, [subnetDisplayTokens, selectedToToken, setSelectedToToken]);
+    }, [subnetDisplayTokens, setSelectedToToken]);
 
     // Fetch reserve balance when selected token changes
     useEffect(() => {
