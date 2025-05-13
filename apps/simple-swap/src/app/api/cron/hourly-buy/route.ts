@@ -8,7 +8,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const HIRO_API_KEY = process.env.HIRO_API_KEY;
 
 const TOKEN_IN = '.stx';
-const TOKEN_OUT = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1';
+const TOKEN_OUT = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
 const AMOUNT_IN = 1000000; // 1 STX in micro-STX
 
 export async function GET(request: NextRequest) {
