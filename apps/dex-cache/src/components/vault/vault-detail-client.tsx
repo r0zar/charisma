@@ -317,15 +317,15 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                         {/* Left Panel - Summary & Key Metrics */}
                         <div className="lg:col-span-4 space-y-6">
                             {/* Investment Card */}
-                            <Card className="overflow-hidden border border-primary/20 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
+                            <Card className="overflow-hidden border border-primary/10 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
                                 <div className="p-6 flex flex-col items-center">
                                     <div className="relative h-32 w-32 mb-4">
-                                        <div className="absolute inset-0 rounded-full bg-primary/5 animate-pulse"></div>
+                                        <div className="absolute inset-0 rounded-lg bg-primary/5 animate-pulse"></div>
                                         <Image
                                             src={currentVaultData.image || '/placeholder.png'}
                                             alt={currentVaultData.name || 'Vault'}
                                             fill
-                                            className="rounded-full object-cover p-1 border-2 border-primary/30"
+                                            className="rounded-lg object-cover p-0 border-2 border-foreground/5"
                                             onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
                                         />
                                     </div>

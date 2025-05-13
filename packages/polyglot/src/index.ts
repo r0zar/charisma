@@ -70,15 +70,18 @@ export async function callReadOnlyFunction(
 ): Promise<any> {
   try {
     const endpoint = `/v2/contracts/call-read/${contractAddress}/${contractName}/${functionName}`;
-    const { data } = await apiClient.POST(endpoint as any, {
+    const response = await apiClient.POST(endpoint as any, {
       body: {
         sender: sender || contractAddress,
         arguments: args.map(arg => cvToHex(arg)),
       }
     });
 
-    if (!data?.result) return null;
-    return cvToValue(hexToCV(data.result));
+    if (!response.data?.result) {
+      console.warn(response.response)
+      return null
+    };
+    return cvToValue(hexToCV(response.data.result));
   } catch (error) {
     console.error(`Error calling ${contractAddress}:`, error);
     return null;
