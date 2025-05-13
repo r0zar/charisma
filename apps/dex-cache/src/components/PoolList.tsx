@@ -310,12 +310,12 @@ export default function VaultList({ vaults }: Props) {
 
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">Engine Contract</h4>
-                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
+                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
                                                             </div>
 
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">External Pool ID</h4>
-                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.externalPoolId || 'N/A'}</p>
+                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.externalPoolId || 'N/A'}</p>
                                                             </div>
                                                         </div>
 
