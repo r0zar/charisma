@@ -3,29 +3,39 @@ import { LimitOrder } from './types';
 import { getLatestPrice } from '@/lib/price/store';
 import { getQuote } from '@/app/actions';
 import { kv } from '@vercel/kv';
-import { Dexterity } from '../dexterity-client';
 import { log } from '@repo/logger';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { executeMultihopSwap } from 'blaze-sdk';
 
 /**
- * Fetches the current price for a given token pair.
- * Right now this is a stub that simply returns 1:1. You should
- * replace it with a real oracle or DEX quote service.
+ * Fetches the current price ratio for a given order.
+ * The ratio is calculated as price(conditionToken) / price(baseAsset).
+ * If baseAsset is not defined or is a known stablecoin (like sUSDT),
+ * it effectively compares the conditionToken's price against a USD target.
  */
-async function getCurrentPrice(order: LimitOrder): Promise<number | undefined> {
-    // use conditionToken if provided, otherwise default to outputToken
-    const watchedToken = order.conditionToken || order.outputToken;
-    log({ orderUuid: order.uuid, watchedToken }, `Watched token selected.`);
+async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefined> {
+    const conditionTokenContract = order.conditionToken;
+    // Default to sUSDT if baseAsset is not specified, effectively making it a USD price comparison.
+    const baseAssetContract = order.baseAsset || 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
 
-    // Fetch the USD price for the single watched token
-    log({ orderUuid: order.uuid, contractId: watchedToken }, `Fetching latest price for token ${watchedToken}`);
-    const price = await getLatestPrice(watchedToken); // Use watchedToken directly
-    log({ orderUuid: order.uuid, contractId: watchedToken, fetchedPrice: price }, `Fetched price from store: ${price}`);
+    log({ orderUuid: order.uuid, conditionTokenContract, baseAssetContract }, `Fetching prices for ratio.`);
 
-    if (price !== undefined) return price;
-    // fallback placeholder
-    return undefined;
+    const priceConditionToken = await getLatestPrice(conditionTokenContract);
+    const priceBaseAsset = await getLatestPrice(baseAssetContract);
+
+    if (priceConditionToken === undefined || priceBaseAsset === undefined) {
+        log({ orderUuid: order.uuid, priceConditionToken, priceBaseAsset }, "Could not fetch one or both prices for ratio.");
+        return undefined;
+    }
+
+    if (priceBaseAsset === 0) {
+        log({ orderUuid: order.uuid, priceBaseAsset }, "Base asset price is zero, cannot calculate ratio.");
+        return undefined;
+    }
+
+    const currentRatio = priceConditionToken / priceBaseAsset;
+    log({ orderUuid: order.uuid, currentRatio, priceConditionToken, priceBaseAsset }, `Calculated current price ratio: ${currentRatio}`);
+    return currentRatio;
 }
 
 /**
@@ -126,24 +136,24 @@ export async function processOpenOrders(): Promise<string[]> {
         }
 
         try {
-            log({ orderUuid: order.uuid, conditionToken: order.conditionToken }, 'Fetching current price for condition token');
-            const price = await getCurrentPrice(order);
+            log({ orderUuid: order.uuid, conditionToken: order.conditionToken, baseAsset: order.baseAsset }, 'Fetching current price ratio');
+            const currentMarketRatio = await getCurrentPriceRatio(order);
 
-            if (price === undefined) {
-                log({ orderUuid: order.uuid, conditionToken: order.conditionToken }, 'Could not find current price for condition token. Skipping order.');
+            if (currentMarketRatio === undefined) {
+                log({ orderUuid: order.uuid, conditionToken: order.conditionToken, baseAsset: order.baseAsset }, 'Could not determine current market ratio. Skipping order.');
                 await releaseLock(order.uuid);
                 continue; // Skip to next order
             }
 
-            log({ orderUuid: order.uuid, currentPrice: price, targetPrice: order.targetPrice, direction: order.direction }, 'Checking fill condition');
-            if (!shouldFill(order, price)) {
-                log({ orderUuid: order.uuid, currentPrice: price }, 'Fill condition not met, releasing lock.');
+            log({ orderUuid: order.uuid, currentMarketRatio, targetPrice: order.targetPrice, direction: order.direction }, 'Checking fill condition with ratio');
+            if (!shouldFill(order, currentMarketRatio)) {
+                log({ orderUuid: order.uuid, currentMarketRatio }, 'Fill condition (ratio) not met, releasing lock.');
                 // release lock early if condition not met
                 await releaseLock(order.uuid);
                 continue;
             }
 
-            log({ orderUuid: order.uuid }, 'Fill condition met. Attempting to execute trade.');
+            log({ orderUuid: order.uuid }, 'Fill condition (ratio) met. Attempting to execute trade.');
             const txid = await executeTrade(order);
             log({ orderUuid: order.uuid, txid }, 'Trade executed successfully. Marking order as filled.');
             await fillOrder(order.uuid, txid);
