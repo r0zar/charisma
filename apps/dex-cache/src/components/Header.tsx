@@ -22,10 +22,28 @@ export default function Header() {
 
                     <nav className="flex items-center space-x-6 text-sm font-medium">
                         <Link
+                            href="/vaults"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Vaults
+                        </Link>
+                    </nav>
+
+                    <nav className="flex items-center space-x-6 text-sm font-medium">
+                        <Link
                             href="/pools"
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >
                             Pools
+                        </Link>
+                    </nav>
+
+                    <nav className="flex items-center space-x-6 text-sm font-medium">
+                        <Link
+                            href="/sublinks"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Sublinks
                         </Link>
                     </nav>
 

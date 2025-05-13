@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getVaultData } from '@/lib/vaultService'; // Assuming vaultService is in lib
 import VaultDetailClient from '@/components/vault/vault-detail-client'; // Client component placeholder
 import { listPrices, KraxelPriceData } from '@repo/tokens'; // Hypothetical import
+import { fetchContractInfo } from '@/app/actions';
 
 // Revalidate data periodically (e.g., every 5 minutes)
 export const revalidate = 300;
@@ -66,9 +67,10 @@ export default async function VaultPage({ params }: VaultPageProps) {
 
     try {
         // Fetch the vault data and prices
-        const [vaultData, prices] = await Promise.all([
+        const [vaultData, prices, contractInfo] = await Promise.all([
             getVaultData(vaultId),
             listPrices(),
+            fetchContractInfo(vaultId),
         ]);
 
         if (!vaultData) {
@@ -100,6 +102,7 @@ export default async function VaultPage({ params }: VaultPageProps) {
                 vault={cleanVaultData}
                 prices={prices}
                 analytics={analytics}
+                contractInfo={contractInfo}
             />
         );
     } catch (error) {

@@ -20,7 +20,9 @@ interface Token {
 /**
  * Vault instance representing a liquidity pool
  */
-interface Vault {
+export interface Vault {
+    type: 'POOL' | 'SUBLINK';
+    protocol: string;
     contractId: string;
     contractAddress: string;
     contractName: string;
@@ -146,6 +148,8 @@ function buildVaultStructureFromTokens(
 
 
         return {
+            type: lpToken.type,
+            protocol: lpToken.protocol,
             contractId,
             contractAddress,
             contractName,
@@ -439,9 +443,24 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
     try {
         const cacheKey = getCacheKey(vault.contractId);
 
-        // Ensure reserves are numbers and timestamp is set before saving
+        // Fetch existing cached data to preserve fields if needed
+        let existing: CachedVault | null = null;
+        try {
+            const raw = await kv.get<string | CachedVault>(cacheKey);
+            if (typeof raw === 'string') {
+                existing = JSON.parse(raw) as CachedVault;
+            } else if (typeof raw === 'object' && raw !== null) {
+                existing = raw as CachedVault;
+            }
+        } catch (e) {
+            // Ignore cache miss
+        }
+
+        // Only overwrite type/protocol if defined in new vault
         const vaultToSave = {
             ...vault,
+            type: vault.type ?? existing?.type,
+            protocol: vault.protocol ?? existing?.protocol,
             reservesA: Number(vault.reservesA || 0),
             reservesB: Number(vault.reservesB || 0),
             reservesLastUpdatedAt: vault.reservesLastUpdatedAt || Date.now()
@@ -470,7 +489,7 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
 };
 
 // Get all vault data from KV
-export const getAllVaultData = async (): Promise<Vault[]> => {
+export const getAllVaultData = async (protocol?: string): Promise<Vault[]> => {
     try {
         const vaultIds = await getManagedVaultIds();
         if (!vaultIds.length) {
@@ -484,10 +503,46 @@ export const getAllVaultData = async (): Promise<Vault[]> => {
         // Note: This will trigger reserve revalidation for stale entries
         const vaultPromises = vaultIds.map(id => getVaultData(id));
 
-        const results = await Promise.all(vaultPromises);
-        return results.filter((v): v is Vault => v !== null);
+        let results = await Promise.all(vaultPromises);
+        function isVault(v: Vault | null): v is Vault {
+            return v !== null;
+        }
+        const vaults = results.filter(isVault);
+        if (protocol) {
+            return vaults.filter(vault => vault.protocol?.toLowerCase() === protocol.toLowerCase());
+        }
+        return vaults;
     } catch (error) {
         console.error('Error fetching all vaults:', error);
         return [];
     }
-}; 
+};
+
+// Get all vault data from KV
+export const getAllVaults = async (): Promise<{ pools: Vault[], sublinks: Vault[] }> => {
+    try {
+        const vaultIds = await getManagedVaultIds();
+        if (!vaultIds.length) {
+            console.log('No managed vaults found');
+            return { pools: [], sublinks: [] };
+        }
+
+        console.log(`Fetching ${vaultIds.length} vaults from cache`);
+
+        // Fetch each vault in parallel using the updated getVaultData
+        // Note: This will trigger reserve revalidation for stale entries
+        const vaultPromises = vaultIds.map(id => getVaultData(id));
+
+        const vaults = await Promise.all(vaultPromises);
+
+        // partition by type
+        const results = {
+            pools: vaults.filter((v): v is Vault => v !== null && v.type === 'POOL') as Vault[],
+            sublinks: vaults.filter((v): v is Vault => v !== null && v.type === 'SUBLINK') as Vault[]
+        }
+        return results;
+    } catch (error) {
+        console.error('Error fetching all vaults:', error);
+        return { pools: [], sublinks: [] };
+    }
+};

@@ -6,54 +6,18 @@ import {
     getVaultData,
     saveVaultData,
     VAULT_LIST_KEY,
-    getCacheKey
+    getCacheKey,
+    Vault
 } from "@/lib/vaultService";
 import { kv } from '@vercel/kv';
 import { parseTokenMetadata } from '@/lib/openai';
-import { callReadOnlyFunction } from '@repo/polyglot';
+import { callReadOnlyFunction, getContractInfo } from '@repo/polyglot';
 import { principalCV, uintCV, bufferCVFromString, cvToValue, optionalCVOf } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 // Import getManagedVaultIds from vaultService but rename to avoid conflict
 import { getManagedVaultIds as getVaultIdsFromService } from "@/lib/vaultService";
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
-
-/**
- * Basic token information
- */
-interface Token {
-    contractId: string;
-    identifier?: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    supply?: number;
-    image?: string;
-    description?: string;
-    contract_principal?: string;
-}
-
-/**
- * Vault instance representing a liquidity pool
- */
-interface Vault {
-    contractId: string;
-    contractAddress: string;
-    contractName: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    identifier: string;
-    description: string;
-    image: string;
-    fee: number;
-    externalPoolId: string;
-    engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    reservesA: number;
-    reservesB: number;
-}
 
 /**
  * Fetches the list of managed vault IDs from Vercel KV.
@@ -264,6 +228,8 @@ async function confirmVault(
         const [contractAddress, contractName] = contractId.split('.');
 
         const vault: Vault = {
+            type: 'POOL',
+            protocol: 'CHARISMA',
             contractId,
             contractAddress,
             contractName,
@@ -635,4 +601,9 @@ export async function getLpTokenBalance(
             error: "Failed to fetch LP token balance."
         };
     }
-} 
+}
+
+export async function fetchContractInfo(contractId: string) {
+    const contractInfo = await getContractInfo(contractId);
+    return contractInfo;
+}

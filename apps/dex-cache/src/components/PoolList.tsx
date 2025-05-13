@@ -155,9 +155,9 @@ export default function VaultList({ vaults }: Props) {
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center">
                     <Layers className="w-5 h-5 mr-2 text-primary" />
-                    Vaults
+                    Liquidity Pools
                     <Badge variant="secondary" className="ml-auto">
-                        {vaults.length} vault{vaults.length !== 1 ? 's' : ''}
+                        {vaults.length} pool{vaults.length !== 1 ? 's' : ''}
                     </Badge>
                 </CardTitle>
             </CardHeader>

@@ -18,7 +18,10 @@ export async function OPTIONS() {
 export async function GET(request: Request) {
     try {
         console.log('Fetching all vaults');
-        const data = await getAllVaultData();
+        const { searchParams } = new URL(request.url);
+        const protocol = searchParams.get('protocol');
+
+        const data = await getAllVaultData(protocol || undefined);
         console.log(`Returning ${data.length} vaults`);
 
         return NextResponse.json({

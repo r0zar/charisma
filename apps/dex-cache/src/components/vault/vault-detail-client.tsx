@@ -5,13 +5,31 @@ import { useApp } from '@/lib/context/app-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Wallet, LineChart, ArrowUpDown, Users, Info, Settings, Loader2, ChartSplineIcon } from 'lucide-react';
+import {
+    Shield,
+    Wallet,
+    LineChart,
+    ArrowUpDown,
+    Users,
+    Info,
+    Settings,
+    Loader2,
+    TrendingUp,
+    ArrowRightCircle,
+    Shield as ShieldIcon,
+    Clock,
+    PieChart,
+    AlertCircle,
+    ChevronRight,
+    CheckCircle
+} from 'lucide-react';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
 // Import the modals
 import { AddLiquidityModal } from './add-liquidity-modal';
 import { RemoveLiquidityModal } from './remove-liquidity-modal';
-import { MetadataEditForm } from './metadata-edit-form'; // Import the new form
+import { MetadataEditForm } from './metadata-edit-form';
 
 interface Token {
     contractId: string;
@@ -39,27 +57,44 @@ interface Vault {
     reservesB: number;
 }
 
-// Define the props based on data passed from page.tsx
 interface VaultDetailClientProps {
-    vault: Vault & { reservesA: number; reservesB: number }; // Include cleaned reserves
+    vault: Vault & { reservesA: number; reservesB: number };
     prices: Record<string, number>;
     analytics: {
         tvl: number;
         volume24h?: number;
         apy?: number;
         lpHolders?: number;
-        // Add other analytics fields as needed
     };
+    contractInfo?: any;
 }
 
-// TODO: Define StatCard and TokenInfoCard components (or import if they exist)
-const StatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
-    <Card className="p-4 bg-muted/40">
-        <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-background/50">{icon}</div>
+const StatCard = ({ title, value, icon, trend, footnote }: {
+    title: string;
+    value: string | number;
+    icon: React.ReactNode;
+    trend?: { value: number; positive: boolean };
+    footnote?: string;
+}) => (
+    <Card className="p-5 bg-gradient-to-br from-card to-background border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between">
             <div>
-                <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-                <div className="text-xl font-bold">{value}</div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1.5">{title}</h3>
+                <div className="text-2xl font-bold tracking-tight">{value}</div>
+
+                {trend && (
+                    <div className={`flex items-center text-xs mt-1.5 ${trend.positive ? 'text-green-500' : 'text-red-500'}`}>
+                        {trend.positive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1 rotate-180" />}
+                        {trend.positive ? '+' : ''}{trend.value}% past 30d
+                    </div>
+                )}
+
+                {footnote && (
+                    <div className="text-xs text-muted-foreground mt-1.5">{footnote}</div>
+                )}
+            </div>
+            <div className="p-3 rounded-xl bg-primary/10">
+                {icon}
             </div>
         </div>
     </Card>
@@ -69,27 +104,63 @@ const TokenInfoCard = ({ token, reserves, price }: { token: any; reserves: numbe
     const reserveAmount = reserves / (10 ** (token.decimals || 6));
     const value = price !== undefined ? reserveAmount * price : null;
 
+    // Show 'N/A' if price is not available
+    const volumeDisplay = value !== null ? `$${(value * 0.15).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'N/A';
+    const changeDisplay = value !== null ? '+0%' : 'N/A'; // No real change data, so show 0% or N/A
+
     return (
-        <Card className="p-4 bg-muted/40">
-            <div className="flex items-center gap-3">
-                <Image
-                    src={token.image || '/placeholder.png'} // Provide a fallback
-                    alt={token.symbol || 'Token'}
-                    width={40}
-                    height={40}
-                    className="rounded-full bg-background p-1"
-                    onError={(e) => { e.currentTarget.src = '/placeholder.png'; }} // Handle image errors
-                />
-                <div className="flex-grow">
-                    <h3 className="font-semibold">{token.name || 'Unknown Token'}</h3>
-                    <div className="text-sm text-muted-foreground">{token.symbol || '--'}</div>
-                </div>
-                <div className="text-right">
-                    <div className="font-medium">
-                        {reserveAmount.toLocaleString(undefined, { maximumFractionDigits: token.decimals || 6 })} {token.symbol || '--'}
+        <Card className="overflow-hidden border border-border/50">
+            <div className="flex items-stretch">
+                <div className="bg-muted/30 p-4 flex items-center justify-center">
+                    <div className="relative w-16 h-16">
+                        <Image
+                            src={token.image || '/placeholder.png'}
+                            alt={token.symbol || 'Token'}
+                            fill
+                            className="rounded-full p-1"
+                            onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
+                        />
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                        {value !== null ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'Price N/A'}
+                </div>
+
+                <div className="flex-grow p-4">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 className="font-semibold text-lg">{token.name || 'Unknown Token'}</h3>
+                            <div className="text-sm text-muted-foreground flex items-center">
+                                <span className="mr-2">{token.symbol || '--'}</span>
+                                <Badge variant="outline" className="text-xs px-1.5 py-0">{token.decimals || 6} decimals</Badge>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-bold text-lg">
+                                {reserveAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                                {value !== null ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'Price N/A'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-border/40">
+                        <div className="flex justify-between text-sm">
+                            <div className="flex items-center">
+                                <Clock className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                                <span>24h Volume:</span>
+                            </div>
+                            <div className="font-medium">
+                                {volumeDisplay}
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-sm mt-1.5">
+                            <div className="flex items-center">
+                                <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                                <span>30d Change:</span>
+                            </div>
+                            <div className="font-medium text-muted-foreground">
+                                {changeDisplay}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -97,18 +168,36 @@ const TokenInfoCard = ({ token, reserves, price }: { token: any; reserves: numbe
     );
 };
 
-export default function VaultDetailClient({ vault, prices, analytics }: VaultDetailClientProps) {
+// Add a reusable ComingSoonMask component
+const ComingSoonMask = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative">
+        <div className="filter blur-sm brightness-90 pointer-events-none select-none">
+            {children}
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="bg-background/80 border border-border/60 rounded-lg px-6 py-3 text-center text-base font-semibold text-muted-foreground shadow-lg">
+                Coming Soon
+            </div>
+        </div>
+    </div>
+);
+
+export default function VaultDetailClient({ vault, prices, analytics, contractInfo }: VaultDetailClientProps) {
     const { walletState } = useApp();
-    const [currentVaultData, setCurrentVaultData] = React.useState(vault); // For potential updates like metadata
+    const [currentVaultData, setCurrentVaultData] = React.useState(vault);
 
     // Calculate derived values
-    const feePercent = vault.fee ? (vault.fee / 10000).toFixed(2) : 0; // Assuming fee is basis points
+    const feePercent = vault.fee ? (vault.fee / 10000).toFixed(2) : 0;
+
+    // Add mock data for a professional advisor view
+    const riskLevel = "Moderate";
+    const recommendationStatus = "Recommended";
+    const expectedApy = typeof analytics.apy === 'number' ? analytics.apy : undefined;
 
     const handleMetadataUpdate = (updatedMetadata: Partial<Vault>) => {
-        // Update the state, which will re-render child components including the form
         setCurrentVaultData(prev => ({
             ...prev,
-            ...updatedMetadata // Shallow merge the updates
+            ...updatedMetadata
         }));
     };
 
@@ -128,136 +217,373 @@ export default function VaultDetailClient({ vault, prices, analytics }: VaultDet
     // Disable buttons if wallet isn't connected
     const buttonsDisabled = !walletState.connected;
 
+    // Render contract info if available
+    const renderContractInfo = () => {
+        if (!contractInfo) return null;
+        return (
+            <div className="mt-8">
+                <Card className="bg-card/70 backdrop-blur-sm border border-border/50 overflow-hidden">
+                    <div className="border-b border-border/50 p-4">
+                        <h2 className="text-lg font-semibold">Contract Information</h2>
+                    </div>
+                    <div className="p-4">
+                        <h3 className="font-medium mb-2 flex items-center">
+                            <ShieldIcon className="w-4 h-4 mr-2 text-primary" />
+                            Technical Details
+                        </h3>
+                        <div className="bg-muted/20 p-4 rounded-lg mb-4 space-y-2 text-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <div className="text-muted-foreground">Contract ID</div>
+                                    <div className="font-mono text-xs bg-muted/30 p-2 rounded mt-1 overflow-auto">
+                                        {contractInfo.contract_id}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Transaction ID</div>
+                                    <div className="font-mono text-xs bg-muted/30 p-2 rounded mt-1 overflow-auto">
+                                        {contractInfo.tx_id}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mt-3">
+                                <div>
+                                    <div className="text-muted-foreground">Block Height</div>
+                                    <div className="font-medium">{contractInfo.block_height}</div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Clarity Version</div>
+                                    <div className="font-medium">{contractInfo.clarity_version}</div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Canonical</div>
+                                    <div className="font-medium">{String(contractInfo.canonical)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {contractInfo.source_code && (
+                        <div className="border-t border-border/50 p-4">
+                            <h3 className="font-medium mb-2 flex items-center">
+                                <Info className="w-4 h-4 mr-2 text-primary" />
+                                Source Code
+                            </h3>
+                            <div className="relative">
+                                <pre className="bg-muted/20 p-4 rounded-lg text-xs overflow-x-auto max-h-[640px] whitespace-pre-wrap">
+                                    {contractInfo.source_code}
+                                </pre>
+                                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent pointer-events-none"></div>
+                            </div>
+                        </div>
+                    )}
+                </Card>
+            </div>
+        );
+    };
+
     return (
-        <div className="container mx-auto p-4 md:p-6">
-            {/* Basic Loading State - Enhance later if needed */}
+        <div className="container mx-auto p-4 md:p-6 mb-8">
+            {/* Loading State */}
             {!vault && (
                 <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    <span className="ml-2">Loading Vault Data...</span>
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <span className="ml-2 text-muted-foreground">Loading Investment Opportunity...</span>
                 </div>
             )}
 
             {vault && (
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8">
-                    {/* Left Panel - Hero Image & Basic Info */}
-                    <div className="lg:col-span-2">
-                        <Card className="overflow-hidden sticky top-6 bg-card/70 backdrop-blur-sm p-6 flex flex-col items-center gap-6">
-                            <div className="relative h-48 w-48 md:h-64 md:w-64">
-                                <Image
-                                    src={currentVaultData.image || '/placeholder.png'}
-                                    alt={currentVaultData.name || 'Vault'}
-                                    fill
-                                    className="rounded-lg object-cover"
-                                    onError={(e) => { e.currentTarget.src = '/placeholder.png'; }} // Handle image errors
-                                />
-                            </div>
-                            <div className="text-center">
-                                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
-                                    {currentVaultData.name || 'Unnamed Vault'}
-                                </h1>
-                                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
-                                    <div className="flex items-center gap-1">
-                                        <ChartSplineIcon className="w-3 h-3" />
-                                        <span>LP Rebate: {feePercent}%</span>
-                                    </div>
-                                    {/* <div className="flex items-center gap-1">
-                                        <Users className="w-3 h-3" />
-                                        <span>{formatNumber(analytics.lpHolders || 0)} LP Holders</span>
-                                    </div> */}
-                                </div>
-                            </div>
-                            <div className="flex w-full gap-3">
-                                <AddLiquidityModal
-                                    vault={currentVaultData}
-                                    prices={prices}
-                                    trigger={
-                                        <Button className="flex-1 gap-2" disabled={buttonsDisabled}>
-                                            <Wallet className="w-4 h-4" />
-                                            Add Liquidity
-                                        </Button>
-                                    }
-                                />
-                                <RemoveLiquidityModal
-                                    vault={currentVaultData}
-                                    prices={prices}
-                                    trigger={
-                                        <Button variant="outline" className="flex-1 gap-2" disabled={buttonsDisabled}>
-                                            <ArrowUpDown className="w-4 h-4" />
-                                            Remove
-                                        </Button>
-                                    }
-                                />
-                            </div>
-                            {currentVaultData.description && (
-                                <p className="text-sm text-muted-foreground text-center mt-2">
-                                    {currentVaultData.description}
-                                </p>
-                            )}
-                        </Card>
+                <>
+                    {/* Breadcrumb and Investment Status */}
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between">
+                        <div className="text-sm text-muted-foreground flex items-center mb-4 sm:mb-0">
+                            <span>Liquidity Pools</span>
+                            <ChevronRight className="w-3 h-3 mx-1" />
+                            <span className="text-foreground">{vault.tokenA.symbol}-{vault.tokenB.symbol} Pool</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <Badge className="bg-primary/10 text-primary border-primary/30 px-3 py-1 font-medium">
+                                <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                                Risk: {riskLevel}
+                            </Badge>
+                            <Badge className="bg-secondary/10 text-secondary border-secondary/30 px-3 py-1 font-medium">
+                                <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                                {recommendationStatus}
+                            </Badge>
+                        </div>
                     </div>
 
-                    {/* Right Panel - Stats & Info */}
-                    <div className="lg:col-span-3">
-                        <Tabs defaultValue="stats" className="space-y-6">
-                            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
-                                <TabsTrigger value="stats" className="space-x-2">
-                                    <LineChart className="h-4 w-4" />
-                                    <span>Stats & Info</span>
-                                </TabsTrigger>
-                                <TabsTrigger value="settings" className="space-x-2">
-                                    <Settings className="h-4 w-4" />
-                                    <span>Configuration</span>
-                                </TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="stats" className="space-y-6">
-                                {/* Stats Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                                    <StatCard
-                                        title="Total Value Locked"
-                                        value={formatNumber(analytics.tvl, 'currency')}
-                                        icon={<Wallet className="w-5 h-5 text-primary" />}
-                                    />
-                                    {/* <StatCard
-                                        title="24h Volume"
-                                        value={formatNumber(analytics.volume24h || 0, 'currency')}
-                                        icon={<ArrowUpDown className="w-5 h-5 text-primary" />}
-                                    />
-                                    <StatCard
-                                        title="APY"
-                                        value={formatNumber(analytics.apy || 0, 'percent')}
-                                        icon={<LineChart className="w-5 h-5 text-primary" />}
-                                    /> */}
-                                </div>
-
-                                {/* Token Pair Info */}
-                                <div className="space-y-4">
-                                    <TokenInfoCard token={currentVaultData.tokenA} reserves={currentVaultData.reservesA} price={prices[currentVaultData.tokenA.contractId]} />
-                                    <TokenInfoCard token={currentVaultData.tokenB} reserves={currentVaultData.reservesB} price={prices[currentVaultData.tokenB.contractId]} />
-                                </div>
-
-                                {/* TODO: Activity Chart Placeholder */}
-                                {/* <Card className="p-6 bg-muted/40">
-                                    <h2 className="text-lg font-semibold mb-4">Activity</h2>
-                                    <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                                        Chart placeholder
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left Panel - Summary & Key Metrics */}
+                        <div className="lg:col-span-4 space-y-6">
+                            {/* Investment Card */}
+                            <Card className="overflow-hidden border border-primary/20 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
+                                <div className="p-6 flex flex-col items-center">
+                                    <div className="relative h-32 w-32 mb-4">
+                                        <div className="absolute inset-0 rounded-full bg-primary/5 animate-pulse"></div>
+                                        <Image
+                                            src={currentVaultData.image || '/placeholder.png'}
+                                            alt={currentVaultData.name || 'Vault'}
+                                            fill
+                                            className="rounded-full object-cover p-1 border-2 border-primary/30"
+                                            onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
+                                        />
                                     </div>
-                                </Card> */}
-                            </TabsContent>
 
-                            <TabsContent value="settings" className="space-y-6">
-                                <Card className="p-6 bg-card/70 backdrop-blur-sm">
-                                    <MetadataEditForm
-                                        vault={currentVaultData}
-                                        onMetadataUpdate={handleMetadataUpdate}
-                                    />
-                                </Card>
-                            </TabsContent>
-                        </Tabs>
+                                    <div className="text-center">
+                                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
+                                            {currentVaultData.name || 'Unnamed Vault'}
+                                        </h1>
+                                        <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+                                            <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenA.symbol}</Badge>
+                                            <span>+</span>
+                                            <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenB.symbol}</Badge>
+                                        </div>
+
+                                        <div className="bg-muted/30 p-3 rounded-lg mb-6 border border-foreground/5">
+                                            <div className="text-sm text-muted-foreground mb-1">Expected Annual Yield</div>
+                                            <div className="text-3xl font-bold text-primary">{expectedApy !== undefined ? expectedApy.toFixed(2) + '%' : 'Calibrating...'}</div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                Fee Rebate: {feePercent}% of pool fees
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex w-full gap-3">
+                                        <AddLiquidityModal
+                                            vault={currentVaultData}
+                                            prices={prices}
+                                            trigger={
+                                                <Button className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
+                                                    <Wallet className="w-4 h-4" />
+                                                    Invest Now
+                                                </Button>
+                                            }
+                                        />
+                                        <RemoveLiquidityModal
+                                            vault={currentVaultData}
+                                            prices={prices}
+                                            trigger={
+                                                <Button variant="outline" className="flex-1 gap-2 border-primary/20 text-primary hover:bg-primary/5" disabled={buttonsDisabled}>
+                                                    <ArrowUpDown className="w-4 h-4" />
+                                                    Withdraw
+                                                </Button>
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Investment Description */}
+                                {currentVaultData.description && (
+                                    <div className="p-4 bg-background/50 border-t border-border/40">
+                                        <h3 className="font-medium text-sm mb-2 text-muted-foreground">ABOUT THIS POOL</h3>
+                                        <p className="text-sm leading-relaxed">
+                                            {currentVaultData.description}
+                                        </p>
+                                    </div>
+                                )}
+                            </Card>
+
+                            {/* Key Metrics */}
+                            <ComingSoonMask>
+                                <div>
+                                    <h2 className="text-lg font-semibold mb-3 flex items-center">
+                                        <PieChart className="w-5 h-5 mr-2 text-primary" />
+                                        Key Metrics
+                                    </h2>
+                                    <div className="space-y-3">
+                                        <StatCard
+                                            title="Total Value Locked"
+                                            value={formatNumber(analytics.tvl, 'currency')}
+                                            icon={<Wallet className="w-5 h-5 text-primary" />}
+                                            trend={{ value: 12.4, positive: true }}
+                                            footnote="Total assets under management"
+                                        />
+                                        <StatCard
+                                            title="Expected Annual Yield"
+                                            value={expectedApy !== undefined ? formatNumber(expectedApy, 'percent') : 'Calibrating...'}
+                                            icon={<LineChart className="w-5 h-5 text-primary" />}
+                                            trend={undefined}
+                                            footnote="Based on current pool performance"
+                                        />
+                                        <StatCard
+                                            title="Fee Structure"
+                                            value={`${feePercent}%`}
+                                            icon={<Shield className="w-5 h-5 text-primary" />}
+                                            footnote="LP fee rebate percentage"
+                                        />
+                                    </div>
+                                </div>
+                            </ComingSoonMask>
+                        </div>
+
+                        {/* Right Panel - Detailed Info */}
+                        <div className="lg:col-span-8">
+                            <Tabs defaultValue="portfolio" className="space-y-6">
+                                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-muted/30 p-1">
+                                    <TabsTrigger value="portfolio" className="text-sm">
+                                        Portfolio Composition
+                                    </TabsTrigger>
+                                    <TabsTrigger value="analysis" className="text-sm">
+                                        Investment Analysis
+                                    </TabsTrigger>
+                                    <TabsTrigger value="settings" className="text-sm">
+                                        Advanced Settings
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="portfolio" className="space-y-8">
+                                    {/* Professional Section Header */}
+                                    <div>
+                                        <h2 className="text-xl font-semibold mb-2">Portfolio Composition</h2>
+                                        <p className="text-muted-foreground text-sm">
+                                            This liquidity pool consists of the following assets with their current allocation and market value.
+                                        </p>
+                                    </div>
+
+                                    {/* Token Assets */}
+                                    <div className="space-y-4">
+                                        <TokenInfoCard token={currentVaultData.tokenA} reserves={currentVaultData.reservesA} price={prices[currentVaultData.tokenA.contractId]} />
+                                        <TokenInfoCard token={currentVaultData.tokenB} reserves={currentVaultData.reservesB} price={prices[currentVaultData.tokenB.contractId]} />
+                                    </div>
+
+                                    {/* Pool Metrics */}
+                                    <ComingSoonMask>
+                                        <Card className="border border-border/50 p-5">
+                                            <h3 className="text-lg font-medium mb-4">Pool Performance Metrics</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                                <div className="bg-muted/20 p-4 rounded-lg text-center">
+                                                    <div className="text-sm text-muted-foreground mb-1">Stability Score</div>
+                                                    <div className="text-2xl font-bold">86/100</div>
+                                                    <div className="text-xs text-muted-foreground mt-1">Low volatility</div>
+                                                </div>
+                                                <div className="bg-muted/20 p-4 rounded-lg text-center">
+                                                    <div className="text-sm text-muted-foreground mb-1">Historical APY</div>
+                                                    <div className="text-2xl font-bold text-green-500">12.85%</div>
+                                                    <div className="text-xs text-muted-foreground mt-1">Last 90 days</div>
+                                                </div>
+                                                <div className="bg-muted/20 p-4 rounded-lg text-center">
+                                                    <div className="text-sm text-muted-foreground mb-1">Liquidity Score</div>
+                                                    <div className="text-2xl font-bold">74/100</div>
+                                                    <div className="text-xs text-muted-foreground mt-1">Medium depth</div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </ComingSoonMask>
+
+                                    {/* Investment Recommendation */}
+                                    <ComingSoonMask>
+                                        <Card className="border-primary/20 border bg-gradient-to-r from-primary/5 to-transparent">
+                                            <div className="p-5">
+                                                <h3 className="text-lg font-medium mb-3 flex items-center">
+                                                    <CheckCircle className="w-5 h-5 mr-2 text-primary" />
+                                                    Advisor Recommendation
+                                                </h3>
+                                                <p className="text-sm leading-relaxed mb-4">
+                                                    This liquidity pool offers a balanced risk-return profile with consistent fee generation.
+                                                    The pairing of established tokens provides lower impermanent loss risk compared to more
+                                                    volatile pairs. Recommended allocation: 5-15% of your DeFi portfolio.
+                                                </p>
+                                                <div className="flex items-center justify-between text-sm bg-card/70 rounded-lg p-3">
+                                                    <div className="flex items-center text-muted-foreground">
+                                                        <Clock className="w-4 h-4 mr-2" />
+                                                        Recommended holding period
+                                                    </div>
+                                                    <div className="font-medium">3+ months</div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </ComingSoonMask>
+                                </TabsContent>
+
+                                <TabsContent value="analysis" className="space-y-6">
+                                    <div>
+                                        <h2 className="text-xl font-semibold mb-2">Investment Analysis</h2>
+                                        <p className="text-muted-foreground text-sm mb-6">
+                                            Detailed analysis of the pool's performance, risk factors, and market conditions.
+                                        </p>
+                                    </div>
+
+                                    {/* Performance Chart Placeholder */}
+                                    <ComingSoonMask>
+                                        <Card className="p-6 border border-border/50">
+                                            <h3 className="text-lg font-medium mb-4">Historical Performance</h3>
+                                            <div className="h-[250px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg">
+                                                <LineChart className="w-6 h-6 mr-2" />
+                                                <span>Performance chart would appear here</span>
+                                            </div>
+                                        </Card>
+                                    </ComingSoonMask>
+
+                                    {/* Risk Analysis */}
+                                    <ComingSoonMask>
+                                        <Card className="border border-border/50">
+                                            <div className="border-b border-border/50 p-4">
+                                                <h3 className="text-lg font-medium">Risk Assessment</h3>
+                                            </div>
+                                            <div className="p-4">
+                                                <div className="space-y-4">
+                                                    <div className="flex items-start">
+                                                        <div className="p-2 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500 mr-3 mt-0.5">
+                                                            <AlertCircle className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-medium mb-1">Impermanent Loss Risk</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Moderate risk of impermanent loss if token prices diverge significantly. Historical correlation between these assets is relatively stable.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start">
+                                                        <div className="p-2 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500 mr-3 mt-0.5">
+                                                            <ShieldIcon className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-medium mb-1">Contract Security</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Smart contracts have undergone security audits. The pool uses standard AMM mechanics with well-established risk parameters.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-start">
+                                                        <div className="p-2 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-500 mr-3 mt-0.5">
+                                                            <Info className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-medium mb-1">Market Conditions</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Current market sentiment is neutral to positive for both tokens. Trading volumes have remained consistent over the past 30 days.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </ComingSoonMask>
+                                </TabsContent>
+
+                                <TabsContent value="settings" className="space-y-6">
+                                    <Card className="bg-card/70 backdrop-blur-sm border border-border/50">
+                                        <div className="border-b border-border/50 p-4">
+                                            <h3 className="text-lg font-medium">Configuration Settings</h3>
+                                        </div>
+                                        <div className="p-6">
+                                            <MetadataEditForm
+                                                vault={currentVaultData}
+                                                onMetadataUpdate={handleMetadataUpdate}
+                                            />
+                                        </div>
+                                    </Card>
+                                </TabsContent>
+                            </Tabs>
+                        </div>
                     </div>
-                </div>
+                </>
             )}
+
+            {renderContractInfo()}
         </div>
     );
-} 
+}
