@@ -121,10 +121,8 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
   useEffect(() => {
     if (!baseSelectedFromToken) return; // Only run if a base token is selected
 
-    const isBaseSubnet = baseSelectedFromToken.contractId.includes('-subnet');
-    const baseId = isBaseSubnet
-      ? baseSelectedFromToken.contractId.substring(0, baseSelectedFromToken.contractId.lastIndexOf('-subnet'))
-      : baseSelectedFromToken.contractId;
+    const isBaseSubnet = baseSelectedFromToken.type === 'SUBNET';
+    const baseId = isBaseSubnet ? baseSelectedFromToken.base! : baseSelectedFromToken.contractId;
     const counterparts = tokenCounterparts.get(baseId);
 
     if (!counterparts) return; // Should not happen if baseSelected exists

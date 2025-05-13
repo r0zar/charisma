@@ -8,6 +8,7 @@ import { KraxelPriceData } from '@repo/tokens';
 
 // Copied type definitions from useSwap.ts
 interface Vault {
+    type: string;
     contractId: string;
     contractAddress: string;
     contractName: string;
@@ -90,18 +91,17 @@ export default function SwapDetails({
     const [showDetails, setShowDetails] = useState(false);
     const [showRouteDetails, setShowRouteDetails] = useState(true);
 
-    // Determine if this is a subnet shift operation by checking for SUB_LINK vault
-    const isSubnetShift = quote?.route.hops.some(hop =>
-        hop.vault.name === 'SUB_LINK' ||
-        hop.vault.contractName === 'SUB_LINK' ||
-        hop.vault.symbol === 'SL'
-    );
+    // Determine if this is a subnet shift operation by checking for SUBLINK vault type
+    const isSubnetShift = quote?.route.hops.some(hop => hop.vault.type === 'SUBLINK');
+
+    // Detect if both from and to tokens are subnet tokens using type property
+    const isFromSubnet = quote?.route.path[0]?.type === 'SUBNET';
+    const isToSubnet = quote?.route.path[quote.route.path.length - 1]?.type === 'SUBNET';
+    const isSubnetToSubnet = isFromSubnet && isToSubnet;
 
     // Get the direction of the shift (to or from subnet)
     const getShiftDirection = () => {
         if (!isSubnetShift || !quote) return null;
-
-        // Check if the destination token is a subnet token
         const destinationToken = quote.route.path[quote.route.path.length - 1];
         return destinationToken.contractId.includes('-subnet') ? 'to-subnet' : 'from-subnet';
     };
@@ -109,9 +109,14 @@ export default function SwapDetails({
     const shiftDirection = getShiftDirection();
 
     // For clearer UI terminology
-    const operationType = isSubnetShift
-        ? (shiftDirection === 'to-subnet' ? 'Deposit' : 'Swap')
-        : 'Swap';
+    let operationType: string;
+    if (isSubnetToSubnet) {
+        operationType = 'Subnet Swap';
+    } else if (isSubnetShift) {
+        operationType = shiftDirection === 'to-subnet' ? 'Deposit' : 'Withdraw';
+    } else {
+        operationType = 'Swap';
+    }
 
     return (
         <div className="mb-5 border border-border/40 rounded-xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
@@ -131,7 +136,11 @@ export default function SwapDetails({
                     <div className="flex items-center">
                         {/* Change title based on whether it's a swap or shift */}
                         <span className="font-medium text-foreground">
-                            {isSubnetShift ? `Subnet ${operationType} details` : 'Swap details'}
+                            {isSubnetToSubnet
+                                ? 'Subnet Swap details'
+                                : isSubnetShift
+                                    ? `Subnet ${operationType} details`
+                                    : 'Swap details'}
                         </span>
                         {securityLevel && (
                             <span className={`ml-2 inline-flex px-1.5 py-0.5 text-xs rounded-full items-center ${isSubnetShift ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400' :
@@ -143,10 +152,12 @@ export default function SwapDetails({
                                     securityLevel === 'high' ? 'bg-green-500' :
                                         securityLevel === 'medium' ? 'bg-blue-500' : 'bg-purple-500'
                                     }`}></span>
-                                {isSubnetShift ?
-                                    (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from subnet') :
-                                    (securityLevel === 'high' ? 'Direct route' :
-                                        securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing')
+                                {isSubnetToSubnet
+                                    ? 'Subnet to Subnet'
+                                    : isSubnetShift
+                                        ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from subnet')
+                                        : (securityLevel === 'high' ? 'Direct route' :
+                                            securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing')
                                 }
                             </span>
                         )}
@@ -170,7 +181,11 @@ export default function SwapDetails({
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                                 </svg>
-                                {isSubnetShift ? `Minimum ${operationType.toLowerCase()}ed` : 'Minimum received'}
+                                {isSubnetToSubnet
+                                    ? 'Minimum swapped'
+                                    : isSubnetShift
+                                        ? `Minimum ${operationType.toLowerCase()}ed`
+                                        : 'Minimum received'}
                             </span>
                             <span className="font-medium text-foreground flex items-center">
                                 {formatTokenAmount(Number(quote.minimumReceived), selectedToToken.decimals || 0)} {selectedToToken.symbol}
@@ -189,7 +204,11 @@ export default function SwapDetails({
                                     <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polyline points="9 18 15 12 9 6"></polyline>
                                     </svg>
-                                    {isSubnetShift ? `${operationType} route` : 'Route details'} ({quote.route.path.length - 1} {quote.route.path.length - 1 === 1 ? 'hop' : 'hops'})
+                                    {isSubnetToSubnet
+                                        ? 'Subnet swap route'
+                                        : isSubnetShift
+                                            ? `${operationType} route`
+                                            : 'Route details'} ({quote.route.path.length - 1} {quote.route.path.length - 1 === 1 ? 'hop' : 'hops'})
                                 </span>
                                 <div className="flex items-center gap-1">
                                     {/* Replace price impact with mini-path view */}
@@ -256,10 +275,7 @@ export default function SwapDetails({
                                         const priceImpact = priceImpacts[idx];
 
                                         // Check if this hop is a subnet shift
-                                        const isSubnetShiftHop =
-                                            vaultName === 'SUB_LINK' ||
-                                            hop.vault.contractName === 'SUB_LINK' ||
-                                            hop.vault.symbol === 'SL';
+                                        const isSubnetShiftHop = hop.vault.type === 'SUBLINK';
 
                                         return (
                                             <div key={`hop-${idx}`} className="flex flex-col">
@@ -280,10 +296,7 @@ export default function SwapDetails({
                                                         </div>
                                                         <div className="ml-2 sm:ml-2.5">
                                                             <div className="font-medium text-sm sm:text-base">
-                                                                {isSubnetShiftHop ?
-                                                                    (shiftDirection === 'to-subnet' ? 'Subnet Deposit' : 'Subnet Withdrawal') :
-                                                                    vaultName
-                                                                }
+                                                                {vaultName}
                                                             </div>
                                                             <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-x-2">
                                                                 {isSubnetShiftHop ? (
@@ -386,13 +399,17 @@ export default function SwapDetails({
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center">
-                                                    <span className={`text-xs ${isSubnetShift ?
-                                                        'text-purple-600 dark:text-purple-400' :
-                                                        'text-green-600 dark:text-green-400'
+                                                    <span className={`text-xs ${isSubnetToSubnet
+                                                        ? 'text-purple-600 dark:text-purple-400'
+                                                        : isSubnetShift
+                                                            ? 'text-purple-600 dark:text-purple-400'
+                                                            : 'text-green-600 dark:text-green-400'
                                                         }`}>
-                                                        {isSubnetShift ?
-                                                            (shiftDirection === 'to-subnet' ? 'Subnet Destination' : 'Mainnet Destination') :
-                                                            'Destination'
+                                                        {isSubnetToSubnet
+                                                            ? 'Subnet Destination'
+                                                            : isSubnetShift
+                                                                ? (shiftDirection === 'to-subnet' ? 'Subnet Destination' : 'Mainnet Destination')
+                                                                : 'Destination'
                                                         }
                                                     </span>
                                                     {tokenPrices && tokenPrices[quote.route.path[quote.route.path.length - 1].contractId] && (
@@ -416,7 +433,11 @@ export default function SwapDetails({
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                                 </svg>
-                                {isSubnetShift ? `${operationType} price impact` : 'Total price impact'}
+                                {isSubnetToSubnet
+                                    ? 'Subnet swap price impact'
+                                    : isSubnetShift
+                                        ? `${operationType} price impact`
+                                        : 'Total price impact'}
                             </span>
                             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 justify-end w-full sm:w-auto">
                                 <div className="text-xs flex items-center flex-wrap gap-x-1">
@@ -445,14 +466,22 @@ export default function SwapDetails({
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                                 </svg>
-                                {isSubnetShift ? 'Subnet security' : 'Vault security'}
+                                {isSubnetToSubnet
+                                    ? 'Subnet security'
+                                    : isSubnetShift
+                                        ? 'Subnet security'
+                                        : 'Vault security'}
                             </span>
                             <span className="font-medium flex items-center bg-green-500/10 px-2 py-0.5 text-xs rounded text-green-700 dark:text-green-400 whitespace-nowrap">
                                 <svg className="h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                 </svg>
-                                {isSubnetShift ? 'Isolated contracts' : 'Isolated contracts'}
+                                {isSubnetToSubnet
+                                    ? 'Isolated contracts'
+                                    : isSubnetShift
+                                        ? 'Isolated contracts'
+                                        : 'Isolated contracts'}
                             </span>
                         </div>
                     )}
