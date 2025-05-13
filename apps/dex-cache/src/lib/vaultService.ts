@@ -53,6 +53,7 @@ type CachedVault = Vault & { reservesLastUpdatedAt?: number };
 export const getManagedVaultIds = async (): Promise<string[]> => {
     try {
         const ids = await kv.get<string[]>(VAULT_LIST_KEY);
+
         return Array.isArray(ids) ? ids : [];
     } catch (error) {
         console.error(`Error fetching vault list from KV (${VAULT_LIST_KEY}):`, error);
@@ -546,3 +547,31 @@ export const getAllVaults = async (): Promise<{ pools: Vault[], sublinks: Vault[
         return { pools: [], sublinks: [] };
     }
 };
+
+// Utility to remove vaults from the managed list and delete their cache
+export const removeVaults = async (vaultIds: string[]): Promise<void> => {
+    if (!vaultIds.length) return;
+    try {
+        // Remove from managed list
+        const current = await getManagedVaultIds();
+        const updated = current.filter(id => !vaultIds.includes(id));
+        await kv.set(VAULT_LIST_KEY, updated);
+        // Delete individual cache entries
+        for (const id of vaultIds) {
+            const cacheKey = getCacheKey(id);
+            await kv.del(cacheKey);
+            console.log(`Deleted vault and cache for ${id}`);
+        }
+    } catch (error) {
+        console.error('Error removing vaults:', error);
+    }
+};
+
+// Example usage (uncomment to run once, then re-comment):
+// removeVaults([
+//     'SP3E80609Y2M4D5KSPX8NQ36Q06H336Z3QX2QMF19.stx-btc-vault',
+//     'SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.chabtc-lp-token',
+//     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-dmt-vault',
+//     'SP1NC2YPD2CEH0PC34ZQ973KGV6EJH0WY8K69G1KE.usda-stx-swap-vault',
+//     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10',
+// ]);

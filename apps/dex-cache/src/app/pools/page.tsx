@@ -6,6 +6,8 @@ import { Coins } from 'lucide-react';
 import { getAllVaults, Vault } from '@/lib/vaultService';
 import PoolList from '@/components/PoolList';
 
+export const dynamic = "force-dynamic";
+
 // Define metadata for better SEO
 export const metadata: Metadata = {
   title: 'Explore Pools | Charisma Invest',

@@ -204,6 +204,8 @@ export default function VaultList({ vaults }: Props) {
                                                     {v.image && (
                                                         <div className="flex-shrink-0 h-8 w-8">
                                                             <Image
+                                                                width={32}
+                                                                height={32}
                                                                 src={v.image}
                                                                 alt={`${v.name} logo`}
                                                                 className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
