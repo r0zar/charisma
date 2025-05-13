@@ -42,7 +42,7 @@ export default function TokenPurchaseForm() {
             try {
                 const balance = await fetchTokenBalance(
                     selectedToToken.contractId,
-                    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS"
+                    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS" // the reserves wallet
                 );
                 setReserveBalance(BigInt(balance));
             } catch (e) {

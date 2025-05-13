@@ -10,7 +10,7 @@ import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Ad
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const routerName = process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop';
 Dexterity.configureRouter(routerAddress, routerName, {
-    maxHops: 4,
+    maxHops: 3,
     defaultSlippage: 0.01,
     debug: process.env.NODE_ENV === 'development',
 });
