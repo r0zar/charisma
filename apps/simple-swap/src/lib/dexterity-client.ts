@@ -150,7 +150,7 @@ export class Dexterity {
     static edges: Map<string, Vault> = new Map();
     static nodes: Map<string, GraphNode> = new Map();
     static config = {
-        maxHops: 5,
+        maxHops: 4,
         debug: false,
         defaultSlippage: 0.01, // 1% default slippage
         routerAddress: undefined as string | undefined,
