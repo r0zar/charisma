@@ -13,7 +13,7 @@ Dexterity.configureRouter(
     routerAddress,
     routerName,
     {
-        maxHops: 3,
+        maxHops: 4,
         defaultSlippage: 0.01,
         debug: process.env.NODE_ENV === 'development',
     });

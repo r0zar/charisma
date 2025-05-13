@@ -72,7 +72,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
     Dexterity.configureRouter(
       config.routerAddress,
       config.routerName,
-      { maxHops: 3, defaultSlippage: 0.01 },
+      { maxHops: 4, defaultSlippage: 0.01 },
       options.stxAddress
     );
   }
