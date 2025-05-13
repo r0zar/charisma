@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/vaultService';
+import Image from 'next/image';
 
 // Utility to truncate contract id for display
 const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
@@ -202,7 +203,7 @@ export default function VaultList({ vaults }: Props) {
                                                 <Link href={`/vaults/${v.contractId}`} className="flex items-center gap-2 group">
                                                     {v.image && (
                                                         <div className="flex-shrink-0 h-8 w-8">
-                                                            <img
+                                                            <Image
                                                                 src={v.image}
                                                                 alt={`${v.name} logo`}
                                                                 className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
