@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Vault } from '@/lib/vaultService';
-import { ArrowRightLeft, TrendingDown, TrendingUp, ExternalLinkIcon, Loader2 } from 'lucide-react';
+import { ArrowRightLeft, TrendingDown, TrendingUp, ExternalLinkIcon, Loader2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/app-context';
 import { request } from '@stacks/connect';
-import { uintCV, bufferCV, optionalCVOf, Pc, PostCondition } from '@stacks/transactions';
+import { uintCV, bufferCV, optionalCVOf, Pc, PostCondition, cvToValue } from '@stacks/transactions';
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";
 
 interface SublinkBridgeCardProps {
@@ -27,8 +29,13 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
     const [amountToBridgeFrom, setAmountToBridgeFrom] = useState<string>('');
     const [isProcessingDeposit, setIsProcessingDeposit] = useState(false);
     const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+    const [mainnetBalance, setMainnetBalance] = useState<number | null>(null);
+    const [subnetBalance, setSubnetBalance] = useState<number | null>(null);
+    const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+    const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
 
     const explorerBaseUrl = "https://explorer.stacks.co/txid/";
+    const tokenDecimals = sublink.tokenA.decimals || 6;
 
     // Helper function to parse token contract ID
     const parseTokenContractId = (contractId: string) => {
@@ -74,6 +81,99 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
         return `${address}.charisma-token-subnet-v1`;
     };
 
+    // Function to fetch token balances (mainnet and subnet)
+    const fetchTokenBalances = async (refreshing = false) => {
+        if (!walletState.connected || !walletState.address) {
+            setMainnetBalance(null);
+            setSubnetBalance(null);
+            return;
+        }
+
+        if (refreshing) {
+            setIsRefreshingBalances(true);
+        } else {
+            setIsLoadingBalances(true);
+        }
+
+        try {
+            // Parse token info
+            const tokenInfo = parseTokenContractId(sublink.tokenA.contractId);
+            const subnetContractId = getSubnetTokenContractId(sublink.contractId);
+
+            // Fetch mainnet token balance
+            let mainnetTokenBalance = 0;
+            if (tokenInfo.isStx) {
+                // For STX tokens
+                const stxBalanceResponse = await fetch(`https://stacks-node-api.mainnet.stacks.co/extended/v1/address/${walletState.address}/balances`);
+                const stxBalanceData = await stxBalanceResponse.json();
+                mainnetTokenBalance = parseInt(stxBalanceData.stx.balance);
+            } else {
+                // For fungible tokens (SIP-010)
+                const contractAddress = tokenInfo.address;
+                const contractName = tokenInfo.contractName;
+
+                try {
+                    const balanceResult = await callReadOnlyFunction(
+                        contractAddress,
+                        contractName,
+                        'get-balance',
+                        [principalCV(walletState.address)]
+                    );
+
+                    if (balanceResult && typeof balanceResult === 'object' && 'value' in balanceResult) {
+                        mainnetTokenBalance = parseInt(balanceResult.value.toString());
+                    }
+                } catch (error) {
+                    console.error("Error fetching mainnet token balance:", error);
+                    // Try fallback method if available
+                }
+            }
+
+            // Fetch subnet token balance - uses the subnet contract's get-balance function
+            let subnetTokenBalance = 0;
+            try {
+                const [subnetContractAddress, subnetContractName] = subnetContractId.split('.');
+
+                const subnetBalanceResult = await callReadOnlyFunction(
+                    subnetContractAddress,
+                    subnetContractName,
+                    'get-balance',
+                    [principalCV(walletState.address)]
+                );
+
+                if (subnetBalanceResult && typeof subnetBalanceResult === 'object' && 'value' in subnetBalanceResult) {
+                    subnetTokenBalance = parseInt(subnetBalanceResult.value.toString());
+                }
+            } catch (error) {
+                console.error("Error fetching subnet token balance:", error);
+            }
+
+            // Set the balances in human-readable format
+            setMainnetBalance(mainnetTokenBalance / Math.pow(10, tokenDecimals));
+            setSubnetBalance(subnetTokenBalance / Math.pow(10, tokenDecimals));
+        } catch (error) {
+            console.error("Error fetching token balances:", error);
+            toast.error("Failed to fetch token balances");
+        } finally {
+            setIsLoadingBalances(false);
+            setIsRefreshingBalances(false);
+        }
+    };
+
+    // Format balance display
+    const formatBalance = (balance: number | null) => {
+        if (balance === null) return '–';
+        if (balance === 0) return '0';
+        if (balance < 0.001) return '< 0.001';
+        return balance.toLocaleString(undefined, { maximumFractionDigits: 6 });
+    };
+
+    // Fetch balances when component mounts or wallet changes
+    useEffect(() => {
+        fetchTokenBalances();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [walletState.connected, walletState.address, sublink.contractId]);
+
     const handleBridgeToSubnetClick = async () => {
         if (!walletState.connected || !walletState.address) {
             toast.error("Please connect your wallet first");
@@ -86,10 +186,14 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
             return;
         }
 
+        // Check if user has sufficient balance
+        if (mainnetBalance !== null && inputAmount > mainnetBalance) {
+            toast.error(`Insufficient balance. You have ${formatBalance(mainnetBalance)} ${sublink.tokenA.symbol}`);
+            return;
+        }
+
         setIsProcessingDeposit(true);
         try {
-            // Get token decimals (assume 6 if not specified)
-            const tokenDecimals = sublink.tokenA.decimals || 6;
             // Convert to micro units (multiply by 10^decimals)
             const amount = Math.floor(inputAmount * Math.pow(10, tokenDecimals));
 
@@ -137,6 +241,9 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                     description: `TxID: ${result.txid}`
                 });
                 setAmountToBridgeTo('');
+
+                // Wait briefly then refresh balances
+                setTimeout(() => fetchTokenBalances(true), 1500);
             } else {
                 throw new Error("Transaction failed or was rejected.");
             }
@@ -162,10 +269,14 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
             return;
         }
 
+        // Check if user has sufficient subnet balance
+        if (subnetBalance !== null && inputAmount > subnetBalance) {
+            toast.error(`Insufficient subnet balance. You have ${formatBalance(subnetBalance)} ${sublink.tokenB.symbol}`);
+            return;
+        }
+
         setIsProcessingWithdraw(true);
         try {
-            // Get token decimals (assume 6 if not specified)
-            const tokenDecimals = sublink.tokenA.decimals || 6;
             // Convert to micro units (multiply by 10^decimals)
             const amount = Math.floor(inputAmount * Math.pow(10, tokenDecimals));
 
@@ -222,6 +333,9 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                     description: `TxID: ${result.txid}`
                 });
                 setAmountToBridgeFrom('');
+
+                // Wait briefly then refresh balances
+                setTimeout(() => fetchTokenBalances(true), 1500);
             } else {
                 throw new Error("Transaction failed or was rejected.");
             }
@@ -237,15 +351,34 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
     return (
         <Card className="w-full">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center">
                     <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" />
                     Bridge Assets
                 </CardTitle>
+                {walletState.connected && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => fetchTokenBalances(true)}
+                        disabled={isRefreshingBalances || isLoadingBalances}
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isRefreshingBalances ? 'animate-spin' : ''}`} />
+                        <span className="sr-only">Refresh balances</span>
+                    </Button>
+                )}
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor={`bridge-to-${sublink.contractId}`}>Bridge {sublink.tokenA.symbol} to Subnet</Label>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor={`bridge-to-${sublink.contractId}`}>Bridge {sublink.tokenA.symbol} to Subnet</Label>
+                        {walletState.connected && (
+                            <div className="text-xs text-muted-foreground">
+                                Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(mainnetBalance)} ${sublink.tokenA.symbol}`}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex space-x-2">
                         <Input
                             id={`bridge-to-${sublink.contractId}`}
@@ -274,7 +407,14 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor={`bridge-from-${sublink.contractId}`}>Bridge {sublink.tokenB.symbol} from Subnet</Label>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor={`bridge-from-${sublink.contractId}`}>Bridge {sublink.tokenB.symbol} from Subnet</Label>
+                        {walletState.connected && (
+                            <div className="text-xs text-muted-foreground">
+                                Subnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(subnetBalance)} ${sublink.tokenB.symbol}`}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex space-x-2">
                         <Input
                             id={`bridge-from-${sublink.contractId}`}
