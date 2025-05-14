@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Info, ShieldCheck, TrendingUp, DollarSign, Layers, Wallet, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Info, ShieldCheck, TrendingUp, DollarSign, Layers, Wallet, RefreshCw, Flame, ArrowRightLeft, ExternalLinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,19 @@ import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSubnetTokenBalance } from '@/app/actions';
+
+// Add a simpler CSS animation for the flame
+const flameStyle = `
+  @keyframes simplePulse {
+    0% { opacity: 0.7; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { opacity: 0; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { opacity: 0; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  
+  .flame-pulse {
+    animation: simplePulse 2s infinite cubic-bezier(0.66, 0, 0, 1);
+  }
+`;
 
 // Props for SublinkDetailClient - must match what page.tsx provides
 interface SublinkDetailClientProps {
@@ -297,35 +310,90 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                     {/* Sublink Card */}
                     <Card className="overflow-hidden border border-primary/10 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
                         <div className="p-6 flex flex-col items-center">
-                            <div className="relative h-24 w-24 mb-4">
-                                {sublink.image ? (
-                                    <Image
-                                        src={sublink.image}
-                                        alt={`${sublink.name} logo`}
-                                        fill
-                                        className="rounded-lg object-cover p-0 border-2 border-foreground/5"
-                                    />
-                                ) : (
-                                    <div className="w-24 h-24 flex items-center justify-center bg-muted rounded-lg border border-border/50">
-                                        <Layers className="w-12 h-12 text-muted-foreground" />
+                            <div className="mb-4 flex items-center justify-center gap-3">
+                                {/* Original Token */}
+                                <div className="flex flex-col items-center">
+                                    <div className="relative w-10 h-10 z-10">
+                                        {sublink.tokenA.image ? (
+                                            <Image
+                                                src={sublink.tokenA.image}
+                                                alt={`${sublink.tokenA.name}`}
+                                                fill
+                                                className="rounded-full object-cover border border-border/50"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-full border border-border/50">
+                                                <Layers className="w-5 h-5 text-muted-foreground" />
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                    <span className="text-xs text-muted-foreground mt-1">{sublink.tokenA.symbol}</span>
+                                </div>
 
-                            <div className="text-center">
-                                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
-                                    {sublink.name}
-                                </h1>
-                                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
-                                    <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{sublink.tokenA.symbol}</Badge>
-                                    <span>↔</span>
-                                    <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{sublink.tokenB.symbol}</Badge>
+                                {/* Arrow */}
+                                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 z-10" />
+
+                                {/* Bridge/Vault */}
+                                <div className="flex flex-col items-center">
+                                    <div className="relative w-16 h-16 z-10">
+                                        {sublink.image ? (
+                                            <Image
+                                                src={sublink.image}
+                                                alt={`${sublink.name} logo`}
+                                                fill
+                                                className="rounded-lg object-cover border-2 border-foreground/5"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-lg border border-primary/30">
+                                                <ArrowRightLeft className="w-6 h-6 text-primary" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <span className="text-xs text-primary font-medium mt-1">Bridge</span>
+                                </div>
+
+                                {/* Arrow */}
+                                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 z-10" />
+
+                                {/* Subnet Token with Flame */}
+                                <div className="flex flex-col items-center">
+                                    <div className="relative w-10 h-10 z-10">
+                                        {sublink.tokenA.image ? (
+                                            <Image
+                                                src={sublink.tokenA.image}
+                                                alt={`${sublink.tokenA.name} (subnet)`}
+                                                fill
+                                                className="rounded-full object-cover border border-border/50"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-full border border-border/50">
+                                                <Layers className="w-5 h-5 text-muted-foreground" />
+                                            </div>
+                                        )}
+
+                                        {/* Style tag for animations */}
+                                        <style jsx>{flameStyle}</style>
+
+                                        {/* Layered flame badge - static base with animation */}
+                                        <div className="relative">
+                                            {/* Base layer - non-animated flame */}
+                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 shadow-md z-20">
+                                                <Flame className="w-3 h-3 text-white" />
+                                            </div>
+
+                                            {/* Animated layer - pulsing ring */}
+                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 z-10 flame-ping">
+                                                <Flame className="w-3 h-3 text-white opacity-0" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground mt-1">Subnet</span>
                                 </div>
                             </div>
 
                             <div className="w-full space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-medium text-muted-foreground">Total Value Locked (TVL)</h3>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Subnet Stats</h3>
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -357,7 +425,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                             </div>
 
                             {sublink.description && (
-                                <div className="w-full mt-4 p-4 bg-muted/20 rounded-lg text-sm border border-border/30">
+                                <div className="w-full mt-4 p-4 bg-muted/90 rounded-lg text-sm border border-border/30">
                                     <h3 className="font-medium text-xs mb-2 text-muted-foreground uppercase">About this Sublink</h3>
                                     <p className="leading-relaxed">
                                         {sublink.description}
@@ -383,16 +451,16 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                         <TabsContent value="bridge" className="space-y-6">
                             {/* Add informational text here */}
                             <div className="p-4 bg-muted/30 border border-border/50 rounded-lg text-sm text-muted-foreground space-y-2">
-                                <h4 className="font-medium text-foreground">Using the Sublink Bridge</h4>
+                                <h4 className="font-medium text-foreground">Using the Subnet Bridge</h4>
                                 <p>
-                                    This interface allows you to transfer assets between the Stacks mainnet and the connected subnet.
+                                    This interface allows you to transfer {sublink.tokenA.symbol} assets between the Stacks mainnet and the subnet environment.
                                 </p>
                                 <ul className="list-disc pl-5 space-y-1 text-xs">
                                     <li>
-                                        <strong>Enter Subnet:</strong> Moves your {sublink.tokenA.symbol} from the Stacks mainnet to the subnet, where they will be represented as {sublink.tokenB.symbol}.
+                                        <strong>Enter Subnet:</strong> Moves your {sublink.tokenA.symbol} from the Stacks mainnet to the subnet, where they will be represented as a wrapped version.
                                     </li>
                                     <li>
-                                        <strong>Exit Subnet:</strong> Converts your {sublink.tokenB.symbol} on the subnet back to {sublink.tokenA.symbol} on the Stacks mainnet.
+                                        <strong>Exit Subnet:</strong> Returns your {sublink.tokenA.symbol} from the subnet back to the Stacks mainnet.
                                     </li>
                                     <li>Ensure you have sufficient STX for transaction fees on the Stacks mainnet.</li>
                                     <li>Transaction times may vary depending on network congestion.</li>
@@ -400,91 +468,200 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                             </div>
 
                             {/* Bridge Card */}
-                            <SublinkBridgeCard sublink={sublink} />
+                            <SublinkBridgeCard sublink={sublink} prices={prices} />
                         </TabsContent>
 
                         <TabsContent value="details" className="space-y-6">
-                            <Card className="border border-border/50">
-                                <CardHeader>
+                            <Card className="border border-border/50 overflow-hidden">
+                                <CardHeader className="bg-muted/30 border-b border-border/30">
                                     <CardTitle className="text-lg flex items-center">
                                         <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
                                         Token Details
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="bg-muted/20 p-4 rounded-lg">
-                                        <h3 className="font-medium mb-3">Token A</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Name:</span>
-                                                <span className="font-medium">{sublink.tokenA.name}</span>
+                                <CardContent className="p-0">
+                                    {/* Mainnet Token Details */}
+                                    <div className="p-5 border-b border-border/30">
+                                        <div className="flex items-start gap-4">
+                                            <div className="relative flex-shrink-0 w-12 h-12">
+                                                {sublink.tokenA.image ? (
+                                                    <Image
+                                                        src={sublink.tokenA.image}
+                                                        alt={`${sublink.tokenA.name}`}
+                                                        fill
+                                                        className="rounded-full object-cover border border-border/50"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 flex items-center justify-center bg-muted rounded-full border border-border/50">
+                                                        <Layers className="w-6 h-6 text-muted-foreground" />
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Symbol:</span>
-                                                <span className="font-medium">{sublink.tokenA.symbol}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">
-                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.tokenA.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                                                        {sublink.tokenA.contractId}
-                                                    </Link>
-                                                </span>
+                                            <div className="flex-grow">
+                                                <h3 className="font-medium text-base mb-0.5 flex items-center">
+                                                    Mainnet Token
+                                                    <Badge variant="outline" className="ml-2 text-xs py-0">
+                                                        {sublink.tokenA.symbol}
+                                                    </Badge>
+                                                </h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-0.5">Token Name</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenA.name}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-0.5">Decimals</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenA.decimals}</p>
+                                                    </div>
+                                                    <div className="md:col-span-2">
+                                                        <p className="text-xs text-muted-foreground mb-0.5">Contract ID</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-mono bg-muted/70 p-1.5 rounded text-xs block overflow-hidden text-ellipsis">
+                                                                {sublink.tokenA.contractId}
+                                                            </span>
+                                                            <Link href={`https://explorer.stacks.co/txid/${sublink.tokenA.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                                    <ExternalLinkIcon className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-muted/20 p-4 rounded-lg">
-                                        <h3 className="font-medium mb-3">Token B</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Name:</span>
-                                                <span className="font-medium">{sublink.tokenB.name}</span>
+                                    {/* Subnet Token Details */}
+                                    <div className="p-5 border-b border-border/30">
+                                        <div className="flex items-start gap-4">
+                                            <div className="relative flex-shrink-0 w-12 h-12">
+                                                {sublink.tokenA.image ? (
+                                                    <div className="relative w-12 h-12">
+                                                        <Image
+                                                            src={sublink.tokenA.image}
+                                                            alt={`${sublink.tokenA.name} (subnet)`}
+                                                            fill
+                                                            className="rounded-full object-cover border border-border/50"
+                                                        />
+                                                        {/* Layered flame badge - static base with animation */}
+                                                        <div className="relative">
+                                                            {/* Base layer - non-animated flame */}
+                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 shadow-md z-20">
+                                                                <Flame className="w-4 h-4 text-white" />
+                                                            </div>
+
+                                                            {/* Animated layer - pulsing ring */}
+                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 z-10 flame-ping">
+                                                                <Flame className="w-4 h-4 text-white opacity-0" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative w-12 h-12">
+                                                        <div className="w-12 h-12 flex items-center justify-center bg-muted rounded-full border border-border/50">
+                                                            <Layers className="w-6 h-6 text-muted-foreground" />
+                                                        </div>
+                                                        {/* Layered flame badge - static base with animation */}
+                                                        <div className="relative">
+                                                            {/* Base layer - non-animated flame */}
+                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 shadow-md z-20">
+                                                                <Flame className="w-4 h-4 text-white" />
+                                                            </div>
+
+                                                            {/* Animated layer - pulsing ring */}
+                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 z-10 flame-ping">
+                                                                <Flame className="w-4 h-4 text-white opacity-0" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Symbol:</span>
-                                                <span className="font-medium">{sublink.tokenB.symbol}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">
-                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.tokenB.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                                                        {sublink.tokenB.contractId}
-                                                    </Link>
-                                                </span>
+                                            <div className="flex-grow">
+                                                <h3 className="font-medium text-base mb-0.5 flex items-center">
+                                                    Subnet Token
+                                                    <Badge variant="outline" className="ml-2 text-xs py-0">
+                                                        {sublink.tokenB.symbol}
+                                                    </Badge>
+                                                </h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-0.5">Token Name</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenB.name}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-0.5">Decimals</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenB.decimals}</p>
+                                                    </div>
+                                                    <div className="md:col-span-2">
+                                                        <p className="text-xs text-muted-foreground mb-0.5">Contract ID</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-mono bg-muted/70 p-1.5 rounded text-xs block overflow-hidden text-ellipsis">
+                                                                {sublink.tokenB.contractId}
+                                                            </span>
+                                                            <Link href={`https://explorer.stacks.co/txid/${sublink.tokenB.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                                    <ExternalLinkIcon className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-muted/20 p-4 rounded-lg">
-                                        <h3 className="font-medium mb-3">Sublink Information</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">
-                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                    {/* Sublink Information */}
+                                    <div className="p-5">
+                                        <h3 className="font-medium text-base mb-3">Subnet Bridge Information</h3>
+                                        <div className="space-y-3 text-sm">
+                                            <div className="flex flex-col space-y-1 p-3 bg-muted/30 rounded-md">
+                                                <span className="text-xs text-muted-foreground">Bridge Contract ID</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs overflow-hidden text-ellipsis">
                                                         {sublink.contractId}
+                                                    </span>
+                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                                            <ExternalLinkIcon className="h-3 w-3" />
+                                                        </Button>
                                                     </Link>
-                                                </span>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Subnet Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">
-                                                    <Link href={`https://explorer.stacks.co/txid/${getSubnetTokenContractId(sublink.contractId, sublink)}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+
+                                            <div className="flex flex-col space-y-1 p-3 bg-muted/30 rounded-md">
+                                                <span className="text-xs text-muted-foreground">Subnet Contract ID</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs overflow-hidden text-ellipsis">
                                                         {getSubnetTokenContractId(sublink.contractId, sublink)}
+                                                    </span>
+                                                    <Link href={`https://explorer.stacks.co/txid/${getSubnetTokenContractId(sublink.contractId, sublink)}`} target="_blank" rel="noopener noreferrer">
+                                                        <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                                            <ExternalLinkIcon className="h-3 w-3" />
+                                                        </Button>
                                                     </Link>
-                                                </span>
+                                                </div>
                                             </div>
+
                                             {sublink.externalPoolId && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">External Pool ID:</span>
+                                                <div className="flex flex-col space-y-1 p-3 bg-muted/30 rounded-md">
+                                                    <span className="text-xs text-muted-foreground">External Pool ID</span>
                                                     <span className="font-mono text-xs break-all">{sublink.externalPoolId}</span>
                                                 </div>
                                             )}
+
                                             {sublink.engineContractId && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">Engine Contract ID:</span>
-                                                    <span className="font-mono text-xs break-all">{sublink.engineContractId}</span>
+                                                <div className="flex flex-col space-y-1 p-3 bg-muted/30 rounded-md">
+                                                    <span className="text-xs text-muted-foreground">Engine Contract ID</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-mono text-xs overflow-hidden text-ellipsis">
+                                                            {sublink.engineContractId}
+                                                        </span>
+                                                        <Link href={`https://explorer.stacks.co/txid/${sublink.engineContractId}`} target="_blank" rel="noopener noreferrer">
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                                                <ExternalLinkIcon className="h-3 w-3" />
+                                                            </Button>
+                                                        </Link>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

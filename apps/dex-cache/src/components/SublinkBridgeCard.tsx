@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Vault } from '@/lib/vaultService';
-import { ArrowRightLeft, TrendingDown, TrendingUp, ExternalLinkIcon, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowRightLeft, TrendingDown, TrendingUp, ExternalLinkIcon, Loader2, RefreshCw, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/app-context';
 import { request } from '@stacks/connect';
@@ -14,17 +14,19 @@ import { uintCV, bufferCV, optionalCVOf, Pc, PostCondition, cvToValue } from '@s
 import { callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";
+import { KraxelPriceData } from '@repo/tokens';
 
 // Define props for SublinkBridgeCard
 interface SublinkBridgeCardProps {
     sublink: Vault;
+    prices?: KraxelPriceData;
 }
 
 // Define constants for the operation codes
 const OP_DEPOSIT = 0x05; // Opcode for deposit (bridge to subnet)
 const OP_WITHDRAW = 0x06; // Opcode for withdraw (bridge from subnet)
 
-export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
+export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardProps) {
     const { walletState } = useApp();
     const [amountToBridgeTo, setAmountToBridgeTo] = useState<string>('');
     const [amountToBridgeFrom, setAmountToBridgeFrom] = useState<string>('');
@@ -37,6 +39,25 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
     const explorerBaseUrl = "https://explorer.stacks.co/txid/";
     const tokenDecimals = sublink.tokenA.decimals || 6;
+
+    // Get token price from the prices object or default to 0
+    const tokenPrice = prices?.[sublink.tokenA.contractId] || 0;
+
+    // Calculate USD values based on input amounts
+    const depositUsdValue = parseFloat(amountToBridgeTo) * tokenPrice || 0;
+    const withdrawUsdValue = parseFloat(amountToBridgeFrom) * tokenPrice || 0;
+
+    // Format USD value for display
+    const formatUsdValue = (value: number): string => {
+        if (value === 0) return '$0.00';
+        if (value < 0.01) return '< $0.01';
+        return value.toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
 
     // Helper function to parse token contract ID
     const parseTokenContractId = (contractId: string) => {
@@ -178,11 +199,29 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
     };
 
     // Format balance display
-    const formatBalance = (balance: number | null) => {
-        if (balance === null) return '–';
+    const formatBalance = (balance: number | null, decimals: number = tokenDecimals) => {
+        if (balance === null) return '-';
         if (balance === 0) return '0';
-        if (balance < 0.001) return '< 0.001';
-        return balance.toLocaleString(undefined, { maximumFractionDigits: 6 });
+
+        // Use the token's decimals to determine display precision
+        const minDisplayValue = 1 / Math.pow(10, decimals);
+        if (balance < minDisplayValue) return `< ${minDisplayValue.toLocaleString()}`;
+
+        // Show exact balance without rounding
+        // Convert to string and ensure we display all significant digits
+        const balanceStr = balance.toString();
+
+        // If the number has a decimal part
+        if (balanceStr.includes('.')) {
+            const [intPart, decimalPart] = balanceStr.split('.');
+            // Format the integer part with commas
+            const formattedIntPart = parseInt(intPart).toLocaleString();
+            // Return the formatted integer part with the exact decimal part
+            return `${formattedIntPart}.${decimalPart}`;
+        }
+
+        // If it's a whole number, just format with commas
+        return parseInt(balanceStr).toLocaleString();
     };
 
     // Fetch balances when component mounts or wallet changes
@@ -205,7 +244,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
         // Check if user has sufficient balance
         if (mainnetBalance !== null && inputAmount > mainnetBalance) {
-            toast.error(`Insufficient balance. You have ${formatBalance(mainnetBalance)} ${sublink.tokenA.symbol}`);
+            toast.error(`Insufficient balance. You have ${formatBalance(mainnetBalance, tokenDecimals)} ${sublink.tokenA.symbol}`);
             return;
         }
 
@@ -288,7 +327,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
         // Check if user has sufficient subnet balance
         if (subnetBalance !== null && inputAmount > subnetBalance) {
-            toast.error(`Insufficient subnet balance. You have ${formatBalance(subnetBalance)} ${sublink.tokenB.symbol}`);
+            toast.error(`Insufficient subnet balance. You have ${formatBalance(subnetBalance, tokenDecimals)} ${sublink.tokenB.symbol}`);
             return;
         }
 
@@ -369,10 +408,15 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
     return (
         <Card className="w-full">
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center">
-                    <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" />
-                    Bridge Assets
-                </CardTitle>
+                <div className="space-y-1">
+                    <CardTitle className="flex items-center">
+                        <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" />
+                        Bridge Assets
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                        Vault: <Link href={`${explorerBaseUrl}${sublink.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center font-mono">{sublink.contractId.split('.')[0] + '...' + sublink.contractId.split('.')[1].slice(-4)} <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
+                    </p>
+                </div>
                 {walletState.connected && (
                     <Button
                         variant="ghost"
@@ -389,22 +433,39 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
             <CardContent className="space-y-6">
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <Label htmlFor={`bridge-to-${sublink.contractId}`}>Bridge {sublink.tokenA.symbol} to Subnet</Label>
+                        <Label htmlFor={`bridge-to-${sublink.contractId}`}>Enter Subnet</Label>
                         {walletState.connected && (
-                            <div className="text-xs text-muted-foreground">
-                                Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(mainnetBalance)} ${sublink.tokenA.symbol}`}
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                Mainnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(mainnetBalance, tokenDecimals)} ${sublink.tokenA.symbol}`}
+                                {!isLoadingBalances && mainnetBalance !== null && mainnetBalance > 0 && (
+                                    <button
+                                        type="button"
+                                        className="cursor-pointer text-xs text-primary hover:text-primary/80 font-medium"
+                                        onClick={() => setAmountToBridgeTo(mainnetBalance?.toString() || '0')}
+                                    >
+                                        Max
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
                     <div className="flex space-x-2">
-                        <Input
-                            id={`bridge-to-${sublink.contractId}`}
-                            type="number"
-                            placeholder={`Amount of ${sublink.tokenA.symbol} to bridge`}
-                            value={amountToBridgeTo}
-                            onChange={(e) => setAmountToBridgeTo(e.target.value)}
-                            disabled={isProcessingDeposit || !walletState.connected}
-                        />
+                        <div className="relative flex-grow">
+                            <Input
+                                id={`bridge-to-${sublink.contractId}`}
+                                type="number"
+                                placeholder={`Amount to bridge into subnet`}
+                                value={amountToBridgeTo}
+                                onChange={(e) => setAmountToBridgeTo(e.target.value)}
+                                disabled={isProcessingDeposit || !walletState.connected}
+                            />
+                            {amountToBridgeTo && !isNaN(parseFloat(amountToBridgeTo)) && tokenPrice > 0 && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-xs text-muted-foreground">
+                                    <DollarSign className="h-3 w-3 mr-0.5" />
+                                    {formatUsdValue(depositUsdValue)}
+                                </div>
+                            )}
+                        </div>
                         <Button
                             onClick={handleBridgeToSubnetClick}
                             className="gap-2 w-full sm:w-auto whitespace-nowrap"
@@ -425,22 +486,39 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
                 <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <Label htmlFor={`bridge-from-${sublink.contractId}`}>Bridge {sublink.tokenB.symbol} from Subnet</Label>
+                        <Label htmlFor={`bridge-from-${sublink.contractId}`}>Exit Subnet</Label>
                         {walletState.connected && (
-                            <div className="text-xs text-muted-foreground">
-                                Subnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(subnetBalance)} ${sublink.tokenB.symbol}`}
+                            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                Subnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(subnetBalance, tokenDecimals)} ${sublink.tokenB.symbol}`}
+                                {!isLoadingBalances && subnetBalance !== null && subnetBalance > 0 && (
+                                    <button
+                                        type="button"
+                                        className="cursor-pointer text-xs text-primary hover:text-primary/80 font-medium"
+                                        onClick={() => setAmountToBridgeFrom(subnetBalance?.toString() || '0')}
+                                    >
+                                        Max
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
                     <div className="flex space-x-2">
-                        <Input
-                            id={`bridge-from-${sublink.contractId}`}
-                            type="number"
-                            placeholder={`Amount of ${sublink.tokenB.symbol} to bridge`}
-                            value={amountToBridgeFrom}
-                            onChange={(e) => setAmountToBridgeFrom(e.target.value)}
-                            disabled={isProcessingWithdraw || !walletState.connected}
-                        />
+                        <div className="relative flex-grow">
+                            <Input
+                                id={`bridge-from-${sublink.contractId}`}
+                                type="number"
+                                placeholder={`Amount to bridge out of subnet`}
+                                value={amountToBridgeFrom}
+                                onChange={(e) => setAmountToBridgeFrom(e.target.value)}
+                                disabled={isProcessingWithdraw || !walletState.connected}
+                            />
+                            {amountToBridgeFrom && !isNaN(parseFloat(amountToBridgeFrom)) && tokenPrice > 0 && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-xs text-muted-foreground">
+                                    <DollarSign className="h-3 w-3 mr-0.5" />
+                                    {formatUsdValue(withdrawUsdValue)}
+                                </div>
+                            )}
+                        </div>
                         <Button
                             onClick={handleBridgeFromSubnetClick}
                             variant="outline"
@@ -460,9 +538,6 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                     </p>
                 </div>
             </CardContent>
-            <CardFooter className="text-xs text-muted-foreground">
-                Vault Contract: <Link href={`${explorerBaseUrl}${sublink.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center font-mono">{sublink.contractId.split('.')[0] + '...' + sublink.contractId.split('.')[1].slice(-4)} <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
-            </CardFooter>
         </Card>
     );
 } 

@@ -6,10 +6,23 @@ import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ExternalLink } from 'lucide-react';
+import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/vaultService'; // Assuming Vault is the correct type for sublinks for now
 import Image from 'next/image'; // If sublinks have images
+
+// Add CSS for the flame animation
+const flameStyle = `
+  @keyframes simplePulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  
+  .flame-pulse {
+    animation: simplePulse 2s infinite cubic-bezier(0.66, 0, 0, 1);
+  }
+`;
 
 // Utility functions (truncateContractId, formatTokenAmount, formatUsdValue, formatTimestamp, getTimeSinceUpdate, calculateUsdValue)
 // These are kept from the original PoolList structure and can be adjusted or removed if not needed for sublinks
@@ -73,27 +86,41 @@ const calculateUsdValue = (amount: number, decimals: number, contractId: string,
 
 
 interface SublinkListProps {
-    vaults: Vault[]; // Using Vault[] as sublinks for now
+    vaults: (Vault & {
+        tvlData?: {
+            tokenBalance: number;
+            tokenPrice: number;
+            tvlUsd: number;
+        }
+    })[];
+    prices?: KraxelPriceData; // Make prices optional
 }
 
-export default function SublinkList({ vaults }: SublinkListProps) {
+export default function SublinkList({ vaults, prices }: SublinkListProps) {
     const [refreshing, setRefreshing] = useState<string | null>(null);
-    // const [removing, setRemoving] = useState<string | null>(null); // If remove functionality is needed
-    const [expandedItem, setExpandedItem] = useState<string | null>(null); // If expandable rows are needed
-    const [prices, setPrices] = useState<KraxelPriceData | null>(null);
-    const isDev = process.env.NODE_ENV === 'development';
+    const [removing, setRemoving] = useState<string | null>(null);
+    const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
+    // Fetch prices client-side if they weren't provided as props
+    const [localPrices, setLocalPrices] = useState<KraxelPriceData | null>(prices || null);
+
+    // Only fetch prices if they weren't provided as props
     useEffect(() => {
-        const fetchPrices = async () => {
-            try {
-                const priceData = await listPrices();
-                setPrices(priceData);
-            } catch (error) {
-                console.error('Failed to fetch token prices for sublinks:', error);
-            }
-        };
-        fetchPrices();
-    }, []);
+        if (!prices) {
+            const fetchPrices = async () => {
+                try {
+                    const priceData = await listPrices();
+                    setLocalPrices(priceData);
+                } catch (error) {
+                    console.error('Error fetching prices:', error);
+                }
+            };
+            fetchPrices();
+        }
+    }, [prices]);
+
+    // Use the provided prices or the locally fetched ones
+    const effectivePrices = prices || localPrices;
 
     const handleRefresh = async (id: string) => { // This might need a different backend action for sublinks
         setRefreshing(id);
@@ -127,68 +154,68 @@ export default function SublinkList({ vaults }: SublinkListProps) {
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center">
-                    <Layers className="w-5 h-5 mr-2 text-primary" /> {/* Consider a different Icon for Sublinks */}
-                    Subnets
+                    <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" /> {/* Changed icon to ArrowRightLeft to match bridge concept */}
+                    Bridge Vaults
                     <Badge variant="secondary" className="ml-auto">
                         {vaults.length} subnet{vaults.length !== 1 ? 's' : ''}
                     </Badge>
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
+                <style jsx>{flameStyle}</style>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-foreground">
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Contract ID</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Direction</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Liquidity (USD)</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Status</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Token</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Bridge</th>
+                                <th className="p-4 font-semibold text-muted-foreground">TVL</th>
                                 <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {vaults.map(sublink => {
                                 const isRefreshingThis = refreshing === sublink.contractId;
-                                // const isRemovingThis = removing === sublink.contractId;
                                 const isExpandedThis = expandedItem === sublink.contractId;
 
-                                // Assuming sublink (Vault type) has tokenA and tokenB for direction
-                                const tokenASymbol = sublink.tokenA?.symbol || 'TokenA';
-                                const tokenBSymbol = sublink.tokenB?.symbol || 'TokenB';
+                                // For liquidity, prioritize using the precomputed tvlData if available
+                                let totalUsdLiquidity: number | null = null;
 
-                                // Placeholder for liquidity - adapt based on actual data structure for sublinks
-                                const liquidityA = sublink.reservesA || 0;
-                                const liquidityB = sublink.reservesB || 0;
-                                const decimalsA = sublink.tokenA?.decimals || 0;
-                                const decimalsB = sublink.tokenB?.decimals || 0;
-                                const contractA = sublink.tokenA?.contractId || '';
-                                const contractB = sublink.tokenB?.contractId || '';
+                                if (sublink.tvlData) {
+                                    // Use the precomputed TVL data from the server
+                                    totalUsdLiquidity = sublink.tvlData.tvlUsd;
+                                } else {
+                                    // Fallback to client-side calculation (old method)
+                                    const liquidityA = sublink.reservesA || 0;
+                                    const liquidityB = sublink.reservesB || 0;
+                                    const decimalsA = sublink.tokenA?.decimals || 0;
+                                    const decimalsB = sublink.tokenB?.decimals || 0;
+                                    const contractA = sublink.tokenA?.contractId || '';
+                                    const contractB = sublink.tokenB?.contractId || '';
 
-                                const usdA = calculateUsdValue(liquidityA, decimalsA, contractA, prices);
-                                const usdB = calculateUsdValue(liquidityB, decimalsB, contractB, prices);
-                                const totalUsdLiquidity = (usdA !== null && usdB !== null) ? usdA + usdB : null; // This might represent total value rather than bridge liquidity
+                                    const usdA = calculateUsdValue(liquidityA, decimalsA, contractA, effectivePrices);
+                                    const usdB = calculateUsdValue(liquidityB, decimalsB, contractB, effectivePrices);
+                                    totalUsdLiquidity = (usdA !== null && usdB !== null) ? usdA + usdB : null;
+                                }
+
                                 const formattedTotalUsd = formatUsdValue(totalUsdLiquidity);
-
-                                const lastUpdated = (sublink as any).reservesLastUpdatedAt; // Check if this field exists for sublinks
-                                const updateStatus = getTimeSinceUpdate(lastUpdated);
 
                                 return (
                                     <React.Fragment key={sublink.contractId}>
                                         <tr className={`${isExpandedThis ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
                                             <td className="p-4 whitespace-nowrap font-medium">
                                                 <div className="flex items-center gap-2">
-                                                    {/* If sublinks have images:
                                                     {sublink.image && (
                                                         <Image
-                                                            width={24} height={24} src={sublink.image}
+                                                            width={28} height={28} src={sublink.image}
                                                             alt={`${sublink.name} logo`}
-                                                            className="h-6 w-6 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                            className="h-7 w-7 rounded-lg object-contain bg-card p-0.5 border border-border"
                                                         />
-                                                    )} */}
+                                                    )}
                                                     <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} className="hover:underline text-primary">
-                                                        {sublink.name} <span className="text-muted-foreground font-normal">({sublink.symbol})</span>
+                                                        {sublink.name}
                                                     </Link>
                                                 </div>
                                             </td>
@@ -196,67 +223,61 @@ export default function SublinkList({ vaults }: SublinkListProps) {
                                                 <Badge variant="outline">{truncateContractId(sublink.contractId)}</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-2">
                                                     {sublink.tokenA?.image && (
-                                                        <Image width={16} height={16} src={sublink.tokenA.image} alt={tokenASymbol} className="w-4 h-4 rounded-full object-contain bg-card p-px border border-border" />
+                                                        <Image width={20} height={20} src={sublink.tokenA.image} alt={sublink.tokenA.symbol} className="w-5 h-5 rounded-full object-contain bg-card p-px border border-border" />
                                                     )}
-                                                    <span>{tokenASymbol}</span>
-                                                    <span className="text-muted-foreground">/</span>
-                                                    {sublink.tokenB?.image && (
-                                                        <Image width={16} height={16} src={sublink.tokenB.image} alt={tokenBSymbol} className="w-4 h-4 rounded-full object-contain bg-card p-px border border-border" />
-                                                    )}
-                                                    <span>{tokenBSymbol}</span>
+                                                    <span>{sublink.tokenA.symbol}</span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap text-xs">
-                                                {/* Placeholder for Direction, e.g., based on tokenA and tokenB network */}
-                                                Stacks <span className="text-muted-foreground">&rarr;</span> Blaze Subnet
+                                            <td className="p-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                    <span>Stacks</span>
+                                                    <ArrowRightLeft className="w-4 h-4 mx-1 text-primary" />
+                                                    <div className="flex items-center">
+                                                        <span>Blaze</span>
+                                                        <div className="relative ml-1">
+                                                            <div className="bg-red-500 rounded-full p-0.5 shadow-sm flame-pulse">
+                                                                <Flame className="w-2.5 h-2.5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex flex-col items-start">
                                                     <span className="font-medium text-foreground">{formattedTotalUsd}</span>
-                                                    {/* More specific liquidity details if available */}
+                                                    {sublink.tvlData && (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {sublink.tvlData.tokenBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })} {sublink.tokenA.symbol}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap">
-                                                <Badge
-                                                    variant={updateStatus.status === 'stale' ? 'destructive' : 'outline'}
-                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-green-500/50 text-green-600 bg-green-500/10 dark:text-green-400' : ''}`}
-                                                >
-                                                    {updateStatus.status}
-                                                </Badge>
-                                                {/* Expand button if more details are shown in an expanded row */}
-                                                {/* <button onClick={() => toggleExpand(sublink.contractId)} className="ml-auto text-muted-foreground p-1 px-2 rounded-full hover:bg-accent">
-                                                    {isExpandedThis ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                                </button> */}
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap text-right space-x-1">
-                                                <Button asChild variant="ghost" size="sm" className="px-2">
-                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} title="View Subnet">
-                                                        Manage <ExternalLink className="w-3 h-3 ml-1.5" />
+                                            <td className="p-4 whitespace-nowrap text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleRefresh(sublink.contractId)}
+                                                        disabled={isRefreshingThis}
+                                                    >
+                                                        {isRefreshingThis ? (
+                                                            <RefreshCw className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <RefreshCw className="h-4 w-4" />
+                                                        )}
+                                                        <span className="sr-only">Refresh</span>
+                                                    </Button>
+                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`}>
+                                                        <Button size="sm" variant="default">
+                                                            <ExternalLink className="h-4 w-4" />
+                                                            <span className="ml-2 hidden sm:inline">View</span>
+                                                        </Button>
                                                     </Link>
-                                                </Button>
-                                                {/* Refresh button if applicable for sublinks 
-                                                <Button
-                                                    variant="ghost" size="icon"
-                                                    onClick={() => handleRefresh(sublink.contractId)}
-                                                    disabled={isRefreshingThis}
-                                                    title="Refresh Sublink Data"
-                                                >
-                                                    <RefreshCw className={`w-4 h-4 ${isRefreshingThis ? 'animate-spin' : ''}`} />
-                                                </Button> */}
+                                                </div>
                                             </td>
                                         </tr>
-                                        {/* Optional: Expanded row for more details, if needed in the list itself
-                                        {isExpandedThis && (
-                                            <tr className="bg-muted/10 border-t border-border">
-                                                <td colSpan={7} className="px-6 py-4">
-                                                    <p className="text-xs text-muted-foreground">Detailed sublink information here...</p>
-                                                    <p>Token A ({tokenASymbol}) Reserves: {formatTokenAmount(liquidityA, decimalsA)}</p>
-                                                    <p>Token B ({tokenBSymbol}) Reserves: {formatTokenAmount(liquidityB, decimalsB)}</p>
-                                                </td>
-                                            </tr>
-                                        )} */}
                                     </React.Fragment>
                                 );
                             })}
