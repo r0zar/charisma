@@ -15,6 +15,7 @@ import { callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";
 
+// Define props for SublinkBridgeCard
 interface SublinkBridgeCardProps {
     sublink: Vault;
 }
@@ -77,20 +78,24 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
     // Helper to get subnet token contract ID
     const getSubnetTokenContractId = (sublinkContractId: string) => {
-        // Use the tokenBContract directly from the sublink metadata
+        // Use the tokenBContract directly from the sublink metadata if available
         if (sublink.tokenBContract) {
+            console.log(`Using sublink.tokenBContract: ${sublink.tokenBContract}`);
             return sublink.tokenBContract;
         }
 
         // Fallback to tokenB.contractId if tokenBContract doesn't exist
         if (sublink.tokenB && sublink.tokenB.contractId) {
+            console.log(`Using sublink.tokenB.contractId: ${sublink.tokenB.contractId}`);
             return sublink.tokenB.contractId;
         }
 
         // Last resort fallback (should not happen with proper data)
         console.warn("No tokenBContract or tokenB.contractId found in sublink metadata, using fallback");
         const [address] = sublinkContractId.split('.');
-        return `${address}.charisma-token-subnet-v1`;
+        const fallback = `${address}.charisma-token-subnet-v1`;
+        console.log(`Using fallback subnet contract: ${fallback}`);
+        return fallback;
     };
 
     // Function to fetch token balances (mainnet and subnet)

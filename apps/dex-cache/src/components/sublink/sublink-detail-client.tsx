@@ -83,13 +83,22 @@ const formatUsdValue = (value: number | null): string => {
 const getSubnetTokenContractId = (sublinkContractId: string, sublinkData: any) => {
     // Use the tokenBContract directly from the sublink metadata if available
     if (sublinkData && sublinkData.tokenBContract) {
+        console.log(`Using sublinkData.tokenBContract: ${sublinkData.tokenBContract}`);
         return sublinkData.tokenBContract;
     }
 
     // Fallback to tokenB.contractId if tokenBContract doesn't exist
     if (sublinkData && sublinkData.tokenB && sublinkData.tokenB.contractId) {
+        console.log(`Using sublinkData.tokenB.contractId: ${sublinkData.tokenB.contractId}`);
         return sublinkData.tokenB.contractId;
     }
+
+    // Last resort fallback (should not happen with proper data)
+    console.warn("No tokenBContract or tokenB.contractId found in sublink metadata, using fallback");
+    const [address] = sublinkContractId.split('.');
+    const fallback = `${address}.charisma-token-subnet-v1`;
+    console.log(`Using fallback subnet contract: ${fallback}`);
+    return fallback;
 };
 
 // Function to fetch subnet contract balance and calculate TVL
