@@ -461,7 +461,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                 </div>
             </CardContent>
             <CardFooter className="text-xs text-muted-foreground">
-                Sublink Contract: <Link href={`${explorerBaseUrl}${sublink.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center font-mono">{sublink.contractId.split('.')[0] + '...' + sublink.contractId.split('.')[1].slice(-4)} <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
+                Vault Contract: <Link href={`${explorerBaseUrl}${sublink.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center font-mono">{sublink.contractId.split('.')[0] + '...' + sublink.contractId.split('.')[1].slice(-4)} <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
             </CardFooter>
         </Card>
     );

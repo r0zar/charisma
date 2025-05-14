@@ -285,7 +285,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                 <div className="text-sm text-muted-foreground mb-4 sm:mb-0">
                     <Link href="/sublinks" className="inline-flex items-center hover:text-foreground transition-colors">
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Sublinks
+                        Back to Subnets
                     </Link>
                 </div>
                 <Badge variant="outline" className="font-mono text-xs py-1">{sublink.protocol} / {sublink.type}</Badge>

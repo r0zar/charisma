@@ -34,7 +34,7 @@ export default function Header() {
                             href="/sublinks"
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >
-                            Sublinks
+                            Subnets
                         </Link>
                     </nav>
 

@@ -115,8 +115,8 @@ export default function SublinkList({ vaults }: SublinkListProps) {
                 <CardContent className="pt-6">
                     <div className="text-center py-8 text-muted-foreground">
                         <Coins className="w-12 h-12 mx-auto mb-4 text-muted" />
-                        <p className="text-lg font-semibold">No Sublinks Found</p>
-                        <p className="text-sm mt-1">Sublinks will appear here once available.</p>
+                        <p className="text-lg font-semibold">No Subnets Found</p>
+                        <p className="text-sm mt-1">Subnets will appear here once available.</p>
                     </div>
                 </CardContent>
             </Card>
@@ -128,9 +128,9 @@ export default function SublinkList({ vaults }: SublinkListProps) {
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center">
                     <Layers className="w-5 h-5 mr-2 text-primary" /> {/* Consider a different Icon for Sublinks */}
-                    Sublinks
+                    Subnets
                     <Badge variant="secondary" className="ml-auto">
-                        {vaults.length} sublink{vaults.length !== 1 ? 's' : ''}
+                        {vaults.length} subnet{vaults.length !== 1 ? 's' : ''}
                     </Badge>
                 </CardTitle>
             </CardHeader>
@@ -232,7 +232,7 @@ export default function SublinkList({ vaults }: SublinkListProps) {
                                             </td>
                                             <td className="p-4 whitespace-nowrap text-right space-x-1">
                                                 <Button asChild variant="ghost" size="sm" className="px-2">
-                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} title="Manage Sublink">
+                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} title="View Subnet">
                                                         Manage <ExternalLink className="w-3 h-3 ml-1.5" />
                                                     </Link>
                                                 </Button>
