@@ -24,6 +24,7 @@ interface Vault {
     engineContractId: string;
     tokenA: Token;
     tokenB: Token;
+    tokenBContract?: string; // Contract ID of the subnet token for sublinks
     reservesA: number;
     reservesB: number;
 }
@@ -105,6 +106,7 @@ export async function parseTokenMetadata(
                           engineContractId: string;
                           tokenA: Token; // First underlying token
                           tokenB: Token; // Second underlying token
+                          tokenBContract?: string; // Contract ID of the subnet token for sublinks
                           reservesA: number;
                           reservesB: number;
                         }
@@ -208,6 +210,7 @@ export async function parseTokenMetadata(
             engineContractId: lpTokenData.engineContractId || lpTokenData.properties?.engineContractId || '',
             tokenA: enhancedTokenA,
             tokenB: enhancedTokenB,
+            tokenBContract: tokenBContract,
             reservesA: lpTokenData.reservesA || 0,
             reservesB: lpTokenData.reservesB || 0
         };

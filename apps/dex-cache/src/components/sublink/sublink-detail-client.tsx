@@ -80,15 +80,23 @@ const formatUsdValue = (value: number | null): string => {
 };
 
 // Helper to get subnet token contract ID
-const getSubnetTokenContractId = (sublinkContractId: string) => {
-    const [address] = sublinkContractId.split('.');
-    return `${address}.charisma-token-subnet-v1`;
+const getSubnetTokenContractId = (sublinkContractId: string, sublinkData: any) => {
+    // Use the tokenBContract directly from the sublink metadata if available
+    if (sublinkData && sublinkData.tokenBContract) {
+        return sublinkData.tokenBContract;
+    }
+
+    // Fallback to tokenB.contractId if tokenBContract doesn't exist
+    if (sublinkData && sublinkData.tokenB && sublinkData.tokenB.contractId) {
+        return sublinkData.tokenB.contractId;
+    }
 };
 
 // Function to fetch subnet contract balance and calculate TVL
 const calculateTvl = async (
     refreshing: boolean,
     sublinkContractId: string,
+    sublinkData: any,
     tokenContractId: string,
     tokenPrice: number,
     setIsLoadingTvl: React.Dispatch<React.SetStateAction<boolean>>,
@@ -148,6 +156,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
         calculateTvl(
             false,
             sublink.contractId,
+            sublink,
             sublink.tokenA.contractId,
             prices[sublink.tokenA.contractId] || 0,
             setIsLoadingTvl,
@@ -250,6 +259,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
         calculateTvl(
             true,
             sublink.contractId,
+            sublink,
             sublink.tokenA.contractId,
             prices[sublink.tokenA.contractId] || 0,
             setIsLoadingTvl,
@@ -451,8 +461,8 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Subnet Contract ID:</span>
                                                 <span className="font-mono text-xs break-all">
-                                                    <Link href={`https://explorer.stacks.co/txid/${getSubnetTokenContractId(sublink.contractId)}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                                                        {getSubnetTokenContractId(sublink.contractId)}
+                                                    <Link href={`https://explorer.stacks.co/txid/${getSubnetTokenContractId(sublink.contractId, sublink)}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                        {getSubnetTokenContractId(sublink.contractId, sublink)}
                                                     </Link>
                                                 </span>
                                             </div>

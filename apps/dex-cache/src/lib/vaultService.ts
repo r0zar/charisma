@@ -37,6 +37,7 @@ export interface Vault {
     engineContractId: string;
     tokenA: Token;
     tokenB: Token;
+    tokenBContract?: string; // Contract ID of the subnet token for sublinks
     reservesA: number;
     reservesB: number;
 }

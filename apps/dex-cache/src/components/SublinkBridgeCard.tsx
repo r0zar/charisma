@@ -77,6 +77,18 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
 
     // Helper to get subnet token contract ID
     const getSubnetTokenContractId = (sublinkContractId: string) => {
+        // Use the tokenBContract directly from the sublink metadata
+        if (sublink.tokenBContract) {
+            return sublink.tokenBContract;
+        }
+
+        // Fallback to tokenB.contractId if tokenBContract doesn't exist
+        if (sublink.tokenB && sublink.tokenB.contractId) {
+            return sublink.tokenB.contractId;
+        }
+
+        // Last resort fallback (should not happen with proper data)
+        console.warn("No tokenBContract or tokenB.contractId found in sublink metadata, using fallback");
         const [address] = sublinkContractId.split('.');
         return `${address}.charisma-token-subnet-v1`;
     };
