@@ -175,10 +175,10 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                 </p>
                                 <ul className="list-disc pl-5 space-y-1 text-xs">
                                     <li>
-                                        <strong>Bridge to Subnet:</strong> Moves your {sublink.tokenA.symbol} from the Stacks mainnet to the subnet, where they will be represented as {sublink.tokenB.symbol}.
+                                        <strong>Enter Subnet:</strong> Moves your {sublink.tokenA.symbol} from the Stacks mainnet to the subnet, where they will be represented as {sublink.tokenB.symbol}.
                                     </li>
                                     <li>
-                                        <strong>Bridge from Subnet:</strong> Converts your {sublink.tokenB.symbol} on the subnet back to {sublink.tokenA.symbol} on the Stacks mainnet.
+                                        <strong>Exit Subnet:</strong> Converts your {sublink.tokenB.symbol} on the subnet back to {sublink.tokenA.symbol} on the Stacks mainnet.
                                     </li>
                                     <li>Ensure you have sufficient STX for transaction fees on the Stacks mainnet.</li>
                                     <li>Transaction times may vary depending on network congestion.</li>
