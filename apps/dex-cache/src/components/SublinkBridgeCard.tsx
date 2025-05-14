@@ -237,7 +237,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
             const result = await request('stx_callContract', params);
 
             if (result && result.txid) {
-                toast.success("Bridge to Subnet transaction submitted!", {
+                toast.success("Enter Subnet transaction submitted!", {
                     description: `TxID: ${result.txid}`
                 });
                 setAmountToBridgeTo('');
@@ -248,7 +248,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                 throw new Error("Transaction failed or was rejected.");
             }
         } catch (error) {
-            console.error("Bridge to Subnet error:", error);
+            console.error("Enter Subnet error:", error);
             const errorMessage = (error instanceof Error && error.message)
                 || (typeof error === 'string' ? error : 'An unknown error occurred.');
             toast.error("Failed to initiate transaction.", { description: errorMessage });
@@ -329,7 +329,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
             const result = await request('stx_callContract', params);
 
             if (result && result.txid) {
-                toast.success("Bridge from Subnet transaction submitted!", {
+                toast.success("Exit Subnet transaction submitted!", {
                     description: `TxID: ${result.txid}`
                 });
                 setAmountToBridgeFrom('');
@@ -340,7 +340,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                 throw new Error("Transaction failed or was rejected.");
             }
         } catch (error) {
-            console.error("Bridge from Subnet error:", error);
+            console.error("Exit Subnet error:", error);
             const errorMessage = (error instanceof Error && error.message)
                 || (typeof error === 'string' ? error : 'An unknown error occurred.');
             toast.error("Failed to initiate transaction.", { description: errorMessage });
@@ -398,7 +398,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                             ) : (
                                 <TrendingUp className="w-4 h-4" />
                             )}
-                            {isProcessingDeposit ? 'Processing...' : 'Bridge to Subnet'}
+                            {isProcessingDeposit ? 'Processing...' : 'Enter Subnet'}
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -435,7 +435,7 @@ export function SublinkBridgeCard({ sublink }: SublinkBridgeCardProps) {
                             ) : (
                                 <TrendingDown className="w-4 h-4" />
                             )}
-                            {isProcessingWithdraw ? 'Processing...' : 'Bridge from Subnet'}
+                            {isProcessingWithdraw ? 'Processing...' : 'Exit Subnet'}
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
