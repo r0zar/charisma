@@ -29,7 +29,7 @@ export default async function ExplorePoolsPage() {
         <h1 className="text-2xl font-bold">Explore Subnets</h1>
       </div>
       <p className="text-muted-foreground mb-6 max-w-2xl">
-        Subnets wrap tokens and allow for off-chain execution of smart contracts.
+        Subnets upgrade tokens to create an off-chain execution environment for decentralized applications.
       </p>
 
       {/* Render the VaultList component with the fetched vaults */}
