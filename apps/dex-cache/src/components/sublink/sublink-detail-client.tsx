@@ -47,7 +47,7 @@ const formatUsdValue = (value: number | null): string => {
 
 export default function SublinkDetailClient({ sublink, prices, analytics, contractInfo }: SublinkDetailClientProps) {
     // Calculate fee percentage if available
-    const feePercent = sublink.fee ? (sublink.fee / 10000).toFixed(2) : 'N/A';
+    const feePercent = sublink.fee ? (sublink.fee / 10000).toFixed(2) : '0';
 
     const renderContractInfo = () => {
         if (!contractInfo || Object.keys(contractInfo).length === 0) return null;
