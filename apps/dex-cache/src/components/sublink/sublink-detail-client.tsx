@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Info, ShieldCheck, TrendingUp, DollarSign, Layers, Wallet } from 'lucide-react';
+import { ArrowLeft, Info, ShieldCheck, TrendingUp, DollarSign, Layers, Wallet, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,10 @@ import { SublinkBridgeCard } from '@/components/SublinkBridgeCard';
 import { Vault } from '@/lib/vaultService';
 import { KraxelPriceData } from '@repo/tokens';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { principalCV } from '@stacks/transactions';
+import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Props for SublinkDetailClient - must match what page.tsx provides
 interface SublinkDetailClientProps {
@@ -24,16 +28,45 @@ interface SublinkDetailClientProps {
 }
 
 // Reusable StatCard, styled like the vault component
-const StatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
+const StatCard = ({
+    title,
+    value,
+    icon,
+    isLoading = false
+}: {
+    title: string;
+    value: string | number;
+    icon: React.ReactNode;
+    isLoading?: boolean
+}) => (
     <Card className="p-5 bg-gradient-to-br from-card to-background border border-border/50 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between">
             <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1.5">{title}</h3>
-                <div className="text-2xl font-bold tracking-tight">{value}</div>
+                <div className="text-2xl font-bold tracking-tight">
+                    {isLoading ? (
+                        <Skeleton className="h-8 w-24" />
+                    ) : (
+                        value
+                    )}
+                </div>
             </div>
             <div className="p-3 rounded-xl bg-primary/10">
                 {icon}
             </div>
+        </div>
+    </Card>
+);
+
+// Skeleton version of StatCard
+const StatCardSkeleton = () => (
+    <Card className="p-5 bg-gradient-to-br from-card to-background border border-border/50">
+        <div className="flex items-start justify-between">
+            <div className="w-full">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+            </div>
+            <Skeleton className="h-12 w-12 rounded-xl" />
         </div>
     </Card>
 );
@@ -45,9 +78,81 @@ const formatUsdValue = (value: number | null): string => {
     return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+// Helper to get subnet token contract ID
+const getSubnetTokenContractId = (sublinkContractId: string) => {
+    const [address] = sublinkContractId.split('.');
+    return `${address}.charisma-token-subnet-v1`;
+};
+
 export default function SublinkDetailClient({ sublink, prices, analytics, contractInfo }: SublinkDetailClientProps) {
     // Calculate fee percentage if available
     const feePercent = sublink.fee ? (sublink.fee / 10000).toFixed(2) : '0';
+
+    // State for TVL calculation
+    const [calculatedTvl, setCalculatedTvl] = useState<number | null>(null);
+    const [isLoadingTvl, setIsLoadingTvl] = useState(false);
+    const [isRefreshingTvl, setIsRefreshingTvl] = useState(false);
+    const [initialLoad, setInitialLoad] = useState(true);
+    const tokenDecimals = sublink.tokenA.decimals || 6;
+
+    // Function to fetch subnet contract balance and calculate TVL
+    const calculateTvl = async (refreshing = false) => {
+        if (refreshing) {
+            setIsRefreshingTvl(true);
+        } else {
+            setIsLoadingTvl(true);
+        }
+
+        try {
+            // Get subnet contract ID
+            const subnetContractId = getSubnetTokenContractId(sublink.contractId);
+            const [subnetAddress, subnetName] = subnetContractId.split('.');
+
+            // Get token contract components
+            const [tokenAddress, tokenName] = sublink.tokenA.contractId.split('.');
+
+            // Fetch token balance of the subnet contract
+            const balanceResult = await callReadOnlyFunction(
+                tokenAddress,
+                tokenName,
+                'get-balance',
+                [principalCV(subnetContractId)]
+            );
+
+            if (balanceResult && typeof balanceResult === 'object' && 'value' in balanceResult) {
+                // Convert from micro units to standard units
+                const tokenBalance = parseInt(balanceResult.value.toString()) / Math.pow(10, tokenDecimals);
+
+                // Get token price from prices data
+                const tokenPrice = prices[sublink.tokenA.contractId] || 0;
+
+                // Calculate TVL (token balance * token price)
+                const tvl = tokenBalance * tokenPrice;
+                setCalculatedTvl(tvl);
+
+                console.log(`Calculated TVL: ${tvl} USD from ${tokenBalance} ${sublink.tokenA.symbol} at $${tokenPrice} each`);
+            } else {
+                console.error("Unexpected balance result format:", balanceResult);
+                // Fallback to analytics TVL if available
+                setCalculatedTvl(analytics.tvl);
+            }
+        } catch (error) {
+            console.error("Error calculating TVL:", error);
+            toast.error("Failed to fetch subnet TVL data");
+            // Fallback to analytics TVL
+            setCalculatedTvl(analytics.tvl);
+        } finally {
+            setIsLoadingTvl(false);
+            setIsRefreshingTvl(false);
+            setInitialLoad(false);
+        }
+    };
+
+    // Calculate TVL on component mount
+    useEffect(() => {
+        calculateTvl();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sublink.contractId, sublink.tokenA.contractId]);
 
     const renderContractInfo = () => {
         if (!contractInfo || Object.keys(contractInfo).length === 0) return null;
@@ -80,6 +185,61 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
             </Card>
         );
     };
+
+    // Render loading skeleton for the entire detail page
+    if (initialLoad) {
+        return (
+            <div className="container mx-auto p-4 md:p-6 mb-12">
+                <div className="mb-6 flex items-center justify-between max-w-6xl mx-auto">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-6 w-20" />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto">
+                    {/* Left Column - Sublink Details Skeleton */}
+                    <div className="lg:col-span-4 space-y-6">
+                        <Card className="overflow-hidden border border-primary/10 shadow-md">
+                            <div className="p-6 flex flex-col items-center">
+                                <Skeleton className="h-24 w-24 rounded-lg mb-4" />
+                                <div className="text-center w-full">
+                                    <Skeleton className="h-8 w-2/3 mx-auto mb-2" />
+                                    <div className="flex items-center justify-center gap-2 mb-4">
+                                        <Skeleton className="h-6 w-16" />
+                                        <span>↔</span>
+                                        <Skeleton className="h-6 w-16" />
+                                    </div>
+                                </div>
+
+                                <div className="w-full space-y-4">
+                                    <StatCardSkeleton />
+                                    <StatCardSkeleton />
+                                </div>
+
+                                <div className="w-full mt-4 p-4 bg-muted/20 rounded-lg border border-border/30">
+                                    <Skeleton className="h-4 w-32 mb-2" />
+                                    <Skeleton className="h-4 w-full mb-2" />
+                                    <Skeleton className="h-4 w-full mb-2" />
+                                    <Skeleton className="h-4 w-3/4" />
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Right Panel - Content Skeleton */}
+                    <div className="lg:col-span-8">
+                        <div className="space-y-6">
+                            <Skeleton className="h-10 w-full" />
+
+                            <div className="space-y-4">
+                                <Skeleton className="h-32 w-full" />
+                                <Skeleton className="h-80 w-full" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto p-4 md:p-6 mb-12">
@@ -127,11 +287,28 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                             </div>
 
                             <div className="w-full space-y-4">
-                                <StatCard
-                                    title="Total Value Locked (TVL)"
-                                    value={formatUsdValue(analytics.tvl)}
-                                    icon={<DollarSign className="w-5 h-5 text-primary" />}
-                                />
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-medium text-muted-foreground">Total Value Locked (TVL)</h3>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0"
+                                        onClick={() => calculateTvl(true)}
+                                        disabled={isRefreshingTvl || isLoadingTvl}
+                                    >
+                                        <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingTvl ? 'animate-spin' : ''}`} />
+                                        <span className="sr-only">Refresh TVL</span>
+                                    </Button>
+                                </div>
+                                {isLoadingTvl ? (
+                                    <StatCardSkeleton />
+                                ) : (
+                                    <StatCard
+                                        title="Total Value Locked (TVL)"
+                                        value={formatUsdValue(calculatedTvl !== null ? calculatedTvl : analytics.tvl)}
+                                        icon={<DollarSign className="w-5 h-5 text-primary" />}
+                                    />
+                                )}
 
                                 {sublink.fee !== undefined && (
                                     <StatCard
@@ -211,7 +388,11 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">{sublink.tokenA.contractId}</span>
+                                                <span className="font-mono text-xs break-all">
+                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.tokenA.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                        {sublink.tokenA.contractId}
+                                                    </Link>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -229,7 +410,11 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">{sublink.tokenB.contractId}</span>
+                                                <span className="font-mono text-xs break-all">
+                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.tokenB.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                        {sublink.tokenB.contractId}
+                                                    </Link>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -239,7 +424,19 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Contract ID:</span>
-                                                <span className="font-mono text-xs break-all">{sublink.contractId}</span>
+                                                <span className="font-mono text-xs break-all">
+                                                    <Link href={`https://explorer.stacks.co/txid/${sublink.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                        {sublink.contractId}
+                                                    </Link>
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Subnet Contract ID:</span>
+                                                <span className="font-mono text-xs break-all">
+                                                    <Link href={`https://explorer.stacks.co/txid/${getSubnetTokenContractId(sublink.contractId)}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                        {getSubnetTokenContractId(sublink.contractId)}
+                                                    </Link>
+                                                </span>
                                             </div>
                                             {sublink.externalPoolId && (
                                                 <div className="flex justify-between">
