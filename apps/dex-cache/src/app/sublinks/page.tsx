@@ -28,7 +28,7 @@ export default async function ExplorePoolsPage() {
         <Coins className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold">Explore Subnets</h1>
       </div>
-      <p className="text-muted-foreground mb-6 max-w-2xl">
+      <p className="text-muted-foreground mb-6 max-w-3xl">
         Subnets upgrade tokens to create an off-chain execution environment for decentralized applications.
       </p>
 
