@@ -400,8 +400,11 @@ function LiquidityPoolWizard() {
                 return;
             }
 
+            const tokenADecimals = Number(token1Details.decimals);
+            const tokenBDecimals = Number(token2Details.decimals);
+
             // Check for metadata and decimals - Now directly use token1Meta and token2Meta
-            if (typeof token1Details.decimals !== 'number' || typeof token2Details.decimals !== 'number') {
+            if (typeof tokenADecimals !== 'number' || typeof tokenBDecimals !== 'number') {
                 sonnerToast.error("Token Data Error", {
                     description: `Failed to fetch required token decimals. Please ensure both tokens have valid metadata.`,
                 });
@@ -417,9 +420,6 @@ function LiquidityPoolWizard() {
                 setIsDeploying(false);
                 return;
             }
-
-            const tokenADecimals = token1Details.decimals;
-            const tokenBDecimals = token2Details.decimals;
             const lpTokenDecimals = 6;
 
             // Log the token information for debugging

@@ -102,7 +102,7 @@ interface Props {
     vaults: Vault[];
 }
 
-export default function VaultList({ vaults }: Props) {
+export default function PoolList({ vaults }: Props) {
     const [refreshing, setRefreshing] = useState<string | null>(null);
     const [removing, setRemoving] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);

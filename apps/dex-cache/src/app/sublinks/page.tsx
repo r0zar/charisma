@@ -4,6 +4,8 @@ import { Coins } from 'lucide-react';
 import { getAllVaults } from '@/lib/vaultService';
 import SublinkList from '@/components/SublinkList';
 
+// export const dynamic = 'force-dynamic';
+
 // Define metadata for better SEO
 export const metadata: Metadata = {
   title: 'Explore Sublinks | Charisma Invest',

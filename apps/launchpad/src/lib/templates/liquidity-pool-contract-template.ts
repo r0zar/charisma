@@ -185,6 +185,7 @@ export function generateLiquidityPoolContract({
         ${generateTransferIn(isTokenAStx, tokenA, 'amount', 'sender', 'CONTRACT')}
         ;; Transfer token B to sender
         ${generateTransferOut(isTokenBStx, tokenB, '(get dy delta)', 'CONTRACT', 'sender')}
+        (print {op: "swap-a-to-b", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
 (define-public (swap-b-to-a (amount uint))
@@ -195,6 +196,7 @@ export function generateLiquidityPoolContract({
         ${generateTransferIn(isTokenBStx, tokenB, 'amount', 'sender', 'CONTRACT')}
         ;; Transfer token A to sender
         ${generateTransferOut(isTokenAStx, tokenA, '(get dy delta)', 'CONTRACT', 'sender')}
+        (print {op: "swap-b-to-a", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
 (define-public (add-liquidity (amount uint))
@@ -204,6 +206,7 @@ export function generateLiquidityPoolContract({
         ${generateTransferIn(isTokenAStx, tokenA, '(get dx delta)', 'sender', 'CONTRACT')}
         ${generateTransferIn(isTokenBStx, tokenB, '(get dy delta)', 'sender', 'CONTRACT')}
         (try! (ft-mint? ${lpTokenSymbol} (get dk delta) sender))
+        (print {op: "add-liquidity", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
 (define-public (remove-liquidity (amount uint))
@@ -213,6 +216,7 @@ export function generateLiquidityPoolContract({
         (try! (ft-burn? ${lpTokenSymbol} (get dk delta) sender))
         ${generateTransferOut(isTokenAStx, tokenA, '(get dx delta)', 'CONTRACT', 'sender')}
         ${generateTransferOut(isTokenBStx, tokenB, '(get dy delta)', 'CONTRACT', 'sender')}
+        (print {op: "remove-liquidity", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
 ;; --- Helper Functions ---

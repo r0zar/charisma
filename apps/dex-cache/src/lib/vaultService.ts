@@ -336,6 +336,7 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
 
     try {
         // Attempt to get raw string data first for robust parsing
+        console.log(cacheKey);
         const rawCachedData = await kv.get<string | CachedVault>(cacheKey);
         let cached: CachedVault | null = null;
 

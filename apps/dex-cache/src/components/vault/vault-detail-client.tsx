@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { AddLiquidityModal } from './add-liquidity-modal';
 import { RemoveLiquidityModal } from './remove-liquidity-modal';
 import { MetadataEditForm } from './metadata-edit-form';
+import TokenInfoCard from './token-info-card';
 
 interface Token {
     contractId: string;
@@ -100,73 +101,7 @@ const StatCard = ({ title, value, icon, trend, footnote }: {
     </Card>
 );
 
-const TokenInfoCard = ({ token, reserves, price }: { token: any; reserves: number; price: number | undefined }) => {
-    const reserveAmount = reserves / (10 ** (token.decimals || 6));
-    const value = price !== undefined ? reserveAmount * price : null;
 
-    // Show 'N/A' if price is not available
-    const volumeDisplay = value !== null ? `$${(value * 0.15).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'N/A';
-    const changeDisplay = value !== null ? '+0%' : 'N/A'; // No real change data, so show 0% or N/A
-
-    return (
-        <Card className="overflow-hidden border border-border/50">
-            <div className="flex items-stretch">
-                <div className="bg-muted/30 p-4 flex items-center justify-center">
-                    <div className="relative w-16 h-16">
-                        <Image
-                            src={token.image || '/placeholder.png'}
-                            alt={token.symbol || 'Token'}
-                            fill
-                            className="rounded-full p-1"
-                            onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex-grow p-4">
-                    <div className="flex justify-between items-start mb-2">
-                        <div>
-                            <h3 className="font-semibold text-lg">{token.name || 'Unknown Token'}</h3>
-                            <div className="text-sm text-muted-foreground flex items-center">
-                                <span className="mr-2">{token.symbol || '--'}</span>
-                                <Badge variant="outline" className="text-xs px-1.5 py-0">{token.decimals || 6} decimals</Badge>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="font-bold text-lg">
-                                {reserveAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                                {value !== null ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'Price N/A'}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-border/40">
-                        <div className="flex justify-between text-sm">
-                            <div className="flex items-center">
-                                <Clock className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                                <span>24h Volume:</span>
-                            </div>
-                            <div className="font-medium">
-                                {volumeDisplay}
-                            </div>
-                        </div>
-                        <div className="flex justify-between text-sm mt-1.5">
-                            <div className="flex items-center">
-                                <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                                <span>30d Change:</span>
-                            </div>
-                            <div className="font-medium text-muted-foreground">
-                                {changeDisplay}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Card>
-    );
-};
 
 // Add a reusable ComingSoonMask component
 const ComingSoonMask = ({ children }: { children: React.ReactNode }) => (

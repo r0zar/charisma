@@ -5,6 +5,8 @@ import { Metadata } from 'next';
 import { Coins } from 'lucide-react';
 import { getAllVaultData } from '@/lib/vaultService';
 
+// export const dynamic = 'force-dynamic';
+
 // Define metadata for better SEO
 export const metadata: Metadata = {
   title: 'Explore Pools | Charisma Invest',

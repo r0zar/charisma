@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { removeVault, refreshVaultData } from '@/app/actions';
+import { removeVault, refreshVaultData } from '@/app/actions'; // These actions might need to be adjusted for sublinks
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
+import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { Vault } from '@/lib/vaultService';
+import { Vault } from '@/lib/vaultService'; // Assuming Vault is the correct type for sublinks for now
+import Image from 'next/image'; // If sublinks have images
 
-// Utility to truncate contract id for display
+// Utility functions (truncateContractId, formatTokenAmount, formatUsdValue, formatTimestamp, getTimeSinceUpdate, calculateUsdValue)
+// These are kept from the original PoolList structure and can be adjusted or removed if not needed for sublinks
+
 const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
     const [addr, name] = id.split('.');
     if (!addr) return id;
@@ -18,15 +21,10 @@ const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
     return `${addr.slice(0, prefix)}...${addr.slice(-suffix)}.${name}`;
 };
 
-// Format token amount with proper decimals
 const formatTokenAmount = (amount: number, decimals: number): string => {
     if (amount === 0) return '0';
-
-    // Convert atomic units to token units
     const formatted = amount / Math.pow(10, decimals);
-
-    // Format based on value size
-    if (formatted < 0.001) {
+    if (formatted < 0.001 && formatted > 0) { // Avoid log(0) or small negative numbers if amount is tiny positive
         return formatted.toExponential(2);
     } else if (formatted < 1) {
         return formatted.toFixed(Math.min(6, decimals));
@@ -42,69 +40,46 @@ const formatTokenAmount = (amount: number, decimals: number): string => {
     }
 };
 
-// Format USD amount for display
 const formatUsdValue = (value: number | null): string => {
     if (value === null || isNaN(value)) return '—';
-
-    if (value < 0.01) {
-        return '< $0.01';
-    } else if (value < 1) {
-        return `$${value.toFixed(2)}`;
-    } else if (value < 1000) {
-        return `$${value.toFixed(2)}`;
-    } else if (value < 1000000) {
-        return `$${(value / 1000).toFixed(1)}K`;
-    } else {
-        return `$${(value / 1000000).toFixed(1)}M`;
-    }
+    if (value < 0.01 && value > -0.01 && value !== 0) return '< $0.01'; // Handle very small positive/negative
+    if (value < 1 && value > -1) return `$${value.toFixed(2)}`;
+    if (value < 1000 && value > -1000) return `$${value.toFixed(2)}`;
+    if (value < 1000000 && value > -1000000) return `$${(value / 1000).toFixed(1)}K`;
+    return `$${(value / 1000000).toFixed(1)}M`;
 };
 
-// Format timestamp to readable date
 const formatTimestamp = (timestamp?: number): string => {
     if (!timestamp) return 'Never';
     return new Date(timestamp).toLocaleString();
 };
 
-// Calculate time since last update for status indicator
 const getTimeSinceUpdate = (timestamp?: number): { status: 'fresh' | 'normal' | 'stale'; text: string } => {
     if (!timestamp) return { status: 'stale', text: 'Never updated' };
-
     const now = Date.now();
     const diff = now - timestamp;
-
-    // Less than 1 hour
-    if (diff < 60 * 60 * 1000) {
-        return { status: 'fresh', text: 'Updated recently' };
-    }
-    // Less than 24 hours
-    else if (diff < 24 * 60 * 60 * 1000) {
-        return { status: 'normal', text: 'Updated today' };
-    }
-    // More than 24 hours
-    else {
-        return { status: 'stale', text: 'Needs update' };
-    }
+    if (diff < 60 * 60 * 1000) return { status: 'fresh', text: 'Updated recently' };
+    if (diff < 24 * 60 * 60 * 1000) return { status: 'normal', text: 'Updated today' };
+    return { status: 'stale', text: 'Needs update' };
 };
 
-// Calculate USD value based on token amount and price
 const calculateUsdValue = (amount: number, decimals: number, contractId: string, prices: KraxelPriceData | null): number | null => {
     if (!prices || !contractId) return null;
-
     const price = prices[contractId];
     if (!price) return null;
-
     const tokenUnits = amount / Math.pow(10, decimals);
     return tokenUnits * price;
 };
 
-interface Props {
-    vaults: Vault[];
+
+interface SublinkListProps {
+    vaults: Vault[]; // Using Vault[] as sublinks for now
 }
 
-export default function VaultList({ vaults }: Props) {
+export default function SublinkList({ vaults }: SublinkListProps) {
     const [refreshing, setRefreshing] = useState<string | null>(null);
-    const [removing, setRemoving] = useState<string | null>(null);
-    const [expandedVault, setExpandedVault] = useState<string | null>(null);
+    // const [removing, setRemoving] = useState<string | null>(null); // If remove functionality is needed
+    const [expandedItem, setExpandedItem] = useState<string | null>(null); // If expandable rows are needed
     const [prices, setPrices] = useState<KraxelPriceData | null>(null);
     const isDev = process.env.NODE_ENV === 'development';
 
@@ -114,47 +89,45 @@ export default function VaultList({ vaults }: Props) {
                 const priceData = await listPrices();
                 setPrices(priceData);
             } catch (error) {
-                console.error('Failed to fetch token prices:', error);
+                console.error('Failed to fetch token prices for sublinks:', error);
             }
         };
         fetchPrices();
     }, []);
 
-    const handleRefresh = async (id: string) => {
+    const handleRefresh = async (id: string) => { // This might need a different backend action for sublinks
         setRefreshing(id);
-        await refreshVaultData(id);
-        window.location.reload();
+        // await refreshSublinkData(id); // Example: new action
+        await refreshVaultData(id); // Using existing for now
+        window.location.reload(); // Consider optimistic updates instead of reload
         setRefreshing(null);
     };
 
-    const handleRemove = async (id: string) => {
-        setRemoving(id);
-        await removeVault(id);
-        window.location.reload();
-        setRemoving(null);
-    };
+    // const handleRemove = async (id: string) => { ... }; // If needed
 
     const toggleExpand = (id: string) => {
-        setExpandedVault(expandedVault === id ? null : id);
+        setExpandedItem(expandedItem === id ? null : id);
     };
 
-    if (vaults.length === 0) return (
-        <Card className="mt-6">
-            <CardContent className="pt-6">
-                <div className="text-center py-8 text-muted-foreground">
-                    <Coins className="w-12 h-12 mx-auto mb-4 text-muted" />
-                    <p className="text-lg font-semibold">No vaults found</p>
-                    <p className="text-sm mt-1">Add a vault using the form above to get started.</p>
-                </div>
-            </CardContent>
-        </Card>
-    );
+    if (!vaults || vaults.length === 0) {
+        return (
+            <Card className="mt-6">
+                <CardContent className="pt-6">
+                    <div className="text-center py-8 text-muted-foreground">
+                        <Coins className="w-12 h-12 mx-auto mb-4 text-muted" />
+                        <p className="text-lg font-semibold">No Sublinks Found</p>
+                        <p className="text-sm mt-1">Sublinks will appear here once available.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center">
-                    <Layers className="w-5 h-5 mr-2 text-primary" />
+                    <Layers className="w-5 h-5 mr-2 text-primary" /> {/* Consider a different Icon for Sublinks */}
                     Sublinks
                     <Badge variant="secondary" className="ml-auto">
                         {vaults.length} sublink{vaults.length !== 1 ? 's' : ''}
@@ -167,102 +140,82 @@ export default function VaultList({ vaults }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Contract</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Contract ID</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Fee</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Liquidity</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Direction</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Liquidity (USD)</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Status</th>
                                 <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {vaults.map(v => {
-                                const isRefreshing = refreshing === v.contractId;
-                                const isRemoving = removing === v.contractId;
-                                const isExpanded = expandedVault === v.contractId;
+                            {vaults.map(sublink => {
+                                const isRefreshingThis = refreshing === sublink.contractId;
+                                // const isRemovingThis = removing === sublink.contractId;
+                                const isExpandedThis = expandedItem === sublink.contractId;
 
-                                const formattedReservesA = formatTokenAmount(v.reservesA || 0, v.tokenA.decimals || 0);
-                                const formattedReservesB = formatTokenAmount(v.reservesB || 0, v.tokenB.decimals || 0);
+                                // Assuming sublink (Vault type) has tokenA and tokenB for direction
+                                const tokenASymbol = sublink.tokenA?.symbol || 'TokenA';
+                                const tokenBSymbol = sublink.tokenB?.symbol || 'TokenB';
 
-                                const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA.decimals || 0, v.tokenA.contractId, prices);
-                                const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB.decimals || 0, v.tokenB.contractId, prices);
-                                const totalUsdValue = (usdValueA !== null && usdValueB !== null) ? (usdValueA + usdValueB) : null;
+                                // Placeholder for liquidity - adapt based on actual data structure for sublinks
+                                const liquidityA = sublink.reservesA || 0;
+                                const liquidityB = sublink.reservesB || 0;
+                                const decimalsA = sublink.tokenA?.decimals || 0;
+                                const decimalsB = sublink.tokenB?.decimals || 0;
+                                const contractA = sublink.tokenA?.contractId || '';
+                                const contractB = sublink.tokenB?.contractId || '';
 
-                                const formattedUsdValueA = formatUsdValue(usdValueA);
-                                const formattedUsdValueB = formatUsdValue(usdValueB);
-                                const formattedTotalUsdValue = formatUsdValue(totalUsdValue);
+                                const usdA = calculateUsdValue(liquidityA, decimalsA, contractA, prices);
+                                const usdB = calculateUsdValue(liquidityB, decimalsB, contractB, prices);
+                                const totalUsdLiquidity = (usdA !== null && usdB !== null) ? usdA + usdB : null; // This might represent total value rather than bridge liquidity
+                                const formattedTotalUsd = formatUsdValue(totalUsdLiquidity);
 
-                                const lastUpdated = (v as any).reservesLastUpdatedAt;
+                                const lastUpdated = (sublink as any).reservesLastUpdatedAt; // Check if this field exists for sublinks
                                 const updateStatus = getTimeSinceUpdate(lastUpdated);
 
                                 return (
-                                    <React.Fragment key={v.contractId}>
-                                        <tr className={`${isExpanded ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
-                                            <td className="p-4 whitespace-nowrap font-medium flex">
-                                                <Link href={`/vaults/${v.contractId}`} className="flex items-center gap-2 group">
-                                                    {v.image && (
-                                                        <div className="flex-shrink-0 h-8 w-8">
-                                                            <img
-                                                                src={v.image}
-                                                                alt={`${v.name} logo`}
-                                                                className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <div>
-                                                        <div className="font-semibold text-foreground group-hover:text-primary group-hover:underline">
-                                                            {v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span>
-                                                        </div>
-                                                        {lastUpdated && (
-                                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                                Updated: {formatTimestamp(lastUpdated)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </Link>
-                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-accent">
-                                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                                </button>
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
-                                                <Badge variant="outline">{truncateContractId(v.contractId)}</Badge>
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap">
+                                    <React.Fragment key={sublink.contractId}>
+                                        <tr className={`${isExpandedThis ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
+                                            <td className="p-4 whitespace-nowrap font-medium">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="flex items-center">
-                                                        {v.tokenA.image && (
-                                                            <img
-                                                                src={v.tokenA.image}
-                                                                alt={v.tokenA.symbol}
-                                                                className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
-                                                            />
-                                                        )}
-                                                        <span className="text-primary font-medium">{v.tokenA.symbol}</span>
-                                                    </span>
-                                                    <span className="text-muted-foreground">/</span>
-                                                    <span className="flex items-center">
-                                                        {v.tokenB.image && (
-                                                            <img
-                                                                src={v.tokenB.image}
-                                                                alt={v.tokenB.symbol}
-                                                                className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
-                                                            />
-                                                        )}
-                                                        <span className="text-secondary font-medium">{v.tokenB.symbol}</span>
-                                                    </span>
+                                                    {/* If sublinks have images:
+                                                    {sublink.image && (
+                                                        <Image
+                                                            width={24} height={24} src={sublink.image}
+                                                            alt={`${sublink.name} logo`}
+                                                            className="h-6 w-6 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                        />
+                                                    )} */}
+                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} className="hover:underline text-primary">
+                                                        {sublink.name} <span className="text-muted-foreground font-normal">({sublink.symbol})</span>
+                                                    </Link>
                                                 </div>
                                             </td>
+                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
+                                                <Badge variant="outline">{truncateContractId(sublink.contractId)}</Badge>
+                                            </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <Badge variant="outline">{(v.fee / 10000).toFixed(2)}%</Badge>
+                                                <div className="flex items-center gap-1">
+                                                    {sublink.tokenA?.image && (
+                                                        <Image width={16} height={16} src={sublink.tokenA.image} alt={tokenASymbol} className="w-4 h-4 rounded-full object-contain bg-card p-px border border-border" />
+                                                    )}
+                                                    <span>{tokenASymbol}</span>
+                                                    <span className="text-muted-foreground">/</span>
+                                                    {sublink.tokenB?.image && (
+                                                        <Image width={16} height={16} src={sublink.tokenB.image} alt={tokenBSymbol} className="w-4 h-4 rounded-full object-contain bg-card p-px border border-border" />
+                                                    )}
+                                                    <span>{tokenBSymbol}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 whitespace-nowrap text-xs">
+                                                {/* Placeholder for Direction, e.g., based on tokenA and tokenB network */}
+                                                Stacks <span className="text-muted-foreground">&rarr;</span> Blaze Subnet
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex flex-col items-start">
-                                                    <span className="font-medium text-foreground">
-                                                        {formattedTotalUsdValue}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {formattedReservesA} {v.tokenA.symbol} / {formattedReservesB} {v.tokenB.symbol}
-                                                    </span>
+                                                    <span className="font-medium text-foreground">{formattedTotalUsd}</span>
+                                                    {/* More specific liquidity details if available */}
                                                 </div>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
@@ -272,96 +225,38 @@ export default function VaultList({ vaults }: Props) {
                                                 >
                                                     {updateStatus.status}
                                                 </Badge>
+                                                {/* Expand button if more details are shown in an expanded row */}
+                                                {/* <button onClick={() => toggleExpand(sublink.contractId)} className="ml-auto text-muted-foreground p-1 px-2 rounded-full hover:bg-accent">
+                                                    {isExpandedThis ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                </button> */}
                                             </td>
                                             <td className="p-4 whitespace-nowrap text-right space-x-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={(e) => { e.stopPropagation(); handleRefresh(v.contractId); }}
-                                                    disabled={isRefreshing || isRemoving}
-                                                    title="Refresh Vault Data"
-                                                >
-                                                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                                <Button asChild variant="ghost" size="sm" className="px-2">
+                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} title="Manage Sublink">
+                                                        Manage <ExternalLink className="w-3 h-3 ml-1.5" />
+                                                    </Link>
                                                 </Button>
-                                                {isDev && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => { e.stopPropagation(); handleRemove(v.contractId); }}
-                                                        disabled={isRemoving || isRefreshing}
-                                                        title="Remove Vault (Dev Only)"
-                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                )}
+                                                {/* Refresh button if applicable for sublinks 
+                                                <Button
+                                                    variant="ghost" size="icon"
+                                                    onClick={() => handleRefresh(sublink.contractId)}
+                                                    disabled={isRefreshingThis}
+                                                    title="Refresh Sublink Data"
+                                                >
+                                                    <RefreshCw className={`w-4 h-4 ${isRefreshingThis ? 'animate-spin' : ''}`} />
+                                                </Button> */}
                                             </td>
                                         </tr>
-                                        {isExpanded && (
+                                        {/* Optional: Expanded row for more details, if needed in the list itself
+                                        {isExpandedThis && (
                                             <tr className="bg-muted/10 border-t border-border">
-                                                <td colSpan={7} className="px-6 py-5">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                        <div className="space-y-3">
-                                                            <div className="space-y-1">
-                                                                <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
-                                                                <p className="text-sm">{v.description || 'N/A'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <h4 className="text-sm font-medium text-muted-foreground">Engine Contract</h4>
-                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <h4 className="text-sm font-medium text-muted-foreground">External Pool ID</h4>
-                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.externalPoolId || 'N/A'}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <h4 className="text-sm font-medium text-muted-foreground mb-2">Token Details</h4>
-                                                                <div className="bg-muted/30 rounded-lg p-3 mb-2">
-                                                                    <div className="flex items-center mb-1">
-                                                                        {v.tokenA.image && (
-                                                                            <img
-                                                                                src={v.tokenA.image}
-                                                                                alt={v.tokenA.symbol}
-                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
-                                                                            />
-                                                                        )}
-                                                                        <h5 className="font-medium text-primary">{v.tokenA.symbol}</h5>
-                                                                    </div>
-                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenA.contractId}</p>
-                                                                    <div className="flex justify-between text-xs pl-7">
-                                                                        <span>Balance: {formattedReservesA}</span>
-                                                                        <span>Value: {formattedUsdValueA}</span>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                                    <div className="flex items-center mb-1">
-                                                                        {v.tokenB.image && (
-                                                                            <img
-                                                                                src={v.tokenB.image}
-                                                                                alt={v.tokenB.symbol}
-                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
-                                                                            />
-                                                                        )}
-                                                                        <h5 className="font-medium text-secondary">{v.tokenB.symbol}</h5>
-                                                                    </div>
-                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenB.contractId}</p>
-                                                                    <div className="flex justify-between text-xs pl-7">
-                                                                        <span>Balance: {formattedReservesB}</span>
-                                                                        <span>Value: {formattedUsdValueB}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                <td colSpan={7} className="px-6 py-4">
+                                                    <p className="text-xs text-muted-foreground">Detailed sublink information here...</p>
+                                                    <p>Token A ({tokenASymbol}) Reserves: {formatTokenAmount(liquidityA, decimalsA)}</p>
+                                                    <p>Token B ({tokenBSymbol}) Reserves: {formatTokenAmount(liquidityB, decimalsB)}</p>
                                                 </td>
                                             </tr>
-                                        )}
+                                        )} */}
                                     </React.Fragment>
                                 );
                             })}
@@ -371,4 +266,4 @@ export default function VaultList({ vaults }: Props) {
             </CardContent>
         </Card>
     );
-} 
+}
