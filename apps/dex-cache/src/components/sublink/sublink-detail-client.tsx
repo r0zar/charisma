@@ -15,6 +15,7 @@ import { callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getSubnetTokenBalance } from '@/app/actions';
 
 // Props for SublinkDetailClient - must match what page.tsx provides
 interface SublinkDetailClientProps {
@@ -84,6 +85,53 @@ const getSubnetTokenContractId = (sublinkContractId: string) => {
     return `${address}.charisma-token-subnet-v1`;
 };
 
+// Function to fetch subnet contract balance and calculate TVL
+const calculateTvl = async (
+    refreshing: boolean,
+    sublinkContractId: string,
+    tokenContractId: string,
+    tokenPrice: number,
+    setIsLoadingTvl: React.Dispatch<React.SetStateAction<boolean>>,
+    setIsRefreshingTvl: React.Dispatch<React.SetStateAction<boolean>>,
+    setCalculatedTvl: React.Dispatch<React.SetStateAction<number | null>>,
+    setInitialLoad: React.Dispatch<React.SetStateAction<boolean>>
+) => {
+    if (refreshing) {
+        setIsRefreshingTvl(true);
+    } else {
+        setIsLoadingTvl(true);
+    }
+
+    try {
+        // Call the server action to get the token balance
+        const result = await getSubnetTokenBalance(sublinkContractId, tokenContractId);
+
+        if (result.success && result.balance !== undefined) {
+            // Convert from micro units to standard units using the returned decimals or default
+            const tokenDecimals = result.tokenDecimals || 6;
+            const tokenBalance = result.balance / Math.pow(10, tokenDecimals);
+
+            // Calculate TVL (token balance * token price)
+            const tvl = tokenBalance * tokenPrice;
+            setCalculatedTvl(tvl);
+
+            console.log(`Calculated TVL: ${tvl} USD from ${tokenBalance} tokens at $${tokenPrice} each`);
+        } else {
+            console.error("Error fetching subnet balance:", result.error);
+            toast.error("Could not fetch subnet token balance", {
+                description: result.error
+            });
+        }
+    } catch (error) {
+        console.error("Error calculating TVL:", error);
+        toast.error("Failed to fetch subnet TVL data");
+    } finally {
+        setIsLoadingTvl(false);
+        setIsRefreshingTvl(false);
+        setInitialLoad(false);
+    }
+};
+
 export default function SublinkDetailClient({ sublink, prices, analytics, contractInfo }: SublinkDetailClientProps) {
     // Calculate fee percentage if available
     const feePercent = sublink.fee ? (sublink.fee / 10000).toFixed(2) : '0';
@@ -95,62 +143,18 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
     const [initialLoad, setInitialLoad] = useState(true);
     const tokenDecimals = sublink.tokenA.decimals || 6;
 
-    // Function to fetch subnet contract balance and calculate TVL
-    const calculateTvl = async (refreshing = false) => {
-        if (refreshing) {
-            setIsRefreshingTvl(true);
-        } else {
-            setIsLoadingTvl(true);
-        }
-
-        try {
-            // Get subnet contract ID
-            const subnetContractId = getSubnetTokenContractId(sublink.contractId);
-            const [subnetAddress, subnetName] = subnetContractId.split('.');
-
-            // Get token contract components
-            const [tokenAddress, tokenName] = sublink.tokenA.contractId.split('.');
-
-            // Fetch token balance of the subnet contract
-            const balanceResult = await callReadOnlyFunction(
-                tokenAddress,
-                tokenName,
-                'get-balance',
-                [principalCV(subnetContractId)]
-            );
-
-            if (balanceResult && typeof balanceResult === 'object' && 'value' in balanceResult) {
-                // Convert from micro units to standard units
-                const tokenBalance = parseInt(balanceResult.value.toString()) / Math.pow(10, tokenDecimals);
-
-                // Get token price from prices data
-                const tokenPrice = prices[sublink.tokenA.contractId] || 0;
-
-                // Calculate TVL (token balance * token price)
-                const tvl = tokenBalance * tokenPrice;
-                setCalculatedTvl(tvl);
-
-                console.log(`Calculated TVL: ${tvl} USD from ${tokenBalance} ${sublink.tokenA.symbol} at $${tokenPrice} each`);
-            } else {
-                console.error("Unexpected balance result format:", balanceResult);
-                // Fallback to analytics TVL if available
-                setCalculatedTvl(analytics.tvl);
-            }
-        } catch (error) {
-            console.error("Error calculating TVL:", error);
-            toast.error("Failed to fetch subnet TVL data");
-            // Fallback to analytics TVL
-            setCalculatedTvl(analytics.tvl);
-        } finally {
-            setIsLoadingTvl(false);
-            setIsRefreshingTvl(false);
-            setInitialLoad(false);
-        }
-    };
-
     // Calculate TVL on component mount
     useEffect(() => {
-        calculateTvl();
+        calculateTvl(
+            false,
+            sublink.contractId,
+            sublink.tokenA.contractId,
+            prices[sublink.tokenA.contractId] || 0,
+            setIsLoadingTvl,
+            setIsRefreshingTvl,
+            setCalculatedTvl,
+            setInitialLoad
+        );
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sublink.contractId, sublink.tokenA.contractId]);
 
@@ -241,6 +245,20 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
         );
     }
 
+    // Update the refresh button click handler
+    const handleRefreshTvl = () => {
+        calculateTvl(
+            true,
+            sublink.contractId,
+            sublink.tokenA.contractId,
+            prices[sublink.tokenA.contractId] || 0,
+            setIsLoadingTvl,
+            setIsRefreshingTvl,
+            setCalculatedTvl,
+            setInitialLoad
+        );
+    };
+
     return (
         <div className="container mx-auto p-4 md:p-6 mb-12">
             {/* Breadcrumb Navigation */}
@@ -293,7 +311,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                         variant="ghost"
                                         size="sm"
                                         className="h-6 w-6 p-0"
-                                        onClick={() => calculateTvl(true)}
+                                        onClick={handleRefreshTvl}
                                         disabled={isRefreshingTvl || isLoadingTvl}
                                     >
                                         <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingTvl ? 'animate-spin' : ''}`} />

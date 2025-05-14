@@ -23,6 +23,51 @@ interface ContractInfo {
 }
 
 /**
+ * Interface for STX token balance information 
+ */
+interface StxBalanceInfo {
+  balance: string;
+  total_sent: string;
+  total_received: string;
+  lock_tx_id?: string;
+  locked?: string;
+  lock_height?: number;
+  burnchain_lock_height?: number;
+  burnchain_unlock_height?: number;
+}
+
+/**
+ * Interface for fungible token balances 
+ */
+interface FungibleTokenBalances {
+  [key: string]: {
+    balance: string;
+    total_sent: string;
+    total_received: string;
+  };
+}
+
+/**
+ * Interface for non-fungible token balances 
+ */
+interface NonFungibleTokenBalances {
+  [key: string]: {
+    count: string;
+    total_sent: string;
+    total_received: string;
+  };
+}
+
+/**
+ * Interface for account balances response 
+ */
+interface AccountBalancesResponse {
+  stx: StxBalanceInfo;
+  fungible_tokens: FungibleTokenBalances;
+  non_fungible_tokens: NonFungibleTokenBalances;
+}
+
+/**
  * Fetches the interface for a specified smart contract.
  * @param contractAddress The Stacks address of the contract.
  * @param contractName The name of the contract.
@@ -114,6 +159,43 @@ export async function getContractInfo(
     }
     console.error("Error fetching contract info:", error);
     throw new Error("Failed to fetch contract info.");
+  }
+}
+
+/**
+ * Fetches account balance information for a Stacks address or a contract identifier.
+ * Includes balances of STX tokens, fungible tokens, and non-fungible tokens.
+ * 
+ * @param principal Stacks address or contract identifier
+ * @param params Optional parameters
+ * @param params.unanchored Whether to include transaction data from unanchored microblocks
+ * @param params.until_block Return data representing the state up until that block height
+ * @returns A promise that resolves to the account balances
+ */
+export async function getAccountBalances(
+  principal: string,
+  params?: {
+    unanchored?: boolean;
+    until_block?: string;
+  }
+): Promise<AccountBalancesResponse | null> {
+  try {
+    const { data } = await apiClient.GET(`/extended/v1/address/${principal}/balances` as any, {
+      params: {
+        query: {
+          unanchored: params?.unanchored,
+          until_block: params?.until_block,
+        },
+      },
+    });
+    return data as AccountBalancesResponse;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      console.warn(`Address or contract not found: ${principal}`);
+      return null;
+    }
+    console.error(`Error fetching account balances for ${principal}:`, error);
+    throw new Error("Failed to fetch account balances.");
   }
 }
 
