@@ -88,13 +88,15 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
                     // Map SwapClientToken to SpinToken
                     const mappedTokens: SpinToken[] = result.map((token: SwapClientToken) => ({
+                        type: token.type,
+                        base: token.base,
                         id: token.contractId, // Use contractId as id
                         contractId: token.contractId,
                         name: token.name,
                         symbol: token.symbol,
                         decimals: token.decimals,
                         imageUrl: token.image || '/placeholder-token.png', // Use image or fallback
-                        userBalance: 0 // Default userBalance, needs separate fetching logic if required
+                        userBalance: 0, // Default userBalance, needs separate fetching logic if required
                     }));
 
                     setDexTokens(mappedTokens);

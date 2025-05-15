@@ -149,7 +149,7 @@ export const SpinProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const token = data.initialTokens?.find(t => t.id === tokenId);
 
                     // Show toast notification with token and user info
-                    showVoteNotification(amount, token || { id: tokenId, name: 'Unknown', symbol: tokenId.split('.').pop() || 'Unknown', imageUrl: '/placeholder-token.png', userBalance: 0 }, userId);
+                    showVoteNotification(amount, token!, userId);
 
                     // Return updated state with the new vote ID tracked
                     return {

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Token, Vote } from '@/types/spin';
 import { useWallet } from '@/contexts/wallet-context';
 import { useSpin } from '@/contexts/SpinContext';
-import { X, Search, Rocket, TrendingUp, Coins } from 'lucide-react';
+import { X, Search, Rocket, TrendingUp, Coins, Flame } from 'lucide-react';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
     DialogDescription
@@ -15,10 +15,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from '@/components/ui/sonner';
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
 import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
 import { z } from 'zod';
 import { buttonVariants } from '@/components/ui/button';
+import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
+// import { Quote } from 'dexterity-sdk'; // Not used, can be removed if truly unused
 
 // CHA Token specific constants - ideally, CHA token info (like decimals) would be more globally available
 const CHA_DECIMALS = 6; // Assuming Charisma (CHA) token has 6 decimals
@@ -29,6 +32,7 @@ interface PlaceBetModalProps {
     onClose: () => void;
     tokens: Token[];
 }
+
 
 // Helper to format balance (assuming 6 decimals by default)
 const formatBalance = (balance: string, decimals: number = CHA_DECIMALS) => {
@@ -58,16 +62,30 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'search' | 'details'>('search');
 
-    // Derive availableTokens directly from props
-    const availableTokens = tokens || [];
+    // Filter out SUBNET tokens, and then apply search term
+    const filteredTokens = useMemo(() => {
+        if (!tokens || tokens.length === 0) return [];
 
-    // Derive filteredTokens directly based on searchTerm and availableTokens
-    const filteredTokens = searchTerm
-        ? availableTokens.filter(t =>
-            t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            t.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        : availableTokens;
+        // First, get only non-SUBNET tokens
+        let displayTokens = tokens.filter(token => token.type !== 'SUBNET');
+
+        // Then, apply search term if present
+        if (searchTerm) {
+            displayTokens = displayTokens.filter(t =>
+                (t.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (t.symbol?.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+        }
+
+        // Optional: Sort the remaining regular tokens if needed, e.g., by name
+        // displayTokens.sort((a, b) => {
+        //     if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
+        //     if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
+        //     return 0;
+        // });
+
+        return displayTokens;
+    }, [tokens, searchTerm]); // Added searchTerm to dependencies
 
     useEffect(() => {
         if (!isOpen) {
@@ -233,21 +251,38 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                         <ScrollArea className="h-[40vh] md:h-[350px] border border-border/50 rounded-xl glass-card overflow-y-auto">
                             <div className="p-4 space-y-2">
                                 {filteredTokens.length === 0 && <p className="text-sm text-muted-foreground text-center">No tokens found.</p>}
-                                {filteredTokens.map((token) => (
+                                {filteredTokens.map((token: Token) => (
                                     <button
                                         key={token.id}
                                         onClick={() => setSelectedToken(token)}
                                         className={`token-select w-full ${selectedToken?.id === token.id ? 'selected' : ''}`}
                                         type="button"
                                     >
-                                        <Image
-                                            src={token.imageUrl}
-                                            alt={token.name}
-                                            width={32}
-                                            height={32}
-                                            className="rounded-full object-cover h-8 w-8"
-                                            onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
-                                        />
+                                        <div className="relative mr-3 flex-shrink-0">
+                                            <Image
+                                                src={token.imageUrl}
+                                                alt={token.name}
+                                                width={32}
+                                                height={32}
+                                                className="rounded-full object-cover h-8 w-8"
+                                                onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
+                                            />
+                                            {token.type === 'SUBNET' && (
+                                                <TooltipProvider delayDuration={100}>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <div className="absolute -top-1 -right-1 bg-red-500 p-0.5 rounded-full shadow-md">
+                                                                <Flame className="h-3 w-3 text-white" />
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="bg-background border-primary/30 shadow-xl rounded-md text-foreground p-2">
+                                                            <p className="text-xs font-medium">Subnet Token</p>
+                                                            <p className="text-xs text-muted-foreground">This token operates on a subnet for enhanced performance.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
                                         <div className="flex-grow min-w-0">
                                             <div className="font-medium font-display truncate">{token.name}</div>
                                             <div className="text-xs text-muted-foreground font-mono">{token.symbol}</div>
@@ -266,7 +301,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                         {selectedToken ? (
                             <div className="glass-card p-4 md:p-5 flex flex-col gap-4 my-4 md:my-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="relative">
+                                    <div className="relative flex-shrink-0">
                                         <Image
                                             src={selectedToken.imageUrl}
                                             alt={selectedToken.name}
@@ -275,7 +310,22 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                             className="rounded-full object-cover h-10 w-10 md:h-12 md:w-12 border-2 border-primary/30"
                                             onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
                                         />
-                                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs font-bold">
+                                        {selectedToken.type === 'SUBNET' && (
+                                            <TooltipProvider delayDuration={100}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="absolute -top-1 -right-1 bg-red-500 p-1 rounded-full shadow-md">
+                                                            <Flame className="h-3.5 w-3.5 text-white" />
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-background border-primary/30 shadow-xl rounded-md text-foreground p-2">
+                                                        <p className="text-xs font-medium">Subnet Token</p>
+                                                        <p className="text-xs text-muted-foreground">This token operates on a subnet for enhanced performance.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
+                                        <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs font-bold shadow-md">
                                             <TrendingUp className="h-3 w-3" />
                                         </div>
                                     </div>

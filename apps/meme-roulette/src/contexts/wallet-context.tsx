@@ -6,7 +6,7 @@ import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
 import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID, broadcastMultihopTransaction } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
-import { fetchQuote, Router, loadVaults, buildSwapTransaction } from 'dexterity-sdk';
+import { fetchQuote, Router, loadVaults, buildSwapTransaction, Quote } from 'dexterity-sdk';
 import { broadcastTransaction, makeContractCall } from '@stacks/transactions';
 
 // Default Charisma token contract (mainnet) – override in env if necessary
@@ -66,6 +66,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [subnetBalanceLoading, setSubnetBalanceLoading] = useState(false);
     const [stxBalanceLoading, setStxBalanceLoading] = useState(false);
 
+    const quoteRef = useRef<any>(null);
     const routerRef = useRef<Router | null>(null);
     const router = routerRef.current || new Router();
 
@@ -257,34 +258,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     const getQuote = async (from: string, to: string, amount: number) => {
         try {
-            const quote = await fetchQuote(from, to, amount);
-            return { success: true, quote };
+            const response = await fetchQuote(from, to, amount);
+            quoteRef.current = response as any;
+            return { success: true, quote: response };
         } catch (error: any) {
             console.error('getQuote error:', error);
             return { success: false, error: error.message || String(error) };
         }
     };
 
-    const findBestRoute = async (from: string, to: string, amount: number) => {
-        try {
-            const route = await router.findBestRoute(from, to, amount);
-            return { success: true, route };
-        } catch (error: any) {
-            console.error('findBestRoute error:', error);
-            return { success: false, error: error.message || String(error) };
-        }
-    };
 
-
-    const swapTokens = async (from: string, to: string, amount: number) => {
+    const swapTokens = async () => {
         try {
-            const { route } = await findBestRoute(from, to, amount);
-            if (!route || route instanceof Error) {
-                return { success: false, error: 'No route found' };
-            }
-            const txCfg = await buildSwapTransaction(router, route, address);
-            const txId = await request('stx_callContract', txCfg);
-            return { success: true, txId };
+            const txCfg = await buildSwapTransaction(router, quoteRef.current?.route!, address);
+            const response = await request('stx_callContract', txCfg);
+            return response;
         } catch (error: any) {
             console.error('executeSwap error:', error);
             return { success: false, error: error.message || String(error) };

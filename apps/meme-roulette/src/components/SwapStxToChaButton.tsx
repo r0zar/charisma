@@ -1,22 +1,37 @@
+// SwapStxToChaButton.tsx
+
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/components/ui/sonner';
 import { useWallet } from '@/contexts/wallet-context';
+import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createSwapClient } from '../lib/swap-client'; // Still needed for executeSwap
-import type { QuoteResponse } from '../lib/swap-client';
 import type { VariantProps } from 'class-variance-authority';
 import { Coins, RefreshCw, Repeat } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from '@/components/ui/sonner';
 import { z } from 'zod';
-import { buttonVariants } from '@/components/ui/button';
-import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
-import { Quote } from 'dexterity-sdk';
+
+// Assuming QuoteResponse is correctly defined in swap-client and represents the structure of a successful quote.
+// If it's the structure from dexterity-sdk's `Quote` type, ensure that's what `useWallet().getQuote()` actually returns.
+// For now, using the existing import.
+import type { QuoteResponse } from '../lib/swap-client';
+
+// --- Constants ---
+const STX_DECIMALS = 6;
+const DEBOUNCE_DELAY = 500; // milliseconds for debounce
 
 // --- Form Validation Schema ---
 const formSchema = z.object({
@@ -25,13 +40,19 @@ const formSchema = z.object({
         .min(1, 'Amount is required')
         .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
             message: 'Amount must be a positive number',
+        })
+        .refine((val) => Number(val) * (10 ** STX_DECIMALS) >= 1, { // Ensure at least 1 microSTX
+            message: `Amount must be at least 0.000001 STX`,
         }),
 });
-
 type FormValues = z.infer<typeof formSchema>;
 
-// --- Quote Data Structure (adjust based on actual API response) ---
-// Using QuoteResponse from swap-client
+// --- State Types ---
+interface QuoteFetchState {
+    data: QuoteResponse | null;
+    loading: boolean;
+    error: string | null;
+}
 
 // --- Component Props ---
 interface SwapStxToChaButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'size'>,
@@ -43,9 +64,9 @@ interface SwapStxToChaButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBu
 }
 
 // --- Helper Functions ---
-const formatStx = (microStx: string | bigint, decimals = 6): string => {
+const formatStxAmount = (microAmount: string | bigint | number, decimals = STX_DECIMALS): string => {
     try {
-        const num = BigInt(microStx);
+        const num = BigInt(microAmount);
         const divisor = BigInt(10 ** decimals);
         const integerPart = num / divisor;
         const fractionalPart = num % divisor;
@@ -53,13 +74,28 @@ const formatStx = (microStx: string | bigint, decimals = 6): string => {
         if (fractionalPart === 0n) {
             return integerPart.toLocaleString();
         } else {
-            const fractionalStr = fractionalPart.toString().padStart(decimals, '0').replace(/0+$/, ''); // Remove trailing zeros
-            return `${integerPart.toLocaleString()}.${fractionalStr}`;
+            const fractionalStr = fractionalPart.toString().padStart(decimals, '0').replace(/0+$/, '');
+            return fractionalStr.length > 0 ? `${integerPart.toLocaleString()}.${fractionalStr}` : integerPart.toLocaleString();
         }
     } catch {
-        return '0';
+        return '0.00';
     }
 };
+
+// Custom hook for debouncing
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+}
+
 
 // --- Component ---
 export function SwapStxToChaButton({
@@ -73,81 +109,110 @@ export function SwapStxToChaButton({
 }: SwapStxToChaButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isFetchingQuote, setIsFetchingQuote] = useState(false);
-    const [lastTxId, setLastTxId] = useState<string | null>(null);
-    const [quote, setQuote] = useState<QuoteResponse | null>(null);
-    const [quoteError, setQuoteError] = useState<string | null>(null);
-    const [quoteLoading, setQuoteLoading] = useState(false);
+    const [lastTxId, setLastTxId] = useState<string | null>(null); // Potentially for display or other logic
+
+    const [quoteState, setQuoteState] = useState<QuoteFetchState>({
+        data: null,
+        loading: false,
+        error: null,
+    });
 
     const { address, connected, stxBalance, stxBalanceLoading, swapTokens, getQuote } = useWallet();
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            stxAmount: '',
-        },
+        defaultValues: { stxAmount: '' },
+        mode: 'onChange', // Validate on change for better UX
     });
 
     const stxAmountInput = form.watch('stxAmount');
+    const debouncedStxAmount = useDebounce(stxAmountInput, DEBOUNCE_DELAY);
 
-    // --- Quote preview on change ---
+    const clearQuote = useCallback(() => {
+        setQuoteState({ data: null, loading: false, error: null });
+    }, []);
+
+    // Fetch Quote Effect
     useEffect(() => {
-        const fetchQuote = async () => {
-            if (!stxAmountInput || Number(stxAmountInput) <= 0) {
-                setQuote(null);
-                setQuoteError(null);
+        // Ensure getQuote is stable, otherwise this effect might loop if getQuote changes identity.
+        // This is typically handled by memoizing getQuote in useWallet with useCallback.
+        if (!getQuote) return;
+
+
+        const fetchQuoteAsync = async () => {
+            if (!debouncedStxAmount || Number(debouncedStxAmount) <= 0 || form.formState.errors.stxAmount) {
+                clearQuote();
                 return;
             }
 
-            setQuoteLoading(true);
-            setQuoteError(null);
-            const amountToQuote = Math.round(Number(stxAmountInput) * 1_000_000);
+            setQuoteState((prev) => ({ ...prev, loading: true, error: null }));
+            try {
+                const amountInMicroStx = Math.round(Number(debouncedStxAmount) * (10 ** STX_DECIMALS));
+                if (amountInMicroStx <= 0) {
+                    clearQuote();
+                    setQuoteState((prev) => ({ ...prev, error: "Amount too low", loading: false }));
+                    return;
+                }
 
-            // Log the raw response for debugging
-            // console.log("Calling getQuote with:", '.stx', CHARISMA_SUBNET_CONTRACT, amountToQuote);
-            const response = await getQuote('.stx', CHARISMA_SUBNET_CONTRACT, amountToQuote);
-            // console.log("Raw response from useWallet().getQuote:", response);
-            const typedResponse = response;
-            if (typedResponse instanceof Error) {
-                setQuoteError(typedResponse.message);
-                setQuote(null);
-            } else if (response.quote) {
-                // Handle direct successful QuoteResponse data (heuristic check)
-                setQuote(response.quote);
-                setQuoteError(null);
+                // Assuming getQuote from useWallet returns:
+                // - { quote: QuoteResponseData } for success
+                // - An Error instance for failure
+                const response = await getQuote('.stx', CHARISMA_SUBNET_CONTRACT, amountInMicroStx);
+
+                if (response instanceof Error) {
+                    setQuoteState({ data: null, loading: false, error: response.message });
+                } else if (response && typeof response === 'object' && response.quote !== undefined) {
+                    setQuoteState({ data: response.quote as QuoteResponse, loading: false, error: null });
+                } else {
+                    setQuoteState({ data: null, loading: false, error: 'Invalid quote data received.' });
+                }
+            } catch (err) {
+                setQuoteState({
+                    data: null,
+                    loading: false,
+                    error: err instanceof Error ? err.message : 'An unknown error occurred while fetching quote.',
+                });
             }
         };
 
-        fetchQuote();
-    }, [stxAmountInput, getQuote, setQuote, setQuoteLoading, setQuoteError]);
+        fetchQuoteAsync();
+    }, [debouncedStxAmount, getQuote, clearQuote, form.formState.errors.stxAmount]);
 
 
-    // --- Swap Transaction Logic ---
-    const onSubmit = async (values: FormValues) => {
+    // Swap Transaction Logic
+    const handleSwapSubmit = async (values: FormValues) => {
         if (!connected || !address) {
-            toast.error('Wallet not connected'); return;
+            toast.error('Wallet not connected.');
+            return;
         }
-        if (!quote) {
-            toast.error('No valid quote available'); return;
+        if (!quoteState.data) {
+            toast.error('No valid quote available to perform swap.');
+            return;
         }
 
-        const stxAmountMicro = BigInt(Math.round(Number(values.stxAmount) * 1_000_000));
-        const availableStxBalance = BigInt(stxBalance);
+        const stxAmountMicro = BigInt(Math.round(Number(values.stxAmount) * (10 ** STX_DECIMALS)));
+        const availableStxBalance = BigInt(stxBalance); // Assuming stxBalance is in microSTX
 
         if (stxAmountMicro > availableStxBalance) {
-            toast.error('Insufficient STX balance'); return;
+            toast.error('Insufficient STX balance.');
+            return;
         }
 
         setIsSubmitting(true);
-        setLastTxId(null);
+        setLastTxId(null); // Reset last TxId
 
         try {
-            // Use swapClient to execute the swap using the fetched route
-            const result = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, stxAmountInput);
+            // Assuming swapTokens from useWallet takes these arguments: tokenInId, tokenOutId, amountString (human-readable)
+            // And internally uses the best route, or if it needs a quote/route object, that should be passed.
+            // The current implementation of swapTokens in the original file was `swapTokens()`
+            // which might imply it gets context elsewhere.
+            // Reverting to the more explicit version for clarity if it's a generic swap function:
+            const result: { txid: string } = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, values.stxAmount);
 
-            // Check the result structure from swapClient
-            if ('txId' in result && result.txId) {
-                const txId = result.txId;
+
+            // Assuming result has { txid: string } on success or { error: string } on failure from useWallet().swapTokens
+            if (result && typeof result === 'object' && 'txid' in result && result.txid) {
+                const txId = String(result.txid);
                 setLastTxId(txId);
                 toast.success('Swap Submitted!', {
                     description: `Tx ID: ${txId.substring(0, 10)}...`,
@@ -156,24 +221,24 @@ export function SwapStxToChaButton({
                         onClick: () => window.open(`https://explorer.stacks.co/txid/${txId}?chain=mainnet`, '_blank'),
                     },
                 });
-                form.reset();
-                setQuote(null);
-                setIsOpen(false);
+                form.reset(); // Reset form fields
+                clearQuote();   // Clear the quote
+                setIsOpen(false); // Close dialog
                 onSwapSuccess?.(txId);
-            } else {
-                // Handle error case from swapClient
-                const errorMessage = ('error' in result && result.error) || 'Swap failed or was cancelled.';
+            } else if (result && typeof result === 'object' && 'error' in result) {
+                const errorMessage = String(result.error) || 'Swap failed or was cancelled by the wallet.';
                 toast.error('Swap Failed', { description: errorMessage });
-                // Optionally trigger onSwapError callback here if needed
-                // onSwapError?.(new Error(errorMessage));
+                onSwapError?.(new Error(errorMessage));
+            } else {
+                toast.error('Swap Failed', { description: 'An unexpected response was received from the swap action.' });
+                onSwapError?.(new Error('Unexpected swap response.'));
             }
-        } catch (error: any) {
-            console.error('Error initiating STX to CHA swap:', error);
+        } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             if (message.toLowerCase().includes('cancelled') || message.toLowerCase().includes('rejected')) {
                 toast.info('Swap Cancelled');
             } else {
-                toast.error('Swap Failed', { description: message });
+                toast.error('Swap Operation Failed', { description: message });
             }
             onSwapError?.(error instanceof Error ? error : new Error(message));
         } finally {
@@ -181,12 +246,21 @@ export function SwapStxToChaButton({
         }
     };
 
-    const availableStxFormatted = formatStx(stxBalance);
+    const availableStxFormatted = useMemo(() => formatStxAmount(stxBalance), [stxBalance]);
+    const canSubmit = !isSubmitting && !quoteState.loading && !!quoteState.data && connected && !form.formState.errors.stxAmount;
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={(open) => {
+            setIsOpen(open);
+            if (!open) { // Reset states when dialog closes
+                form.reset();
+                clearQuote();
+            }
+        }}>
             <DialogTrigger asChild>
-                <Button className={className} variant={variant} size={size} {...buttonProps}>{buttonLabel}</Button>
+                <Button className={className} variant={variant} size={size} {...buttonProps}>
+                    {buttonLabel}
+                </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -197,13 +271,12 @@ export function SwapStxToChaButton({
                         Enter the amount of STX you want to swap. The estimated CHA received will be shown.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-                    {/* STX Input Section */}
+                <form onSubmit={form.handleSubmit(handleSwapSubmit)} className="space-y-4 py-2">
                     <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                             <Label htmlFor="stxAmount">You Pay (STX)</Label>
                             <span className="text-xs text-muted-foreground">
-                                Balance: {stxBalanceLoading ? '...' : availableStxFormatted} STX
+                                Balance: {stxBalanceLoading ? 'Loading...' : availableStxFormatted} STX
                             </span>
                         </div>
                         <Input
@@ -212,7 +285,7 @@ export function SwapStxToChaButton({
                             step="any"
                             placeholder="0.00"
                             {...form.register('stxAmount')}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || quoteState.loading}
                             className="input-field text-lg font-mono"
                         />
                         {form.formState.errors.stxAmount && (
@@ -220,25 +293,27 @@ export function SwapStxToChaButton({
                         )}
                     </div>
 
-                    {/* Swap Icon */}
                     <div className="flex justify-center text-muted-foreground">
                         <Coins className="h-5 w-5" />
                     </div>
 
-                    {/* CHA Output Section */}
                     <div className="space-y-1.5">
                         <Label htmlFor="chaAmountOut">You Receive (CHA)</Label>
-                        <div className="h-[40px] px-3 py-2 text-sm rounded-md border border-input bg-muted/50 flex items-center font-mono">
-                            {isFetchingQuote ? (
+                        <div className="h-[40px] px-3 py-2 text-sm rounded-md border border-input bg-muted/50 flex items-center font-mono min-h-[40px]">
+                            {quoteState.loading ? (
                                 <span className="flex items-center text-muted-foreground">
                                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Fetching quote...
                                 </span>
-                            ) : quoteError ? (
-                                <span className="text-destructive text-xs">{quoteError}</span>
-                            ) : quote ? (
+                            ) : quoteState.error ? (
+                                <span className="text-destructive text-xs">{quoteState.error}</span>
+                            ) : quoteState.data ? (
                                 <>
-                                    ~ {formatStx(String(quote.amountOut))} CHA
-                                    <span className="text-xs text-muted-foreground ml-2">(Min: {formatStx(String(quote.minimumReceived))})</span>
+                                    ~ {formatStxAmount(String(quoteState.data.amountOut))} CHA
+                                    {quoteState.data.minimumReceived !== undefined && (
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                            (Min: {formatStxAmount(String(quoteState.data.minimumReceived))})
+                                        </span>
+                                    )}
                                 </>
                             ) : (
                                 <span className="text-muted-foreground">Enter STX amount</span>
@@ -247,26 +322,16 @@ export function SwapStxToChaButton({
                     </div>
 
                     <DialogFooter>
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={isSubmitting || isFetchingQuote || !quote || !connected}
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Processing...
-                                </>
-                            ) : isFetchingQuote ? (
-                                <>
-                                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Getting Quote...
-                                </>
-                            ) : (
-                                'Confirm Swap'
-                            )}
+                        <Button type="submit" className="w-full" disabled={!canSubmit}>
+                            {isSubmitting
+                                ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
+                                : quoteState.loading
+                                    ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Getting Quote...</>
+                                    : 'Confirm Swap'}
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
     );
-} 
+}

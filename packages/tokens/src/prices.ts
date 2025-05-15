@@ -45,33 +45,25 @@ export async function listPrices(): Promise<KraxelPriceData> {
 
         const data: KraxelPriceData = await response.json();
 
-        // Ensure 'stx' key exists before assigning
         if (data.hasOwnProperty('stx')) {
             data['.stx'] = data['stx'];
         } else {
             console.warn("Price data from Kraxel API is missing 'stx' key.");
         }
 
-        // Ensure CHARISMA_TOKEN_CONTRACT key exists
         if (data.hasOwnProperty(CHARISMA_TOKEN_CONTRACT)) {
             data[CHARISMA_SUBNET_CONTRACT] = data[CHARISMA_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${CHARISMA_TOKEN_CONTRACT}' key.`);
         }
 
-        // Ensure WELSHCORGICOIN_CONTRACT key exists
         if (data.hasOwnProperty(WELSHCORGICOIN_CONTRACT)) {
             data[WELSH_SUBNET_CONTRACT] = data[WELSHCORGICOIN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${WELSHCORGICOIN_CONTRACT}' key.`);
         }
 
-        // Ensure SBTC_TOKEN_CONTRACT key exists (Note: Kraxel might use SBTC_SUBNET_CONTRACT directly as key)
-        // If Kraxel uses SBTC_TOKEN_CONTRACT, this is correct.
-        // If Kraxel uses SBTC_SUBNET_CONTRACT, then the condition should be on SBTC_SUBNET_CONTRACT
-        // and the assignment is redundant or should be the other way if mapping from subnet to token contract.
-        // Based on other patterns, it seems Kraxel returns by mainnet token contract.
-        if (data.hasOwnProperty(SBTC_TOKEN_CONTRACT)) { // Assuming Kraxel key is SBTC_TOKEN_CONTRACT
+        if (data.hasOwnProperty(SBTC_TOKEN_CONTRACT)) {
             data[SBTC_SUBNET_CONTRACT] = data[SBTC_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${SBTC_TOKEN_CONTRACT}' key.`);

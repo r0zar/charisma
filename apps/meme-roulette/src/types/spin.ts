@@ -1,10 +1,13 @@
 export interface Token {
+    type: string
     id: string; // Unique identifier (e.g., contract principal)
     name: string;
     symbol: string;
     imageUrl: string; // URL to token image
     userBalance: number; // Kept for potential future use, but not primary focus now
     decimals: number; // Number of decimal places for the token
+    contractId: string
+    base?: string; // contractId of the regular token if this is a SUBNET token
 }
 
 /**

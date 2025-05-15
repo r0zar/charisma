@@ -71,7 +71,9 @@ export default function HubPage() {
             symbol: token.symbol,
             decimals: token.decimals,
             imageUrl: token.image || '/placeholder-token.png',
-            userBalance: 0
+            userBalance: 0,
+            type: token.type,
+            base: token.base
           }));
           setPageTokens(mappedTokens);
           console.log(`[HubPage] Stored ${mappedTokens.length} tokens.`);
