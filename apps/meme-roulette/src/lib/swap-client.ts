@@ -1,13 +1,17 @@
 /** * Direct swap client for simple-swap, integrated with dex-cache
  */
+import { Dexterity, Route, Vault } from '@/lib/dexterity-client';
 import { getQuote as getQuoteAction } from '../app/actions';
-import { Dexterity, Route, Vault } from './dexterity-client';
+import { request } from '@stacks/connect';
+import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf } from '@stacks/transactions';
 
 /**
  * API response interfaces
  */
 export interface Token {
   contractId: string;
+  base?: string;
+  type: string;
   name: string;
   symbol: string;
   decimals: number;
@@ -27,24 +31,24 @@ export interface ApiError {
 }
 
 /**
- * Server action response interfaces
- */
-interface ServerActionResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-/**
  * Client configuration
  */
 export interface SwapClientOptions {
   /**
+   * Address of the account orchestrating the multihopswaps
+   */
+  stxAddress?: string;
+  /**
    * URL for the dex-cache API (used for fetching vaults and tokens)
    */
   dexCacheUrl?: string;
-
+  /**
+   * Address of the router contract
+   */
   routerAddress?: string;
+  /**
+   * Name of the router contract
+   */
   routerName?: string;
 }
 
@@ -56,15 +60,20 @@ export function createSwapClient(options: SwapClientOptions = {}) {
   const config = {
     dexCacheUrl: options.dexCacheUrl || "https://charisma-dex-cache.vercel.app/api/v1",
     routerAddress: options.routerAddress || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
-    routerName: options.routerName || 'multihop'
+    routerName: options.routerName || 'x-multihop-rc9'
   };
+
+  if (options.stxAddress) {
+    Dexterity.init({ stxAddress: options.stxAddress });
+  }
 
   // Configure Dexterity if router info provided
   if (config.routerAddress && config.routerName) {
     Dexterity.configureRouter(
       config.routerAddress,
       config.routerName,
-      { debug: true, maxHops: 2 }
+      { maxHops: 3, defaultSlippage: 0.01 },
+      options.stxAddress
     );
   }
 
@@ -142,6 +151,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
             if (!tokenMap.has(vault.contractId)) {
               tokenMap.set(vault.contractId, {
                 contractId: vault.contractId,
+                type: vault.type,
                 name: vault.name,
                 symbol: vault.symbol,
                 decimals: vault.decimals,
@@ -153,6 +163,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
             if (vault.tokenA && vault.tokenA.contractId && !tokenMap.has(vault.tokenA.contractId)) {
               tokenMap.set(vault.tokenA.contractId, {
                 contractId: vault.tokenA.contractId,
+                type: vault.tokenA.type,
                 name: vault.tokenA.name || '',
                 symbol: vault.tokenA.symbol || '',
                 decimals: vault.tokenA.decimals || 0,
@@ -164,6 +175,7 @@ export function createSwapClient(options: SwapClientOptions = {}) {
             if (vault.tokenB && vault.tokenB.contractId && !tokenMap.has(vault.tokenB.contractId)) {
               tokenMap.set(vault.tokenB.contractId, {
                 contractId: vault.tokenB.contractId,
+                type: vault.tokenB.type,
                 name: vault.tokenB.name || '',
                 symbol: vault.tokenB.symbol || '',
                 decimals: vault.tokenB.decimals || 0,
@@ -238,9 +250,9 @@ export function createSwapClient(options: SwapClientOptions = {}) {
       try {
         const response = await Dexterity.executeSwapRoute(route);
 
-        // Check if response is an object and has txId
-        if (typeof response === 'object' && response !== null && 'txId' in response && typeof response.txId === 'string') {
-          return { txId: response.txId };
+        // Check if response is an object and has txid
+        if (typeof response === 'object' && response !== null && 'txid' in response && typeof response.txid === 'string') {
+          return { txId: response.txid };
         }
 
         // If it's not a string txId or the expected object, assume failure
@@ -267,8 +279,8 @@ export function createSwapClient(options: SwapClientOptions = {}) {
      */
     formatTokenAmount(amount: number, decimals: number): string {
       return (amount / Math.pow(10, decimals)).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 6
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
       });
     },
 
@@ -328,10 +340,40 @@ export function createSwapClient(options: SwapClientOptions = {}) {
   };
 }
 
-/**
- * Default swap client instance
- * 
- * - Uses dex-cache API for vaults and tokens (primary source)
- * - Uses dexterity API for quotes and as fallback for tokens
- */
-export const swapClient = createSwapClient();
+export async function signTriggeredSwap({
+  subnetTokenContractId,
+  uuid,
+  amountMicro,
+  multihopContractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
+  intent = 'TRANSFER_TOKENS',
+  domainName = 'BLAZE_PROTOCOL',
+  version = 'v1.0',
+}: {
+  subnetTokenContractId: string;
+  uuid: string;
+  amountMicro: bigint; // already in micro units
+  multihopContractId?: string;
+  intent?: string;
+  domainName?: string;
+  version?: string;
+}): Promise<string> {
+  const domain = tupleCV({
+    name: stringAsciiCV(domainName),
+    version: stringAsciiCV(version),
+    'chain-id': uintCV(1),
+  });
+
+  const message = tupleCV({
+    contract: principalCV(subnetTokenContractId),
+    intent: stringAsciiCV(intent),
+    opcode: noneCV(),
+    amount: optionalCVOf(uintCV(amountMicro)),
+    target: optionalCVOf(principalCV(multihopContractId)),
+    uuid: stringAsciiCV(uuid),
+  });
+
+  // @ts-ignore – upstream types don't include method yet
+  const res = await request('stx_signStructuredMessage', { domain, message });
+  if (!res?.signature) throw new Error('User cancelled the signature');
+  return res.signature as string; // raw 65-byte hex
+}

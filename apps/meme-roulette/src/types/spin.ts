@@ -4,6 +4,7 @@ export interface Token {
     symbol: string;
     imageUrl: string; // URL to token image
     userBalance: number; // Kept for potential future use, but not primary focus now
+    decimals: number; // Number of decimal places for the token
 }
 
 /**

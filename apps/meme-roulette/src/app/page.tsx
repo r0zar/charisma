@@ -22,6 +22,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { InstructionsButton } from '@/components/InstructionsButton';
 
+// Define CHA decimals (ideally, get this from token data if CHA is in pageTokens)
+const CHA_DECIMALS = 6;
+
+// Helper function to format atomic amounts
+const formatAtomicToWholeUnit = (atomicAmount: number | undefined | null, decimals: number): string => {
+  if (atomicAmount === undefined || atomicAmount === null || isNaN(atomicAmount) || isNaN(decimals)) {
+    return '0.00'; // Or some other placeholder
+  }
+  const wholeUnitAmount = atomicAmount / (10 ** decimals);
+  // Adjust toFixed as needed, e.g., toFixed(2) for typical currency display, or more for tokens
+  return wholeUnitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+};
+
 export default function HubPage() {
   const {
     state: {
@@ -84,6 +97,7 @@ export default function HubPage() {
   const spinDuration = feedData?.roundDuration || 5 * 60 * 1000; // Default to 5 minutes if not provided
 
   const totalBetSum = useMemo(() => {
+    // tokenBets stores amounts in atomic units
     return Object.values(tokenBets || {}).reduce((sum, amount) => sum + amount, 0);
   }, [tokenBets]);
 
@@ -191,6 +205,7 @@ export default function HubPage() {
             {sortedBets.map((vote: Vote) => {
               const token = getTokenInfo(vote.tokenId);
               const isWinningBet = vote.tokenId === feedData?.winningTokenId;
+              const displayVoteAmount = formatAtomicToWholeUnit(vote.voteAmountCHA, CHA_DECIMALS);
               return (
                 <div
                   key={vote.id}
@@ -217,7 +232,7 @@ export default function HubPage() {
                     <div className="flex-1 min-w-0">
                       <span className="font-semibold font-display text-foreground truncate block">{token?.symbol || vote.tokenId}</span>
                       <p className="text-sm text-muted-foreground">
-                        Committed: <span className="numeric font-medium text-primary">{vote.voteAmountCHA?.toLocaleString()} CHA</span>
+                        Committed: <span className="numeric font-medium text-primary">{displayVoteAmount} CHA</span>
                       </p>
                       <p className="text-xs text-muted-foreground/70">Time: {new Date(vote.voteTime)?.toLocaleString()}</p>
                     </div>
@@ -334,9 +349,9 @@ export default function HubPage() {
               Funds Raised for Pump
             </h2>
             <p className="text-3xl font-bold font-display text-primary mb-4 numeric" aria-live="polite">
-              {totalBetSum.toLocaleString()} CHA
+              {formatAtomicToWholeUnit(totalBetSum, CHA_DECIMALS)} CHA
             </p>
-            <BetProgress current={totalBetSum} target={100} />
+            <BetProgress current={totalBetSum} target={1000000 * (10 ** CHA_DECIMALS)} />
 
             {!isSpinComplete && !showSpinAnimation && (
               <div className="mt-5">

@@ -4,17 +4,16 @@ import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { BLAZE_V1_DOMAIN } from "./constants";
 import { randomUUID } from "crypto";
 
-interface IntentInput {
+export interface IntentInput {
     contract: string;
     intent: string;
     opcode?: string;
     amount?: number;
     target?: string;
     uuid?: string;
-    senderKey: string;
 }
 
-interface SecureIntentInput extends IntentInput {
+export interface SecureIntentInput extends IntentInput {
     senderKey: string;
 }
 

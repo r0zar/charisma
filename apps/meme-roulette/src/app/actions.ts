@@ -1,39 +1,29 @@
 'use server';
 
-import { Dexterity, Route } from "@/lib/dexterity-client";
+import { Dexterity } from "@/lib/dexterity-client";
 import { QuoteResponse } from "../lib/swap-client";
 import type { Token } from "../lib/swap-client";
 
 // Configure Dexterity router
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const routerName = process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop';
-Dexterity.configureRouter(
-    routerAddress,
-    routerName,
-    {
-        maxHops: 2,
-        debug: true,
-        defaultSlippage: 0.01,
-    });
+Dexterity.configureRouter(routerAddress, routerName, {
+    maxHops: 3,
+    defaultSlippage: 0.01,
+    debug: process.env.NODE_ENV === 'development',
+});
 
 // Make sure to initialize Dexterity
 if (typeof window === 'undefined') { // Server-side only
-    Dexterity.init({
-        apiKey: process.env.HIRO_API_KEY!,
-        debug: true,
-    });
+    Dexterity.init({ apiKey: process.env.HIRO_API_KEY! });
 }
 
 // Keep track of vault loading status
 let vaultsLoaded = false;
 
 // Get the omit list from environment variables (comma-separated)
-const vaultOmitListString = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v7';
+const vaultOmitListString = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v9';
 const vaultOmitSet = new Set(vaultOmitListString.split(',').map(id => id.trim()).filter(id => id));
-
-if (vaultOmitSet.size > 0) {
-    console.log(`[Server] Vault Omit List active: Excluding ${vaultOmitSet.size} vaults:`, Array.from(vaultOmitSet));
-}
 
 /**
  * Load vaults into Dexterity if not already loaded
@@ -81,7 +71,8 @@ export async function ensureVaultsLoaded() {
 export async function getQuote(
     fromTokenId: string,
     toTokenId: string,
-    amount: string | number
+    amount: string | number,
+    options: { excludeVaultIds?: string[] } = {}
 ): Promise<{ success: boolean; data?: QuoteResponse; error?: string }> {
     try {
         console.log(`[Server] Getting quote for ${fromTokenId} -> ${toTokenId} with amount ${amount}`);
@@ -97,14 +88,12 @@ export async function getQuote(
         }
 
         // Get quote directly from Dexterity
-        const quoteResult = await Dexterity.getQuote(fromTokenId, toTokenId, amountNum);
+        const quoteResult = await Dexterity.getQuote(fromTokenId, toTokenId, amountNum, options);
 
         // Handle error case
         if (quoteResult instanceof Error) {
             throw quoteResult;
         }
-
-        console.log(`[Server] Quote generated using Dexterity directly`);
 
         return {
             success: true,
@@ -112,41 +101,6 @@ export async function getQuote(
         };
     } catch (error) {
         console.error('[Server] Error generating quote with Dexterity:', error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error occurred'
-        };
-    }
-}
-
-/**
- * Server action to execute a swap using Dexterity directly
- */
-export async function executeSwap(route: Route): Promise<{ success: boolean; txId?: string; error?: string }> {
-    try {
-        console.log(`[Server] Executing swap with route: ${JSON.stringify(route).substring(0, 100)}...`);
-
-        // Make sure vaults are loaded
-        await ensureVaultsLoaded();
-
-        // Execute the swap using Dexterity
-        const result = await Dexterity.executeSwapRoute(route);
-
-        if (result instanceof Error) {
-            throw result;
-        }
-
-        // Handle different return types from Dexterity
-        const txId = typeof result === 'string'
-            ? result
-            : `tx-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
-
-        return {
-            success: true,
-            txId
-        };
-    } catch (error) {
-        console.error('[Server] Error executing swap:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -203,9 +157,10 @@ export async function listTokens(): Promise<{
         const vaults = Dexterity.getVaults();
         const tokens = Dexterity.getAllVaultTokens(vaults);
 
+
         return {
             success: true,
-            tokens: tokens as Token[]
+            tokens
         };
     } catch (error) {
         console.error('[Server] Error listing tokens:', error);
@@ -214,4 +169,4 @@ export async function listTokens(): Promise<{
             error: error instanceof Error ? error.message : 'Unknown error occurred'
         };
     }
-} 
+}

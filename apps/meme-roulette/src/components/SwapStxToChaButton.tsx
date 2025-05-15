@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useWallet } from '@/contexts/wallet-context';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { swapClient } from '../lib/swap-client'; // Import the local swap client
+import { createSwapClient } from '../lib/swap-client'; // Import the local swap client
 import type { QuoteResponse } from '../lib/swap-client'; // Import QuoteResponse type
 import type { VariantProps } from 'class-variance-authority';
 import { Coins, RefreshCw, Repeat } from 'lucide-react';
@@ -98,6 +98,8 @@ export function SwapStxToChaButton({
     });
 
     const stxAmountInput = form.watch('stxAmount');
+
+    const swapClient = createSwapClient({ stxAddress: address });
 
     // --- Quote Fetching Logic ---
     const fetchQuote = useCallback(async (amount: string) => {

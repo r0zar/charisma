@@ -35,7 +35,7 @@ export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
  */
 export async function listPrices(): Promise<KraxelPriceData> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
         const response = await fetch(KRAXEL_API_URL, { signal: controller.signal });

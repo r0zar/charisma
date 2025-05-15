@@ -733,6 +733,9 @@ importers:
       '@vercel/kv':
         specifier: ^3.0.0
         version: 3.0.0
+      blaze-sdk:
+        specifier: workspace:*
+        version: link:../../packages/blaze-sdk
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

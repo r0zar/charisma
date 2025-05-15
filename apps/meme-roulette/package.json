@@ -22,6 +22,7 @@
     "@radix-ui/react-tabs": "^1.1.9",
     "@radix-ui/react-tooltip": "^1.2.4",
     "@repo/balances": "workspace:*",
+    "blaze-sdk": "workspace:*",
     "@repo/cryptonomicon": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/polyglot": "workspace:*",

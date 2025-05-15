@@ -4,9 +4,9 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { connect } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { getUserTokenBalance } from '@repo/balances';
-import { request } from '@stacks/connect';
-import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
 import { v4 as uuidv4 } from 'uuid';
+import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID } from "blaze-sdk"; // Reverting to relative path
+import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 
 // Default Charisma token contract (mainnet) – override in env if necessary
 const CHARISMA_TOKEN_CONTRACT_ID =
@@ -180,43 +180,37 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (!connected || !address) {
             return { success: false, error: 'Wallet not connected' };
         }
-        const SUB_LINK_VAULT_CONTRACT_ID = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v9';
         try {
             const uuid = uuidv4();
-            const PROTOCOL_NAME = 'BLAZE_PROTOCOL';
-            const PROTOCOL_VERSION = 'v1.0';
-            const vault = CHARISMA_TOKEN_CONTRACT_ID;
-            // Build SIP-018 domain and message
-            const domain = tupleCV({
-                name: stringAsciiCV(PROTOCOL_NAME),
-                version: stringAsciiCV(PROTOCOL_VERSION),
-                'chain-id': uintCV(1),
-            });
-            const message = tupleCV({
-                contract: principalCV(vault),
-                intent: stringAsciiCV('TRANSFER_TOKENS'),
-                opcode: noneCV(),
-                amount: optionalCVOf(uintCV(amount)),
-                target: optionalCVOf(principalCV(SUB_LINK_VAULT_CONTRACT_ID)),
-                uuid: stringAsciiCV(uuid),
-            });
-            // Request wallet signature
-            const sigData = await request('stx_signStructuredMessage', { domain, message });
-            const signature = sigData?.signature;
-            if (!signature) throw new Error('Signature failed');
+
+            const intentPayload = {
+                contract: CHARISMA_SUBNET_CONTRACT, // Source CHA for the multi-hop (asset to be spent)
+                intent: "TRANSFER_TOKENS",       // Describes the action (ensure backend expects this)
+                amount: amount,                       // Amount of source CHA to use
+                target: MULTIHOP_CONTRACT_ID,                      // Destination contract (the multihop contract)
+                uuid: uuid,
+                // opcode is optional in IntentInput, defaults to noneCV() if not provided in signIntentWithWallet
+            };
+
+            // signIntentWithWallet uses BLAZE_V1_DOMAIN internally
+            const signedIntent = await signIntentWithWallet(intentPayload);
+
+            const apiRequestBody = {
+                signature: signedIntent.signature,
+                publicKey: signedIntent.publicKey,
+                uuid: uuid,
+                recipient: address,
+                sourceContract: CHARISMA_SUBNET_CONTRACT,
+                destinationContract: tokenId,
+                betAmount: amount.toString(),
+                intentAction: "TRANSFER_TOKENS",
+            };
+
             // Queue the signed intent on server
             const response = await fetch('/api/multihop/queue', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    // Just store the essential signature components
-                    signature,
-                    uuid,
-                    amount: amount.toString(),
-                    recipient: address,
-                    tokenId: tokenId, // Include tokenId in the request
-                    target: SUB_LINK_VAULT_CONTRACT_ID
-                }),
+                body: JSON.stringify(apiRequestBody),
             });
             const payload = await response.json();
             if (!response.ok || !payload.success) {

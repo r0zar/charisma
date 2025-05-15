@@ -8,6 +8,16 @@ import { Skeleton } from "@/components/ui/skeleton"; // Assuming Skeleton compon
 import type { Token } from '@/types/spin'; // Import Token type if needed for leaderboard item type
 import { Trophy, RefreshCw, Rocket, TrendingUp, Medal } from 'lucide-react';
 
+// Helper function to format atomic amounts (consider moving to a shared utils file)
+const formatAtomicToWholeUnit = (atomicAmount: number | undefined | null, decimals: number | undefined | null): string => {
+    if (atomicAmount === undefined || atomicAmount === null || isNaN(atomicAmount) ||
+        decimals === undefined || decimals === null || isNaN(decimals)) {
+        return '0.00'; // Or some other placeholder
+    }
+    const wholeUnitAmount = atomicAmount / (10 ** decimals);
+    return wholeUnitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+};
+
 interface LeaderboardTableProps {
     tokens: Token[]; // Expect the full token list as a prop
     tokenBets: Record<string, number>; // Expect tokenBets as a prop
@@ -111,8 +121,8 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                 </TableHeader>
                 <TableBody>
                     {leaderboardData.map((item: LeaderboardItem, index: number) => {
-                        // Calculate percentage for this token
                         const percentage = (item.totalBet / totalCHA) * 100;
+                        const displayCommittedAmount = formatAtomicToWholeUnit(item.totalBet, item.token.decimals);
                         return (
                             <TableRow
                                 key={item.token.id}
@@ -166,7 +176,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                                 </TableCell>
 
                                 <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium w-[120px]">
-                                    {item.totalBet.toLocaleString()}
+                                    {displayCommittedAmount}
                                 </TableCell>
 
                                 <TableCell className="text-right text-muted-foreground relative z-10 hidden sm:table-cell w-[480px] ">
