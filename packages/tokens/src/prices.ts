@@ -34,8 +34,9 @@ export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
  * @throws Throws an error if the network request fails or if the response cannot be parsed as JSON.
  */
 export async function listPrices(): Promise<KraxelPriceData> {
+    const TIMEOUT_MS = 3000;
 
-    try {
+    const fetchPrices = async (): Promise<KraxelPriceData> => {
         const response = await fetch(KRAXEL_API_URL);
 
         if (!response.ok) {
@@ -49,7 +50,6 @@ export async function listPrices(): Promise<KraxelPriceData> {
             data['.stx'] = data['stx'];
         } else {
             console.warn("Price data from Kraxel API is missing 'stx' key.");
-            // Optionally set data['.stx'] = undefined or some default if needed elsewhere
         }
 
         // Ensure CHARISMA_TOKEN_CONTRACT key exists
@@ -66,27 +66,30 @@ export async function listPrices(): Promise<KraxelPriceData> {
             console.warn(`Price data from Kraxel API is missing '${WELSHCORGICOIN_CONTRACT}' key.`);
         }
 
-        // Ensure SBTC_SUBNET_CONTRACT key exists
-        if (data.hasOwnProperty(SBTC_SUBNET_CONTRACT)) {
+        // Ensure SBTC_TOKEN_CONTRACT key exists (Note: Kraxel might use SBTC_SUBNET_CONTRACT directly as key)
+        // If Kraxel uses SBTC_TOKEN_CONTRACT, this is correct.
+        // If Kraxel uses SBTC_SUBNET_CONTRACT, then the condition should be on SBTC_SUBNET_CONTRACT
+        // and the assignment is redundant or should be the other way if mapping from subnet to token contract.
+        // Based on other patterns, it seems Kraxel returns by mainnet token contract.
+        if (data.hasOwnProperty(SBTC_TOKEN_CONTRACT)) { // Assuming Kraxel key is SBTC_TOKEN_CONTRACT
             data[SBTC_SUBNET_CONTRACT] = data[SBTC_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${SBTC_TOKEN_CONTRACT}' key.`);
         }
 
-        // Ensure SUSDC_SUBNET_CONTRACT key exists
-        if (data.hasOwnProperty(SUSDC_SUBNET_CONTRACT)) {
+        // Ensure SUSDC_TOKEN_CONTRACT key exists
+        if (data.hasOwnProperty(SUSDC_TOKEN_CONTRACT)) {
             data[SUSDC_SUBNET_CONTRACT] = data[SUSDC_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${SUSDC_TOKEN_CONTRACT}' key.`);
         }
 
-        // Ensure PEPE_SUBNET_CONTRACT key exists
-        if (data.hasOwnProperty(PEPE_SUBNET_CONTRACT)) {
+        // Ensure PEPE_TOKEN_CONTRACT key exists
+        if (data.hasOwnProperty(PEPE_TOKEN_CONTRACT)) {
             data[PEPE_SUBNET_CONTRACT] = data[PEPE_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${PEPE_TOKEN_CONTRACT}' key.`);
         }
-
 
         // Ensure MALI_TOKEN_CONTRACT key exists
         if (data.hasOwnProperty(MALI_TOKEN_CONTRACT)) {
@@ -96,8 +99,24 @@ export async function listPrices(): Promise<KraxelPriceData> {
         }
 
         return data;
+    };
+
+    const timeoutPromise = new Promise<KraxelPriceData>((_, reject) => {
+        setTimeout(() => {
+            reject(new Error(`Timeout: Price fetching took longer than ${TIMEOUT_MS}ms`));
+        }, TIMEOUT_MS);
+    });
+
+    try {
+        // Race the fetch operation against the timeout
+        const result = await Promise.race([fetchPrices(), timeoutPromise]);
+        return result;
     } catch (error) {
-        console.error(`Failed to parse price data from Kraxel API or other fetch error: ${error instanceof Error ? error.message : String(error)}`);
-        return {};
+        if (error instanceof Error && error.message.startsWith('Timeout')) {
+            console.error(error.message);
+        } else {
+            console.error(`Failed to parse price data from Kraxel API or other fetch error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        return {}; // Return empty object on any error (including timeout)
     }
 } 
