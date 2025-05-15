@@ -98,15 +98,7 @@ export function BulkSignatureGenerator({
 
     // Add selectedSignature state to the component
     const [selectedSignature, setSelectedSignature] = useState<Signature | null>(null)
-    const [baseUrl, setBaseUrl] = useState("")
-
-    // Add useEffect to get the base URL on client-side
-    useEffect(() => {
-        // Get base URL (e.g., https://example.com) for QR code generation
-        if (typeof window !== 'undefined') {
-            setBaseUrl(window.location.origin)
-        }
-    }, [])
+    const [baseUrl, setBaseUrl] = useState("https://blaze.charisma.rocks")
 
     // Validate the private key and compute the public address
     const validatePrivateKey = useCallback(() => {
@@ -453,6 +445,7 @@ export function BulkSignatureGenerator({
             const zip = new JSZip();
             const qrFolder = zip.folder("qr-codes");
             const labeledQrFolder = zip.folder("labeled-qr-codes");
+            const combinedQrFolder = zip.folder("combined-qr-codes");
 
             // Add metadata JSON file
             const metadataFile = {
@@ -479,10 +472,12 @@ Count: ${signatures.length}
 ## Usage Instructions
 - The \`qr-codes\` folder contains plain QR code images for each signature
 - The \`labeled-qr-codes\` folder contains HTML pages with QR codes that include titles and descriptions
-- Each signature has two QR codes:
-  - \`redeem-{id}.png\`: Scan to redeem tokens
-  - \`verify-{id}.png\`: Scan to verify if a note has been used
-- Open the HTML files in a browser to see the labeled QR codes
+- The \`combined-qr-codes\` folder contains HTML pages with both redeem and verify QR codes together
+- Each signature has multiple formats:
+  - Basic QR codes: \`redeem-{id}.png\` and \`verify-{id}.png\`
+  - Labeled QR codes: \`redeem-{id}.html\` and \`verify-{id}.html\`
+  - Combined QR codes: \`combined-{id}.html\` (includes both redeem and verify)
+- Open the HTML files in a browser to see the formatted QR codes
 - The text files (.txt) contain the corresponding URLs
 - The CSV file contains all signature data in spreadsheet format
 - Use the JSON file for programmatic access to the data
@@ -503,7 +498,7 @@ Count: ${signatures.length}
             zip.file("signatures.csv", csvContent);
 
             // Process each signature
-            if (qrFolder && labeledQrFolder) {
+            if (qrFolder && labeledQrFolder && combinedQrFolder) {
                 // Process in smaller batches to avoid overwhelming the server
                 const batchSize = 5;
                 const batches = Math.ceil(signatures.length / batchSize);
@@ -551,8 +546,8 @@ Count: ${signatures.length}
 
                             // Generate labeled QR codes (HTML)
                             const [labeledRedeemQrResponse, labeledVerifyQrResponse] = await Promise.all([
-                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${sig.amount} tokens with UUID: ${sig.uuid}`),
-                                fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=500&labeled=true&title=VERIFY&description=Scan to check if this note has been used. UUID: ${sig.uuid}`)
+                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${sig.amount} token${sig.amount === "1" ? "" : "s"}.`),
+                                fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=500&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`)
                             ]);
 
                             if (labeledRedeemQrResponse.ok) {
@@ -563,6 +558,16 @@ Count: ${signatures.length}
                             if (labeledVerifyQrResponse.ok) {
                                 const labeledVerifyHtml = await labeledVerifyQrResponse.text();
                                 labeledQrFolder.file(`verify-${sig.id}.html`, labeledVerifyHtml);
+                            }
+
+                            // Generate combined QR code (both redeem and verify)
+                            const combinedQrResponse = await fetch(
+                                `/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(redeemUrl)}&verifyUrl=${encodeURIComponent(verifyUrl)}&size=300&amount=${sig.amount}&description=UUID: ${sig.uuid}`
+                            );
+
+                            if (combinedQrResponse.ok) {
+                                const combinedQrHtml = await combinedQrResponse.text();
+                                combinedQrFolder.file(`combined-${sig.id}.html`, combinedQrHtml);
                             }
                         } catch (error) {
                             console.error(`Error generating QR code for signature ${sig.id}:`, error);
@@ -989,79 +994,97 @@ Count: ${signatures.length}
                             </Button>
                         </div>
 
-                        <div className="mb-4">
-                            <h4 className="font-medium text-center mb-3">Plain QR Codes</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="border rounded-md p-4 flex flex-col items-center">
-                                    <h4 className="font-medium mb-2">Redeem QR Code</h4>
-                                    <div className="bg-white p-3 rounded-md mb-3">
-                                        <QRCodeSVG
-                                            value={getRedeemUrl(selectedSignature)}
-                                            size={200}
-                                            level="H"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mb-2 text-center">
-                                        Scan to redeem tokens using this signature
-                                    </p>
-                                    <a
-                                        href={getRedeemUrl(selectedSignature)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary text-sm hover:underline"
-                                    >
-                                        Open Redeem Link
-                                    </a>
-                                </div>
+                        <Tabs defaultValue="plain" className="w-full">
+                            <TabsList className="grid w-full grid-cols-3 mb-4">
+                                <TabsTrigger value="plain">Plain QR Codes</TabsTrigger>
+                                <TabsTrigger value="labeled">Labeled QR Codes</TabsTrigger>
+                                <TabsTrigger value="combined">Combined Format</TabsTrigger>
+                            </TabsList>
 
-                                <div className="border rounded-md p-4 flex flex-col items-center">
-                                    <h4 className="font-medium mb-2">Verify QR Code</h4>
-                                    <div className="bg-white p-3 rounded-md mb-3">
-                                        <QRCodeSVG
-                                            value={getVerifyUrl(selectedSignature)}
-                                            size={200}
-                                            level="H"
-                                        />
+                            <TabsContent value="plain">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="border rounded-md p-4 flex flex-col items-center">
+                                        <h4 className="font-medium mb-2">Redeem QR Code</h4>
+                                        <div className="bg-white p-3 rounded-md mb-3">
+                                            <QRCodeSVG
+                                                value={getRedeemUrl(selectedSignature)}
+                                                size={200}
+                                                level="H"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mb-2 text-center">
+                                            Scan to redeem tokens using this signature
+                                        </p>
+                                        <a
+                                            href={getRedeemUrl(selectedSignature)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary text-sm hover:underline"
+                                        >
+                                            Open Redeem Link
+                                        </a>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mb-2 text-center">
-                                        Scan to verify if this signature has been used
-                                    </p>
-                                    <a
-                                        href={getVerifyUrl(selectedSignature)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-primary text-sm hover:underline"
-                                    >
-                                        Open Verify Link
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="mb-6">
-                            <h4 className="font-medium text-center mb-3">Labeled QR Codes</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="border rounded-md p-4 flex flex-col items-center">
+                                    <div className="border rounded-md p-4 flex flex-col items-center">
+                                        <h4 className="font-medium mb-2">Verify QR Code</h4>
+                                        <div className="bg-white p-3 rounded-md mb-3">
+                                            <QRCodeSVG
+                                                value={getVerifyUrl(selectedSignature)}
+                                                size={200}
+                                                level="H"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mb-2 text-center">
+                                            Scan to verify if this signature has been used
+                                        </p>
+                                        <a
+                                            href={getVerifyUrl(selectedSignature)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary text-sm hover:underline"
+                                        >
+                                            Open Verify Link
+                                        </a>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="labeled">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="border rounded-md p-4 flex flex-col items-center">
+                                        <iframe
+                                            src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${selectedSignature.amount} token${selectedSignature.amount === "1" ? "" : "s"}.`}
+                                            title="Labeled Redeem QR Code"
+                                            className="w-full bg-white"
+                                            height="350"
+                                            frameBorder="0"
+                                        ></iframe>
+                                    </div>
+
+                                    <div className="border rounded-md p-4 flex flex-col items-center">
+                                        <iframe
+                                            src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`}
+                                            title="Labeled Verify QR Code"
+                                            className="w-full bg-white"
+                                            height="350"
+                                            frameBorder="0"
+                                        ></iframe>
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="combined">
+                                <div className="border rounded-md p-4">
                                     <iframe
-                                        src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${selectedSignature.amount} token${selectedSignature.amount === "1" ? "" : "s"}.`}
-                                        title="Labeled Redeem QR Code"
+                                        src={`/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(getRedeemUrl(selectedSignature))}&verifyUrl=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&amount=${selectedSignature.amount}&description=UUID: ${selectedSignature.uuid}`}
+                                        title="Combined QR Codes"
                                         className="w-full bg-white"
-                                        height="350"
+                                        height="500"
                                         frameBorder="0"
                                     ></iframe>
                                 </div>
-
-                                <div className="border rounded-md p-4 flex flex-col items-center">
-                                    <iframe
-                                        src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`}
-                                        title="Labeled Verify QR Code"
-                                        className="w-full bg-white"
-                                        height="350"
-                                        frameBorder="0"
-                                    ></iframe>
-                                </div>
-                            </div>
-                        </div>
+                            </TabsContent>
+                        </Tabs>
 
                         <div className="mt-4 text-sm border-t pt-4">
                             <p><strong>UUID:</strong> <span className="font-mono">{selectedSignature.uuid}</span></p>
