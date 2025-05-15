@@ -192,7 +192,7 @@ const updateAndBroadcast = async (userId: string) => {
             const BASE_URL = isDev ? 'http://localhost:3010' : 'https://lol.charisma.rocks';
 
             console.log({ BASE_URL })
-            await fetch(`${BASE_URL}/api/multihop/process`, { method: 'POST', cache: 'no-store' });
+            await fetch(`${BASE_URL}/api/multihop/process`, { method: 'POST' });
             console.log('API/Stream: Triggered processing of queued intents.');
         } catch (e) {
             console.error('API/Stream: Failed to trigger intent processing:', e);
