@@ -29,7 +29,15 @@ export async function GET(request: NextRequest) {
         const result = await getQuote(tokenIn, tokenOut, amount);
 
         if (result.success && result.data) {
-            return NextResponse.json({ success: true, data: result.data });
+            return NextResponse.json(
+                { success: true, data: result.data },
+                {
+                    status: 200,
+                    headers: {
+                        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59'
+                    }
+                }
+            );
         } else {
             // Use the error message from getQuote if available
             return NextResponse.json({ success: false, error: result.error || 'Failed to get quote' }, { status: 500 });
