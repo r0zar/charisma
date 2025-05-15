@@ -190,6 +190,7 @@ const updateAndBroadcast = async (userId: string) => {
         status.winningTokenId = winnerId; // Update local copy for broadcast
         // Trigger execution of queued intents now that winner is determined
         try {
+            console.log({ BASE_URL })
             await fetch(`${BASE_URL}/api/multihop/process`, { method: 'POST', cache: 'no-store' });
             console.log('API/Stream: Triggered processing of queued intents.');
         } catch (e) {
