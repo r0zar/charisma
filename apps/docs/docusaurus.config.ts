@@ -93,6 +93,12 @@ const config: Config = {
           label: 'Blaze',
         },
         {
+          type: 'docSidebar',
+          sidebarId: 'tokenomicsSidebar',
+          position: 'left',
+          label: 'Tokenomics',
+        },
+        {
           href: 'https://github.com/r0zar/charisma',
           label: 'GitHub',
           position: 'right',
