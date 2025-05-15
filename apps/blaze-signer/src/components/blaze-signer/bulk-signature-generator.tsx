@@ -83,9 +83,10 @@ export function BulkSignatureGenerator({
 
     // State for signature parameters
     const [coreContract, setCoreContract] = useState("")
-    const [intent, setIntent] = useState("REDEEM_BEARER")
+    const [intent] = useState("REDEEM_BEARER")
     const [amount, setAmount] = useState("")
     const [sigCount, setSigCount] = useState("10")
+    const [tokenDecimals, setTokenDecimals] = useState(0)
 
     // State for bulk operations
     const [signatures, setSignatures] = useState<Signature[]>([])
@@ -111,6 +112,41 @@ export function BulkSignatureGenerator({
 
     // Add selectedSignature state to the component
     const [baseUrl, setBaseUrl] = useState("https://blaze.charisma.rocks")
+
+    // State for token metadata
+    const [tokenName, setTokenName] = useState<string>('');
+    const [tokenSymbol, setTokenSymbol] = useState<string>('');
+    const [isLoadingTokenMetadata, setIsLoadingTokenMetadata] = useState(false);
+
+    // Utility functions for amount formatting
+    const formatTokenAmount = (rawAmount: string, decimals: number): string => {
+        if (!rawAmount) return '';
+        const amountNum = Number(rawAmount);
+        if (isNaN(amountNum)) return rawAmount;
+
+        return (amountNum / Math.pow(10, decimals)).toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: decimals
+        });
+    }
+
+    const parseFormattedAmount = (formattedAmount: string, decimals: number): string => {
+        if (!formattedAmount) return '';
+        // Remove commas and other formatting
+        const cleanAmount = formattedAmount.replace(/,/g, '');
+        const amountNum = Number(cleanAmount);
+        if (isNaN(amountNum)) return '';
+
+        // Convert to raw units based on decimals, preserving full precision
+        // This handles decimal input correctly by scaling appropriately
+        const rawAmount = amountNum * Math.pow(10, decimals);
+
+        // Round to avoid floating point precision errors
+        // e.g., 1.1 * 10^6 = 1100000.0000000001 due to IEEE 754
+        const roundedAmount = Math.round(rawAmount);
+
+        return roundedAmount.toString();
+    }
 
     // Validate the private key and compute the public address
     const validatePrivateKey = useCallback(async () => {
@@ -205,6 +241,90 @@ export function BulkSignatureGenerator({
             setter(val)
         }
 
+    // Fetch token metadata when contract changes
+    useEffect(() => {
+        if (!coreContract) {
+            setTokenDecimals(0);
+            setTokenName('');
+            setTokenSymbol('');
+            return;
+        }
+
+        // Try to get token metadata
+        const fetchTokenMetadata = async () => {
+            setIsLoadingTokenMetadata(true);
+            try {
+                const [contractAddress, contractName] = parseContract(coreContract);
+                if (contractAddress && contractName) {
+                    // Get token metadata
+                    const tokenMetadata = await getTokenMetadataCached(
+                        `${contractAddress}.${contractName}`
+                    );
+
+                    // Extract token data
+                    if (tokenMetadata?.decimals !== undefined) {
+                        console.log(`Setting token decimals to ${tokenMetadata.decimals} from metadata`);
+                        setTokenDecimals(tokenMetadata.decimals);
+                    } else {
+                        console.log('No decimals in metadata, using default of 0');
+                        setTokenDecimals(0);
+                    }
+
+                    if (tokenMetadata?.name) {
+                        setTokenName(tokenMetadata.name);
+                    } else {
+                        setTokenName('');
+                    }
+
+                    if (tokenMetadata?.symbol) {
+                        setTokenSymbol(tokenMetadata.symbol);
+                    } else {
+                        setTokenSymbol('');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load token metadata:', error);
+                setTokenDecimals(0);
+                setTokenName('');
+                setTokenSymbol('');
+            } finally {
+                setIsLoadingTokenMetadata(false);
+            }
+        };
+
+        fetchTokenMetadata();
+    }, [coreContract]);
+
+    // Handle amount input with proper formatting
+    const handleAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
+        // Allow numbers, one decimal point, and remove other characters
+        let val = e.target.value.replace(/[^0-9.]/g, '');
+
+        // Ensure only one decimal point
+        const parts = val.split('.');
+        if (parts.length > 2) {
+            val = `${parts[0]}.${parts.slice(1).join('')}`;
+        }
+
+        // Limit decimal places to the token's decimal precision
+        if (parts.length === 2 && tokenDecimals > 0 && parts[1].length > tokenDecimals) {
+            val = `${parts[0]}.${parts[1].substring(0, tokenDecimals)}`;
+        }
+
+        // Convert to raw amount and store
+        const rawAmount = parseFormattedAmount(val, tokenDecimals);
+        setAmount(rawAmount);
+
+        // Log for debugging
+        console.log(`Input: ${val}, Raw: ${rawAmount}, Decimals: ${tokenDecimals}`);
+    }
+
+    // Get display value for amount input
+    const getFormattedAmountForInput = (): string => {
+        if (!amount) return '';
+        return formatTokenAmount(amount, tokenDecimals);
+    }
+
     // Validate the intent configuration before generating signatures
     const validateIntent = async () => {
         setIsValidating(true)
@@ -225,10 +345,6 @@ export function BulkSignatureGenerator({
                 throw new Error("Amount is required for REDEEM_BEARER intent");
             }
 
-            if (intent !== "REDEEM_BEARER") {
-                throw new Error("Only REDEEM_BEARER intent is supported in this version");
-            }
-
             // Parse contract to get address and name
             const [contractAddress, contractName] = parseContract(coreContract);
 
@@ -240,7 +356,7 @@ export function BulkSignatureGenerator({
                 if (response.ok) {
                     setValidationResult({
                         success: true,
-                        message: "Intent configuration is valid! Contract exists and you can proceed with generating signatures."
+                        message: "Validation successful! Contract exists and you can proceed with generating signatures."
                     });
                 } else {
                     throw new Error("Contract not found. Please verify the contract address and name.");
@@ -661,7 +777,7 @@ Count: ${signatures.length}
 
                             // Generate labeled QR codes (HTML)
                             const [labeledRedeemQrResponse, labeledVerifyQrResponse] = await Promise.all([
-                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${sig.amount} token${sig.amount === "1" ? "" : "s"}.&tokenDecimals=${tokenDecimals}${tokenName ? `&tokenName=${encodeURIComponent(tokenName)}` : ''}${tokenSymbol ? `&tokenSymbol=${encodeURIComponent(tokenSymbol)}` : ''}`),
+                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${formatTokenAmount(sig.amount, tokenDecimals)} token${formatTokenAmount(sig.amount, tokenDecimals) === "1" ? "" : "s"}.&tokenDecimals=${tokenDecimals}${tokenName ? `&tokenName=${encodeURIComponent(tokenName)}` : ''}${tokenSymbol ? `&tokenSymbol=${encodeURIComponent(tokenSymbol)}` : ''}`),
                                 fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=500&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`)
                             ]);
 
@@ -764,9 +880,9 @@ Count: ${signatures.length}
     return (
         <Card className={cn(className)}>
             <CardHeader>
-                <CardTitle>Bulk Signature Generator</CardTitle>
+                <CardTitle>Bulk Note Generator</CardTitle>
                 <CardDescription>
-                    Generate multiple REDEEM_BEARER signatures in one operation using a private key.
+                    Generate multiple bearer notes in one operation using a private key.
                 </CardDescription>
             </CardHeader>
 
@@ -774,7 +890,7 @@ Count: ${signatures.length}
                 <Tabs defaultValue="generate" className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="generate">Generate</TabsTrigger>
-                        <TabsTrigger value="validate">Validate Intent</TabsTrigger>
+                        <TabsTrigger value="validate">Validate Contract & Amount</TabsTrigger>
                         <TabsTrigger value="recover">Recover Signer</TabsTrigger>
                     </TabsList>
 
@@ -824,7 +940,7 @@ Count: ${signatures.length}
 
                         {/* Signature Parameters */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
+                            <div className="space-y-2 md:row-span-2">
                                 <Label htmlFor="core-contract" className="font-medium">Subnet Contract (principal)</Label>
                                 <Input
                                     id="core-contract"
@@ -832,34 +948,42 @@ Count: ${signatures.length}
                                     value={coreContract}
                                     onChange={handleInputChange(setCoreContract)}
                                 />
+                                {isLoadingTokenMetadata && (
+                                    <p className="text-xs text-amber-500 mt-1 flex items-center">
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                        Loading token information...
+                                    </p>
+                                )}
+                                {(tokenName || tokenSymbol) && (
+                                    <div className="mt-2 text-xs p-2 border rounded-md bg-muted/20">
+                                        <p className="font-medium mb-1">Token Information:</p>
+                                        {tokenName && <p>Name: {tokenName}</p>}
+                                        {tokenSymbol && <p>Symbol: {tokenSymbol}</p>}
+                                        <p>Decimals: {tokenDecimals}</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="intent" className="font-medium">Intent</Label>
-                                <Input
-                                    id="intent"
-                                    value={intent}
-                                    readOnly
-                                    disabled
-                                    className="bg-muted"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="amount" className="font-medium">Amount (uint)</Label>
+                                <Label htmlFor="amount" className="font-medium">Amount (tokens)</Label>
                                 <Input
                                     id="amount"
                                     type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    placeholder="e.g., 1000000"
-                                    value={amount}
-                                    onChange={handleNumericChange(setAmount)}
+                                    inputMode="decimal"
+                                    pattern="[0-9.]*"
+                                    placeholder="e.g., 1.0"
+                                    value={getFormattedAmountForInput()}
+                                    onChange={handleAmountChange}
                                 />
+                                {tokenDecimals > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Using {tokenDecimals} decimal places from token metadata
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="sig-count" className="font-medium">Number of Signatures</Label>
+                                <Label htmlFor="sig-count" className="font-medium">Number of Notes</Label>
                                 <Input
                                     id="sig-count"
                                     type="text"
@@ -897,7 +1021,7 @@ Count: ${signatures.length}
                                 ) : (
                                     <>
                                         <ShieldCheck className="mr-2 h-4 w-4" />
-                                        <span>Validate REDEEM_BEARER Intent</span>
+                                        <span>Validate Contract & Amount</span>
                                     </>
                                 )}
                             </Button>
@@ -960,7 +1084,7 @@ Count: ${signatures.length}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <span>{sig.amount}</span>
+                                                        <span>{formatTokenAmount(sig.amount, tokenDecimals)}</span>
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -1020,7 +1144,7 @@ Count: ${signatures.length}
 
                     <TabsContent value="validate" className="space-y-4 mt-4">
                         <p className="text-sm text-muted-foreground">
-                            Validate your intent configuration before generating signatures to ensure it will be accepted by the protocol.
+                            Validate the contract and amount before generating signatures to ensure they will be accepted by the protocol.
                         </p>
 
                         <div className="space-y-4">
@@ -1035,16 +1159,21 @@ Count: ${signatures.length}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="validate-amount" className="font-medium">Amount (uint)</Label>
+                                <Label htmlFor="validate-amount" className="font-medium">Amount (tokens)</Label>
                                 <Input
                                     id="validate-amount"
                                     type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    placeholder="e.g., 1000000"
-                                    value={amount}
-                                    onChange={handleNumericChange(setAmount)}
+                                    inputMode="decimal"
+                                    pattern="[0-9.]*"
+                                    placeholder="e.g., 1.0"
+                                    value={getFormattedAmountForInput()}
+                                    onChange={handleAmountChange}
                                 />
+                                {tokenDecimals > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Using {tokenDecimals} decimal places from token metadata
+                                    </p>
+                                )}
                             </div>
 
                             <Button
@@ -1060,7 +1189,7 @@ Count: ${signatures.length}
                                 ) : (
                                     <>
                                         <ShieldCheck className="mr-2 h-4 w-4" />
-                                        <span>Validate REDEEM_BEARER Intent</span>
+                                        <span>Validate Contract & Amount</span>
                                     </>
                                 )}
                             </Button>
@@ -1234,7 +1363,7 @@ Count: ${signatures.length}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="border rounded-md p-4 flex flex-col items-center">
                                         <iframe
-                                            src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${selectedSignature.amount} token${selectedSignature.amount === "1" ? "" : "s"}.&tokenDecimals=${selectedTokenDecimals}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}`}
+                                            src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${formatTokenAmount(selectedSignature.amount, tokenDecimals)} token${formatTokenAmount(selectedSignature.amount, tokenDecimals) === "1" ? "" : "s"}.&tokenDecimals=${tokenDecimals}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}`}
                                             title="Labeled Redeem QR Code"
                                             className="w-full bg-white"
                                             height="450"
@@ -1244,7 +1373,7 @@ Count: ${signatures.length}
 
                                     <div className="border rounded-md p-4 flex flex-col items-center">
                                         <iframe
-                                            src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.&tokenDecimals=${selectedTokenDecimals}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}`}
+                                            src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.&tokenDecimals=${tokenDecimals}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}`}
                                             title="Labeled Verify QR Code"
                                             className="w-full bg-white"
                                             height="450"
@@ -1257,7 +1386,7 @@ Count: ${signatures.length}
                             <TabsContent value="combined">
                                 <div className="border rounded-md p-4">
                                     <iframe
-                                        src={`/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(getRedeemUrl(selectedSignature))}&verifyUrl=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&amount=${selectedSignature.amount}&description=UUID: ${selectedSignature.uuid}${selectedTokenImage ? `&tokenImage=${encodeURIComponent(selectedTokenImage)}` : ''}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}&tokenDecimals=${selectedTokenDecimals}`}
+                                        src={`/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(getRedeemUrl(selectedSignature))}&verifyUrl=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&amount=${selectedSignature.amount}&description=UUID: ${selectedSignature.uuid}${selectedTokenImage ? `&tokenImage=${encodeURIComponent(selectedTokenImage)}` : ''}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}&tokenDecimals=${tokenDecimals}`}
                                         title="Combined QR Codes"
                                         className="w-full bg-white"
                                         height="700"

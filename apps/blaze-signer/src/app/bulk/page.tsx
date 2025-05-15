@@ -9,7 +9,7 @@ export default function BulkPage() {
     return (
         <div className="container py-8 mx-auto">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Bulk Signature Generator</h1>
+                <h1 className="text-3xl font-bold mb-2">Money Printer</h1>
                 <p className="text-muted-foreground">
                     Generate multiple bearer notes with unique UUIDs in one operation using a private key.
                 </p>
