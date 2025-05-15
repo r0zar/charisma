@@ -24,7 +24,7 @@ Blaze is an **intent-centric execution layer**. It shifts the focus from imperat
 These documents provide a comprehensive guide to the Blaze Protocol:
 
 *   **Core Concepts**: Learn about the [System Architecture](./architecture.md), the mechanics of [Intents & Signing (SIP-018)](./intents-and-signing.md), and the function of the [On-Chain Verifier (`blaze-v1`)](./signature-verification.md).
-*   **API Endpoints**: Understand the [`/execute`](./execute.md) endpoint for subnet operations and the [`/multihop/execute`](./multihop-execute.md) for swaps.
+*   **API Endpoints**: Understand the [`/execute`](./api-execute.md) endpoint for subnet operations and the [`/multihop/execute`](./api-multihop-execute.md) for swaps.
 *   **Subnet Integration**: See an [Example Token Subnet](./subnet-example-token.md) to understand how contracts use Blaze.
 *   **Advanced Capabilities**: Discover [Advanced Strategies & Composability](./advanced-strategies.md), [Multi-Signature Strategies](./multi-signature-strategies.md), and the concept of [Physical Bearer Assets](./physical-bearer-assets.md).
 *   **Security Model**: Review the [Security & Token Flow](./security-token-flow.md) for a clear understanding of how assets are managed.
