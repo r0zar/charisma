@@ -1,12 +1,11 @@
 import { describe, it, expect, jest } from "@jest/globals";
-import { log } from "..";
+import { listPrices } from "..";
 
-jest.spyOn(global.console, "log");
 
-describe("@repo/logger", () => {
-  it("prints a message", () => {
-    log("hello");
-    // eslint-disable-next-line no-console -- testing console
-    expect(console.log).toBeCalledWith("LOGGER: ", "hello");
+describe("@repo/tokens", () => {
+
+  it('gets token prices', async () => {
+    const prices = await listPrices();
+    expect(prices).toBeDefined();
   });
 });

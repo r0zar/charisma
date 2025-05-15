@@ -1,15 +1,10 @@
-// (No external imports required)
-
-// Base URL for the token-cache API – override via environment variable (e.g. NEXT_PUBLIC_TOKEN_CACHE_API_BASE_URL)
-const TOKEN_CACHE_API_BASE_URL =
-    process.env.NODE_ENV === 'production' ? 'https://charisma-token-cache.vercel.app' : 'http://localhost:3000';
-
 /**
  * Shape of the token metadata returned by the token-cache service.
  * Mirrors the API as closely as possible so consumers can rely on strong typing
  * without having to duplicate these interfaces everywhere.
  */
 export interface TokenCacheData {
+    type: string;
     contractId: string;
     name: string;
     description?: string | null;
@@ -24,6 +19,9 @@ export interface TokenCacheData {
     total_supply?: string | null;
     tokenAContract?: string | null;
     tokenBContract?: string | null;
+    lpRebatePercent?: number | null;
+    externalPoolId?: string | null;
+    engineContractId?: string | null;
 }
 
 interface TokenCacheResponse {
@@ -56,6 +54,11 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
         total_supply: null,
         tokenAContract: null,
         tokenBContract: null,
+        // Initialize new fields
+        type: '',
+        lpRebatePercent: null,
+        externalPoolId: null,
+        engineContractId: null,
     };
 }
 
@@ -97,6 +100,11 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
                         : defaults.decimals,
                 contractId: result.data.contractId || defaults.contractId,
                 error: result.data.error || null,
+                // Ensure new fields are also merged appropriately, falling back to defaults if not present or wrong type
+                type: typeof result.data.type === 'string' ? result.data.type : defaults.type,
+                lpRebatePercent: typeof result.data.lpRebatePercent === 'number' ? result.data.lpRebatePercent : defaults.lpRebatePercent,
+                externalPoolId: typeof result.data.externalPoolId === 'string' ? result.data.externalPoolId : defaults.externalPoolId,
+                engineContractId: typeof result.data.engineContractId === 'string' ? result.data.engineContractId : defaults.engineContractId,
             };
 
             // If anything critical dropped back to the default value, make a note in the error field.

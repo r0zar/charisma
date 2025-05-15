@@ -34,12 +34,9 @@ export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
  * @throws Throws an error if the network request fails or if the response cannot be parsed as JSON.
  */
 export async function listPrices(): Promise<KraxelPriceData> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
-        const response = await fetch(KRAXEL_API_URL, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const response = await fetch(KRAXEL_API_URL);
 
         if (!response.ok) {
             throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
@@ -100,11 +97,7 @@ export async function listPrices(): Promise<KraxelPriceData> {
 
         return data;
     } catch (error) {
-        clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
-            console.error('Price fetch timed out');
-            throw new Error('Failed to fetch prices: The request timed out.');
-        }
-        throw new Error(`Failed to parse price data from Kraxel API or other fetch error: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`Failed to parse price data from Kraxel API or other fetch error: ${error instanceof Error ? error.message : String(error)}`);
+        return {};
     }
 } 

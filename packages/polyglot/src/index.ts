@@ -115,6 +115,7 @@ export async function callReadOnlyFunction(
 ): Promise<any> {
   try {
     const endpoint = `/v2/contracts/call-read/${contractAddress}/${contractName}/${functionName}`;
+
     const response = await apiClient.POST(endpoint as any, {
       body: {
         sender: sender || contractAddress,
@@ -123,7 +124,7 @@ export async function callReadOnlyFunction(
     });
 
     if (!response.data?.result) {
-      console.warn(response.response)
+      console.warn(response.error)
       return null
     };
     return cvToValue(hexToCV(response.data.result));
