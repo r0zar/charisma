@@ -569,6 +569,16 @@ export const removeVaults = async (vaultIds: string[]): Promise<void> => {
     }
 };
 
+export const listVaultTokens = async (): Promise<Token[]> => {
+    const vaults = await getAllVaultData();
+    const tokens = new Set<Token>();
+    for (const vault of vaults) {
+        tokens.add(vault.tokenA);
+        tokens.add(vault.tokenB);
+    }
+    return Array.from(tokens);
+}
+
 // Example usage (uncomment to run once, then re-comment):
 // removeVaults([
 //     'SP3E80609Y2M4D5KSPX8NQ36Q06H336Z3QX2QMF19.stx-btc-vault',
