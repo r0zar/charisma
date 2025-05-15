@@ -65,7 +65,7 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
  * Falls back to a reasonable default structure when the cache is unavailable or incomplete.
  */
 export async function getTokenMetadataCached(contractId: string): Promise<TokenCacheData> {
-    const url = `${TOKEN_CACHE_API_BASE_URL}/api/v1/sip10/${contractId}`;
+    const url = `https://tokens.charisma.rocks/api/v1/sip10/${contractId}`;
 
     try {
         const response = await fetch(url);
@@ -92,8 +92,8 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
                         ? result.data.symbol
                         : defaults.symbol,
                 decimals:
-                    typeof result.data.decimals === 'number' && !Number.isNaN(result.data.decimals)
-                        ? result.data.decimals
+                    !Number.isNaN(Number(result.data.decimals))
+                        ? Number(result.data.decimals)
                         : defaults.decimals,
                 contractId: result.data.contractId || defaults.contractId,
                 error: result.data.error || null,
@@ -132,7 +132,7 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
  * Retrieve a list of all known SIP-10 tokens from the token-cache service.
  */
 export async function listTokens(): Promise<TokenCacheData[]> {
-    const url = `${TOKEN_CACHE_API_BASE_URL}/api/v1/sip10`;
+    const url = `https://tokens.charisma.rocks/api/v1/sip10`;
 
     try {
         const response = await fetch(url);

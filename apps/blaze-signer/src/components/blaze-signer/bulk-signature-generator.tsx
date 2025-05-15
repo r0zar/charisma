@@ -11,6 +11,8 @@ import {
 import { bufferFromHex } from "@stacks/transactions/dist/cl"
 import { StacksNetwork } from "@stacks/network"
 import { request } from "@stacks/connect"
+import { generateWallet, restoreWalletAccounts } from '@stacks/wallet-sdk'
+import type { Wallet } from '@stacks/wallet-sdk'
 import {
     Card,
     CardHeader,
@@ -52,6 +54,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { QRCodeSVG } from 'qrcode.react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { getTokenMetadataCached } from '@repo/tokens'
 
 interface Signature {
     id: number
@@ -74,6 +77,9 @@ export function BulkSignatureGenerator({
     const [privateKey, setPrivateKey] = useState("")
     const [privateKeyError, setPrivateKeyError] = useState<string | null>(null)
     const [address, setAddress] = useState<string | null>(null)
+    const [isSeedPhrase, setIsSeedPhrase] = useState(false)
+    const [derivedPrivateKey, setDerivedPrivateKey] = useState<string | null>(null)
+    const [isDerivingKey, setIsDerivingKey] = useState(false)
 
     // State for signature parameters
     const [coreContract, setCoreContract] = useState("")
@@ -96,26 +102,86 @@ export function BulkSignatureGenerator({
     const [recoveredSigner, setRecoveredSigner] = useState<string | null>(null)
     const [isRecovering, setIsRecovering] = useState(false)
 
+    // For QR code preview modal
+    const [selectedSignature, setSelectedSignature] = useState<Signature | null>(null);
+    const [selectedTokenImage, setSelectedTokenImage] = useState<string | null>(null);
+    const [selectedTokenName, setSelectedTokenName] = useState<string>('');
+    const [selectedTokenSymbol, setSelectedTokenSymbol] = useState<string>('');
+    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number>(0);
+
     // Add selectedSignature state to the component
-    const [selectedSignature, setSelectedSignature] = useState<Signature | null>(null)
     const [baseUrl, setBaseUrl] = useState("https://blaze.charisma.rocks")
 
     // Validate the private key and compute the public address
-    const validatePrivateKey = useCallback(() => {
+    const validatePrivateKey = useCallback(async () => {
         try {
             setPrivateKeyError(null)
             if (!privateKey.trim()) {
                 setAddress(null)
+                setIsSeedPhrase(false)
+                setDerivedPrivateKey(null)
                 return false
             }
 
-            // Use getAddressFromPrivateKey to derive address
-            const derivedAddress = getAddressFromPrivateKey(privateKey, network.chainId === 1 ? 'mainnet' : 'testnet')
-            setAddress(derivedAddress)
-            return true
+            // Detect if this is likely a seed phrase (contains spaces)
+            const containsSpaces = privateKey.includes(' ')
+            setIsSeedPhrase(containsSpaces)
+
+            if (containsSpaces) {
+                // Handle as a seed phrase
+                setIsDerivingKey(true)
+                try {
+                    // Restore wallet from seed phrase
+                    let wallet = await generateWallet({
+                        secretKey: privateKey.trim(),
+                        password: 'password', // Not actually used since we're just deriving keys
+                    })
+
+                    // Get the first account's private key
+                    wallet = await restoreWalletAccounts({
+                        wallet,
+                        gaiaHubUrl: 'https://hub.blockstack.org',
+                    })
+
+                    if (wallet && wallet.accounts.length > 0) {
+                        const firstAccount = wallet.accounts[0]
+                        const accountPrivateKey = firstAccount.stxPrivateKey
+                        setDerivedPrivateKey(accountPrivateKey)
+
+                        // Derive address from the private key
+                        const derivedAddress = getAddressFromPrivateKey(
+                            accountPrivateKey,
+                            network.chainId === 1 ? 'mainnet' : 'testnet'
+                        )
+                        setAddress(derivedAddress)
+                        setIsDerivingKey(false)
+                        return true
+                    } else {
+                        throw new Error("No accounts derived from seed phrase")
+                    }
+                } catch (e) {
+                    console.error("Error deriving private key from seed phrase:", e)
+                    setPrivateKeyError(`Invalid seed phrase: ${e instanceof Error ? e.message : String(e)}`)
+                    setAddress(null)
+                    setDerivedPrivateKey(null)
+                    setIsDerivingKey(false)
+                    return false
+                }
+            } else {
+                // Handle as a regular private key
+                setDerivedPrivateKey(null)
+                // Use getAddressFromPrivateKey to derive address
+                const derivedAddress = getAddressFromPrivateKey(
+                    privateKey,
+                    network.chainId === 1 ? 'mainnet' : 'testnet'
+                )
+                setAddress(derivedAddress)
+                return true
+            }
         } catch (err) {
             setPrivateKeyError("Invalid private key format")
             setAddress(null)
+            setDerivedPrivateKey(null)
             return false
         }
     }, [privateKey, network.chainId])
@@ -274,7 +340,10 @@ export function BulkSignatureGenerator({
     // Generate signatures in bulk
     const generateBulkSignatures = async () => {
         // Validate inputs
-        if (!validatePrivateKey()) return
+        if (!(await validatePrivateKey())) return
+
+        // Get the actual private key to use (either direct or derived)
+        const actualPrivateKey = derivedPrivateKey || privateKey
 
         if (!coreContract) {
             setError("Core contract is required")
@@ -332,7 +401,7 @@ export function BulkSignatureGenerator({
                     const signature = await signStructuredData({
                         message,
                         domain,
-                        privateKey: privateKey
+                        privateKey: actualPrivateKey
                     });
 
                     // Add to our list
@@ -447,6 +516,52 @@ export function BulkSignatureGenerator({
             const labeledQrFolder = zip.folder("labeled-qr-codes");
             const combinedQrFolder = zip.folder("combined-qr-codes");
 
+            // Try to get token metadata for the combined QR code watermark
+            let tokenImageUrl = '';
+            let tokenName = '';
+            let tokenSymbol = '';
+            let tokenDecimals = 0; // Default to 6 decimals if not available
+            try {
+                // Extract contract address and name from the core contract
+                const [contractAddress, contractName] = parseContract(coreContract);
+                if (contractAddress && contractName) {
+                    // Get token metadata
+                    const tokenMetadata = await getTokenMetadataCached(
+                        `${contractAddress}.${contractName}`
+                    );
+
+                    console.log('Token metadata for formatting amounts:', {
+                        name: tokenMetadata?.name,
+                        symbol: tokenMetadata?.symbol,
+                        decimals: tokenMetadata?.decimals
+                    });
+
+                    // Extract token image URL if available
+                    if (tokenMetadata?.image) {
+                        tokenImageUrl = tokenMetadata.image;
+                    }
+
+                    // Extract token name and symbol if available
+                    if (tokenMetadata?.name) {
+                        tokenName = tokenMetadata.name;
+                    }
+
+                    if (tokenMetadata?.symbol) {
+                        tokenSymbol = tokenMetadata.symbol;
+                    }
+
+                    // Extract token decimals if available
+                    if (tokenMetadata?.decimals !== undefined) {
+                        tokenDecimals = tokenMetadata.decimals;
+                    }
+
+                    console.log('Token metadata loaded:', tokenMetadata?.name || 'Unknown token');
+                }
+            } catch (tokenError) {
+                console.error('Failed to load token metadata:', tokenError);
+                // Continue without token metadata
+            }
+
             // Add metadata JSON file
             const metadataFile = {
                 generated: new Date().toISOString(),
@@ -546,7 +661,7 @@ Count: ${signatures.length}
 
                             // Generate labeled QR codes (HTML)
                             const [labeledRedeemQrResponse, labeledVerifyQrResponse] = await Promise.all([
-                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${sig.amount} token${sig.amount === "1" ? "" : "s"}.`),
+                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${sig.amount} token${sig.amount === "1" ? "" : "s"}.&tokenDecimals=${tokenDecimals}${tokenName ? `&tokenName=${encodeURIComponent(tokenName)}` : ''}${tokenSymbol ? `&tokenSymbol=${encodeURIComponent(tokenSymbol)}` : ''}`),
                                 fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=500&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`)
                             ]);
 
@@ -562,7 +677,7 @@ Count: ${signatures.length}
 
                             // Generate combined QR code (both redeem and verify)
                             const combinedQrResponse = await fetch(
-                                `/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(redeemUrl)}&verifyUrl=${encodeURIComponent(verifyUrl)}&size=300&amount=${sig.amount}&description=UUID: ${sig.uuid}`
+                                `/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(redeemUrl)}&verifyUrl=${encodeURIComponent(verifyUrl)}&size=300&amount=${sig.amount}&description=UUID: ${sig.uuid}${tokenImageUrl ? `&tokenImage=${encodeURIComponent(tokenImageUrl)}` : ''}${tokenName ? `&tokenName=${encodeURIComponent(tokenName)}` : ''}${tokenSymbol ? `&tokenSymbol=${encodeURIComponent(tokenSymbol)}` : ''}&tokenDecimals=${tokenDecimals}`
                             );
 
                             if (combinedQrResponse.ok) {
@@ -589,6 +704,63 @@ Count: ${signatures.length}
         }
     };
 
+    // Add function to handle signature selection with token image lookup
+    const handleSignatureSelect = async (sig: Signature) => {
+        setSelectedSignature(sig);
+
+        // Try to get token metadata for the watermark
+        try {
+            // Extract contract address and name from the core contract
+            const [contractAddress, contractName] = parseContract(coreContract);
+            if (contractAddress && contractName) {
+                // Get token metadata
+                const tokenMetadata = await getTokenMetadataCached(
+                    `${contractAddress}.${contractName}`
+                );
+
+                console.log(tokenMetadata);
+
+                console.log('Token metadata for formatting amounts:', {
+                    name: tokenMetadata?.name,
+                    symbol: tokenMetadata?.symbol,
+                    decimals: tokenMetadata?.decimals
+                });
+
+                // Extract token image URL if available
+                if (tokenMetadata?.image) {
+                    setSelectedTokenImage(tokenMetadata.image);
+                } else {
+                    setSelectedTokenImage(null);
+                }
+
+                // Set token name and symbol
+                if (tokenMetadata?.name) {
+                    setSelectedTokenName(tokenMetadata.name);
+                } else {
+                    setSelectedTokenName('');
+                }
+
+                if (tokenMetadata?.symbol) {
+                    setSelectedTokenSymbol(tokenMetadata.symbol);
+                } else {
+                    setSelectedTokenSymbol('');
+                }
+
+                // Set token decimals
+                if (tokenMetadata?.decimals !== undefined) {
+                    setSelectedTokenDecimals(tokenMetadata.decimals);
+                } else {
+                    setSelectedTokenDecimals(6);
+                }
+            }
+        } catch (tokenError) {
+            console.error('Failed to load token metadata:', tokenError);
+            setSelectedTokenImage(null);
+            setSelectedTokenName('');
+            setSelectedTokenSymbol('');
+        }
+    };
+
     return (
         <Card className={cn(className)}>
             <CardHeader>
@@ -610,14 +782,14 @@ Count: ${signatures.length}
                         {/* Private Key Input */}
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <Label htmlFor="private-key" className="font-medium">Private Key</Label>
+                                <Label htmlFor="private-key" className="font-medium">{isSeedPhrase ? "Seed Phrase" : "Private Key"}</Label>
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Info className="h-4 w-4 text-muted-foreground" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p className="max-w-xs">Your private key is only used locally and never sent to any server, but we still recommend you disconnect your internet before using this tool.</p>
+                                            <p className="max-w-xs">You can enter either a private key or a seed phrase (12-24 words). Your key is only used locally and never sent to any server, but we still recommend you use a fresh key with this tool and do not use it for other purposes.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -625,14 +797,23 @@ Count: ${signatures.length}
                             <Input
                                 id="private-key"
                                 type="password"
-                                placeholder="Enter your private key"
+                                placeholder={isSeedPhrase ? "Enter your seed phrase (12-24 words)" : "Enter your private key"}
                                 value={privateKey}
                                 onChange={handlePrivateKeyChange}
-                                onBlur={validatePrivateKey}
+                                onBlur={() => validatePrivateKey()}
                                 className="font-mono text-sm"
                             />
                             {privateKeyError && (
                                 <p className="text-xs text-destructive mt-1">{privateKeyError}</p>
+                            )}
+                            {isDerivingKey && (
+                                <p className="text-xs text-amber-500 mt-1 flex items-center">
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    Deriving private key from seed phrase...
+                                </p>
+                            )}
+                            {isSeedPhrase && derivedPrivateKey && (
+                                <p className="text-xs text-green-500 mt-1">Private key successfully derived from seed phrase</p>
                             )}
                             {address && (
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -783,7 +964,7 @@ Count: ${signatures.length}
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => setSelectedSignature(sig)}
+                                                            onClick={() => handleSignatureSelect(sig)}
                                                             title="View QR Codes"
                                                         >
                                                             QR
@@ -1053,20 +1234,20 @@ Count: ${signatures.length}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="border rounded-md p-4 flex flex-col items-center">
                                         <iframe
-                                            src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${selectedSignature.amount} token${selectedSignature.amount === "1" ? "" : "s"}.`}
+                                            src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${selectedSignature.amount} token${selectedSignature.amount === "1" ? "" : "s"}.&tokenDecimals=${selectedTokenDecimals}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}`}
                                             title="Labeled Redeem QR Code"
                                             className="w-full bg-white"
-                                            height="350"
+                                            height="450"
                                             frameBorder="0"
                                         ></iframe>
                                     </div>
 
                                     <div className="border rounded-md p-4 flex flex-col items-center">
                                         <iframe
-                                            src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`}
+                                            src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.&tokenDecimals=${selectedTokenDecimals}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}`}
                                             title="Labeled Verify QR Code"
                                             className="w-full bg-white"
-                                            height="350"
+                                            height="450"
                                             frameBorder="0"
                                         ></iframe>
                                     </div>
@@ -1076,10 +1257,10 @@ Count: ${signatures.length}
                             <TabsContent value="combined">
                                 <div className="border rounded-md p-4">
                                     <iframe
-                                        src={`/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(getRedeemUrl(selectedSignature))}&verifyUrl=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&amount=${selectedSignature.amount}&description=UUID: ${selectedSignature.uuid}`}
+                                        src={`/api/qrcode?combined=true&redeemUrl=${encodeURIComponent(getRedeemUrl(selectedSignature))}&verifyUrl=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&amount=${selectedSignature.amount}&description=UUID: ${selectedSignature.uuid}${selectedTokenImage ? `&tokenImage=${encodeURIComponent(selectedTokenImage)}` : ''}${selectedTokenName ? `&tokenName=${encodeURIComponent(selectedTokenName)}` : ''}${selectedTokenSymbol ? `&tokenSymbol=${encodeURIComponent(selectedTokenSymbol)}` : ''}&tokenDecimals=${selectedTokenDecimals}`}
                                         title="Combined QR Codes"
                                         className="w-full bg-white"
-                                        height="500"
+                                        height="700"
                                         frameBorder="0"
                                     ></iframe>
                                 </div>

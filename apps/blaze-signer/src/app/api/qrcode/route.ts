@@ -49,6 +49,43 @@ export async function GET(request: NextRequest) {
         const labeled = searchParams.get('labeled') === 'true';
         const combined = searchParams.get('combined') === 'true';
         const tokenAmount = searchParams.get('amount') || '';
+        const tokenImageUrl = searchParams.get('tokenImage') || '';
+        const tokenName = searchParams.get('tokenName') || 'Token Redemption';
+        const tokenSymbol = searchParams.get('tokenSymbol') || '';
+        const tokenDecimals = Number(searchParams.get('tokenDecimals') || '0');
+
+        // Format token amount for display if decimals provided
+        let formattedAmount = tokenAmount;
+        if (tokenAmount && tokenDecimals > 0) {
+            try {
+                // Convert amount from smallest unit to readable format
+                const amountNum = Number(tokenAmount);
+                if (!isNaN(amountNum)) {
+                    formattedAmount = (amountNum / Math.pow(10, tokenDecimals)).toLocaleString('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: tokenDecimals
+                    });
+                }
+            } catch (error) {
+                console.error('Error formatting token amount:', error);
+                // Use original amount if there's an error
+            }
+        }
+
+        // Function to safely replace amount in description text
+        const formatDescriptionWithAmount = (text: string) => {
+            if (!tokenAmount || !formattedAmount) return text;
+
+            // Handle specific formats we know about
+            if (text.includes(`${tokenAmount} token`)) {
+                return text.replace(`${tokenAmount} token`, `${formattedAmount} token`);
+            } else if (text.includes(`UUID: ${tokenAmount}`)) {
+                return text.replace(`UUID: ${tokenAmount}`, `UUID: ${formattedAmount}`);
+            }
+
+            // General case - just return the original
+            return text;
+        };
 
         // Handle combined QR codes (redeem + verify)
         if (combined && redeemUrl && verifyUrl) {
@@ -94,11 +131,30 @@ export async function GET(request: NextRequest) {
             text-align: center;
         }
         .container {
+            position: relative;
             max-width: 800px;
             padding: 20px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
             border-radius: 8px;
             background-color: white;
+            overflow: hidden;
+        }
+        .watermark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 60%;
+            opacity: 0.08;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
         }
         h1 {
             margin-top: 0;
@@ -120,6 +176,8 @@ export async function GET(request: NextRequest) {
             flex-direction: column;
             align-items: center;
             max-width: 300px;
+            padding: 10px;
+            border-radius: 8px;
         }
         .qr-code img {
             max-width: 100%;
@@ -127,6 +185,7 @@ export async function GET(request: NextRequest) {
             border: 1px solid #eee;
             border-radius: 4px;
             padding: 10px;
+            background-color: white;
         }
         .qr-code h2 {
             margin-top: 0;
@@ -143,34 +202,50 @@ export async function GET(request: NextRequest) {
             padding: 0 20px;
             border-top: 1px solid #eee;
             padding-top: 20px;
+            border-radius: 8px;
         }
         .token-amount {
             font-weight: bold;
             font-size: 18px;
             color: #333;
             margin: 10px 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+        .footer-watermark {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 20px;
+            text-align: center;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Bearer Token QR Codes</h1>
-        ${tokenAmount ? `<div class="token-amount">${tokenAmount} Token${tokenAmount === "1" ? "" : "s"}</div>` : ''}
-        <div class="qr-codes">
-            <div class="qr-code">
-                <h2>REDEEM</h2>
-                <img src="${redeemQrDataUrl}" alt="Redeem QR Code">
+        ${tokenImageUrl ? `<div class="watermark" style="background-image: url('${tokenImageUrl}');"></div>` : ''}
+        <div class="content">
+            <h1>${tokenName}${tokenSymbol ? ` (${tokenSymbol})` : ''}</h1>
+            ${tokenAmount ? `<div class="token-amount">${formattedAmount} Token${formattedAmount === "1" ? "" : "s"}</div>` : ''}
+            <div class="qr-codes">
+                <div class="qr-code">
+                    <h2>REDEEM</h2>
+                    <img src="${redeemQrDataUrl}" alt="Redeem QR Code">
+                </div>
+                <div class="qr-code">
+                    <h2>VERIFY</h2>
+                    <img src="${verifyQrDataUrl}" alt="Verify QR Code">
+                </div>
             </div>
-            <div class="qr-code">
-                <h2>VERIFY</h2>
-                <img src="${verifyQrDataUrl}" alt="Verify QR Code">
+            <div class="description">
+                <p><strong>Instructions:</strong></p>
+                <p>1. Use the <strong>REDEEM</strong> QR code to claim your tokens.</p>
+                <p>2. Use the <strong>VERIFY</strong> QR code to check if this note has already been redeemed.</p>
+                <p>${formatDescriptionWithAmount(description)}</p>
             </div>
-        </div>
-        <div class="description">
-            <p><strong>Instructions:</strong></p>
-            <p>1. Use the <strong>REDEEM</strong> QR code to claim your tokens.</p>
-            <p>2. Use the <strong>VERIFY</strong> QR code to check if this note has already been redeemed.</p>
-            <p>${description}</p>
+            <div class="footer-watermark">Blaze Protocol v1.0</div>
         </div>
     </div>
 </body>
@@ -265,15 +340,22 @@ export async function GET(request: NextRequest) {
             margin-bottom: 0;
             line-height: 1.5;
         }
+        .token-info {
+            font-size: 16px;
+            color: #444;
+            margin: 5px 0 15px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>${title}</h1>
+        ${tokenName && title === 'REDEEM' ? `<div class="token-info">${tokenName}${tokenSymbol ? ` (${tokenSymbol})` : ''}</div>` : ''}
         <div class="qr-code">
             <img src="${qrDataUrl}" alt="${title} QR Code">
         </div>
-        <p class="description">${description}</p>
+        <p class="description">${formatDescriptionWithAmount(description)}</p>
     </div>
 </body>
 </html>
