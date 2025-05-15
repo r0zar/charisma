@@ -631,6 +631,7 @@ export function BulkSignatureGenerator({
             const qrFolder = zip.folder("qr-codes");
             const labeledQrFolder = zip.folder("labeled-qr-codes");
             const combinedQrFolder = zip.folder("combined-qr-codes");
+            const printGridFolder = zip.folder("print-grids");
 
             // Try to get token metadata for the combined QR code watermark
             let tokenImageUrl = '';
@@ -704,10 +705,12 @@ Count: ${signatures.length}
 - The \`qr-codes\` folder contains plain QR code images for each signature
 - The \`labeled-qr-codes\` folder contains HTML pages with QR codes that include titles and descriptions
 - The \`combined-qr-codes\` folder contains HTML pages with both redeem and verify QR codes together
+- The \`print-grids\` folder contains printable grid layouts for easy printing on standard paper
 - Each signature has multiple formats:
   - Basic QR codes: \`redeem-{id}.png\` and \`verify-{id}.png\`
   - Labeled QR codes: \`redeem-{id}.html\` and \`verify-{id}.html\`
   - Combined QR codes: \`combined-{id}.html\` (includes both redeem and verify)
+  - Printable grids: 4/6/9 codes per page optimized for standard printers
 - Open the HTML files in a browser to see the formatted QR codes
 - The text files (.txt) contain the corresponding URLs
 - The CSV file contains all signature data in spreadsheet format
@@ -729,8 +732,8 @@ Count: ${signatures.length}
             zip.file("signatures.csv", csvContent);
 
             // Process each signature
-            if (qrFolder && labeledQrFolder && combinedQrFolder) {
-                // Process in smaller batches to avoid overwhelming the server
+            if (qrFolder && labeledQrFolder && combinedQrFolder && printGridFolder) {
+                // Process in smaller batches to avoid overwhelming the browser
                 const batchSize = 5;
                 const batches = Math.ceil(signatures.length / batchSize);
 
@@ -738,6 +741,8 @@ Count: ${signatures.length}
                     const batchStart = batchIndex * batchSize;
                     const batchEnd = Math.min(batchStart + batchSize, signatures.length);
                     const batchSignatures = signatures.slice(batchStart, batchEnd);
+
+                    console.log(`Processing QR code batch ${batchIndex + 1}/${batches} (signatures ${batchStart + 1}-${batchEnd})`);
 
                     // Process each signature in the batch
                     await Promise.all(batchSignatures.map(async (sig) => {
@@ -808,9 +813,33 @@ Count: ${signatures.length}
                 }
             }
 
+            // Create printable grid layouts after all signatures are processed
+            if (signatures.length > 0 && printGridFolder) {
+                try {
+                    console.log("Generating printable grid layouts");
+                    // Create grid layouts for plain QR codes
+                    await generatePrintableGrids(signatures, printGridFolder, "redeem", "verify", {
+                        baseUrl,
+                        coreContract,
+                        tokenName,
+                        tokenSymbol,
+                        tokenDecimals,
+                        tokenImageUrl
+                    });
+
+                    console.log("Printable grid layouts generated successfully");
+                } catch (error) {
+                    console.error("Error generating printable grids:", error);
+                }
+            }
+
+            console.log("All QR code processing complete, generating zip file");
+
             // Generate the zip file and trigger download
             const zipBlob = await zip.generateAsync({ type: "blob" });
             saveAs(zipBlob, `bearer-tokens-${new Date().toISOString().split('T')[0]}.zip`);
+
+            console.log("Zip file generated and downloaded successfully");
 
         } catch (error) {
             console.error("Error generating QR code pack:", error);
@@ -818,6 +847,358 @@ Count: ${signatures.length}
         } finally {
             setIsGeneratingQRPack(false);
         }
+    };
+
+    // Helper function to generate printable grid layouts
+    const generatePrintableGrids = async (
+        signatures: Signature[],
+        targetFolder: JSZip | null,
+        redeemPrefix: string,
+        verifyPrefix: string,
+        options: {
+            baseUrl: string;
+            coreContract: string;
+            tokenName: string;
+            tokenSymbol: string;
+            tokenDecimals: number;
+            tokenImageUrl: string;
+        }
+    ) => {
+        if (!targetFolder) return;
+
+        // Create different grid layouts (4, 6, and 9 per page)
+        const gridSizes = [4, 6, 9];
+
+        // Create a map to track image data URLs
+        const qrImageMap = new Map<string, string>();
+
+        // Helper function to convert ArrayBuffer to base64
+        const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        };
+
+        // Process signatures in batches to avoid overwhelming the browser
+        const batchSize = 5; // Process 5 signatures at a time
+        const batches = Math.ceil(signatures.length / batchSize);
+
+        console.log(`Processing ${signatures.length} signatures in ${batches} batches`);
+
+        for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
+            const batchStart = batchIndex * batchSize;
+            const batchEnd = Math.min((batchIndex + 1) * batchSize, signatures.length);
+            const batchSignatures = signatures.slice(batchStart, batchEnd);
+
+            console.log(`Processing batch ${batchIndex + 1}/${batches} (signatures ${batchStart + 1}-${batchEnd})`);
+
+            // Process each signature in the batch
+            await Promise.all(batchSignatures.map(async (sig) => {
+                const redeemUrl = getRedeemUrl(sig);
+                const verifyUrl = getVerifyUrl(sig);
+
+                // Generate redeem QR image
+                const redeemKey = `redeem-${sig.id}`;
+                try {
+                    const redeemQrResponse = await fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=300`);
+                    if (redeemQrResponse.ok) {
+                        // Convert the image to base64 data URL
+                        const redeemQrBuffer = await redeemQrResponse.arrayBuffer();
+                        const base64 = arrayBufferToBase64(redeemQrBuffer);
+                        const dataUrl = `data:image/png;base64,${base64}`;
+                        qrImageMap.set(redeemKey, dataUrl);
+                    }
+                } catch (error) {
+                    console.error(`Error generating redeem QR for ${sig.id}:`, error);
+                }
+
+                // Generate verify QR image
+                const verifyKey = `verify-${sig.id}`;
+                try {
+                    const verifyQrResponse = await fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=300`);
+                    if (verifyQrResponse.ok) {
+                        // Convert the image to base64 data URL
+                        const verifyQrBuffer = await verifyQrResponse.arrayBuffer();
+                        const base64 = arrayBufferToBase64(verifyQrBuffer);
+                        const dataUrl = `data:image/png;base64,${base64}`;
+                        qrImageMap.set(verifyKey, dataUrl);
+                    }
+                } catch (error) {
+                    console.error(`Error generating verify QR for ${sig.id}:`, error);
+                }
+            }));
+        }
+
+        console.log(`Generated ${qrImageMap.size} QR code images`);
+
+        for (const gridSize of gridSizes) {
+            // Create redeem-only grid
+            const redeemGridHtml = createGridLayout(
+                signatures,
+                gridSize,
+                "redeem",
+                options,
+                qrImageMap
+            );
+            targetFolder.file(`redeem-grid-${gridSize}-per-page.html`, redeemGridHtml);
+
+            // Create verify-only grid
+            const verifyGridHtml = createGridLayout(
+                signatures,
+                gridSize,
+                "verify",
+                options,
+                qrImageMap
+            );
+            targetFolder.file(`verify-grid-${gridSize}-per-page.html`, verifyGridHtml);
+
+            // Create combined grid (both codes per note)
+            const combinedGridHtml = createGridLayout(
+                signatures,
+                gridSize,
+                "combined",
+                options,
+                qrImageMap
+            );
+            targetFolder.file(`combined-grid-${gridSize}-per-page.html`, combinedGridHtml);
+        }
+    };
+
+    // Helper function to create a grid layout HTML
+    const createGridLayout = (
+        signatures: Signature[],
+        gridSize: number,
+        mode: "redeem" | "verify" | "combined",
+        options: {
+            baseUrl: string;
+            coreContract: string;
+            tokenName: string;
+            tokenSymbol: string;
+            tokenDecimals: number;
+            tokenImageUrl: string;
+        },
+        qrImageMap: Map<string, string>
+    ): string => {
+        // Calculate grid columns (sqrt of gridSize rounded up)
+        const columns = Math.ceil(Math.sqrt(gridSize));
+        const qrCodeSize = mode === "combined" ? 120 : 200; // Smaller for combined mode
+
+        // Start building HTML
+        let html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Printable ${mode.charAt(0).toUpperCase() + mode.slice(1)} QR Codes - ${gridSize} per page</title>
+    <style>
+        @media print {
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+            
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+        }
+        
+        .page {
+            page-break-after: always;
+            padding: 0.1in;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(${columns}, 1fr);
+            grid-gap: 0.2in;
+        }
+        
+        .note {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0.1in;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            page-break-inside: avoid;
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .combined {
+            display: flex;
+            flex-direction: row;
+            gap: 0.1in;
+            justify-content: center;
+        }
+        
+        .qr-code {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .qr-code img {
+            width: ${qrCodeSize}px;
+            height: ${qrCodeSize}px;
+            border: 1px solid #eee;
+            background-color: #f8f8f8;
+        }
+        
+        .qr-code h3 {
+            margin: 0.05in 0;
+            font-size: 12px;
+        }
+        
+        .note-info {
+            font-size: 10px;
+            text-align: center;
+            margin-top: 0.05in;
+            margin-bottom: 0.05in;
+        }
+        
+        .note-token {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .note-amount {
+            font-weight: bold;
+            margin-top: 0.05in;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        .note-id {
+            font-size: 8px;
+            color: #777;
+            margin-top: 0.05in;
+        }
+        
+        .qr-fallback {
+            width: ${qrCodeSize}px;
+            height: ${qrCodeSize}px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ddd;
+            background-color: #f5f5f5;
+            font-size: 10px;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+`;
+
+        // Calculate how many pages we need
+        const notesPerPage = gridSize;
+        const totalPages = Math.ceil(signatures.length / notesPerPage);
+
+        // Generate each page
+        for (let page = 0; page < totalPages; page++) {
+            html += `<div class="page">
+    <div class="grid">`;
+
+            // Generate notes for this page
+            const startIndex = page * notesPerPage;
+            const endIndex = Math.min((page + 1) * notesPerPage, signatures.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const sig = signatures[i];
+                const formattedAmount = formatTokenAmount(sig.amount, options.tokenDecimals);
+
+                // Get the QR code image paths from the map
+                const redeemImagePath = qrImageMap.get(`redeem-${sig.id}`);
+                const verifyImagePath = qrImageMap.get(`verify-${sig.id}`);
+
+                // Generate note based on mode
+                if (mode === "redeem") {
+                    html += `
+        <div class="note">
+            <div class="note-token">${options.tokenName || 'Token'}${options.tokenSymbol ? ` (${options.tokenSymbol})` : ''}</div>
+            <div class="note-amount">${formattedAmount} Token${formattedAmount === "1" ? "" : "s"}</div>
+            <div class="qr-code">
+                <h3>REDEEM</h3>
+                ${redeemImagePath
+                            ? `<img src="${redeemImagePath}" alt="Redeem QR Code">`
+                            : `<div class="qr-fallback">QR Code<br>Unavailable</div>`
+                        }
+            </div>
+            <div class="note-info">Scan to redeem tokens</div>
+            <div class="note-id">ID: ${sig.id} • UUID: ${sig.uuid.substring(0, 8)}...</div>
+        </div>`;
+                } else if (mode === "verify") {
+                    html += `
+        <div class="note">
+            <div class="note-token">${options.tokenName || 'Token'}${options.tokenSymbol ? ` (${options.tokenSymbol})` : ''}</div>
+            <div class="note-amount">${formattedAmount} Token${formattedAmount === "1" ? "" : "s"}</div>
+            <div class="qr-code">
+                <h3>VERIFY</h3>
+                ${verifyImagePath
+                            ? `<img src="${verifyImagePath}" alt="Verify QR Code">`
+                            : `<div class="qr-fallback">QR Code<br>Unavailable</div>`
+                        }
+            </div>
+            <div class="note-info">Scan to verify if redeemed</div>
+            <div class="note-id">ID: ${sig.id} • UUID: ${sig.uuid.substring(0, 8)}...</div>
+        </div>`;
+                } else {
+                    // Combined mode
+                    html += `
+        <div class="note">
+            <div class="note-token">${options.tokenName || 'Token'}${options.tokenSymbol ? ` (${options.tokenSymbol})` : ''}</div>
+            <div class="note-amount">${formattedAmount} Token${formattedAmount === "1" ? "" : "s"}</div>
+            <div class="combined">
+                <div class="qr-code">
+                    <h3>REDEEM</h3>
+                    ${redeemImagePath
+                            ? `<img src="${redeemImagePath}" alt="Redeem QR Code">`
+                            : `<div class="qr-fallback">QR Code<br>Unavailable</div>`
+                        }
+                </div>
+                <div class="qr-code">
+                    <h3>VERIFY</h3>
+                    ${verifyImagePath
+                            ? `<img src="${verifyImagePath}" alt="Verify QR Code">`
+                            : `<div class="qr-fallback">QR Code<br>Unavailable</div>`
+                        }
+                </div>
+            </div>
+            <div class="note-id">ID: ${sig.id} • UUID: ${sig.uuid.substring(0, 8)}...</div>
+        </div>`;
+                }
+            }
+
+            html += `
+    </div>
+</div>`;
+            // Add page break except for the last page
+            if (page < totalPages - 1) {
+                html += `<div class="page-break"></div>`;
+            }
+        }
+
+        html += `
+</body>
+</html>`;
+
+        return html;
     };
 
     // Add function to handle signature selection with token image lookup
