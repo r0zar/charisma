@@ -184,9 +184,13 @@ export function HashGenerator({
                 setSignature(data.signature)
 
                 if (baseUrl) {
+                    // Create verification QR code URL
                     const publicUrl = `${baseUrl}/verify?uuid=${encodeURIComponent(hashUuid)}&contract=${encodeURIComponent(coreContract)}`;
                     setPublicQrData(publicUrl);
-                    setPrivateQrData(null);
+
+                    // Create redeem QR code URL with all necessary parameters
+                    const privateUrl = `${baseUrl}/redeem?sig=${encodeURIComponent(data.signature)}&uuid=${encodeURIComponent(hashUuid)}&contract=${encodeURIComponent(coreContract)}${amountOptional ? `&amount=${encodeURIComponent(amountOptional)}` : ''}`;
+                    setPrivateQrData(privateUrl);
                 } else {
                     console.warn("Base URL not available yet for QR code generation.");
                 }

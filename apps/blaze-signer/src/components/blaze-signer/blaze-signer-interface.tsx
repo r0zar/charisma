@@ -18,6 +18,7 @@ import {
 import { cn } from "../ui/utils"
 import { Button } from "../ui/button"
 import { useWallet } from "@/context/wallet-context"
+import { BulkSignatureGenerator } from "./bulk-signature-generator"
 
 // Default to mainnet
 const defaultNetwork = STACKS_MAINNET
@@ -38,6 +39,7 @@ export function BlazeSignerInterface() {
     // --- Routing Logic (remains mostly the same) ---
     const getTabFromPath = (path: string): string => {
         if (path.startsWith("/signer/uuid")) return "uuid"
+        if (path.startsWith("/signer/bulk")) return "bulk"
         if (path.startsWith("/signer/tokens")) return "tokens"
         return "signatures" // Default tab
     }
@@ -72,6 +74,7 @@ export function BlazeSignerInterface() {
         let path = "/signer"
         switch (tabId) {
             case "uuid": path = "/signer/uuid"; break;
+            case "bulk": path = "/signer/bulk"; break;
             case "tokens": path = "/tokens"; break; // Default to welsh
             default: path = "/signer";
         }
@@ -136,6 +139,16 @@ export function BlazeSignerInterface() {
                     </div>
                 </div>
             )
+        },
+        {
+            id: 'bulk',
+            label: 'Bulk Signing',
+            href: '/signer/bulk',
+            content: (
+                <BulkSignatureGenerator
+                    network={network}
+                />
+            )
         }
     ]
 
@@ -146,6 +159,28 @@ export function BlazeSignerInterface() {
 
     return (
         <div className="container max-w-7xl mx-auto px-4 py-8">
+            <div className="mb-6 border-b pb-4">
+                <NavigationMenu className="max-w-full w-full">
+                    <NavigationMenuList className="flex space-x-4">
+                        {navItems.map(item => (
+                            <NavigationMenuItem key={item.id}>
+                                <Button
+                                    variant={activeTab === item.id ? "default" : "ghost"}
+                                    className={cn(
+                                        "text-sm font-medium",
+                                        activeTab === item.id
+                                            ? "bg-primary text-primary-foreground"
+                                            : "text-muted-foreground"
+                                    )}
+                                    onClick={() => handleTabChange(item.id)}
+                                >
+                                    {item.label}
+                                </Button>
+                            </NavigationMenuItem>
+                        ))}
+                    </NavigationMenuList>
+                </NavigationMenu>
+            </div>
             {renderActiveTabContent()}
         </div>
     )

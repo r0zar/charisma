@@ -209,11 +209,11 @@ export async function recoverSigner(
 export async function checkUUID(uuid: string): Promise<boolean> {
     const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
 
-    // Call the 'is-uuid-submitted' function
+    // Call the 'check' function
     const result: any = await callReadOnlyFunction(
         contractAddress,
         contractName,
-        "is-uuid-submitted",
+        "check",
         [stringAsciiCV(uuid)],
     );
 

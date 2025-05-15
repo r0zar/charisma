@@ -15,7 +15,6 @@ export default function RootLayout({
       <body>
         <WalletProvider>
           <Toaster />
-          <Header />
           <main className="min-h-screen bg-background">
             {children}
           </main>

@@ -3,16 +3,16 @@
  */
 
 // Blaze Protocol contract
-export const BLAZE_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10"
+export const BLAZE_SIGNER_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1"
 
 // Charisma Credits contract
-export const CHARISMA_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6"
+export const CHARISMA_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
 
 // Welsh Credits contract
-export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-rc2"
+export const WELSH_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1"
 
 // Mali Credits contract
-export const MALI_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.mali-token-subnet-rc1"
+export const MALI_CREDITS_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.mali-token-subnet-v1"
 
 // Charisma token contract
 export const CHARISMA_TOKEN_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"
@@ -30,7 +30,7 @@ export const MALI_CREDITS_DECIMALS = 6
 
 // SIP-018 Domain details
 export const BLAZE_PROTOCOL_NAME = "BLAZE_PROTOCOL";
-export const BLAZE_PROTOCOL_VERSION = "intent-v1";
+export const BLAZE_PROTOCOL_VERSION = "v1.0";
 
 /**
  * Generates a UUID string in the format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
