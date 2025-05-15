@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, ChangeEvent, useCallback, useEffect } from "react"
+import React, { useState, ChangeEvent, useCallback, useEffect, useRef } from "react"
 import {
     tupleCV, stringAsciiCV, uintCV,
     bufferCV, optionalCVOf, noneCV,
@@ -50,6 +50,8 @@ import { cn } from "../ui/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { QRCodeSVG } from 'qrcode.react'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 
 interface Signature {
     id: number
@@ -438,6 +440,150 @@ export function BulkSignatureGenerator({
         return `${baseUrl}/verify?${params.toString()}`;
     }
 
+    // Function to generate and download QR code pack
+    const [isGeneratingQRPack, setIsGeneratingQRPack] = useState(false);
+    const qrCodeContainerRef = useRef<HTMLDivElement | null>(null);
+
+    const generateQRCodePack = async () => {
+        if (signatures.length === 0 || !baseUrl || !coreContract) return;
+
+        setIsGeneratingQRPack(true);
+
+        try {
+            const zip = new JSZip();
+            const qrFolder = zip.folder("qr-codes");
+            const labeledQrFolder = zip.folder("labeled-qr-codes");
+
+            // Add metadata JSON file
+            const metadataFile = {
+                generated: new Date().toISOString(),
+                contract: coreContract,
+                baseUrl,
+                count: signatures.length,
+                signatures: signatures.map(sig => ({
+                    id: sig.id,
+                    uuid: sig.uuid,
+                    amount: sig.amount,
+                    redeemUrl: getRedeemUrl(sig),
+                    verifyUrl: getVerifyUrl(sig)
+                }))
+            };
+            zip.file("metadata.json", JSON.stringify(metadataFile, null, 2));
+
+            // Create a readme file
+            const readmeContent = `# Bearer Token QR Codes
+Generated: ${new Date().toLocaleString()}
+Contract: ${coreContract}
+Count: ${signatures.length}
+
+## Usage Instructions
+- The \`qr-codes\` folder contains plain QR code images for each signature
+- The \`labeled-qr-codes\` folder contains HTML pages with QR codes that include titles and descriptions
+- Each signature has two QR codes:
+  - \`redeem-{id}.png\`: Scan to redeem tokens
+  - \`verify-{id}.png\`: Scan to verify if a note has been used
+- Open the HTML files in a browser to see the labeled QR codes
+- The text files (.txt) contain the corresponding URLs
+- The CSV file contains all signature data in spreadsheet format
+- Use the JSON file for programmatic access to the data
+`;
+            zip.file("README.md", readmeContent);
+
+            // Add CSV export
+            const csvHeader = ["id", "uuid", "signature", "amount"].join(",");
+            const csvRows = signatures.map(sig => {
+                return [
+                    sig.id,
+                    sig.uuid,
+                    sig.signature,
+                    sig.amount
+                ].join(",");
+            });
+            const csvContent = [csvHeader, ...csvRows].join("\n");
+            zip.file("signatures.csv", csvContent);
+
+            // Process each signature
+            if (qrFolder && labeledQrFolder) {
+                // Process in smaller batches to avoid overwhelming the server
+                const batchSize = 5;
+                const batches = Math.ceil(signatures.length / batchSize);
+
+                for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
+                    const batchStart = batchIndex * batchSize;
+                    const batchEnd = Math.min(batchStart + batchSize, signatures.length);
+                    const batchSignatures = signatures.slice(batchStart, batchEnd);
+
+                    // Process each signature in the batch
+                    await Promise.all(batchSignatures.map(async (sig) => {
+                        const redeemUrl = getRedeemUrl(sig);
+                        const verifyUrl = getVerifyUrl(sig);
+
+                        // Add text files with URLs
+                        qrFolder.file(`redeem-${sig.id}.txt`, redeemUrl);
+                        qrFolder.file(`verify-${sig.id}.txt`, verifyUrl);
+
+                        // Add a JSON file with all data for this signature
+                        qrFolder.file(`signature-${sig.id}.json`, JSON.stringify({
+                            id: sig.id,
+                            uuid: sig.uuid,
+                            signature: sig.signature,
+                            amount: sig.amount,
+                            redeemUrl,
+                            verifyUrl
+                        }, null, 2));
+
+                        try {
+                            // Generate regular QR codes
+                            const [redeemQrResponse, verifyQrResponse] = await Promise.all([
+                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500`),
+                                fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=500`)
+                            ]);
+
+                            if (redeemQrResponse.ok) {
+                                const redeemQrBuffer = await redeemQrResponse.arrayBuffer();
+                                qrFolder.file(`redeem-${sig.id}.png`, redeemQrBuffer);
+                            }
+
+                            if (verifyQrResponse.ok) {
+                                const verifyQrBuffer = await verifyQrResponse.arrayBuffer();
+                                qrFolder.file(`verify-${sig.id}.png`, verifyQrBuffer);
+                            }
+
+                            // Generate labeled QR codes (HTML)
+                            const [labeledRedeemQrResponse, labeledVerifyQrResponse] = await Promise.all([
+                                fetch(`/api/qrcode?url=${encodeURIComponent(redeemUrl)}&size=500&labeled=true&title=REDEEM&description=Scan to redeem ${sig.amount} tokens with UUID: ${sig.uuid}`),
+                                fetch(`/api/qrcode?url=${encodeURIComponent(verifyUrl)}&size=500&labeled=true&title=VERIFY&description=Scan to check if this note has been used. UUID: ${sig.uuid}`)
+                            ]);
+
+                            if (labeledRedeemQrResponse.ok) {
+                                const labeledRedeemHtml = await labeledRedeemQrResponse.text();
+                                labeledQrFolder.file(`redeem-${sig.id}.html`, labeledRedeemHtml);
+                            }
+
+                            if (labeledVerifyQrResponse.ok) {
+                                const labeledVerifyHtml = await labeledVerifyQrResponse.text();
+                                labeledQrFolder.file(`verify-${sig.id}.html`, labeledVerifyHtml);
+                            }
+                        } catch (error) {
+                            console.error(`Error generating QR code for signature ${sig.id}:`, error);
+                            // Continue with other signatures even if QR generation fails for one
+                        }
+                    }));
+                }
+            }
+
+            // Generate the zip file and trigger download
+            const zipBlob = await zip.generateAsync({ type: "blob" });
+            saveAs(zipBlob, `bearer-tokens-${new Date().toISOString().split('T')[0]}.zip`);
+
+        } catch (error) {
+            console.error("Error generating QR code pack:", error);
+            alert(`Error generating QR code pack: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsGeneratingQRPack(false);
+        }
+    };
+
     return (
         <Card className={cn(className)}>
             <CardHeader>
@@ -666,12 +812,20 @@ export function BulkSignatureGenerator({
                                     <Button
                                         variant="default"
                                         size="sm"
-                                        onClick={() => {
-                                            alert("This would generate a zip file with QR codes for all signatures. Implement this feature when needed.");
-                                        }}
+                                        onClick={generateQRCodePack}
+                                        disabled={isGeneratingQRPack}
                                     >
-                                        <Download className="mr-2 h-4 w-4" />
-                                        QR Code Pack
+                                        {isGeneratingQRPack ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Download Token Pack
+                                            </>
+                                        )}
                                     </Button>
                                 )}
                             </div>
@@ -823,7 +977,7 @@ export function BulkSignatureGenerator({
             {/* Add QR code display modal/dialog that appears when a signature is selected */}
             {selectedSignature && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-background rounded-lg shadow-lg max-w-5xl w-full p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-bold">QR Codes for Signature #{selectedSignature.id}</h3>
                             <Button
@@ -835,49 +989,77 @@ export function BulkSignatureGenerator({
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="border rounded-md p-4 flex flex-col items-center">
-                                <h4 className="font-medium mb-2">Redeem QR Code</h4>
-                                <div className="bg-white p-3 rounded-md mb-3">
-                                    <QRCodeSVG
-                                        value={getRedeemUrl(selectedSignature)}
-                                        size={200}
-                                        level="H"
-                                    />
+                        <div className="mb-4">
+                            <h4 className="font-medium text-center mb-3">Plain QR Codes</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="border rounded-md p-4 flex flex-col items-center">
+                                    <h4 className="font-medium mb-2">Redeem QR Code</h4>
+                                    <div className="bg-white p-3 rounded-md mb-3">
+                                        <QRCodeSVG
+                                            value={getRedeemUrl(selectedSignature)}
+                                            size={200}
+                                            level="H"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-2 text-center">
+                                        Scan to redeem tokens using this signature
+                                    </p>
+                                    <a
+                                        href={getRedeemUrl(selectedSignature)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary text-sm hover:underline"
+                                    >
+                                        Open Redeem Link
+                                    </a>
                                 </div>
-                                <p className="text-xs text-muted-foreground mb-2 text-center">
-                                    Scan to redeem tokens using this signature
-                                </p>
-                                <a
-                                    href={getRedeemUrl(selectedSignature)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary text-sm hover:underline"
-                                >
-                                    Open Redeem Link
-                                </a>
-                            </div>
 
-                            <div className="border rounded-md p-4 flex flex-col items-center">
-                                <h4 className="font-medium mb-2">Verify QR Code</h4>
-                                <div className="bg-white p-3 rounded-md mb-3">
-                                    <QRCodeSVG
-                                        value={getVerifyUrl(selectedSignature)}
-                                        size={200}
-                                        level="H"
-                                    />
+                                <div className="border rounded-md p-4 flex flex-col items-center">
+                                    <h4 className="font-medium mb-2">Verify QR Code</h4>
+                                    <div className="bg-white p-3 rounded-md mb-3">
+                                        <QRCodeSVG
+                                            value={getVerifyUrl(selectedSignature)}
+                                            size={200}
+                                            level="H"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-2 text-center">
+                                        Scan to verify if this signature has been used
+                                    </p>
+                                    <a
+                                        href={getVerifyUrl(selectedSignature)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary text-sm hover:underline"
+                                    >
+                                        Open Verify Link
+                                    </a>
                                 </div>
-                                <p className="text-xs text-muted-foreground mb-2 text-center">
-                                    Scan to verify if this signature has been used
-                                </p>
-                                <a
-                                    href={getVerifyUrl(selectedSignature)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary text-sm hover:underline"
-                                >
-                                    Open Verify Link
-                                </a>
+                            </div>
+                        </div>
+
+                        <div className="mb-6">
+                            <h4 className="font-medium text-center mb-3">Labeled QR Codes</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="border rounded-md p-4 flex flex-col items-center">
+                                    <iframe
+                                        src={`/api/qrcode?url=${encodeURIComponent(getRedeemUrl(selectedSignature))}&size=200&labeled=true&title=REDEEM&description=Scan to redeem ${selectedSignature.amount} token${selectedSignature.amount === "1" ? "" : "s"}.`}
+                                        title="Labeled Redeem QR Code"
+                                        className="w-full bg-white"
+                                        height="350"
+                                        frameBorder="0"
+                                    ></iframe>
+                                </div>
+
+                                <div className="border rounded-md p-4 flex flex-col items-center">
+                                    <iframe
+                                        src={`/api/qrcode?url=${encodeURIComponent(getVerifyUrl(selectedSignature))}&size=200&labeled=true&title=VERIFY&description=Scan to check if this note has been used.`}
+                                        title="Labeled Verify QR Code"
+                                        className="w-full bg-white"
+                                        height="350"
+                                        frameBorder="0"
+                                    ></iframe>
+                                </div>
                             </div>
                         </div>
 

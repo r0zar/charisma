@@ -330,7 +330,6 @@ function RedeemPageContentInner({
         if (submissionSuccess && transactionId) {
             return (
                 <Alert className="mt-4 border-green-200 bg-green-50 text-green-800">
-                    <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Transaction submitted successfully!</AlertTitle>
                     <AlertDescription>
                         <p className="mb-2">Your redemption has been submitted to the network.</p>
