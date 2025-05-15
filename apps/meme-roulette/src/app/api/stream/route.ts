@@ -1,6 +1,6 @@
 import type { SpinFeedData, Token, Vote } from '@/types/spin';
 import { kv } from '@vercel/kv'; // Import kv directly if needed for specific checks
-import { listTokens } from '@/app/actions';
+import { listTokens } from 'dexterity-sdk';
 import {
     initializeKVState,
     getKVLastTokenFetchTime,
@@ -90,9 +90,9 @@ const updateAndBroadcast = async () => {
     if (timeLeft <= 0 && !status.winningTokenId) {
         // Spin finished, determine winner
         // Fetch current tokens from Dexterity instead of KV
-        const tokensResult = await listTokens();
-        const currentTokens = tokensResult.success && tokensResult.tokens
-            ? tokensResult.tokens.map(token => ({
+        const tokens = await listTokens();
+        const currentTokens = tokens
+            ? tokens.map(token => ({
                 id: token.contractId,
                 name: token.name,
                 symbol: token.symbol,
@@ -301,8 +301,8 @@ export async function GET(request: NextRequest) {
 
             try {
                 const tokensResult = await listTokens();
-                const initialTokens = tokensResult.success && tokensResult.tokens
-                    ? tokensResult.tokens.map(token => ({
+                const initialTokens = tokensResult
+                    ? tokensResult.map(token => ({
                         id: token.contractId,
                         name: token.name,
                         symbol: token.symbol,

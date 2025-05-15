@@ -4,7 +4,7 @@ import {
     getKVTokenBets,
     getKVLastTokenFetchTime
 } from '@/lib/state';
-import { listTokens } from '@/app/actions';
+import { listTokens } from 'dexterity-sdk';
 
 export async function GET() {
     try {
@@ -17,7 +17,7 @@ export async function GET() {
         ]);
 
         // Extract tokens from the result of listTokens
-        const tokens = tokensResult.success && tokensResult.tokens ? tokensResult.tokens : [];
+        const tokens = tokensResult;
 
         return NextResponse.json({
             spinStatus,

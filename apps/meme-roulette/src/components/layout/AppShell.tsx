@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Rocket, LogOut, Menu } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
-import { listTokens } from '@/app/actions'; // Import server action
+import { listTokens } from 'dexterity-sdk'; // Import server action
 import type { Token as SwapClientToken } from '@/lib/swap-client'; // Rename imported type
 import type { Token as SpinToken } from '@/types/spin'; // Import the type expected by PlaceBetModal
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
@@ -83,11 +83,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             setLoadingTokens(true);
             try {
                 const result = await listTokens();
-                if (result.success && result.tokens) {
-                    console.log(`[AppShell] Received ${result.tokens.length} tokens from action.`);
+                if (result) {
+                    console.log(`[AppShell] Received ${result.length} tokens from action.`);
 
                     // Map SwapClientToken to SpinToken
-                    const mappedTokens: SpinToken[] = result.tokens.map((token: SwapClientToken) => ({
+                    const mappedTokens: SpinToken[] = result.map((token: SwapClientToken) => ({
                         id: token.contractId, // Use contractId as id
                         contractId: token.contractId,
                         name: token.name,
@@ -100,7 +100,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     setDexTokens(mappedTokens);
                     console.log("[AppShell] Mapped tokens set in state:", mappedTokens);
                 } else {
-                    console.error("[AppShell] Failed to list tokens:", result.error);
+                    console.error("[AppShell] Failed to list tokens:", result);
                     setDexTokens([]); // Set empty on error
                 }
             } catch (err) {

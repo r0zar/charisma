@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { incrementKVTokenBet, recordUserVote } from '@/lib/state';
-import { listTokens } from '@/app/actions';
+import { listTokens } from 'dexterity-sdk';
 import { recoverMultihopSigner } from 'blaze-sdk';
 
 // Load environment constants
@@ -29,8 +29,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Validate token exists in our list (using destinationContract as the token ID)
-        const tokensResult = await listTokens();
-        const tokens = tokensResult.success && tokensResult.tokens ? tokensResult.tokens : [];
+        const tokens = await listTokens();
         const tokenExists = tokens.some(token => token.contractId === body.destinationContract);
 
         if (!tokenExists) {

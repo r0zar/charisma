@@ -13,7 +13,7 @@ import useWindowSize from '@/hooks/useWindowSize';
 import { HandCoins, Trophy, Rocket, TrendingUp, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import type { Vote } from '@/types/spin';
-import { listTokens } from '@/app/actions';
+import { listTokens } from 'dexterity-sdk';
 import type { Token as SwapClientToken } from '@/lib/swap-client';
 import type { Token as SpinToken } from '@/types/spin';
 import SpinAnimationOverlay from '@/components/SpinAnimationOverlay';
@@ -63,8 +63,8 @@ export default function HubPage() {
       setLoadingPageTokens(true);
       try {
         const result = await listTokens();
-        if (result.success && result.tokens) {
-          const mappedTokens: SpinToken[] = result.tokens.map((token: SwapClientToken) => ({
+        if (result) {
+          const mappedTokens: SpinToken[] = result.map((token: SwapClientToken) => ({
             id: token.contractId,
             contractId: token.contractId,
             name: token.name,
@@ -76,7 +76,7 @@ export default function HubPage() {
           setPageTokens(mappedTokens);
           console.log(`[HubPage] Stored ${mappedTokens.length} tokens.`);
         } else {
-          console.error("[HubPage] Failed to list tokens:", result.error);
+          console.error("[HubPage] Failed to list tokens:", result);
           setPageTokens([]);
         }
       } catch (err) {

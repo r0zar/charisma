@@ -1,11 +1,13 @@
 "use client"
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { connect } from "@stacks/connect";
+import React, { createContext, useState, useContext, useEffect, ReactNode, useRef } from 'react';
+import { connect, request } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
-import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID } from "blaze-sdk"; // Reverting to relative path
+import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID, broadcastMultihopTransaction } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
+import { fetchQuote, Router, loadVaults, buildSwapTransaction } from 'dexterity-sdk';
+import { broadcastTransaction, makeContractCall } from '@stacks/transactions';
 
 // Default Charisma token contract (mainnet) – override in env if necessary
 const CHARISMA_TOKEN_CONTRACT_ID =
@@ -30,6 +32,8 @@ interface WalletContextType {
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
     placeBet: (amount: number, tokenId: string) => Promise<{ success: boolean; uuid?: string; error?: string }>;
+    getQuote: (from: string, to: string, amount: number) => Promise<{ success: boolean; quote?: any; error?: string }>;
+    swapTokens: any;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -44,7 +48,9 @@ const WalletContext = createContext<WalletContextType>({
     stxBalanceLoading: false,
     connectWallet: async () => { },
     disconnectWallet: () => { },
-    placeBet: async () => ({ success: false, error: 'Wallet not connected' })
+    placeBet: async () => ({ success: false, error: 'Wallet not connected' }),
+    getQuote: async () => ({ success: false, error: 'Failed to get quote' }),
+    swapTokens: async () => { }
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -59,6 +65,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [balanceLoading, setBalanceLoading] = useState(false);
     const [subnetBalanceLoading, setSubnetBalanceLoading] = useState(false);
     const [stxBalanceLoading, setStxBalanceLoading] = useState(false);
+
+    const routerRef = useRef<Router | null>(null);
+    const router = routerRef.current || new Router();
+
+    useEffect(() => {
+        loadVaults(router);
+    }, [router]);
 
     // Check for existing wallet connection
     useEffect(() => {
@@ -242,6 +255,44 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const getQuote = async (from: string, to: string, amount: number) => {
+        try {
+            const quote = await fetchQuote(from, to, amount);
+            return { success: true, quote };
+        } catch (error: any) {
+            console.error('getQuote error:', error);
+            return { success: false, error: error.message || String(error) };
+        }
+    };
+
+    const findBestRoute = async (from: string, to: string, amount: number) => {
+        try {
+            const route = await router.findBestRoute(from, to, amount);
+            return { success: true, route };
+        } catch (error: any) {
+            console.error('findBestRoute error:', error);
+            return { success: false, error: error.message || String(error) };
+        }
+    };
+
+
+    const swapTokens = async (from: string, to: string, amount: number) => {
+        try {
+            const { route } = await findBestRoute(from, to, amount);
+            if (!route || route instanceof Error) {
+                return { success: false, error: 'No route found' };
+            }
+            const txCfg = await buildSwapTransaction(router, route, address);
+            const txId = await request('stx_callContract', txCfg);
+            return { success: true, txId };
+        } catch (error: any) {
+            console.error('executeSwap error:', error);
+            return { success: false, error: error.message || String(error) };
+        }
+    };
+
+
+
     return (
         <WalletContext.Provider
             value={{
@@ -256,7 +307,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 stxBalanceLoading,
                 connectWallet,
                 disconnectWallet,
-                placeBet
+                placeBet,
+                getQuote,
+                swapTokens
             }}
         >
             {children}

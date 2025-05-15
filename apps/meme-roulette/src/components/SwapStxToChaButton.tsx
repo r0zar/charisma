@@ -15,19 +15,8 @@ import { useForm } from 'react-hook-form';
 import { toast } from '@/components/ui/sonner';
 import { z } from 'zod';
 import { buttonVariants } from '@/components/ui/button';
-import { getQuote as getQuoteServerAction } from '@/app/actions'; // Import the server action
-
-// --- Constants ---
-const MAINNET_CHA_CONTRACT_ID =
-    process.env.NEXT_PUBLIC_MAINNET_CHA_CONTRACT_ID ||
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
-
-// Assumed API endpoint for getting swap quotes (relative to the current app)
-// This might need adjustment based on where simple-swap API runs / CORS
-// REMOVED - swapClient handles endpoints
-
-// Assumed swap function details (needs verification from simple-swap or dex contract)
-// REMOVED - swapClient handles contract details
+import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
+import { Quote } from 'dexterity-sdk';
 
 // --- Form Validation Schema ---
 const formSchema = z.object({
@@ -88,8 +77,9 @@ export function SwapStxToChaButton({
     const [lastTxId, setLastTxId] = useState<string | null>(null);
     const [quote, setQuote] = useState<QuoteResponse | null>(null);
     const [quoteError, setQuoteError] = useState<string | null>(null);
+    const [quoteLoading, setQuoteLoading] = useState(false);
 
-    const { address, connected, stxBalance, stxBalanceLoading } = useWallet();
+    const { address, connected, stxBalance, stxBalanceLoading, swapTokens, getQuote } = useWallet();
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -100,57 +90,37 @@ export function SwapStxToChaButton({
 
     const stxAmountInput = form.watch('stxAmount');
 
-    // swapClient is still needed for executeSwap which involves client-side wallet interaction
-    const swapClient = createSwapClient({ stxAddress: address, routerName: 'multihop' });
-
-    // --- Quote Fetching Logic (Now uses Server Action) ---
-    const fetchQuote = useCallback(async (amount: string) => {
-        if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-            setQuote(null);
-            setQuoteError(null);
-            return;
-        }
-
-        setIsFetchingQuote(true);
-        setQuoteError(null);
-        setQuote(null); // Clear previous quote
-
-        try {
-            const microStxAmount = BigInt(Math.round(Number(amount) * 1_000_000)); // Convert STX to micro-STX
-
-            // Call the server action to get quote
-            const result = await getQuoteServerAction(
-                '.stx',
-                MAINNET_CHA_CONTRACT_ID,
-                microStxAmount.toString()
-            );
-
-            if (result.success && result.data) {
-                setQuote(result.data);
-            } else {
-                throw new Error(result.error || 'Failed to get quote from server');
+    // --- Quote preview on change ---
+    useEffect(() => {
+        const fetchQuote = async () => {
+            if (!stxAmountInput || Number(stxAmountInput) <= 0) {
+                setQuote(null);
+                setQuoteError(null);
+                return;
             }
 
-        } catch (error: any) {
-            console.error('Error fetching swap quote via server action:', error);
-            const message = error instanceof Error ? error.message : 'Failed to get quote';
-            setQuoteError(message);
-            setQuote(null);
-        } finally {
-            setIsFetchingQuote(false);
-        }
-    }, []); // Dependencies: getQuoteServerAction (stable), MAINNET_CHA_CONTRACT_ID (constant)
+            setQuoteLoading(true);
+            setQuoteError(null);
+            const amountToQuote = Math.round(Number(stxAmountInput) * 1_000_000);
 
-    // Debounced quote fetching
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            fetchQuote(stxAmountInput);
-        }, 500); // Debounce time in ms
-
-        return () => {
-            clearTimeout(handler);
+            // Log the raw response for debugging
+            // console.log("Calling getQuote with:", '.stx', CHARISMA_SUBNET_CONTRACT, amountToQuote);
+            const response = await getQuote('.stx', CHARISMA_SUBNET_CONTRACT, amountToQuote);
+            // console.log("Raw response from useWallet().getQuote:", response);
+            const typedResponse = response;
+            if (typedResponse instanceof Error) {
+                setQuoteError(typedResponse.message);
+                setQuote(null);
+            } else if (response.quote) {
+                // Handle direct successful QuoteResponse data (heuristic check)
+                setQuote(response.quote);
+                setQuoteError(null);
+            }
         };
-    }, [stxAmountInput, fetchQuote]);
+
+        fetchQuote();
+    }, [stxAmountInput, getQuote, setQuote, setQuoteLoading, setQuoteError]);
+
 
     // --- Swap Transaction Logic ---
     const onSubmit = async (values: FormValues) => {
@@ -173,7 +143,7 @@ export function SwapStxToChaButton({
 
         try {
             // Use swapClient to execute the swap using the fetched route
-            const result = await swapClient.executeSwap(quote.route);
+            const result = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, stxAmountInput);
 
             // Check the result structure from swapClient
             if ('txId' in result && result.txId) {

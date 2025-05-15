@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setKVWinningToken } from '@/lib/state';
-import { listTokens } from '@/app/actions';
+import { listTokens } from 'dexterity-sdk';
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,8 +15,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate the token exists using listTokens
-        const tokensResult = await listTokens();
-        const tokens = tokensResult.success && tokensResult.tokens ? tokensResult.tokens : [];
+        const tokens = await listTokens();
         const tokenExists = tokens.some(token => token.contractId === tokenId);
 
         if (!tokenExists) {

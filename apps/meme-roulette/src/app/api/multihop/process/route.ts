@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-
 import { getKVSpinStatus } from '@/lib/state';
-
 import {
     buildXSwapTransaction,
     broadcastMultihopTransaction,
     SwapMetadata,
-    Route as BlazeSdkRoute, // Alias to avoid conflict if local Route type exists
     TransactionConfig,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
-import { Dexterity } from '@/lib/dexterity-client';
-import { createSwapClient } from '@/lib/swap-client';
+import { Router } from 'dexterity-sdk';
 
 // Environment variables
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
 
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY!;
-const swapClient = createSwapClient();
 
 // Increase the maximum duration for this serverless function (in seconds)
 // Adjust as needed, up to your Vercel plan's limit (e.g., 900 for Pro/Enterprise)
@@ -31,11 +26,6 @@ export async function POST(_req: NextRequest) {
     if (!PRIVATE_KEY) {
         console.error('Server private key not configured');
         return NextResponse.json({ success: false, error: 'Server private key not configured' }, { status: 500 });
-    }
-
-    if (Dexterity.config.routerName !== 'x-multihop-rc9') {
-        console.error('Router not configured');
-        return NextResponse.json({ success: false, error: 'Router not configured' }, { status: 500 });
     }
 
     const status = await getKVSpinStatus();
@@ -57,16 +47,18 @@ export async function POST(_req: NextRequest) {
 
             console.log(`Processing intent for user ${intent.recipient}, originally bet on ${intent.destinationContract}, swapping ${intent.betAmount} of ${intent.sourceContract} to WINNER ${winningTokenId}, uuid ${intent.uuid}`);
 
-            const quote: any = await swapClient.getQuote(
+
+            const router = new Router({ maxHops: 4 });
+            const route: any = await router.findBestRoute(
                 intent.sourceContract,
                 winningTokenId,
                 intent.betAmount
             );
 
-            console.log('Quote received:', quote);
+            console.log('Route found:', route);
 
-            if (!quote || !quote.route) {
-                throw new Error(`Failed to get quote for swapping ${intent.sourceContract} to ${winningTokenId}`);
+            if (!route) {
+                throw new Error(`Failed to find route for swapping ${intent.sourceContract} to ${winningTokenId}`);
             }
 
             const swapMeta: SwapMetadata = {
@@ -76,7 +68,7 @@ export async function POST(_req: NextRequest) {
                 recipient: intent.recipient,
             };
 
-            const txConfig: TransactionConfig = await buildXSwapTransaction(quote.route, swapMeta);
+            const txConfig: TransactionConfig = await buildXSwapTransaction(route, swapMeta);
             console.log('Transaction Config from SDK:', txConfig);
 
             const broadcastResponse = await broadcastMultihopTransaction(txConfig, PRIVATE_KEY);

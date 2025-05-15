@@ -23,7 +23,7 @@
     "@radix-ui/react-tooltip": "^1.2.4",
     "@repo/balances": "workspace:*",
     "blaze-sdk": "workspace:*",
-    "@repo/cryptonomicon": "workspace:*",
+    "dexterity-sdk": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",

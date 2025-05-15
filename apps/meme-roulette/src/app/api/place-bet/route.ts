@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { incrementKVTokenBet, recordUserVote, buildKVDataPacket } from '@/lib/state';
-import { listTokens } from '@/app/actions';
-import type { NewVoteData, SpinFeedData } from '@/types/spin';
+import { listTokens } from 'dexterity-sdk';
+import type { SpinFeedData } from '@/types/spin';
 
 interface PlaceBetRequestBody {
     tokenId: string;
@@ -16,16 +16,15 @@ const broadcastNewVote = async (tokenId: string, amount: number, voteId: string,
         const basePacket = await buildKVDataPacket();
 
         // Fetch tokens for the notification
-        const tokensResult = await listTokens();
-        const initialTokens = tokensResult.success && tokensResult.tokens
-            ? tokensResult.tokens.map(token => ({
-                id: token.contractId,
-                name: token.name,
-                symbol: token.symbol,
-                imageUrl: token.image || '/placeholder-token.png',
-                userBalance: 0
-            }))
-            : [];
+        const tokens = await listTokens();
+        const initialTokens = tokens.map(token => ({
+            id: token.contractId,
+            name: token.name,
+            symbol: token.symbol,
+            imageUrl: token.image || '/placeholder-token.png',
+            decimals: token.decimals,
+            userBalance: 0
+        }))
 
         // Create the new vote notification
         const newVotePacket: SpinFeedData = {
@@ -65,8 +64,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate token exists
-        const tokensResult = await listTokens();
-        const tokens = tokensResult.success && tokensResult.tokens ? tokensResult.tokens : [];
+        const tokens = await listTokens();
         const tokenExists = tokens.some(token => token.contractId === tokenId);
 
         if (!tokenExists) {
