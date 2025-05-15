@@ -571,12 +571,23 @@ export const removeVaults = async (vaultIds: string[]): Promise<void> => {
 
 export const listVaultTokens = async (): Promise<Token[]> => {
     const vaults = await getAllVaultData();
-    const tokens = new Set<Token>();
+    const tokenMap = new Map<string, Token>(); // Key: contractId, Value: Token object
+
     for (const vault of vaults) {
-        tokens.add(vault.tokenA);
-        tokens.add(vault.tokenB);
+        // Process tokenA
+        if (vault.tokenA && vault.tokenA.contractId) { // Ensure token and contractId exist
+            if (!tokenMap.has(vault.tokenA.contractId)) {
+                tokenMap.set(vault.tokenA.contractId, vault.tokenA);
+            }
+        }
+        // Process tokenB
+        if (vault.tokenB && vault.tokenB.contractId) { // Ensure token and contractId exist
+            if (!tokenMap.has(vault.tokenB.contractId)) {
+                tokenMap.set(vault.tokenB.contractId, vault.tokenB);
+            }
+        }
     }
-    return Array.from(tokens);
+    return Array.from(tokenMap.values());
 }
 
 // Example usage (uncomment to run once, then re-comment):
