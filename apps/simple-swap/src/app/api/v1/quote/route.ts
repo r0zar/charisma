@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
                 {
                     status: 200,
                     headers: {
-                        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59'
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59',
+                        ...CORS_HEADERS,
                     }
                 }
             );
