@@ -100,9 +100,9 @@ export async function POST(_req: NextRequest) {
                 error: err.message || String(err)
             });
         } finally {
-            // Add a 2-second delay after processing each intent (or attempting to)
-            console.log('Delaying for 2 seconds before next iteration...');
-            await delay(2000);
+            // Add a 3-second delay after processing each intent (or attempting to)
+            console.log('Delaying for 3 seconds before next iteration...');
+            await delay(3000);
         }
     }
 

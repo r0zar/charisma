@@ -1,4 +1,4 @@
-import type { SpinFeedData, Token } from '@/types/spin';
+import type { SpinFeedData, Token, Vote } from '@/types/spin';
 import { kv } from '@vercel/kv'; // Import kv directly if needed for specific checks
 import { listTokens } from '@/app/actions';
 import {
@@ -19,30 +19,54 @@ import { NextRequest } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3010');
+
 // --- Initialization ---
 initializeKVState().catch(err => console.error("Initial KV state check/set failed:", err));
 
 // --- Shared Logic (Interval Timer) ---
 let intervalId: NodeJS.Timeout | null = null;
-const controllers = new Set<ReadableStreamDefaultController>();
+
+// Store controller and userId together
+interface ClientController {
+    controller: ReadableStreamDefaultController;
+    userId: string;
+}
+const clientControllers = new Set<ClientController>();
 
 // Function to send a data packet to all connected clients
-const broadcast = (packet: SpinFeedData) => {
-    const message = `data: ${JSON.stringify(packet)}\n\n`;
-    const encodedMessage = new TextEncoder().encode(message);
-
-    controllers.forEach(controller => {
+// Now takes the base packet and customizes it per client
+const broadcast = async (basePacket: Omit<SpinFeedData, 'currentUserBets' | 'initialTokens'>) => {
+    for (const client of clientControllers) {
         try {
-            controller.enqueue(encodedMessage);
-        } catch (e) {
-            console.error("API/Stream: Error sending data to client, removing controller:", e);
-            try { controller.error(e); controller.close(); } catch { }
-            controllers.delete(controller);
-        }
-    });
+            const personalizedPacket: SpinFeedData = {
+                ...basePacket,
+                type: basePacket.winningTokenId ? 'spin_result' : (basePacket.type || 'update'), // Ensure type is set
+                // initialTokens is only for the very first message, not for broadcasts
+            };
 
-    // Stop interval if no clients left
-    if (controllers.size === 0 && intervalId) {
+            if (client.userId && client.userId !== 'anonymous') {
+                try {
+                    const userVotes: Vote[] = await getUserVotes(client.userId);
+                    personalizedPacket.currentUserBets = userVotes;
+                } catch (error) {
+                    console.error(`API/Stream: Error getting votes for user ${client.userId}:`, error);
+                    personalizedPacket.currentUserBets = []; // Send empty if error
+                }
+            }
+
+            const message = `data: ${JSON.stringify(personalizedPacket)}\n\n`;
+            const encodedMessage = new TextEncoder().encode(message);
+            client.controller.enqueue(encodedMessage);
+        } catch (e) {
+            console.error(`API/Stream: Error sending data to client ${client.userId}, removing controller:`, e);
+            try { client.controller.error(e); client.controller.close(); } catch { }
+            clientControllers.delete(client);
+        }
+    }
+
+    if (clientControllers.size === 0 && intervalId) {
         console.log('API/Stream: No clients left, stopping interval.');
         clearInterval(intervalId);
         intervalId = null;
@@ -53,7 +77,7 @@ const broadcast = (packet: SpinFeedData) => {
 export { broadcast };
 
 // This function runs periodically, fetches state from KV, updates it, and broadcasts.
-const updateAndBroadcast = async (userId: string) => {
+const updateAndBroadcast = async () => {
     const now = Date.now();
     let status = await getKVSpinStatus();
     let lastTokenFetch = await getKVLastTokenFetchTime();
@@ -188,15 +212,16 @@ const updateAndBroadcast = async (userId: string) => {
         status.winningTokenId = winnerId; // Update local copy for broadcast
         // Trigger execution of queued intents now that winner is determined
         try {
-            // Add at top of file:
-            const BASE_URL = isDev ? 'http://localhost:3010' : 'https://lol.charisma.rocks';
-
             console.log({ BASE_URL })
             await fetch(`${BASE_URL}/api/multihop/process`, { method: 'POST' });
             console.log('API/Stream: Triggered processing of queued intents.');
         } catch (e) {
             console.error('API/Stream: Failed to trigger intent processing:', e);
         }
+
+        // Ensure status.winningTokenId is updated locally after setKVWinningToken for the current broadcast
+        const updatedStatusAfterWin = await getKVSpinStatus(); // Re-fetch status to get the winner ID just set
+        status.winningTokenId = updatedStatusAfterWin.winningTokenId;
 
     } else if (status.winningTokenId && timeLeft <= -60000) {
         console.log('API/Stream: Resetting KV for next spin (after 60s delay)');
@@ -232,51 +257,50 @@ const updateAndBroadcast = async (userId: string) => {
 
     // --- Broadcast --- 
     // Build packet with current bets and status (no initialTokens here)
-    const dataPacket = await buildKVDataPacket();
+    const currentBets = await getKVTokenBets();
+    const currentStatus = await getKVSpinStatus(); // re-fetch status for most up-to-date endTime etc.
+    const lockDuration = await getLockDuration();
 
-    // Add current user's votes if we have a valid user ID
-    if (userId && userId !== 'anonymous') {
-        try {
-            const userVotes = await getUserVotes(userId);
-            dataPacket.currentUserBets = userVotes;
-        } catch (error) {
-            console.error(`API/Stream: Error getting votes for user ${userId}:`, error);
-        }
-    }
+    const basePacket: Omit<SpinFeedData, 'currentUserBets' | 'initialTokens'> = {
+        type: currentStatus.winningTokenId ? 'spin_result' : 'update',
+        startTime: currentStatus.spinScheduledAt - currentStatus.roundDuration,
+        endTime: currentStatus.spinScheduledAt,
+        tokenVotes: currentBets,
+        winningTokenId: currentStatus.winningTokenId ?? undefined,
+        lastUpdated: Date.now(),
+        roundDuration: currentStatus.roundDuration,
+        lockDuration: lockDuration,
+    };
 
-    broadcast(dataPacket); // Use the broadcast helper
+    await broadcast(basePacket); // Pass the base packet
 };
 
 // --- Interval Management ---
-const startInterval = (userId = 'anonymous') => {
+const startInterval = () => {
     if (!intervalId) {
         console.log('API/Stream: Starting global update/broadcast interval.');
-        updateAndBroadcast(userId).catch(err => console.error("Initial broadcast failed:", err));
+        updateAndBroadcast().catch(err => console.error("Initial broadcast failed (from startInterval):", err));
         intervalId = setInterval(() => {
-            updateAndBroadcast(userId).catch(err => console.error("Broadcast interval update failed:", err));
+            updateAndBroadcast().catch(err => console.error("Broadcast interval update failed:", err));
         }, UPDATE_INTERVAL);
     }
 };
 
 // --- Route Handler ---
 export async function GET(request: NextRequest) {
-    let currentController: ReadableStreamDefaultController | null = null;
-
-    // Get user ID from query parameter
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId') || 'anonymous';
+    let currentClient: ClientController | null = null;
 
     console.log(`API/Stream: Connection from user ${userId}`);
 
     const stream = new ReadableStream({
         async start(controller) {
-            currentController = controller;
-            console.log('API/Stream: Client connected');
-            controllers.add(currentController);
+            currentClient = { controller, userId };
+            console.log(`API/Stream: Client ${userId} connected`);
+            clientControllers.add(currentClient);
 
-            // --- Send Initial State --- 
             try {
-                // Fetch tokens from Dexterity instead of KV
                 const tokensResult = await listTokens();
                 const initialTokens = tokensResult.success && tokensResult.tokens
                     ? tokensResult.tokens.map(token => ({
@@ -284,22 +308,15 @@ export async function GET(request: NextRequest) {
                         name: token.name,
                         symbol: token.symbol,
                         imageUrl: token.image || '/placeholder-token.png',
-                        userBalance: 0
+                        userBalance: 0 // This was always 0, so it's fine
                     } as Token))
                     : [];
 
                 const initialStatus = await getKVSpinStatus();
                 const initialBets = await getKVTokenBets();
                 const lockDuration = await getLockDuration();
+                const currentUserVotes = userId !== 'anonymous' ? await getUserVotes(userId) : [];
 
-                // Get current user's votes if they have a wallet connected
-                const currentUserVotes = userId !== 'anonymous'
-                    ? await getUserVotes(userId)
-                    : [];
-
-                console.log(`API/Stream: Found ${currentUserVotes.length} votes for user ${userId}`);
-
-                // Construct the initial packet including tokens
                 const initialDataPacket: SpinFeedData = {
                     type: initialStatus.winningTokenId ? 'spin_result' : 'initial',
                     initialTokens: initialTokens,
@@ -312,26 +329,24 @@ export async function GET(request: NextRequest) {
                     lockDuration: lockDuration,
                     currentUserBets: currentUserVotes
                 };
-
                 const message = `data: ${JSON.stringify(initialDataPacket)}\n\n`;
                 controller.enqueue(new TextEncoder().encode(message));
-                console.log(`API/Stream: Sent initial state with ${initialTokens.length} tokens, ${Object.keys(initialBets).length} bet entries, and ${currentUserVotes.length} user votes.`);
+                console.log(`API/Stream: Sent initial state to ${userId} with ${initialTokens.length} tokens, ${Object.keys(initialBets).length} bet entries, and ${currentUserVotes.length} user votes.`);
             } catch (e) {
-                console.error("API/Stream: Error sending initial data:", e);
-                try { if (currentController) { currentController.error(e); currentController.close(); } } catch { }
-                if (currentController) controllers.delete(currentController);
+                console.error(`API/Stream: Error sending initial data to ${userId}:`, e);
+                if (currentClient) {
+                    try { currentClient.controller.error(e); currentClient.controller.close(); } catch { }
+                    clientControllers.delete(currentClient);
+                }
                 return;
             }
-
-            // Ensure the global interval is running for subsequent updates
-            startInterval(userId);
+            startInterval(); // No longer passes userId
         },
         cancel(reason) {
-            console.log('API/Stream: Client disconnected (cancelled)', reason);
-            if (currentController) {
-                controllers.delete(currentController);
+            console.log(`API/Stream: Client ${userId} disconnected (cancelled)`, reason);
+            if (currentClient) {
+                clientControllers.delete(currentClient);
             }
-            // Interval stop logic is handled within broadcast check
         },
     });
 
@@ -346,4 +361,9 @@ export async function GET(request: NextRequest) {
 }
 
 // Ensure dynamic execution
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
+
+// Add the Edge runtime config
+export const config = {
+    runtime: 'edge',
+}; 
