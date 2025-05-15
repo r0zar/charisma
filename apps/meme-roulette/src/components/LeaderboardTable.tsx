@@ -9,10 +9,16 @@ import type { Token } from '@/types/spin'; // Import Token type if needed for le
 import { Trophy, RefreshCw, Rocket, TrendingUp, Medal } from 'lucide-react';
 
 // Helper function to format atomic amounts (consider moving to a shared utils file)
-const formatAtomicToWholeUnit = (atomicAmount: number | undefined | null, decimals: number | undefined | null): string => {
-    if (atomicAmount === undefined || atomicAmount === null || isNaN(atomicAmount) ||
-        decimals === undefined || decimals === null || isNaN(decimals)) {
-        return '0.00'; // Or some other placeholder
+const formatAtomicToWholeUnit = (atomicAmount: number | undefined | null, decimalsInput: number | undefined | null, tokenId?: string): string => {
+    let decimals = decimalsInput;
+    if (atomicAmount === undefined || atomicAmount === null || isNaN(atomicAmount)) {
+        return '0.00';
+    }
+    if (decimals === undefined || decimals === null || isNaN(decimals) || decimals === 0) {
+        if (tokenId) {
+            console.warn(`LeaderboardTable: Missing or invalid decimals (received: ${decimalsInput}) for token ${tokenId}. Defaulting to 6 decimals for display.`);
+        }
+        decimals = 6; // Default to 6 if decimals are problematic
     }
     const wholeUnitAmount = atomicAmount / (10 ** decimals);
     return wholeUnitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
@@ -122,7 +128,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                 <TableBody>
                     {leaderboardData.map((item: LeaderboardItem, index: number) => {
                         const percentage = (item.totalBet / totalCHA) * 100;
-                        const displayCommittedAmount = formatAtomicToWholeUnit(item.totalBet, item.token.decimals);
+                        const displayCommittedAmount = formatAtomicToWholeUnit(item.totalBet, item.token.decimals, item.token.id);
                         return (
                             <TableRow
                                 key={item.token.id}

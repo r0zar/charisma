@@ -19,8 +19,7 @@ import { NextRequest } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3010');
+const BASE_URL = isDev ? 'http://localhost:3010' : 'https://lol.charisma.rocks';
 
 // --- Initialization ---
 initializeKVState().catch(err => console.error("Initial KV state check/set failed:", err));
