@@ -17,9 +17,7 @@ import {
 } from '@/lib/state';
 import { NextRequest } from 'next/server';
 
-// Add at top of file:
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3010');
+const isDev = process.env.NODE_ENV === 'development';
 
 // --- Initialization ---
 initializeKVState().catch(err => console.error("Initial KV state check/set failed:", err));
@@ -190,6 +188,9 @@ const updateAndBroadcast = async (userId: string) => {
         status.winningTokenId = winnerId; // Update local copy for broadcast
         // Trigger execution of queued intents now that winner is determined
         try {
+            // Add at top of file:
+            const BASE_URL = isDev ? 'http://localhost:3010' : 'https://lol.charisma.rocks';
+
             console.log({ BASE_URL })
             await fetch(`${BASE_URL}/api/multihop/process`, { method: 'POST', cache: 'no-store' });
             console.log('API/Stream: Triggered processing of queued intents.');
