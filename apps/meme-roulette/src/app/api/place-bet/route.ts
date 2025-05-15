@@ -23,7 +23,9 @@ const broadcastNewVote = async (tokenId: string, amount: number, voteId: string,
             symbol: token.symbol,
             imageUrl: token.image || '/placeholder-token.png',
             decimals: token.decimals,
-            userBalance: 0
+            userBalance: 0,
+            type: token.type,
+            contractId: token.contractId
         }))
 
         // Create the new vote notification
