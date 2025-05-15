@@ -99,7 +99,7 @@ export function SwapStxToChaButton({
 
     const stxAmountInput = form.watch('stxAmount');
 
-    const swapClient = createSwapClient({ stxAddress: address });
+    const swapClient = createSwapClient({ stxAddress: address, routerName: 'multihop' });
 
     // --- Quote Fetching Logic ---
     const fetchQuote = useCallback(async (amount: string) => {
