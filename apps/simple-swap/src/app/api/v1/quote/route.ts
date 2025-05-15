@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getQuote } from '../../../actions';
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS(request: NextRequest) {
+    // Handle preflight requests
+    return NextResponse.json({}, { headers: CORS_HEADERS });
+}
+
 export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
 
