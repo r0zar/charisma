@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Token, Vote } from '@/types/spin';
 import { useWallet } from '@/contexts/wallet-context';
 import { useSpin } from '@/contexts/SpinContext';
-import { X, Search, Rocket, TrendingUp } from 'lucide-react';
+import { X, Search, Rocket, TrendingUp, Coins } from 'lucide-react';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
     DialogDescription
@@ -20,6 +20,10 @@ import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
 import { z } from 'zod';
 import { buttonVariants } from '@/components/ui/button';
 
+// CHA Token specific constants - ideally, CHA token info (like decimals) would be more globally available
+const CHA_DECIMALS = 6; // Assuming Charisma (CHA) token has 6 decimals
+const CHA_SYMBOL = 'CHA'; // Assuming Charisma (CHA) token symbol
+
 interface PlaceBetModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -27,7 +31,7 @@ interface PlaceBetModalProps {
 }
 
 // Helper to format balance (assuming 6 decimals by default)
-const formatBalance = (balance: string, decimals: number = 6) => {
+const formatBalance = (balance: string, decimals: number = CHA_DECIMALS) => {
     try {
         const num = BigInt(balance);
         const divisor = BigInt(10 ** decimals);
@@ -85,20 +89,29 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
     const handlePlaceBet = async () => {
         if (!selectedToken || !chaAmount) return;
 
-        const amount = parseFloat(chaAmount);
-        if (isNaN(amount) || amount <= 0) {
-            toast.error('Invalid CHA amount entered.');
+        let amountFloat: number;
+        try {
+            amountFloat = parseFloat(chaAmount);
+        } catch (e) {
+            toast.error('Invalid CHA amount. Please enter a valid number.');
             return;
         }
 
-        // Check if user has enough balance (using BigInt for precision)
-        const amountInMicroCha = BigInt(Math.round(amount * 1_000_000)); // Assuming 6 decimals for CHA
-        const availableBalance = BigInt(subnetBalance);
+        if (isNaN(amountFloat) || amountFloat <= 0) {
+            toast.error('CHA amount must be greater than zero.');
+            return;
+        }
 
-        if (amountInMicroCha > availableBalance) {
+        const amountInAtomicCHA = BigInt(Math.round(amountFloat * (10 ** CHA_DECIMALS)));
+        const availableBalanceAtomic = BigInt(subnetBalance);
+
+        if (amountInAtomicCHA > availableBalanceAtomic) {
+            const availableBalanceFormatted = formatBalance(subnetBalance, CHA_DECIMALS);
+            const amountNeededFormatted = (amountFloat).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: CHA_DECIMALS });
+
             toast.error(
-                `Insufficient balance. You have ${availableBalance.toLocaleString()} CHA, ` +
-                `but need ${amountInMicroCha.toLocaleString()} CHA.`
+                `Insufficient ${CHA_SYMBOL} balance. You have ${availableBalanceFormatted} ${CHA_SYMBOL}, ` +
+                `but tried to commit ${amountNeededFormatted} ${CHA_SYMBOL}.`
             );
             return;
         }
@@ -106,14 +119,14 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
         setIsLoading(true);
         try {
             // Sign and queue the bet with both amount and token ID
-            const microAmount = Number(amountInMicroCha);
+            const microAmount = Number(amountInAtomicCHA);
             const result = await placeBet(microAmount, selectedToken.id);
 
             if (!result.success) {
                 throw new Error(result.error || 'Failed to place bet');
             }
 
-            toast.success(`Committed ${amount} CHA to ${selectedToken.symbol}! (UUID: ${result.uuid})`);
+            toast.success(`Committed ${amountFloat} ${CHA_SYMBOL} to ${selectedToken.symbol}! (UUID: ${result.uuid})`);
             onClose();
         } catch (error: any) {
             console.error("Error committing CHA:", error);
@@ -124,24 +137,46 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
         }
     };
 
-    const enteredAmountMicroCha = useMemo(() => {
+    const enteredAmountAtomicCHA = useMemo(() => {
         try {
-            return BigInt(Math.round(parseFloat(chaAmount) * 1_000_000));
+            // Ensure chaAmount is parsed as float before multiplication
+            const amountFloat = parseFloat(chaAmount);
+            if (isNaN(amountFloat)) return 0n;
+            return BigInt(Math.round(amountFloat * (10 ** CHA_DECIMALS)));
         } catch {
             return 0n;
         }
     }, [chaAmount]);
 
-    const availableBalanceBigInt = useMemo(() => BigInt(subnetBalance), [subnetBalance]);
+    const availableBalanceAtomicBigInt = useMemo(() => BigInt(subnetBalance), [subnetBalance]);
 
-    const hasSufficientBalance = enteredAmountMicroCha > 0n && enteredAmountMicroCha <= availableBalanceBigInt;
+    const hasSufficientBalance = enteredAmountAtomicCHA > 0n && enteredAmountAtomicCHA <= availableBalanceAtomicBigInt;
+
+    // Validation message for amount input
+    const amountValidationMessage = useMemo(() => {
+        if (!chaAmount) return null;
+        try {
+            const amountFloat = parseFloat(chaAmount);
+            if (isNaN(amountFloat)) return "Please enter a valid number.";
+            if (amountFloat <= 0) return "Amount must be greater than 0.";
+
+            const enteredAtomic = BigInt(Math.round(amountFloat * (10 ** CHA_DECIMALS)));
+            if (enteredAtomic > availableBalanceAtomicBigInt) {
+                return "Insufficient balance.";
+            }
+        } catch {
+            return "Invalid number format.";
+        }
+        return null;
+    }, [chaAmount, availableBalanceAtomicBigInt]);
 
     const canPlaceBet =
         selectedToken &&
-        enteredAmountMicroCha > 0n &&
+        enteredAmountAtomicCHA > 0n && // Ensures positive amount after conversion
         hasSufficientBalance &&
         !isLoading &&
-        !subnetBalanceLoading;
+        !subnetBalanceLoading &&
+        !amountValidationMessage; // Add check for validation message
 
     return (
         <Dialog
@@ -261,47 +296,31 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                         </DialogClose>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="cha-amount" className="text-sm font-medium font-display flex items-center">
-                                        CHA to Commit
-                                        <span className="ml-1 text-xs text-muted-foreground">(increases your odds)</span>
-                                    </Label>
-                                    <Input
-                                        id="cha-amount"
-                                        aria-describedby="cha-balance-hint"
-                                        type="number"
-                                        placeholder="Enter CHA amount to commit"
-                                        value={chaAmount}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setChaAmount(e.target.value)}
-                                        min="0"
-                                        step="any"
-                                        disabled={isLoading}
-                                        className="text-lg font-mono input-field numeric"
-                                    />
-                                    <p id="cha-balance-hint" className="text-xs text-muted-foreground mt-1.5">
-                                        Available: {subnetBalanceLoading ? '...' : formatBalance(subnetBalance)} CHA
-                                    </p>
-                                    {/* Show deposit button if balance is zero */}
-                                    {!subnetBalanceLoading && availableBalanceBigInt === 0n && (
-                                        <div className="mt-4 border-t border-border/30 pt-4">
-                                            <p className="text-sm text-center text-muted-foreground mb-2">
-                                                You need CHA to commit.
-                                            </p>
-                                            <div className="flex gap-2">
-                                                <DepositCharismaButton
-                                                    className="flex-1"
-                                                    size="sm"
-                                                    // Close this modal after deposit starts
-                                                    onDepositSuccess={() => onClose()}
-                                                />
-                                                <SwapStxToChaButton
-                                                    className="flex-1"
-                                                    size="sm"
-                                                    onSwapSuccess={() => onClose()} // Close after swap too
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label htmlFor="chaAmountInput" className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                                            <Coins className="h-4 w-4" /> Amount to Commit ({CHA_SYMBOL})
+                                        </Label>
+                                        <Input
+                                            id="chaAmountInput"
+                                            type="number"
+                                            placeholder={`Enter ${CHA_SYMBOL} amount (e.g., 100)`}
+                                            value={chaAmount}
+                                            onChange={(e) => setChaAmount(e.target.value)}
+                                            className="input-field text-base h-11 mt-1"
+                                            disabled={isLoading || subnetBalanceLoading}
+                                            min="0" // Basic HTML5 validation
+                                        />
+                                        {amountValidationMessage && (
+                                            <p className="text-xs text-red-500 mt-1.5">{amountValidationMessage}</p>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        Available to commit:
+                                        <span className={`font-medium ${subnetBalanceLoading ? 'opacity-50' : 'text-primary'}`}>
+                                            {subnetBalanceLoading ? 'Loading...' : `${formatBalance(subnetBalance, CHA_DECIMALS)} ${CHA_SYMBOL}`}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="bg-muted/40 p-3 rounded-lg border border-border/30">
                                     <p className="text-sm flex items-center justify-between">
