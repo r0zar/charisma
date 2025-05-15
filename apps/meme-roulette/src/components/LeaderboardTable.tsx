@@ -128,7 +128,6 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                 <TableBody>
                     {leaderboardData.map((item: LeaderboardItem, index: number) => {
                         const percentage = (item.totalBet / totalCHA) * 100;
-                        const displayCommittedAmount = formatAtomicToWholeUnit(item.totalBet, item.token.decimals, item.token.id);
                         return (
                             <TableRow
                                 key={item.token.id}
@@ -182,7 +181,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                                 </TableCell>
 
                                 <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium w-[120px]">
-                                    {displayCommittedAmount}
+                                    {item.totalBet / 10 ** 6}
                                 </TableCell>
 
                                 <TableCell className="text-right text-muted-foreground relative z-10 hidden sm:table-cell w-[480px] ">

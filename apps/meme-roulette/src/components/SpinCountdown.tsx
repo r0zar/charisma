@@ -4,7 +4,7 @@ import React from 'react';
 
 interface SpinCountdownProps {
     timeLeft: number; // Milliseconds until spin
-    totalTime: number; // Milliseconds for the full duration (for potential visual)
+    totalTime: number; // Milliseconds for the full duration of the round
     label?: string; // Optional custom label
 }
 
@@ -13,15 +13,22 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
     const minutes = Math.floor(timeLeft / 60000);
     const seconds = Math.floor((timeLeft % 60000) / 1000);
 
-    // Calculate percentage for the circular progress
-    const percentage = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
-    const strokeDashoffset = 264 - (264 * percentage) / 100;
+    // Calculate percentage of time ELAPSED for the circular progress
+    // The bar will now fill up as time progresses.
+    const timeElapsed = totalTime - timeLeft;
+    const percentageElapsed = totalTime > 0 ? (timeElapsed / totalTime) * 100 : 0;
 
-    // Determine color based on time left
-    const getTimeColor = () => {
-        if (percentage < 20) return 'text-secondary';
-        if (percentage < 50) return 'text-warning';
-        return 'text-primary';
+    // strokeDashoffset should be calculated based on elapsed percentage
+    // A full bar is offset 0, an empty bar is offset 264 (circumference)
+    const circumference = 264; // This value is based on r=42 (2 * PI * r) and strokeDasharray
+    const strokeDashoffset = circumference - (circumference * percentageElapsed) / 100;
+
+    // Determine color based on time left (or percentage elapsed - adjust if needed)
+    // This logic might need to be inverted if colors are meant to change as bar fills
+    const getProgressColor = () => {
+        if (percentageElapsed > 80) return 'text-secondary'; // e.g., red when nearing end
+        if (percentageElapsed > 50) return 'text-warning'; // e.g., orange in middle
+        return 'text-primary'; // e.g., green at the start
     };
 
     return (
@@ -46,7 +53,7 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
                         r="42"
                         fill="none"
                         stroke="currentColor"
-                        className={getTimeColor()}
+                        className={getProgressColor()}
                         strokeWidth="8"
                         strokeDasharray="264"
                         strokeDashoffset={strokeDashoffset}
@@ -60,14 +67,14 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
                     className="absolute inset-0 rounded-full opacity-20 blur-md"
                     style={{
                         background: `radial-gradient(circle, var(--color-primary) 0%, transparent 70%)`,
-                        opacity: percentage / 200 + 0.1
+                        opacity: percentageElapsed / 200 + 0.1
                     }}
                 />
 
                 {/* Time display */}
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div
-                        className={`font-mono text-3xl font-bold numeric ${getTimeColor()}`}
+                        className={`font-mono text-3xl font-bold numeric ${getProgressColor()}`}
                         aria-live="polite"
                         aria-label={`Time left: ${minutes} minutes ${seconds} seconds`}
                     >

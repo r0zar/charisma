@@ -3,7 +3,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { connect } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
-import { getUserTokenBalance } from '@repo/balances';
 import { v4 as uuidv4 } from 'uuid';
 import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
@@ -123,7 +122,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (!userAddress) return;
         setBalanceLoading(true);
         try {
-            const data = await getUserTokenBalance(MAINNET_CHA_CONTRACT_ID, userAddress);
+            // For mainnet, we still use direct getUserTokenBalance or a similar specific API if needed
+            // This example assumes getUserTokenBalance is appropriate for mainnet CHA
+            // If mainnet CHA also needs an effective balance, a similar API endpoint would be needed for it.
+            const { getUserTokenBalance: getMainnetBalance } = await import('@repo/balances'); // Dynamically import for mainnet
+            const data = await getMainnetBalance(MAINNET_CHA_CONTRACT_ID, userAddress);
             setMainnetBalance(data.preconfirmationBalance);
         } catch (err) {
             console.error('Failed to fetch Mainnet Charisma balance:', err);
@@ -132,15 +135,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // helper to fetch subnet balance
+    // helper to fetch subnet balance (now uses the new API endpoint)
     const fetchSubnetBalance = async (userAddress: string) => {
         if (!userAddress) return;
         setSubnetBalanceLoading(true);
         try {
-            const data = await getUserTokenBalance(CHARISMA_TOKEN_CONTRACT_ID, userAddress);
-            setSubnetBalance(data.preconfirmationBalance);
-        } catch (err) {
-            console.error('Failed to fetch Subnet Charisma balance:', err);
+            const response = await fetch(`/api/balance/effective-cha?userAddress=${encodeURIComponent(userAddress)}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to fetch effective subnet balance' }));
+                throw new Error(errorData.error || `API Error: ${response.statusText}`);
+            }
+            const result = await response.json();
+            if (result.success && result.data) {
+                setSubnetBalance(result.data.effectiveSpendableBalance);
+            } else {
+                throw new Error(result.error || 'Invalid API response structure');
+            }
+        } catch (err: any) {
+            console.error('Failed to fetch effective Subnet Charisma balance:', err.message || String(err));
+            setSubnetBalance('0'); // Optionally reset or keep stale balance on error
         } finally {
             setSubnetBalanceLoading(false);
         }
@@ -216,6 +229,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             if (!response.ok || !payload.success) {
                 throw new Error(payload.error || 'Failed to queue intent');
             }
+
+            // Successfully placed bet, now refresh the effective subnet balance
+            if (address) { // Ensure address is still available
+                fetchSubnetBalance(address);
+            }
+
             return { success: true, uuid };
         } catch (error: any) {
             console.error('placeBet error:', error);

@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useWallet } from '@/contexts/wallet-context';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createSwapClient } from '../lib/swap-client'; // Import the local swap client
-import type { QuoteResponse } from '../lib/swap-client'; // Import QuoteResponse type
+import { createSwapClient } from '../lib/swap-client'; // Still needed for executeSwap
+import type { QuoteResponse } from '../lib/swap-client';
 import type { VariantProps } from 'class-variance-authority';
 import { Coins, RefreshCw, Repeat } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from '@/components/ui/sonner';
 import { z } from 'zod';
 import { buttonVariants } from '@/components/ui/button';
+import { getQuote as getQuoteServerAction } from '@/app/actions'; // Import the server action
 
 // --- Constants ---
 const MAINNET_CHA_CONTRACT_ID =
@@ -99,9 +100,10 @@ export function SwapStxToChaButton({
 
     const stxAmountInput = form.watch('stxAmount');
 
+    // swapClient is still needed for executeSwap which involves client-side wallet interaction
     const swapClient = createSwapClient({ stxAddress: address, routerName: 'multihop' });
 
-    // --- Quote Fetching Logic ---
+    // --- Quote Fetching Logic (Now uses Server Action) ---
     const fetchQuote = useCallback(async (amount: string) => {
         if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
             setQuote(null);
@@ -116,24 +118,28 @@ export function SwapStxToChaButton({
         try {
             const microStxAmount = BigInt(Math.round(Number(amount) * 1_000_000)); // Convert STX to micro-STX
 
-            // Use swapClient to get quote
-            const quoteData = await swapClient.getQuote(
-                '.stx', // Use '.stx' identifier for native STX
+            // Call the server action to get quote
+            const result = await getQuoteServerAction(
+                '.stx',
                 MAINNET_CHA_CONTRACT_ID,
                 microStxAmount.toString()
             );
 
-            setQuote(quoteData);
+            if (result.success && result.data) {
+                setQuote(result.data);
+            } else {
+                throw new Error(result.error || 'Failed to get quote from server');
+            }
 
         } catch (error: any) {
-            console.error('Error fetching swap quote:', error);
+            console.error('Error fetching swap quote via server action:', error);
             const message = error instanceof Error ? error.message : 'Failed to get quote';
             setQuoteError(message);
             setQuote(null);
         } finally {
             setIsFetchingQuote(false);
         }
-    }, []); // No dependencies needed if constants are outside
+    }, []); // Dependencies: getQuoteServerAction (stable), MAINNET_CHA_CONTRACT_ID (constant)
 
     // Debounced quote fetching
     useEffect(() => {
@@ -274,7 +280,7 @@ export function SwapStxToChaButton({
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={isSubmitting || isFetchingQuote || !quote || !connected || !form.formState.isValid}
+                            disabled={isSubmitting || isFetchingQuote || !quote || !connected}
                         >
                             {isSubmitting ? (
                                 <>
