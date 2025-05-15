@@ -70,8 +70,8 @@ const config: Config = {
     navbar: {
       title: 'Charisma',
       logo: {
-        alt: 'My Site Logo',
-        src: 'img/logo.svg',
+        alt: 'Charisma Logo',
+        src: 'https://charisma.rocks/charisma.png',
       },
       items: [
         {
