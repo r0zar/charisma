@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Offer, Bid, acceptBidSchema } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
 import { verifySignatureAndGetSigner } from '@repo/stacks';
-import { createRedeem, createTransfer, recoverSigner } from "blaze-sdk";
+import { createRedeem, createTransfer, recoverSigner, fetchTokenBalance } from "blaze-sdk";
 import { BLAZE_SIGNER_CONTRACT_ID, BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from "@/lib/constants";
 import { broadcastTransaction, fetchNonce, makeContractCall } from "@stacks/transactions";
 import { revalidatePath } from "next/cache";
@@ -32,6 +32,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "Offer not found." }, { status: 404 });
         }
 
+        // check if the offer creator has enough balance
+        for (const offerAsset of offer.offerAssets) {
+            const balance = await fetchTokenBalance(offerAsset.token, offer.offerCreatorAddress);
+            if (balance < Number(offerAsset.amount)) {
+                return NextResponse.json({ success: false, error: "Offer creator does not have enough balance." }, { status: 400 });
+            }
+        }
+
         if (verified.signer !== offer.offerCreatorAddress) {
             return NextResponse.json({ success: false, error: "You are not the creator of this offer." }, { status: 401 });
         }
@@ -55,6 +63,13 @@ export async function POST(req: NextRequest) {
 
         if (!bid) {
             return NextResponse.json({ success: false, error: "Bid not found." }, { status: 404 });
+        }
+
+        // check if the bid maker has enough balance
+        const balance = await fetchTokenBalance(bid.bidAssets[0].token, bid.bidderAddress);
+
+        if (balance < Number(bid.bidAssets[0].amount)) {
+            return NextResponse.json({ success: false, error: "Bid maker does not have enough balance." }, { status: 400 });
         }
 
         // transfer the bid amount to the offer creator
