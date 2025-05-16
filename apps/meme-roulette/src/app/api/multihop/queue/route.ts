@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
                 body.sourceContract,
                 body.betAmount
             );
+
         } catch (sdkError: any) {
             console.error('SDK recoverSigner error:', sdkError);
             return NextResponse.json({ success: false, error: `Signature recovery failed: ${sdkError.message || String(sdkError)}` }, { status: 400 });
