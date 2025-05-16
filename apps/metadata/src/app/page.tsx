@@ -12,23 +12,23 @@ export default function HomePage() {
           <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center justify-center px-4 py-1.5 mb-6 text-sm rounded-full border border-border bg-muted/50 text-foreground/80 gap-x-2">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span>Simplified token metadata management</span>
+              <span>Simplified metadata management</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              Manage your token metadata with
+              Manage your Stacks metadata with
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70 ml-2 inline-block">
                 Charisma
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
-              Create, update, and manage blockchain token metadata through an intuitive interface,
+              Create, update, and manage blockchain metadata through an intuitive interface,
               with automatic image generation and seamless wallet integration.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link href="/tokens">
+              <Link href="/dashboard">
                 <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300">
                   Get Started
                   <ArrowRight className="h-4 w-4" />
@@ -49,10 +49,10 @@ export default function HomePage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Powerful Token Management Features
+              Powerful Metadata Management Features
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to create and manage professional token metadata
+              Everything you need to create and manage professional metadata
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Quick Creation</h3>
               <p className="text-muted-foreground">
-                Generate token metadata in minutes with our streamlined creation workflow and intuitive form interface.
+                Generate metadata in minutes with our streamlined creation workflow and intuitive form interface.
               </p>
             </div>
 
@@ -75,7 +75,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold mb-2">AI Image Generation</h3>
               <p className="text-muted-foreground">
-                Create stunning token images automatically with our AI image generation system - just enter a description.
+                Create stunning images automatically with our AI image generation system - just enter a description.
               </p>
             </div>
 
@@ -123,7 +123,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-semibold mb-2">Global Accessibility</h3>
               <p className="text-muted-foreground">
-                Access your token metadata management tools from anywhere, on any device, with our responsive interface.
+                Access your metadata management tools from anywhere, on any device, with our responsive interface.
               </p>
             </div>
           </div>
@@ -137,10 +137,10 @@ export default function HomePage() {
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
-              Ready to enhance your token's metadata?
+              Ready to enhance your metadata?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Start managing your token metadata today with Charisma's powerful and intuitive platform.
+              Start managing your metadata today with Charisma's powerful and intuitive platform.
               No technical expertise required.
             </p>
 

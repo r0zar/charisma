@@ -1,3 +1,5 @@
+import { principalCV } from "@stacks/transactions";
+
 // Base URL for the balances API – override via environment variable (e.g. NEXT_PUBLIC_BALANCE_API_BASE_URL)
 const BALANCE_API_BASE_URL =
     process.env.NODE_ENV === 'production'
@@ -99,4 +101,4 @@ export async function getUserTokenBalance(
         console.error(`Failed to fetch balance for ${contractId} @ ${address}:`, err);
         return createDefaultBalanceData(contractId, address);
     }
-} 
+}

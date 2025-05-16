@@ -46,7 +46,7 @@ export default async function Home() {
             <span className="text-lg mt-0.5 flex-shrink-0">⚙️</span>
             <span className="break-words">
               This tool uses the <code className="break-all text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">searchContractsByTrait</code> method
-              from the Cryptonomicon package to search for contracts implementing specific traits.
+              from the Hiro Blockchain API to search for contracts implementing specific traits.
             </span>
           </p>
           <p className="flex items-start gap-3">

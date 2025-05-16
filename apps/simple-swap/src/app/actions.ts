@@ -5,6 +5,8 @@ import { QuoteResponse } from "../lib/swap-client";
 import type { Token } from "../lib/swap-client";
 import { kv } from "@vercel/kv";
 import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Adjust path as needed
+import { callReadOnlyFunction } from "@repo/polyglot";
+import { principalCV } from "@stacks/transactions";
 
 // Configure Dexterity router
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
@@ -132,7 +134,7 @@ export async function getRoutableTokens(): Promise<{
         // Only return the contract IDs - the client will fetch full details
         return {
             success: true,
-            tokens: tokenIds.map(id => ({ contractId: id }))
+            tokens: tokenIds.map((id: string) => ({ contractId: id }))
         };
     } catch (error) {
         console.error('[Server] Error getting routable tokens:', error);
@@ -233,5 +235,55 @@ export async function manuallyProcessBlazeIntentAction(pid: string): Promise<{ i
         console.error(`Error in manuallyProcessBlazeIntentAction for PID ${pid}:`, error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error in server action';
         return { id: pid, status: 'error', error: errorMessage };
+    }
+}
+
+
+
+
+/**
+ * Get token balance for a contract
+ */
+export async function getTokenBalance(tokenContractId: string, holderPrincipal: string): Promise<number> {
+    try {
+        const [contractAddress, contractName] = tokenContractId.split('.');
+        if (!contractAddress || !contractName) {
+            console.warn(`Invalid tokenContractId for getTokenBalance: ${tokenContractId}`);
+            return 0; // Original fallback
+        }
+        const result = await callReadOnlyFunction(
+            contractAddress,
+            contractName,
+            "get-balance",
+            [principalCV(holderPrincipal)]
+        );
+        return result?.value;
+    } catch (error) {
+        console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}:`, error);
+        return 0;
+    }
+}
+
+/**
+ * Get STX balance for an address
+ */
+export async function getStxBalance(address: string): Promise<number> {
+    try {
+        const headers = new Headers({ 'Content-Type': 'application/json' }); // Content-Type might not be strictly necessary for a GET request but keeping for consistency
+        const apiKey = process.env.HIRO_API_KEY || "";
+        if (apiKey) headers.set('x-api-key', apiKey);
+        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`, {
+            headers: headers
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch STX balance: ${response.status}`);
+        }
+
+        const data: any = await response.json();
+        return Number(data.balance);
+    } catch (error) {
+        console.warn(`Failed to get STX balance for ${address}:`, error);
+        return 0;
     }
 }

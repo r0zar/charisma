@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import TokenDropdown from "./TokenDropdown";
 import { useSwap } from "../hooks/useSwap";
-import type { Token } from "../lib/swap-client";
 import TokenLogo from "./TokenLogo";
 import { ArrowDown, ClockArrowUp, Flame, Repeat } from 'lucide-react';
 import TokenInputSection from './swap-interface/TokenInputSection';
@@ -17,6 +16,16 @@ import { Button } from "./ui/button";
 import MiniTokenChartWrapper from './mini-token-chart-wrapper';
 import { DcaDialog } from "./dca-dialog";
 import { useSearchParams } from "next/navigation";
+
+interface Token {
+  contractId: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  image?: string;
+  type: string;
+  base?: string;
+}
 
 interface SwapInterfaceProps {
   initialTokens?: Token[];

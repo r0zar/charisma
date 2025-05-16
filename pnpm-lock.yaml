@@ -202,9 +202,6 @@ importers:
 
   apps/contract-search:
     dependencies:
-      '@repo/cryptonomicon':
-        specifier: '*'
-        version: link:../../packages/cryptonomicon
       '@vercel/kv':
         specifier: ^3.0.0
         version: 3.0.0
@@ -272,9 +269,6 @@ importers:
       '@radix-ui/react-tabs':
         specifier: ^1.1.9
         version: 1.1.9(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
-      '@repo/cryptonomicon':
-        specifier: workspace:*
-        version: link:../../packages/cryptonomicon
       '@repo/polyglot':
         specifier: workspace:*
         version: link:../../packages/polyglot
@@ -454,9 +448,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.4
         version: 1.2.4(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
-      '@repo/cryptonomicon':
-        specifier: workspace:*
-        version: link:../../packages/cryptonomicon
       '@repo/polyglot':
         specifier: workspace:*
         version: link:../../packages/polyglot
@@ -735,9 +726,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.0
         version: 1.2.0(@types/react@19.0.10)(react@19.1.0)
-      '@repo/cryptonomicon':
+      '@repo/stacks':
         specifier: workspace:*
-        version: link:../../packages/cryptonomicon
+        version: link:../../packages/stacks
       '@stacks/connect':
         specifier: ^8
         version: 8.1.9
@@ -859,9 +850,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.4
         version: 1.2.4(@types/react-dom@19.0.4)(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
-      '@repo/cryptonomicon':
-        specifier: workspace:*
-        version: link:../../packages/cryptonomicon
       '@repo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -995,9 +983,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.0
         version: 1.2.0(@types/react@19.0.10)(react@19.1.0)
-      '@repo/cryptonomicon':
-        specifier: '*'
-        version: link:../../packages/cryptonomicon
+      '@repo/polyglot':
+        specifier: workspace:*
+        version: link:../../packages/polyglot
       '@vercel/kv':
         specifier: ^3.0.0
         version: 3.0.0
@@ -1221,52 +1209,6 @@ importers:
         version: 8.29.0(eslint@9.24.0)(typescript@5.8.2)
 
   packages/config-typescript: {}
-
-  packages/cryptonomicon:
-    dependencies:
-      '@repo/polyglot':
-        specifier: workspace:*
-        version: link:../polyglot
-      '@stacks/blockchain-api-client':
-        specifier: ^8.8.0
-        version: 8.8.0
-      '@stacks/connect':
-        specifier: ^8.1.9
-        version: 8.1.9
-      '@stacks/transactions':
-        specifier: ^7.0.5
-        version: 7.0.5
-    devDependencies:
-      '@jest/globals':
-        specifier: ^29.7.0
-        version: 29.7.0
-      '@repo/eslint-config':
-        specifier: workspace:*
-        version: link:../config-eslint
-      '@repo/jest-presets':
-        specifier: workspace:*
-        version: link:../jest-presets
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../config-typescript
-      '@types/node':
-        specifier: ^22.14.0
-        version: 22.14.0
-      bunchee:
-        specifier: ^6.4.0
-        version: 6.4.0(typescript@5.8.2)
-      eslint:
-        specifier: ^9.24.0
-        version: 9.24.0
-      jest:
-        specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.14.0)
-      ts-jest:
-        specifier: ^29.3.0
-        version: 29.3.0(@babel/core@7.26.10)(jest@29.7.0)(typescript@5.8.2)
-      typescript:
-        specifier: 5.8.2
-        version: 5.8.2
 
   packages/dexterity:
     dependencies:

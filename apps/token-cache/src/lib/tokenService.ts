@@ -1,7 +1,6 @@
-import { Cryptonomicon, TokenMetadata } from "@repo/cryptonomicon";
+import { Cryptonomicon } from "../lib/cryptonomicon";
 import { kv } from "@vercel/kv";
 
-// Initialize Cryptonomicon (adjust config as needed)
 const cryptonomicon = new Cryptonomicon({
     debug: true,
     apiKey: process.env.HIRO_API_KEY,
@@ -63,7 +62,7 @@ export const addContractIdToManagedList = async (contractId: string): Promise<vo
 export const getTokenData = async (
     contractId: string,
     forceRefresh: boolean = false
-): Promise<TokenMetadata | null> => {
+) => {
     if (!contractId) {
         console.error("getTokenData called with empty contractId");
         return null;
@@ -73,9 +72,9 @@ export const getTokenData = async (
 
     try {
         // 1. Check cache first (unless forcing refresh)
-        let cachedData: TokenMetadata | null = null;
+        let cachedData: any = null;
         if (!forceRefresh) {
-            cachedData = await kv.get<TokenMetadata>(cacheKey);
+            cachedData = await kv.get<any>(cacheKey);
             if (cachedData) {
                 // console.log(`Cache hit for ${contractId}`);
 
@@ -94,15 +93,14 @@ export const getTokenData = async (
             console.log(`Cache miss for ${contractId}, fetching from source.`);
         } else {
             // If forceRefresh, still get the cached data as baseline
-            cachedData = await kv.get<TokenMetadata>(cacheKey);
+            cachedData = await kv.get<any>(cacheKey);
             console.log(`Force refresh requested for ${contractId}, fetching from source.`);
         }
 
-        // 2. Fetch from Cryptonomicon
         const tokenMetadata = await cryptonomicon.getTokenMetadata(contractId);
         console.log(`Token metadata: ${JSON.stringify(tokenMetadata)}`);
 
-        let mergedData: TokenMetadata | null = null;
+        let mergedData: any = null;
         if (tokenMetadata) {
             // Ensure contract_principal is set
             if (!tokenMetadata.contract_principal) {
@@ -138,7 +136,7 @@ export const getTokenData = async (
         console.error(`Error fetching or caching data for ${contractId}:`, error);
         // Attempt to return cached data even if there was an error during fetch/set
         try {
-            const cachedData = await kv.get<TokenMetadata>(cacheKey);
+            const cachedData = await kv.get<any>(cacheKey);
             if (cachedData) {
                 console.warn(`Returning stale cache for ${contractId} due to error.`);
 
@@ -161,7 +159,7 @@ export const getTokenData = async (
  *
  * @returns A promise resolving to an array of TokenMetadata objects.
  */
-export const getAllTokenData = async (): Promise<TokenMetadata[]> => {
+export const getAllTokenData = async (): Promise<any[]> => {
     // 1. Fetch the list of managed token IDs from KV
     const managedTokenIds = await getManagedTokenIds();
 
@@ -177,7 +175,7 @@ export const getAllTokenData = async (): Promise<TokenMetadata[]> => {
         // Modify getTokenData slightly to return this info, or infer it here.
         // Inferring: Check KV directly before calling getTokenData.
         // This adds extra reads but avoids modifying getTokenData return signature.
-        return kv.get<TokenMetadata>(getCacheKey(id)).then(cached => {
+        return kv.get<any>(getCacheKey(id)).then(cached => {
             if (cached) cacheHitCount++;
             return getTokenData(id); // Now call the actual function
         });
@@ -187,7 +185,7 @@ export const getAllTokenData = async (): Promise<TokenMetadata[]> => {
     const successfulData = allDataResults
         .filter(result => result.status === 'fulfilled' && result.value !== null)
         .map((result, index) => {
-            const tokenData = (result as PromiseFulfilledResult<TokenMetadata>).value;
+            const tokenData = (result as PromiseFulfilledResult<any>).value;
             // Double-check that contract_principal is set for every token
             if (!tokenData.contract_principal) {
                 tokenData.contract_principal = managedTokenIds[index];
@@ -247,7 +245,7 @@ export const getCacheStats = async (): Promise<{
             // Check cache status and get data for each managed ID
             // Use kv.mget to fetch multiple keys efficiently
             const cacheKeys = managedTokenIds.map(id => getCacheKey(id));
-            const cachedItems = await kv.mget<TokenMetadata[]>(...cacheKeys);
+            const cachedItems = await kv.mget<any[]>(...cacheKeys);
 
             const now = Date.now();
             cachedItems.forEach(item => {

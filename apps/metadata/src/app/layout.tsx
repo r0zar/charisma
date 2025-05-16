@@ -55,7 +55,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
                   className="hidden gap-6 md:flex items-center"
                 >
                   <Link
-                    href="/tokens"
+                    href="/dashboard"
                     className="flex items-center space-x-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline decoration-primary/50 underline-offset-4"
                   >
                     <svg
@@ -74,7 +74,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
                       <path d="M18.09 10.37A6 6 0 1 1 10.34 18.13" />
                       <path d="m16 16-1 1" />
                     </svg>
-                    <span>Tokens</span>
+                    <span>Dashboard</span>
                   </Link>
                   <Link
                     href="/docs"

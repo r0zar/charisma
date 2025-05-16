@@ -1,8 +1,8 @@
 // src/app/api/v1/metadata/[contractId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { MetadataService } from '@/lib/metadata-service';
-import { verifyMessageSignatureRsv } from '@stacks/encryption';
-import { getAddressFromPublicKey, TransactionVersion } from '@stacks/transactions';
+// Assuming verifySignedMessage is exported from your @charisma/stacks package
+import { verifySignedRequest } from '@repo/stacks';
 import { generateCorsHeaders } from '@/lib/cors-helper';
 
 /* ───────────────────────────── helpers ───────────────────────────── */
@@ -29,6 +29,14 @@ export async function GET(
 
     try {
         const metadata = await MetadataService.get(contractId);
+        // If metadata is not found or empty, MetadataService.get might return an empty object or similar.
+        // Consider if a 404 should be returned here if metadata is considered "not found" by the service.
+        if (!metadata || Object.keys(metadata).length === 0 && metadata.constructor === Object) {
+            return NextResponse.json(
+                { error: 'Metadata not found' },
+                { status: 404, headers }
+            );
+        }
         return NextResponse.json(metadata, { headers });
     } catch (err) {
         console.error(`Error fetching metadata for ${contractId}:`, err);
@@ -62,16 +70,15 @@ export async function POST(
             );
         }
 
-        // ── API Key auth ──
         const apiKey = request.headers.get('x-api-key');
         const envApiKey = process.env.METADATA_API_KEY;
-
-        let isAuthorized = false;
+        let isAuthorizedByApiKey = false;
 
         if (apiKey && envApiKey && apiKey === envApiKey) {
-            isAuthorized = true;
-        } else {
-            // ── Signature auth (existing logic) ──
+            isAuthorizedByApiKey = true;
+        }
+
+        if (!isAuthorizedByApiKey) {
             const signature = request.headers.get('x-signature');
             const publicKey = request.headers.get('x-public-key');
 
@@ -82,39 +89,29 @@ export async function POST(
                 );
             }
 
-            const isValidSig = verifyMessageSignatureRsv({ message: contractId, publicKey, signature });
-            if (!isValidSig) {
+            const authResult = await verifySignedRequest(
+                request,
+                {
+                    message: contractId,
+                    expectedAddress: getContractAddress(contractId),
+                }
+            );
+
+            if (!authResult.ok) {
                 return NextResponse.json(
                     { error: 'Invalid signature' },
                     { status: 401, headers }
                 );
             }
-
-            const signerAddress = getAddressFromPublicKey(publicKey, TransactionVersion.Mainnet);
-            if (signerAddress !== getContractAddress(contractId) && signerAddress !== 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS') {
-                return NextResponse.json(
-                    { error: 'Not authorized to modify this contract metadata' },
-                    { status: 403, headers },
-                );
-            }
-            isAuthorized = true;
         }
-
-        if (!isAuthorized) {
-            // This case should ideally be caught by one of the auth methods,
-            // but as a fallback:
-            return NextResponse.json(
-                { error: 'Authentication failed' },
-                { status: 401, headers }
-            );
-        }
+        // If either API key is valid or signature auth is valid, proceed.
 
         const body = await request.json();
-
         const result = await MetadataService.set(contractId, body);
         return NextResponse.json(result, { headers });
+
     } catch (err) {
-        console.error('Failed to handle metadata:', err);
+        console.error('Failed to handle metadata POST request:', err);
         const msg = err instanceof Error ? err.message : 'Failed to handle metadata request';
         return NextResponse.json({ error: msg }, { status: 500, headers });
     }
@@ -136,9 +133,9 @@ export async function DELETE(
             );
         }
 
-        // ── auth headers ──
         const signature = request.headers.get('x-signature');
         const publicKey = request.headers.get('x-public-key');
+
         if (!signature || !publicKey) {
             return NextResponse.json(
                 { error: 'Missing authentication headers' },
@@ -146,21 +143,18 @@ export async function DELETE(
             );
         }
 
-        // ── verify signature ──
-        const isValidSig = verifyMessageSignatureRsv({ message: contractId, publicKey, signature });
-        if (!isValidSig) {
+        const authResult = await verifySignedRequest(
+            request,
+            {
+                message: contractId,
+                expectedAddress: getContractAddress(contractId),
+            }
+        );
+
+        if (!authResult.ok) {
             return NextResponse.json(
                 { error: 'Invalid signature' },
                 { status: 401, headers }
-            );
-        }
-
-        // ── verify ownership ──
-        const signerAddress = getAddressFromPublicKey(publicKey, TransactionVersion.Mainnet);
-        if (signerAddress !== getContractAddress(contractId)) {
-            return NextResponse.json(
-                { error: 'Not authorized to delete this contract metadata' },
-                { status: 403, headers },
             );
         }
 
@@ -169,6 +163,7 @@ export async function DELETE(
             success: true,
             message: `Metadata for ${contractId} has been deleted`,
         }, { headers });
+
     } catch (err) {
         console.error('Failed to delete metadata:', err);
         const msg = err instanceof Error ? err.message : 'Failed to delete metadata';

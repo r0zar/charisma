@@ -1,12 +1,12 @@
 "use client";
-import { TokensList } from '@/components/tokens/tokens-list';
+import { MetadataList } from '@/components/metadata/metadata-list';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 
 // Set this to dynamic to ensure we always get fresh data
 export const dynamic = 'force-dynamic';
 
-export default function TokensPage() {
+export default function MetadataPage() {
     const [activeTab, setActiveTab] = useState<'all' | 'sip10' | 'lp'>('all');
 
     return (
@@ -17,12 +17,12 @@ export default function TokensPage() {
                 className="w-full mb-6"
             >
                 <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
-                    <TabsTrigger value="all">All Tokens</TabsTrigger>
+                    <TabsTrigger value="all">All Metadata</TabsTrigger>
                     <TabsTrigger value="sip10">SIP10</TabsTrigger>
-                    <TabsTrigger value="lp">LP Tokens</TabsTrigger>
+                    <TabsTrigger value="lp">Vaults</TabsTrigger>
                 </TabsList>
             </Tabs>
-            <TokensList filterType={activeTab} />
+            <MetadataList filterType={activeTab} />
         </div>
     );
 } 

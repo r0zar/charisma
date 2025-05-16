@@ -304,17 +304,10 @@ export function createSwapClient(options: SwapClientOptions = {}) {
      */
     convertFromMicroUnits(microUnits: string, decimals: number): string {
       if (!microUnits || microUnits === '0') return '';
-      try {
-        const value = parseInt(microUnits, 10);
-        if (isNaN(value)) return '';
-
-        const humanReadable = (value / Math.pow(10, decimals)).toString();
-        return humanReadable.includes('.') ?
-          humanReadable.replace(/\.?0+$/, '') :
-          humanReadable;
-      } catch {
-        return '';
-      }
+      return (parseFloat(microUnits) / Math.pow(10, decimals)).toLocaleString(undefined, {
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: decimals
+      });
     },
 
     /**

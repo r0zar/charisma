@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Cryptonomicon } from "@repo/cryptonomicon";
-import { getQuote, getRoutableTokens, listTokens } from "../app/actions";
+import { getQuote, getRoutableTokens, getStxBalance, getTokenBalance, listTokens } from "../app/actions";
 import { createSwapClient, Token } from "../lib/swap-client";
 import { useWallet } from "../contexts/wallet-context";
 import { listPrices, KraxelPriceData } from '@repo/tokens';
@@ -75,9 +74,6 @@ interface BalanceCache {
         timestamp: number;
     };
 }
-
-// Initialize Cryptonomicon
-const crypto = new Cryptonomicon();
 
 export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // Get wallet state from context
@@ -248,9 +244,9 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
             // Handle STX differently than other tokens
             if (contractId === ".stx") {
-                balance = await crypto.getStxBalance(address);
+                balance = await getStxBalance(address);
             } else {
-                balance = await crypto.getTokenBalance(contractId, address);
+                balance = await getTokenBalance(contractId, address);
             }
 
             // Format balance using decimals
@@ -446,7 +442,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         setError(null);
         setSwapSuccessInfo(null);
         try {
-            const res = await swapClient.executeSwap(quote.route);
+            const res = await swapClient.executeSwap(quote.route as any);
             console.log("Swap result:", res);
 
             if ("error" in res) {

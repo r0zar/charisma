@@ -6,20 +6,18 @@ import { useRouter } from 'next/navigation';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { SkeletonCard } from '@/components/ui/skeleton-card';
 import { Plus, Info, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { isLPToken } from '@/lib/utils';
 
-interface TokensListProps {
+interface MetadataListProps {
     limit?: number;
     filterType?: 'all' | 'sip10' | 'lp';
 }
 
-export function TokensList({ limit, filterType = 'all' }: TokensListProps) {
+export function MetadataList({ limit, filterType = 'all' }: MetadataListProps) {
     const router = useRouter();
     const { toast } = useToast();
     const { stxAddress, tokens, loading, authenticated, fetchTokens } = useApp();
@@ -120,14 +118,14 @@ export function TokensList({ limit, filterType = 'all' }: TokensListProps) {
                         <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
                 </div>
-                <h3 className="text-xl font-medium mb-2">No tokens found</h3>
+                <h3 className="text-xl font-medium mb-2">No metadata found</h3>
                 <p className="text-muted-foreground max-w-md mb-8">
                     {authenticated
                         ? "You haven't added any token metadata yet. Add your first token to get started."
                         : "Connect your wallet to view and manage your token metadata."}
                 </p>
                 {authenticated && (
-                    <Button onClick={() => router.push('/tokens/new')}>
+                    <Button onClick={() => router.push('/dashboard/new')}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="mr-2 h-4 w-4"
@@ -141,7 +139,7 @@ export function TokensList({ limit, filterType = 'all' }: TokensListProps) {
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                         </svg>
-                        Add New Token
+                        Add New Metadata
                     </Button>
                 )}
             </div>
@@ -152,10 +150,10 @@ export function TokensList({ limit, filterType = 'all' }: TokensListProps) {
         <div>
             {authenticated && (
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold tracking-tight">Your Tokens</h1>
-                    <Button onClick={() => router.push('/tokens/new')} className="gap-2">
+                    <h1 className="text-2xl font-bold tracking-tight">Your Metadata</h1>
+                    <Button onClick={() => router.push('/dashboard/new')} className="gap-2">
                         <Plus className="h-4 w-4" />
-                        Add New Token
+                        Add New Metadata
                     </Button>
                 </div>
             )}
@@ -182,7 +180,7 @@ export function TokensList({ limit, filterType = 'all' }: TokensListProps) {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                     </svg>
-                    <span className="text-muted-foreground">Refreshing tokens...</span>
+                    <span className="text-muted-foreground">Refreshing metadata...</span>
                 </div>
             )}
 
@@ -212,7 +210,7 @@ function TokenCard({ token, index }: TokenCardProps) {
 
     const handleNavigate = () => {
         if (contractId) {
-            router.push(`/tokens/${encodeURIComponent(contractId)}`);
+            router.push(`/dashboard/${encodeURIComponent(contractId)}`);
         }
     };
 
@@ -265,9 +263,9 @@ function TokenCard({ token, index }: TokenCardProps) {
                     <div className="mb-2 flex items-center justify-between gap-2">
                         <h3 className="font-medium text-lg truncate">{token.name || 'Unnamed Token'}</h3>
                         <div className="flex items-center gap-2">
-                            {token.symbol && (
+                            {token.properties?.symbol && (
                                 <Badge variant="outline">
-                                    ${token.symbol}
+                                    ${token.properties.symbol}
                                 </Badge>
                             )}
                         </div>

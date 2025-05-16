@@ -1,6 +1,6 @@
 'use server';
 
-import { Cryptonomicon } from "@repo/cryptonomicon";
+import { searchContractsByTrait, MetadataServiceConfig } from "../lib/search-client";
 import { kv } from "@vercel/kv";
 import { revalidatePath } from 'next/cache';
 
@@ -10,7 +10,6 @@ export interface ContractData {
     tx_id: string;
     block_height: number;
     clarity_version?: string;
-    // Add any other contract properties you want to display
 }
 
 // Interface for saved searches
@@ -22,13 +21,10 @@ export interface SearchResult {
     contracts: ContractData[];
 }
 
-// Initialize Cryptonomicon
-const cryptonomicon = new Cryptonomicon({
+const config: MetadataServiceConfig = {
     apiKey: process.env.HIRO_API_KEY,
-    network: process.env.NEXT_PUBLIC_NETWORK === 'testnet' ? 'testnet' : 'mainnet',
-    // Add any other specific configurations
     debug: process.env.NODE_ENV === 'development'
-});
+};
 
 // Key for storing the list of all search IDs
 const SEARCH_LIST_KEY = "contract-search:searches";
@@ -110,7 +106,7 @@ export async function searchContracts(traitJsonString: string, queryName?: strin
         const searchId = `search-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
         // Use cryptonomicon to search for contracts with the specified trait
-        const contracts = await cryptonomicon.searchContractsByTrait(traitObject);
+        const contracts = await searchContractsByTrait(traitObject, config);
 
         // Map to our contract data format
         const contractData: ContractData[] = contracts?.map(contract => ({

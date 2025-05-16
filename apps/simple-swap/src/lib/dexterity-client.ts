@@ -2,7 +2,7 @@
 
 // import removed Blaze
 import { callReadOnlyFunction } from '@repo/polyglot'
-import { Cryptonomicon, Token, MetadataServiceConfig } from "@repo/cryptonomicon"; // Adjust path as needed
+import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import {
     bufferCV,
     ClarityValue,
@@ -19,6 +19,17 @@ import {
     SignedMultiSigContractCallOptions,
     SignedContractCallOptions
 } from "@stacks/transactions";
+
+interface Token {
+    contractId: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    image?: string;
+    type: string;
+    base?: string;
+    identifier: string;
+}
 
 /**
  * Vault instance representing a liquidity pool
@@ -37,8 +48,8 @@ export interface Vault {
     fee: number;
     externalPoolId: string;
     engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
+    tokenA: any;
+    tokenB: any;
     reservesA: number;
     reservesB: number;
 }
@@ -144,7 +155,6 @@ export class Dexterity {
     // Static properties
     // static client removed
     static sender: string;
-    static cryptonomicon: Cryptonomicon;
 
     // Router graph components
     static edges: Map<string, Vault> = new Map();
@@ -160,8 +170,7 @@ export class Dexterity {
     /**
      * Initialize the discovery service with appropriate configuration
      */
-    static init(options: MetadataServiceConfig = {}) {
-        this.cryptonomicon = new Cryptonomicon(options);
+    static init(options: any = {}) {
         if (options.stxAddress) this.sender = options.stxAddress;
     }
 
@@ -241,7 +250,7 @@ export class Dexterity {
         const [contractAddress, contractName] = contractId.split('.');
 
         // Fetch metadata using Cryptonomicon
-        const metadata = await this.cryptonomicon.getTokenMetadata(contractId);
+        const metadata = await getTokenMetadataCached(contractId);
 
         // If we couldn't get metadata, return null
         if (!metadata) {
@@ -261,8 +270,8 @@ export class Dexterity {
         try {
             // Fetch token information using Cryptonomicon
             const [tokenAInfo, tokenBInfo] = await Promise.all([
-                this.cryptonomicon.getTokenInfo(tokenAContract),
-                this.cryptonomicon.getTokenInfo(tokenBContract)
+                getTokenMetadataCached(tokenAContract),
+                getTokenMetadataCached(tokenBContract)
             ]);
 
             if (!tokenAInfo || !tokenBInfo) {
@@ -299,9 +308,7 @@ export class Dexterity {
                 reservesB = Number(reservesResult.dy.value);
 
             } catch (reserveError) {
-                if (this.cryptonomicon.config?.debug) {
-                    console.warn(`Could not fetch reserves for ${contractId}:`, reserveError);
-                }
+                console.warn(`Could not fetch reserves for ${contractId}:`, reserveError);
                 // Keep reserves as 0 if fetching fails
             }
 
@@ -328,9 +335,7 @@ export class Dexterity {
 
             return vault;
         } catch (error) {
-            if (this.cryptonomicon.config?.debug) {
-                console.error(`Error building vault for ${contractId}:`, error);
-            }
+            console.error(`Error building vault for ${contractId}:`, error);
             return null;
         }
     }
@@ -780,8 +785,6 @@ export class Dexterity {
      * Build transaction for a multi-hop swap
      */
     static async buildSwapTransaction(route: Route) {
-        // Ensure cryptonomicon is initialized
-        if (!this.cryptonomicon) this.init();
 
         // Check if router information is available
         if (!this.config.routerAddress || !this.config.routerName) {
@@ -873,8 +876,6 @@ export class Dexterity {
         amountOut: number,
         opcode: number,
     ) {
-        // Ensure cryptonomicon is initialized
-        if (!this.cryptonomicon) this.init();
 
         const postConditions: PostCondition[] = [];
 
@@ -929,8 +930,6 @@ export class Dexterity {
         amount: number,
         options: SwapOptions = {}
     ) {
-        // Ensure cryptonomicon is initialized
-        if (!this.cryptonomicon) this.init();
 
         // Find the best route
         const routeResult = await this.findBestRoute(fromTokenId, toTokenId, amount);

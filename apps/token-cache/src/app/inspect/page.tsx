@@ -17,7 +17,7 @@ export default function InspectPage() {
                 <h1 className="text-2xl font-bold">Token Cache Inspector</h1>
             </div>
             <p className="text-muted-foreground mb-6 max-w-2xl">
-                Use this tool to inspect the raw data fetched directly from the source (Cryptonomicon)
+                Use this tool to inspect the raw data fetched directly from the Stacks blockchain
                 and compare it with the currently cached data in Vercel KV. You can also force a refresh of the cache.
             </p>
 

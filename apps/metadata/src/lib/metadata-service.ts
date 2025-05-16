@@ -3,6 +3,12 @@ import { kv } from '@vercel/kv';
 import _ from 'lodash';
 
 const PropertiesSchema = z.object({
+    // Moved from MetadataSchema top-level
+    symbol: z.string().optional(),
+    decimals: z.number().optional(),
+    identifier: z.string().optional(),
+
+    // Existing properties
     lpRebatePercent: z.number().optional(),
     externalPoolId: z.string().optional(),
     engineContractId: z.string().optional(),
@@ -11,19 +17,143 @@ const PropertiesSchema = z.object({
     swapFeePercent: z.number().optional()
 }).passthrough();
 
+// SIP-16 specific schemas
+const AttributeSchema = z.object({
+    trait_type: z.string(),
+    value: z.any(), // Value can be string, number, or even object/array depending on trait
+    display_type: z.string().optional(), // e.g., "number", "date", "boost_percentage"
+});
+
+// Defines the structure of the localization object when it IS present.
+// URI is required if a localization object exists.
+const BaseLocalizationSchema = z.object({
+    uri: z.string(), // Must be a non-empty string if localization is provided.
+    default: z.string().default('en'),
+    locales: z.array(z.string()).default([]),
+});
+
 const MetadataSchema = z.object({
-    name: z.string().optional(),
-    symbol: z.string().optional(),
-    decimals: z.number().optional(),
-    identifier: z.string().optional(),
-    description: z.string().optional(),
-    image: z.string().optional(),
-    properties: PropertiesSchema.optional()
-}).passthrough();
+    // SIP-16 Core Fields
+    sip: z.number().default(16), // SIP number, typically 16
+    name: z.string(), // Name of the token (required by updated logic, previously optional)
+    description: z.string().default('').optional(),
+    image: z.string().optional(), // URL to the token image
+    attributes: z.array(AttributeSchema).optional(),
+    // Localization field is now optional. If present, it must conform to BaseLocalizationSchema.
+    localization: BaseLocalizationSchema.optional(),
+
+    // Properties bag for other/custom data including symbol, decimals, identifier
+    properties: PropertiesSchema.optional(), // This now includes symbol, decimals, identifier
+
+    // Deprecated fields from various standards, captured if present
+    image_data: z.string().optional(),
+    external_url: z.string().optional(),
+    animation_url: z.string().optional(),
+
+}).passthrough(); // Allow other fields not explicitly defined
 
 export type TokenMetadata = z.infer<typeof MetadataSchema> & {
-    contractId?: string;
-    lastUpdated?: string;
+    contractId?: string; // Not part of stored metadata, but added for convenience in service
+    lastUpdated?: string; // Timestamp of last update in KV
+};
+
+interface FormDataForMetadata {
+    sip: number;
+    name: string;
+    description: string;
+    symbol: string;
+    decimals: number;
+    identifier: string;
+    attributes: Array<{ trait_type: string; value: any; display_type?: string }>;
+    localization: { uri: string; default: string; locales: string[] };
+}
+
+export const constructSip16MetadataObject = (
+    formData: FormDataForMetadata,
+    contractIdSuffix: string,
+    currentImageUrl: string,
+    unsavedImageUrl: string,
+    existingTokenProperties?: Record<string, any>
+): TokenMetadata => {
+    const newMetadata: Partial<TokenMetadata> = {
+        sip: Number(formData.sip || 16),
+        name: formData.name || (contractIdSuffix ? contractIdSuffix.toUpperCase().replace(/-/g, ' ') : 'Unnamed Token'),
+        // description, image, attributes, localization, properties will be added conditionally
+    };
+
+    // Conditionally add description if it's not an empty string
+    if (formData.description && formData.description.trim() !== "") {
+        newMetadata.description = formData.description;
+    }
+    // If formData.description is empty, newMetadata.description remains unset.
+    // Zod's .default('') will apply during parsing if schema requires it.
+
+    if (unsavedImageUrl) {
+        newMetadata.image = unsavedImageUrl;
+    } else if (currentImageUrl) {
+        newMetadata.image = currentImageUrl;
+    } // If neither, newMetadata.image remains unset (optional field)
+
+    // Conditionally add attributes if it's not an empty array
+    if (formData.attributes && formData.attributes.length > 0) {
+        newMetadata.attributes = formData.attributes;
+    }
+    // If formData.attributes is empty, newMetadata.attributes remains unset.
+
+    // Conditionally add localization if a URI is provided
+    if (formData.localization && formData.localization.uri && formData.localization.uri.trim() !== "") {
+        const locFromForm = formData.localization;
+        const locForMeta: Partial<z.infer<typeof BaseLocalizationSchema>> = { uri: locFromForm.uri };
+
+        if (locFromForm.default && locFromForm.default.trim() !== '') {
+            locForMeta.default = locFromForm.default;
+        } // If not provided or empty, Zod's default('en') from BaseLocalizationSchema will apply
+
+        if (Array.isArray(locFromForm.locales) && locFromForm.locales.length > 0) {
+            locForMeta.locales = locFromForm.locales.filter(l => typeof l === 'string');
+        } // If not provided or empty, Zod's default([]) from BaseLocalizationSchema will apply
+
+        newMetadata.localization = locForMeta as z.infer<typeof BaseLocalizationSchema>;
+    }
+    // If no valid URI, newMetadata.localization is NOT set, so it should be omitted from the object.
+
+
+    // Initialize properties, ensuring it exists if we are adding to it.
+    // Start with existing properties, then overwrite/add from formData and tokenIdentifier.
+    const properties: Record<string, any> = { ...(existingTokenProperties || {}) };
+
+    if (formData.symbol && formData.symbol.trim() !== "") {
+        properties.symbol = formData.symbol.trim();
+    }
+    if (typeof formData.decimals === 'number') {
+        properties.decimals = formData.decimals;
+    }
+    // Use formData.identifier for properties.identifier
+    // If formData.identifier is provided and not just whitespace, use it.
+    if (formData.identifier && formData.identifier.trim() !== "") {
+        properties.identifier = formData.identifier.trim();
+    }
+
+    // Conditionally add properties if it's not an empty object
+    // after potentially adding symbol, decimals, and identifier.
+    if (Object.keys(properties).length > 0) {
+        newMetadata.properties = properties;
+    } else {
+        // Ensure properties is not set at all if it would be empty.
+        delete newMetadata.properties;
+    }
+
+    // Ensure name is set (already handled by initial assignment, but good for robustness)
+    if (!newMetadata.name) {
+        newMetadata.name = contractIdSuffix ? contractIdSuffix.toUpperCase().replace(/-/g, ' ') : 'Unnamed Token';
+    }
+
+    // These are no longer needed as symbol, decimals, identifier are only added to properties
+    // delete (newMetadata as any).symbol;
+    // delete (newMetadata as any).decimals;
+    // delete (newMetadata as any).identifier;
+
+    return newMetadata as TokenMetadata;
 };
 
 export class MetadataService {
