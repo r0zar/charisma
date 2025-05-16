@@ -14,6 +14,7 @@ import { useWallet } from "@/contexts/wallet-context";
 import { IntentInput, signIntentWithWallet } from "blaze-sdk";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from 'next/navigation';
+import Image from "next/image";
 
 interface Props {
     subnetTokens: TokenDef[];
@@ -225,7 +226,7 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
 
                         {selectedTokenInfo && selectedTokenInfo.logo && (
                             <div className="mt-3 flex items-center gap-2 p-2 rounded-md bg-muted/20 text-xs text-muted-foreground">
-                                <img src={selectedTokenInfo.logo} alt={selectedTokenInfo.name} className="h-5 w-5 rounded-full" />
+                                <Image src={selectedTokenInfo.logo} width={20} height={20} alt={selectedTokenInfo.name} className="h-5 w-5 rounded-full" />
                                 <span>Selected: {selectedTokenInfo.name} ({selectedTokenInfo.symbol})</span>
                             </div>
                         )}
@@ -271,7 +272,7 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
                         return (
                             <div key={idx} className="flex items-center gap-2 p-2 rounded-md bg-muted/20 mb-2">
                                 {tokenInfo.logo ? (
-                                    <img src={tokenInfo.logo} alt={tokenInfo.name} className="h-6 w-6 rounded-full" />
+                                    <Image src={tokenInfo.logo} width={24} height={24} alt={tokenInfo.name} className="h-6 w-6 rounded-full" />
                                 ) : (
                                     <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
                                         {tokenInfo.symbol.charAt(0)}
