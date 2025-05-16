@@ -79,6 +79,8 @@ export async function POST(_req: NextRequest) {
             txConfig.postConditionMode = 'allow'
             txConfig.postConditions = []
 
+            console.log({ nonce })
+
             const broadcastResponse = await broadcastMultihopTransaction(txConfig, PRIVATE_KEY);
             console.log('Broadcast Response from SDK:', broadcastResponse);
 
