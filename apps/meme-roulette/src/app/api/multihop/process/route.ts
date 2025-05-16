@@ -47,8 +47,7 @@ export async function POST(_req: NextRequest) {
 
             console.log(`Processing intent for user ${intent.recipient}, originally bet on ${intent.destinationContract}, swapping ${intent.betAmount} of ${intent.sourceContract} to WINNER ${winningTokenId}, uuid ${intent.uuid}`);
 
-
-            const router = new Router({ maxHops: 4 });
+            const router = new Router({ maxHops: 4, defaultSlippage: 0.05 });
             await loadVaults(router);
 
             const route: any = await router.findBestRoute(
