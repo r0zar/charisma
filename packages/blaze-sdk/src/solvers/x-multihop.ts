@@ -70,6 +70,9 @@ export interface TransactionConfig {
     functionName: string;
     functionArgs: ClarityValue[];
     postConditions: PostCondition[];
+    postConditionMode?: PostConditionMode;
+    nonce?: number;
+    fee?: number;
 }
 
 export type TokenOptionalParams = {
@@ -336,9 +339,10 @@ export async function broadcastMultihopTransaction(
         senderKey: privateKey,
         network: STACKS_MAINNET,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: txConfig.postConditionMode || PostConditionMode.Deny,
         postConditions: txConfig.postConditions,
-        fee: 1500, // Could make this configurable
+        fee: txConfig.fee || 1500,
+        nonce: txConfig.nonce
     };
 
     const transaction = await makeContractCall(txOptions);

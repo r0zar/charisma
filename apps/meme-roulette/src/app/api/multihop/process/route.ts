@@ -9,7 +9,7 @@ import {
     MULTIHOP_CONTRACT_ID,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
 import { fetchQuote } from 'dexterity-sdk';
-import { fetchNonce } from '@stacks/transactions';
+import { fetchNonce, PostConditionMode } from '@stacks/transactions';
 
 // Environment variables
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
@@ -74,8 +74,8 @@ export async function POST(_req: NextRequest) {
 
             const txConfig: any = await buildXSwapTransaction(quote.route, swapMeta);
 
-            txConfig.nonce = ++nonce;
-            txConfig.postConditionMode = 'allow'
+            txConfig.nonce = nonce++;
+            txConfig.postConditionMode = PostConditionMode.Allow;
             txConfig.postConditions = []
 
             console.log('Transaction Config from SDK:', txConfig);
