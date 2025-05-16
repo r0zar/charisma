@@ -73,13 +73,12 @@ export async function POST(_req: NextRequest) {
             };
 
             const txConfig: any = await buildXSwapTransaction(quote.route, swapMeta);
-            console.log('Transaction Config from SDK:', txConfig);
 
             txConfig.nonce = nonce++;
             txConfig.postConditionMode = 'allow'
             txConfig.postConditions = []
 
-            console.log({ nonce })
+            console.log('Transaction Config from SDK:', txConfig);
 
             const broadcastResponse = await broadcastMultihopTransaction(txConfig, PRIVATE_KEY);
             console.log('Broadcast Response from SDK:', broadcastResponse);
