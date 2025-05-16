@@ -8,7 +8,7 @@ import {
     TransactionConfig,
     MULTIHOP_CONTRACT_ID,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
-import { getQuote } from 'dexterity-sdk';
+import { fetchQuote } from 'dexterity-sdk';
 
 // Environment variables
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
@@ -48,7 +48,7 @@ export async function POST(_req: NextRequest) {
 
             console.log(`Processing intent for user ${intent.recipient}, originally bet on ${intent.destinationContract}, swapping ${intent.betAmount} of ${intent.sourceContract} to WINNER ${winningTokenId}, uuid ${intent.uuid}`);
 
-            const quote = await getQuote(intent.sourceContract, winningTokenId, intent.betAmount);
+            const quote = await fetchQuote(intent.sourceContract, winningTokenId, intent.betAmount);
             console.log('Quote:', quote);
 
             if (!quote.route) {

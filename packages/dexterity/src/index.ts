@@ -258,5 +258,5 @@ export const fetchQuote = async (from: string, to: string, amount: number, dexAp
     throw new Error(errBody?.error ?? `dex-api request failed (${res.status})`);
   }
   const json = await res.json();
-  return json.data as Quote;
+  return json.data;
 };
