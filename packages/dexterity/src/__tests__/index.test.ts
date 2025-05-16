@@ -19,6 +19,10 @@ describe("dexterity-sdk (live vaults)", () => {
     console.log("Loaded vaults →", vaults.length);
     const stats = router.stats();
     console.log("Graph stats →", stats);
+    const vaultContractIds = router.vaultContractIds();
+    console.log("Vault contract IDs →", vaultContractIds);
+    const tokenContractIds = router.tokenContractIds();
+    console.log("Token contract IDs →", tokenContractIds);
 
     expect(vaults.length).toBeGreaterThan(0);
     expect(stats.pools).toBe(vaults.length);

@@ -74,7 +74,7 @@ export async function POST(_req: NextRequest) {
 
             const txConfig: any = await buildXSwapTransaction(quote.route, swapMeta);
 
-            txConfig.nonce = nonce++;
+            txConfig.nonce = ++nonce;
             txConfig.postConditionMode = 'allow'
             txConfig.postConditions = []
 

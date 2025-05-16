@@ -592,9 +592,5 @@ export const listVaultTokens = async (): Promise<Token[]> => {
 
 // Example usage (uncomment to run once, then re-comment):
 // removeVaults([
-//     'SP3E80609Y2M4D5KSPX8NQ36Q06H336Z3QX2QMF19.stx-btc-vault',
-//     'SP39859AD7RQ6NYK00EJ8HN1DWE40C576FBDGHPA0.chabtc-lp-token',
-//     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-dmt-vault',
-//     'SP1NC2YPD2CEH0PC34ZQ973KGV6EJH0WY8K69G1KE.usda-stx-swap-vault',
-//     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10',
+//     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-welsh-vault-wrapper-alex'
 // ]);

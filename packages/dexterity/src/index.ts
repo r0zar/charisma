@@ -441,6 +441,14 @@ export class Router {
     this.nodes.forEach(n => (edges += n.edges.size));
     return { tokens: this.nodes.size, pools: this.edges.size, edges };
   }
+
+  vaultContractIds() {
+    return Array.from(this.edges.values()).map(v => v.contractId);
+  }
+
+  tokenContractIds() {
+    return Array.from(this.nodes.values()).map(n => n.token.contractId);
+  }
 }
 
 /***************************************************************
