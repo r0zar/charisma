@@ -1,5 +1,5 @@
 {
-  "name": "kitchen-sink",
+  "name": "charisma",
   "private": true,
   "scripts": {
     "build": "turbo run build",
