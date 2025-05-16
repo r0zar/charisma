@@ -32,6 +32,7 @@ export interface TransferTokensLTEInput extends BaseInput {
 export interface RedeemBearerInput extends BaseInput {
     intent: "REDEEM_BEARER";
     amount: number;
+    recipient: string;
 }
 
 // The expected output from each solver function

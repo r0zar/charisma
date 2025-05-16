@@ -32,9 +32,9 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@stacks/connect": "^8",
-    "@stacks/transactions": "^7",
-    "@stacks/network": "^7",
+    "@stacks/connect": "latest",
+    "@stacks/transactions": "latest",
+    "@stacks/network": "latest",
     "@repo/polyglot": "workspace:*",
     "zod": "^3.24.4"
   },

@@ -4,6 +4,7 @@ import {
     bufferCV,
     noneCV,
     PostConditionMode,
+    principalCV,
 } from "@stacks/transactions";
 import { STACKS_MAINNET } from "@stacks/network";
 import { ContractCallTxOptions, RedeemBearerInput } from "./types";
@@ -15,6 +16,7 @@ export function createRedeem(input: RedeemBearerInput): ContractCallTxOptions {
         signature,
         uuid,
         amount,
+        recipient,
         senderKey,
         network = STACKS_MAINNET,
         fee = 1000, // Corrected default fee
@@ -33,7 +35,7 @@ export function createRedeem(input: RedeemBearerInput): ContractCallTxOptions {
         bufferFromHex(signature),
         uintCV(amount),
         stringAsciiCV(uuid),
-        noneCV(),
+        principalCV(recipient),
     ];
 
     return {

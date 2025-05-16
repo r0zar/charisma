@@ -206,11 +206,6 @@ export class Dexterity {
         if (options?.debug !== undefined) {
             this.config.debug = options.debug;
         }
-
-        if (this.config.debug) {
-            console.log(`Router configured: ${routerAddress}.${routerName}`);
-            console.log(`Max Hops: ${this.config.maxHops}, Default Slippage: ${this.config.defaultSlippage * 100}%`);
-        }
     }
 
     /**

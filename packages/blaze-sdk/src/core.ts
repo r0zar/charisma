@@ -19,6 +19,8 @@ import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { callReadOnlyFunction } from "@repo/polyglot";
 import { BLAZE_CONTRACT_ID } from "./constants";
 
+const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
+
 /**
  * Parses a contract string into address and name components
  * 
@@ -57,8 +59,6 @@ export async function generateHash(
     uuid: string,
     options: BlazeSignerOptions = {},
 ): Promise<string> {
-    const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
-
     // Prepare optional arguments
     const opcodeArg = options.opcode
         ? optionalCVOf(bufferFromHex(options.opcode))
@@ -112,8 +112,6 @@ export async function verifySignature(
     const cleanMessageHash = messageHash.startsWith('0x') ? messageHash.substring(2) : messageHash;
     const cleanSignature = signature.startsWith('0x') ? signature.substring(2) : signature;
 
-    const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
-
     // Call the 'verify' function
     const result: any = await callReadOnlyFunction(
         contractAddress,
@@ -160,23 +158,11 @@ export async function recoverSigner(
     uuid: string,
     options: BlazeSignerOptions = {},
 ): Promise<string> {
-    // Remove '0x' prefix if present
-    const cleanSignature = signature.startsWith('0x') ? signature.substring(2) : signature;
-
-    const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
 
     // Prepare optional arguments
-    const opcodeArg = options.opcode
-        ? optionalCVOf(bufferFromHex(options.opcode))
-        : noneCV();
-
-    const amountArg = options.amount
-        ? optionalCVOf(uintCV(options.amount))
-        : noneCV();
-
-    const targetArg = options.target
-        ? optionalCVOf(principalCV(options.target))
-        : noneCV();
+    const opcodeArg = options.opcode ? optionalCVOf(bufferFromHex(options.opcode)) : noneCV();
+    const amountArg = options.amount ? optionalCVOf(uintCV(options.amount)) : noneCV();
+    const targetArg = options.target ? optionalCVOf(principalCV(options.target)) : noneCV();
 
     // Call the 'recover' function
     const result: any = await callReadOnlyFunction(
@@ -184,7 +170,7 @@ export async function recoverSigner(
         contractName,
         "recover",
         [
-            bufferFromHex(cleanSignature),
+            bufferFromHex(signature),
             principalCV(contract),
             stringAsciiCV(intent),
             opcodeArg,
@@ -207,8 +193,6 @@ export async function recoverSigner(
  * @returns Promise resolving to a boolean indicating if UUID has been submitted
  */
 export async function checkUUID(uuid: string): Promise<boolean> {
-    const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
-
     // Call the 'check' function
     const result: any = await callReadOnlyFunction(
         contractAddress,
@@ -244,8 +228,6 @@ export async function submitSignature(
 ): Promise<string> {
     // Remove '0x' prefix if present
     const cleanSignature = signature.startsWith('0x') ? signature.substring(2) : signature;
-
-    const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
 
     // Prepare optional arguments
     const opcodeArg = options.opcode

@@ -30,7 +30,7 @@ export async function signIntentWithPrivateKey(input: SecureIntentInput): Promis
         contract: principalCV(input.contract),
         intent: stringAsciiCV(input.intent),
         opcode: input.opcode ? someCV(bufferFromHex(input.opcode)) : noneCV(),
-        amount: typeof input.amount === 'number' ? someCV(uintCV(input.amount)) : noneCV(),
+        amount: input.amount ? someCV(uintCV(input.amount)) : noneCV(),
         target: input.target ? someCV(principalCV(input.target)) : noneCV(),
         uuid: stringAsciiCV(uuid),
     });
@@ -57,7 +57,7 @@ export async function signIntentWithWallet(input: IntentInput): Promise<SignedIn
         contract: principalCV(input.contract),
         intent: stringAsciiCV(input.intent),
         opcode: input.opcode ? someCV(bufferFromHex(input.opcode)) : noneCV(),
-        amount: typeof input.amount === 'number' ? someCV(uintCV(input.amount)) : noneCV(),
+        amount: input.amount ? someCV(uintCV(input.amount)) : noneCV(),
         target: input.target ? someCV(principalCV(input.target)) : noneCV(),
         uuid: stringAsciiCV(uuid),
     });

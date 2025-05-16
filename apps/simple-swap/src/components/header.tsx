@@ -33,6 +33,9 @@ export function Header() {
                         <Link href="/fiat" className="text-sm font-medium hover:text-primary transition-colors">
                             Buy With Card
                         </Link>
+                        <Link href="/otc" className="text-sm font-medium hover:text-primary transition-colors">
+                            Offers
+                        </Link>
                     </nav>
                 </div>
 

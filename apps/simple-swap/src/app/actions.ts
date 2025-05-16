@@ -35,7 +35,6 @@ const vaultOmitSet = new Set(vaultOmitListString.split(',').map(id => id.trim())
 export async function ensureVaultsLoaded() {
     if (vaultsLoaded) return;
 
-    console.log('[Server] Discovering and loading vaults into Dexterity...');
     try {
         // Fetch vaults from dex-cache API first
         const dexCacheUrl = process.env.NEXT_PUBLIC_DEX_CACHE_URL || 'http://localhost:3003/api/v1';
@@ -49,12 +48,7 @@ export async function ensureVaultsLoaded() {
                 const allVaults = data.data;
                 const filteredVaults = allVaults.filter((vault: any) => !vaultOmitSet.has(vault.contractId));
 
-                const omittedCount = allVaults.length - filteredVaults.length;
-                if (omittedCount > 0) {
-                    console.log(`[Server] Omitted ${omittedCount} vaults based on the list.`);
-                }
 
-                console.log(`[Server] Loading ${filteredVaults.length} vaults from dex-cache after filtering`);
                 Dexterity.loadVaults(filteredVaults); // Load only the filtered vaults
                 vaultsLoaded = true;
                 return;
@@ -160,7 +154,6 @@ export async function listTokens(): Promise<{
         // Use Dexterity helper to collect unique tokens from loaded vaults
         const vaults = Dexterity.getVaults();
         const tokens = Dexterity.getAllVaultTokens(vaults);
-
 
         return {
             success: true,

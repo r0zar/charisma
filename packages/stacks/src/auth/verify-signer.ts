@@ -34,8 +34,8 @@ export interface SignatureVerificationOptions {
 }
 
 export type SignatureVerificationResult =
-    | { ok: true; signer: string }
-    | { ok: false; status: 401; error: string };
+    | { ok: true; signer: string, status: 200 }
+    | { ok: false; status: 401 | 403; error: string, signer: string };
 
 export async function verifySignedRequest(
     req: Request,
@@ -74,14 +74,14 @@ export async function verifySignatureAndGetSigner(
     const publicKey = req.headers.get(pubHeader);
 
     if (!signature || !publicKey) {
-        return { ok: false, status: 401, error: 'Missing authentication headers' };
+        return { ok: false, status: 401, error: 'Missing authentication headers', signer: '' };
     }
 
     const valid = verifyMessageSignatureRsv({ message, publicKey, signature });
     if (!valid) {
-        return { ok: false, status: 401, error: 'Invalid signature' };
+        return { ok: false, status: 401, error: 'Invalid signature', signer: '' };
     }
 
     const signer = getAddressFromPublicKey(publicKey, network as any); // network will have a default
-    return { ok: true, signer };
+    return { ok: true, signer, status: 200 };
 } 

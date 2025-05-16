@@ -9,6 +9,7 @@ import {
     MULTIHOP_CONTRACT_ID,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
 import { fetchQuote } from 'dexterity-sdk';
+import { fetchNonce } from '@stacks/transactions';
 
 // Environment variables
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
@@ -19,6 +20,14 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY!;
 // Increase the maximum duration for this serverless function (in seconds)
 // Adjust as needed, up to your Vercel plan's limit (e.g., 900 for Pro/Enterprise)
 export const maxDuration = 300;
+
+
+const BLAZE_SOLVER_ADDRESS = "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN";
+
+const getNonce = async () => {
+    const nonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
+    return Number(nonce);
+}
 
 // Helper function for delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -42,6 +51,7 @@ export async function POST(_req: NextRequest) {
 
     const results: Array<any> = [];
     let raw: any;
+    let nonce = await getNonce();
     while ((raw = await kv.rpop(TX_QUEUE_KEY))) {
         try {
             const intent = raw // Assuming raw is already the parsed object from KV
@@ -62,8 +72,10 @@ export async function POST(_req: NextRequest) {
                 recipient: intent.recipient,
             };
 
-            const txConfig: TransactionConfig = await buildXSwapTransaction(quote.route, swapMeta);
+            const txConfig: any = await buildXSwapTransaction(quote.route, swapMeta);
             console.log('Transaction Config from SDK:', txConfig);
+
+            txConfig.nonce = nonce++;
 
             const broadcastResponse = await broadcastMultihopTransaction(txConfig, PRIVATE_KEY);
             console.log('Broadcast Response from SDK:', broadcastResponse);
