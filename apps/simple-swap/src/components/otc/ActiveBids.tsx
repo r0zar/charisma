@@ -43,8 +43,8 @@ export default function ActiveBids({
     offer,
 }: ActiveBidsProps) {
 
-    const handleSelectBid = (bidId: string) => {
-        signedFetch(`/api/v1/otc/accept-bid`, {
+    const handleSelectBid = async (bidId: string) => {
+        const response = await signedFetch(`/api/v1/otc/accept-bid`, {
             method: "POST",
             body: JSON.stringify({
                 acceptedBidId: bidId,
@@ -52,7 +52,13 @@ export default function ActiveBids({
             }),
             message: offer.intentUuid,
         });
-        toast.success("Bid accepted successfully.");
+
+        if (response.ok) {
+            toast.success("Bid accepted successfully.");
+        } else {
+            const data = await response.json();
+            toast.error(data.error);
+        }
     };
 
     const { address } = useWallet();
