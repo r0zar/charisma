@@ -7,7 +7,7 @@ import {
     SwapMetadata,
     TransactionConfig,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
-import { Router } from 'dexterity-sdk';
+import { loadVaults, Router } from 'dexterity-sdk';
 
 // Environment variables
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
@@ -49,6 +49,8 @@ export async function POST(_req: NextRequest) {
 
 
             const router = new Router({ maxHops: 4 });
+            await loadVaults(router);
+
             const route: any = await router.findBestRoute(
                 intent.sourceContract,
                 winningTokenId,
