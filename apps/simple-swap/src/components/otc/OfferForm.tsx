@@ -1,25 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { Asset, TokenDef } from "@/types/otc";
+import { Asset as OtcAsset, TokenDef } from "@/types/otc";
 import TokenDropdown from "@/components/TokenDropdown";
 import { Button } from "@/components/ui/button";
-import { redirect } from "next/navigation";
-import { X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { X, Plus, Info, AlertCircle, ArrowRightCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useWallet } from "@/contexts/wallet-context";
 import { IntentInput, signIntentWithWallet } from "blaze-sdk";
 import { v4 as uuidv4 } from "uuid";
-import { useWallet } from "@/contexts/wallet-context";
-
+import { useRouter } from 'next/navigation';
 
 interface Props {
     subnetTokens: TokenDef[];
-}
-
-interface SignedAsset extends Asset {
-    intentUuid: string;
-    signature: string;
 }
 
 const toAtomicString = (amountStr: string, decimals: number): string => {
@@ -41,37 +38,35 @@ const toAtomicString = (amountStr: string, decimals: number): string => {
     return total.toString();
 };
 
-/*───────────────────────────────────────────────────────────────────────────*/
-
-export default function OfferForm({ subnetTokens }: Props) {
+export default function EnhancedOfferForm({ subnetTokens }: Props) {
     const { address: stxAddress } = useWallet();
     const router = useRouter();
-    const [offerAssets, setOfferAssets] = useState<Asset[]>([
+    const [offerAssets, setOfferAssets] = useState<OtcAsset[]>([
         { token: "", amount: "" },
     ]);
     const [isSigning, setIsSigning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    /* helpers ---------------------------------------------------------------*/
-    const addRow = (setRows: React.Dispatch<React.SetStateAction<Asset[]>>) =>
-        setRows((rows) => [...rows, { token: "", amount: "" }]);
+    /* Add/remove/update row helpers */
+    const addRow = () => {
+        setOfferAssets((rows) => [...rows, { token: "", amount: "" }]);
+    };
 
-    const removeRow = (
-        setRows: React.Dispatch<React.SetStateAction<Asset[]>>,
-        idx: number,
-    ) => setRows((rows) => rows.filter((_, i) => i !== idx));
+    const removeRow = (idx: number) => {
+        setOfferAssets((rows) => rows.filter((_, i) => i !== idx));
+    };
 
     const updateRow = (
-        setRows: React.Dispatch<React.SetStateAction<Asset[]>>,
         idx: number,
         field: "token" | "amount",
         value: string,
-    ) =>
-        setRows((rows) => {
+    ) => {
+        setOfferAssets((rows) => {
             const next = [...rows];
-            (next[idx] as any)[field] = value;
+            next[idx] = { ...next[idx], [field]: value };
             return next;
         });
+    };
 
     const isValid = () => {
         if (!stxAddress) return false;
@@ -83,7 +78,7 @@ export default function OfferForm({ subnetTokens }: Props) {
         });
     };
 
-    /* POST ------------------------------------------------------------------*/
+    /* Handle form submission */
     const postOffer = async () => {
         if (!isValid()) {
             if (!stxAddress) {
@@ -101,7 +96,7 @@ export default function OfferForm({ subnetTokens }: Props) {
 
         setIsSigning(true);
         try {
-            const signedOfferAssets: SignedAsset[] = [];
+            const signedOfferAssets = [];
 
             for (const asset of offerAssets) {
                 const tokenInfo = subnetTokens.find(t => t.id === asset.token);
@@ -140,8 +135,6 @@ export default function OfferForm({ subnetTokens }: Props) {
                 offerAssets: signedOfferAssets,
             };
 
-            console.log("[OfferForm] Payload to API:", JSON.stringify(payload, null, 2));
-
             const res = await fetch("/api/v1/otc", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -153,6 +146,7 @@ export default function OfferForm({ subnetTokens }: Props) {
                 toast.success("Offer created successfully!", {
                     action: <Button onClick={() => router.push(`/otc/${json.offer.intentUuid}`)}>View Offer</Button>,
                 });
+                router.push(`/otc/${json.offer.intentUuid}`);
             } else {
                 throw new Error(json.error || "Failed to create offer. API returned an error.");
             }
@@ -165,104 +159,188 @@ export default function OfferForm({ subnetTokens }: Props) {
         }
     };
 
-    /* row component ---------------------------------------------------------*/
-    const RowGroup = ({
-        rows,
-        setRows,
-    }: {
-        rows: Asset[];
-        setRows: React.Dispatch<React.SetStateAction<Asset[]>>;
-    }) => (
-        <>
-            {rows.map((row, idx) => {
+    /* row component */
+    const RowGroup = () => (
+        <div className="space-y-4">
+            {offerAssets.map((row, idx) => {
                 const selectedTokenInfo = subnetTokens?.find((t) => t.id === row.token);
 
-                // Prepare tokens for the dropdown, ensuring it has the required `type` property.
+                // Prepare tokens for the dropdown
                 const dropdownTokens = subnetTokens.map(st => ({
-                    ...st, // Spread all properties from TokenDef (id, name, logo, symbol, decimals)
-                    contractId: st.id, // Assuming TokenDropdown might prefer/use contractId
-                    type: "SUBNET" // Adding the required 'type' property
+                    ...st,
+                    contractId: st.id,
+                    type: "SUBNET"
                 }));
                 const currentSelectedForDropdown = dropdownTokens?.find(t => t.id === row.token) ?? null;
 
                 return (
-                    <div key={idx} className="space-y-2 mb-3 pb-3 border-b last:border-b-0 last:mb-0 last:pb-0">
-                        <div className="flex items-center gap-2">
-                            <div className="flex-1">
+                    <div key={idx} className="flex flex-col p-4 rounded-xl border border-border/60 bg-muted/5 relative">
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium">Asset {idx + 1}</h4>
+                            {offerAssets.length > 1 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => removeRow(idx)}
+                                >
+                                    <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs text-muted-foreground mb-1.5">Token</label>
                                 <TokenDropdown
                                     tokens={dropdownTokens}
                                     selected={currentSelectedForDropdown}
-                                    onSelect={(t: any) => updateRow(setRows, idx, "token", t.id)}
+                                    onSelect={(t: any) => updateRow(idx, "token", t.id)}
                                 />
                             </div>
-                            {rows.length > 1 && (
-                                <button
-                                    type="button"
-                                    className="rounded-md p-1 hover:bg-muted self-start mt-1.5"
-                                    onClick={() => removeRow(setRows, idx)}
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            )}
+
+                            <div>
+                                <label className="block text-xs text-muted-foreground mb-1.5">Amount</label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="0.0"
+                                        value={row.amount}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (/^[0-9]*\.?[0-9]*$/.test(value) || value === '') {
+                                                updateRow(idx, "amount", value);
+                                            }
+                                        }}
+                                        className="flex-1"
+                                    />
+                                    {selectedTokenInfo && (
+                                        <div className="bg-muted/30 px-2 py-1.5 rounded border border-border/50 text-sm text-muted-foreground min-w-16 text-center">
+                                            {selectedTokenInfo.symbol}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
+
                         {selectedTokenInfo && selectedTokenInfo.logo && (
-                            <div className="mt-1 flex items-center space-x-2 p-1.5 bg-muted/30 rounded-md text-xs">
+                            <div className="mt-3 flex items-center gap-2 p-2 rounded-md bg-muted/20 text-xs text-muted-foreground">
                                 <img src={selectedTokenInfo.logo} alt={selectedTokenInfo.name} className="h-5 w-5 rounded-full" />
-                                <span className="text-muted-foreground">Selected: {selectedTokenInfo.name} ({selectedTokenInfo.symbol})</span>
+                                <span>Selected: {selectedTokenInfo.name} ({selectedTokenInfo.symbol})</span>
                             </div>
                         )}
-                        <div className="flex items-center">
-                            <input
-                                type="number"
-                                min="0"
-                                step="any"
-                                placeholder="0.0"
-                                className="w-full rounded-lg border px-3 py-2 text-sm rounded-r-none"
-                                value={row.amount}
-                                onChange={(e) => updateRow(setRows, idx, "amount", e.target.value)}
-                            />
-                            {selectedTokenInfo && (
-                                <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-input bg-muted text-sm text-muted-foreground h-10">
-                                    {selectedTokenInfo.symbol}
-                                </span>
-                            )}
-                        </div>
                     </div>
                 );
             })}
 
             <Button
                 type="button"
-                size="sm"
                 variant="outline"
-                className="mt-2 w-full"
-                onClick={() => addRow(setRows)}
+                size="sm"
+                onClick={addRow}
+                className="mt-2 w-full flex items-center justify-center"
             >
-                + Add row
+                <Plus className="h-4 w-4 mr-2" /> Add another asset
             </Button>
-        </>
+        </div>
     );
 
-    /* render ----------------------------------------------------------------*/
+    /* Preview section */
+    const Preview = () => {
+        if (!offerAssets.some(asset => asset.token && asset.amount)) {
+            return null;
+        }
+
+        return (
+            <div className="mt-6 pt-6 border-t border-border">
+                <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-medium">Offer Preview</h4>
+                    <Badge variant="outline" className="text-muted-foreground text-xs">
+                        Will be publicly visible
+                    </Badge>
+                </div>
+
+                <div className="p-4 rounded-xl border border-border/60 bg-muted/5">
+                    <h5 className="text-sm font-medium mb-3">You are offering:</h5>
+
+                    {offerAssets.map((asset, idx) => {
+                        if (!asset.token || !asset.amount) return null;
+                        const tokenInfo = subnetTokens.find(t => t.id === asset.token);
+                        if (!tokenInfo) return null;
+
+                        return (
+                            <div key={idx} className="flex items-center gap-2 p-2 rounded-md bg-muted/20 mb-2">
+                                {tokenInfo.logo ? (
+                                    <img src={tokenInfo.logo} alt={tokenInfo.name} className="h-6 w-6 rounded-full" />
+                                ) : (
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                                        {tokenInfo.symbol.charAt(0)}
+                                    </div>
+                                )}
+                                <div>
+                                    <div className="font-medium">{asset.amount} {tokenInfo.symbol}</div>
+                                    <div className="text-xs text-muted-foreground">{tokenInfo.name}</div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+                        <ArrowRightCircle className="h-3.5 w-3.5 text-primary/70" />
+                        <span>Open for bids</span>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const isLoading = isSigning || isSubmitting;
     let buttonText = "Create Offer";
     if (isSigning) buttonText = "Signing...";
-    if (isSubmitting) buttonText = "Submitting...";
+    if (isSubmitting) buttonText = "Creating Offer...";
 
     return (
-        <div className="space-y-8">
-            <section>
-                <h3 className="mb-2 text-sm font-semibold">You are offering</h3>
-                <RowGroup rows={offerAssets} setRows={setOfferAssets} />
-            </section>
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle>Create a New Offer</CardTitle>
+                <CardDescription>
+                    Specify what tokens you want to offer for trading. Others can place bids which you can accept or reject.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <h3 className="text-sm font-medium mb-3">You are offering:</h3>
+                    <RowGroup />
+                </div>
 
-            <Button
-                className="w-full"
-                onClick={postOffer}
-                disabled={isLoading || !isValid()}
-            >
-                {buttonText}
-            </Button>
-        </div>
+                <Preview />
+
+                <Alert variant="info" className="mt-4 flex items-start gap-2">
+
+                    <Info className="h-4 w-4" />
+                    <div>
+                        <AlertTitle>How it works</AlertTitle>
+                        <AlertDescription className="text-xs mt-1">
+                            After creating your offer, other users can place bids with tokens they're willing to trade.
+                            You'll then be able to review and accept the best bid for your offer.
+                        </AlertDescription>
+                    </div>
+                </Alert>
+
+                <Button
+                    onClick={postOffer}
+                    disabled={isLoading || !isValid()}
+                    className="w-full"
+                >
+                    {isLoading && (
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    )}
+                    {buttonText}
+                </Button>
+            </CardContent>
+        </Card>
     );
 }

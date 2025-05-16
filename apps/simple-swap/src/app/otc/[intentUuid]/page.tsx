@@ -5,7 +5,7 @@ import { Offer, TokenDef } from "@/types/otc";
 import { Toaster } from "sonner";
 import { getOffer } from "@/lib/otc/kv";
 import { kv } from "@vercel/kv";
-import ActiveBids from "@/components/otc/ActiveBids";
+import { EnhancedActiveBids } from "@/components/otc/ActiveBids";
 import { WalletProvider } from "@/contexts/wallet-context";
 import { listTokens } from "@/app/actions";
 import { Header } from "@/components/header";
@@ -57,7 +57,7 @@ export default async function OfferPage({ params }: PageProps) {
                     )}
                     <div className="col-span-1md:col-span-2">
 
-                        <ActiveBids
+                        <EnhancedActiveBids
                             bids={offer.bids || []}
                             subnetTokens={subnetTokens}
                             offer={offer as any}

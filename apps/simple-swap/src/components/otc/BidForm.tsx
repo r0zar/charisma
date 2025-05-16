@@ -1,16 +1,20 @@
 "use client";
+
 import React, { useState } from "react";
-import { Asset as OtcAsset, TokenDef } from "@/types/otc";
+import { Asset, TokenDef } from "@/types/otc";
 import { Offer } from "@/lib/otc/schema";
 import TokenDropdown from "@/components/TokenDropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { ArrowRightCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/wallet-context";
 import { IntentInput, signIntentWithWallet } from "blaze-sdk";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from 'next/navigation';
+import TokenLogo from "@/components/TokenLogo";
 
 interface Props {
     intentUuid: string;
@@ -23,10 +27,20 @@ const toAtomicString = (amountStr: string, decimals: number): string => {
     return (Number(amountStr) * 10 ** decimals).toString();
 };
 
-export default function BidForm({ intentUuid, subnetTokens, offer, onBidPlaced }: Props) {
+// Helper to format token amount
+const formatTokenAmount = (atomicAmount: string, tokenInfo: TokenDef | undefined): string => {
+    if (!tokenInfo) return atomicAmount + " (atomic)";
+    const amount = parseInt(atomicAmount) / 10 ** tokenInfo.decimals;
+    return amount.toLocaleString(undefined, {
+        maximumFractionDigits: tokenInfo.decimals,
+        minimumFractionDigits: Math.min(tokenInfo.decimals, 2),
+    }) + ` ${tokenInfo.symbol}`;
+};
+
+export default function EnhancedBidForm({ intentUuid, subnetTokens, offer, onBidPlaced }: Props) {
     const router = useRouter();
     const { address: stxAddress } = useWallet();
-    const [bidAsset, setBidAsset] = useState<OtcAsset>({ token: "", amount: "" });
+    const [bidAsset, setBidAsset] = useState<Asset>({ token: "", amount: "" });
     const [isSigning, setIsSigning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -89,8 +103,6 @@ export default function BidForm({ intentUuid, subnetTokens, offer, onBidPlaced }
                 target: offer.offerCreatorAddress,
             };
 
-            console.log("[BidForm] Intent input for bid asset:", intentInputForBidAsset);
-
             const signedBidIntent = await signIntentWithWallet(intentInputForBidAsset);
             setIsSigning(false);
             setIsSubmitting(true);
@@ -127,51 +139,160 @@ export default function BidForm({ intentUuid, subnetTokens, offer, onBidPlaced }
         }
     };
 
+    // For preview - get offer asset info for display
+    const getOfferAssetDisplay = () => {
+        // Since we're only showing the first offered asset in this preview
+        if (!offer.offerAssets || offer.offerAssets.length === 0) return null;
+
+        const offerAsset = offer.offerAssets[0];
+        const tokenInfo = subnetTokens.find(t => t.id === offerAsset.token);
+
+        if (!tokenInfo) return null;
+
+        return {
+            amount: formatTokenAmount(offerAsset.amount, tokenInfo),
+            symbol: tokenInfo.symbol,
+            logo: tokenInfo.logo
+        };
+    };
+
     const isLoading = isSigning || isSubmitting;
     let buttonText = "Place Bid";
     if (isSigning) buttonText = "Signing...";
     if (isSubmitting) buttonText = "Submitting...";
 
+    const offerAssetDisplay = getOfferAssetDisplay();
+
     return (
-        <div className="space-y-4 p-1">
-            <div>
-                <Label htmlFor="bid-token-dropdown" className="text-sm font-medium mb-1 block">You Offer This Asset:</Label>
-                <TokenDropdown
-                    tokens={dropdownTokens}
-                    selected={dropdownTokens.find((t) => t.contractId === bidAsset.token) ?? null}
-                    onSelect={(token) => updateBidAsset("token", token.contractId)}
-                />
-                {selectedTokenInfo && selectedTokenInfo.logo && (
-                    <div className="mt-2 flex items-center space-x-2 p-2 bg-muted/30 rounded-md">
-                        <img src={selectedTokenInfo.logo} alt={selectedTokenInfo.name} className="h-6 w-6 rounded-full" />
-                        <span className="text-sm text-muted-foreground">Selected: {selectedTokenInfo.name} ({selectedTokenInfo.symbol})</span>
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle>Place a Bid</CardTitle>
+                <CardDescription>
+                    Offer tokens in exchange for this offer. If the creator accepts your bid, the trade will be executed.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-4">
+                    <div>
+                        <h3 className="text-sm font-medium mb-3">You are offering:</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-muted-foreground mb-1.5 block">Token</label>
+                                <TokenDropdown
+                                    tokens={dropdownTokens}
+                                    selected={dropdownTokens.find((t) => t.contractId === bidAsset.token) ?? null}
+                                    onSelect={(token) => updateBidAsset("token", token.contractId)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-muted-foreground mb-1.5 block">Amount</label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="0.0"
+                                        value={bidAsset.amount}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            if (/^[0-9]*\.?[0-9]*$/.test(v) || v === "") {
+                                                updateBidAsset("amount", v);
+                                            }
+                                        }}
+                                        disabled={isLoading}
+                                        className="flex-1"
+                                    />
+                                    {selectedTokenInfo && (
+                                        <div className="bg-muted/30 px-2 py-1.5 rounded border border-border/50 text-sm text-muted-foreground min-w-16 text-center">
+                                            {selectedTokenInfo.symbol}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                )}
-            </div>
-            <div>
-                <Label htmlFor="bid-amount" className="text-sm font-medium mb-1 block">Amount:</Label>
-                <div className="flex items-center">
-                    <Input
-                        id="bid-amount"
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0.0"
-                        value={bidAsset.amount}
-                        onChange={(e) => updateBidAsset("amount", e.target.value)}
-                        disabled={isLoading}
-                        className="w-full rounded-r-none"
-                    />
+
                     {selectedTokenInfo && (
-                        <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-input bg-muted text-sm text-muted-foreground h-10">
-                            {selectedTokenInfo.symbol}
-                        </span>
+                        <div className="mt-2 flex items-center gap-2 p-2 rounded-md bg-muted/20 text-xs text-muted-foreground">
+                            {selectedTokenInfo.logo ? (
+                                <img src={selectedTokenInfo.logo} alt={selectedTokenInfo.name} className="h-5 w-5 rounded-full" />
+                            ) : (
+                                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <span className="text-primary text-xs font-semibold">{selectedTokenInfo.symbol.charAt(0)}</span>
+                                </div>
+                            )}
+                            <span>Selected: {selectedTokenInfo.name} ({selectedTokenInfo.symbol})</span>
+                        </div>
                     )}
                 </div>
-            </div>
-            <Button onClick={placeBid} disabled={isLoading || !isValid()} className="w-full">
-                {buttonText}
-            </Button>
-        </div>
+
+                {/* Bid preview */}
+                {bidAsset.token && bidAsset.amount && offerAssetDisplay && (
+                    <div className="pt-4 border-t border-border">
+                        <h3 className="text-sm font-medium mb-3">Bid Preview</h3>
+                        <div className="p-4 rounded-xl border border-border/60 bg-muted/5">
+                            <div className="flex justify-between items-center mb-3">
+                                <div className="text-sm text-muted-foreground">You send:</div>
+                                <div className="flex items-center gap-2">
+                                    {selectedTokenInfo?.logo ? (
+                                        <img src={selectedTokenInfo.logo} alt={selectedTokenInfo.symbol} className="h-5 w-5 rounded-full" />
+                                    ) : (
+                                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <span className="text-primary text-xs font-semibold">{selectedTokenInfo?.symbol.charAt(0)}</span>
+                                        </div>
+                                    )}
+                                    <span className="font-medium">{bidAsset.amount} {selectedTokenInfo?.symbol}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <div className="text-sm text-muted-foreground">You receive:</div>
+                                <div className="flex items-center gap-2">
+                                    {offerAssetDisplay.logo ? (
+                                        <img src={offerAssetDisplay.logo} alt={offerAssetDisplay.symbol} className="h-5 w-5 rounded-full" />
+                                    ) : (
+                                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <span className="text-primary text-xs font-semibold">{offerAssetDisplay.symbol.charAt(0)}</span>
+                                        </div>
+                                    )}
+                                    <span className="font-medium">{offerAssetDisplay.amount}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground border-t border-border/40 pt-3">
+                                <ArrowRightCircle className="h-3.5 w-3.5 text-primary/70" />
+                                <span>Trade will execute if the offer creator accepts your bid</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <Alert variant="info" className="mt-4 flex items-start gap-2">
+                    <Info className="h-4 w-4" />
+                    <div>
+
+                        <AlertTitle>How it works</AlertTitle>
+                        <AlertDescription className="text-xs mt-1">
+                            When you place a bid, you're offering to swap your tokens for the offered tokens. If your bid is accepted,
+                            a peer-to-peer swap will be executed automatically.
+                        </AlertDescription>
+                    </div>
+                </Alert>
+            </CardContent>
+            <CardFooter>
+                <Button
+                    onClick={placeBid}
+                    disabled={isLoading || !isValid()}
+                    className="w-full"
+                >
+                    {isLoading && (
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    )}
+                    {buttonText}
+                </Button>
+            </CardFooter>
+        </Card>
     );
 }
