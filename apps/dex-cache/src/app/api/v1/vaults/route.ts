@@ -6,9 +6,6 @@ const headers = {
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json',
-    'Cache-Control': process.env.NODE_ENV === 'development'
-        ? 'no-store'
-        : 'max-age=60, stale-while-revalidate=600' // 1min cache, 10min stale
 };
 
 export async function OPTIONS() {
