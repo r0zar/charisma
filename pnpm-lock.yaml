@@ -910,6 +910,9 @@ importers:
       colorthief:
         specifier: ^2.6.0
         version: 2.6.0
+      dexterity-sdk:
+        specifier: workspace:*
+        version: link:../../packages/dexterity
       lightweight-charts:
         specifier: ^5
         version: 5.0.6

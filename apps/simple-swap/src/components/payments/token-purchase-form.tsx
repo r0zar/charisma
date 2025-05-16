@@ -1,37 +1,104 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useSwap } from "@/hooks/useSwap";
 import { PurchaseDialog } from "./checkout";
 import TokenDropdown from "@/components/TokenDropdown";
-import { CHARISMA_TOKEN_SUBNET } from "@/lib/constants";
-import { getTokenMetadataCached } from "@repo/tokens";
 import { fetchTokenBalance } from "blaze-sdk";
 import { toast } from "sonner";
+import { fetchQuote } from "dexterity-sdk";
+
+// A simple debounce hook (if not already available globally)
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+}
+
+interface ServerQuoteData {
+    amountOutMicro: bigint; // Amount of token to receive, in micro-units
+    // Add other fields from API if needed, e.g., rate, fees
+}
 
 export default function TokenPurchaseForm() {
     const [usdAmount, setUsdAmount] = useState("5");
+    const debouncedUsdAmount = useDebounce(usdAmount, 500); // Debounce USD amount
+
     const [dialogOpen, setDialogOpen] = useState(false);
     const [clientSecret, setClientSecret] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false); // This is for Stripe checkout loading
+    const [error, setError] = useState(""); // For USD input validation error
+
     const [reserveBalance, setReserveBalance] = useState<bigint | null>(null);
     const [reserveError, setReserveError] = useState("");
     const MAX_USD_AMOUNT = 20;
+
+    // State for server-side quote
+    const [dexterityQuote, setDexterityQuote] = useState<ServerQuoteData | null>(null);
+    const [isFetchingDexterityQuote, setIsFetchingDexterityQuote] = useState(false);
+    const [dexterityQuoteError, setDexterityQuoteError] = useState<string | null>(null);
 
     const {
         subnetDisplayTokens,
         selectedToToken,
         setSelectedToToken,
-        tokenPrices,
         userAddress,
     } = useSwap();
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
-        if (subnetDisplayTokens && subnetDisplayTokens.length > 0) {
+        if (subnetDisplayTokens && subnetDisplayTokens.length > 0 && !selectedToToken) {
             setSelectedToToken(subnetDisplayTokens[0]);
         }
-    }, [subnetDisplayTokens, setSelectedToToken]);
+    }, [subnetDisplayTokens, setSelectedToToken, selectedToToken]);
+
+    // Fetch server-side quote when debouncedUsdAmount or selectedToToken changes
+    useEffect(() => {
+        async function fetchDexterityQuote() {
+            if (!debouncedUsdAmount || parseFloat(debouncedUsdAmount) <= 0 || !selectedToToken?.contractId) {
+                setDexterityQuote(null);
+                setDexterityQuoteError(null);
+                return;
+            }
+
+            setIsFetchingDexterityQuote(true);
+            setDexterityQuoteError(null);
+            setDexterityQuote(null);
+
+            try {
+                const amountToQuote = parseFloat(debouncedUsdAmount);
+
+                const quoteResult = await fetchQuote(
+                    "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1",
+                    selectedToToken.contractId,
+                    amountToQuote * 10 ** 8
+                );
+
+                if (quoteResult && typeof quoteResult.amountOut !== 'undefined') {
+                    setDexterityQuote({
+                        amountOutMicro: BigInt(quoteResult.amountOut),
+                    });
+                } else {
+                    throw new Error((quoteResult as any)?.error || "Invalid quote data received from Dexterity SDK.");
+                }
+
+            } catch (err) {
+                setDexterityQuoteError(err instanceof Error ? err.message : "An unknown error occurred while fetching quote.");
+                setDexterityQuote(null);
+            }
+            finally {
+                setIsFetchingDexterityQuote(false);
+            }
+        }
+
+        fetchDexterityQuote();
+    }, [debouncedUsdAmount, selectedToToken]);
 
     // Fetch reserve balance when selected token changes
     useEffect(() => {
@@ -52,26 +119,25 @@ export default function TokenPurchaseForm() {
         fetchReserve();
     }, [selectedToToken]);
 
-    const selectedPrice = selectedToToken && tokenPrices[selectedToToken.contractId];
+    // Calculate tokenAmount and formattedTokenAmount based on serverQuote
+    const tokenAmountMicro = dexterityQuote?.amountOutMicro || 0n;
 
-    const tokenAmount = selectedPrice && parseFloat(usdAmount)
-        ? Math.floor((parseFloat(usdAmount) / selectedPrice) * 10 ** selectedToToken.decimals)
-        : 0;
+    const exceedsReserve = reserveBalance !== null && tokenAmountMicro > reserveBalance;
 
-    const exceedsReserve = reserveBalance !== null && BigInt(tokenAmount) > reserveBalance;
-
-    const formattedTokenAmount = tokenAmount
-        ? (tokenAmount / 10 ** (selectedToToken?.decimals || 0)).toFixed(4)
+    const formattedTokenAmount = selectedToToken && tokenAmountMicro
+        ? (Number(tokenAmountMicro) / (10 ** selectedToToken.decimals)).toFixed(selectedToToken.decimals) // Ensure decimals is not 0 to avoid NaN
         : "0";
 
     const handleCheckout = async () => {
-        if (!selectedToToken || !userAddress || !usdAmount) return;
+        if (!selectedToToken || !userAddress || !usdAmount || !dexterityQuote?.amountOutMicro || dexterityQuote.amountOutMicro <= 0n) {
+            toast.error("Cannot proceed to checkout. Quote is missing or invalid.");
+            return;
+        }
 
         setIsLoading(true);
         setError("");
 
         try {
-            // Construct metadata object
             const purchaseMetadata = {
                 userId: userAddress,
                 selectedTokenContractId: selectedToToken.contractId,
@@ -79,7 +145,7 @@ export default function TokenPurchaseForm() {
                 selectedTokenName: selectedToToken.name,
                 selectedTokenDecimals: selectedToToken.decimals.toString(),
                 usdAmount: usdAmount,
-                calculatedTokenAmount: tokenAmount,
+                calculatedTokenAmount: dexterityQuote.amountOutMicro.toString(), // Use server quote micro amount
                 fiatCurrency: "USD",
             };
 
@@ -87,9 +153,9 @@ export default function TokenPurchaseForm() {
                 method: "POST",
                 body: JSON.stringify({
                     userId: userAddress,
-                    tokenAmount: tokenAmount,
+                    tokenAmount: dexterityQuote.amountOutMicro.toString(), // Use server quote micro amount
                     tokenType: selectedToToken.contractId,
-                    amount: parseFloat(usdAmount) * 100,
+                    amount: parseFloat(usdAmount) * 100, // Stripe amount in cents
                     metadata: purchaseMetadata,
                 }),
                 headers: {
@@ -103,7 +169,8 @@ export default function TokenPurchaseForm() {
             } catch { }
 
             if (!res.ok) {
-                toast.error(data?.message || "Something went wrong");
+                toast.error(data?.message || "Something went wrong with checkout initialization.");
+                setIsLoading(false); // Ensure loading is reset on failure
                 return;
             }
 
@@ -113,8 +180,6 @@ export default function TokenPurchaseForm() {
             }
         } catch (err) {
             toast.error((err as Error).message || "Failed to process checkout. Please try again.");
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -138,7 +203,7 @@ export default function TokenPurchaseForm() {
                 )}
                 {exceedsReserve && (
                     <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm">
-                        Not enough tokens in reserve to fulfill this purchase.
+                        Not enough tokens in reserve to fulfill this purchase. Potential amount: {formattedTokenAmount} {selectedToToken?.symbol}
                     </div>
                 )}
 
@@ -148,7 +213,11 @@ export default function TokenPurchaseForm() {
                         <TokenDropdown
                             tokens={subnetDisplayTokens || []}
                             selected={selectedToToken}
-                            onSelect={setSelectedToToken}
+                            onSelect={(token) => {
+                                setSelectedToToken(token);
+                                setDexterityQuote(null); // Reset quote when token changes
+                                setDexterityQuoteError(null);
+                            }}
                             label="Select a token to purchase"
                         />
                     </div>
@@ -185,37 +254,43 @@ export default function TokenPurchaseForm() {
                     </div>
 
                     <div className="bg-muted p-4 rounded-xl">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">You will receive:</span>
-                            <span className="font-medium">
-                                {formattedTokenAmount} {selectedToToken?.symbol || ''}
-                            </span>
-                        </div>
-                        {selectedPrice && (
-                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                                <span>Exchange rate:</span>
-                                <span>1 USD = {(1 / selectedPrice).toFixed(6)} {selectedToToken?.symbol}</span>
-                            </div>
+                        {isFetchingDexterityQuote && (
+                            <div className="text-xs text-muted-foreground mt-1">Fetching best price...</div>
+                        )}
+                        {dexterityQuoteError && (
+                            <div className="text-xs text-destructive mt-1">Error: {dexterityQuoteError}</div>
+                        )}
+                        {dexterityQuote && selectedToToken && !isFetchingDexterityQuote && !dexterityQuoteError && (
+                            <>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">You will receive:</span>
+                                    <span className="font-medium">
+                                        {formattedTokenAmount} {selectedToToken.symbol}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                    <span>Exchange rate (approx.):</span>
+                                    {parseFloat(usdAmount) > 0 && (
+                                        <span>1 USD = {(Number(dexterityQuote.amountOutMicro) / (10 ** selectedToToken.decimals) / parseFloat(usdAmount)).toFixed(6)} {selectedToToken.symbol}</span>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                        {!dexterityQuote && !isFetchingDexterityQuote && !dexterityQuoteError && parseFloat(usdAmount) > 0 && selectedToToken && (
+                            <div className="text-xs text-muted-foreground mt-1">Enter a valid amount to see quote.</div>
+                        )}
+                        {!selectedToToken && (
+                            <div className="text-xs text-muted-foreground mt-1">Select a token to purchase.</div>
                         )}
                     </div>
                 </div>
 
                 <Button
                     onClick={handleCheckout}
-                    disabled={isLoading || !selectedToToken || parseFloat(usdAmount) <= 0 || parseFloat(usdAmount) > MAX_USD_AMOUNT || exceedsReserve}
+                    disabled={isLoading || isFetchingDexterityQuote || !!dexterityQuoteError || !dexterityQuote || !selectedToToken || parseFloat(usdAmount) <= 0 || parseFloat(usdAmount) > MAX_USD_AMOUNT || exceedsReserve}
                     className="button-primary w-full"
                 >
-                    {isLoading ? (
-                        <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Processing...
-                        </>
-                    ) : (
-                        'Continue to Checkout'
-                    )}
+                    {isLoading ? 'Initializing Checkout...' : (isFetchingDexterityQuote ? 'Getting Price...' : 'Continue to Checkout')}
                 </Button>
 
                 <div className="text-xs text-center text-muted-foreground mt-4 flex items-center justify-center">
@@ -227,12 +302,12 @@ export default function TokenPurchaseForm() {
             </div>
 
             {/* Checkout Dialog */}
-            {clientSecret && selectedToToken && (
+            {clientSecret && selectedToToken && dexterityQuote && (
                 <PurchaseDialog
                     open={dialogOpen}
                     onOpenChange={setDialogOpen}
                     amountUsd={parseFloat(usdAmount)}
-                    tokenAmount={tokenAmount}
+                    tokenAmount={Number(dexterityQuote.amountOutMicro)} // Pass micro amount
                     tokenSymbol={selectedToToken.symbol}
                     userAddress={userAddress}
                     tokenContract={selectedToToken.contractId}

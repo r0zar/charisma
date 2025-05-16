@@ -77,13 +77,6 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
             );
         }
 
-        // Optional: Sort the remaining regular tokens if needed, e.g., by name
-        // displayTokens.sort((a, b) => {
-        //     if (a.name.toLowerCase() < b.name.toLowerCase()) return -1;
-        //     if (a.name.toLowerCase() > b.name.toLowerCase()) return 1;
-        //     return 0;
-        // });
-
         return displayTokens;
     }, [tokens, searchTerm]); // Added searchTerm to dependencies
 
