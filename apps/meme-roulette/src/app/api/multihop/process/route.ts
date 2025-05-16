@@ -6,8 +6,9 @@ import {
     broadcastMultihopTransaction,
     SwapMetadata,
     TransactionConfig,
+    MULTIHOP_CONTRACT_ID,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
-import { loadVaults, Router } from 'dexterity-sdk';
+import { getQuote } from 'dexterity-sdk';
 
 // Environment variables
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
@@ -47,18 +48,10 @@ export async function POST(_req: NextRequest) {
 
             console.log(`Processing intent for user ${intent.recipient}, originally bet on ${intent.destinationContract}, swapping ${intent.betAmount} of ${intent.sourceContract} to WINNER ${winningTokenId}, uuid ${intent.uuid}`);
 
-            const router = new Router({ maxHops: 4, defaultSlippage: 0.05 });
-            await loadVaults(router);
+            const quote = await getQuote(intent.sourceContract, winningTokenId, intent.betAmount);
+            console.log('Quote:', quote);
 
-            const route: any = await router.findBestRoute(
-                intent.sourceContract,
-                winningTokenId,
-                intent.betAmount
-            );
-
-            console.log('Route found:', route);
-
-            if (!route) {
+            if (!quote.route) {
                 throw new Error(`Failed to find route for swapping ${intent.sourceContract} to ${winningTokenId}`);
             }
 
@@ -69,7 +62,7 @@ export async function POST(_req: NextRequest) {
                 recipient: intent.recipient,
             };
 
-            const txConfig: TransactionConfig = await buildXSwapTransaction(route, swapMeta);
+            const txConfig: TransactionConfig = await buildXSwapTransaction(quote.route, swapMeta);
             console.log('Transaction Config from SDK:', txConfig);
 
             const broadcastResponse = await broadcastMultihopTransaction(txConfig, PRIVATE_KEY);

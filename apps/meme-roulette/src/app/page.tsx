@@ -163,7 +163,7 @@ export default function HubPage() {
         <>
           <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
             <HandCoins className="h-5 w-5 text-primary" />
-            My Commits
+            My Votes
           </h2>
           <SkeletonLoader type="generic" count={2} />
         </>
@@ -175,7 +175,7 @@ export default function HubPage() {
         <>
           <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
             <HandCoins className="h-5 w-5 text-primary" />
-            My Commits
+            My Votes
           </h2>
           <div className="glass-card p-8 rounded-xl text-center border">
             <div className="text-muted-foreground/70 mb-3 justify-center flex items-center">
@@ -200,7 +200,7 @@ export default function HubPage() {
       <>
         <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
           <HandCoins className="h-5 w-5 text-primary" />
-          My Commits
+          My Votes
         </h2>
         <ScrollArea className="h-[220px] pr-3 -mr-3">
           <div className="space-y-3">
