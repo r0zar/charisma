@@ -101,17 +101,40 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [activeTimeframe, setActiveTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+    const [activeTimeframe, setActiveTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('daily');
     const [isEmptyData, setIsEmptyData] = useState(false);
     const [logs, setLogs] = useState<HarvestLog[]>([]);
     const [visibleLogs, setVisibleLogs] = useState(5);
     const [energyTokenDecimals, setEnergyTokenDecimals] = useState<number | null>(null);
+    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+    const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
+    const autoRefreshInterval = 60000; // 1 minute
 
-    const engineContractId = 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn'
+    const engineContractId = useMemo(() => {
+        const hashIndex = vaultContractId.indexOf('#');
+        return hashIndex >= 0 ? vaultContractId.substring(0, hashIndex) : vaultContractId;
+    }, [vaultContractId]);
 
     // Fetch data on component mount
     useEffect(() => {
         fetchAnalyticsData();
+    }, [vaultContractId]);
+
+    // Set up periodic refresh to check for data updates from cron job
+    useEffect(() => {
+        // Check for updates every 3 minutes
+        const refreshInterval = 3 * 60 * 1000;
+        const intervalId = setInterval(() => {
+            // Only refresh if the component is visible (not navigated away)
+            if (document.visibilityState === 'visible') {
+                console.log('Checking for energy data updates from cron job...');
+                // Use regular fetch, not refresh=true, to use cache if available
+                fetchAnalyticsData(false);
+            }
+        }, refreshInterval);
+
+        // Clean up interval on unmount
+        return () => clearInterval(intervalId);
     }, [vaultContractId]);
 
     // Fetch user stats when wallet changes
@@ -122,6 +145,22 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
             setUserStats(null);
         }
     }, [walletState.connected, walletState.address, vaultContractId]);
+
+    // Add auto-refresh effect
+    useEffect(() => {
+        if (!autoRefreshEnabled) return;
+
+        const timer = setInterval(() => {
+            // Only refresh if not already refreshing and if it's been more than 30 seconds
+            if (!isRefreshing && Date.now() - lastRefreshTime > 30000) {
+                console.log('Auto-refreshing energy data...');
+                fetchAnalyticsData(true);
+                setLastRefreshTime(Date.now());
+            }
+        }, autoRefreshInterval);
+
+        return () => clearInterval(timer);
+    }, [autoRefreshEnabled, isRefreshing, lastRefreshTime]);
 
     const fetchAnalyticsData = async (refreshing = false) => {
         if (refreshing) {
@@ -208,37 +247,68 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
 
     const handleRefreshData = async () => {
         setIsRefreshing(true);
-        await fetchAnalyticsData(true);
-        if (walletState.connected && walletState.address) {
-            await fetchUserStats(walletState.address);
+        setLastRefreshTime(Date.now());
+        console.log('Manually refreshing energy data...');
+
+        try {
+            // Force a refresh of the API data
+            const response = await fetch(`/api/v1/energy/${engineContractId}?refresh=true`);
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success' && data.data) {
+                const analyticsData = data.data;
+
+                // Update stats and rates with fresh data
+                if (analyticsData.stats) {
+                    setStats(analyticsData.stats);
+                }
+
+                if (analyticsData.rates) {
+                    setRates(analyticsData.rates);
+                }
+
+                console.log('Energy data refreshed successfully');
+            }
+
+            // Also refresh user stats if wallet is connected
+            if (walletState.connected && walletState.address) {
+                await fetchUserStats(walletState.address);
+            }
+        } catch (err) {
+            console.error('Error refreshing energy data:', err);
+            setError('Failed to refresh energy data');
+        } finally {
+            setIsRefreshing(false);
         }
     };
 
     // Format large numbers for display
     const formatNumber = (atomicNum: number, decimals = 2): string => {
-        const num = atomicNum / (10 ** decimals);
+        if (atomicNum === null || atomicNum === undefined) return '0';
 
-        if (num === undefined || num === null) return 'N/A';
-
-        if (num === 0) return '0';
-
-        if (num < 1) {
-            return num.toFixed(decimals);
+        // Handle very small non-zero values
+        if (atomicNum > 0 && atomicNum < 0.001) {
+            return '< 0.001'; // Show as "less than 0.001" to indicate non-zero but small
         }
 
-        if (num < 1000) {
-            return num.toFixed(decimals);
+        // For large numbers (over 1 million), use compact notation
+        if (Math.abs(atomicNum) >= 1_000_000) {
+            return new Intl.NumberFormat('en-US', {
+                notation: 'compact',
+                maximumFractionDigits: decimals
+            }).format(atomicNum);
         }
 
-        if (num < 1000000) {
-            return (num / 1000).toFixed(decimals) + 'K';
-        }
-
-        if (num < 1000000000) {
-            return (num / 1000000).toFixed(decimals) + 'M';
-        }
-
-        return (num / 1000000000).toFixed(decimals) + 'B';
+        // Standard formatting for normal-sized numbers
+        return new Intl.NumberFormat('en-US', {
+            maximumFractionDigits: decimals,
+            minimumFractionDigits: decimals > 0 ? 1 : 0
+        }).format(atomicNum);
     };
 
     // Format timestamp to readable date
@@ -271,6 +341,8 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
         if (address.length <= start + end) return address;
         return `${address.slice(0, start)}...${address.slice(-end)}`;
     };
+
+    console.log({ rates })
 
     useEffect(() => {
         const fetchAnalyticsDataAndDecimals = async () => {
@@ -374,16 +446,27 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                     <Zap className="h-5 w-5 text-primary inline mr-2" />
                     Energy Analytics
                 </CardTitle>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefreshData}
-                    disabled={isRefreshing}
-                    className="h-8"
-                >
-                    <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                        className="h-8"
+                    >
+                        <Clock className={`h-3.5 w-3.5 mr-1.5 ${autoRefreshEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        {autoRefreshEnabled ? 'Auto' : 'Manual'}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshData}
+                        disabled={isRefreshing}
+                        className="h-8"
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                    </Button>
+                </div>
             </CardHeader>
 
             {error && (
@@ -540,6 +623,10 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                             <p className="text-xs mt-1">
                                                 Showing {activeTimeframe} rates:
                                                 {rates.rateHistoryTimeframes[activeTimeframe].length} data points
+                                            </p>
+                                            <p className="text-xs mt-2 text-green-500">
+                                                Data is collected and updated automatically by cron job
+                                                <br />Last updated: {formatTimeAgo(rates.lastCalculated)}
                                             </p>
                                         </div>
                                     </div>

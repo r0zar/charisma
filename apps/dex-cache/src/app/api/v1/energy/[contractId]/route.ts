@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
-import { fetcHoldToEarnLogs } from '@/lib/energy/analytics';
+import { fetcHoldToEarnLogs, generateRateHistoryFromSnapshots } from '@/lib/energy/analytics';
+import { mockEnergyLogs, calculateMockRates } from '@/lib/energy/mocks';
 import { kv } from '@vercel/kv';
 
 const CACHE_DURATION = 60 * 5; // 5 minutes in seconds
 
-// Cache key format for energy analytics data
+// Cache key formats
 const getEnergyAnalyticsCacheKey = (contractId: string) => `energy:analytics:${contractId}`;
+const getEnergyHistoryKey = (contractId: string) => `energy:history:${contractId}`;
 
 export async function GET(
-    _request: Request,
+    request: Request,
     context: { params: { contractId: string } }
 ) {
     const { contractId } = await context.params;
+    const { searchParams } = new URL(request.url);
+    const refresh = searchParams.get('refresh') === 'true';
 
     // Set headers for caching and CORS
     const headers = {
@@ -23,17 +27,40 @@ export async function GET(
     };
 
     try {
-        // Check for cached data first
-        const cacheKey = getEnergyAnalyticsCacheKey(contractId);
-        const cachedData = await kv.get(cacheKey);
+        // Check for cached data first (unless refresh is requested)
+        if (!refresh) {
+            const cacheKey = getEnergyAnalyticsCacheKey(contractId);
+            const cachedData = await kv.get<{
+                rates?: {
+                    rateHistoryTimeframes: {
+                        daily: any[];
+                        weekly: any[];
+                        monthly: any[];
+                    }
+                }
+            }>(cacheKey);
 
-        if (cachedData) {
-            console.log(`Returning cached energy analytics for ${contractId}`);
-            return NextResponse.json({
-                status: 'success',
-                data: cachedData,
-                fromCache: true
-            }, { status: 200, headers });
+            if (cachedData) {
+                console.log(`Returning cached energy analytics for ${contractId}`);
+
+                // Get historical data for rate history
+                const historyKey = getEnergyHistoryKey(contractId);
+                const historyData = await kv.get<any[]>(historyKey) || [];
+
+                // Generate rate history timeframes from actual historical data
+                const rateHistory = generateRateHistoryFromSnapshots(historyData);
+
+                // Update the rate history in the cached data
+                if (cachedData && cachedData.rates) {
+                    cachedData.rates.rateHistoryTimeframes = rateHistory;
+                }
+
+                return NextResponse.json({
+                    status: 'success',
+                    data: cachedData,
+                    fromCache: true
+                }, { status: 200, headers });
+            }
         }
 
         // No cached data, fetch from blockchain
@@ -43,24 +70,44 @@ export async function GET(
         const logs = await fetcHoldToEarnLogs(contractId);
 
         if (!logs || logs.length === 0) {
+            console.log('No logs found, using mock data for development');
+            // Use mock data in development to show non-zero values
+            const mockRates = calculateMockRates();
+
             return NextResponse.json({
                 status: 'success',
                 data: {
-                    logs: [],
+                    logs: process.env.NODE_ENV === 'development' ? mockEnergyLogs : [],
                     stats: {
-                        totalEnergyHarvested: 0,
-                        totalIntegralCalculated: 0,
-                        uniqueUsers: 0,
+                        totalEnergyHarvested: process.env.NODE_ENV === 'development' ? 67500 : 0,
+                        totalIntegralCalculated: process.env.NODE_ENV === 'development' ? 337500 : 0,
+                        uniqueUsers: process.env.NODE_ENV === 'development' ? 2 : 0,
                         lastUpdated: Date.now(),
-                        averageEnergyPerHarvest: 0,
-                        averageIntegralPerHarvest: 0
+                        averageEnergyPerHarvest: process.env.NODE_ENV === 'development' ? 11250 : 0,
+                        averageIntegralPerHarvest: process.env.NODE_ENV === 'development' ? 56250 : 0
                     },
                     rates: {
-                        overallEnergyPerMinute: 0,
-                        overallIntegralPerMinute: 0,
-                        topUserRates: [],
+                        overallEnergyPerMinute: process.env.NODE_ENV === 'development' ? mockRates.energyRate : 0,
+                        overallIntegralPerMinute: process.env.NODE_ENV === 'development' ? mockRates.integralRate : 0,
+                        topUserRates: process.env.NODE_ENV === 'development' ? [
+                            { address: "SP2XYZ123ABC456DEF789GHI012JKL345MNO678P", energyPerMinute: mockRates.energyRate * 0.65 },
+                            { address: "SP2ABC123DEF456GHI789JKL012MNO345PQR678S", energyPerMinute: mockRates.energyRate * 0.35 }
+                        ] : [],
                         lastCalculated: Date.now(),
-                        rateHistoryTimeframes: {
+                        rateHistoryTimeframes: process.env.NODE_ENV === 'development' ? {
+                            daily: Array(8).fill(0).map((_, i) => ({
+                                timestamp: Date.now() - (8 - i) * 3 * 60 * 60 * 1000, // Every 3 hours
+                                rate: mockRates.energyRate * (0.8 + Math.random() * 0.4)
+                            })),
+                            weekly: Array(7).fill(0).map((_, i) => ({
+                                timestamp: Date.now() - (7 - i) * 24 * 60 * 60 * 1000, // Daily
+                                rate: mockRates.energyRate * (0.7 + Math.random() * 0.6)
+                            })),
+                            monthly: Array(10).fill(0).map((_, i) => ({
+                                timestamp: Date.now() - (10 - i) * 3 * 24 * 60 * 60 * 1000, // Every 3 days
+                                rate: mockRates.energyRate * (0.6 + Math.random() * 0.8)
+                            }))
+                        } : {
                             daily: [],
                             weekly: [],
                             monthly: []
@@ -152,28 +199,40 @@ export async function GET(
             }));
 
         // 5. Generate rate history for timeframes
-        // For the mock implementation, we'll create some sample data points
-        // In a real implementation, you'd aggregate the logs by time periods
+        // Get historical data for generating actual rate history
+        const historyKey = getEnergyHistoryKey(contractId);
+        const historyData = await kv.get<any[]>(historyKey) || [];
 
-        const now = Date.now();
-        const day = 24 * 60 * 60 * 1000;
+        // If we have historical data, use it; otherwise, generate placeholder data
+        let dailyRateHistory, weeklyRateHistory, monthlyRateHistory;
 
-        // Generate sample rate history data (placeholder)
-        // In a real implementation, you would aggregate actual data from logs
-        const dailyRateHistory = Array(10).fill(0).map((_, i) => ({
-            timestamp: now - (10 - i) * 2 * 60 * 60 * 1000, // 2-hour intervals
-            rate: overallEnergyPerMinute * (0.8 + Math.random() * 0.4) // Slight random variation
-        }));
+        if (historyData.length > 1) {
+            // Generate real rate history from stored snapshots
+            const rateHistory = generateRateHistoryFromSnapshots(historyData);
+            dailyRateHistory = rateHistory.daily;
+            weeklyRateHistory = rateHistory.weekly;
+            monthlyRateHistory = rateHistory.monthly;
+        } else {
+            // Fallback to placeholder data if no historical data yet
+            const now = Date.now();
+            const day = 24 * 60 * 60 * 1000;
 
-        const weeklyRateHistory = Array(10).fill(0).map((_, i) => ({
-            timestamp: now - (10 - i) * day, // daily points
-            rate: overallEnergyPerMinute * (0.7 + Math.random() * 0.6)
-        }));
+            // Generate sample rate history data (placeholder)
+            dailyRateHistory = Array(10).fill(0).map((_, i) => ({
+                timestamp: now - (10 - i) * 2 * 60 * 60 * 1000, // 2-hour intervals
+                rate: overallEnergyPerMinute * (0.8 + Math.random() * 0.4) // Slight random variation
+            }));
 
-        const monthlyRateHistory = Array(10).fill(0).map((_, i) => ({
-            timestamp: now - (10 - i) * 3 * day, // 3-day points
-            rate: overallEnergyPerMinute * (0.6 + Math.random() * 0.8)
-        }));
+            weeklyRateHistory = Array(10).fill(0).map((_, i) => ({
+                timestamp: now - (10 - i) * day, // daily points
+                rate: overallEnergyPerMinute * (0.7 + Math.random() * 0.6)
+            }));
+
+            monthlyRateHistory = Array(10).fill(0).map((_, i) => ({
+                timestamp: now - (10 - i) * 3 * day, // 3-day points
+                rate: overallEnergyPerMinute * (0.6 + Math.random() * 0.8)
+            }));
+        }
 
         // 6. Assemble response data
         const analyticsData = {
@@ -204,7 +263,44 @@ export async function GET(
         };
 
         // Store in cache
-        await kv.set(cacheKey, analyticsData, { ex: CACHE_DURATION });
+        await kv.set(getEnergyAnalyticsCacheKey(contractId), analyticsData, { ex: CACHE_DURATION });
+
+        // Also store a snapshot for history if this was a fresh fetch
+        if (historyData) {
+            const snapshot = {
+                timestamp: Date.now(),
+                totalEnergyHarvested,
+                uniqueUsers,
+                energyRate: overallEnergyPerMinute
+            };
+
+            // Keep at most 100 snapshots to avoid excessive data storage
+            const updatedHistory = [...historyData, snapshot].slice(-100);
+
+            // Save updated history with a longer expiration (30 days)
+            await kv.set(historyKey, updatedHistory, { ex: 60 * 60 * 24 * 30 });
+        }
+
+        // Get historical snapshots to improve rate history data
+        let rateHistory = await kv.get<any[]>(historyKey) || [];
+
+        console.log(`Found ${rateHistory.length} historical rate snapshots for ${contractId}`);
+
+        // If we have historical data, use it to generate better rate history timeframes
+        if (rateHistory.length > 0) {
+            const generatedRateHistory = generateRateHistoryFromSnapshots(rateHistory);
+
+            // Only override the rate history if we actually have data
+            if (generatedRateHistory &&
+                (generatedRateHistory.daily.length > 0 ||
+                    generatedRateHistory.weekly.length > 0 ||
+                    generatedRateHistory.monthly.length > 0)) {
+                analyticsData.rates.rateHistoryTimeframes = generatedRateHistory;
+                console.log('Using historical rate data for timeframes');
+            } else {
+                console.log('No valid historical rate data, using calculated rates');
+            }
+        }
 
         return NextResponse.json({
             status: 'success',
