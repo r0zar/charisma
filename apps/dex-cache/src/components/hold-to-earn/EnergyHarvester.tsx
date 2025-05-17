@@ -249,7 +249,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                             </Button>
                         </div>
 
-                        <div className="bg-primary/5 border border-primary/10 p-4 rounded-lg">
+                        {/* <div className="bg-primary/5 border border-primary/10 p-4 rounded-lg">
                             <div className="flex justify-between items-center mb-3">
                                 <div className="text-sm font-medium">Pending Energy</div>
                                 <Badge className="bg-primary/20 text-primary borenergizeder-primary/30">
@@ -280,7 +280,6 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                             width: `${estimatedEnergy !== null && estimatedEnergy > 0 ? Math.max(2, Math.min(100, estimatedEnergy * 100 / (estimatedDailyReward || 100))) : 0}%`
                                         }}
                                     >
-                                        {/* Shine element for the sweep animation */}
                                         {pendingBlocks > 0 && (
                                             <div
                                                 className="absolute top-0 left-0 h-full w-full"
@@ -297,7 +296,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                     {pendingBlocks > 0 ? 'Ready to harvest' : 'Accruing energy...'}
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
 
                         {pendingBlocks > 0 ? (
                             <Button
