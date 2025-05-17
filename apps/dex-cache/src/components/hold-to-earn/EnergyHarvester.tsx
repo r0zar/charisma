@@ -318,7 +318,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                         ) : estimatedEnergy !== null ? (
                                             (estimatedEnergy < 1 && estimatedEnergy > 0) ?
                                                 "< 1 Energy" :
-                                                `${estimatedEnergy.toLocaleString()} Energy`
+                                                `${Math.min(estimatedEnergy, 100).toLocaleString()} Energy`
                                         ) : (
                                             '—'
                                         )}
