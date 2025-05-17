@@ -49,7 +49,6 @@ async function fetchVaultDetails(contractId: string): Promise<Vault | null> {
             const dexterityTokenId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1';
             const tokenMetadata = await getTokenMetadataCached(dexterityTokenId);
             vault.tokenForRewards = tokenMetadata;
-            vault.engineContractId = tokenMetadata.contract_principal;
         } catch (tokenError) {
             console.error('Failed to fetch token metadata:', tokenError);
             // Continue without token metadata
