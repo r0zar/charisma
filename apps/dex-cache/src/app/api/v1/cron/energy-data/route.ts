@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         const authKey = searchParams.get('key');
 
         // Basic auth check - you'd want something more secure in production
-        if (process.env.NODE_ENV === 'production' && authKey !== process.env.CRON_SECRET_KEY) {
+        if (process.env.NODE_ENV === 'production' && authKey !== process.env.CRON_SECRET) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
