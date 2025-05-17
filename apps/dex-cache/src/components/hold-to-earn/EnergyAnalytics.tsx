@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/lib/context/app-context';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,17 @@ import {
     Zap,
     Award,
     Clock,
-    AlertTriangle
+    AlertTriangle,
+    AlertCircle,
+    BarChart2,
+    ListChecks,
+    ArrowDownUp,
+    ExternalLinkIcon,
+    InfoIcon
 } from 'lucide-react';
+import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens'
+import Link from 'next/link';
+import { fetcHoldToEarnLogs } from '@/lib/energy/analytics';
 
 interface EnergyStats {
     totalEnergyHarvested: number;
@@ -58,12 +67,31 @@ interface UserEnergyStats {
         energy: number;
         integral: number;
         blockHeight?: number;
+        txId?: string;
     }[];
+}
+
+interface HarvestLogTransactionDetails {
+    block_height?: number;
+    timestamp?: number; // Assuming timestamp might be a unix timestamp number
+    // Add other relevant fields from transaction_details if known
+}
+
+interface HarvestLog {
+    energy: bigint;
+    integral: bigint;
+    message: string;
+    op: string;
+    sender: string;
+    tx_id: string;
+    transaction_details: HarvestLogTransactionDetails | null;
 }
 
 interface EnergyAnalyticsProps {
     vaultContractId: string;
 }
+
+const ENERGY_TOKEN_CONTRACT_ID = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy';
 
 export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
     const { walletState } = useApp();
@@ -74,58 +102,12 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTimeframe, setActiveTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+    const [isEmptyData, setIsEmptyData] = useState(false);
+    const [logs, setLogs] = useState<HarvestLog[]>([]);
+    const [visibleLogs, setVisibleLogs] = useState(5);
+    const [energyTokenDecimals, setEnergyTokenDecimals] = useState<number | null>(null);
 
-    // Mock data for demo purposes (replace with actual API calls)
-    const mockStats: EnergyStats = {
-        totalEnergyHarvested: 12546785492,
-        totalIntegralCalculated: 54624589654321,
-        uniqueUsers: 47,
-        lastUpdated: Date.now() - 3600000, // 1 hour ago
-        averageEnergyPerHarvest: 962967492,
-        averageIntegralPerHarvest: 4145455521168
-    };
-
-    const mockRates: EnergyRates = {
-        overallEnergyPerMinute: 123456,
-        overallIntegralPerMinute: 6789012,
-        topUserRates: [
-            { address: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS', energyPerMinute: 215678 },
-            { address: 'SP1P72Z3704VMT3DMHPP2CB8TGQWGDBHD3RPR9GZS', energyPerMinute: 187965 },
-            { address: 'SP1Z92MPDQEWZXW36VX71Q25HKF5K2EPCJ304F275', energyPerMinute: 156432 }
-        ],
-        lastCalculated: Date.now() - 1800000, // 30 minutes ago
-        rateHistoryTimeframes: {
-            daily: Array(10).fill(0).map((_, i) => ({
-                timestamp: Date.now() - (10 - i) * 60 * 60 * 1000, // hourly points
-                rate: 100000 + Math.random() * 50000
-            })),
-            weekly: Array(10).fill(0).map((_, i) => ({
-                timestamp: Date.now() - (10 - i) * 24 * 60 * 60 * 1000, // daily points
-                rate: 90000 + Math.random() * 70000
-            })),
-            monthly: Array(10).fill(0).map((_, i) => ({
-                timestamp: Date.now() - (10 - i) * 3 * 24 * 60 * 60 * 1000, // 3-day points
-                rate: 80000 + Math.random() * 100000
-            }))
-        }
-    };
-
-    const mockUserStats: UserEnergyStats = walletState.address ? {
-        address: walletState.address,
-        totalEnergyHarvested: 5824756920,
-        totalIntegralCalculated: 25475893654782,
-        harvestCount: 12,
-        averageEnergyPerHarvest: 485396410,
-        lastHarvestTimestamp: Date.now() - 12 * 60 * 60 * 1000, // 12 hours ago
-        estimatedEnergyRate: 134926,
-        estimatedIntegralRate: 5861946,
-        harvestHistory: Array(12).fill(0).map((_, i) => ({
-            timestamp: Date.now() - (12 - i) * 24 * 60 * 60 * 1000,
-            energy: 400000000 + Math.random() * 200000000,
-            integral: 3000000000000 + Math.random() * 2000000000000,
-            blockHeight: 80000 + i * 1000
-        }))
-    } : null;
+    const engineContractId = 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn'
 
     // Fetch data on component mount
     useEffect(() => {
@@ -139,34 +121,85 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
         } else {
             setUserStats(null);
         }
-    }, [walletState.connected, walletState.address]);
+    }, [walletState.connected, walletState.address, vaultContractId]);
 
-    const fetchAnalyticsData = async () => {
-        setIsLoading(true);
+    const fetchAnalyticsData = async (refreshing = false) => {
+        if (refreshing) {
+            setIsRefreshing(true);
+        } else {
+            setIsLoading(true);
+        }
         setError(null);
 
         try {
-            // In a real implementation, these would be API calls to the server actions
-            // For now, we'll use mock data
-            setTimeout(() => {
-                setStats(mockStats);
-                setRates(mockRates);
-                setIsLoading(false);
-            }, 1000);
+            // Fetch analytics data from the API
+            const response = await fetch(`/api/v1/energy/${engineContractId}${refreshing ? '?refresh=true' : ''}`);
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success' && data.data) {
+                const analyticsData = data.data;
+
+                // Check if we have any data
+                if (analyticsData.logs && analyticsData.logs.length === 0) {
+                    setIsEmptyData(true);
+                } else {
+                    setIsEmptyData(false);
+                }
+
+                // Set stats data
+                if (analyticsData.stats) {
+                    setStats(analyticsData.stats);
+                }
+
+                // Set rates data
+                if (analyticsData.rates) {
+                    setRates(analyticsData.rates);
+                }
+
+                // If user is connected, check if their data is in the response
+                if (walletState.connected && walletState.address && analyticsData.userStats) {
+                    const userData = analyticsData.userStats[walletState.address];
+                    if (userData) {
+                        setUserStats(userData);
+                    }
+                }
+            } else {
+                throw new Error(data.error || 'Failed to fetch analytics data');
+            }
         } catch (err) {
             console.error('Error fetching energy analytics:', err);
             setError('Failed to load energy analytics data');
+        } finally {
             setIsLoading(false);
+            setIsRefreshing(false);
         }
     };
 
     const fetchUserStats = async (address: string) => {
         try {
-            // In a real implementation, this would be an API call
-            // For now, we'll use mock data
-            setTimeout(() => {
-                setUserStats(mockUserStats);
-            }, 500);
+            const response = await fetch(`/api/v1/energy/${vaultContractId}/user?address=${address}`);
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                if (data.data === null) {
+                    // No data for this user
+                    setUserStats(null);
+                } else {
+                    setUserStats(data.data);
+                }
+            } else {
+                throw new Error(data.error || 'Failed to fetch user stats');
+            }
         } catch (err) {
             console.error(`Error fetching user stats for ${address}:`, err);
             // Don't set global error for user stats failure
@@ -175,37 +208,16 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
 
     const handleRefreshData = async () => {
         setIsRefreshing(true);
-        setError(null);
-
-        try {
-            // In a real implementation, this would call the server action to refresh data
-            // For now, we'll simulate a refresh
-            setTimeout(() => {
-                setStats({
-                    ...mockStats,
-                    lastUpdated: Date.now()
-                });
-                setRates({
-                    ...mockRates,
-                    lastCalculated: Date.now()
-                });
-                if (walletState.connected && walletState.address) {
-                    setUserStats({
-                        ...mockUserStats!,
-                        lastHarvestTimestamp: Date.now() - 2 * 60 * 60 * 1000 // 2 hours ago
-                    });
-                }
-                setIsRefreshing(false);
-            }, 2000);
-        } catch (err) {
-            console.error('Error refreshing energy data:', err);
-            setError('Failed to refresh energy data');
-            setIsRefreshing(false);
+        await fetchAnalyticsData(true);
+        if (walletState.connected && walletState.address) {
+            await fetchUserStats(walletState.address);
         }
     };
 
     // Format large numbers for display
-    const formatNumber = (num: number, decimals = 2): string => {
+    const formatNumber = (atomicNum: number, decimals = 2): string => {
+        const num = atomicNum / (10 ** decimals);
+
         if (num === undefined || num === null) return 'N/A';
 
         if (num === 0) return '0';
@@ -260,6 +272,60 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
         return `${address.slice(0, start)}...${address.slice(-end)}`;
     };
 
+    useEffect(() => {
+        const fetchAnalyticsDataAndDecimals = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                // Fetch decimals first or in parallel
+                console.log(`Fetching decimals for ${ENERGY_TOKEN_CONTRACT_ID}`);
+                const metadata: TokenCacheData = await getTokenMetadataCached(ENERGY_TOKEN_CONTRACT_ID);
+                if (metadata && typeof metadata.decimals === 'number') {
+                    console.log(`Fetched decimals: ${metadata.decimals}`);
+                    setEnergyTokenDecimals(metadata.decimals);
+                } else {
+                    console.warn('Could not retrieve decimals for energy token. Metadata:', metadata);
+                    setEnergyTokenDecimals(0); // Default to 0 if not found, logs a warning
+                }
+
+                console.log(`Fetching logs for ${vaultContractId}`);
+                const fetchedLogs = await fetcHoldToEarnLogs(vaultContractId);
+                fetchedLogs.sort((a: HarvestLog, b: HarvestLog) => {
+                    const timeA = a.transaction_details?.block_height || a.transaction_details?.timestamp || 0;
+                    const timeB = b.transaction_details?.block_height || b.transaction_details?.timestamp || 0;
+                    return Number(timeB) - Number(timeA); // Descending order
+                });
+                setLogs(fetchedLogs);
+
+            } catch (err) {
+                console.error("Failed to fetch analytics data or decimals:", err);
+                setError("Failed to load analytics. Please try again later.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAnalyticsDataAndDecimals();
+    }, [vaultContractId]);
+
+    // Helper function to format energy based on fetched decimals
+    const formatEnergyDisplay = (rawValue: bigint | number, decimals: number | null): string => {
+        if (decimals === null || decimals === undefined) {
+            return rawValue.toString(); // Fallback if decimals not loaded
+        }
+        // Ensure rawValue is a number for division
+        const valueAsNumber = typeof rawValue === 'bigint' ? Number(rawValue) : rawValue;
+
+        if (decimals === 0) {
+            return valueAsNumber.toLocaleString(); // Format as whole number
+        }
+
+        const divisor = 10 ** decimals;
+        const formatted = valueAsNumber / divisor;
+
+        return formatted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: Math.max(2, decimals) }); // Show at least 2, up to `decimals` places
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-8">
@@ -270,7 +336,7 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
     }
 
     // No data state
-    if (!stats && !rates && !isLoading) {
+    if (isEmptyData || (!stats && !rates && !isLoading)) {
         return (
             <Card>
                 <CardContent className="pt-6">
@@ -482,19 +548,25 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                 <div className="bg-muted/30 p-4 rounded-lg">
                                     <h3 className="text-base font-semibold mb-3">Top Energy Harvesters</h3>
                                     <div className="space-y-3">
-                                        {rates.topUserRates.map((user, index) => (
-                                            <div key={user.address} className="flex items-center justify-between">
-                                                <div className="flex items-center">
-                                                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mr-3 text-xs font-semibold">
-                                                        {index + 1}
+                                        {rates.topUserRates.length > 0 ? (
+                                            rates.topUserRates.map((user, index) => (
+                                                <div key={user.address + index} className="flex items-center justify-between">
+                                                    <div className="flex items-center">
+                                                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mr-3 text-xs font-semibold">
+                                                            {index + 1}
+                                                        </div>
+                                                        <span className="font-mono">{truncateAddress(user.address)}</span>
                                                     </div>
-                                                    <span className="font-mono">{truncateAddress(user.address)}</span>
+                                                    <div className="font-semibold">
+                                                        {formatNumber(user.energyPerMinute)} / min
+                                                    </div>
                                                 </div>
-                                                <div className="font-semibold">
-                                                    {formatNumber(user.energyPerMinute)} / min
-                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center text-muted-foreground py-2">
+                                                No user rate data available yet
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             </>
@@ -581,13 +653,13 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                     <div className="bg-muted/30 p-4 rounded-lg">
                                         <h3 className="text-base font-semibold mb-3">Energy Harvests</h3>
                                         <div className="h-40 overflow-auto pr-2">
-                                            {userStats.harvestHistory.length === 0 ? (
+                                            {userStats.harvestHistory?.length === 0 ? (
                                                 <div className="text-center text-muted-foreground py-4">
                                                     No harvest history found
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
-                                                    {userStats.harvestHistory.slice().reverse().map((harvest, index) => (
+                                                    {userStats.harvestHistory?.slice().reverse().map((harvest, index) => (
                                                         <div key={index} className="text-xs border border-border/40 rounded p-2">
                                                             <div className="flex justify-between mb-1">
                                                                 <span className="text-muted-foreground">
@@ -616,7 +688,7 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                         <BarChart className="h-8 w-8 mx-auto mb-2" />
                                         <p>Energy harvest history chart would appear here</p>
                                         <p className="text-xs mt-1">
-                                            Showing {userStats.harvestHistory.length} harvests over time
+                                            Showing {userStats.harvestHistory?.length} harvests over time
                                         </p>
                                     </div>
                                 </div>
