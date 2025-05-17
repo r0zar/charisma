@@ -158,64 +158,13 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         }
 
         const intervalId = setInterval(() => {
-            pollEnergyUpdate();
+            fetchEnergyData();
         }, 5000); // Poll every 5 seconds
 
         return () => {
             clearInterval(intervalId); // Clear interval on cleanup
         };
     }, [walletState.connected, lastTapBlock]);
-
-    // Client-side polling function
-    const pollEnergyUpdate = async () => {
-        if (!walletState.connected || !walletState.address || lastTapBlock === null) {
-            return; // Don't poll if not connected or no initial lastTapBlock
-        }
-
-        try {
-            console.log('Polling for energy updates...');
-            const [contractAddress, contractName] = engineContractId.split('.');
-
-            // Get pending blocks via quote function
-            const quoteResult = await callReadOnlyFunction(
-                contractAddress,
-                contractName,
-                'quote',
-                [
-                    uintCV(0), // amount doesn't matter for energy harvest
-                    optionalCVOf(bufferFromHex(OP_HARVEST_ENERGY))
-                ]
-            );
-
-            let newPendingBlocks = 0;
-            if (quoteResult && typeof quoteResult === 'object' && 'value' in quoteResult) {
-                const dkValue = quoteResult.value.dk?.value;
-                if (dkValue !== undefined) {
-                    newPendingBlocks = parseInt(dkValue.toString());
-                    console.log(`Updated pending blocks: ${newPendingBlocks}`);
-                    setPendingBlocks(newPendingBlocks);
-
-                    // Update current block
-                    const newCurrentBlock = lastTapBlock + newPendingBlocks;
-                    setCurrentBlock(newCurrentBlock);
-
-                    // Recalculate energy based on the rate we already have
-                    if (energyPerMinuteRate !== null) {
-                        const totalPendingMinutes = newPendingBlocks * MINUTES_PER_BLOCK;
-                        const calculatedEstimatedEnergy = Math.floor(energyPerMinuteRate * totalPendingMinutes);
-                        setEstimatedEnergy(calculatedEstimatedEnergy);
-                        console.log(`Updated estimated energy: ${calculatedEstimatedEnergy}`);
-                    } else {
-                        // If rate is unknown, use placeholder for visibility
-                        setEstimatedEnergy(newPendingBlocks > 0 ? 0.01 : 0);
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn("Polling energy update failed:", error);
-            // Do not set error states for background polling to avoid UI disruption
-        }
-    };
 
     // Function to harvest energy
     const handleHarvestEnergy = async () => {
