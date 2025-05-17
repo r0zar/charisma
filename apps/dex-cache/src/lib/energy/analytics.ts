@@ -10,7 +10,7 @@ import { mockEnergyLogs } from './mocks';
  * @param offset Optional offset for pagination
  * @returns Formatted contract logs with transaction details
  */
-export const fetcHoldToEarnLogs = async (contractId: string, limit = 200, offset = 0) => {
+export const fetcHoldToEarnLogs = async (contractId: string, limit = 100, offset = 0) => {
     if (!contractId) {
         throw new Error("Contract ID is required");
     }
