@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, ExternalLink, Loader2, Shield, Zap, Clock, Users, Info, BarChartBig } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, Shield, Zap, Clock, Users, Info, BarChartBig, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { EnergyHarvester } from './EnergyHarvester';
 import { EnergyAnalytics } from './EnergyAnalytics';
+import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 
 // Re-using the Vault interface or a shared one
 interface Vault {
@@ -25,40 +26,38 @@ interface Vault {
     reservesB?: number; // May not be relevant for ENERGY type
     // Add any other fields specific to an ENERGY vault's detail view
     additionalData?: Record<string, any>; // For any extra details
+    tokenForRewards?: TokenCacheData; // Token required for earning rewards
 }
 
-// Updated function to fetch a single vault's details from the API
+// Fetch energy vault details from API
 async function fetchVaultDetails(contractId: string): Promise<Vault | null> {
-    console.log(`Fetching details for energy vault from API: ${contractId}`);
     try {
-        const response = await fetch(`/api/v1/vaults?contractId=${contractId}`);
-
-        const responseData = await response.json();
-
-        if (response.ok && responseData.status === 'success' && responseData.data) {
-            // Ensure essential fields are present. The API should ideally guarantee this for a single valid vault.
-            const vault: Vault = responseData.data;
-            if (typeof vault.contractId === 'string' && typeof vault.name === 'string') {
-                console.log('Fetched vault details:', vault);
-                return vault;
-            } else {
-                console.error('Fetched vault data is missing essential fields:', vault);
-                throw new Error('Invalid vault data format from API.');
-            }
-        } else if (response.status === 404 || (responseData.status === 'error' && responseData.message?.includes('not found'))) {
-            console.warn(`Vault with contractId ${contractId} not found via API.`);
-            return null; // Explicitly return null if not found
-        } else {
-            // Handle other non-successful statuses or unexpected JSON structure
-            const errorMsg = responseData.message || responseData.error || `API request failed with status ${response.status}`;
-            console.error('Failed to fetch vault details:', errorMsg, 'Response Data:', responseData);
-            throw new Error(`Failed to fetch vault details: ${errorMsg}`);
+        const response = await fetch(`/api/v1/vaults/${contractId}`);
+        if (!response.ok) {
+            throw new Error(`API returned status ${response.status}`);
         }
+
+        const data = await response.json();
+        if (data.status !== 'success' || !data.data) {
+            throw new Error(`API returned error: ${data.message || 'Unknown error'}`);
+        }
+
+        // Fetch token metadata for rewards if this is the expected vault
+        const vault = data.data;
+        try {
+            // Currently we know we need the dexterity-pool-v1 token info
+            const dexterityTokenId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1';
+            const tokenMetadata = await getTokenMetadataCached(dexterityTokenId);
+            vault.tokenForRewards = tokenMetadata;
+        } catch (tokenError) {
+            console.error('Failed to fetch token metadata:', tokenError);
+            // Continue without token metadata
+        }
+
+        return vault;
     } catch (error) {
-        console.error(`Error in fetchVaultDetails for ${contractId}:`, error);
-        // Re-throw or handle as appropriate for the calling component
-        // The component's useEffect already catches and sets an error message.
-        throw error;
+        console.error('Error fetching vault details:', error);
+        return null;
     }
 }
 
@@ -137,87 +136,142 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                 <Badge variant="outline" className="font-mono">{vault.type || 'ENERGY'}</Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                {/* Left column - Vault Info */}
-                <div className="md:col-span-5">
-                    <Card className="h-fit overflow-hidden border border-primary/20 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
-                        <CardHeader>
-                            <div className="flex justify-center mb-4">
-                                <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-primary/10">
-                                    <img
-                                        src={vault.image || 'https://placehold.co/200x200?text=Energy'}
-                                        alt={vault.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.src = 'https://placehold.co/200x200?text=Energy'
-                                        }}
-                                    />
-                                </div>
+            {/* Token Focus Card - Primary Element */}
+            {vault.tokenForRewards && (
+                <Card className="border border-primary/10 overflow-hidden shadow-md bg-gradient-to-br from-background to-muted/5 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 items-center">
+                        {/* Token Image - Prominent */}
+                        <div className="flex justify-center px-6 py-0 h-full items-center bg-primary/5">
+                            <div className="w-40 h-40 rounded-lg overflow-hidden border-1 border-primary/10 shadow-md p-1 bg-background">
+                                <img
+                                    src={vault.tokenForRewards?.image || `https://placehold.co/300x300?text=${vault.tokenForRewards?.symbol || 'Token'}`}
+                                    alt={vault.tokenForRewards?.name || 'Token'}
+                                    className="w-full h-full object-cover rounded"
+                                    onError={(e) => {
+                                        e.currentTarget.src = `https://placehold.co/300x300?text=${vault.tokenForRewards?.symbol || 'Token'}`;
+                                    }}
+                                />
                             </div>
-                            <CardTitle className="text-2xl font-bold text-center text-primary">{vault.name}</CardTitle>
-                            {vault.symbol && <div className="text-center"><Badge className="mt-1">{vault.symbol}</Badge></div>}
+                        </div>
+
+                        {/* Token Information - Center */}
+                        <div className="md:col-span-2 p-6 space-y-4">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary" className="px-2 py-1">
+                                    Required Token
+                                </Badge>
+                                <Badge variant="outline">{vault.tokenForRewards?.symbol}</Badge>
+                            </div>
+
+                            <h1 className="text-3xl font-bold text-primary">
+                                {vault.tokenForRewards?.name}
+                            </h1>
+
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Coins className="h-5 w-5 text-primary" />
+                                <span className="text-lg">Hold this token to earn energy rewards</span>
+                            </div>
+
+                            <p className="text-muted-foreground">
+                                {vault.tokenForRewards?.description || "Hold tokens in your wallet to earn energy based on duration held."}
+                            </p>
+
+                            {/* Token details in a horizontal list */}
+                            <div className="grid grid-cols-2 gap-4 mt-4 sm:flex sm:flex-wrap sm:gap-6">
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-muted-foreground">Decimals</span>
+                                    <span className="font-medium">{vault.tokenForRewards?.decimals}</span>
+                                </div>
+
+                                {vault.tokenForRewards?.contract_principal && (
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-muted-foreground">Contract</span>
+                                        <span className="font-medium truncate max-w-[180px]" title={vault.tokenForRewards.contract_principal}>
+                                            {vault.tokenForRewards.contract_principal.split('.')[0]}...
+                                        </span>
+                                    </div>
+                                )}
+
+                                {vault.tokenForRewards?.total_supply && (
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-muted-foreground">Supply</span>
+                                        <span className="font-medium">{Number(vault.tokenForRewards.total_supply).toLocaleString()}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                {/* Vault Info - Secondary Element (Now smaller) */}
+                <div className="md:col-span-4">
+                    <Card className="h-fit overflow-hidden border border-border/70 shadow-sm">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center">
+                                <Info className="w-4 h-4 mr-2 text-muted-foreground" />
+                                Vault Details
+                            </CardTitle>
                         </CardHeader>
 
-                        <CardContent>
-                            <div className="space-y-6">
-                                <CardDescription className="text-sm whitespace-pre-line">
-                                    {vault.description || "This energy vault rewards token holders based on how long they hold tokens in their wallet."}
-                                </CardDescription>
-
-                                <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center">
-                                            <Shield className="w-4 h-4 text-primary mr-2" />
-                                            <span className="text-sm">Reward Rate</span>
-                                        </div>
-                                        <Badge className="bg-primary/10 text-primary border-primary/30">
-                                            {feePercent}%
-                                        </Badge>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center">
-                                            <Clock className="w-4 h-4 text-primary mr-2" />
-                                            <span className="text-sm">Mechanism</span>
-                                        </div>
-                                        <Badge variant="outline">Hold-to-Earn</Badge>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center">
-                                            <Users className="w-4 h-4 text-primary mr-2" />
-                                            <span className="text-sm">Protocol</span>
-                                        </div>
-                                        <Badge variant="secondary">{vault.additionalData?.protocol || 'CHARISMA'}</Badge>
-                                    </div>
+                        <CardContent className="pt-2">
+                            <div className="flex items-center gap-3 mb-4">
+                                <img
+                                    src={vault.image || 'https://placehold.co/200x200?text=Energy'}
+                                    alt={vault.name}
+                                    className="w-10 h-10 rounded-md object-cover"
+                                    onError={(e) => {
+                                        e.currentTarget.src = 'https://placehold.co/200x200?text=Energy';
+                                    }}
+                                />
+                                <div>
+                                    <div className="font-medium text-sm">{vault.name}</div>
+                                    {vault.symbol && <Badge variant="outline" className="text-xs mt-1">{vault.symbol}</Badge>}
                                 </div>
                             </div>
-                        </CardContent>
 
-                        {/* Contract Info */}
-                        <div className="px-6 pb-6 space-y-3">
-                            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Contract Details</div>
-                            <div className="space-y-2">
-                                <div>
-                                    <div className="text-xs text-muted-foreground mb-1">Contract ID</div>
-                                    <div className="font-mono text-xs bg-muted/50 p-2 rounded break-all">
+                            <div className="space-y-3 text-sm">
+                                <div className="bg-muted/30 p-3 rounded-lg space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center">
+                                            <Clock className="w-3.5 h-3.5 text-primary mr-2" />
+                                            <span className="text-xs">Mechanism</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">Hold-to-Earn</Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center">
+                                            <Users className="w-3.5 h-3.5 text-primary mr-2" />
+                                            <span className="text-xs">Protocol</span>
+                                        </div>
+                                        <Badge variant="secondary" className="text-xs">{vault.additionalData?.protocol || 'CHARISMA'}</Badge>
+                                    </div>
+                                </div>
+
+                                <div className="text-xs">
+                                    <div className="text-muted-foreground mb-1">Contract ID</div>
+                                    <div className="font-mono text-[10px] bg-muted/30 p-2 rounded break-all">
                                         {vault.contractId}
                                     </div>
                                 </div>
+
                                 {vault.engineContractId && (
-                                    <div>
-                                        <div className="text-xs text-muted-foreground mb-1">Engine Contract</div>
-                                        <div className="font-mono text-xs bg-muted/50 p-2 rounded break-all">
+                                    <div className="text-xs">
+                                        <div className="text-muted-foreground mb-1">Engine Contract</div>
+                                        <div className="font-mono text-[10px] bg-muted/30 p-2 rounded break-all">
                                             {vault.engineContractId}
                                         </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </CardContent>
 
                         {vault.externalPoolId && (
-                            <CardFooter className="border-t pt-6 justify-center">
-                                <Button variant="outline" size="sm" asChild>
+                            <CardFooter className="border-t pt-4 justify-center">
+                                <Button variant="outline" size="sm" asChild className="text-xs w-full">
                                     <a href={`https://explorer.hiro.so/txid/${vault.externalPoolId}?chain=mainnet`} target="_blank" rel="noopener noreferrer">
-                                        View on Explorer <ExternalLink className="ml-2 h-4 w-4" />
+                                        View on Explorer <ExternalLink className="ml-2 h-3 w-3" />
                                     </a>
                                 </Button>
                             </CardFooter>
@@ -225,8 +279,8 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                     </Card>
                 </div>
 
-                {/* Right column - Energy Harvester */}
-                <div className="md:col-span-7">
+                {/* Energy Functions - Now the main focus */}
+                <div className="md:col-span-8">
                     <div className="flex space-x-1 mb-4 border-b border-muted">
                         <button
                             className={`px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
@@ -255,59 +309,48 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                         <Card className="border border-border/50">
                             <CardHeader>
                                 <CardTitle className="flex items-center text-xl">
-                                    <Info className="w-5 h-5 mr-2 text-primary" />
-                                    Vault Overview
+                                    <Zap className="w-5 h-5 mr-2 text-primary" />
+                                    How It Works
                                 </CardTitle>
                                 <CardDescription>
-                                    Key details and information about this energy vault.
+                                    Learn how to earn energy by holding tokens
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="p-4 bg-muted/30 rounded-lg">
-                                    <h3 className="font-semibold text-lg mb-2">What is Energy?</h3>
-                                    <p className="text-muted-foreground">
-                                        Energy is a reward token that accumulates based on how long you hold tokens in your wallet.
-                                        The longer you hold, the more energy you earn. Energy can be used for various benefits in
-                                        the ecosystem, such as redeeming for token rewards, minting exclusive NFTs, and more.
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold text-base">How It Works</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                                            <div className="flex justify-center mb-2">
-                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                                    <span className="font-bold">1</span>
-                                                </div>
+                                {/* Working process with bigger steps */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                                        <div className="flex justify-center mb-2">
+                                            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span className="font-bold text-xl">1</span>
                                             </div>
-                                            <h4 className="text-center font-medium mb-1">Hold Tokens</h4>
-                                            <p className="text-xs text-center text-muted-foreground">
-                                                Keep tokens in your wallet to start accruing energy
-                                            </p>
                                         </div>
-                                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                                            <div className="flex justify-center mb-2">
-                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                                    <span className="font-bold">2</span>
-                                                </div>
+                                        <h4 className="text-center font-medium mb-1">Hold Tokens</h4>
+                                        <p className="text-xs text-center text-muted-foreground">
+                                            Keep {vault.tokenForRewards?.symbol || "tokens"} in your wallet to start accruing energy
+                                        </p>
+                                    </div>
+                                    <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                                        <div className="flex justify-center mb-2">
+                                            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span className="font-bold text-xl">2</span>
                                             </div>
-                                            <h4 className="text-center font-medium mb-1">Accumulate</h4>
-                                            <p className="text-xs text-center text-muted-foreground">
-                                                Energy accumulates based on time and token balance
-                                            </p>
                                         </div>
-                                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                                            <div className="flex justify-center mb-2">
-                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                                    <span className="font-bold">3</span>
-                                                </div>
+                                        <h4 className="text-center font-medium mb-1">Accumulate</h4>
+                                        <p className="text-xs text-center text-muted-foreground">
+                                            Energy accumulates based on time and token balance
+                                        </p>
+                                    </div>
+                                    <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+                                        <div className="flex justify-center mb-2">
+                                            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span className="font-bold text-xl">3</span>
                                             </div>
-                                            <h4 className="text-center font-medium mb-1">Harvest</h4>
-                                            <p className="text-xs text-center text-muted-foreground">
-                                                Claim your energy rewards when ready
-                                            </p>
                                         </div>
+                                        <h4 className="text-center font-medium mb-1">Harvest</h4>
+                                        <p className="text-xs text-center text-muted-foreground">
+                                            Claim your energy rewards when ready
+                                        </p>
                                     </div>
                                 </div>
 
@@ -333,7 +376,7 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                                     <Zap className="h-4 w-4 text-primary" />
                                     <AlertTitle className="text-primary">Hold-to-Earn Mechanism</AlertTitle>
                                     <AlertDescription>
-                                        This vault rewards you based on the duration you hold associated tokens.
+                                        This vault rewards you based on the duration you hold {vault.tokenForRewards?.symbol || "tokens"}.
                                         The longer you hold, the more energy you accumulate, which can be harvested for rewards.
                                     </AlertDescription>
                                 </Alert>
