@@ -1,12 +1,34 @@
 import { NextResponse } from 'next/server';
 import { fetcHoldToEarnLogs } from '@/lib/energy/analytics';
 import { kv } from '@vercel/kv';
+import { mockEnergyLogs } from '@/lib/energy/mocks';
 
 const CACHE_DURATION = 60 * 5; // 5 minutes in seconds
 
 // Cache key format for user energy analytics data
 const getUserEnergyAnalyticsCacheKey = (contractId: string, address: string) =>
     `energy:user:analytics:${contractId}:${address}`;
+
+interface HarvestHistoryItem {
+    timestamp: number;
+    energy: number;
+    integral: number;
+    blockHeight?: number;
+    txId?: string;
+}
+
+interface UserEnergyData {
+    address: string;
+    totalEnergyHarvested: number;
+    totalIntegralCalculated: number;
+    harvestCount: number;
+    averageEnergyPerHarvest: number;
+    lastHarvestTimestamp: number;
+    estimatedEnergyRate: number;
+    estimatedIntegralRate: number;
+    harvestHistory: HarvestHistoryItem[];
+    hasData: boolean;
+}
 
 export async function GET(
     request: Request,
@@ -15,6 +37,8 @@ export async function GET(
     const { contractId } = await context.params;
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
+    const useMocks = searchParams.get('useMocks') === 'true' || process.env.NODE_ENV === 'development';
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
     // Set headers for caching and CORS
     const headers = {
@@ -33,86 +57,124 @@ export async function GET(
     }
 
     try {
-        // Check for cached data first
+        // Check for cached data first (unless refresh is requested)
         const cacheKey = getUserEnergyAnalyticsCacheKey(contractId, address);
-        const cachedData = await kv.get(cacheKey);
 
-        if (cachedData) {
-            console.log(`Returning cached user energy analytics for ${contractId}/${address}`);
-            return NextResponse.json({
-                status: 'success',
-                data: cachedData,
-                fromCache: true
-            }, { status: 200, headers });
+        if (!forceRefresh) {
+            const cachedData = await kv.get(cacheKey);
+
+            if (cachedData) {
+                console.log(`Returning cached user energy analytics for ${contractId}/${address}`);
+                return NextResponse.json({
+                    status: 'success',
+                    data: cachedData,
+                    fromCache: true
+                }, { status: 200, headers });
+            }
+        } else {
+            console.log(`Force refresh requested, skipping cache for ${contractId}/${address}`);
         }
 
         // No cached data, fetch from blockchain
         console.log(`Fetching energy analytics for contract: ${contractId}, user: ${address}`);
 
         // Get logs from blockchain
-        const allLogs = await fetcHoldToEarnLogs(contractId);
+        let allLogs = await fetcHoldToEarnLogs(contractId);
 
-        // Filter logs for the specific user
-        const userLogs = allLogs.filter(log => log.sender === address);
-
-        if (!userLogs || userLogs.length === 0) {
-            return NextResponse.json({
-                status: 'success',
-                data: null // No data for this user
-            }, { status: 200, headers });
+        // Use mock data in development if no real data exists
+        if (useMocks && (!allLogs || allLogs.length === 0)) {
+            console.log('Using mock logs for development');
+            allLogs = mockEnergyLogs.slice();
         }
 
-        // Sort logs by block height or time
-        const sortedLogs = [...userLogs].sort((a, b) => {
-            return (a.block_height || 0) - (b.block_height || 0);
+        // Check if logs exist at all
+        if (allLogs.length === 0) {
+            console.log('No logs found for contract', contractId);
+        } else {
+            console.log(`Found ${allLogs.length} logs for contract ${contractId}`);
+        }
+
+        // Debug - check all sender addresses in logs
+        const senderAddresses = new Set(allLogs.map(log => log.sender));
+        console.log('All sender addresses in logs:', Array.from(senderAddresses));
+
+        // IMPORTANT: Normalize the address to match the case sensitivity from the logs
+        // Some blockchain addresses might be case-sensitive in comparisons
+        const normalizedQueryAddress = address.trim();
+
+        // Filter logs for the specific user (with detailed logging)
+        console.log(`Filtering logs for user address: ${normalizedQueryAddress}`);
+
+        const userLogs = allLogs.filter(log => {
+            const senderMatches = log.sender === normalizedQueryAddress;
+            // Log if we find a match
+            if (senderMatches) {
+                console.log(`Found matching log: ${log.tx_id} with energy ${log.energy}`);
+            }
+            return senderMatches;
         });
 
-        // Calculate user stats
-        const totalEnergyHarvested = userLogs.reduce((sum, log) => sum + Number(log.energy), 0);
-        const totalIntegralCalculated = userLogs.reduce((sum, log) => sum + Number(log.integral), 0);
-        const harvestCount = userLogs.length;
-        const averageEnergyPerHarvest = harvestCount > 0 ? totalEnergyHarvested / harvestCount : 0;
+        console.log(`Found ${userLogs.length} logs for user ${normalizedQueryAddress}`);
 
-        // Calculate energy rate
-        let estimatedEnergyRate = 0;
-        let estimatedIntegralRate = 0;
-
-        if (sortedLogs.length > 1 && sortedLogs[0].block_time && sortedLogs[sortedLogs.length - 1].block_time) {
-            const timeSpanMinutes = (sortedLogs[sortedLogs.length - 1].block_time! - sortedLogs[0].block_time) / 60;
-            if (timeSpanMinutes > 0) {
-                estimatedEnergyRate = totalEnergyHarvested / timeSpanMinutes;
-                estimatedIntegralRate = totalIntegralCalculated / timeSpanMinutes;
-            }
-        }
-
-        // Format harvest history
-        const harvestHistory = sortedLogs.map(log => ({
-            timestamp: log.block_time_iso
-                ? new Date(log.block_time_iso).getTime()
-                : log.block_time ? log.block_time * 1000 : Date.now(),
-            energy: Number(log.energy),
-            integral: Number(log.integral),
-            blockHeight: log.block_height,
-            txId: log.tx_id
-        }));
-
-        // Get last harvest timestamp
-        const lastHarvestTimestamp = harvestHistory.length > 0
-            ? harvestHistory[harvestHistory.length - 1].timestamp
-            : Date.now();
-
-        // Assemble user data
-        const userData = {
+        // Create default/empty user stats
+        const userData: UserEnergyData = {
             address,
-            totalEnergyHarvested,
-            totalIntegralCalculated,
-            harvestCount,
-            averageEnergyPerHarvest,
-            lastHarvestTimestamp,
-            estimatedEnergyRate,
-            estimatedIntegralRate,
-            harvestHistory
+            totalEnergyHarvested: 0,
+            totalIntegralCalculated: 0,
+            harvestCount: 0,
+            averageEnergyPerHarvest: 0,
+            lastHarvestTimestamp: Date.now(),
+            estimatedEnergyRate: 0,
+            estimatedIntegralRate: 0,
+            harvestHistory: [],
+            hasData: false
         };
+
+        // If we have logs, calculate actual stats
+        if (userLogs && userLogs.length > 0) {
+            // Sort logs by block height or time
+            const sortedLogs = [...userLogs].sort((a, b) => {
+                return (a.block_height || 0) - (b.block_height || 0);
+            });
+
+            // Calculate user stats
+            userData.totalEnergyHarvested = userLogs.reduce((sum, log) => sum + Number(log.energy), 0);
+            userData.totalIntegralCalculated = userLogs.reduce((sum, log) => sum + Number(log.integral), 0);
+            userData.harvestCount = userLogs.length;
+            userData.averageEnergyPerHarvest = userData.harvestCount > 0 ? userData.totalEnergyHarvested / userData.harvestCount : 0;
+            userData.hasData = true;
+
+            // Calculate energy rate
+            if (sortedLogs.length > 1 && sortedLogs[0].block_time && sortedLogs[sortedLogs.length - 1].block_time) {
+                const timeSpanMinutes = (sortedLogs[sortedLogs.length - 1].block_time! - sortedLogs[0].block_time) / 60;
+                if (timeSpanMinutes > 0) {
+                    userData.estimatedEnergyRate = userData.totalEnergyHarvested / timeSpanMinutes;
+                    userData.estimatedIntegralRate = userData.totalIntegralCalculated / timeSpanMinutes;
+                }
+            }
+
+            // Format harvest history
+            userData.harvestHistory = sortedLogs.map(log => ({
+                timestamp: log.block_time_iso
+                    ? new Date(log.block_time_iso).getTime()
+                    : log.block_time ? log.block_time * 1000 : Date.now(),
+                energy: Number(log.energy),
+                integral: Number(log.integral),
+                blockHeight: log.block_height,
+                txId: log.tx_id
+            }));
+
+            // Get last harvest timestamp
+            if (userData.harvestHistory.length > 0) {
+                userData.lastHarvestTimestamp = userData.harvestHistory[userData.harvestHistory.length - 1].timestamp;
+            }
+        } else if (useMocks) {
+            // Provide some mock data for better UI demonstration
+            const mockRate = Math.floor(Math.random() * 10000) + 5000;
+            userData.estimatedEnergyRate = mockRate;
+            userData.estimatedIntegralRate = mockRate * 0.85;
+            userData.hasData = false;
+        }
 
         // Store in cache
         await kv.set(cacheKey, userData, { ex: CACHE_DURATION });

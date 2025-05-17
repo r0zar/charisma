@@ -23,11 +23,14 @@ import {
     ListChecks,
     ArrowDownUp,
     ExternalLinkIcon,
-    InfoIcon
+    InfoIcon,
+    PauseIcon,
+    PlayIcon
 } from 'lucide-react';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens'
 import Link from 'next/link';
 import { fetcHoldToEarnLogs } from '@/lib/energy/analytics';
+import EnergyRateChart from '../charts/EnergyRateChart';
 
 interface EnergyStats {
     totalEnergyHarvested: number;
@@ -69,6 +72,7 @@ interface UserEnergyStats {
         blockHeight?: number;
         txId?: string;
     }[];
+    hasData?: boolean;
 }
 
 interface HarvestLogTransactionDetails {
@@ -92,6 +96,231 @@ interface EnergyAnalyticsProps {
 }
 
 const ENERGY_TOKEN_CONTRACT_ID = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy';
+
+function SimpleLineChart({ data, height = 200, width = '100%' }: {
+    data: { timestamp: number; rate: number }[],
+    height?: number,
+    width?: string | number
+}) {
+    const [hoveredPoint, setHoveredPoint] = useState<{ index: number, x: number, y: number } | null>(null);
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p>No data available</p>
+            </div>
+        );
+    }
+
+    // Find min and max values for scaling
+    const maxRate = Math.max(...data.map(d => d.rate));
+    const minRate = Math.min(...data.map(d => d.rate));
+
+    // Add 10% padding to the top
+    const yMax = maxRate * 1.1;
+    const yMin = Math.max(0, minRate * 0.9); // Don't go below 0
+
+    // Calculate timestamps for x-axis
+    const timestamps = data.map(d => d.timestamp);
+    const minTime = Math.min(...timestamps);
+    const maxTime = Math.max(...timestamps);
+
+    // SVG dimensions and padding
+    const paddingX = 40;
+    const paddingY = 30;
+    const chartWidth = typeof width === 'number' ? width : parseInt(width) || 400;
+    const chartHeight = height;
+    const innerWidth = chartWidth - (paddingX * 2);
+    const innerHeight = chartHeight - (paddingY * 2);
+
+    // Scale functions to convert data values to pixel positions
+    const scaleX = (timestamp: number) => {
+        return paddingX + (innerWidth * (timestamp - minTime) / (maxTime - minTime));
+    };
+
+    const scaleY = (rate: number) => {
+        return chartHeight - paddingY - (innerHeight * (rate - yMin) / (yMax - yMin));
+    };
+
+    // Generate the SVG path for the line
+    const pathData = data.map((point, i) => {
+        const x = scaleX(point.timestamp);
+        const y = scaleY(point.rate);
+        return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+    }).join(' ');
+
+    // Format date for x-axis labels
+    const formatDate = (timestamp: number) => {
+        const date = new Date(timestamp);
+        return date.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    // Format date for tooltip
+    const formatTooltipDate = (timestamp: number) => {
+        const date = new Date(timestamp);
+        return date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    // Generate grid lines
+    const numYGridLines = 4;
+    const yGridLines = Array.from({ length: numYGridLines + 1 }).map((_, i) => {
+        const y = paddingY + (innerHeight * i / numYGridLines);
+        const value = yMax - ((yMax - yMin) * i / numYGridLines);
+        return { y, value };
+    });
+
+    return (
+        <div className="w-full h-full bg-muted/20 rounded-lg py-2 relative">
+            <svg width={width} height={height} className="overflow-visible">
+                {/* Background grid lines */}
+                {yGridLines.map((line, i) => (
+                    <React.Fragment key={`grid-${i}`}>
+                        <line
+                            x1={paddingX}
+                            y1={line.y}
+                            x2={chartWidth - paddingX}
+                            y2={line.y}
+                            stroke="currentColor"
+                            strokeOpacity={0.1}
+                            strokeDasharray="4,4"
+                        />
+                        <text
+                            x={paddingX - 5}
+                            y={line.y + 4}
+                            textAnchor="end"
+                            fontSize={10}
+                            fill="currentColor"
+                            opacity={0.7}
+                        >
+                            {line.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </text>
+                    </React.Fragment>
+                ))}
+
+                {/* Y-axis line */}
+                <line
+                    x1={paddingX}
+                    y1={paddingY}
+                    x2={paddingX}
+                    y2={chartHeight - paddingY}
+                    stroke="currentColor"
+                    strokeOpacity={0.2}
+                />
+
+                {/* X-axis line */}
+                <line
+                    x1={paddingX}
+                    y1={chartHeight - paddingY}
+                    x2={chartWidth - paddingX}
+                    y2={chartHeight - paddingY}
+                    stroke="currentColor"
+                    strokeOpacity={0.2}
+                />
+
+                {/* Area under the line */}
+                <path
+                    d={`${pathData} L ${scaleX(data[data.length - 1].timestamp)},${chartHeight - paddingY} L ${scaleX(data[0].timestamp)},${chartHeight - paddingY} Z`}
+                    fill="hsl(var(--primary))"
+                    fillOpacity={0.1}
+                />
+
+                {/* Main data line */}
+                <path
+                    d={pathData}
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+
+                {/* Data points with interactions */}
+                {data.map((point, i) => (
+                    <g key={i}>
+                        <circle
+                            cx={scaleX(point.timestamp)}
+                            cy={scaleY(point.rate)}
+                            r={4}
+                            fill="hsl(var(--background))"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={2}
+                        />
+                        {/* Invisible larger circle for easier hover */}
+                        <circle
+                            cx={scaleX(point.timestamp)}
+                            cy={scaleY(point.rate)}
+                            r={10}
+                            fill="transparent"
+                            onMouseEnter={() => setHoveredPoint({
+                                index: i,
+                                x: scaleX(point.timestamp),
+                                y: scaleY(point.rate)
+                            })}
+                            onMouseLeave={() => setHoveredPoint(null)}
+                            style={{ cursor: 'pointer' }}
+                        />
+                    </g>
+                ))}
+
+                {/* X-axis labels (first and last only) */}
+                <text
+                    x={paddingX}
+                    y={chartHeight - paddingY + 15}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fill="currentColor"
+                    opacity={0.7}
+                >
+                    {formatDate(minTime)}
+                </text>
+
+                <text
+                    x={chartWidth - paddingX}
+                    y={chartHeight - paddingY + 15}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fill="currentColor"
+                    opacity={0.7}
+                >
+                    {formatDate(maxTime)}
+                </text>
+            </svg>
+
+            {/* Tooltip */}
+            {hoveredPoint !== null && (
+                <div
+                    className="absolute pointer-events-none bg-background border border-border rounded-md shadow-md p-2 text-xs"
+                    style={{
+                        left: hoveredPoint.x + 10,
+                        top: hoveredPoint.y - 40,
+                        transform: 'translateY(-100%)',
+                        minWidth: '150px',
+                        zIndex: 10
+                    }}
+                >
+                    <div className="font-semibold">{formatTooltipDate(data[hoveredPoint.index].timestamp)}</div>
+                    <div className="flex justify-between mt-1">
+                        <span className="text-muted-foreground">Rate:</span>
+                        <span className="font-medium">{data[hoveredPoint.index].rate.toLocaleString(undefined, {
+                            maximumFractionDigits: 2
+                        })}</span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
     const { walletState } = useApp();
@@ -342,8 +571,6 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
         return `${address.slice(0, start)}...${address.slice(-end)}`;
     };
 
-    console.log({ rates })
-
     useEffect(() => {
         const fetchAnalyticsDataAndDecimals = async () => {
             setIsLoading(true);
@@ -568,66 +795,61 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                     <TabsContent value="rates" className="space-y-4">
                         {rates && (
                             <>
-                                <div className="bg-muted/30 p-4 rounded-lg">
-                                    <h3 className="text-base font-semibold mb-3">Energy Accrual Rates</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <div className="text-sm text-muted-foreground mb-1">Energy per Minute</div>
-                                            <div className="text-xl font-bold">{formatNumber(rates.overallEnergyPerMinute)}</div>
-                                            <div className="text-xs text-muted-foreground mt-1">Average energy accrual rate</div>
+                                <div className="p-6 grid grid-cols-1 gap-4">
+                                    <span className="font-medium">Energy Accrual Rates</span>
+                                    <div className="border rounded border-muted p-6">
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <Tabs value={activeTimeframe} className="w-full" onValueChange={(v) => setActiveTimeframe(v as any)}>
+                                                <TabsList className="grid w-full grid-cols-3">
+                                                    <TabsTrigger value="daily">Daily</TabsTrigger>
+                                                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                                                    <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                                                </TabsList>
+                                            </Tabs>
                                         </div>
 
-                                        <div>
-                                            <div className="text-sm text-muted-foreground mb-1">Integral per Minute</div>
-                                            <div className="text-xl font-bold">{formatNumber(rates.overallIntegralPerMinute)}</div>
-                                            <div className="text-xs text-muted-foreground mt-1">Average integral accrual rate</div>
+                                        <div className="h-64 rounded-lg">
+                                            {rates?.rateHistoryTimeframes[activeTimeframe].length > 0 ? (
+                                                <EnergyRateChart
+                                                    data={rates.rateHistoryTimeframes[activeTimeframe]
+                                                        .map(item => ({ timestamp: item.timestamp, rate: item.rate }))}
+                                                    height={240}
+                                                />
+                                            ) : (
+                                                <div className="flex items-center justify-center h-full bg-muted/20 rounded-lg">
+                                                    <p className="text-muted-foreground text-sm">No rate data available</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                </div>
 
-                                <div className="bg-muted/30 p-4 rounded-lg">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <h3 className="text-base font-semibold">Energy Rate History</h3>
-                                        <div className="flex space-x-1">
-                                            <Button
-                                                variant={activeTimeframe === 'daily' ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={() => setActiveTimeframe('daily')}
-                                                className="h-7 text-xs"
-                                            >
-                                                Day
-                                            </Button>
-                                            <Button
-                                                variant={activeTimeframe === 'weekly' ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={() => setActiveTimeframe('weekly')}
-                                                className="h-7 text-xs"
-                                            >
-                                                Week
-                                            </Button>
-                                            <Button
-                                                variant={activeTimeframe === 'monthly' ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={() => setActiveTimeframe('monthly')}
-                                                className="h-7 text-xs"
-                                            >
-                                                Month
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    <div className="h-64 bg-muted/80 rounded-lg p-4 flex items-center justify-center">
-                                        <div className="text-center text-muted-foreground">
-                                            <LineChart className="h-8 w-8 mx-auto mb-2" />
-                                            <p>Energy rate chart would appear here</p>
-                                            <p className="text-xs mt-1">
-                                                Showing {activeTimeframe} rates:
-                                                {rates.rateHistoryTimeframes[activeTimeframe].length} data points
-                                            </p>
-                                            <p className="text-xs mt-2 text-green-500">
-                                                Data is collected and updated automatically by cron job
-                                                <br />Last updated: {formatTimeAgo(rates.lastCalculated)}
-                                            </p>
+                                        <div className="mt-6 flex justify-between items-center">
+                                            <div>
+                                                <span className="text-muted-foreground text-sm">Current Rate:</span>
+                                                <span className="font-medium ml-2">{formatNumber(rates?.overallEnergyPerMinute || 0)}/min</span>
+                                            </div>
+                                            <div>
+                                                {autoRefreshEnabled ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setAutoRefreshEnabled(false)}
+                                                        className="text-xs h-8"
+                                                    >
+                                                        <PauseIcon className="mr-1 h-3 w-3" />
+                                                        Pause Updates
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setAutoRefreshEnabled(true)}
+                                                        className="text-xs h-8"
+                                                    >
+                                                        <PlayIcon className="mr-1 h-3 w-3" />
+                                                        Auto Update
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -697,16 +919,24 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                         <div>
                                             <div className="text-sm text-muted-foreground mb-1">Total Energy Harvested</div>
                                             <div className="text-xl font-bold">{formatNumber(userStats.totalEnergyHarvested)}</div>
+                                            {!userStats.hasData && userStats.totalEnergyHarvested === 0 && (
+                                                <div className="text-xs text-muted-foreground mt-1">No harvest data yet</div>
+                                            )}
                                         </div>
 
                                         <div>
                                             <div className="text-sm text-muted-foreground mb-1">Harvest Count</div>
                                             <div className="text-xl font-bold">{userStats.harvestCount}</div>
+                                            {!userStats.hasData && userStats.harvestCount === 0 && (
+                                                <div className="text-xs text-muted-foreground mt-1">No harvests yet</div>
+                                            )}
                                         </div>
 
                                         <div>
                                             <div className="text-sm text-muted-foreground mb-1">Last Harvest</div>
-                                            <div className="text-xl font-bold">{formatTimeAgo(userStats.lastHarvestTimestamp)}</div>
+                                            <div className="text-xl font-bold">
+                                                {userStats.hasData ? formatTimeAgo(userStats.lastHarvestTimestamp) : 'N/A'}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -718,6 +948,9 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                             <div>
                                                 <div className="text-sm text-muted-foreground mb-1">Energy per Minute</div>
                                                 <div className="text-xl font-bold">{formatNumber(userStats.estimatedEnergyRate)}</div>
+                                                {!userStats.hasData && userStats.estimatedEnergyRate > 0 && (
+                                                    <div className="text-xs text-muted-foreground mt-1">Estimated rate based on current system data</div>
+                                                )}
                                             </div>
 
                                             <div className="flex justify-between text-xs text-muted-foreground">
@@ -742,7 +975,14 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                                         <div className="h-40 overflow-auto pr-2">
                                             {userStats.harvestHistory?.length === 0 ? (
                                                 <div className="text-center text-muted-foreground py-4">
-                                                    No harvest history found
+                                                    {!userStats.hasData ? (
+                                                        <>
+                                                            <p>No harvest records found</p>
+                                                            <p className="text-xs mt-2">Try harvesting energy to see your history</p>
+                                                        </>
+                                                    ) : (
+                                                        <>No harvest history found</>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
@@ -772,13 +1012,60 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
 
                                 <div className="h-64 bg-muted/80 rounded-lg p-4 flex items-center justify-center">
                                     <div className="text-center text-muted-foreground">
-                                        <BarChart className="h-8 w-8 mx-auto mb-2" />
-                                        <p>Energy harvest history chart would appear here</p>
-                                        <p className="text-xs mt-1">
-                                            Showing {userStats.harvestHistory?.length} harvests over time
-                                        </p>
+                                        {!userStats.hasData ? (
+                                            <>
+                                                <InfoIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground/70" />
+                                                <p>Once you harvest energy, your history will appear here</p>
+                                                <p className="text-xs mt-1">
+                                                    Your estimated energy rate is based on system data
+                                                </p>
+                                                <div className="mt-4">
+                                                    <Link
+                                                        href={`/api/v1/energy/${vaultContractId}/user?address=${userStats.address}&refresh=true`}
+                                                        target="_blank"
+                                                        className="text-xs text-primary/70 hover:text-primary flex items-center justify-center gap-1"
+                                                    >
+                                                        <ExternalLinkIcon className="h-3 w-3" />
+                                                        View raw data
+                                                    </Link>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <BarChart className="h-8 w-8 mx-auto mb-2" />
+                                                <p>Energy harvest history chart would appear here</p>
+                                                <p className="text-xs mt-1">
+                                                    Showing {userStats.harvestHistory?.length} harvests over time
+                                                </p>
+                                                <div className="mt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleRefreshData}
+                                                        className="text-xs h-7"
+                                                    >
+                                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                                        Refresh Data
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
+
+                                {process.env.NODE_ENV === 'development' && (
+                                    <Alert className="mt-4 bg-muted/20 border border-muted">
+                                        <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                                        <AlertTitle className="text-sm">Debug Information</AlertTitle>
+                                        <AlertDescription className="text-xs">
+                                            {userStats.hasData ? (
+                                                <p>User has harvest data. Found {userStats.harvestHistory.length} harvest records.</p>
+                                            ) : (
+                                                <p>No harvest records found for this address. System is showing estimated rates.</p>
+                                            )}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                             </>
                         )}
                     </TabsContent>
