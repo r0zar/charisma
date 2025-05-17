@@ -13,11 +13,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, HelpCircle, Info, Edit, ExternalLink } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Vault {
     contractId: string;
+    type?: string;
     name: string;
-    symbol: string;
+    symbol?: string;
     description: string;
     image: string;
     fee: number;
@@ -38,7 +40,7 @@ interface PreviewDataState {
     requiresManualInput?: boolean;
 }
 
-export default function PoolImporter({ initialVaults = [] }: { initialVaults?: Vault[] }) {
+export default function VaultImporter({ initialVaults = [] }: { initialVaults?: Vault[] }) {
     const searchParams = useSearchParams();
     const { walletState, fetchWithAdminAuth } = useApp();
     const [vaults, setVaults] = useState<Vault[]>(initialVaults);
@@ -46,6 +48,9 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [debugMode, setDebugMode] = useState(true);
+    const [advancedMode, setAdvancedMode] = useState(false);
+    const [manualJsonInput, setManualJsonInput] = useState('');
+    const [isValidJson, setIsValidJson] = useState(true);
 
     // Preview state
     const [previewData, setPreviewData] = useState<PreviewDataState | null>(null);
@@ -62,6 +67,8 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
     const [manualLpIdentifier, setManualLpIdentifier] = useState('');
     const [manualLpFeePercent, setManualLpFeePercent] = useState('');
     const [manualExternalPoolId, setManualExternalPoolId] = useState('');
+    const [manualVaultType, setManualVaultType] = useState('POOL'); // Default type
+    const [manualProtocol, setManualProtocol] = useState('CHARISMA'); // Default protocol
 
     // Effect to initialize manual LP overrides when preview data loads
     useEffect(() => {
@@ -72,6 +79,8 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
             setManualLpIdentifier(previewData.lpToken.identifier || '');
             setManualLpFeePercent(previewData.lpToken.lpRebatePercent?.toString() || '');
             setManualExternalPoolId(previewData.lpToken.externalPoolId || '');
+            setManualVaultType(previewData.lpToken.type || 'POOL');
+            setManualProtocol(previewData.lpToken.protocol || 'CHARISMA');
         }
     }, [previewData?.lpToken]);
 
@@ -92,8 +101,52 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
         );
     }, [vaults, searchTerm]);
 
+    // Handle manual JSON input changes
+    const handleJsonInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = event.target.value;
+        setManualJsonInput(newValue);
+
+        try {
+            JSON.parse(newValue);
+            setIsValidJson(true);
+        } catch (e) {
+            setIsValidJson(false);
+        }
+    };
+
     // Step 1: Preview vault data
     const handlePreview = async () => {
+        if (advancedMode) {
+            // In advanced mode, validate and use the JSON input
+            if (!isValidJson) {
+                setError('Invalid JSON format. Please correct your input.');
+                return;
+            }
+
+            try {
+                const manualData = JSON.parse(manualJsonInput);
+                if (!manualData.contractId) {
+                    setError('JSON must include at least a contractId field.');
+                    return;
+                }
+
+                setIsLoading(true);
+                setError(null);
+                setPreviewData({
+                    lpToken: manualData,
+                    tokenA: manualData.tokenA || null,
+                    tokenB: manualData.tokenB || null,
+                    requiresManualInput: !manualData.tokenA || !manualData.tokenB
+                });
+                setIsLoading(false);
+                return;
+            } catch (err: any) {
+                setError(err.message || 'Error parsing JSON input');
+                return;
+            }
+        }
+
+        // Standard mode - fetch from contract ID
         const id = searchTerm.trim();
         if (!looksLikeContractId(id)) {
             setError('Invalid contract ID format');
@@ -111,27 +164,70 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
         setManualLpIdentifier('');
         setManualLpFeePercent('');
         setManualExternalPoolId('');
+        setManualVaultType('POOL');
+        setManualProtocol('CHARISMA');
 
         try {
             const result = await previewVault(id);
+            console.log("Preview result:", result);
 
             if (result.success) {
-                if (result.requiresManualInput && result.lpToken) {
+                // First, handle the case where only the lpToken is returned
+                if (result.lpTokenDetails?.lpToken) {
+                    // Check if tokenA/tokenB are required but missing
+                    const vaultType = result.lpTokenDetails?.lpToken.type?.toUpperCase() || 'POOL';
+
+                    // POOL and SUBLINK types typically need tokenA/tokenB
+                    if ((vaultType === 'POOL' || vaultType === 'SUBLINK') && (!result.lpTokenDetails?.tokenA || !result.lpTokenDetails?.tokenB)) {
+                        // If manual input is explicitly flagged, handle gracefully
+                        if (result.requiresManualInput) {
+                            setPreviewData({
+                                lpToken: result.lpTokenDetails?.lpToken,
+                                requiresManualInput: true
+                            });
+                        } else {
+                            // Some tokens definitely need manual input
+                            setPreviewData({
+                                lpToken: result.lpTokenDetails?.lpToken,
+                                requiresManualInput: true
+                            });
+                            setError('Token information incomplete. Please provide Token A and B contract IDs manually.');
+                        }
+                    } else if (vaultType === 'ENERGY') {
+                        // Other vault types may not need tokenA/tokenB
+                        setPreviewData({
+                            lpToken: result.lpTokenDetails?.lpToken,
+                            tokenA: result.lpTokenDetails?.tokenA || null,
+                            tokenB: result.lpTokenDetails?.tokenB || null,
+                            requiresManualInput: false
+                        });
+                    } else if (result.lpTokenDetails?.tokenA && result.lpTokenDetails?.tokenB) {
+                        // Complete data case
+                        setPreviewData({
+                            lpToken: result.lpTokenDetails?.lpToken,
+                            tokenA: result.lpTokenDetails?.tokenA,
+                            tokenB: result.lpTokenDetails?.tokenB,
+                            requiresManualInput: false
+                        });
+                    } else {
+                        // Handle edge case - have lpToken but don't know if tokens are needed
+                        setPreviewData({
+                            lpToken: result.lpTokenDetails?.lpToken,
+                            requiresManualInput: true
+                        });
+                        setError('Not enough information to determine vault structure. Please fill in missing details.');
+                    }
+                } else if (result.contractMetadata) {
                     setPreviewData({
-                        lpToken: result.lpToken,
-                        requiresManualInput: true
-                    });
-                } else if (result.lpToken && result.tokenA && result.tokenB) {
-                    setPreviewData({
-                        lpToken: result.lpToken,
-                        tokenA: result.tokenA,
-                        tokenB: result.tokenB,
+                        lpToken: result.contractMetadata,
                         requiresManualInput: false
                     });
                 } else {
-                    setError('Preview succeeded but returned incomplete data.');
+                    // No lpToken at all is a critical failure
+                    setError('Preview returned no main vault data. Please check the contract ID.');
                 }
             } else {
+                // Handle explicit failure case
                 setError(result.error || 'Failed to preview vault');
             }
         } catch (err: any) {
@@ -173,10 +269,77 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
 
     // Step 2: Confirm and save the vault via API route
     const handleConfirm = async () => {
-        if (!previewData || !previewData.lpToken || !previewData.tokenA || !previewData.tokenB || previewData.requiresManualInput) {
-            setError('Cannot confirm: Missing complete token data.');
+        if (advancedMode) {
+            // In advanced mode, use the manual JSON data
+            if (!isValidJson) {
+                setError('Invalid JSON format. Cannot save.');
+                return;
+            }
+
+            setIsLoading(true);
+            try {
+                const manualData = JSON.parse(manualJsonInput);
+                const vaultContractId = manualData.contractId;
+
+                if (!vaultContractId) {
+                    setError('JSON must include a contractId field.');
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (!fetchWithAdminAuth) {
+                    setError('Admin authentication function not available. Cannot confirm.');
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Call the API with the entire JSON object
+                const apiUrl = `/api/v1/admin/vaults/${encodeURIComponent(vaultContractId)}/metadata`;
+                const response = await fetchWithAdminAuth(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: manualJsonInput,
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    console.log('Vault saved successfully via API.');
+                    setVaults(prevVaults => [...(prevVaults || []), manualData]);
+                    setManualJsonInput('');
+                    setError(null);
+                    setPreviewData(null);
+                } else {
+                    console.error('API Error Response:', result);
+                    setError(result.message || 'Failed to save vault via API');
+                }
+            } catch (err: any) {
+                console.error('Error during confirm:', err);
+                setError(err.message || 'An unexpected error occurred while saving');
+            } finally {
+                setIsLoading(false);
+            }
             return;
         }
+
+        // Standard mode - use preview data
+        if (!previewData || !previewData.lpToken) {
+            setError('Cannot confirm: Missing vault data.');
+            return;
+        }
+
+        // Check vault type to determine requirements
+        const vaultType = (manualVaultType || previewData.lpToken.type || 'POOL').toUpperCase();
+
+        // For POOL and SUBLINK types, we need token A and B
+        if ((vaultType === 'POOL' || vaultType === 'SUBLINK') &&
+            (previewData.requiresManualInput || !previewData.tokenA || !previewData.tokenB)) {
+            setError(`For ${vaultType} type vaults, both Token A and Token B are required.`);
+            return;
+        }
+
         if (!fetchWithAdminAuth) {
             setError('Admin authentication function not available. Cannot confirm.');
             return;
@@ -186,25 +349,47 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
         setIsLoading(true);
         setError(null);
 
-        const modifiedLpToken = {
+        // Prepare the modifiedLpToken, initially taking values from previewData.lpToken
+        const modifiedLpToken: any = {
             ...previewData.lpToken,
             name: manualLpName || previewData.lpToken.name,
-            symbol: manualLpSymbol || previewData.lpToken.symbol,
-            decimals: manualLpDecimals !== '' ? parseInt(manualLpDecimals, 10) : previewData.lpToken.decimals,
             identifier: manualLpIdentifier || previewData.lpToken.identifier,
-            lpRebatePercent: manualLpFeePercent !== '' ? parseFloat(manualLpFeePercent) : previewData.lpToken.lpRebatePercent,
             externalPoolId: manualExternalPoolId || previewData.lpToken.externalPoolId || '',
+            type: manualVaultType || previewData.lpToken.type || 'POOL',
+            protocol: manualProtocol || previewData.lpToken.protocol || 'CHARISMA',
         };
 
-        if (isNaN(modifiedLpToken.decimals) || modifiedLpToken.decimals < 0) {
-            setError('Invalid LP Token Decimals entered.');
-            setIsLoading(false);
-            return;
+        // Handle Decimals (optional)
+        if (manualLpDecimals === '') {
+            modifiedLpToken.decimals = undefined;
+        } else {
+            const parsedDecimals = parseInt(manualLpDecimals, 10);
+            if (isNaN(parsedDecimals) || parsedDecimals < 0) {
+                setError('Invalid LP Token Decimals: must be a non-negative integer if provided.');
+                setIsLoading(false);
+                return;
+            }
+            modifiedLpToken.decimals = parsedDecimals;
         }
-        if (isNaN(modifiedLpToken.lpRebatePercent) || modifiedLpToken.lpRebatePercent < 0) {
-            setError('Invalid LP Token Fee Percentage entered.');
-            setIsLoading(false);
-            return;
+
+        // Handle Symbol (optional)
+        if (manualLpSymbol === '') {
+            modifiedLpToken.symbol = undefined;
+        } else {
+            modifiedLpToken.symbol = manualLpSymbol;
+        }
+
+        // Handle Fee Percentage (lpRebatePercent) (optional)
+        if (manualLpFeePercent === '') {
+            modifiedLpToken.lpRebatePercent = undefined;
+        } else {
+            const parsedFee = parseFloat(manualLpFeePercent);
+            if (isNaN(parsedFee) || parsedFee < 0) {
+                setError('Invalid LP Token Fee Percentage: must be a non-negative number if provided.');
+                setIsLoading(false);
+                return;
+            }
+            modifiedLpToken.lpRebatePercent = parsedFee;
         }
 
         // Prepare the request body for the API (NO contractId here)
@@ -263,15 +448,74 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
         setManualLpIdentifier('');
         setManualLpFeePercent('');
         setManualExternalPoolId('');
+        setManualVaultType('POOL');
+        setManualProtocol('CHARISMA');
+    };
+
+    // Toggle advanced mode
+    const handleToggleAdvancedMode = () => {
+        setAdvancedMode(!advancedMode);
+        if (!advancedMode) {
+            // When switching to advanced mode, clear standard inputs
+            setPreviewData(null);
+            setError(null);
+            setSearchTerm('');
+        } else {
+            // When switching to standard mode, clear JSON input
+            setManualJsonInput('');
+        }
     };
 
     // Determine button states
-    const canPreview = looksLikeContractId(searchTerm) && !isLoading && !isFetchingManualTokens;
+    const canPreview = advancedMode
+        ? isValidJson && manualJsonInput.trim() !== ''
+        : looksLikeContractId(searchTerm) && !isLoading && !isFetchingManualTokens;
+
     const canFetchManual = looksLikeContractId(manualTokenAId) && looksLikeContractId(manualTokenBId) && !isLoading && !isFetchingManualTokens;
-    const canConfirm = previewData && previewData.lpToken && previewData.tokenA && previewData.tokenB && !previewData.requiresManualInput && !isLoading && !isFetchingManualTokens;
+
+    // More flexible canConfirm logic based on vault type
+    const canConfirm = advancedMode
+        ? isValidJson && manualJsonInput.trim() !== ''
+        : (() => {
+            // Return false if basic preconditions aren't met
+            if (!previewData || !previewData.lpToken || isLoading || isFetchingManualTokens) {
+                return false;
+            }
+
+            // Get vault type to determine tokens requirement
+            const vaultType = (manualVaultType || previewData.lpToken.type || 'POOL').toUpperCase();
+
+            // For POOL and SUBLINK, we need both tokens
+            if (vaultType === 'POOL' || vaultType === 'SUBLINK') {
+                return !previewData.requiresManualInput && previewData.tokenA && previewData.tokenB;
+            }
+
+            // For other types (ENERGY, etc.), tokens may be optional
+            return true;
+        })();
 
     return (
         <div className="w-full">
+            {/* Mode Toggle */}
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                    <Switch
+                        id="advanced-mode"
+                        checked={advancedMode}
+                        onCheckedChange={handleToggleAdvancedMode}
+                    />
+                    <Label htmlFor="advanced-mode">Advanced Mode (Direct JSON Editing)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch
+                        id="debug-mode"
+                        checked={debugMode}
+                        onCheckedChange={() => setDebugMode(!debugMode)}
+                    />
+                    <Label htmlFor="debug-mode">Debug Mode</Label>
+                </div>
+            </div>
+
             {/* Search & Add Section - Apply theme bg/border */}
             <div className="mb-8 bg-card p-6 rounded-lg shadow-lg border border-border">
                 {/* Error Message - Use Alert component with destructive variant */}
@@ -282,33 +526,73 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                     </Alert>
                 )}
 
-                {/* Step 1: Input + Preview Button */}
-                {!previewData && (
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <Input
-                            type="text"
-                            placeholder="Enter LP token or External Pool contract ID..."
-                            value={searchTerm}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                            disabled={isLoading}
-                            className="flex-grow"
-                        />
-                        <Button
-                            onClick={handlePreview}
-                            disabled={!canPreview}
-                            className="flex-shrink-0"
-                        >
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            {isLoading ? 'Loading...' : 'Preview Contract'}
-                        </Button>
+                {advancedMode ? (
+                    /* Advanced Mode: JSON Editor */
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="json-input">Direct Vault JSON</Label>
+                            <div className="text-xs text-muted-foreground mb-2">
+                                Enter complete vault data in JSON format. Must include a contractId field.
+                            </div>
+                            <Textarea
+                                id="json-input"
+                                value={manualJsonInput}
+                                onChange={handleJsonInputChange}
+                                placeholder='{"contractId": "SP...", "name": "My Vault", "type": "POOL", ...}'
+                                className={`font-mono h-64 ${!isValidJson && manualJsonInput.trim() !== '' ? 'border-destructive' : ''}`}
+                                disabled={isLoading}
+                            />
+                            {!isValidJson && manualJsonInput.trim() !== '' && (
+                                <p className="text-destructive text-xs mt-1">Invalid JSON format</p>
+                            )}
+                        </div>
+                        <div className="flex justify-end space-x-3">
+                            <Button
+                                onClick={handlePreview}
+                                disabled={!canPreview}
+                                variant="outline"
+                            >
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {isLoading ? 'Processing...' : 'Preview JSON'}
+                            </Button>
+                            <Button
+                                onClick={handleConfirm}
+                                disabled={!canConfirm || isLoading}
+                            >
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {isLoading ? 'Saving...' : 'Save Vault Directly'}
+                            </Button>
+                        </div>
                     </div>
+                ) : (
+                    /* Standard Mode: Input + Preview Button */
+                    !previewData && (
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Input
+                                type="text"
+                                placeholder="Enter vault or token contract ID..."
+                                value={searchTerm}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                disabled={isLoading}
+                                className="flex-grow"
+                            />
+                            <Button
+                                onClick={handlePreview}
+                                disabled={!canPreview}
+                                className="flex-shrink-0"
+                            >
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {isLoading ? 'Loading...' : 'Preview Contract'}
+                            </Button>
+                        </div>
+                    )
                 )}
 
-                {/* Step 1.5 & 2: Preview Data & Actions */}
-                {previewData && (
+                {/* Step 1.5 & 2: Preview Data & Actions (Standard Mode Only) */}
+                {!advancedMode && previewData && (
                     <div className="animate-fadeIn space-y-6">
                         <h2 className="text-lg font-semibold text-primary flex items-center">
-                            Vault Preview: {manualLpName || '(Name Missing)'} ({manualLpSymbol || '(Symbol Missing)'})
+                            Vault Preview: {manualLpName || previewData.lpToken?.name || '(Name Missing)'} ({manualLpSymbol || previewData.lpToken?.symbol})
                             {previewData.requiresManualInput && (
                                 <Badge variant="destructive" className="ml-2">Manual Input Required</Badge>
                             )}
@@ -335,10 +619,10 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                             </div>
                         )}
 
-                        {/* LP Token Info & Edit Section */}
+                        {/* Vault Info & Edit Section */}
                         <div className="mb-6 p-4 bg-muted/30 rounded-md border border-border relative group">
                             <h3 className="font-bold text-md mb-4 text-primary flex items-center">
-                                <Edit className="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100 transition-opacity" /> LP Token Details (Editable)
+                                <Edit className="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100 transition-opacity" /> Vault Details (Editable)
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
@@ -346,7 +630,7 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                                     <Input
                                         id="lpName" type="text"
                                         value={manualLpName} onChange={(e) => setManualLpName(e.target.value)}
-                                        placeholder={previewData.lpToken?.name || "Enter LP Token Name"}
+                                        placeholder={previewData.lpToken?.name || "Enter Vault Name"}
                                         disabled={isLoading || isFetchingManualTokens}
                                     />
                                 </div>
@@ -355,7 +639,7 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                                     <Input
                                         id="lpSymbol" type="text"
                                         value={manualLpSymbol} onChange={(e) => setManualLpSymbol(e.target.value)}
-                                        placeholder={previewData.lpToken?.symbol || "Enter LP Symbol"}
+                                        placeholder={previewData.lpToken?.symbol || "Enter Symbol (Optional)"}
                                         disabled={isLoading || isFetchingManualTokens}
                                     />
                                 </div>
@@ -364,7 +648,7 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                                     <Input
                                         id="lpDecimals" type="number" min="0" step="1"
                                         value={manualLpDecimals} onChange={(e) => setManualLpDecimals(e.target.value)}
-                                        placeholder={previewData.lpToken?.decimals?.toString() || "Enter Decimals"}
+                                        placeholder={previewData.lpToken?.decimals?.toString() || "Enter Decimals (Optional)"}
                                         disabled={isLoading || isFetchingManualTokens}
                                     />
                                 </div>
@@ -382,7 +666,7 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                                     <Input
                                         id="lpFeePercent" type="number" min="0" step="0.01"
                                         value={manualLpFeePercent} onChange={(e) => setManualLpFeePercent(e.target.value)}
-                                        placeholder={previewData.lpToken?.lpRebatePercent?.toString() || "Enter Fee %"}
+                                        placeholder={previewData.lpToken?.lpRebatePercent?.toString() || "Enter Fee % (Optional)"}
                                         disabled={isLoading || isFetchingManualTokens}
                                     />
                                 </div>
@@ -390,22 +674,42 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                                     <Label htmlFor="vaultContract">Vault Contract ID</Label>
                                     <Input id="vaultContract" type="text" value={searchTerm} disabled className="font-mono bg-muted/80" />
                                 </div>
-                            </div>
-                            <div className="border-t border-border/50 pt-4 mt-4">
-                                <Label htmlFor="manualExternalId" className="flex items-center gap-1 mb-1">
-                                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                                    External Pool ID <span className="text-xs text-muted-foreground">(Optional)</span>
-                                </Label>
-                                <Input
-                                    id="manualExternalId" type="text"
-                                    value={manualExternalPoolId} onChange={(e) => setManualExternalPoolId(e.target.value)}
-                                    placeholder={previewData.lpToken?.externalPoolId || "e.g., SP...uniswap-v2-pool"}
-                                    disabled={isLoading || isFetchingManualTokens}
-                                    className="font-mono"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    If this vault wraps or interacts with an external pool (like a UniV2 core), enter its contract ID here.
-                                </p>
+                                <div>
+                                    <Label htmlFor="vaultType">Vault Type</Label>
+                                    <select
+                                        id="vaultType"
+                                        value={manualVaultType}
+                                        onChange={(e) => setManualVaultType(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        disabled={isLoading || isFetchingManualTokens}
+                                    >
+                                        <option value="POOL">POOL (Liquidity Pool)</option>
+                                        <option value="SUBLINK">SUBLINK (Subnet Bridge)</option>
+                                        <option value="ENERGY">ENERGY (Hold-to-Earn Rewards)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <Label htmlFor="protocol">Protocol</Label>
+                                    <Input
+                                        id="protocol" type="text"
+                                        value={manualProtocol} onChange={(e) => setManualProtocol(e.target.value)}
+                                        placeholder="e.g., CHARISMA, ARKADIKO, etc."
+                                        disabled={isLoading || isFetchingManualTokens}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="manualExternalId" className="flex items-center gap-1 mb-1">
+                                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                                        External Pool ID <span className="text-xs text-muted-foreground">(Optional)</span>
+                                    </Label>
+                                    <Input
+                                        id="manualExternalId" type="text"
+                                        value={manualExternalPoolId} onChange={(e) => setManualExternalPoolId(e.target.value)}
+                                        placeholder={previewData.lpToken?.externalPoolId || "e.g., SP...uniswap-v2-pool"}
+                                        disabled={isLoading || isFetchingManualTokens}
+                                        className="font-mono"
+                                    />
+                                </div>
                             </div>
                             {/* Display original image/description if available */}
                             <div className="mt-4 flex items-start gap-4">
@@ -545,8 +849,8 @@ export default function PoolImporter({ initialVaults = [] }: { initialVaults?: V
                             </div>
                         )}
 
-                        {/* Action Buttons (Confirm/Cancel - Conditional) */}
-                        {!previewData.requiresManualInput && (
+                        {/* Action Buttons (Confirm/Cancel - Standard Mode) */}
+                        {previewData && !previewData.requiresManualInput && (
                             <div className="flex justify-end gap-3">
                                 <Button
                                     variant="outline"

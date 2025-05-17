@@ -6,9 +6,10 @@ import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
+import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ArrowRightLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/vaultService';
+import Image from 'next/image';
 
 // Utility to truncate contract id for display
 const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
@@ -97,6 +98,34 @@ const calculateUsdValue = (amount: number, decimals: number, contractId: string,
     return tokenUnits * price;
 };
 
+// Get vault type icon
+const getVaultTypeIcon = (type: string) => {
+    switch (type?.toUpperCase()) {
+        case 'POOL':
+            return <Layers className="w-5 h-5 text-primary" />;
+        case 'SUBLINK':
+            return <ArrowRightLeft className="w-5 h-5 text-primary" />;
+        case 'ENERGY':
+            return <Shield className="w-5 h-5 text-primary" />;
+        default:
+            return <Coins className="w-5 h-5 text-primary" />;
+    }
+};
+
+// Get vault type display name
+const getVaultTypeDisplay = (type: string) => {
+    switch (type?.toUpperCase()) {
+        case 'POOL':
+            return 'Liquidity Pool';
+        case 'SUBLINK':
+            return 'Subnet Bridge';
+        case 'ENERGY':
+            return 'Energy Vault';
+        default:
+            return type || 'Unknown';
+    }
+};
+
 interface Props {
     vaults: Vault[];
 }
@@ -106,7 +135,16 @@ export default function VaultList({ vaults }: Props) {
     const [removing, setRemoving] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(null);
+    const [filteredType, setFilteredType] = useState<string | null>(null);
     const isDev = process.env.NODE_ENV === 'development';
+
+    // Filter vaults by type if filter is active
+    const filteredVaults = filteredType
+        ? vaults.filter(v => (v.type || 'POOL').toUpperCase() === filteredType.toUpperCase())
+        : vaults;
+
+    // Get unique vault types for filter
+    const vaultTypes = ['ALL', ...Array.from(new Set(vaults.map(v => (v.type || 'POOL').toUpperCase())))];
 
     useEffect(() => {
         const fetchPrices = async () => {
@@ -153,13 +191,33 @@ export default function VaultList({ vaults }: Props) {
     return (
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center">
-                    <Layers className="w-5 h-5 mr-2 text-primary" />
-                    Vaults
-                    <Badge variant="secondary" className="ml-auto">
-                        {vaults.length} vault{vaults.length !== 1 ? 's' : ''}
-                    </Badge>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center">
+                        {!filteredType || filteredType === 'ALL' ? (
+                            <Coins className="w-5 h-5 mr-2 text-primary" />
+                        ) : (
+                            getVaultTypeIcon(filteredType)
+                        )}
+                        Vaults
+                        <Badge variant="secondary" className="ml-2">
+                            {filteredVaults.length} vault{filteredVaults.length !== 1 ? 's' : ''}
+                        </Badge>
+                    </CardTitle>
+
+                    {/* Type Filter Badges */}
+                    <div className="flex gap-2">
+                        {vaultTypes.map(type => (
+                            <Badge
+                                key={type}
+                                variant={!filteredType && type === 'ALL' || filteredType === type ? 'default' : 'outline'}
+                                className="cursor-pointer"
+                                onClick={() => setFilteredType(type === 'ALL' ? null : type)}
+                            >
+                                {type === 'ALL' ? 'All Types' : type}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -168,29 +226,26 @@ export default function VaultList({ vaults }: Props) {
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Contract</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Type</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Protocol</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Fee</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Liquidity</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Status</th>
                                 <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {vaults.map(v => {
+                            {filteredVaults.map(v => {
                                 const isRefreshing = refreshing === v.contractId;
                                 const isRemoving = removing === v.contractId;
                                 const isExpanded = expandedVault === v.contractId;
+                                const vaultType = v.type?.toUpperCase() || 'POOL';
 
-                                const formattedReservesA = formatTokenAmount(v.reservesA || 0, v.tokenA.decimals || 0);
-                                const formattedReservesB = formatTokenAmount(v.reservesB || 0, v.tokenB.decimals || 0);
-
-                                const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA.decimals || 0, v.tokenA.contractId, prices);
-                                const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB.decimals || 0, v.tokenB.contractId, prices);
-                                const totalUsdValue = (usdValueA !== null && usdValueB !== null) ? (usdValueA + usdValueB) : null;
-
-                                const formattedUsdValueA = formatUsdValue(usdValueA);
-                                const formattedUsdValueB = formatUsdValue(usdValueB);
-                                const formattedTotalUsdValue = formatUsdValue(totalUsdValue);
+                                // Get proper link based on vault type
+                                const vaultLink = vaultType === 'SUBLINK'
+                                    ? `/sublinks/${v.contractId}`
+                                    : vaultType === 'ENERGY'
+                                        ? `/energy/${v.contractId}`
+                                        : `/vaults/${v.contractId}`;
 
                                 const lastUpdated = (v as any).reservesLastUpdatedAt;
                                 const updateStatus = getTimeSinceUpdate(lastUpdated);
@@ -199,10 +254,12 @@ export default function VaultList({ vaults }: Props) {
                                     <React.Fragment key={v.contractId}>
                                         <tr className={`${isExpanded ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
                                             <td className="p-4 whitespace-nowrap font-medium flex">
-                                                <Link href={`/vaults/${v.contractId}`} className="flex items-center gap-2 group">
+                                                <Link href={vaultLink} className="flex items-center gap-2 group">
                                                     {v.image && (
                                                         <div className="flex-shrink-0 h-8 w-8">
-                                                            <img
+                                                            <Image
+                                                                width={32}
+                                                                height={32}
                                                                 src={v.image}
                                                                 alt={`${v.name} logo`}
                                                                 className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
@@ -228,42 +285,45 @@ export default function VaultList({ vaults }: Props) {
                                                 <Badge variant="outline">{truncateContractId(v.contractId)}</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="flex items-center">
-                                                        {v.tokenA.image && (
-                                                            <img
-                                                                src={v.tokenA.image}
-                                                                alt={v.tokenA.symbol}
-                                                                className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
-                                                            />
-                                                        )}
-                                                        <span className="text-primary font-medium">{v.tokenA.symbol}</span>
-                                                    </span>
-                                                    <span className="text-muted-foreground">/</span>
-                                                    <span className="flex items-center">
-                                                        {v.tokenB.image && (
-                                                            <img
-                                                                src={v.tokenB.image}
-                                                                alt={v.tokenB.symbol}
-                                                                className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
-                                                            />
-                                                        )}
-                                                        <span className="text-secondary font-medium">{v.tokenB.symbol}</span>
-                                                    </span>
-                                                </div>
+                                                <Badge className={`
+                                                    ${vaultType === 'POOL' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' : ''}
+                                                    ${vaultType === 'SUBLINK' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' : ''}
+                                                    ${vaultType === 'ENERGY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30' : ''}
+                                                `}>
+                                                    {getVaultTypeDisplay(vaultType)}
+                                                </Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <Badge variant="outline">{(v.fee / 10000).toFixed(2)}%</Badge>
+                                                <Badge variant="outline">{v.protocol || 'UNKNOWN'}</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <div className="flex flex-col items-start">
-                                                    <span className="font-medium text-foreground">
-                                                        {formattedTotalUsdValue}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {formattedReservesA} {v.tokenA.symbol} / {formattedReservesB} {v.tokenB.symbol}
-                                                    </span>
-                                                </div>
+                                                {v.tokenA && v.tokenB ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="flex items-center">
+                                                            {v.tokenA.image && (
+                                                                <img
+                                                                    src={v.tokenA.image}
+                                                                    alt={v.tokenA.symbol}
+                                                                    className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
+                                                                />
+                                                            )}
+                                                            <span className="text-primary font-medium">{v.tokenA.symbol}</span>
+                                                        </span>
+                                                        <span className="text-muted-foreground">/</span>
+                                                        <span className="flex items-center">
+                                                            {v.tokenB.image && (
+                                                                <img
+                                                                    src={v.tokenB.image}
+                                                                    alt={v.tokenB.symbol}
+                                                                    className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
+                                                                />
+                                                            )}
+                                                            <span className="text-secondary font-medium">{v.tokenB.symbol}</span>
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground">-</span>
+                                                )}
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge
@@ -309,55 +369,90 @@ export default function VaultList({ vaults }: Props) {
 
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">Engine Contract</h4>
-                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
+                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
                                                             </div>
 
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">External Pool ID</h4>
-                                                                <p className="text-sm font-mono text-xs bg-muted/50 px-2 py-1 rounded inline-block">{v.externalPoolId || 'N/A'}</p>
+                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.externalPoolId || 'N/A'}</p>
                                                             </div>
                                                         </div>
 
-                                                        <div className="space-y-4">
-                                                            <div>
-                                                                <h4 className="text-sm font-medium text-muted-foreground mb-2">Token Details</h4>
-                                                                <div className="bg-muted/30 rounded-lg p-3 mb-2">
-                                                                    <div className="flex items-center mb-1">
-                                                                        {v.tokenA.image && (
-                                                                            <img
-                                                                                src={v.tokenA.image}
-                                                                                alt={v.tokenA.symbol}
-                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
-                                                                            />
+                                                        {v.tokenA && v.tokenB && (
+                                                            <div className="space-y-4">
+                                                                <div>
+                                                                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Token Details</h4>
+                                                                    <div className="bg-muted/30 rounded-lg p-3 mb-2">
+                                                                        <div className="flex items-center mb-1">
+                                                                            {v.tokenA.image && (
+                                                                                <img
+                                                                                    src={v.tokenA.image}
+                                                                                    alt={v.tokenA.symbol}
+                                                                                    className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                                />
+                                                                            )}
+                                                                            <h5 className="font-medium text-primary">{v.tokenA.symbol}</h5>
+                                                                        </div>
+                                                                        <p className="text-xs font-mono mb-1 pl-7">{v.tokenA.contractId}</p>
+                                                                        {v.reservesA !== undefined && (
+                                                                            <div className="text-xs pl-7">
+                                                                                <span>Balance: {formatTokenAmount(v.reservesA, v.tokenA.decimals || 0)}</span>
+                                                                            </div>
                                                                         )}
-                                                                        <h5 className="font-medium text-primary">{v.tokenA.symbol}</h5>
                                                                     </div>
-                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenA.contractId}</p>
-                                                                    <div className="flex justify-between text-xs pl-7">
-                                                                        <span>Balance: {formattedReservesA}</span>
-                                                                        <span>Value: {formattedUsdValueA}</span>
-                                                                    </div>
-                                                                </div>
 
-                                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                                    <div className="flex items-center mb-1">
-                                                                        {v.tokenB.image && (
-                                                                            <img
-                                                                                src={v.tokenB.image}
-                                                                                alt={v.tokenB.symbol}
-                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
-                                                                            />
+                                                                    <div className="bg-muted/30 rounded-lg p-3">
+                                                                        <div className="flex items-center mb-1">
+                                                                            {v.tokenB.image && (
+                                                                                <img
+                                                                                    src={v.tokenB.image}
+                                                                                    alt={v.tokenB.symbol}
+                                                                                    className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                                />
+                                                                            )}
+                                                                            <h5 className="font-medium text-secondary">{v.tokenB.symbol}</h5>
+                                                                        </div>
+                                                                        <p className="text-xs font-mono mb-1 pl-7">{v.tokenB.contractId}</p>
+                                                                        {v.reservesB !== undefined && (
+                                                                            <div className="text-xs pl-7">
+                                                                                <span>Balance: {formatTokenAmount(v.reservesB, v.tokenB.decimals || 0)}</span>
+                                                                            </div>
                                                                         )}
-                                                                        <h5 className="font-medium text-secondary">{v.tokenB.symbol}</h5>
-                                                                    </div>
-                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenB.contractId}</p>
-                                                                    <div className="flex justify-between text-xs pl-7">
-                                                                        <span>Balance: {formattedReservesB}</span>
-                                                                        <span>Value: {formattedUsdValueB}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
+                                                        )}
+
+                                                        {/* Additional information for other vault types */}
+                                                        {vaultType === 'SUBLINK' && (
+                                                            <div className="space-y-2 bg-purple-500/5 p-3 rounded-lg border border-purple-500/20">
+                                                                <h4 className="text-sm font-medium text-purple-500">Subnet Bridge Details</h4>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    This bridge connects Stacks mainnet with a subnet network, allowing assets to move between chains.
+                                                                </p>
+                                                                {v.tokenBContract && (
+                                                                    <div className="text-xs">
+                                                                        <span className="text-muted-foreground">Subnet Token Contract: </span>
+                                                                        <span className="font-mono">{v.tokenBContract}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {vaultType === 'ENERGY' && (
+                                                            <div className="space-y-2 bg-green-500/5 p-3 rounded-lg border border-green-500/20">
+                                                                <h4 className="text-sm font-medium text-green-500">Energy Vault Details</h4>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    This vault gives users energy for holding tokens.
+                                                                </p>
+                                                                {v.fee > 0 && (
+                                                                    <div className="text-xs">
+                                                                        <span className="text-muted-foreground">Management Fee: </span>
+                                                                        <span>{(v.fee / 10000).toFixed(2)}%</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -371,4 +466,4 @@ export default function VaultList({ vaults }: Props) {
             </CardContent>
         </Card>
     );
-} 
+}

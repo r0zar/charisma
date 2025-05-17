@@ -4,7 +4,7 @@ import { saveVaultData, VAULT_LIST_KEY } from "@/lib/vaultService";
 import { kv } from '@vercel/kv';
 import { revalidatePath } from 'next/cache';
 
-// Define the expected structure for vault data (adjust based on actual Token interface if available)
+// Define the expected structure for token data
 interface TokenData {
     contractId: string;
     name: string;
@@ -17,15 +17,24 @@ interface TokenData {
     // Add any other relevant fields from your Token type
 }
 
-// Updated RequestBody: contractId is now from URL params
+// Updated RequestBody - tokens A and B are now optional
 interface RequestBody {
-    lpToken: TokenData & { lpRebatePercent?: number, externalPoolId?: string, engineContractId?: string };
-    tokenA: TokenData;
-    tokenB: TokenData;
+    lpToken: TokenData & {
+        lpRebatePercent?: number,
+        externalPoolId?: string,
+        engineContractId?: string,
+        type?: string,
+        protocol?: string
+    };
+    tokenA?: TokenData; // Now optional
+    tokenB?: TokenData; // Now optional
+    additionalData?: Record<string, any>; // Optional additional data
 }
 
-// Define the structure for the final Vault object (adjust as needed)
+// Define the structure for the final Vault object with updated fields
 interface Vault {
+    type: string; // e.g., 'POOL', 'SUBLINK', 'VAULT', 'OTHER'
+    protocol: string; // e.g., 'CHARISMA', 'ARKADIKO', etc.
     contractId: string;
     contractAddress: string;
     contractName: string;
@@ -38,41 +47,65 @@ interface Vault {
     fee: number;
     externalPoolId: string;
     engineContractId: string;
-    tokenA: TokenData;
-    tokenB: TokenData;
-    reservesA: number; // Initial reserves likely 0 when confirming
-    reservesB: number; // Initial reserves likely 0 when confirming
+    tokenA?: TokenData; // Now optional
+    tokenB?: TokenData; // Now optional
+    tokenBContract?: string; // For SUBLINK type
+    reservesA?: number; // Now optional
+    reservesB?: number; // Now optional
+    additionalData?: Record<string, any>; // Optional additional data
 }
 
 // Updated handler signature to accept params
 async function confirmVaultHandler(req: NextRequest, { params }: { params: { contractId: string } }) {
     try {
         // Get contractId from URL parameters
-        const contractId = params.contractId;
-        // Get other data from request body
-        const { lpToken, tokenA, tokenB } = (await req.json()) as RequestBody;
-
+        const { contractId } = params;
         console.log(`API: Confirming vault (dynamic route): ${contractId}`);
 
-        // Validation: check contractId from params and data from body
+        // Get other data from request body
+        const requestBody = await req.json() as RequestBody;
+        const { lpToken, tokenA, tokenB, additionalData } = requestBody;
+
+        // Validation: check contractId from params
         if (!contractId || !contractId.includes('.')) {
             return NextResponse.json({ status: 'error', message: 'Invalid contractId in URL path.' }, { status: 400 });
         }
-        if (!lpToken || !tokenA || !tokenB) {
-            return NextResponse.json({ status: 'error', message: 'Missing required data (lpToken, tokenA, tokenB) in request body.' }, { status: 400 });
+
+        // lpToken is required for all vault types
+        if (!lpToken) {
+            return NextResponse.json({ status: 'error', message: 'Missing required lpToken data in request body.' }, { status: 400 });
         }
 
-        // Construct vault object (logic adapted from confirmVault Server Action)
-        console.log('API: Building vault manually from token data');
+        // Determine vault type (default to POOL if not specified)
+        const vaultType = (lpToken.type || 'POOL').toUpperCase();
+
+        // Validate tokens based on vault type
+        if ((vaultType === 'POOL' || vaultType === 'SUBLINK') && (!tokenA || !tokenB)) {
+            return NextResponse.json({
+                status: 'error',
+                message: `For ${vaultType} type vaults, both tokenA and tokenB are required.`
+            }, { status: 400 });
+        }
+
+        // Construct vault object
+        console.log('API: Building vault from token data');
         const [contractAddress, contractName] = contractId.split('.');
 
         if (!contractAddress || !contractName) {
-            // This check is somewhat redundant given the contractId format check above, but safe to keep
             return NextResponse.json({ status: 'error', message: 'Invalid contractId format derived from URL path.' }, { status: 400 });
         }
 
+        // Convert lpRebatePercent to fee if available
+        let fee = 0;
+        if (typeof lpToken.lpRebatePercent === 'number') {
+            fee = Math.floor((lpToken.lpRebatePercent / 100) * 1_000_000);
+        }
+
+        // Create the base vault object
         const vault: Vault = {
-            contractId, // Use contractId from params
+            type: vaultType,
+            protocol: lpToken.protocol || 'CHARISMA',
+            contractId,
             contractAddress,
             contractName,
             name: lpToken.name,
@@ -81,24 +114,41 @@ async function confirmVaultHandler(req: NextRequest, { params }: { params: { con
             identifier: lpToken.identifier || '',
             description: lpToken.description || "",
             image: lpToken.image || "",
-            // Calculate fee: handle potential non-numeric or missing lpRebatePercent
-            fee: typeof lpToken.lpRebatePercent === 'number' ? Math.floor((lpToken.lpRebatePercent / 100) * 1_000_000) : 0,
+            fee,
             externalPoolId: lpToken.externalPoolId || "",
             engineContractId: lpToken.engineContractId || "",
-            tokenA,
-            tokenB,
-            // Assuming reserves are not known/set at confirmation time via this route
-            reservesA: 0,
-            reservesB: 0
         };
+
+        // Add tokenA and tokenB if they exist
+        if (tokenA) {
+            vault.tokenA = tokenA;
+            vault.reservesA = 0; // Initialize to 0
+        }
+
+        if (tokenB) {
+            vault.tokenB = tokenB;
+            vault.reservesB = 0; // Initialize to 0
+        }
+
+        // For SUBLINK type, add the tokenBContract field if needed
+        if (vaultType === 'SUBLINK' && tokenB) {
+            vault.tokenBContract = tokenB.contractId;
+        }
+
+        // Add any additional data fields if provided
+        if (additionalData) {
+            vault.additionalData = additionalData;
+        }
 
         // Log vault data for debugging
         console.log('API: Vault data to save:', {
             contractId: vault.contractId,
+            type: vault.type,
+            protocol: vault.protocol,
             name: vault.name,
             symbol: vault.symbol,
-            tokenA: { name: vault.tokenA?.name, symbol: vault.tokenA?.symbol },
-            tokenB: { name: vault.tokenB?.name, symbol: vault.tokenB?.symbol },
+            tokenA: vault.tokenA ? { name: vault.tokenA.name, symbol: vault.tokenA.symbol } : 'Not provided',
+            tokenB: vault.tokenB ? { name: vault.tokenB.name, symbol: vault.tokenB.symbol } : 'Not provided',
         });
 
         // Save vault data using the service function
@@ -109,15 +159,14 @@ async function confirmVaultHandler(req: NextRequest, { params }: { params: { con
             return NextResponse.json({ status: 'error', message: 'Failed to save vault data in KV.' }, { status: 500 });
         }
 
-        // Add to managed list (optional, might be handled elsewhere)
-        // ... (optional list management logic) ...
-
         // Revalidate page(s) where the vault list is displayed
         revalidatePath('/');
         revalidatePath('/listing'); // Revalidate the listing page itself
+        revalidatePath('/pools');    // Revalidate pools page
+        revalidatePath('/sublinks'); // Revalidate sublinks page
 
-        console.log(`API: Vault ${contractId} confirmed and saved successfully.`);
-        // Return the saved vault data (or just success status)
+        console.log(`API: Vault ${contractId} (type: ${vaultType}) confirmed and saved successfully.`);
+        // Return the saved vault data
         return NextResponse.json({ status: 'success', vault });
 
     } catch (error: any) {
@@ -128,4 +177,4 @@ async function confirmVaultHandler(req: NextRequest, { params }: { params: { con
 }
 
 // Wrap the handler with admin authentication
-export const POST = withAdminAuth(confirmVaultHandler); 
+export const POST = withAdminAuth(confirmVaultHandler);

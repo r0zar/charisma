@@ -455,7 +455,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
         }
     };
 
-    const MAX_DATA_URI_LENGTH = 2000;
+    const MAX_DATA_URI_LENGTH = 256;
 
     const handleGenerateFullDataUri = async () => {
         try {

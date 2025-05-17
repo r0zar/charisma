@@ -18,10 +18,10 @@ interface Token {
 }
 
 /**
- * Vault instance representing a liquidity pool
+ * Vault instance representing a liquidity pool or other vault type
  */
 export interface Vault {
-    type: 'POOL' | 'SUBLINK';
+    type: string;
     protocol: string;
     contractId: string;
     contractAddress: string;
@@ -35,11 +35,12 @@ export interface Vault {
     fee: number;
     externalPoolId: string;
     engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    tokenBContract?: string; // Contract ID of the subnet token for sublinks
-    reservesA: number;
-    reservesB: number;
+    tokenA?: Token;                // Made optional to support non-LP token vaults
+    tokenB?: Token;                // Made optional to support non-LP token vaults
+    tokenBContract?: string;       // Contract ID of the subnet token for sublinks
+    reservesA?: number;            // Made optional to support non-LP token vaults
+    reservesB?: number;            // Made optional to support non-LP token vaults
+    additionalData?: Record<string, any>; // Additional vault-specific data
 }
 
 // Cache constants
@@ -128,8 +129,8 @@ export const fetchTokenFromCache = async (contractId: string): Promise<any | nul
 function buildVaultStructureFromTokens(
     contractId: string,
     lpToken: any,
-    tokenA: any,
-    tokenB: any
+    tokenA: any | null = null,
+    tokenB: any | null = null
 ): CachedVault | null {
     try {
         const [contractAddress, contractName] = contractId.split('.');
@@ -137,21 +138,51 @@ function buildVaultStructureFromTokens(
             console.error(`[buildVaultStructure] Invalid contractId format: ${contractId}`);
             return null;
         }
-        if (!lpToken || !tokenA || !tokenB) {
-            console.error(`[buildVaultStructure] Missing token data for ${contractId}`);
+        if (!lpToken) {
+            console.error(`[buildVaultStructure] Missing main token data for ${contractId}`);
             return null;
         }
 
-        // Basic validation of required token fields
-        if (!tokenA.contractId || !tokenB.contractId || !lpToken.decimals || !lpToken.name || !lpToken.symbol) {
-            console.error(`[buildVaultStructure] Incomplete token metadata for ${contractId}`);
-            return null;
+        // Determine vault type - defaults to POOL if not specified
+        const vaultType = lpToken.type?.toUpperCase() || 'POOL';
+
+        // Basic validation of essential fields
+        if (!lpToken.decimals && lpToken.decimals !== 0) {
+            console.warn(`[buildVaultStructure] Missing decimals for ${contractId}, defaulting to 0`);
+            lpToken.decimals = 0;
+        }
+        if (!lpToken.name) {
+            console.warn(`[buildVaultStructure] Missing name for ${contractId}, using contractId`);
+            lpToken.name = contractId;
+        }
+        if (!lpToken.symbol) {
+            console.warn(`[buildVaultStructure] Missing symbol for ${contractId}, generating from contractName`);
+            lpToken.symbol = contractName.toUpperCase();
         }
 
+        // For POOL and SUBLINK types, tokens A and B are required
+        if ((vaultType === 'POOL' || vaultType === 'SUBLINK') && (!tokenA || !tokenB)) {
+            console.warn(`[buildVaultStructure] ${vaultType} type requires tokenA and tokenB, but one or both are missing`);
+            // Instead of failing, we'll create the vault but mark it as potentially incomplete
+            console.warn(`[buildVaultStructure] Creating incomplete vault structure for ${contractId}`);
+        }
 
-        return {
-            type: lpToken.type,
-            protocol: lpToken.protocol,
+        // Calculate fee from lpRebatePercent if available
+        let fee = 0;
+        if (lpToken.fee) {
+            fee = lpToken.fee;
+        } else if (lpToken.lpRebatePercent) {
+            fee = Math.floor((lpToken.lpRebatePercent / 100) * 1_000_000);
+        } else if (lpToken.properties?.fee) {
+            fee = lpToken.properties.fee;
+        } else if (lpToken.properties?.lpRebatePercent) {
+            fee = Math.floor((lpToken.properties.lpRebatePercent / 100) * 1_000_000);
+        }
+
+        // Build the vault structure
+        const vault: CachedVault = {
+            type: vaultType,
+            protocol: lpToken.protocol || 'CHARISMA',
             contractId,
             contractAddress,
             contractName,
@@ -161,15 +192,30 @@ function buildVaultStructureFromTokens(
             identifier: lpToken.identifier || '',
             description: lpToken.description || "",
             image: lpToken.image || "",
-            fee: lpToken.fee || (lpToken.properties?.fee) || lpToken?.lpRebatePercent * 10000 || lpToken?.external?.fee || 0, // Example placeholder
-            externalPoolId: lpToken.externalPoolId || (lpToken.properties?.externalPoolId) || "", // Example placeholder
-            engineContractId: lpToken.engineContractId || (lpToken.properties?.engineContractId) || "", // Example placeholder
-            tokenA,
-            tokenB,
-            reservesA: 0, // Initialize reserves, will be fetched later
-            reservesB: 0,
+            fee,
+            externalPoolId: lpToken.externalPoolId || (lpToken.properties?.externalPoolId) || "",
+            engineContractId: lpToken.engineContractId || (lpToken.properties?.engineContractId) || "",
+            tokenBContract: lpToken.tokenBContract || lpToken.properties?.tokenBContract || "",
             reservesLastUpdatedAt: 0 // Indicate reserves haven't been fetched yet
         };
+
+        // Only add tokenA/tokenB if they exist
+        if (tokenA) {
+            vault.tokenA = tokenA;
+            vault.reservesA = 0;
+        }
+
+        if (tokenB) {
+            vault.tokenB = tokenB;
+            vault.reservesB = 0;
+        }
+
+        // Add any additional data fields that may be present
+        if (lpToken.additionalData) {
+            vault.additionalData = lpToken.additionalData;
+        }
+
+        return vault;
     } catch (error) {
         console.error(`[buildVaultStructure] Error constructing vault for ${contractId}:`, error);
         return null;
@@ -178,6 +224,12 @@ function buildVaultStructureFromTokens(
 
 // Helper to fetch and update reserves, trying primary then backup method
 async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedVault> {
+    // Only attempt to update reserves if we have tokenA and tokenB
+    if (!cachedVault.tokenA || !cachedVault.tokenB) {
+        console.log(`Skipping reserve update for ${cachedVault.contractId}: tokenA or tokenB missing`);
+        return cachedVault;
+    }
+
     const now = Date.now();
     const contractId = cachedVault.contractId;
     const [contractAddress, contractName] = contractId.split('.');
@@ -316,8 +368,12 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
     }
 
     // 3. Finalize: Ensure reserves are numbers and return
-    cachedVault.reservesA = Number(cachedVault.reservesA || 0);
-    cachedVault.reservesB = Number(cachedVault.reservesB || 0);
+    if (cachedVault.reservesA) {
+        cachedVault.reservesA = Number(cachedVault.reservesA || 0);
+    }
+    if (cachedVault.reservesB) {
+        cachedVault.reservesB = Number(cachedVault.reservesB || 0);
+    }
 
     if (!reservesUpdated) {
         console.warn(`Failed to update reserves for ${contractId} using both methods. Returning potentially stale data.`);
@@ -360,7 +416,10 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
             const lastUpdated = cached.reservesLastUpdatedAt || 0;
             const needsReserveRefresh = (now - lastUpdated) > RESERVE_REFRESH_INTERVAL_MS;
 
-            if (needsReserveRefresh) {
+            // Only attempt reserve refresh for POOL and SUBLINK types
+            const canRefreshReserves = (cached.type === 'POOL' || cached.type === 'SUBLINK') && cached.tokenA && cached.tokenB;
+
+            if (needsReserveRefresh && canRefreshReserves) {
                 console.log(`[Cache Hit - Stale] Vault ${contractId}. Refreshing reserves...`);
                 const updatedCached = await fetchAndUpdateReserves(cached);
                 // Asynchronously save back to cache
@@ -369,8 +428,13 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
                 });
                 return updatedCached;
             } else {
-                cached.reservesA = Number(cached.reservesA || 0);
-                cached.reservesB = Number(cached.reservesB || 0);
+                // Make sure reserves are numbers if present
+                if (cached.reservesA !== undefined) {
+                    cached.reservesA = Number(cached.reservesA || 0);
+                }
+                if (cached.reservesB !== undefined) {
+                    cached.reservesB = Number(cached.reservesB || 0);
+                }
                 return cached;
             }
         }
@@ -378,48 +442,60 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
         else {
             console.log(refresh ? `[Refresh Requested] Vault ${contractId}` : `[Cache Miss] Vault ${contractId}`);
 
-            // 1. Fetch LP Token
+            // 1. Fetch Main Token
             const lpToken = await fetchTokenFromCache(contractId);
             if (!lpToken) {
-                console.error(`[Fetch Scratch] Failed to fetch LP token ${contractId}`);
+                console.error(`[Fetch Scratch] Failed to fetch main token ${contractId}`);
                 return null;
             }
 
-            // 2. Extract underlying token contracts
-            const tokenAContract = lpToken.tokenAContract || (lpToken.properties?.tokenAContract) || (lpToken.tokenA?.contractId) || (lpToken.tokenA?.contract_principal);
-            const tokenBContract = lpToken.tokenBContract || (lpToken.properties?.tokenBContract) || (lpToken.tokenB?.contractId) || (lpToken.tokenB?.contract_principal);
+            // Determine vault type - default to POOL if not specified
+            const vaultType = lpToken.type?.toUpperCase() || 'POOL';
 
-            if (!tokenAContract || !tokenBContract) {
-                console.error(`[Fetch Scratch] LP token ${contractId} missing underlying contract IDs.`);
-                return null;
+            // 2. If this is a POOL or SUBLINK, extract underlying token contracts and fetch them
+            let tokenA = null;
+            let tokenB = null;
+
+            if (vaultType === 'POOL' || vaultType === 'SUBLINK') {
+                // Extract underlying token contracts
+                const tokenAContract = lpToken.tokenAContract || (lpToken.properties?.tokenAContract) || (lpToken.tokenA?.contractId) || (lpToken.tokenA?.contract_principal);
+                const tokenBContract = lpToken.tokenBContract || (lpToken.properties?.tokenBContract) || (lpToken.tokenB?.contractId) || (lpToken.tokenB?.contract_principal);
+
+                // Only proceed if we have tokenA and tokenB contracts
+                if (tokenAContract && tokenBContract) {
+                    // 3. Fetch Underlying Tokens
+                    [tokenA, tokenB] = await Promise.all([
+                        fetchTokenFromCache(tokenAContract),
+                        fetchTokenFromCache(tokenBContract)
+                    ]);
+
+                    if (!tokenA || !tokenB) {
+                        console.warn(`[Fetch Scratch] Failed to fetch one or both underlying tokens for ${contractId} (A: ${tokenAContract}, B: ${tokenBContract})`);
+                        // Continue anyway, we'll build the vault without the missing tokens
+                    } else {
+                        // Assign contractId if missing (can happen if fetched directly)
+                        if (!tokenA.contractId) tokenA.contractId = tokenAContract;
+                        if (!tokenB.contractId) tokenB.contractId = tokenBContract;
+                    }
+                } else {
+                    console.warn(`[Fetch Scratch] Could not determine underlying token contracts for ${vaultType} type ${contractId}`);
+                    // Continue anyway, we'll build the vault without underlying tokens
+                }
             }
 
-            // 3. Fetch Underlying Tokens
-            const [tokenA, tokenB] = await Promise.all([
-                fetchTokenFromCache(tokenAContract),
-                fetchTokenFromCache(tokenBContract)
-            ]);
-
-            if (!tokenA || !tokenB) {
-                console.error(`[Fetch Scratch] Failed to fetch one or both underlying tokens for ${contractId} (A: ${tokenAContract}, B: ${tokenBContract})`);
-                return null;
-            }
-
-            // Assign contractId if missing (can happen if fetched directly)
-            if (!tokenA.contractId) tokenA.contractId = tokenAContract;
-            if (!tokenB.contractId) tokenB.contractId = tokenBContract;
-
-
-            // 4. Build Initial Vault Structure
+            // 4. Build Initial Vault Structure - tokens can be null for non-POOL/SUBLINK types
             const initialVault = buildVaultStructureFromTokens(contractId, lpToken, tokenA, tokenB);
             if (!initialVault) {
                 console.error(`[Fetch Scratch] Failed to build initial vault structure for ${contractId}`);
                 return null;
             }
 
-            // 5. Fetch Reserves for the new structure
-            console.log(`[Fetch Scratch] Fetching reserves for newly built vault ${contractId}...`);
-            const vaultWithReserves = await fetchAndUpdateReserves(initialVault);
+            // 5. Fetch Reserves for POOL and SUBLINK vault types if both tokens are available
+            let vaultWithReserves = initialVault;
+            if ((vaultType === 'POOL' || vaultType === 'SUBLINK') && tokenA && tokenB) {
+                console.log(`[Fetch Scratch] Fetching reserves for newly built ${vaultType} ${contractId}...`);
+                vaultWithReserves = await fetchAndUpdateReserves(initialVault);
+            }
 
             // 6. Save the complete vault data to cache
             console.log(`[Fetch Scratch] Saving fully constructed vault ${contractId} to cache...`);
@@ -462,12 +538,18 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
         // Only overwrite type/protocol if defined in new vault
         const vaultToSave = {
             ...vault,
-            type: vault.type ?? existing?.type,
-            protocol: vault.protocol ?? existing?.protocol,
-            reservesA: Number(vault.reservesA || 0),
-            reservesB: Number(vault.reservesB || 0),
+            type: vault.type ?? existing?.type ?? 'POOL',
+            protocol: vault.protocol ?? existing?.protocol ?? 'CHARISMA',
             reservesLastUpdatedAt: vault.reservesLastUpdatedAt || Date.now()
         };
+
+        // Make sure reserves are numbers if present
+        if (vaultToSave.reservesA !== undefined) {
+            vaultToSave.reservesA = Number(vaultToSave.reservesA || 0);
+        }
+        if (vaultToSave.reservesB !== undefined) {
+            vaultToSave.reservesB = Number(vaultToSave.reservesB || 0);
+        }
 
         try {
             // Use JSON.stringify for saving data to KV
@@ -573,14 +655,16 @@ export const listVaultTokens = async (): Promise<Token[]> => {
     const vaults = await getAllVaultData();
     const tokenMap = new Map<string, Token>(); // Key: contractId, Value: Token object
 
-    for (const vault of vaults) {
-        // Process tokenA
+    const filteredVaults = vaults.filter(v => v.type === 'POOL' || v.type === 'SUBLINK');
+
+    for (const vault of filteredVaults) {
+        // Process tokenA if it exists
         if (vault.tokenA && vault.tokenA.contractId) { // Ensure token and contractId exist
             if (!tokenMap.has(vault.tokenA.contractId)) {
                 tokenMap.set(vault.tokenA.contractId, vault.tokenA);
             }
         }
-        // Process tokenB
+        // Process tokenB if it exists
         if (vault.tokenB && vault.tokenB.contractId) { // Ensure token and contractId exist
             if (!tokenMap.has(vault.tokenB.contractId)) {
                 tokenMap.set(vault.tokenB.contractId, vault.tokenB);
@@ -590,7 +674,8 @@ export const listVaultTokens = async (): Promise<Token[]> => {
     return Array.from(tokenMap.values());
 }
 
+
 // Example usage (uncomment to run once, then re-comment):
-// removeVaults([
-//     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-welsh-vault-wrapper-alex'
-// ]);
+removeVaults([
+    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-welsh-vault-wrapper-alex'
+]);

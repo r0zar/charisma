@@ -18,6 +18,12 @@ import { bufferFromHex } from '@stacks/transactions/dist/cl';
 // Import getManagedVaultIds from vaultService but rename to avoid conflict
 import { getManagedVaultIds as getVaultIdsFromService } from "@/lib/vaultService";
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
+import { Cryptonomicon } from '@/lib/cryptonomicon';
+
+const cryptonomicon = new Cryptonomicon({
+    debug: process.env.NODE_ENV === 'development',
+    apiKey: process.env.HIRO_API_KEY,
+});
 
 /**
  * Fetches the list of managed vault IDs from Vercel KV.
@@ -84,13 +90,33 @@ export async function refreshVaultData(contractId: string) {
 export async function addVault(contractId: string) {
     if (!contractId) return { success: false, error: 'ContractId required' };
     try {
-        // Using our new two-step process instead of direct getVaultData call
         const preview = await previewVault(contractId);
-        if (!preview.success || !preview.lpToken || !preview.tokenA || !preview.tokenB) {
-            return { success: false, error: preview.error || 'Failed to fetch data' };
+
+        if (!preview.success) {
+            return { success: false, error: preview.error || 'Failed to fetch vault preview data.' };
         }
 
-        const confirm = await confirmVault(contractId, preview.lpToken, preview.tokenA, preview.tokenB);
+        // For addVault to succeed automatically, we need full LP details.
+        if (preview.requiresManualInput || !preview.lpTokenDetails?.lpToken || !preview.lpTokenDetails?.tokenA || !preview.lpTokenDetails?.tokenB) {
+            let errorMessage = 'Vault preview indicates manual input is required or essential LP details are missing.';
+            if (preview.error) {
+                errorMessage = `${preview.error} Manual input may be required.`;
+            } else if (!preview.lpTokenDetails?.lpToken) {
+                errorMessage = 'LP token details are missing after preview.';
+            } else if (!preview.lpTokenDetails?.tokenA) {
+                errorMessage = 'Token A details are missing after preview.';
+            } else if (!preview.lpTokenDetails?.tokenB) {
+                errorMessage = 'Token B details are missing after preview.';
+            }
+            if (preview.contractMetadata) {
+                // Provide a hint that we have some metadata
+                console.log("addVault: Proceeding to manual flow is suggested. Raw metadata is available.", preview.contractMetadata);
+            }
+            return { success: false, error: errorMessage };
+        }
+
+        const { lpToken, tokenA, tokenB } = preview.lpTokenDetails;
+        const confirm = await confirmVault(contractId, lpToken, tokenA, tokenB);
         if (!confirm.success) {
             return { success: false, error: confirm.error || 'Failed to save vault' };
         }
@@ -106,104 +132,145 @@ export async function addVault(contractId: string) {
 // STEP 1: Preview a vault - fetch data but don't save it
 export async function previewVault(contractId: string): Promise<{
     success: boolean;
-    lpToken?: any;
-    tokenA?: any;
-    tokenB?: any;
+    contractMetadata?: any; // Metadata from cryptonomicon.getTokenMetadata
+    lpTokenDetails?: {
+        lpToken: any; // This would be the data from fetchTokenFromCache or contractMetadata if suitable
+        tokenA?: any;
+        tokenB?: any;
+    };
     error?: string;
     requiresManualInput?: boolean;
 }> {
     // Special exception for .stx or other special tokens
     const isSpecialToken = contractId === '.stx';
     if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
-        return { success: false, error: 'Invalid contract ID format.', requiresManualInput: false };
+        return { success: false, error: 'Invalid contract ID format.' };
     }
 
     console.log(`Starting preview for ${contractId}`);
+    let contractMetadata: any;
+
     try {
-        // 1. Fetch LP token metadata
-        console.log(`Step 1: Fetching LP token metadata for ${contractId}`);
-        const lpToken = await fetchTokenFromCache(contractId);
-        if (!lpToken) {
+        // Step 1: Fetch initial on-chain metadata for the contractId
+        console.log(`Fetching on-chain metadata for ${contractId} using cryptonomicon.getTokenMetadata`);
+        // The existing line for cryptonomicon.getTokenMetadata is used here.
+        contractMetadata = await cryptonomicon.getTokenMetadata(contractId);
+        console.log(`Raw on-chain metadata for ${contractId}: ${JSON.stringify(contractMetadata)}`);
+
+        if (!contractMetadata) { // Basic check; adjust if getTokenMetadata has specific failure returns
             return {
                 success: false,
-                error: `Failed to fetch LP token metadata for ${contractId}. Is it in token-cache?`,
-                requiresManualInput: false
+                error: `Failed to fetch on-chain metadata for ${contractId}. The contract may not exist or metadata is unavailable.`,
             };
         }
 
-        // 3. Extract token contract IDs from various possible locations
-        const tokenAContract = lpToken.tokenAContract ||
-            (lpToken.properties?.tokenAContract) ||
-            (lpToken.tokenA?.contractId) ||
-            (lpToken.tokenA?.contract_principal);
+        // Step 2: Attempt to fetch cached/detailed LP token information
+        console.log(`Attempting to fetch cached/detailed LP token information for ${contractId}`);
+        const lpTokenFromCache = await fetchTokenFromCache(contractId);
 
-        const tokenBContract = lpToken.tokenBContract ||
-            (lpToken.properties?.tokenBContract) ||
-            (lpToken.tokenB?.contractId) ||
-            (lpToken.tokenB?.contract_principal);
-
-        // If contracts couldn't be determined, return success but indicate manual input is needed
-        if (!tokenAContract || !tokenBContract) {
-            console.warn(`Could not automatically determine Token A/B contracts for ${contractId}. Requires manual input.`);
+        if (!lpTokenFromCache) {
+            console.warn(`No detailed LP token data found in cache for ${contractId}. Presenting raw on-chain metadata. Manual input for Token A/B may be required if this is an LP vault.`);
             return {
                 success: true,
-                lpToken,
+                contractMetadata,
+                // No lpTokenDetails if lpTokenFromCache is missing
+                requiresManualInput: true, // Assume manual input needed if cache fails for LP specifics
+                error: `Successfully fetched on-chain metadata. However, detailed LP token information was not found in the cache.`,
+            };
+        }
+        console.log(`Found cached LP token data: ${JSON.stringify(lpTokenFromCache)}`);
+
+        // Step 3: Extract token contract IDs from cached LP data
+        const tokenAContract = lpTokenFromCache.tokenAContract ||
+            (lpTokenFromCache.properties?.tokenAContract) ||
+            (lpTokenFromCache.tokenA?.contractId) ||
+            (lpTokenFromCache.tokenA?.contract_principal);
+
+        const tokenBContract = lpTokenFromCache.tokenBContract ||
+            (lpTokenFromCache.properties?.tokenBContract) ||
+            (lpTokenFromCache.tokenB?.contractId) ||
+            (lpTokenFromCache.tokenB?.contract_principal);
+
+        if (!tokenAContract || !tokenBContract) {
+            console.warn(`Could not automatically determine Token A/B contracts for ${contractId} from cached LP data. Manual input will be required.`);
+            return {
+                success: true,
+                contractMetadata,
+                lpTokenDetails: {
+                    lpToken: lpTokenFromCache, // We have the LP token itself
+                },
                 requiresManualInput: true,
             };
         }
 
-        console.log(`Found token contracts: A=${tokenAContract}, B=${tokenBContract}`);
+        console.log(`Identified potential underlying token contracts from cache: Token A: ${tokenAContract}, Token B: ${tokenBContract}`);
 
-        // 4. Fetch Token A metadata if needed
-        let tokenA = lpToken.tokenA;
-        if (!tokenA || !tokenA.contractId) {
-            console.log(`Step 2: Fetching Token A (${tokenAContract})`);
-            tokenA = await fetchTokenFromCache(tokenAContract);
-            if (!tokenA) {
+        // Step 4: Fetch Token A metadata if needed
+        let tokenAData = lpTokenFromCache.tokenA;
+        if (!tokenAData || Object.keys(tokenAData).length === 0 || !tokenAData.contractId) { // Check if tokenA is already part of lpTokenFromCache and is meaningful
+            console.log(`Fetching Token A (${tokenAContract}) from cache`);
+            tokenAData = await fetchTokenFromCache(tokenAContract);
+            if (!tokenAData) {
                 return {
-                    success: false,
-                    lpToken,
+                    success: true,
+                    contractMetadata,
+                    lpTokenDetails: { lpToken: lpTokenFromCache },
                     error: `Failed to fetch Token A (${tokenAContract}) from token-cache.`,
-                    requiresManualInput: false
+                    requiresManualInput: true,
                 };
             }
         } else {
-            console.log(`Using Token A from LP token data: ${tokenA.name} (${tokenA.symbol})`);
+            console.log(`Using Token A from LP token data: ${tokenAData.name} (${tokenAData.symbol})`);
         }
 
-        // 5. Fetch Token B metadata if needed
-        let tokenB = lpToken.tokenB;
-        if (!tokenB || !tokenB.contractId) {
-            console.log(`Step 3: Fetching Token B (${tokenBContract})`);
-            tokenB = await fetchTokenFromCache(tokenBContract);
-            if (!tokenB) {
+        // Step 5: Fetch Token B metadata if needed
+        let tokenBData = lpTokenFromCache.tokenB;
+        if (!tokenBData || Object.keys(tokenBData).length === 0 || !tokenBData.contractId) { // Check if tokenB is already part of lpTokenFromCache and is meaningful
+            console.log(`Fetching Token B (${tokenBContract}) from cache`);
+            tokenBData = await fetchTokenFromCache(tokenBContract);
+            if (!tokenBData) {
                 return {
-                    success: false,
-                    lpToken,
-                    tokenA,
+                    success: true,
+                    contractMetadata,
+                    lpTokenDetails: {
+                        lpToken: lpTokenFromCache,
+                        tokenA: tokenAData,
+                    },
                     error: `Failed to fetch Token B (${tokenBContract}) from token-cache.`,
-                    requiresManualInput: false
+                    requiresManualInput: true,
                 };
             }
         } else {
-            console.log(`Using Token B from LP token data: ${tokenB.name} (${tokenB.symbol})`);
+            console.log(`Using Token B from LP token data: ${tokenBData.name} (${tokenBData.symbol})`);
         }
 
-        // Return fetched data directly
+        // All data successfully fetched/determined for an LP vault
         return {
             success: true,
-            lpToken, // Return original LP token data
-            tokenA, // Return original/fetched Token A
-            tokenB, // Return original/fetched Token B
-            requiresManualInput: false
+            contractMetadata,
+            lpTokenDetails: {
+                lpToken: lpTokenFromCache,
+                tokenA: tokenAData,
+                tokenB: tokenBData,
+            },
+            requiresManualInput: false,
         };
 
     } catch (error: any) {
-        console.error(`Error previewing vault ${contractId}:`, error);
+        console.error(`Error in previewVault for ${contractId}:`, error);
+        if (contractMetadata) {
+            // If we fetched contractMetadata but an error occurred later
+            return {
+                success: true, // Success in fetching metadata, but processing failed
+                contractMetadata,
+                error: `Successfully fetched on-chain metadata, but an error occurred during further LP processing: ${error.message || 'An unexpected error occurred'}. Manual input may be required.`,
+                requiresManualInput: true,
+            };
+        }
         return {
             success: false,
-            error: error.message || 'An unexpected error occurred',
-            requiresManualInput: false
+            error: error.message || 'An unexpected error occurred during preview.',
+            requiresManualInput: false, // Or true, depending on desired fallback UX
         };
     }
 }

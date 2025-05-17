@@ -20,6 +20,16 @@ export default function Header() {
                         </span>
                     </Link>
 
+                    {/* all vaults */}
+                    <nav className="flex items-center space-x-6 text-sm font-medium">
+                        <Link
+                            href="/vaults"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            All Vaults
+                        </Link>
+                    </nav>
+
                     <nav className="flex items-center space-x-6 text-sm font-medium">
                         <Link
                             href="/pools"
@@ -35,6 +45,15 @@ export default function Header() {
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >
                             Subnets
+                        </Link>
+                    </nav>
+
+                    <nav className="flex items-center space-x-6 text-sm font-medium">
+                        <Link
+                            href="/energy"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Rewards
                         </Link>
                     </nav>
 
