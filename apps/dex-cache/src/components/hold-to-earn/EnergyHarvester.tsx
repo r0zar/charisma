@@ -4,9 +4,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
 import { request } from '@stacks/connect';
-import { optionalCVOf, bufferCV, uintCV } from '@stacks/transactions';
+import { optionalCVOf, bufferCV, uintCV, principalCV } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
-import { getEnergyData, getPendingEnergyBlocks } from '@/app/actions/energy';
+import { callReadOnlyFunction } from '@repo/polyglot';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,8 @@ import { Zap, Clock, AlertCircle, Loader2, InfoIcon, RefreshCw } from 'lucide-re
 // Constants for operations
 const OP_HARVEST_ENERGY = '07';
 
-const STACKS_BLOCKS_PER_DAY = 144; // Approx. 10 min per block (6 blocks/hr * 24 hr/day)
 const MINUTES_PER_DAY = 24 * 60;
+const STACKS_BLOCKS_PER_DAY = 144; // Approx. 10 min per block
 const MINUTES_PER_BLOCK = MINUTES_PER_DAY / STACKS_BLOCKS_PER_DAY;
 
 interface EnergyHarvesterProps {
@@ -46,7 +46,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
     // Get the appropriate contract ID to call
     const engineContractId = vault.engineContractId || vault.contractId;
 
-    // Function to fetch user's energy data using server action
+    // Direct client-side function to fetch energy data
     const fetchEnergyData = async (refreshing = false) => {
         if (!walletState.connected || !walletState.address) {
             setLastTapBlock(null);
@@ -65,38 +65,85 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         }
 
         try {
-            // Use server action instead of direct contract call
-            const energyData = await getEnergyData(
-                walletState.address,
-                vault.contractId,
-                engineContractId
+            console.log(`Fetching energy data for ${walletState.address} from contract ${engineContractId}`);
+            const [contractAddress, contractName] = engineContractId.split('.');
+
+            // Get the last time the user tapped for energy
+            console.log('Calling get-last-tap-block...');
+            const lastTapResult = await callReadOnlyFunction(
+                contractAddress,
+                contractName,
+                'get-last-tap-block',
+                [principalCV(walletState.address)]
             );
 
-
-
-            setLastTapBlock(energyData.lastTapBlock);
-            setPendingBlocks(energyData.pendingBlocks);
-
-            if (energyData.estimatedEnergy === null && energyData.pendingBlocks > 0) {
-                setEstimatedEnergy(0.01); // Placeholder for visibility if rate is unknown
+            console.log('Last tap result:', lastTapResult);
+            let lastBlockNum = 0;
+            if (lastTapResult && typeof lastTapResult === 'object' && 'value' in lastTapResult) {
+                lastBlockNum = parseInt(lastTapResult.value.toString());
+                console.log(`Last tap block: ${lastBlockNum}`);
+                setLastTapBlock(lastBlockNum);
             } else {
-                setEstimatedEnergy(energyData.estimatedEnergy);
+                console.log('No valid last tap block found, using 0');
+                setLastTapBlock(0);
             }
 
-            setEstimatedDailyReward(energyData.estimatedDailyReward);
-            setEnergyPerMinuteRate(energyData.energyPerMinuteRate);
+            // Get the pending blocks via quote function
+            console.log('Calling quote function for energy...');
+            const quoteResult = await callReadOnlyFunction(
+                contractAddress,
+                contractName,
+                'quote',
+                [
+                    uintCV(0), // amount doesn't matter for energy harvest
+                    optionalCVOf(bufferFromHex(OP_HARVEST_ENERGY))
+                ]
+            );
+
+            let pendingBlockCount = 0;
+            // For the energy quote, we expect dk to contain block difference
+            console.log('Quote result:', quoteResult);
+            const dkValue = quoteResult.value;
+            if (dkValue !== undefined) {
+                pendingBlockCount = parseInt(dkValue.toString());
+                console.log(`Pending blocks: ${pendingBlockCount}`);
+                setPendingBlocks(pendingBlockCount);
+            } else {
+                console.log('No dk value found in quote result');
+                setPendingBlocks(0);
+            }
 
             // Calculate current block height from last tap and pending blocks
-            if (energyData.lastTapBlock) {
-                setCurrentBlock(energyData.lastTapBlock + energyData.pendingBlocks);
+            if (lastBlockNum !== null) {
+                const currentBlockNum = lastBlockNum + pendingBlockCount;
+                console.log(`Current block: ${currentBlockNum}`);
+                setCurrentBlock(currentBlockNum);
             }
+
+            // Use a fixed sample rate for now
+            // In a production app, you could fetch this from an API or calculate it
+            // based on historical data
+            const sampleRatePerMinute = 100; // 100 energy per minute as a placeholder
+            setEnergyPerMinuteRate(sampleRatePerMinute);
+            console.log(`Using energy rate: ${sampleRatePerMinute} per minute`);
+
+            // Calculate estimated energy and daily rewards
+            const totalPendingMinutes = pendingBlockCount * MINUTES_PER_BLOCK;
+            const calculatedEnergy = Math.floor(sampleRatePerMinute * totalPendingMinutes);
+            setEstimatedEnergy(calculatedEnergy);
+            console.log(`Estimated energy: ${calculatedEnergy} (${totalPendingMinutes} minutes)`);
+
+            const calculatedDailyReward = Math.floor(sampleRatePerMinute * MINUTES_PER_DAY);
+            setEstimatedDailyReward(calculatedDailyReward);
+            console.log(`Estimated daily reward: ${calculatedDailyReward}`);
 
         } catch (error) {
             console.error("Error fetching energy data:", error);
             // Reset states on error
             setEnergyPerMinuteRate(null);
-            setEstimatedEnergy(pendingBlocks > 0 ? 0.01 : 0); // Fallback on error too
+            setEstimatedEnergy(pendingBlocks > 0 ? 0.01 : 0); // Fallback on error
             setEstimatedDailyReward(null);
+            toast.error("Failed to fetch energy data");
         } finally {
             setIsLoading(false);
             setIsRefreshing(false);
@@ -108,49 +155,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         fetchEnergyData();
     }, [walletState.connected, walletState.address, engineContractId, vault.contractId]);
 
-    // Poll for energy updates using server action
-    const pollEnergyUpdate = useCallback(async () => {
-        if (!walletState.connected || !walletState.address || lastTapBlock === null) {
-            return; // Don't poll if not connected or no initial lastTapBlock
-        }
-
-        try {
-            // Use server action for polling
-            const pendingData = await getPendingEnergyBlocks(
-                walletState.address,
-                lastTapBlock,
-                vault.contractId,
-                engineContractId
-            );
-
-            if (pendingData.pendingBlocks >= 0) {
-                const newPendingBlocks = pendingData.pendingBlocks;
-                const newCurrentBlock = lastTapBlock + newPendingBlocks;
-
-                setPendingBlocks(newPendingBlocks);
-                setCurrentBlock(newCurrentBlock);
-
-                // Use the rate from the server if available, otherwise use the cached rate
-                const effectiveRate = pendingData.ratePerMinute !== null
-                    ? pendingData.ratePerMinute
-                    : energyPerMinuteRate;
-
-                if (effectiveRate !== null) {
-                    const totalPendingMinutes = newPendingBlocks * MINUTES_PER_BLOCK;
-                    const calculatedEstimatedEnergy = effectiveRate * totalPendingMinutes;
-                    setEstimatedEnergy(Math.floor(calculatedEstimatedEnergy));
-                } else {
-                    // If rate is unknown, use placeholder for visibility
-                    setEstimatedEnergy(newPendingBlocks > 0 ? 0.01 : 0);
-                }
-            }
-        } catch (error) {
-            console.warn("Polling energy update failed:", error);
-            // Do not set error states for background polling to avoid UI disruption
-        }
-    }, [walletState, lastTapBlock, vault.contractId, engineContractId, energyPerMinuteRate]);
-
-    // useEffect for polling pending energy blocks
+    // Poll for energy updates
     useEffect(() => {
         if (!walletState.connected || lastTapBlock === null) {
             return; // Conditions not met for polling
@@ -163,7 +168,58 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         return () => {
             clearInterval(intervalId); // Clear interval on cleanup
         };
-    }, [walletState.connected, lastTapBlock, pollEnergyUpdate]);
+    }, [walletState.connected, lastTapBlock]);
+
+    // Client-side polling function
+    const pollEnergyUpdate = async () => {
+        if (!walletState.connected || !walletState.address || lastTapBlock === null) {
+            return; // Don't poll if not connected or no initial lastTapBlock
+        }
+
+        try {
+            console.log('Polling for energy updates...');
+            const [contractAddress, contractName] = engineContractId.split('.');
+
+            // Get pending blocks via quote function
+            const quoteResult = await callReadOnlyFunction(
+                contractAddress,
+                contractName,
+                'quote',
+                [
+                    uintCV(0), // amount doesn't matter for energy harvest
+                    optionalCVOf(bufferFromHex(OP_HARVEST_ENERGY))
+                ]
+            );
+
+            let newPendingBlocks = 0;
+            if (quoteResult && typeof quoteResult === 'object' && 'value' in quoteResult) {
+                const dkValue = quoteResult.value.dk?.value;
+                if (dkValue !== undefined) {
+                    newPendingBlocks = parseInt(dkValue.toString());
+                    console.log(`Updated pending blocks: ${newPendingBlocks}`);
+                    setPendingBlocks(newPendingBlocks);
+
+                    // Update current block
+                    const newCurrentBlock = lastTapBlock + newPendingBlocks;
+                    setCurrentBlock(newCurrentBlock);
+
+                    // Recalculate energy based on the rate we already have
+                    if (energyPerMinuteRate !== null) {
+                        const totalPendingMinutes = newPendingBlocks * MINUTES_PER_BLOCK;
+                        const calculatedEstimatedEnergy = Math.floor(energyPerMinuteRate * totalPendingMinutes);
+                        setEstimatedEnergy(calculatedEstimatedEnergy);
+                        console.log(`Updated estimated energy: ${calculatedEstimatedEnergy}`);
+                    } else {
+                        // If rate is unknown, use placeholder for visibility
+                        setEstimatedEnergy(newPendingBlocks > 0 ? 0.01 : 0);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn("Polling energy update failed:", error);
+            // Do not set error states for background polling to avoid UI disruption
+        }
+    };
 
     // Function to harvest energy
     const handleHarvestEnergy = async () => {
@@ -173,7 +229,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         try {
             const [contractAddress, contractName] = engineContractId.split('.');
 
-            // Simplified: Just call the harvest function without complex post conditions
+            // Call the harvest function
             const params = {
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
@@ -336,5 +392,3 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         </Card>
     );
 }
-
-export default EnergyHarvester;
