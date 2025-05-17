@@ -8,6 +8,14 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
     const reserveAmount = reserves / (10 ** (token.decimals || 6));
     const value = price !== undefined ? reserveAmount * price : null;
 
+    const reserveAmountDisplay = reserveAmount.toLocaleString(undefined, {
+        maximumFractionDigits: token.decimals, minimumFractionDigits: token.decimals
+    });
+
+    const reserveUSDAmountDisplay = value !== null ? `$${value.toLocaleString(undefined, {
+        maximumFractionDigits: token.decimals, minimumFractionDigits: token.decimals
+    })}` : 'N/A';
+
     const volumeDisplay = value !== null ? `$${(value * 0.15).toLocaleString(undefined,
         { maximumFractionDigits: token.decimals, minimumFractionDigits: token.decimals })}` : 'N/A';
 
@@ -60,10 +68,10 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                         </div>
                         <div className="text-right">
                             <div className="font-bold text-lg">
-                                {reserveAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                {reserveAmountDisplay}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {value !== null ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'Price N/A'}
+                                {reserveUSDAmountDisplay}
                             </div>
                         </div>
                     </div>
