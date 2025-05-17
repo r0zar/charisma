@@ -12,8 +12,8 @@ import { principalCV } from "@stacks/transactions";
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const routerName = process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop';
 Dexterity.configureRouter(routerAddress, routerName, {
-    maxHops: 3,
-    defaultSlippage: 0.01,
+    maxHops: 4,
+    defaultSlippage: 0.05,
     debug: process.env.NODE_ENV === 'development',
 });
 
