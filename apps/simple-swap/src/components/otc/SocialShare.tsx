@@ -12,7 +12,7 @@ interface SocialShareProps {
     offerTitle?: string; // Optional title for sharing
 }
 
-export default function SocialShare({ offerUrl, offerTitle = "Check out this offer:" }: SocialShareProps) {
+export default function SocialShare({ offerUrl, offerTitle = "Check out this offer: " }: SocialShareProps) {
     const [copied, setCopied] = useState(false);
 
     const handleCopyLink = () => {
