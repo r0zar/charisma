@@ -455,10 +455,7 @@ const formatSnapshotsForTimeframe = (snapshots: any[], maxPoints: number) => {
 export const processAllEnergyData = async (contractId: string, userAddress?: string) => {
     try {
         // Fetch all logs at once
-        const logsFromAPI = await fetcHoldToEarnLogs(contractId);
-
-        // Use mock logs in development if real logs are empty
-        const logs = useLogsOrMock(logsFromAPI, mockEnergyLogs);
+        const logs = await fetcHoldToEarnLogs(contractId);
 
         if (!logs || logs.length === 0) {
             return {
