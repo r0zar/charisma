@@ -48,8 +48,9 @@ export async function ensureVaultsLoaded() {
                 const allVaults = data.data;
                 const filteredVaults = allVaults.filter((vault: any) => !vaultOmitSet.has(vault.contractId));
 
+                const multiHopVaults = filteredVaults.filter((vault: any) => vault.type !== 'ENERGY');
 
-                Dexterity.loadVaults(filteredVaults); // Load only the filtered vaults
+                Dexterity.loadVaults(multiHopVaults); // Load only the filtered vaults
                 vaultsLoaded = true;
                 return;
             }
