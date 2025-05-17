@@ -207,7 +207,7 @@ export function SwapStxToChaButton({
             // The current implementation of swapTokens in the original file was `swapTokens()`
             // which might imply it gets context elsewhere.
             // Reverting to the more explicit version for clarity if it's a generic swap function:
-            const result: { txid: string } = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, values.stxAmount);
+            const result = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, values.stxAmount);
 
 
             // Assuming result has { txid: string } on success or { error: string } on failure from useWallet().swapTokens

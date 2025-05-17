@@ -34,7 +34,7 @@ const BaseLocalizationSchema = z.object({
 
 const MetadataSchema = z.object({
     // SIP-16 Core Fields
-    sip: z.number().default(16), // SIP number, typically 16
+    sip: z.number().default(16).optional(), // SIP number, typically 16
     name: z.string(), // Name of the token (required by updated logic, previously optional)
     description: z.string().default('').optional(),
     image: z.string().optional(), // URL to the token image

@@ -16,8 +16,6 @@ export async function POST(req: NextRequest) {
         const offer = await getOffer(data.originalOfferIntentUuid);
         if (!offer) throw new Error("offer not found");
         if (offer.status !== "open") throw new Error("offer not open");
-        // if (offer.offerCreatorAddress === data.bidderAddress)
-        //     throw new Error("cannot bid on own offer");
 
         /* sig check */
         const [{ token, amount }] = data.bidAssets;

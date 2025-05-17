@@ -5,9 +5,8 @@ import { useApp } from '@/lib/context/app-context';
 import { toast } from 'sonner';
 import { request } from '@stacks/connect';
 import { optionalCVOf, bufferCV, uintCV } from '@stacks/transactions';
-import { callReadOnlyFunction } from '@repo/polyglot';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
-import { principalCV } from '@stacks/transactions';
+import { getEnergyData, getPendingEnergyBlocks } from '@/app/actions/energy';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
     // Get the appropriate contract ID to call
     const engineContractId = vault.engineContractId || vault.contractId;
 
-    // Function to fetch user's last tap block and current block height
+    // Function to fetch user's energy data using server action
     const fetchEnergyData = async (refreshing = false) => {
         if (!walletState.connected || !walletState.address) {
             setLastTapBlock(null);
@@ -66,96 +65,37 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         }
 
         try {
-            const [contractAddress, contractName] = engineContractId.split('.');
-
-            // Get the last time the user tapped for energy
-            const lastTapResult = await callReadOnlyFunction(
-                contractAddress,
-                contractName,
-                'get-last-tap-block',
-                [principalCV(walletState.address)]
+            // Use server action instead of direct contract call
+            const energyData = await getEnergyData(
+                walletState.address,
+                vault.contractId,
+                engineContractId
             );
 
-            let lastTap = 0;
-            if (lastTapResult && typeof lastTapResult === 'object' && 'value' in lastTapResult) {
-                lastTap = parseInt(lastTapResult.value.toString());
-            }
-            setLastTapBlock(lastTap);
 
-            // Get the current block height (can also be done via API, but this works)
-            const quoteResult = await callReadOnlyFunction(
-                contractAddress,
-                contractName,
-                'quote',
-                [
-                    uintCV(0), // amount doesn't matter for energy harvest
-                    optionalCVOf(bufferFromHex(OP_HARVEST_ENERGY))
-                ]
-            );
 
-            let blockHeight = 0;
-            let pendingEnergyBlocks = 0;
+            setLastTapBlock(energyData.lastTapBlock);
+            setPendingBlocks(energyData.pendingBlocks);
 
-            if (quoteResult && typeof quoteResult === 'object' && 'value' in quoteResult) {
-                // For the energy quote, we expect dk to contain block difference
-                const dkValue = quoteResult.value.dk?.value;
-                if (dkValue !== undefined) {
-                    pendingEnergyBlocks = parseInt(dkValue.toString());
-
-                    // Calculate current block height from last tap and pending blocks
-                    blockHeight = lastTap + pendingEnergyBlocks;
-                }
-            }
-
-            setCurrentBlock(blockHeight);
-            setPendingBlocks(pendingEnergyBlocks);
-
-            // Fetch user-specific energy rate
-            if (walletState.address) {
-                try {
-                    const userStatsResponse = await fetch(`/api/v1/energy/${vault.contractId}/user?address=${walletState.address}`);
-                    if (userStatsResponse.ok) {
-                        const userData = await userStatsResponse.json();
-                        if (userData.status === 'success' && userData.data && typeof userData.data.estimatedEnergyRate === 'number') {
-                            const ratePerMinute = userData.data.estimatedEnergyRate;
-                            setEnergyPerMinuteRate(ratePerMinute);
-
-                            const totalPendingMinutes = pendingEnergyBlocks * MINUTES_PER_BLOCK;
-                            const calculatedEstimatedEnergy = ratePerMinute * totalPendingMinutes;
-                            setEstimatedEnergy(Math.floor(calculatedEstimatedEnergy));
-
-                            const calculatedDailyReward = ratePerMinute * MINUTES_PER_DAY;
-                            setEstimatedDailyReward(Math.floor(calculatedDailyReward));
-                        } else {
-                            console.warn('User energy rate not available from API or in unexpected format.');
-                            setEnergyPerMinuteRate(null);
-                            setEstimatedEnergy(pendingEnergyBlocks > 0 ? null : 0); // Show null if blocks but no rate, 0 if no blocks
-                            setEstimatedDailyReward(null);
-                        }
-                    } else {
-                        console.error('Failed to fetch user energy rate:', userStatsResponse.statusText);
-                        setEnergyPerMinuteRate(null);
-                        setEstimatedEnergy(pendingEnergyBlocks > 0 ? null : 0);
-                        setEstimatedDailyReward(null);
-                    }
-                } catch (apiError) {
-                    console.error("Error fetching user energy rate API:", apiError);
-                    setEnergyPerMinuteRate(null);
-                    setEstimatedEnergy(pendingEnergyBlocks > 0 ? null : 0);
-                    setEstimatedDailyReward(null);
-                }
+            if (energyData.estimatedEnergy === null && energyData.pendingBlocks > 0) {
+                setEstimatedEnergy(0.01); // Placeholder for visibility if rate is unknown
             } else {
-                // Should not happen if walletState.connected and walletState.address is checked earlier
-                setEnergyPerMinuteRate(null);
-                setEstimatedEnergy(null);
-                setEstimatedDailyReward(null);
+                setEstimatedEnergy(energyData.estimatedEnergy);
+            }
+
+            setEstimatedDailyReward(energyData.estimatedDailyReward);
+            setEnergyPerMinuteRate(energyData.energyPerMinuteRate);
+
+            // Calculate current block height from last tap and pending blocks
+            if (energyData.lastTapBlock) {
+                setCurrentBlock(energyData.lastTapBlock + energyData.pendingBlocks);
             }
 
         } catch (error) {
-            console.error("Error fetching energy data (contract calls):", error);
-            // Reset states if contract calls fail, keep existing nullification for API errors handled above
+            console.error("Error fetching energy data:", error);
+            // Reset states on error
             setEnergyPerMinuteRate(null);
-            setEstimatedEnergy(null);
+            setEstimatedEnergy(pendingBlocks > 0 ? 0.01 : 0); // Fallback on error too
             setEstimatedDailyReward(null);
         } finally {
             setIsLoading(false);
@@ -168,49 +108,47 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
         fetchEnergyData();
     }, [walletState.connected, walletState.address, engineContractId, vault.contractId]);
 
+    // Poll for energy updates using server action
     const pollEnergyUpdate = useCallback(async () => {
-        if (!walletState.connected || lastTapBlock === null) {
+        if (!walletState.connected || !walletState.address || lastTapBlock === null) {
             return; // Don't poll if not connected or no initial lastTapBlock
         }
 
         try {
-            const [contractAddress, contractName] = engineContractId.split('.');
-            const quoteResult = await callReadOnlyFunction(
-                contractAddress,
-                contractName,
-                'quote',
-                [
-                    uintCV(0), // amount doesn't matter for energy harvest
-                    optionalCVOf(bufferFromHex(OP_HARVEST_ENERGY))
-                ]
+            // Use server action for polling
+            const pendingData = await getPendingEnergyBlocks(
+                walletState.address,
+                lastTapBlock,
+                vault.contractId,
+                engineContractId
             );
 
-            if (quoteResult && typeof quoteResult === 'object' && 'value' in quoteResult) {
-                const dkValue = quoteResult.value.dk?.value;
-                if (dkValue !== undefined) {
-                    const newPendingBlocks = parseInt(dkValue.toString());
-                    // lastTapBlock comes from state, should be stable between full refreshes
-                    const newCurrentBlock = lastTapBlock + newPendingBlocks;
+            if (pendingData.pendingBlocks >= 0) {
+                const newPendingBlocks = pendingData.pendingBlocks;
+                const newCurrentBlock = lastTapBlock + newPendingBlocks;
 
-                    setCurrentBlock(newCurrentBlock);
-                    setPendingBlocks(newPendingBlocks);
+                setPendingBlocks(newPendingBlocks);
+                setCurrentBlock(newCurrentBlock);
 
-                    if (energyPerMinuteRate !== null) { // energyPerMinuteRate from component state
-                        const totalPendingMinutes = newPendingBlocks * MINUTES_PER_BLOCK;
-                        const calculatedEstimatedEnergy = energyPerMinuteRate * totalPendingMinutes;
-                        setEstimatedEnergy(Math.floor(calculatedEstimatedEnergy));
-                        // Daily reward is based on the rate, doesn't change with pending blocks here
-                    } else {
-                        setEstimatedEnergy(newPendingBlocks > 0 ? null : 0); // Match logic from fetchEnergyData
-                    }
+                // Use the rate from the server if available, otherwise use the cached rate
+                const effectiveRate = pendingData.ratePerMinute !== null
+                    ? pendingData.ratePerMinute
+                    : energyPerMinuteRate;
+
+                if (effectiveRate !== null) {
+                    const totalPendingMinutes = newPendingBlocks * MINUTES_PER_BLOCK;
+                    const calculatedEstimatedEnergy = effectiveRate * totalPendingMinutes;
+                    setEstimatedEnergy(Math.floor(calculatedEstimatedEnergy));
+                } else {
+                    // If rate is unknown, use placeholder for visibility
+                    setEstimatedEnergy(newPendingBlocks > 0 ? 0.01 : 0);
                 }
-                // If dkValue is undefined, or quoteResult is not as expected, states remain as they are (no update from this poll)
             }
         } catch (error) {
             console.warn("Polling energy update failed:", error);
             // Do not set error states for background polling to avoid UI disruption
         }
-    }, [engineContractId, walletState.connected, lastTapBlock, setCurrentBlock, setPendingBlocks, setEstimatedEnergy, energyPerMinuteRate]);
+    }, [walletState, lastTapBlock, vault.contractId, engineContractId, energyPerMinuteRate]);
 
     // useEffect for polling pending energy blocks
     useEffect(() => {
@@ -256,7 +194,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                 // Optimistically update UI
                 setLastTapBlock(currentBlock);
                 setPendingBlocks(0);
-                setEstimatedEnergy(null);
+                setEstimatedEnergy(0); // Reset to 0 after harvest
                 setEstimatedDailyReward(null);
                 setEnergyPerMinuteRate(null); // Reset rate after harvest
 
@@ -310,40 +248,6 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                             </Button>
                         </div>
 
-                        {/* <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-muted/30 p-3 rounded-lg">
-                                <div className="text-xs text-muted-foreground mb-1">Last Harvested</div>
-                                <div className="text-lg font-bold">
-                                    {isLoading ? (
-                                        <div className="flex items-center">
-                                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                                            Loading...
-                                        </div>
-                                    ) : lastTapBlock ? (
-                                        `Block #${lastTapBlock.toLocaleString()}`
-                                    ) : (
-                                        'Never'
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="bg-muted/30 p-3 rounded-lg">
-                                <div className="text-xs text-muted-foreground mb-1">Current Block</div>
-                                <div className="text-lg font-bold">
-                                    {isLoading ? (
-                                        <div className="flex items-center">
-                                            <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                                            Loading...
-                                        </div>
-                                    ) : currentBlock ? (
-                                        `#${currentBlock.toLocaleString()}`
-                                    ) : (
-                                        '—'
-                                    )}
-                                </div>
-                            </div>
-                        </div> */}
-
                         <div className="bg-primary/5 border border-primary/10 p-4 rounded-lg">
                             <div className="flex justify-between items-center mb-3">
                                 <div className="text-sm font-medium">Pending Energy</div>
@@ -359,7 +263,9 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                         {isLoading ? (
                                             <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
                                         ) : estimatedEnergy !== null ? (
-                                            `${estimatedEnergy.toLocaleString()} Energy`
+                                            (estimatedEnergy < 1 && estimatedEnergy > 0) ?
+                                                "< 1 Energy" :
+                                                `${estimatedEnergy.toLocaleString()} Energy`
                                         ) : (
                                             '—'
                                         )}
@@ -369,7 +275,9 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                 <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
                                     <div
                                         className={`bg-primary h-full rounded-full transition-all duration-300 ease-out relative overflow-hidden`}
-                                        style={{ width: `${estimatedEnergy !== null && estimatedEnergy > 0 ? Math.min(100, estimatedEnergy) : 0}%` }}
+                                        style={{
+                                            width: `${estimatedEnergy !== null && estimatedEnergy > 0 ? Math.max(2, Math.min(100, estimatedEnergy * 100 / (estimatedDailyReward || 100))) : 0}%`
+                                        }}
                                     >
                                         {/* Shine element for the sweep animation */}
                                         {pendingBlocks > 0 && (
@@ -377,8 +285,6 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                                 className="absolute top-0 left-0 h-full w-full"
                                                 style={{
                                                     background: 'linear-gradient(to right, transparent 20%, rgba(255,255,255,0.3) 50%, transparent 80%)',
-                                                    // If you chose NOT to update tailwind.config.js for the animation,
-                                                    // you would uncomment the line below and remove 'animate-shimmer-sweep' from className:
                                                     animation: 'shimmer-sweep 1.5s infinite linear',
                                                 }}
                                             />

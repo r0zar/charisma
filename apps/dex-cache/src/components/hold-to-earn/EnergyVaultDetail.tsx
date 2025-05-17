@@ -49,6 +49,7 @@ async function fetchVaultDetails(contractId: string): Promise<Vault | null> {
             const dexterityTokenId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1';
             const tokenMetadata = await getTokenMetadataCached(dexterityTokenId);
             vault.tokenForRewards = tokenMetadata;
+            vault.engineContractId = tokenMetadata.contract_principal;
         } catch (tokenError) {
             console.error('Failed to fetch token metadata:', tokenError);
             // Continue without token metadata
@@ -123,9 +124,6 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
             </div>
         );
     }
-
-    // Calculate fee percentage if available
-    const feePercent = vault.fee ? (vault.fee / 10000).toFixed(2) : 0;
 
     return (
         <div className="max-w-5xl mx-auto space-y-6">
