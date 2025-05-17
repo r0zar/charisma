@@ -8,14 +8,14 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
     const reserveAmount = reserves / (10 ** (token.decimals || 6));
     const value = price !== undefined ? reserveAmount * price : null;
 
-    // Show 'N/A' if price is not available
-    const volumeDisplay = value !== null ? `$${(value * 0.15).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'N/A';
-    const changeDisplay = value !== null ? '+0%' : 'N/A'; // No real change data, so show 0% or N/A
+    const volumeDisplay = value !== null ? `$${(value * 0.15).toLocaleString(undefined,
+        { maximumFractionDigits: token.decimals, minimumFractionDigits: token.decimals })}` : 'N/A';
 
     // Calculate total supply with decimals applied
     const totalSupply = token.total_supply
-        ? (Number(token.total_supply) / (10 ** (token.decimals || 6))).toLocaleString(undefined, { maximumFractionDigits: 2 })
-        : 'N/A';
+        ? (Number(token.total_supply) / (10 ** (token.decimals || 6))).toLocaleString(undefined, {
+            maximumFractionDigits: token.decimals, minimumFractionDigits: token.decimals
+        }) : 'N/A';
 
     // Get contract ID for explorer link
     const contractId = token.contractId || token.contract_principal || '';
