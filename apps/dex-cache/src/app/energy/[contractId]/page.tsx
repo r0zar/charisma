@@ -1,4 +1,4 @@
-import EnergyVaultDetail from '@/components/EnergyVaultDetail';
+import EnergyVaultDetail from '@/components/hold-to-earn/EnergyVaultDetail';
 
 interface EnergyVaultDetailPageProps {
     params: {
@@ -6,10 +6,11 @@ interface EnergyVaultDetailPageProps {
     };
 }
 
-export default function EnergyVaultDetailPage({ params }: EnergyVaultDetailPageProps) {
+export default async function EnergyVaultDetailPage({ params }: EnergyVaultDetailPageProps) {
+    const { contractId } = await params;
     return (
         <div className="container mx-auto py-8">
-            <EnergyVaultDetail contractId={params.contractId} />
+            <EnergyVaultDetail contractId={contractId} />
         </div>
     );
 } 

@@ -1,6 +1,6 @@
 import { describe, it, expect, jest } from "@jest/globals";
-import { callReadOnlyFunction, getContractInterface, getContractInfo } from "../index";
-import { cvToHex, principalCV } from "@stacks/transactions";
+import { callReadOnlyFunction, getContractInterface, getContractInfo, fetchContractEvents, fetcHoldToEarnLogs } from "../index";
+import { cvToHex, hexToCV, principalCV } from "@stacks/transactions";
 
 describe("getContractInterface", () => {
   it("should fetch the interface for a known contract (satoshibles)", async () => {
@@ -115,4 +115,14 @@ describe("getContractInfo", () => {
       consoleWarnSpy.mockRestore();
     }
   }, 15000);
+
+  it('should fetch contract events', async () => {
+    const data = await fetchContractEvents('SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn');
+    console.log(data);
+  })
+
+  it('should get hold to earn logs', async () => {
+    const data = await fetcHoldToEarnLogs('SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn');
+    console.log(data);
+  })
 });

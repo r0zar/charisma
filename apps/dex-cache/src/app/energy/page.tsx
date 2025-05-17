@@ -1,4 +1,4 @@
-import EnergyVaultList from '@/components/EnergyVaultList';
+import EnergyVaultList from '@/components/hold-to-earn/EnergyVaultList';
 
 export default function EnergyPage() {
     return (

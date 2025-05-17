@@ -43,6 +43,7 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
  * You can point SIGNER_URL env var at the blaze-signer instance.
  */
 export async function executeTrade(order: LimitOrder): Promise<string> {
+    // get quote for multi-hop swap
     const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn,
         { excludeVaultIds: ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-cha-vault-wrapper-alex'] }
     );

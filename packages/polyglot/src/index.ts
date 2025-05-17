@@ -1,6 +1,6 @@
 import { ClarityValue, cvToHex, cvToValue, hexToCV } from "@stacks/transactions";
 import { apiClient } from "./blockchain-api-client";
-import { TransactionResults } from "@stacks/stacks-blockchain-api-types";
+import { TransactionEventsResponse, TransactionResults, Transaction } from "@stacks/stacks-blockchain-api-types";
 
 // Define the structure for the contract interface based on the API docs
 interface ContractInterface {
@@ -251,4 +251,57 @@ export async function fetchStxBalance(address: string): Promise<number> {
     console.error(`Failed fetching STX balance for ${address}:`, error);
     return 0;
   }
+}
+
+export async function getTransactionDetails(txId: string): Promise<Transaction> {
+  const { data } = await apiClient.GET(`/extended/v1/tx/${txId}` as any, {
+    params: {
+      query: {
+        event_limit: 100,
+        event_offset: 0,
+      },
+    },
+  });
+  return data as unknown as Transaction;
+}
+
+export async function fetchContractEvents(address: string, { limit = 100, offset = 0 }: { limit?: number, offset?: number } = {}): Promise<TransactionEventsResponse> {
+  const { data } = await apiClient.GET(`/extended/v1/contract/${address}/events` as any, {
+    limit,
+    offset,
+  });
+  return data as unknown as TransactionEventsResponse;
+}
+
+export const fetcHoldToEarnLogs = async (contractAddress: string) => {
+  const data = await fetchContractEvents(contractAddress);
+  const logs = data.results.map((r: any) => ({ ...(hexToCV(r.contract_log.value.hex) as any).value, tx_id: r.tx_id }));
+
+  const logsFormattedPromises = logs.map(async (log: any) => {
+    const { energy, integral, message, op, sender } = log;
+    let txDetails = null;
+    try {
+      txDetails = await getTransactionDetails(log.tx_id as string);
+      // console.log('Transaction details:', txDetails); // For debugging if needed
+    } catch (error) {
+      console.error(`Failed to get transaction details for ${log.tx_id}:`, error);
+      // Decide how to handle this - perhaps return log without tx details or mark as failed
+    }
+
+    return {
+      energy: energy.value as bigint,
+      integral: integral.value as bigint,
+      message: message.value as string,
+      op: op.value as string,
+      sender: sender.value as string,
+      tx_id: log.tx_id as string,
+      block_height: txDetails?.block_height,
+      block_time: txDetails?.block_time,
+      block_time_iso: txDetails?.block_time_iso,
+      tx_status: txDetails?.tx_status,
+    };
+  });
+
+  const logsFormatted = await Promise.all(logsFormattedPromises);
+  return logsFormatted;
 }
