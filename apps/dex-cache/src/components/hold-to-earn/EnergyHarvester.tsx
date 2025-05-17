@@ -223,7 +223,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
 
         setIsHarvesting(true);
         try {
-            const [contractAddress, contractName] = engineContractId.split('.');
+            const [contractAddress, contractName] = vault.contractId.split('.');
 
             // Call the harvest function
             const params = {
@@ -246,7 +246,6 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                 // Optimistically update UI
                 setLastTapBlock(currentBlock);
                 setPendingBlocks(0);
-                setEstimatedEnergy(0); // Reset to 0 after harvest
                 setEstimatedDailyReward(null);
                 setEnergyPerMinuteRate(null); // Reset rate after harvest
 
@@ -304,7 +303,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                         <div className="bg-primary/5 border border-primary/10 p-4 rounded-lg">
                             <div className="flex justify-between items-center mb-3">
                                 <div className="text-sm font-medium">Pending Energy</div>
-                                <Badge className="bg-primary/20 text-primary border-primary/30">
+                                <Badge className="bg-primary/20 text-primary borenergizeder-primary/30">
                                     {pendingBlocks.toLocaleString()} blocks
                                 </Badge>
                             </div>
