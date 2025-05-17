@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { getOffer } from "@/lib/otc/kv";
 import { kv } from "@vercel/kv";
 import { EnhancedActiveBids } from "@/components/otc/ActiveBids";
+import SocialShare from "@/components/otc/SocialShare";
 import { WalletProvider } from "@/contexts/wallet-context";
 import { listTokens } from "@/app/actions";
 import { Header } from "@/components/header";
@@ -14,7 +15,13 @@ import { Offer as SchemaOffer, Bid as SchemaBid } from "@/lib/otc/schema";
 interface PageProps { params: { intentUuid: string } }
 
 export default async function OfferPage({ params }: PageProps) {
-    const { intentUuid } = await params;
+    const { intentUuid } = params; // No need to await params
+
+    // Construct the full offer URL for sharing
+    const headersList = await headers(); // Await the headers() call
+    const host = headersList.get('host') || "localhost:3000";
+    const protocol = headersList.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+    const offerUrl = `${protocol}://${host}/otc/${intentUuid}`;
 
     // Fetch and process tokens
     const tokensRes = await listTokens();
@@ -55,8 +62,13 @@ export default async function OfferPage({ params }: PageProps) {
                             offer={offer}
                         />
                     )}
-                    <div className="col-span-1md:col-span-2">
+                    {offer.status !== "open" && <div className="md:col-start-2"></div>}
 
+                    <div className="md:col-span-2">
+                        <SocialShare offerUrl={offerUrl} offerTitle={`Check out this offer for ${offer.offerAssets.map(a => a.token).join(', ')}`} />
+                    </div>
+
+                    <div className="md:col-span-2">
                         <EnhancedActiveBids
                             bids={offer.bids || []}
                             subnetTokens={subnetTokens}
