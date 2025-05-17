@@ -24,51 +24,39 @@ interface Vault {
     metadata?: Record<string, any>; // For any extra details
 }
 
-// Mock function to fetch a single vault's details - replace with actual API call
+// Updated function to fetch a single vault's details from the API
 async function fetchVaultDetails(contractId: string): Promise<Vault | null> {
-    console.log(`Fetching details for energy vault: ${contractId}`);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`Fetching details for energy vault from API: ${contractId}`);
+    try {
+        const response = await fetch(`/api/v1/vaults?contractId=${contractId}`);
 
-    // TODO: Replace with actual API call to fetch a specific vault by its contractId
-    // For now, returning mock data based on the ID
-    if (contractId === 'SP123.energy-vault-1') {
-        return {
-            contractId: 'SP123.energy-vault-1',
-            type: 'ENERGY',
-            name: 'Solar Farm Rewards',
-            symbol: 'SOLAR',
-            description: 'Earn rewards by staking in the solar farm project. This vault focuses on renewable energy credits and provides a steady APY through staking SOLAR tokens.',
-            image: 'https://via.placeholder.com/200/FFFF00/000000?Text=SOLAR',
-            fee: 0.1,
-            externalPoolId: 'ext-solar-farm-001',
-            engineContractId: 'SPXYZ.staking-engine-v2',
-            metadata: {
-                apy: '5.75%',
-                tvl: '$1,200,000',
-                stakingToken: 'SOLAR',
-                rewardToken: 'STX'
+        const responseData = await response.json();
+
+        if (response.ok && responseData.status === 'success' && responseData.data) {
+            // Ensure essential fields are present. The API should ideally guarantee this for a single valid vault.
+            const vault: Vault = responseData.data;
+            if (typeof vault.contractId === 'string' && typeof vault.name === 'string') {
+                console.log('Fetched vault details:', vault);
+                return vault;
+            } else {
+                console.error('Fetched vault data is missing essential fields:', vault);
+                throw new Error('Invalid vault data format from API.');
             }
-        };
+        } else if (response.status === 404 || (responseData.status === 'error' && responseData.message?.includes('not found'))) {
+            console.warn(`Vault with contractId ${contractId} not found via API.`);
+            return null; // Explicitly return null if not found
+        } else {
+            // Handle other non-successful statuses or unexpected JSON structure
+            const errorMsg = responseData.message || responseData.error || `API request failed with status ${response.status}`;
+            console.error('Failed to fetch vault details:', errorMsg, 'Response Data:', responseData);
+            throw new Error(`Failed to fetch vault details: ${errorMsg}`);
+        }
+    } catch (error) {
+        console.error(`Error in fetchVaultDetails for ${contractId}:`, error);
+        // Re-throw or handle as appropriate for the calling component
+        // The component's useEffect already catches and sets an error message.
+        throw error;
     }
-    if (contractId === 'SP456.wind-turbine-yield') {
-        return {
-            contractId: 'SP456.wind-turbine-yield',
-            type: 'ENERGY',
-            name: 'Wind Turbine Yield',
-            symbol: 'WINDY',
-            description: 'Stake WINDY tokens and get yield from wind energy generation. This project contributes to green energy initiatives and offers competitive returns.',
-            image: 'https://via.placeholder.com/200/ADD8E6/000000?Text=WINDY',
-            fee: 0.05,
-            metadata: {
-                apy: '6.2%',
-                tvl: '$850,000',
-                stakingToken: 'WINDY',
-                rewardToken: 'BTC'
-            }
-        };
-    }
-    return null;
 }
 
 interface EnergyVaultDetailProps {

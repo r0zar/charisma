@@ -15,48 +15,44 @@ interface Vault {
     symbol?: string;
     description: string;
     image: string;
-    fee: number; // Assuming fee might be relevant for display
     // Add any other fields relevant for an ENERGY vault card
+    // From API, we might also get other fields, but these are used in the list
+    externalPoolId?: string;
+    engineContractId?: string;
+    reservesA?: number;
+    reservesB?: number;
 }
 
-// Mock function to fetch vaults - replace with actual API call
+// Updated function to fetch vaults from the API
 async function fetchEnergyVaults(): Promise<Vault[]> {
-    console.log('Fetching energy vaults...');
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // TODO: Replace with actual API call to fetch vaults and filter by type 'ENERGY'
-    // For now, returning mock data
-    const mockVaults: Vault[] = [
-        {
-            contractId: 'SP123.energy-vault-1',
-            type: 'ENERGY',
-            name: 'Solar Farm Rewards',
-            symbol: 'SOLAR',
-            description: 'Earn rewards by staking in the solar farm project.',
-            image: 'https://via.placeholder.com/150/FFFF00/000000?Text=SOLAR',
-            fee: 0.1
-        },
-        {
-            contractId: 'SP456.wind-turbine-yield',
-            type: 'ENERGY',
-            name: 'Wind Turbine Yield',
-            symbol: 'WINDY',
-            description: 'Stake and get yield from wind energy generation.',
-            image: 'https://via.placeholder.com/150/ADD8E6/000000?Text=WINDY',
-            fee: 0.05
-        },
-        {
-            contractId: 'SP789.geo-power-stake',
-            type: 'POOL', // This one should be filtered out if fetching all and then filtering
-            name: 'Geothermal Pool',
-            symbol: 'GEO',
-            description: 'A standard liquidity pool.',
-            image: 'https://via.placeholder.com/150/D2B48C/000000?Text=GEO',
-            fee: 0.3
+    console.log('Fetching ENERGY type vaults from API /api/v1/vaults?type=ENERGY');
+    try {
+        // Fetch specifically ENERGY type vaults
+        const response = await fetch('/api/v1/vaults?type=ENERGY');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'API request failed with no JSON body' }));
+            throw new Error(`API request failed with status ${response.status}: ${errorData.message || response.statusText}`);
         }
-    ];
-    return mockVaults.filter(v => v.type === 'ENERGY');
+
+        const responseData = await response.json();
+
+        if (responseData.status === 'success' && Array.isArray(responseData.data)) {
+            // Ensure essential fields are present for robust rendering
+            const energyVaults = responseData.data.filter((vault: Vault) =>
+                typeof vault.contractId === 'string' &&
+                typeof vault.name === 'string' &&
+                typeof vault.description === 'string' // image and fee are also used but might have fallbacks
+            );
+            console.log('Fetched and validated energy vaults:', energyVaults);
+            return energyVaults;
+        } else {
+            console.error('API response was not successful or data is not an array:', responseData);
+            throw new Error('Failed to fetch energy vaults: Invalid API response format.');
+        }
+    } catch (error) {
+        console.error('Failed to fetch energy vaults:', error);
+        throw error; // Re-throw to be caught by the component
+    }
 }
 
 export default function EnergyVaultList() {
@@ -98,29 +94,30 @@ export default function EnergyVaultList() {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {vaults.map((vault) => (
                 <Link href={`/energy/${vault.contractId}`} key={vault.contractId} passHref>
-                    <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full flex flex-col">
-                        <CardHeader className="flex-shrink-0">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-xl">{vault.name}</CardTitle>
-                                {vault.symbol && <Badge variant="outline">{vault.symbol}</Badge>}
+                    <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full flex flex-col p-3 group">
+                        <div className="flex justify-between items-baseline mb-2">
+                            <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors" title={vault.name}>
+                                {vault.name}
+                            </h3>
+                            <Badge variant="secondary" className="text-xs self-start mt-auto">
+                                Type: {vault.type}
+                            </Badge>
+                        </div>
+                        <div className="flex-grow flex items-start gap-3">
+                            <img
+                                src={vault.image || 'https://via.placeholder.com/80/eee/ccc?text=N/A'}
+                                alt={vault.name}
+                                className="w-16 h-16 rounded-md object-cover bg-muted flex-shrink-0"
+                            />
+                            <div className="flex-grow flex flex-col min-w-0">
+                                <p className="text-xs text-muted-foreground line-clamp-3 mb-1 flex-grow">
+                                    {vault.description}
+                                </p>
                             </div>
-                        </CardHeader>
-                        <CardContent className="flex-grow flex flex-col justify-between">
-                            <div className="flex items-center mb-4">
-                                <img src={vault.image || 'https://via.placeholder.com/64'} alt={vault.name} className="w-16 h-16 rounded-md mr-4 object-cover bg-muted" />
-                                <p className="text-sm text-muted-foreground line-clamp-3">{vault.description}</p>
-                            </div>
-                            <div>
-                                {/* Add more vault details here if needed, e.g., fee, TVL, APR etc. */}
-                                {typeof vault.fee === 'number' && (
-                                    <p className="text-xs text-muted-foreground">Fee: {vault.fee}%</p>
-                                )}
-                                <Badge variant="secondary" className="mt-2">Type: {vault.type}</Badge>
-                            </div>
-                        </CardContent>
+                        </div>
                     </Card>
                 </Link>
             ))}

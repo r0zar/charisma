@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllVaultData } from '@/lib/vaultService';
+import { getAllVaultData, getVaultData } from '@/lib/vaultService';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -14,23 +14,53 @@ export async function OPTIONS() {
 
 export async function GET(request: Request) {
     try {
-        console.log('Fetching all vaults');
         const { searchParams } = new URL(request.url);
+        const contractId = searchParams.get('contractId');
         const protocol = searchParams.get('protocol');
+        const type = searchParams.get('type');
 
-        const data = await getAllVaultData(protocol || undefined);
-        console.log(`Returning ${data.length} vaults`);
+        if (contractId) {
+            console.log(`Fetching single vault by contractId: ${contractId}`);
+            const vault = await getVaultData(contractId);
+            if (vault) {
+                return NextResponse.json({
+                    status: 'success',
+                    data: vault,
+                }, {
+                    status: 200,
+                    headers
+                });
+            } else {
+                return NextResponse.json({
+                    status: 'error',
+                    message: `Vault with contractId ${contractId} not found.`,
+                }, {
+                    status: 404,
+                    headers
+                });
+            }
+        }
+
+        console.log('Fetching vaults');
+        let allVaults = await getAllVaultData(protocol || undefined);
+
+        if (type) {
+            allVaults = allVaults.filter(vault => vault.type === type);
+            console.log(`Filtered ${allVaults.length} vaults by type: ${type} (protocol: ${protocol})`);
+        } else {
+            console.log(`Returning ${allVaults.length} vaults (protocol: ${protocol}, no type filter)`);
+        }
 
         return NextResponse.json({
             status: 'success',
-            data,
-            count: data.length,
+            data: allVaults,
+            count: allVaults.length,
         }, {
             status: 200,
             headers
         });
     } catch (error: any) {
-        console.error('Error fetching all vaults', error);
+        console.error('Error in GET /api/v1/vaults:', error);
         return NextResponse.json({
             status: 'error',
             error: 'Internal Server Error',
