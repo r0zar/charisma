@@ -18,6 +18,10 @@ import { Zap, Clock, AlertCircle, Loader2, InfoIcon, RefreshCw } from 'lucide-re
 // Constants for operations
 const OP_HARVEST_ENERGY = '07';
 
+const STACKS_BLOCKS_PER_DAY = 144; // Approx. 10 min per block (6 blocks/hr * 24 hr/day)
+const MINUTES_PER_DAY = 24 * 60;
+const MINUTES_PER_BLOCK = MINUTES_PER_DAY / STACKS_BLOCKS_PER_DAY;
+
 interface EnergyHarvesterProps {
     vault: {
         contractId: string;
@@ -37,6 +41,8 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isHarvesting, setIsHarvesting] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [estimatedDailyReward, setEstimatedDailyReward] = useState<number | null>(null);
+    const [energyPerMinuteRate, setEnergyPerMinuteRate] = useState<number | null>(null);
 
     // Get the appropriate contract ID to call
     const engineContractId = vault.engineContractId || vault.contractId;
@@ -48,6 +54,8 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
             setCurrentBlock(null);
             setPendingBlocks(0);
             setEstimatedEnergy(null);
+            setEstimatedDailyReward(null);
+            setEnergyPerMinuteRate(null);
             return;
         }
 
@@ -102,14 +110,53 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
             setCurrentBlock(blockHeight);
             setPendingBlocks(pendingEnergyBlocks);
 
-            // Estimate energy based on blocks (simplified formula - would need actual contract logic for accuracy)
-            // This is just a placeholder calculation
-            const estimatedEnergyAmount = Math.floor(pendingEnergyBlocks * 0.01 * (Math.log(pendingEnergyBlocks + 1) + 1));
-            setEstimatedEnergy(estimatedEnergyAmount);
+            // Fetch user-specific energy rate
+            if (walletState.address) {
+                try {
+                    const userStatsResponse = await fetch(`/api/v1/energy/${vault.contractId}/user?address=${walletState.address}`);
+                    if (userStatsResponse.ok) {
+                        const userData = await userStatsResponse.json();
+                        if (userData.status === 'success' && userData.data && typeof userData.data.estimatedEnergyRate === 'number') {
+                            const ratePerMinute = userData.data.estimatedEnergyRate;
+                            setEnergyPerMinuteRate(ratePerMinute);
+
+                            const totalPendingMinutes = pendingEnergyBlocks * MINUTES_PER_BLOCK;
+                            const calculatedEstimatedEnergy = ratePerMinute * totalPendingMinutes;
+                            setEstimatedEnergy(Math.floor(calculatedEstimatedEnergy));
+
+                            const calculatedDailyReward = ratePerMinute * MINUTES_PER_DAY;
+                            setEstimatedDailyReward(Math.floor(calculatedDailyReward));
+                        } else {
+                            console.warn('User energy rate not available from API or in unexpected format.');
+                            setEnergyPerMinuteRate(null);
+                            setEstimatedEnergy(pendingEnergyBlocks > 0 ? null : 0); // Show null if blocks but no rate, 0 if no blocks
+                            setEstimatedDailyReward(null);
+                        }
+                    } else {
+                        console.error('Failed to fetch user energy rate:', userStatsResponse.statusText);
+                        setEnergyPerMinuteRate(null);
+                        setEstimatedEnergy(pendingEnergyBlocks > 0 ? null : 0);
+                        setEstimatedDailyReward(null);
+                    }
+                } catch (apiError) {
+                    console.error("Error fetching user energy rate API:", apiError);
+                    setEnergyPerMinuteRate(null);
+                    setEstimatedEnergy(pendingEnergyBlocks > 0 ? null : 0);
+                    setEstimatedDailyReward(null);
+                }
+            } else {
+                // Should not happen if walletState.connected and walletState.address is checked earlier
+                setEnergyPerMinuteRate(null);
+                setEstimatedEnergy(null);
+                setEstimatedDailyReward(null);
+            }
 
         } catch (error) {
-            console.error("Error fetching energy data:", error);
-            // Keep previous values and don't reset to allow retrying
+            console.error("Error fetching energy data (contract calls):", error);
+            // Reset states if contract calls fail, keep existing nullification for API errors handled above
+            setEnergyPerMinuteRate(null);
+            setEstimatedEnergy(null);
+            setEstimatedDailyReward(null);
         } finally {
             setIsLoading(false);
             setIsRefreshing(false);
@@ -119,7 +166,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
     // Fetch data on component mount or when wallet changes
     useEffect(() => {
         fetchEnergyData();
-    }, [walletState.connected, walletState.address, engineContractId]);
+    }, [walletState.connected, walletState.address, engineContractId, vault.contractId]);
 
     const pollEnergyUpdate = useCallback(async () => {
         if (!walletState.connected || lastTapBlock === null) {
@@ -148,8 +195,14 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                     setCurrentBlock(newCurrentBlock);
                     setPendingBlocks(newPendingBlocks);
 
-                    const newEstimatedEnergy = Math.floor(newPendingBlocks * 0.01 * (Math.log(newPendingBlocks + 1) + 1));
-                    setEstimatedEnergy(newEstimatedEnergy);
+                    if (energyPerMinuteRate !== null) { // energyPerMinuteRate from component state
+                        const totalPendingMinutes = newPendingBlocks * MINUTES_PER_BLOCK;
+                        const calculatedEstimatedEnergy = energyPerMinuteRate * totalPendingMinutes;
+                        setEstimatedEnergy(Math.floor(calculatedEstimatedEnergy));
+                        // Daily reward is based on the rate, doesn't change with pending blocks here
+                    } else {
+                        setEstimatedEnergy(newPendingBlocks > 0 ? null : 0); // Match logic from fetchEnergyData
+                    }
                 }
                 // If dkValue is undefined, or quoteResult is not as expected, states remain as they are (no update from this poll)
             }
@@ -157,7 +210,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
             console.warn("Polling energy update failed:", error);
             // Do not set error states for background polling to avoid UI disruption
         }
-    }, [engineContractId, walletState.connected, lastTapBlock, setCurrentBlock, setPendingBlocks, setEstimatedEnergy]);
+    }, [engineContractId, walletState.connected, lastTapBlock, setCurrentBlock, setPendingBlocks, setEstimatedEnergy, energyPerMinuteRate]);
 
     // useEffect for polling pending energy blocks
     useEffect(() => {
@@ -203,7 +256,9 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                 // Optimistically update UI
                 setLastTapBlock(currentBlock);
                 setPendingBlocks(0);
-                setEstimatedEnergy(0);
+                setEstimatedEnergy(null);
+                setEstimatedDailyReward(null);
+                setEnergyPerMinuteRate(null); // Reset rate after harvest
 
                 // Wait briefly then refresh actual data
                 setTimeout(() => fetchEnergyData(true), 3000);
@@ -255,7 +310,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                             </Button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* <div className="grid grid-cols-2 gap-4">
                             <div className="bg-muted/30 p-3 rounded-lg">
                                 <div className="text-xs text-muted-foreground mb-1">Last Harvested</div>
                                 <div className="text-lg font-bold">
@@ -287,7 +342,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="bg-primary/5 border border-primary/10 p-4 rounded-lg">
                             <div className="flex justify-between items-center mb-3">
@@ -304,7 +359,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                         {isLoading ? (
                                             <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
                                         ) : estimatedEnergy !== null ? (
-                                            `~${estimatedEnergy.toLocaleString()} Energy`
+                                            `${estimatedEnergy.toLocaleString()} Energy`
                                         ) : (
                                             '—'
                                         )}
@@ -314,7 +369,7 @@ export function EnergyHarvester({ vault }: EnergyHarvesterProps) {
                                 <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
                                     <div
                                         className={`bg-primary h-full rounded-full transition-all duration-300 ease-out relative overflow-hidden`}
-                                        style={{ width: `${Math.min(100, (pendingBlocks / 100) * 100)}%` }}
+                                        style={{ width: `${estimatedEnergy !== null && estimatedEnergy > 0 ? Math.min(100, estimatedEnergy) : 0}%` }}
                                     >
                                         {/* Shine element for the sweep animation */}
                                         {pendingBlocks > 0 && (

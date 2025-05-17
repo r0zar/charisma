@@ -140,7 +140,7 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Left column - Vault Info */}
                 <div className="md:col-span-5">
-                    <Card className="h-full overflow-hidden border border-primary/20 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
+                    <Card className="h-fit overflow-hidden border border-primary/20 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
                         <CardHeader>
                             <div className="flex justify-center mb-4">
                                 <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-primary/10">
@@ -235,18 +235,19 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                             Overview
                         </button>
                         <button
-                            className={`px-3 py-2 text-sm font-medium flex items-center transition-colors whitespace-nowrap ${activeTab === 'analytics' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                            onClick={() => setActiveTab('analytics')}
-                        >
-                            <BarChartBig className="h-3.5 w-3.5 mr-1.5" />
-                            Analytics
-                        </button>
-                        <button
                             className={`px-3 py-2 text-sm font-medium flex items-center transition-colors whitespace-nowrap ${activeTab === 'harvest' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                             onClick={() => setActiveTab('harvest')}
                         >
                             <Zap className="h-3.5 w-3.5 mr-1.5" />
                             Harvest Energy
+                        </button>
+                        <button
+                            disabled={true}
+                            className={`cursor-not-allowed px-3 py-2 text-sm font-medium flex items-center transition-colors whitespace-nowrap ${activeTab === 'analytics' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                            onClick={() => setActiveTab('analytics')}
+                        >
+                            <BarChartBig className="h-3.5 w-3.5 mr-1.5" />
+                            Analytics
                         </button>
                     </div>
 
@@ -267,7 +268,7 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                                     <p className="text-muted-foreground">
                                         Energy is a reward token that accumulates based on how long you hold tokens in your wallet.
                                         The longer you hold, the more energy you earn. Energy can be used for various benefits in
-                                        the ecosystem, such as governance voting power, fee discounts, or special features.
+                                        the ecosystem, such as redeeming for token rewards, minting exclusive NFTs, and more.
                                     </p>
                                 </div>
 
@@ -315,11 +316,11 @@ export default function EnergyVaultDetail({ contractId }: EnergyVaultDetailProps
                                     <ul className="space-y-2 text-sm">
                                         <li className="flex items-start">
                                             <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
-                                            <span>Boost your voting power in governance decisions</span>
+                                            <span>Redeem energy for liquid token payouts</span>
                                         </li>
                                         <li className="flex items-start">
                                             <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>
-                                            <span>Receive fee discounts on protocol interactions</span>
+                                            <span>Spend energy to mint exclusive NFTs and assets</span>
                                         </li>
                                         <li className="flex items-start">
                                             <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-xs mr-2 mt-0.5">✓</span>

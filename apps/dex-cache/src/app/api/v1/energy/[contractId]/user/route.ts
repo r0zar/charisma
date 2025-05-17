@@ -9,12 +9,45 @@ const CACHE_DURATION = 60 * 5; // 5 minutes in seconds
 const getUserEnergyAnalyticsCacheKey = (contractId: string, address: string) =>
     `energy:user:analytics:${contractId}:${address}`;
 
+// Format for timestamp validation
+const isValidDate = (timestamp: number): boolean => {
+    // Check if timestamp is a number and is within a reasonable range
+    // (between 2020-01-01 and 1 day in the future)
+    const now = Date.now();
+    const jan2020 = new Date('2020-01-01').getTime();
+    const oneDayFuture = now + (24 * 60 * 60 * 1000);
+
+    return !isNaN(timestamp) && timestamp > jan2020 && timestamp < oneDayFuture;
+};
+
+// Utility to format timestamp safely
+const formatTimestamp = (blockTime: number | undefined, blockTimeIso: string | undefined): number => {
+    if (blockTimeIso) {
+        const date = new Date(blockTimeIso);
+        if (!isNaN(date.getTime())) {
+            return date.getTime();
+        }
+    }
+
+    if (blockTime) {
+        // Convert seconds to milliseconds
+        const timestamp = blockTime * 1000;
+        if (isValidDate(timestamp)) {
+            return timestamp;
+        }
+    }
+
+    // Default to current time if we can't get a valid timestamp
+    return Date.now();
+};
+
 interface HarvestHistoryItem {
     timestamp: number;
     energy: number;
     integral: number;
-    blockHeight?: number;
-    txId?: string;
+    blockHeight: number;
+    txId: string;
+    formattedTime?: string;
 }
 
 interface UserEnergyData {
@@ -35,24 +68,29 @@ export async function GET(
     context: { params: { contractId: string } }
 ) {
     const { contractId } = await context.params;
-    const { searchParams } = new URL(request.url);
-    const address = searchParams.get('address');
-    const useMocks = searchParams.get('useMocks') === 'true' || process.env.NODE_ENV === 'development';
-    const forceRefresh = searchParams.get('refresh') === 'true';
 
-    // Set headers for caching and CORS
+    // Get query parameters
+    const url = new URL(request.url);
+    const address = url.searchParams.get('address');
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+    const useMocks = process.env.NODE_ENV === 'development';
+
+    // Enable CORS
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Content-Type': 'application/json',
-        'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 12}` // 5 min edge, 1h SWR
     };
 
+    if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers });
+    }
+
+    // Validate required parameters
     if (!address) {
         return NextResponse.json({
             status: 'error',
-            error: 'Address parameter is required'
+            error: 'Missing required parameter: address'
         }, { status: 400, headers });
     }
 
@@ -81,42 +119,38 @@ export async function GET(
         // Get logs from blockchain
         let allLogs = await fetcHoldToEarnLogs(contractId);
 
-        // Use mock data in development if no real data exists
-        if (useMocks && (!allLogs || allLogs.length === 0)) {
-            console.log('Using mock logs for development');
-            allLogs = mockEnergyLogs.slice();
-        }
+        console.log(`Fetched ${allLogs.length} logs for contract ${contractId}`);
 
         // Check if logs exist at all
         if (allLogs.length === 0) {
             console.log('No logs found for contract', contractId);
         } else {
             console.log(`Found ${allLogs.length} logs for contract ${contractId}`);
+            // Log the first log to debug data structure
+            if (allLogs.length > 0) {
+                console.log('Sample log data:', {
+                    tx_id: allLogs[0].tx_id,
+                    sender: allLogs[0].sender,
+                    energy: allLogs[0].energy,
+                    block_time: allLogs[0].block_time,
+                    block_time_iso: allLogs[0].block_time_iso,
+                });
+            }
         }
 
         // Debug - check all sender addresses in logs
         const senderAddresses = new Set(allLogs.map(log => log.sender));
         console.log('All sender addresses in logs:', Array.from(senderAddresses));
 
-        // IMPORTANT: Normalize the address to match the case sensitivity from the logs
-        // Some blockchain addresses might be case-sensitive in comparisons
-        const normalizedQueryAddress = address.trim();
-
-        // Filter logs for the specific user (with detailed logging)
-        console.log(`Filtering logs for user address: ${normalizedQueryAddress}`);
-
+        // Filter logs for the specific user
         const userLogs = allLogs.filter(log => {
-            const senderMatches = log.sender === normalizedQueryAddress;
-            // Log if we find a match
-            if (senderMatches) {
-                console.log(`Found matching log: ${log.tx_id} with energy ${log.energy}`);
-            }
-            return senderMatches;
+            // Ensure the sender matches and the log has valid data
+            return log.sender === address && log.energy !== undefined;
         });
 
-        console.log(`Found ${userLogs.length} logs for user ${normalizedQueryAddress}`);
+        console.log(`Found ${userLogs.length} logs for user ${address}`);
 
-        // Create default/empty user stats
+        // Initialize user data structure
         const userData: UserEnergyData = {
             address,
             totalEnergyHarvested: 0,
@@ -127,11 +161,21 @@ export async function GET(
             estimatedEnergyRate: 0,
             estimatedIntegralRate: 0,
             harvestHistory: [],
-            hasData: false
+            hasData: false  // Will set to true if we have actual user logs
         };
 
+        // Use mock data only if we have no logs at all
+        if (userLogs.length === 0 && useMocks) {
+            console.log('No user logs found, using mock data for development');
+            const mockRate = Math.floor(Math.random() * 10000) + 5000;
+            userData.estimatedEnergyRate = mockRate;
+            userData.estimatedIntegralRate = mockRate * 0.85;
+            userData.hasData = false;
+        }
         // If we have logs, calculate actual stats
-        if (userLogs && userLogs.length > 0) {
+        else if (userLogs.length > 0) {
+            console.log(`Processing ${userLogs.length} logs for user ${address}`);
+
             // Sort logs by block height or time
             const sortedLogs = [...userLogs].sort((a, b) => {
                 return (a.block_height || 0) - (b.block_height || 0);
@@ -142,41 +186,45 @@ export async function GET(
             userData.totalIntegralCalculated = userLogs.reduce((sum, log) => sum + Number(log.integral), 0);
             userData.harvestCount = userLogs.length;
             userData.averageEnergyPerHarvest = userData.harvestCount > 0 ? userData.totalEnergyHarvested / userData.harvestCount : 0;
-            userData.hasData = true;
+            userData.hasData = true;  // Important: Mark as having data since we have logs
 
             // Calculate energy rate
             if (sortedLogs.length > 1 && sortedLogs[0].block_time && sortedLogs[sortedLogs.length - 1].block_time) {
-                const timeSpanMinutes = (sortedLogs[sortedLogs.length - 1].block_time! - sortedLogs[0].block_time) / 60;
+                const timeSpanMinutes = Math.max(1, (sortedLogs[sortedLogs.length - 1].block_time! - sortedLogs[0].block_time) / 60);
                 if (timeSpanMinutes > 0) {
                     userData.estimatedEnergyRate = userData.totalEnergyHarvested / timeSpanMinutes;
                     userData.estimatedIntegralRate = userData.totalIntegralCalculated / timeSpanMinutes;
                 }
+            } else if (userData.totalEnergyHarvested > 0) {
+                // Fallback rate calculation if we don't have proper timestamps
+                userData.estimatedEnergyRate = userData.totalEnergyHarvested / 1440; // Assume 24 hours
+                userData.estimatedIntegralRate = userData.totalIntegralCalculated / 1440;
+                console.log('Using fallback rate calculation due to missing timestamps');
             }
 
-            // Format harvest history
-            userData.harvestHistory = sortedLogs.map(log => ({
-                timestamp: log.block_time_iso
-                    ? new Date(log.block_time_iso).getTime()
-                    : log.block_time ? log.block_time * 1000 : Date.now(),
-                energy: Number(log.energy),
-                integral: Number(log.integral),
-                blockHeight: log.block_height,
-                txId: log.tx_id
-            }));
+            // Create harvest history with validated timestamps
+            userData.harvestHistory = sortedLogs.map(log => {
+                const timestamp = formatTimestamp(log.block_time, log.block_time_iso);
 
-            // Get last harvest timestamp
+                return {
+                    timestamp,
+                    energy: Number(log.energy),
+                    integral: Number(log.integral),
+                    blockHeight: log.block_height,
+                    txId: log.tx_id,
+                    formattedTime: new Date(timestamp).toISOString()
+                };
+            });
+
+            // Set the last harvest timestamp from the most recent log
             if (userData.harvestHistory.length > 0) {
-                userData.lastHarvestTimestamp = userData.harvestHistory[userData.harvestHistory.length - 1].timestamp;
+                // Sort by timestamp to get the most recent
+                const sortedByTime = [...userData.harvestHistory].sort((a, b) => b.timestamp - a.timestamp);
+                userData.lastHarvestTimestamp = sortedByTime[0].timestamp;
             }
-        } else if (useMocks) {
-            // Provide some mock data for better UI demonstration
-            const mockRate = Math.floor(Math.random() * 10000) + 5000;
-            userData.estimatedEnergyRate = mockRate;
-            userData.estimatedIntegralRate = mockRate * 0.85;
-            userData.hasData = false;
         }
 
-        // Store in cache
+        // Cache the response even if empty
         await kv.set(cacheKey, userData, { ex: CACHE_DURATION });
 
         return NextResponse.json({
@@ -184,12 +232,12 @@ export async function GET(
             data: userData
         }, { status: 200, headers });
 
-    } catch (error: any) {
-        console.error(`Error fetching user energy analytics for ${contractId}/${address}:`, error);
+    } catch (error) {
+        console.error('Error fetching user energy analytics:', error);
         return NextResponse.json({
             status: 'error',
-            error: 'Internal Server Error',
-            message: process.env.NODE_ENV === 'development' ? error?.message : undefined
+            error: 'Failed to fetch user energy analytics',
+            message: process.env.NODE_ENV === 'development' ? error?.toString() : undefined
         }, { status: 500, headers });
     }
 }

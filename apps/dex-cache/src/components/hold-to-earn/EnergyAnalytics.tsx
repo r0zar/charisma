@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
     BarChart,
     LineChart,
     Loader2,
@@ -30,7 +36,7 @@ import {
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens'
 import Link from 'next/link';
 import { fetcHoldToEarnLogs } from '@/lib/energy/analytics';
-import EnergyRateChart from '../charts/EnergyRateChart';
+// import EnergyRateChart from '../charts/EnergyRateChart';
 
 interface EnergyStats {
     totalEnergyHarvested: number;
@@ -330,12 +336,12 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [activeTimeframe, setActiveTimeframe] = useState<'daily' | 'weekly' | 'monthly'>('daily');
     const [isEmptyData, setIsEmptyData] = useState(false);
     const [logs, setLogs] = useState<HarvestLog[]>([]);
     const [visibleLogs, setVisibleLogs] = useState(5);
     const [energyTokenDecimals, setEnergyTokenDecimals] = useState<number | null>(null);
-    const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+    const [isAutoRefreshEnabled, setIsAutoRefreshEnabled] = useState<boolean>(false);
+    const [refreshInterval, setRefreshInterval] = useState<number>(60); // seconds
     const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
     const autoRefreshInterval = 60000; // 1 minute
 
@@ -375,21 +381,25 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
         }
     }, [walletState.connected, walletState.address, vaultContractId]);
 
-    // Add auto-refresh effect
+    // Setup auto-refresh if enabled
     useEffect(() => {
-        if (!autoRefreshEnabled) return;
+        let intervalId: NodeJS.Timeout | null = null;
 
-        const timer = setInterval(() => {
-            // Only refresh if not already refreshing and if it's been more than 30 seconds
-            if (!isRefreshing && Date.now() - lastRefreshTime > 30000) {
+        if (isAutoRefreshEnabled && !isLoading && !isRefreshing) {
+            console.log(`Setting up auto-refresh every ${refreshInterval} seconds`);
+            intervalId = setInterval(() => {
                 console.log('Auto-refreshing energy data...');
-                fetchAnalyticsData(true);
-                setLastRefreshTime(Date.now());
-            }
-        }, autoRefreshInterval);
+                handleRefreshData();
+            }, refreshInterval * 1000);
+        }
 
-        return () => clearInterval(timer);
-    }, [autoRefreshEnabled, isRefreshing, lastRefreshTime]);
+        // Cleanup interval on unmount or when auto-refresh is disabled
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [isAutoRefreshEnabled, refreshInterval, isLoading, isRefreshing]);
 
     const fetchAnalyticsData = async (refreshing = false) => {
         if (refreshing) {
@@ -615,14 +625,29 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
         // Ensure rawValue is a number for division
         const valueAsNumber = typeof rawValue === 'bigint' ? Number(rawValue) : rawValue;
 
-        if (decimals === 0) {
-            return valueAsNumber.toLocaleString(); // Format as whole number
+        if (valueAsNumber === 0) {
+            return '0'; // Simple case for zero
         }
 
-        const divisor = 10 ** decimals;
-        const formatted = valueAsNumber / divisor;
+        // If the value is very small (non-zero) but would display as 0, show with scientific notation
+        if (decimals > 0) {
+            const divisor = 10 ** decimals;
+            const formatted = valueAsNumber / divisor;
 
-        return formatted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: Math.max(2, decimals) }); // Show at least 2, up to `decimals` places
+            // For very small values, use scientific notation to avoid showing 0
+            if (formatted > 0 && formatted < 0.001) {
+                return formatted.toExponential(2);
+            }
+
+            // For normal values, use locale formatting
+            return formatted.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: Math.min(6, decimals)  // Show at most 6 decimal places
+            });
+        }
+
+        // For whole numbers (decimal = 0)
+        return valueAsNumber.toLocaleString();
     };
 
     if (isLoading) {
@@ -677,11 +702,11 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                        onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
                         className="h-8"
                     >
-                        <Clock className={`h-3.5 w-3.5 mr-1.5 ${autoRefreshEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
-                        {autoRefreshEnabled ? 'Auto' : 'Manual'}
+                        <Clock className={`h-3.5 w-3.5 mr-1.5 ${isAutoRefreshEnabled ? 'text-green-500' : 'text-muted-foreground'}`} />
+                        {isAutoRefreshEnabled ? 'Auto' : 'Manual'}
                     </Button>
                     <Button
                         variant="outline"
@@ -709,7 +734,7 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
             <CardContent className="pt-0">
                 <Tabs defaultValue="overview">
                     <TabsList className="grid w-full grid-cols-3 mb-4">
-                        <TabsTrigger value="overview">
+                        <TabsTrigger disabled value="overview">
                             <BarChart className="h-4 w-4 mr-2" />
                             Overview
                         </TabsTrigger>
@@ -717,7 +742,7 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                             <TrendingUp className="h-4 w-4 mr-2" />
                             Rates
                         </TabsTrigger>
-                        <TabsTrigger value="user">
+                        <TabsTrigger disabled value="user">
                             <Users className="h-4 w-4 mr-2" />
                             Your Stats
                         </TabsTrigger>
@@ -795,61 +820,35 @@ export function EnergyAnalytics({ vaultContractId }: EnergyAnalyticsProps) {
                     <TabsContent value="rates" className="space-y-4">
                         {rates && (
                             <>
-                                <div className="p-6 grid grid-cols-1 gap-4">
-                                    <span className="font-medium">Energy Accrual Rates</span>
-                                    <div className="border rounded border-muted p-6">
-                                        <div className="flex flex-col gap-2 mb-6">
-                                            <Tabs value={activeTimeframe} className="w-full" onValueChange={(v) => setActiveTimeframe(v as any)}>
-                                                <TabsList className="grid w-full grid-cols-3">
-                                                    <TabsTrigger value="daily">Daily</TabsTrigger>
-                                                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                                                    <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                                                </TabsList>
-                                            </Tabs>
+                                <div className="bg-muted/30 p-4 rounded-lg">
+                                    <h3 className="text-base font-semibold mb-3">Current System Rate</h3>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="text-muted-foreground text-sm">Overall Rate:</span>
+                                            <span className="font-medium ml-2">{formatNumber(rates?.overallEnergyPerMinute || 0)} Energy/min</span>
                                         </div>
-
-                                        <div className="h-64 rounded-lg">
-                                            {rates?.rateHistoryTimeframes[activeTimeframe].length > 0 ? (
-                                                <EnergyRateChart
-                                                    data={rates.rateHistoryTimeframes[activeTimeframe]
-                                                        .map(item => ({ timestamp: item.timestamp, rate: item.rate }))}
-                                                    height={240}
-                                                />
+                                        <div>
+                                            {isAutoRefreshEnabled ? (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setIsAutoRefreshEnabled(false)}
+                                                    className="text-xs h-8"
+                                                >
+                                                    <PauseIcon className="mr-1 h-3 w-3" />
+                                                    Pause Updates
+                                                </Button>
                                             ) : (
-                                                <div className="flex items-center justify-center h-full bg-muted/20 rounded-lg">
-                                                    <p className="text-muted-foreground text-sm">No rate data available</p>
-                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setIsAutoRefreshEnabled(true)}
+                                                    className="text-xs h-8"
+                                                >
+                                                    <PlayIcon className="mr-1 h-3 w-3" />
+                                                    Auto Update
+                                                </Button>
                                             )}
-                                        </div>
-
-                                        <div className="mt-6 flex justify-between items-center">
-                                            <div>
-                                                <span className="text-muted-foreground text-sm">Current Rate:</span>
-                                                <span className="font-medium ml-2">{formatNumber(rates?.overallEnergyPerMinute || 0)}/min</span>
-                                            </div>
-                                            <div>
-                                                {autoRefreshEnabled ? (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => setAutoRefreshEnabled(false)}
-                                                        className="text-xs h-8"
-                                                    >
-                                                        <PauseIcon className="mr-1 h-3 w-3" />
-                                                        Pause Updates
-                                                    </Button>
-                                                ) : (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => setAutoRefreshEnabled(true)}
-                                                        className="text-xs h-8"
-                                                    >
-                                                        <PlayIcon className="mr-1 h-3 w-3" />
-                                                        Auto Update
-                                                    </Button>
-                                                )}
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

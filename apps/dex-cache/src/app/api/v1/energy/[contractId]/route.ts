@@ -14,47 +14,37 @@ export async function GET(
     context: { params: { contractId: string } }
 ) {
     const { contractId } = await context.params;
-    const { searchParams } = new URL(request.url);
-    const refresh = searchParams.get('refresh') === 'true';
 
-    // Set headers for caching and CORS
+    // Get query parameters
+    const url = new URL(request.url);
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+    const userAddress = url.searchParams.get('address') || undefined;
+
+    // Enable CORS
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Content-Type': 'application/json',
-        'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=${CACHE_DURATION * 12}` // 5 min edge, 1h SWR
     };
+
+    if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers });
+    }
+
+    console.log(`Energy analytics request for contract: ${contractId}`);
+    if (forceRefresh) {
+        console.log('Force refresh requested, skipping cache');
+    }
 
     try {
         // Check for cached data first (unless refresh is requested)
-        if (!refresh) {
-            const cacheKey = getEnergyAnalyticsCacheKey(contractId);
-            const cachedData = await kv.get<{
-                rates?: {
-                    rateHistoryTimeframes: {
-                        daily: any[];
-                        weekly: any[];
-                        monthly: any[];
-                    }
-                }
-            }>(cacheKey);
+        const cacheKey = getEnergyAnalyticsCacheKey(contractId);
+
+        if (!forceRefresh) {
+            const cachedData = await kv.get(cacheKey);
 
             if (cachedData) {
-                console.log(`Returning cached energy analytics for ${contractId}`);
-
-                // Get historical data for rate history
-                const historyKey = getEnergyHistoryKey(contractId);
-                const historyData = await kv.get<any[]>(historyKey) || [];
-
-                // Generate rate history timeframes from actual historical data
-                const rateHistory = generateRateHistoryFromSnapshots(historyData);
-
-                // Update the rate history in the cached data
-                if (cachedData && cachedData.rates) {
-                    cachedData.rates.rateHistoryTimeframes = rateHistory;
-                }
-
+                console.log('Returning cached energy analytics');
                 return NextResponse.json({
                     status: 'success',
                     data: cachedData,
@@ -69,32 +59,53 @@ export async function GET(
         // Get logs from blockchain
         const logs = await fetcHoldToEarnLogs(contractId);
 
-        if (!logs || logs.length === 0) {
-            console.log('No logs found, using mock data for development');
-            // Use mock data in development to show non-zero values
-            const mockRates = calculateMockRates();
+        // Validate logs and filter out any with invalid timestamps
+        const validLogs = logs.filter(log => {
+            // Filter out logs with missing data
+            if (!log || !log.sender || log.energy === undefined) return false;
+
+            // Filter out logs with future timestamps (could be a data issue)
+            if (log.block_time && log.block_time * 1000 > Date.now() + (86400 * 1000)) {
+                console.log(`Filtering out log with future timestamp: ${new Date(log.block_time * 1000).toISOString()}`);
+                return false;
+            }
+
+            return true;
+        });
+
+        console.log(`Found ${logs.length} total logs, ${validLogs.length} valid logs for processing`);
+
+        // Check if we have valid logs
+        const useRealData = validLogs.length > 0;
+        // Use mock data only in development and when there's no real data
+        const useMockData = process.env.NODE_ENV === 'development' && !useRealData;
+
+        // If no logs, use mock data in development or return empty data
+        if (!useRealData) {
+            console.log('No valid logs found' + (useMockData ? ', using mock data for development' : ''));
+            const mockRates = useMockData ? calculateMockRates() : { energyRate: 0, integralRate: 0 };
 
             return NextResponse.json({
                 status: 'success',
                 data: {
-                    logs: process.env.NODE_ENV === 'development' ? mockEnergyLogs : [],
+                    logs: useMockData ? mockEnergyLogs : [],
                     stats: {
-                        totalEnergyHarvested: process.env.NODE_ENV === 'development' ? 67500 : 0,
-                        totalIntegralCalculated: process.env.NODE_ENV === 'development' ? 337500 : 0,
-                        uniqueUsers: process.env.NODE_ENV === 'development' ? 2 : 0,
+                        totalEnergyHarvested: useMockData ? 67500 : 0,
+                        totalIntegralCalculated: useMockData ? 337500 : 0,
+                        uniqueUsers: useMockData ? 2 : 0,
                         lastUpdated: Date.now(),
-                        averageEnergyPerHarvest: process.env.NODE_ENV === 'development' ? 11250 : 0,
-                        averageIntegralPerHarvest: process.env.NODE_ENV === 'development' ? 56250 : 0
+                        averageEnergyPerHarvest: useMockData ? 11250 : 0,
+                        averageIntegralPerHarvest: useMockData ? 56250 : 0
                     },
                     rates: {
-                        overallEnergyPerMinute: process.env.NODE_ENV === 'development' ? mockRates.energyRate : 0,
-                        overallIntegralPerMinute: process.env.NODE_ENV === 'development' ? mockRates.integralRate : 0,
-                        topUserRates: process.env.NODE_ENV === 'development' ? [
+                        overallEnergyPerMinute: useMockData ? mockRates.energyRate : 0,
+                        overallIntegralPerMinute: useMockData ? mockRates.integralRate : 0,
+                        topUserRates: useMockData ? [
                             { address: "SP2XYZ123ABC456DEF789GHI012JKL345MNO678P", energyPerMinute: mockRates.energyRate * 0.65 },
                             { address: "SP2ABC123DEF456GHI789JKL012MNO345PQR678S", energyPerMinute: mockRates.energyRate * 0.35 }
                         ] : [],
                         lastCalculated: Date.now(),
-                        rateHistoryTimeframes: process.env.NODE_ENV === 'development' ? {
+                        rateHistoryTimeframes: useMockData ? {
                             daily: Array(8).fill(0).map((_, i) => ({
                                 timestamp: Date.now() - (8 - i) * 3 * 60 * 60 * 1000, // Every 3 hours
                                 rate: mockRates.energyRate * (0.8 + Math.random() * 0.4)
@@ -117,10 +128,10 @@ export async function GET(
             }, { status: 200, headers });
         }
 
-        // Process logs to calculate analytics
+        // Process logs to calculate analytics - using valid logs only
 
         // 1. Group logs by user for per-user stats
-        const userLogs = logs.reduce((acc: Record<string, any[]>, log) => {
+        const userLogs = validLogs.reduce((acc: Record<string, any[]>, log) => {
             if (!acc[log.sender]) {
                 acc[log.sender] = [];
             }
@@ -130,18 +141,17 @@ export async function GET(
 
         // 2. Calculate global stats
         const uniqueUsers = Object.keys(userLogs).length;
-        const totalEnergyHarvested = logs.reduce((sum, log) => sum + Number(log.energy), 0);
-        const totalIntegralCalculated = logs.reduce((sum, log) => sum + Number(log.integral), 0);
-        const averageEnergyPerHarvest = logs.length > 0 ? totalEnergyHarvested / logs.length : 0;
-        const averageIntegralPerHarvest = logs.length > 0 ? totalIntegralCalculated / logs.length : 0;
+        const totalEnergyHarvested = validLogs.reduce((sum, log) => sum + Number(log.energy), 0);
+        const totalIntegralCalculated = validLogs.reduce((sum, log) => sum + Number(log.integral), 0);
+        const averageEnergyPerHarvest = validLogs.length > 0 ? totalEnergyHarvested / validLogs.length : 0;
+        const averageIntegralPerHarvest = validLogs.length > 0 ? totalIntegralCalculated / validLogs.length : 0;
 
         // 3. Calculate rates
-        // Sort logs by block_height or time for time-series analysis
-        const sortedLogs = [...logs].sort((a, b) => {
-            return (a.block_height || 0) - (b.block_height || 0);
+        // Sort logs by block_time for time-series analysis
+        const sortedLogs = [...validLogs].sort((a, b) => {
+            return (a.block_time || 0) - (b.block_time || 0);
         });
 
-        // Simple rate calculation (energy per block)
         const firstLog = sortedLogs[0];
         const lastLog = sortedLogs[sortedLogs.length - 1];
 
@@ -149,15 +159,45 @@ export async function GET(
         let overallIntegralPerMinute = 0;
 
         // Calculate average rates if we have enough data
+        // Log diagnostic information to help debug rate calculations
+        console.log('Rate calculation data:', {
+            logsCount: validLogs.length,
+            hasFirstLog: !!firstLog,
+            hasLastLog: !!lastLog,
+            firstLogTime: firstLog?.block_time,
+            lastLogTime: lastLog?.block_time,
+            totalEnergy: totalEnergyHarvested
+        });
+
         if (firstLog && lastLog && firstLog.block_time && lastLog.block_time) {
-            const timeSpanMinutes = (lastLog.block_time - firstLog.block_time) / 60;
+            const timeSpanSeconds = Math.max(1, lastLog.block_time - firstLog.block_time);
+            const timeSpanMinutes = timeSpanSeconds / 60;
+
+            console.log('Time span for rate calculation:', {
+                timeSpanSeconds,
+                timeSpanMinutes,
+                firstLogTimeISO: new Date(firstLog.block_time * 1000).toISOString(),
+                lastLogTimeISO: new Date(lastLog.block_time * 1000).toISOString(),
+            });
+
             if (timeSpanMinutes > 0) {
                 overallEnergyPerMinute = totalEnergyHarvested / timeSpanMinutes;
                 overallIntegralPerMinute = totalIntegralCalculated / timeSpanMinutes;
+                console.log('Calculated rates:', { overallEnergyPerMinute, overallIntegralPerMinute });
+            } else {
+                // If the timespan is too small, use a conservative estimate
+                overallEnergyPerMinute = totalEnergyHarvested / 60; // Estimate based on 1 hour
+                overallIntegralPerMinute = totalIntegralCalculated / 60;
+                console.log('Using estimated rates due to small timespan:', { overallEnergyPerMinute, overallIntegralPerMinute });
             }
+        } else if (totalEnergyHarvested > 0) {
+            // Fallback calculation if timestamps are missing
+            overallEnergyPerMinute = totalEnergyHarvested / 1440; // Conservatively assume 24 hours
+            overallIntegralPerMinute = totalIntegralCalculated / 1440;
+            console.log('Using fallback rates due to missing timestamps:', { overallEnergyPerMinute, overallIntegralPerMinute });
         }
 
-        // 4. Calculate top users by energy harvested
+        // 4. Calculate user stats and rates
         const userStats = Object.entries(userLogs).map(([address, logs]) => {
             const userEnergyTotal = logs.reduce((sum, log) => sum + Number(log.energy), 0);
             const userIntegralTotal = logs.reduce((sum, log) => sum + Number(log.integral), 0);
@@ -171,10 +211,13 @@ export async function GET(
             // Calculate user's energy rate (if enough data)
             let energyPerMinute = 0;
             if (userLogsSorted.length > 1 && userLogsSorted[0].block_time && userLogsSorted[userLogsSorted.length - 1].block_time) {
-                const userTimeSpanMinutes = (userLogsSorted[userLogsSorted.length - 1].block_time - userLogsSorted[0].block_time) / 60;
+                const userTimeSpanMinutes = Math.max(1, (userLogsSorted[userLogsSorted.length - 1].block_time - userLogsSorted[0].block_time) / 60);
                 if (userTimeSpanMinutes > 0) {
                     energyPerMinute = userEnergyTotal / userTimeSpanMinutes;
                 }
+            } else if (userEnergyTotal > 0) {
+                // If we can't calculate a rate but have energy, use a conservative estimate
+                energyPerMinute = userEnergyTotal / 1440; // Assume 24 hours
             }
 
             return {
@@ -185,7 +228,9 @@ export async function GET(
                 energyPerMinute,
                 lastHarvestTimestamp: userLogsSorted[userLogsSorted.length - 1].block_time_iso
                     ? new Date(userLogsSorted[userLogsSorted.length - 1].block_time_iso).getTime()
-                    : Date.now()
+                    : userLogsSorted[userLogsSorted.length - 1].block_time
+                        ? userLogsSorted[userLogsSorted.length - 1].block_time * 1000
+                        : Date.now()
             };
         });
 
@@ -234,16 +279,16 @@ export async function GET(
             }));
         }
 
-        // 6. Assemble response data
+        // Prepare analytics results
         const analyticsData = {
-            logs: sortedLogs,
+            logs: validLogs,
             stats: {
                 totalEnergyHarvested,
                 totalIntegralCalculated,
                 uniqueUsers,
-                lastUpdated: Date.now(),
                 averageEnergyPerHarvest,
-                averageIntegralPerHarvest
+                averageIntegralPerHarvest,
+                lastUpdated: Date.now()
             },
             rates: {
                 overallEnergyPerMinute,
@@ -256,50 +301,34 @@ export async function GET(
                     monthly: monthlyRateHistory
                 }
             },
-            userStats: userStats.reduce((acc, user) => {
-                acc[user.address] = user;
-                return acc;
-            }, {} as Record<string, any>)
+            userStats: {}
         };
 
-        // Store in cache
-        await kv.set(getEnergyAnalyticsCacheKey(contractId), analyticsData, { ex: CACHE_DURATION });
-
-        // Also store a snapshot for history if this was a fresh fetch
-        if (historyData) {
-            const snapshot = {
-                timestamp: Date.now(),
-                totalEnergyHarvested,
-                uniqueUsers,
-                energyRate: overallEnergyPerMinute
-            };
-
-            // Keep at most 100 snapshots to avoid excessive data storage
-            const updatedHistory = [...historyData, snapshot].slice(-100);
-
-            // Save updated history with a longer expiration (30 days)
-            await kv.set(historyKey, updatedHistory, { ex: 60 * 60 * 24 * 30 });
+        // Filter user-specific data if an address was provided
+        if (userAddress) {
+            const userData = userStats.find(user => user.address === userAddress);
+            if (userData) {
+                analyticsData.userStats = {
+                    [userAddress]: userData
+                };
+            }
         }
 
-        // Get historical snapshots to improve rate history data
-        let rateHistory = await kv.get<any[]>(historyKey) || [];
+        // Cache the results
+        await kv.set(cacheKey, analyticsData, { ex: CACHE_DURATION });
 
-        console.log(`Found ${rateHistory.length} historical rate snapshots for ${contractId}`);
-
-        // If we have historical data, use it to generate better rate history timeframes
-        if (rateHistory.length > 0) {
-            const generatedRateHistory = generateRateHistoryFromSnapshots(rateHistory);
-
-            // Only override the rate history if we actually have data
-            if (generatedRateHistory &&
-                (generatedRateHistory.daily.length > 0 ||
-                    generatedRateHistory.weekly.length > 0 ||
-                    generatedRateHistory.monthly.length > 0)) {
-                analyticsData.rates.rateHistoryTimeframes = generatedRateHistory;
-                console.log('Using historical rate data for timeframes');
-            } else {
-                console.log('No valid historical rate data, using calculated rates');
-            }
+        // Add this data point to the history
+        if (overallEnergyPerMinute > 0) {
+            // Push the current rate as a history snapshot
+            await kv.lpush(historyKey, {
+                timestamp: Date.now(),
+                energyRate: overallEnergyPerMinute,
+                integralRate: overallIntegralPerMinute,
+                totalEnergyHarvested,
+                uniqueUsers
+            });
+            // Trim the history list to keep only the last 100 entries
+            await kv.ltrim(historyKey, 0, 99);
         }
 
         return NextResponse.json({
@@ -307,12 +336,12 @@ export async function GET(
             data: analyticsData
         }, { status: 200, headers });
 
-    } catch (error: any) {
-        console.error(`Error fetching energy analytics for ${contractId}:`, error);
+    } catch (error) {
+        console.error('Error fetching energy analytics:', error);
         return NextResponse.json({
             status: 'error',
-            error: 'Internal Server Error',
-            message: process.env.NODE_ENV === 'development' ? error?.message : undefined
+            error: 'Failed to fetch energy analytics',
+            message: process.env.NODE_ENV === 'development' ? error?.toString() : undefined
         }, { status: 500, headers });
     }
 }
