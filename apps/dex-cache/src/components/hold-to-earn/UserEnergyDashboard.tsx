@@ -10,6 +10,7 @@ import { User, Activity, BarChart2, Zap, Clock, Archive, ZapIcon, TrendingUp } f
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import Image from 'next/image';
+import { getFungibleTokenBalance } from '@/lib/vaultService';
 
 export default function UserEnergyDashboard() {
     const { stxAddress } = useApp();
@@ -17,6 +18,7 @@ export default function UserEnergyDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [userEnergyData, setUserEnergyData] = useState<EnergyTokenDashboardData[]>([]);
     const [energyMetadata, setEnergyMetadata] = useState<TokenCacheData | null>(null);
+    const [energyBalance, setEnergyBalance] = useState<number>(0);
 
     // Fetch energy token metadata
     useEffect(() => {
@@ -60,6 +62,16 @@ export default function UserEnergyDashboard() {
         }
 
         fetchUserEnergyData();
+    }, [stxAddress]);
+
+    // load user energy balances
+    useEffect(() => {
+        async function getEnergyBalance() {
+            if (!stxAddress) { return }
+            const balance = await getFungibleTokenBalance('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy', stxAddress);
+            setEnergyBalance(balance);
+        }
+        getEnergyBalance();
     }, [stxAddress]);
 
     // Calculate aggregated stats across all tokens
@@ -172,7 +184,7 @@ export default function UserEnergyDashboard() {
                             {/* Total energy card */}
                             <StatCard
                                 title="Current Balance"
-                                value={formatEnergyValue(aggregatedStats.totalAccumulatedEnergy)}
+                                value={formatEnergyValue(energyBalance)}
                                 icon="energy"
                                 colorScheme="secondary"
                                 description={`Your current energy balance`}
