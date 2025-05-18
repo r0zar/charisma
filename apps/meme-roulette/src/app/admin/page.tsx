@@ -16,11 +16,15 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { signedFetch } from '@repo/stacks';
 
 // Admin actions
 export async function getSystemStatus() {
     try {
-        const res = await fetch('/api/admin/status', { method: 'GET', cache: 'no-store' });
+        const res = await fetch('/api/admin/status', {
+            method: 'GET',
+            cache: 'no-store'
+        });
         if (!res.ok) throw new Error('Failed to fetch status');
         return res.json();
     } catch (error) {
@@ -31,7 +35,11 @@ export async function getSystemStatus() {
 
 export async function resetSpin() {
     try {
-        const res = await fetch('/api/admin/reset', { method: 'POST' });
+        const res = await signedFetch('/api/admin/reset', {
+            method: 'POST',
+            message: 'Reset spin',
+            body: JSON.stringify({})
+        });
         if (!res.ok) throw new Error('Failed to reset spin');
         return res.json();
     } catch (error) {
@@ -42,9 +50,9 @@ export async function resetSpin() {
 
 export async function setWinner(tokenId: string) {
     try {
-        const res = await fetch('/api/admin/winner', {
+        const res = await signedFetch('/api/admin/winner', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            message: 'Set winner',
             body: JSON.stringify({ tokenId })
         });
         if (!res.ok) throw new Error('Failed to set winner');
@@ -57,9 +65,9 @@ export async function setWinner(tokenId: string) {
 
 export async function setSpinTime(timestamp: number) {
     try {
-        const res = await fetch('/api/admin/spin-time', {
+        const res = await signedFetch('/api/admin/spin-time', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            message: 'Set spin time',
             body: JSON.stringify({ timestamp })
         });
         if (!res.ok) throw new Error('Failed to set spin time');
@@ -72,9 +80,9 @@ export async function setSpinTime(timestamp: number) {
 
 export async function updateTokenBet(tokenId: string, amount: number) {
     try {
-        const res = await fetch('/api/admin/token-bet', {
+        const res = await signedFetch('/api/admin/token-bet', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            message: 'Set token bet',
             body: JSON.stringify({ tokenId, amount })
         });
         if (!res.ok) throw new Error('Failed to update token bet');
@@ -113,9 +121,9 @@ export async function getRoundDuration() {
 
 export async function setRoundDuration(durationMinutes: number) {
     try {
-        const res = await fetch('/api/admin/round-duration', {
+        const res = await signedFetch('/api/admin/round-duration', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            message: 'Set round duration',
             body: JSON.stringify({ durationMinutes })
         });
         if (!res.ok) throw new Error('Failed to update round duration');
@@ -139,9 +147,9 @@ export async function getLockDuration() {
 
 export async function setLockDuration(durationMinutes: number) {
     try {
-        const res = await fetch('/api/admin/lock-duration', {
+        const res = await signedFetch('/api/admin/lock-duration', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            message: 'Set lock duration',
             body: JSON.stringify({ durationMinutes })
         });
         if (!res.ok) throw new Error('Failed to update lock duration');

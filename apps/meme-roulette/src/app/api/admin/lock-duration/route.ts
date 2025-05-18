@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLockDuration, setLockDuration } from '@/lib/state';
+import { verifySignatureAndGetSigner } from '@repo/stacks';
 
 export async function GET() {
     try {
@@ -22,6 +23,10 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { durationMinutes } = body;
+
+        const signer = await verifySignatureAndGetSigner(request, {
+            message: 'Set lock duration',
+        });
 
         if (!durationMinutes || typeof durationMinutes !== 'number' || isNaN(durationMinutes)) {
             return NextResponse.json(

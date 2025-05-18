@@ -26,6 +26,7 @@
     "dexterity-sdk": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/polyglot": "workspace:*",
+    "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@stacks/connect": "latest",
     "@stacks/network": "latest",

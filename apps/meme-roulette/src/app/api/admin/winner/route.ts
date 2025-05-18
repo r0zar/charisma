@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setKVWinningToken } from '@/lib/state';
 import { listTokens } from 'dexterity-sdk';
+import { verifySignatureAndGetSigner } from '@repo/stacks';
 
 export async function POST(request: NextRequest) {
+    const verificationResult = await verifySignatureAndGetSigner(request, {
+        message: 'Set winner',
+    });
+
+    if (verificationResult.signer !== 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS') {
+        return NextResponse.json(
+            { error: 'Unauthorized' },
+            { status: 401 }
+        );
+    }
     try {
         const body = await request.json();
         const { tokenId } = body;

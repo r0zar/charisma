@@ -617,6 +617,9 @@ importers:
       '@repo/polyglot':
         specifier: workspace:*
         version: link:../../packages/polyglot
+      '@repo/stacks':
+        specifier: workspace:*
+        version: link:../../packages/stacks
       '@repo/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens

@@ -2,8 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getKVTokenBets, KV_TOKEN_BETS } from '@/lib/state';
 import { listTokens } from 'dexterity-sdk';
+import { verifySignatureAndGetSigner } from '@repo/stacks';
 
 export async function POST(request: NextRequest) {
+    const verificationResult = await verifySignatureAndGetSigner(request, {
+        message: 'Set token bet',
+    });
+
+    if (verificationResult.signer !== 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS') {
+        return NextResponse.json(
+            { error: 'Unauthorized' },
+            { status: 401 }
+        );
+    }
     try {
         const body = await request.json();
         const { tokenId, amount } = body;

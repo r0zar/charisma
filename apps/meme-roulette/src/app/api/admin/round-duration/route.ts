@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRoundDuration, setRoundDuration } from '@/lib/state';
+import { verifySignatureAndGetSigner } from '@repo/stacks';
 
 export async function GET() {
     try {
@@ -20,6 +21,16 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+    const verificationResult = await verifySignatureAndGetSigner(request, {
+        message: 'Set round duration',
+    });
+
+    if (verificationResult.signer !== 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS') {
+        return NextResponse.json(
+            { error: 'Unauthorized' },
+            { status: 401 }
+        );
+    }
     try {
         const body = await request.json();
         const { durationMinutes } = body;
