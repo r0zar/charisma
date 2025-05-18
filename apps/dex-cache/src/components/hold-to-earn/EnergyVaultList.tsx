@@ -8,7 +8,7 @@ import { Loader2, Zap, Coins } from 'lucide-react';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { EnergyVaultCard } from './EnergyVaultCard';
-import { fetchHoldToEarnVaults } from '@/lib/server/energy';
+import { fetchHoldToEarnVaults, runEnergyDataProcessingForAllContracts } from '@/lib/server/energy';
 
 export default function EnergyVaultList() {
     const [vaults, setVaults] = useState<any[]>([]);
@@ -31,6 +31,7 @@ export default function EnergyVaultList() {
         }
         loadVaults();
     }, []);
+
 
     if (isLoading) {
         return (

@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/v1/cron/energy-data",
-            "schedule": "*/15 * * * *"
+            "schedule": "0 * * * *"
         }
     ]
 }

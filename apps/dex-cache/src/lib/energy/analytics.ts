@@ -1,7 +1,69 @@
 import { getTransactionDetails } from "@repo/polyglot";
 import { fetchContractEvents } from "@repo/polyglot";
 import { hexToCV } from "@stacks/transactions";
-import { mockEnergyLogs } from './mocks';
+
+// ---- Interfaces for Energy Analytics Data ----
+export interface EnergyLog {
+    tx_id: string;
+    block_height: number;
+    energy: number;
+    integral: number;
+    message: string;
+    op: string;
+    sender: string;
+    block_time: number | null; // Unix timestamp (seconds)
+    block_time_iso: string | null; // ISO string format of block_time
+    tx_status: string | null;
+}
+
+export interface EnergyStats {
+    totalEnergyHarvested: number;
+    totalIntegralCalculated: number;
+    uniqueUsers: number;
+    averageEnergyPerHarvest: number;
+    averageIntegralPerHarvest: number;
+    lastUpdated: number; // Timestamp
+}
+
+export interface UserEnergyRate {
+    address: string;
+    energyPerMinute: number;
+}
+
+export interface EnergyRateDetails {
+    overallEnergyPerMinute: number;
+    overallIntegralPerMinute: number;
+    topUserRates: UserEnergyRate[];
+    lastCalculated: number; // Timestamp
+}
+
+export interface HarvestHistoryEntry {
+    timestamp: number;
+    energy: number;
+    integral: number;
+    blockHeight: number;
+    txId: string;
+}
+
+export interface UserEnergyStats {
+    address: string;
+    totalEnergyHarvested: number;
+    totalIntegralCalculated: number;
+    harvestCount: number;
+    averageEnergyPerHarvest: number;
+    lastHarvestTimestamp: number;
+    estimatedEnergyRate: number;
+    estimatedIntegralRate: number;
+    harvestHistory: HarvestHistoryEntry[];
+}
+
+export interface EnergyAnalyticsData {
+    logs: EnergyLog[];
+    stats: EnergyStats;
+    rates: EnergyRateDetails;
+    userStats: Record<string, UserEnergyStats | null>; // User address -> UserEnergyStats or null if no data
+}
+// ---- End of Interfaces ----
 
 /**
  * Fetches and formats hold-to-earn contract logs for energy analytics
@@ -10,7 +72,7 @@ import { mockEnergyLogs } from './mocks';
  * @param offset Optional offset for pagination
  * @returns Formatted contract logs with transaction details
  */
-export const fetcHoldToEarnLogs = async (contractId: string, limit = 100, offset = 0) => {
+export const fetcHoldToEarnLogs = async (contractId: string, limit = 100, offset = 0): Promise<EnergyLog[]> => {
     if (!contractId) {
         throw new Error("Contract ID is required");
     }
@@ -86,7 +148,7 @@ export const fetcHoldToEarnLogs = async (contractId: string, limit = 100, offset
 
         // Wait for all log processing to complete and filter out nulls
         const allLogs = await Promise.all(logPromises);
-        const validLogs = allLogs.filter(log => log !== null) as any[];
+        const validLogs = allLogs.filter(log => log !== null) as EnergyLog[];
 
         console.log(`Successfully processed ${validLogs.length} energy logs`);
         return validLogs;
@@ -101,7 +163,7 @@ export const fetcHoldToEarnLogs = async (contractId: string, limit = 100, offset
  * @param logs Array of energy harvest logs
  * @returns Object containing key statistics
  */
-export const calculateEnergyStats = (logs: any[]) => {
+export const calculateEnergyStats = (logs: EnergyLog[]): EnergyStats => {
     if (!logs || logs.length === 0) {
         return {
             totalEnergyHarvested: 0,
@@ -139,18 +201,13 @@ export const calculateEnergyStats = (logs: any[]) => {
  * @param logs Array of energy harvest logs
  * @returns Object containing rate information
  */
-export const calculateEnergyRates = (logs: any[]) => {
+export const calculateEnergyRates = (logs: EnergyLog[]): EnergyRateDetails => {
     if (!logs || logs.length < 2) {
         return {
             overallEnergyPerMinute: 0,
             overallIntegralPerMinute: 0,
             topUserRates: [],
             lastCalculated: Date.now(),
-            rateHistoryTimeframes: {
-                daily: [],
-                weekly: [],
-                monthly: []
-            }
         };
     }
 
@@ -233,37 +290,11 @@ export const calculateEnergyRates = (logs: any[]) => {
         .sort((a, b) => b.energyPerMinute - a.energyPerMinute)
         .slice(0, 5);
 
-    // Generate rate history (simplified approach)
-    const now = Date.now();
-    const day = 24 * 60 * 60 * 1000;
-
-    // In a real implementation, you would aggregate actual data from logs over time periods
-    // For now, we'll create simple variants based on the overall rate
-    const dailyRateHistory = Array(10).fill(0).map((_, i) => ({
-        timestamp: now - (10 - i) * 2 * 60 * 60 * 1000, // 2-hour intervals
-        rate: overallEnergyPerMinute * (0.8 + Math.random() * 0.4) // Slight random variation
-    }));
-
-    const weeklyRateHistory = Array(10).fill(0).map((_, i) => ({
-        timestamp: now - (10 - i) * day, // daily points
-        rate: overallEnergyPerMinute * (0.7 + Math.random() * 0.6)
-    }));
-
-    const monthlyRateHistory = Array(10).fill(0).map((_, i) => ({
-        timestamp: now - (10 - i) * 3 * day, // 3-day points
-        rate: overallEnergyPerMinute * (0.6 + Math.random() * 0.8)
-    }));
-
     return {
         overallEnergyPerMinute,
         overallIntegralPerMinute,
         topUserRates,
         lastCalculated: Date.now(),
-        rateHistoryTimeframes: {
-            daily: dailyRateHistory,
-            weekly: weeklyRateHistory,
-            monthly: monthlyRateHistory
-        }
     };
 };
 
@@ -273,7 +304,7 @@ export const calculateEnergyRates = (logs: any[]) => {
  * @param userAddress The address to get stats for
  * @returns User statistics or null if no data
  */
-export const getUserEnergyStats = (logs: any[], userAddress: string) => {
+export const getUserEnergyStats = (logs: EnergyLog[], userAddress: string): UserEnergyStats | null => {
     if (!logs || logs.length === 0 || !userAddress) {
         return null;
     }
@@ -301,7 +332,7 @@ export const getUserEnergyStats = (logs: any[], userAddress: string) => {
     let estimatedIntegralRate = 0;
 
     if (sortedLogs.length > 1 && sortedLogs[0].block_time && sortedLogs[sortedLogs.length - 1].block_time) {
-        const timeSpanMinutes = Math.max(1, (sortedLogs[sortedLogs.length - 1].block_time - sortedLogs[0].block_time) / 60);
+        const timeSpanMinutes = Math.max(1, (sortedLogs[sortedLogs.length - 1]?.block_time! - sortedLogs[0].block_time) / 60);
         estimatedEnergyRate = totalEnergyHarvested / timeSpanMinutes;
         estimatedIntegralRate = totalIntegralCalculated / timeSpanMinutes;
     }
@@ -336,123 +367,12 @@ export const getUserEnergyStats = (logs: any[], userAddress: string) => {
 };
 
 /**
- * Generates rate history from snapshots
- * @param snapshots Array of historical snapshots from KV store
- * @returns Object with formatted rate history for different timeframes
- */
-export const generateRateHistoryFromSnapshots = (snapshots: any[]) => {
-    if (!snapshots || snapshots.length === 0) {
-        return {
-            daily: [],
-            weekly: [],
-            monthly: []
-        };
-    }
-
-    // Filter to ensure we only use snapshots with valid rates
-    const validSnapshots = snapshots.filter(s => s.energyRate > 0 && s.timestamp);
-
-    // Sort snapshots by timestamp
-    const sortedSnapshots = [...validSnapshots].sort((a, b) => a.timestamp - b.timestamp);
-
-    // If we still don't have valid snapshots with rates, use totalEnergyHarvested to derive rates
-    if (validSnapshots.length === 0 && snapshots.length > 1) {
-        console.log('No valid rate snapshots found. Attempting to derive rates from energy harvested...');
-
-        // Sort by timestamp
-        const chronologicalSnapshots = [...snapshots].sort((a, b) => a.timestamp - b.timestamp);
-
-        // Compute rates based on deltas between consecutive snapshots
-        const derivedSnapshots = [];
-        for (let i = 1; i < chronologicalSnapshots.length; i++) {
-            const current = chronologicalSnapshots[i];
-            const prev = chronologicalSnapshots[i - 1];
-
-            const timeDeltaMs = current.timestamp - prev.timestamp;
-            const timeDeltaMinutes = timeDeltaMs / (1000 * 60);
-
-            if (timeDeltaMinutes > 0) {
-                const energyDelta = Math.abs(current.totalEnergyHarvested - prev.totalEnergyHarvested);
-                const derivedRate = energyDelta / timeDeltaMinutes;
-
-                if (derivedRate > 0) {
-                    derivedSnapshots.push({
-                        ...current,
-                        energyRate: derivedRate,
-                        isDerived: true
-                    });
-                }
-            }
-        }
-
-        console.log(`Generated ${derivedSnapshots.length} derived rate snapshots`);
-
-        // Use these derived snapshots if we have any
-        if (derivedSnapshots.length > 0) {
-            return {
-                daily: formatSnapshotsForTimeframe(derivedSnapshots, 24),
-                weekly: formatSnapshotsForTimeframe(derivedSnapshots, 7),
-                monthly: formatSnapshotsForTimeframe(derivedSnapshots, 30)
-            };
-        }
-    }
-
-    // Get recent snapshots for different timeframes
-    const now = Date.now();
-    const dayAgo = now - (24 * 60 * 60 * 1000);
-    const weekAgo = now - (7 * 24 * 60 * 60 * 1000);
-    const monthAgo = now - (30 * 24 * 60 * 60 * 1000);
-
-    const dailySnapshots = sortedSnapshots.filter(s => s.timestamp >= dayAgo);
-    const weeklySnapshots = sortedSnapshots.filter(s => s.timestamp >= weekAgo);
-    const monthlySnapshots = sortedSnapshots.filter(s => s.timestamp >= monthAgo);
-
-    return {
-        daily: formatSnapshotsForTimeframe(dailySnapshots, 24),
-        weekly: formatSnapshotsForTimeframe(weeklySnapshots, 7),
-        monthly: formatSnapshotsForTimeframe(monthlySnapshots, 30)
-    };
-};
-
-/**
- * Helper function to format snapshots for a timeframe
- * @param snapshots Filtered snapshots for the timeframe
- * @param maxPoints Maximum number of data points to return
- * @returns Formatted data points
- */
-const formatSnapshotsForTimeframe = (snapshots: any[], maxPoints: number) => {
-    if (snapshots.length === 0) return [];
-
-    // If we have fewer snapshots than maxPoints, use all of them
-    if (snapshots.length <= maxPoints) {
-        return snapshots.map(s => ({
-            timestamp: s.timestamp,
-            rate: s.energyRate
-        }));
-    }
-
-    // Otherwise, sample the data to get maxPoints
-    const step = Math.floor(snapshots.length / maxPoints);
-    const result = [];
-
-    for (let i = 0; i < maxPoints; i++) {
-        const index = Math.min(i * step, snapshots.length - 1);
-        result.push({
-            timestamp: snapshots[index].timestamp,
-            rate: snapshots[index].energyRate
-        });
-    }
-
-    return result;
-};
-
-/**
  * Processes all energy data in one go for efficiency
  * @param contractId The contract ID to analyze 
  * @param userAddress Optional user address to get stats for
  * @returns Combined analytics data
  */
-export const processAllEnergyData = async (contractId: string, userAddress?: string) => {
+export const processAllEnergyData = async (contractId: string, userAddress?: string): Promise<EnergyAnalyticsData> => {
     try {
         // Fetch all logs at once
         const logs = await fetcHoldToEarnLogs(contractId);
@@ -471,7 +391,7 @@ export const processAllEnergyData = async (contractId: string, userAddress?: str
         const rates = calculateEnergyRates(logs);
 
         // Process user stats if address provided
-        let userStats: Record<string, any> = {};
+        let userStats: Record<string, UserEnergyStats | null> = {};
         if (userAddress) {
             const userData = getUserEnergyStats(logs, userAddress);
             if (userData) {
@@ -509,22 +429,4 @@ export const processAllEnergyData = async (contractId: string, userAddress?: str
         console.error(`Error processing energy data for ${contractId}:`, error);
         throw error;
     }
-};
-
-/**
- * Utility function to use mock logs when real logs are empty in development
- * @param logs Real logs from API call
- * @param mockLogs Mock logs for development
- * @returns Either real logs or mock logs depending on environment
- */
-export const useLogsOrMock = (logs: any[], mockLogs: any[]) => {
-    // In development, use mock data if real logs are empty
-    if ((process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') &&
-        (!logs || logs.length === 0)) {
-        console.log('Using mock energy logs for development');
-        return mockLogs;
-    }
-
-    // Otherwise, use real logs
-    return logs;
 };
