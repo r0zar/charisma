@@ -79,8 +79,8 @@ export const StatCard: React.FC<StatCardProps> = ({
     // Icon color based on color scheme
     const iconColors = {
         default: 'text-background',
-        primary: 'text-primary',
-        secondary: 'text-secondary',
+        primary: 'text-background',
+        secondary: 'text-background',
         success: 'text-emerald-500 dark:text-emerald-400',
         warning: 'text-amber-500 dark:text-amber-400',
         danger: 'text-rose-500 dark:text-rose-400'
