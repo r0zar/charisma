@@ -69,7 +69,8 @@ export async function getAddLiquidityQuoteAndSupply(vaultContractId: string, tar
                 ? getLiquidityOperationQuote(vaultContractId, targetLpAmount, OP_ADD_LIQUIDITY)
                 : Promise.resolve(null) // Ensure quote can be null if not fetched
         ]);
-
+        console.log('[getAddLiquidityQuoteAndSupply] Total supply:', totalSupply);
+        console.log('[getAddLiquidityQuoteAndSupply] Quote:', quote);
         return {
             success: true,
             totalSupply,

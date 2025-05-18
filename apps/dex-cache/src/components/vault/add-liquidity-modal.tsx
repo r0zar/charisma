@@ -255,11 +255,6 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                 );
             }
 
-            console.log([
-                uintCV(quotedAmounts.dk), // amount is dk (LP tokens)
-                optionalCVOf(bufferFromHex(OP_ADD_LIQUIDITY))
-            ])
-
             const params = {
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',

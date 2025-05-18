@@ -681,12 +681,12 @@ export async function getLiquidityOperationQuote(
             optionalCVOf(bufferFromHex(operationHex))
         ]
         );
-        const quoteValue = cvToValue(quoteResultCV);
+        const quoteValue = quoteResultCV.value;
         if (quoteValue && quoteValue.dx !== undefined && quoteValue.dy !== undefined && quoteValue.dk !== undefined) {
             return {
-                dx: Number(quoteValue.dx),
-                dy: Number(quoteValue.dy),
-                dk: Number(quoteValue.dk)
+                dx: Number(quoteValue.dx.value),
+                dy: Number(quoteValue.dy.value),
+                dk: Number(quoteValue.dk.value)
             };
         }
         console.warn(`[vaultService] Invalid quote structure for ${vaultContractId} with op ${operationHex}:`, quoteValue);
