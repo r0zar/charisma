@@ -91,7 +91,7 @@ export default function UserEnergyDashboard() {
         const adjustedValue = value / divisor;
 
         return adjustedValue.toLocaleString(undefined, {
-            maximumFractionDigits: decimals
+            maximumFractionDigits: 0
         });
     };
 
@@ -171,11 +171,11 @@ export default function UserEnergyDashboard() {
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {/* Total energy card */}
                             <StatCard
-                                title="Current Energy"
+                                title="Current Balance"
                                 value={formatEnergyValue(aggregatedStats.totalAccumulatedEnergy)}
                                 icon="energy"
                                 colorScheme="secondary"
-                                description={`Your total accumulated energy${energyMetadata?.symbol ? ` (${energyMetadata.symbol})` : ''}`}
+                                description={`Your current energy balance`}
                                 size="md"
                             />
 
