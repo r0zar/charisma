@@ -379,7 +379,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                     </div>
 
                                     {/* Token Assets */}
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <TokenInfoCard token={currentVaultData.tokenA} reserves={currentVaultData.reservesA} price={prices[currentVaultData.tokenA.contractId]} />
                                         <TokenInfoCard token={currentVaultData.tokenB} reserves={currentVaultData.reservesB} price={prices[currentVaultData.tokenB.contractId]} />
                                     </div>
