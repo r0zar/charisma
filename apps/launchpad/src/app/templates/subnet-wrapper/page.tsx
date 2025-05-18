@@ -44,6 +44,8 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { generateSubnetWrapper } from '@/lib/contract-generators/subnet-wrapper';
+import { getTokenMetadataCached, listTokens, TokenCacheData } from '@repo/tokens'
+import Image from 'next/image';
 
 // Schema for form validation
 const schema = z.object({
@@ -61,22 +63,6 @@ enum WizardStep {
     PREVIEW = 2,
     DEPLOY = 3
 }
-
-// Token type definition
-interface Token {
-    symbol: string;
-    name: string;
-    address: string;
-    description?: string;
-    image?: string;
-    decimals?: number;
-}
-
-// Token API URL - same as used in liquidity-pool template
-const TOKEN_API_BASE_URL = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3000'
-    : 'https://charisma-token-cache.vercel.app';
-const TOKEN_API_URL = `${TOKEN_API_BASE_URL}/api/v1/sip10`;
 
 // Contract Stepper Component
 const ContractStepper = ({ currentStep }: { currentStep: WizardStep }) => {
@@ -123,7 +109,7 @@ const TokenSelectionStep = ({
     onCustomSubmit
 }: {
     onSelect: (token: string) => void;
-    onCustomSubmit: (contractId: string) => void;
+    onCustomSubmit: (contract_principal: string) => void;
 }) => {
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [customAddress, setCustomAddress] = useState("");
@@ -134,21 +120,21 @@ const TokenSelectionStep = ({
 
     // Custom token fetch state
     const [isFetchingToken, setIsFetchingToken] = useState(false);
-    const [fetchedToken, setFetchedToken] = useState<Token | null>(null);
+    const [fetchedToken, setFetchedToken] = useState<TokenCacheData | null>(null);
 
     // State for token list
-    const [tokens, setTokens] = useState<Token[]>([]);
-    const [filteredTokens, setFilteredTokens] = useState<Token[]>([]);
+    const [tokens, setTokens] = useState<TokenCacheData[]>([]);
+    const [filteredTokens, setFilteredTokens] = useState<TokenCacheData[]>([]);
 
     // Function to fetch token metadata by contract ID
-    const fetchTokenMetadata = async (contractId: string) => {
-        if (!contractId.trim()) {
+    const fetchTokenMetadata = async (contract_principal: string) => {
+        if (!contract_principal.trim()) {
             setCustomError("Contract address is required");
             return;
         }
 
         // Basic validation for Stacks contract address format
-        if (!/^[A-Z0-9]+\.[a-zA-Z0-9-]+$/.test(contractId)) {
+        if (!/^[A-Z0-9]+\.[a-zA-Z0-9-]+$/.test(contract_principal)) {
             setCustomError("Invalid contract address format. Should be like: SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token");
             return;
         }
@@ -158,27 +144,7 @@ const TokenSelectionStep = ({
 
         try {
             // Fetch token data from the API
-            const response = await fetch(`${TOKEN_API_BASE_URL}/api/v1/sip10/${contractId}`);
-
-            if (!response.ok) {
-                throw new Error(response.status === 404
-                    ? 'Token not found. Please verify the contract address.'
-                    : 'Failed to fetch token data');
-            }
-
-            const tokenData = await response.json();
-            // Check if data has a nested 'data' property (API response format)
-            const tokenInfo = tokenData.data || tokenData;
-
-            // Format the response into our token format
-            const token: Token = {
-                symbol: tokenInfo.symbol || 'Unknown',
-                name: tokenInfo.name || tokenInfo.symbol || 'Unknown Token',
-                address: contractId,
-                description: tokenInfo.description || `${tokenInfo.symbol || 'Custom'} token`,
-                image: tokenInfo.image || tokenInfo.image_uri || '',
-                decimals: tokenInfo.decimals || 6
-            };
+            const token = await getTokenMetadataCached(contract_principal);
 
             setFetchedToken(token);
         } catch (error) {
@@ -196,74 +162,15 @@ const TokenSelectionStep = ({
             setIsLoading(true);
             setError(null);
             try {
-                // Fetch tokens from the token-cache API
-                const response = await fetch(TOKEN_API_URL);
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch tokens');
-                }
-
-                const responseData = await response.json();
-                // Check if the response has a data property that contains the tokens array
-                const tokensArray = Array.isArray(responseData) ? responseData :
-                    (responseData.data && Array.isArray(responseData.data) ? responseData.data : []);
-
-                console.log("Tokens from API:", tokensArray);
-
-                // Convert fetched tokens to Token format
-                const formattedTokens: Token[] = tokensArray.map((token: any) => ({
-                    symbol: token.symbol || 'Unknown',
-                    name: token.name || token.symbol || 'Unknown Token',
-                    address: token.contract_principal || '',
-                    description: token.description || `${token.symbol} token`,
-                    image: token.image || token.image_uri || '',
-                    decimals: token.decimals || 6
-                }));
-
-                // Add default STX token if not present
-                const hasStx = formattedTokens.some(token =>
-                    token.symbol === 'STX' ||
-                    token.address.includes('stx-token')
-                );
-
-                if (!hasStx) {
-                    formattedTokens.unshift({
-                        symbol: "STX",
-                        name: "Stacks",
-                        address: "SP000000000000000000002Q6VF78.stx-token",
-                        description: "Native token of the Stacks blockchain",
-                        decimals: 6
-                    });
-                }
-
-                setTokens(formattedTokens);
-                setFilteredTokens(formattedTokens);
+                const tokens = await listTokens();
+                setTokens(tokens);
+                setFilteredTokens(tokens);
             } catch (error) {
                 console.error('Error fetching tokens:', error);
                 setError('Failed to load tokens. Using default list.');
 
                 // Fallback to a minimal default list
-                const defaultTokens: Token[] = [
-                    {
-                        symbol: "STX",
-                        name: "Stacks",
-                        address: "SP000000000000000000002Q6VF78.stx-token",
-                        description: "Native token of the Stacks blockchain",
-                        decimals: 6
-                    },
-                    {
-                        symbol: "USDA",
-                        name: "USDA Token",
-                        address: "SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token",
-                        image: "https://assets.website-files.com/624b08d53956aaa4d794f846/624d2bdb4332ea53cf0046ff_stacks-circle-logo.svg"
-                    },
-                    {
-                        symbol: "XBTC",
-                        name: "Wrapped Bitcoin",
-                        address: "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.wrapped-bitcoin",
-                        image: "https://cryptologos.cc/logos/wrapped-bitcoin-wbtc-logo.png"
-                    }
-                ];
+                const defaultTokens: TokenCacheData[] = [];
                 setTokens(defaultTokens);
                 setFilteredTokens(defaultTokens);
             } finally {
@@ -284,9 +191,9 @@ const TokenSelectionStep = ({
         const query = searchQuery.toLowerCase();
         const filtered = tokens.filter(
             token =>
-                token.symbol.toLowerCase().includes(query) ||
-                token.name.toLowerCase().includes(query) ||
-                token.address.toLowerCase().includes(query)
+                token.symbol?.toLowerCase().includes(query) ||
+                token.name?.toLowerCase().includes(query) ||
+                token.contract_principal?.toLowerCase().includes(query)
         );
 
         setFilteredTokens(filtered);
@@ -299,7 +206,7 @@ const TokenSelectionStep = ({
         }
 
         setCustomError(null);
-        onCustomSubmit(fetchedToken.address);
+        onCustomSubmit(fetchedToken.contract_principal || "");
 
         // Reset the custom input state
         setShowCustomInput(false);
@@ -389,11 +296,11 @@ const TokenSelectionStep = ({
                                                 className="w-full h-full object-cover"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).src = '';
-                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="text-sm font-bold text-primary/60">${fetchedToken.symbol.charAt(0)}</div>`;
+                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="text-sm font-bold text-primary/60">${fetchedToken.symbol?.charAt(0)}</div>`;
                                                 }}
                                             />
                                         ) : (
-                                            <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol.charAt(0)}</div>
+                                            <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol?.charAt(0)}</div>
                                         )}
                                     </div>
                                     <div>
@@ -403,7 +310,7 @@ const TokenSelectionStep = ({
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     <span className="block mb-1">Contract ID:</span>
-                                    <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.address}</span>
+                                    <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.contract_principal}</span>
                                 </div>
                             </div>
                         )}
@@ -448,33 +355,36 @@ const TokenSelectionStep = ({
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {filteredTokens.map((token) => (
-                                <Card
-                                    key={token.address}
-                                    className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                                    onClick={() => onSelect(token.address)}
-                                >
-                                    <div className="p-6 flex flex-col items-center">
-                                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
-                                            {token.image ? (
-                                                <img
-                                                    src={token.image}
-                                                    alt={token.symbol}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).src = '';
-                                                        (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-8 h-8 text-primary/60">${token.symbol.charAt(0)}</div>`;
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className="w-8 h-8 font-bold text-primary/60 flex items-center justify-center">
-                                                    {token.symbol.charAt(0)}
-                                                </div>
-                                            )}
+                                <div key={token.type + "-" + token.contract_principal}>
+                                    <Card
+                                        className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
+                                        onClick={() => onSelect(token.contract_principal || "")}
+                                    >
+                                        <div className="p-6 flex flex-col items-center">
+                                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
+                                                {token.image ? (
+                                                    <Image
+                                                        width={64}
+                                                        height={64}
+                                                        src={token.image}
+                                                        alt={token.symbol || ""}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = '';
+                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-8 h-8 text-primary/60">${token.symbol?.charAt(0)}</div>`;
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-8 h-8 font-bold text-primary/60 flex items-center justify-center">
+                                                        {token.symbol?.charAt(0)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <h3 className="font-medium">{token.symbol}</h3>
+                                            <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
                                         </div>
-                                        <h3 className="font-medium">{token.symbol}</h3>
-                                        <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
-                                    </div>
-                                </Card>
+                                    </Card>
+                                </div>
                             ))}
                             <Card
                                 className="cursor-pointer hover:border-primary/50 transition-colors"
@@ -677,7 +587,7 @@ export default function SubnetWrapperWizard() {
     const [state, setState] = useState<FormState>({
         tokenContract: '',
         enableBearer: true,
-        enableLTE: false,
+        enableLTE: true,
     });
 
     // Navigation functions
@@ -694,8 +604,8 @@ export default function SubnetWrapperWizard() {
     };
 
     // Token selection handlers
-    const handleSelectToken = (contractId: string) => {
-        setState(prev => ({ ...prev, tokenContract: contractId }));
+    const handleSelectToken = (contract_principal: string) => {
+        setState(prev => ({ ...prev, tokenContract: contract_principal }));
         nextStep();
     };
 
@@ -733,7 +643,7 @@ export default function SubnetWrapperWizard() {
             const result = await generateSubnetWrapper({
                 tokenContract: state.tokenContract,
                 tokenName: deriveName(state.tokenContract),
-                blazeContract: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10',
+                blazeContract: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1',
                 enableBearer: state.enableBearer,
                 enableLTE: state.enableLTE,
             });
@@ -821,6 +731,9 @@ export default function SubnetWrapperWizard() {
                                         <div className="flex items-center space-x-2 mb-2">
                                             <span className="font-semibold">Features enabled:</span>
                                             <div className="flex gap-2">
+                                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                                    Signed Transfers
+                                                </span>
                                                 {state.enableBearer && (
                                                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                                         Bearer Notes
@@ -888,10 +801,9 @@ export default function SubnetWrapperWizard() {
                                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
                                     <Check className="h-8 w-8 text-green-600" />
                                 </div>
-                                <h3 className="text-xl font-semibold mb-2">Token Successfully Wrapped</h3>
+                                <h3 className="text-xl font-semibold mb-2">Subnet Deployed!</h3>
                                 <p className="text-center text-muted-foreground max-w-md mb-6">
-                                    Your subnet token wrapper has been deployed. You can now peg tokens into and out of a subnet,
-                                    enabling advanced transaction patterns.
+                                    Your subnet has been deployed. You can now peg tokens into and out of a subnet, enabling advanced transaction patterns.
                                 </p>
                                 <div className="flex flex-col gap-2 w-full max-w-xs">
                                     <Button onClick={() => router.push('/contracts')}>
@@ -957,7 +869,7 @@ export default function SubnetWrapperWizard() {
 
             <h1 className="text-3xl font-bold flex items-center">
                 <Globe className="mr-2 h-7 w-7 text-primary" />
-                Subnet Token Wrapper
+                Blaze SIP-10 Subnet
             </h1>
             <p className="text-muted-foreground">
                 Upgrade an existing token to a subnet token. This contract allows users to peg tokens into and out of a subnet,

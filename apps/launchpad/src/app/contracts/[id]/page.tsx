@@ -900,7 +900,7 @@ export default function ContractDetailPage({ params }: { params: Promise<{ id: s
                         <p className="text-sm text-muted-foreground mb-4">
                             Enhance your contract with metadata such as images, descriptions, and additional information.
                         </p>
-                        <Button className="w-full mb-4" onClick={() => window.open('https://metadata.charisma.app', '_blank')}>
+                        <Button className="w-full mb-4" onClick={() => window.open('https://metadata.charisma.rocks', '_blank')}>
                             Add Metadata via Charisma
                         </Button>
 
@@ -908,7 +908,7 @@ export default function ContractDetailPage({ params }: { params: Promise<{ id: s
                         <ul className="space-y-2">
                             <li>
                                 <a
-                                    href={`https://docs.charisma.app/contracts/${contract.type === 'sip10' ? 'sip10' : 'liquidity-pool'}`}
+                                    href={`https://launchpad.charisma.rocks/docs`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm flex items-center text-primary hover:underline"
@@ -932,7 +932,7 @@ export default function ContractDetailPage({ params }: { params: Promise<{ id: s
                             </li>
                             <li>
                                 <a
-                                    href="https://discord.gg/charisma"
+                                    href="https://discord.gg/gbdt4YaPwd"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm flex items-center text-primary hover:underline"

@@ -16,7 +16,7 @@ import { useState } from "react";
 
 // Navigation links array for reuse in both desktop and mobile views
 const navigationLinks = [
-    { href: "/vaults", label: "All Vaults" },
+    { href: "/vaults", label: "All" },
     { href: "/pools", label: "Liquidity Pools" },
     { href: "/sublinks", label: "Subnets" },
     { href: "/energy", label: "Rewards" },

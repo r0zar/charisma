@@ -1073,7 +1073,7 @@ export default function SIP10DeployPage() {
                 <div className="lg:w-80">
                     <DeploymentSidebar
                         stxAddress={stxAddress}
-                        deploymentCost="20 STX"
+                        deploymentCost="0 STX"
                         standardName="SIP-010 Fungible Token"
                         standardLink="https://github.com/stacksgov/sips/blob/main/sips/sip-010/sip-010-fungible-token-standard.md"
                         documentationLink="https://book.stacks.tools/tokens/sip10"

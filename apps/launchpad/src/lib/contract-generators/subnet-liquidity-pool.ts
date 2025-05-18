@@ -128,10 +128,10 @@ export async function generateSubnetLiquidityPool(params: SubnetLiquidityPoolPar
         (amount-a (get dx delta))
         (amount-b (get dy delta))
 
-        (signer-a (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature-a
+        (signer-a (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1 recover signature-a
             '${params.tokenAContractId} "TRANSFER_TOKENS" none (some amount-a) (some CONTRACT) uuid-a)))
 
-        (signer-b (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature-b
+        (signer-b (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1 recover signature-b
             '${params.tokenBContractId} "TRANSFER_TOKENS" none (some amount-b) (some CONTRACT) uuid-b))))
 
         (try! (contract-call? '${params.tokenAContractId} x-transfer signature-a amount-a uuid-a CONTRACT))
@@ -143,7 +143,7 @@ export async function generateSubnetLiquidityPool(params: SubnetLiquidityPoolPar
 (define-public (x-remove-liquidity (amount uint) 
     (signature (buff 65)) (uuid (string-ascii 36)))
     (let (
-        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 execute signature "REMOVE_LIQUIDITY" none (some amount) none uuid)))
+        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1 execute signature "REMOVE_LIQUIDITY" none (some amount) none uuid)))
         (delta (get-liquidity-quote amount))
         (amount-a (get dx delta))
         (amount-b (get dy delta)))
@@ -161,7 +161,7 @@ export async function generateSubnetLiquidityPool(params: SubnetLiquidityPoolPar
     (signature (buff 65)) (uuid (string-ascii 36)))
     (let (
         (delta (get-swap-quote amount (some OP_SWAP_A_TO_B)))
-        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature
+        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1 recover signature
             '${params.tokenAContractId} "TRANSFER_TOKENS" none (some amount) (some CONTRACT) uuid))))
         
         ;; Transfer tokens to pool
@@ -176,7 +176,7 @@ export async function generateSubnetLiquidityPool(params: SubnetLiquidityPoolPar
     (signature (buff 65)) (uuid (string-ascii 36)))
     (let (
         (delta (get-swap-quote amount (some OP_SWAP_B_TO_A)))
-        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10 recover signature
+        (signer (try! (contract-call? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1 recover signature
             '${params.tokenBContractId} "TRANSFER_TOKENS" none (some amount) (some CONTRACT) uuid))))
         
         ;; Transfer tokens to pool

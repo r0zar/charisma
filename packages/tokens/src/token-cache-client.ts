@@ -5,13 +5,13 @@
  */
 export interface TokenCacheData {
     type: string;
-    contractId: string;
+    contractId?: string;
     name: string;
     description?: string | null;
     image?: string | null;
     lastUpdated?: number | null;
-    decimals: number;
-    symbol: string;
+    decimals?: number;
+    symbol?: string;
     token_uri?: string | null;
     contract_principal?: string | null;
     error?: string | null;

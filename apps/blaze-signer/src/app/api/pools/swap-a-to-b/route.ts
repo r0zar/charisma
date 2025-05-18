@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         // --- Recover Signer ---
         const response = await fetchCallReadOnlyFunction({
             contractAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
-            contractName: 'blaze-rc10',
+            contractName: 'blaze-v1',
             functionName: 'recover',
             functionArgs: [
                 bufferFromHex(signature),

@@ -19,7 +19,7 @@ import { bufferFromHex } from "@stacks/transactions/dist/cl";
 
 // Signer contract identifier (replace with actual constant import if available)
 // Example: import { BLAZE_SIGNER_CONTRACT } from "../constants/contracts";
-const BLAZE_SIGNER_CONTRACT_ID = process.env.BLAZE_SIGNER_CONTRACT_ID || "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-rc10";
+const BLAZE_SIGNER_CONTRACT_ID = process.env.BLAZE_SIGNER_CONTRACT_ID || "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1";
 const [BLAZE_SIGNER_ADDRESS, BLAZE_SIGNER_NAME] = BLAZE_SIGNER_CONTRACT_ID.split(".");
 
 // --- Stacks API Client Setup (Replicated from API route for standalone use if needed, or pass client as arg) ---

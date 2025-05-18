@@ -120,7 +120,7 @@ const TemplatesPage = () => {
             items: [
                 {
                     id: 'subnet-token-wrapper',
-                    title: 'Subnet Token Wrapper',
+                    title: 'Blaze SIP-10 Subnet',
                     description: 'Upgrade an existing token to a subnet token. Once deployed, this contract allows users to peg tokens into and out of a subnet, enabling advanced transaction patterns.',
                     icon: <Globe className="h-6 w-6" />,
                     type: 'subnet-token-wrapper' as ContractType,
@@ -130,21 +130,7 @@ const TemplatesPage = () => {
                         'Deferred and gasless transactions',
                         'Off-chain oracle logic integration',
                     ],
-                    enabled: false
-                },
-                {
-                    id: 'liquidity-pool-subnet',
-                    title: 'AMM Liquidity Subnet',
-                    description: 'An advanced AMM liquidity pool that works with subnet tokens and leverages off-chain signature-based transfers to enable sophisticated DeFi functionality beyond standard AMMs.',
-                    icon: <Network className="h-6 w-6" />,
-                    type: 'liquidity-pool-subnet' as ContractType,
-                    features: [
-                        'Off-chain signature-based transfers',
-                        'Limit orders with conditional execution',
-                        'Dollar-cost averaging (DCA) automation',
-                        'Perpetual trading with dynamic funding',
-                    ],
-                    enabled: false
+                    enabled: true
                 }
             ]
         }
