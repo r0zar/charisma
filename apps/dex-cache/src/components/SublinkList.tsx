@@ -153,9 +153,9 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
     return (
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-lg">
                     <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" /> {/* Changed icon to ArrowRightLeft to match bridge concept */}
-                    Bridge Vaults
+                    Token List
                     <Badge variant="secondary" className="ml-auto">
                         {vaults.length} subnet{vaults.length !== 1 ? 's' : ''}
                     </Badge>
@@ -227,7 +227,7 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                     {sublink.tokenA?.image && (
                                                         <Image width={20} height={20} src={sublink.tokenA.image} alt={sublink.tokenA.symbol} className="w-5 h-5 rounded-full object-contain bg-card p-px border border-border" />
                                                     )}
-                                                    <span>{sublink.tokenA.symbol}</span>
+                                                    <span>{sublink.tokenA?.symbol}</span>
                                                 </div>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
@@ -249,7 +249,7 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                     <span className="font-medium text-foreground">{formattedTotalUsd}</span>
                                                     {sublink.tvlData && (
                                                         <span className="text-xs text-muted-foreground">
-                                                            {sublink.tvlData.tokenBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })} {sublink.tokenA.symbol}
+                                                            {sublink.tvlData.tokenBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })} {sublink.tokenA?.symbol}
                                                         </span>
                                                     )}
                                                 </div>

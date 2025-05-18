@@ -62,10 +62,10 @@ export default function EnergyPage() {
             {/* Optional Informational Alert */}
             <Alert variant="default" className="bg-primary/5 border-primary/20 mb-8">
                 <Info className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-primary">What are Energy Vaults?</AlertTitle>
+                <AlertTitle className="text-primary">What is Hold-to-Earn?</AlertTitle>
                 <AlertDescription className="text-sm text-muted-foreground">
-                    Energy Vaults are smart contracts that reward long-term holders. As you hold tokens in your wallet, you accrue energy over time.
-                    This energy can be harvested and used within the ecosystem for various benefits. Select a vault below to get started.
+                    Hold-to-Earn is a feature that rewards long-term holders of specific tokens. As you hold tokens in your wallet, you accrue energy over time.
+                    This energy can be harvested and used within the ecosystem for various benefits. Select a token below to get started.
                 </AlertDescription>
             </Alert>
 

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, Search, Trash, Database, Key, List } from 'lucide-react';
+import { Loader2, RefreshCw, Search, Trash, Database, Key, List, Save } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function AdminKVPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,6 +21,8 @@ export default function AdminKVPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [editableValueString, setEditableValueString] = useState<string>('');
+    const [isJsonValid, setIsJsonValid] = useState<boolean>(true);
 
     const authenticate = () => {
         if (authKey.trim()) {
@@ -32,7 +35,7 @@ export default function AdminKVPage() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/admin/kv?key=${authKey}&pattern=${encodeURIComponent(pattern)}`);
+            const res = await fetch(`/api/v1/admin/kv?key=${authKey}&pattern=${encodeURIComponent(pattern)}`);
             if (!res.ok) {
                 if (res.status === 401) {
                     setIsAuthenticated(false);
@@ -61,7 +64,7 @@ export default function AdminKVPage() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/admin/kv?key=${authKey}&valueKey=${encodeURIComponent(key)}`);
+            const res = await fetch(`/api/v1/admin/kv?key=${authKey}&valueKey=${encodeURIComponent(key)}`);
             if (!res.ok) {
                 throw new Error(`API error: ${res.status}`);
             }
@@ -70,6 +73,9 @@ export default function AdminKVPage() {
             if (data.success) {
                 setSelectedValue(data.value);
                 setValueKey(key);
+                const prettyJson = JSON.stringify(data.value, null, 2);
+                setEditableValueString(prettyJson);
+                setIsJsonValid(true);
             } else {
                 throw new Error(data.error || 'Failed to fetch value');
             }
@@ -88,7 +94,7 @@ export default function AdminKVPage() {
 
         setLoading(true);
         try {
-            const res = await fetch(`/api/admin/kv?key=${authKey}&deleteKey=${encodeURIComponent(key)}`, {
+            const res = await fetch(`/api/v1/admin/kv?key=${authKey}&deleteKey=${encodeURIComponent(key)}`, {
                 method: 'DELETE',
             });
 
@@ -118,12 +124,86 @@ export default function AdminKVPage() {
         }
     };
 
+    const handleEditableValueChange = (value: string) => {
+        setEditableValueString(value);
+        try {
+            JSON.parse(value);
+            setIsJsonValid(true);
+        } catch (e) {
+            setIsJsonValid(false);
+        }
+    };
+
+    const handleSaveValue = async () => {
+        if (!valueKey) {
+            setError("Cannot save: No key selected.");
+            return;
+        }
+        if (!isJsonValid) {
+            setError("Cannot save: JSON is invalid.");
+            return;
+        }
+
+        let parsedNewValue;
+        try {
+            parsedNewValue = JSON.parse(editableValueString);
+        } catch (e) {
+            setError("Invalid JSON format. Please correct before saving.");
+            // Also ensure isJsonValid is false if somehow it was true
+            if (isJsonValid) setIsJsonValid(false);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            const res = await fetch(`/api/v1/admin/kv?key=${authKey}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    updateKey: valueKey, // Ensure backend expects 'updateKey'
+                    newValue: parsedNewValue,
+                }),
+            });
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('admin_key');
+                    throw new Error('Unauthorized. Please re-authenticate.');
+                }
+                // Try to parse error message from response body
+                const errorData = await res.json().catch(() => ({ error: `API error: ${res.status} - ${res.statusText}` }));
+                throw new Error(errorData.error || `API error: ${res.status} - ${res.statusText}`);
+            }
+
+            const data = await res.json();
+            if (data.success) {
+                setSuccessMessage(`Key "${valueKey}" updated successfully`);
+                setTimeout(() => setSuccessMessage(null), 3000);
+                // Re-fetch the value to update selectedValue and reset editableValueString to the saved state
+                await fetchValue(valueKey);
+            } else {
+                throw new Error(data.error || 'Failed to update value');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error while saving');
+            console.error(`Error updating value for ${valueKey}:`, err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Check if we have a saved auth key on load
     useEffect(() => {
         const savedKey = localStorage.getItem('admin_key');
         if (savedKey) {
             setAuthKey(savedKey);
-            setIsAuthenticated(true);
+            // setIsAuthenticated(true);
         }
     }, []);
 
@@ -177,9 +257,9 @@ export default function AdminKVPage() {
                 </Alert>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 {/* Left Column - Key Search */}
-                <div className="md:col-span-1">
+                <div className="col-span-1">
                     <Card className="h-full">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center">
@@ -221,17 +301,7 @@ export default function AdminKVPage() {
                                 )}
                             </div>
                         </CardContent>
-                        <CardFooter className="flex justify-between border-t pt-4">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setPattern('*');
-                                    fetchKeys();
-                                }}
-                            >
-                                Show All
-                            </Button>
+                        <CardFooter className="flex justify-between border-t pt-4 flex-wrap gap-2">
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -242,12 +312,32 @@ export default function AdminKVPage() {
                             >
                                 Energy Keys
                             </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setPattern('dex-vault:*');
+                                    fetchKeys();
+                                }}
+                            >
+                                Vault Details
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setPattern('vault-list:dex');
+                                    fetchKeys();
+                                }}
+                            >
+                                List Vaults
+                            </Button>
                         </CardFooter>
                     </Card>
                 </div>
 
                 {/* Middle Column - Key List */}
-                <div className="md:col-span-1">
+                <div className="col-span-1 md:col-span-2">
                     <Card className="h-full max-h-[600px] flex flex-col">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-lg flex items-center">
@@ -297,18 +387,48 @@ export default function AdminKVPage() {
                 </div>
 
                 {/* Right Column - Value Viewer */}
-                <div className="md:col-span-1">
+                <div className="md:col-span-2 col-span-1">
                     <Card className="h-full max-h-[600px] flex flex-col">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">Value Viewer</CardTitle>
+                        <CardHeader className="pb-3 flex flex-row justify-between items-start">
+                            <div>
+                                <CardTitle className="text-lg">Value Viewer</CardTitle>
+                                {valueKey && (
+                                    <CardDescription className="truncate">
+                                        {valueKey}
+                                    </CardDescription>
+                                )}
+                            </div>
                             {valueKey && (
-                                <CardDescription className="truncate">
-                                    {valueKey}
-                                </CardDescription>
+                                <div className="flex gap-2 shrink-0">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => fetchValue(valueKey)}
+                                        disabled={loading}
+                                        title="Refresh value"
+                                    >
+                                        <RefreshCw className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={handleSaveValue}
+                                        disabled={
+                                            loading ||
+                                            !isJsonValid ||
+                                            (selectedValue !== null && editableValueString === JSON.stringify(selectedValue, null, 2)) ||
+                                            (selectedValue === null && editableValueString === "null")
+                                        }
+                                        title="Save changes"
+                                    >
+                                        <Save className="h-3 w-3 mr-1" />
+                                        Save
+                                    </Button>
+                                </div>
                             )}
                         </CardHeader>
                         <CardContent className="flex-grow overflow-auto relative">
-                            {loading ? (
+                            {loading && !valueKey ? (
                                 <div className="flex justify-center items-center h-full">
                                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                                 </div>
@@ -323,28 +443,32 @@ export default function AdminKVPage() {
                                         <TabsTrigger value="raw">Raw</TabsTrigger>
                                     </TabsList>
                                     <TabsContent value="formatted" className="p-0">
-                                        <pre className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-4 rounded">
-                                            {JSON.stringify(selectedValue, null, 2)}
-                                        </pre>
+                                        <Textarea
+                                            value={editableValueString}
+                                            onChange={(e) => handleEditableValueChange(e.target.value)}
+                                            className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-4 rounded min-h-[300px] font-mono focus-visible:ring-1 focus-visible:ring-ring"
+                                            rows={15}
+                                            disabled={loading}
+                                        />
+                                        {!isJsonValid && valueKey && (
+                                            <p className="text-xs text-red-500 px-1 py-2">Invalid JSON format.</p>
+                                        )}
                                     </TabsContent>
                                     <TabsContent value="raw" className="p-0">
-                                        <pre className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-4 rounded">
-                                            {JSON.stringify(selectedValue)}
+                                        <pre className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-4 rounded min-h-[300px]">
+                                            {(() => {
+                                                if (!valueKey) return "";
+                                                if (!isJsonValid) return "JSON in 'Formatted' tab is invalid.";
+                                                try {
+                                                    if (editableValueString.trim() === '') return 'JSON is empty.';
+                                                    return JSON.stringify(JSON.parse(editableValueString));
+                                                } catch (e) {
+                                                    return "Error parsing JSON for raw view. Content may be malformed.";
+                                                }
+                                            })()}
                                         </pre>
                                     </TabsContent>
                                 </Tabs>
-                            )}
-
-                            {valueKey && !loading && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="absolute top-0 right-4"
-                                    onClick={() => fetchValue(valueKey)}
-                                >
-                                    <RefreshCw className="h-3 w-3 mr-1" />
-                                    Refresh
-                                </Button>
                             )}
                         </CardContent>
                     </Card>

@@ -1,6 +1,8 @@
 import { kv } from "@vercel/kv";
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { principalCV, cvToValue, ClarityType } from '@stacks/transactions';
+import { callReadOnlyFunction, getContractInfo } from '@repo/polyglot';
+import { principalCV, cvToValue, ClarityType, uintCV, bufferCVFromString, optionalCVOf } from '@stacks/transactions';
+import { getTokenMetadataCached } from '@repo/tokens'
+import { bufferFromHex } from "@stacks/transactions/dist/cl";
 
 /**
  * Basic token information
@@ -45,7 +47,7 @@ export interface Vault {
 
 // Cache constants
 const CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
-export const VAULT_LIST_KEY = "vault-list:dex";
+export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
 const RESERVE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Define an extended Vault type for internal use with timestamp
@@ -54,74 +56,17 @@ type CachedVault = Vault & { reservesLastUpdatedAt?: number };
 // Helper to get the list of managed vault IDs
 export const getManagedVaultIds = async (): Promise<string[]> => {
     try {
-        const ids = await kv.get<string[]>(VAULT_LIST_KEY);
-
-        return Array.isArray(ids) ? ids : [];
+        const keys = await kv.keys(`${VAULT_CACHE_KEY_PREFIX}*`);
+        // Extract contractId from each key. e.g., "dex-vault:SP..." -> "SP..."
+        return keys.map(key => key.substring(VAULT_CACHE_KEY_PREFIX.length));
     } catch (error) {
-        console.error(`Error fetching vault list from KV (${VAULT_LIST_KEY}):`, error);
+        console.error(`Error fetching vault keys from KV with prefix ${VAULT_CACHE_KEY_PREFIX}:`, error);
         return [];
     }
 };
 
 // Cache key builder for individual vault objects
-export const getCacheKey = (contractId: string): string => `dex-vault:${contractId}`;
-
-// Add a vault ID to the managed list (if not already present)
-export const addVaultIdToManagedList = async (contractId: string): Promise<void> => {
-    if (!contractId) return;
-    try {
-        const current = await getManagedVaultIds();
-        if (!current.includes(contractId)) {
-            await kv.set(VAULT_LIST_KEY, [...current, contractId]);
-            console.log(`Added ${contractId} to managed vault list`);
-        }
-    } catch (error) {
-        console.error(`Failed adding ${contractId} to managed vault list`, error);
-    }
-};
-
-// Fetch token metadata from token-cache API (can be LP token or underlying token)
-export const fetchTokenFromCache = async (contractId: string): Promise<any | null> => {
-    // Special case for STX token
-    if (contractId === '.stx') {
-        console.log('Special case: STX token requested');
-        return {
-            contractId: '.stx',
-            contract_principal: '.stx',
-            name: 'Stacks',
-            symbol: 'STX',
-            decimals: 6,
-            image: 'https://charisma.rocks/stx-logo.png',
-            description: 'Native token of the Stacks blockchain',
-            identifier: 'stx'
-        };
-    }
-
-    const base = process.env.TOKEN_CACHE_ENDPOINT || 'http://localhost:3000'
-    if (!base) {
-        console.error("Token Cache endpoint/host not configured.");
-        return null;
-    }
-    const url = `${base}/api/v1/sip10/${encodeURIComponent(contractId)}`;
-    console.log(`Fetching token from cache: ${url}`);
-    try {
-        const res = await fetch(url);
-        if (!res.ok) {
-            console.warn(`Failed token cache fetch for ${contractId} (${res.status}): ${url}`);
-            return null;
-        }
-        const json = await res.json();
-        if (json?.status === 'success' && json?.data) {
-            return json.data;
-        } else {
-            console.warn(`Token cache API returned non-success for ${contractId}: ${JSON.stringify(json)}`);
-            return null;
-        }
-    } catch (err) {
-        console.error(`Error fetching token ${contractId} from cache API: ${url}`, err);
-        return null;
-    }
-};
+export const getCacheKey = (contractId: string): string => `${VAULT_CACHE_KEY_PREFIX}${contractId}`;
 
 // Helper function to build a vault structure from token metadata
 // This is similar to parts of confirmVault, but doesn't save, just constructs
@@ -443,7 +388,7 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
             console.log(refresh ? `[Refresh Requested] Vault ${contractId}` : `[Cache Miss] Vault ${contractId}`);
 
             // 1. Fetch Main Token
-            const lpToken = await fetchTokenFromCache(contractId);
+            const lpToken = await getTokenMetadataCached(contractId);
             if (!lpToken) {
                 console.error(`[Fetch Scratch] Failed to fetch main token ${contractId}`);
                 return null;
@@ -458,15 +403,15 @@ export const getVaultData = async (contractId: string, refresh: boolean = false)
 
             if (vaultType === 'POOL' || vaultType === 'SUBLINK') {
                 // Extract underlying token contracts
-                const tokenAContract = lpToken.tokenAContract || (lpToken.properties?.tokenAContract) || (lpToken.tokenA?.contractId) || (lpToken.tokenA?.contract_principal);
-                const tokenBContract = lpToken.tokenBContract || (lpToken.properties?.tokenBContract) || (lpToken.tokenB?.contractId) || (lpToken.tokenB?.contract_principal);
+                const tokenAContract = lpToken.tokenAContract;
+                const tokenBContract = lpToken.tokenBContract;
 
                 // Only proceed if we have tokenA and tokenB contracts
                 if (tokenAContract && tokenBContract) {
                     // 3. Fetch Underlying Tokens
                     [tokenA, tokenB] = await Promise.all([
-                        fetchTokenFromCache(tokenAContract),
-                        fetchTokenFromCache(tokenBContract)
+                        getTokenMetadataCached(tokenAContract),
+                        getTokenMetadataCached(tokenBContract)
                     ]);
 
                     if (!tokenA || !tokenB) {
@@ -532,15 +477,31 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
                 existing = raw as CachedVault;
             }
         } catch (e) {
-            // Ignore cache miss
+            // Ignore cache miss or parse error, existing will remain null
+            console.warn(`Could not retrieve or parse existing cache for ${cacheKey}:`, e);
         }
 
-        // Only overwrite type/protocol if defined in new vault
-        const vaultToSave = {
-            ...vault,
-            type: vault.type ?? existing?.type ?? 'POOL',
+        let finalType = vault.type; // Start with the type from the incoming vault data
+
+        // If the incoming vault's type is 'POOL' (potentially a default)
+        // and an existing vault had a more specific type (not 'POOL' and not undefined),
+        // then prefer the existing specific type.
+        if (vault.type === 'POOL' && existing?.type && existing.type !== 'POOL') {
+            finalType = existing.type;
+        } else if (!vault.type && existing?.type) {
+            // If incoming vault has no type, but existing did, use existing.
+            finalType = existing.type;
+        }
+        // If finalType is still undefined (neither vault.type nor existing.type provided one, or vault.type was 'POOL' and existing.type was also 'POOL' or undefined),
+        // it will be defaulted to 'POOL' below.
+
+        const vaultToSave: CachedVault = {
+            ...(existing || {}), // Spread existing first to have a base, use empty object if existing is null
+            ...vault,            // Spread new vault data, this will overwrite fields from existing if they are in vault
+            type: finalType || 'POOL', // Apply the determined type, defaulting to 'POOL' if still undefined
             protocol: vault.protocol ?? existing?.protocol ?? 'CHARISMA',
-            reservesLastUpdatedAt: vault.reservesLastUpdatedAt || Date.now()
+            // reservesLastUpdatedAt will be correctly taken from `...vault`
+            // as it's initialized in buildVaultStructureFromTokens and updated in fetchAndUpdateReserves
         };
 
         // Make sure reserves are numbers if present
@@ -559,13 +520,6 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
             throw new Error(`KV.set failed: ${setError instanceof Error ? setError.message : 'Unknown error'}`);
         }
 
-        // Try to add to the managed vault list
-        try {
-            await addVaultIdToManagedList(vault.contractId);
-        } catch (listError) {
-            console.error('Error adding to managed vault list:', listError);
-        }
-
         return true;
     } catch (error) {
         console.error(`Error saving vault ${vault.contractId}:`, error);
@@ -574,7 +528,7 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
 };
 
 // Get all vault data from KV
-export const getAllVaultData = async (protocol?: string): Promise<Vault[]> => {
+export const getAllVaultData = async ({ protocol, type }: { protocol?: string, type?: string } = {}): Promise<Vault[]> => {
     try {
         const vaultIds = await getManagedVaultIds();
         if (!vaultIds.length) {
@@ -583,18 +537,16 @@ export const getAllVaultData = async (protocol?: string): Promise<Vault[]> => {
         }
 
         console.log(`Fetching ${vaultIds.length} vaults from cache`);
-
-        // Fetch each vault in parallel using the updated getVaultData
-        // Note: This will trigger reserve revalidation for stale entries
         const vaultPromises = vaultIds.map(id => getVaultData(id));
+        const results = await Promise.all(vaultPromises);
+        const vaults = results.filter((v: Vault | null): v is Vault => v !== null);
 
-        let results = await Promise.all(vaultPromises);
-        function isVault(v: Vault | null): v is Vault {
-            return v !== null;
-        }
-        const vaults = results.filter(isVault);
+        // Filter by protocol if provided
         if (protocol) {
             return vaults.filter(vault => vault.protocol?.toLowerCase() === protocol.toLowerCase());
+        }
+        if (type) {
+            return vaults.filter(vault => vault.type === type);
         }
         return vaults;
     } catch (error) {
@@ -603,49 +555,21 @@ export const getAllVaultData = async (protocol?: string): Promise<Vault[]> => {
     }
 };
 
-// Get all vault data from KV
-export const getAllVaults = async (): Promise<{ pools: Vault[], sublinks: Vault[] }> => {
-    try {
-        const vaultIds = await getManagedVaultIds();
-        if (!vaultIds.length) {
-            console.log('No managed vaults found');
-            return { pools: [], sublinks: [] };
-        }
-
-        console.log(`Fetching ${vaultIds.length} vaults from cache`);
-
-        // Fetch each vault in parallel using the updated getVaultData
-        // Note: This will trigger reserve revalidation for stale entries
-        const vaultPromises = vaultIds.map(id => getVaultData(id));
-
-        const vaults = await Promise.all(vaultPromises);
-
-        // partition by type
-        const results = {
-            pools: vaults.filter((v): v is Vault => v !== null && v.type === 'POOL') as Vault[],
-            sublinks: vaults.filter((v): v is Vault => v !== null && v.type === 'SUBLINK') as Vault[]
-        }
-        return results;
-    } catch (error) {
-        console.error('Error fetching all vaults:', error);
-        return { pools: [], sublinks: [] };
-    }
-};
-
 // Utility to remove vaults from the managed list and delete their cache
 export const removeVaults = async (vaultIds: string[]): Promise<void> => {
     if (!vaultIds.length) return;
     try {
-        // Remove from managed list
-        const current = await getManagedVaultIds();
-        const updated = current.filter(id => !vaultIds.includes(id));
-        await kv.set(VAULT_LIST_KEY, updated);
         // Delete individual cache entries
-        for (const id of vaultIds) {
+        const deletePromises = vaultIds.map(id => {
             const cacheKey = getCacheKey(id);
-            await kv.del(cacheKey);
-            console.log(`Deleted vault and cache for ${id}`);
-        }
+            return kv.del(cacheKey).then(() => {
+                console.log(`Deleted vault cache for ${id}`);
+            }).catch(err => {
+                console.error(`Error deleting cache for ${id}:`, err);
+            });
+        });
+        await Promise.all(deletePromises);
+
     } catch (error) {
         console.error('Error removing vaults:', error);
     }
@@ -674,8 +598,128 @@ export const listVaultTokens = async (): Promise<Token[]> => {
     return Array.from(tokenMap.values());
 }
 
+// --- Added functions from actions.ts logic ---
+
+async function _fetchStxBalance(address: string): Promise<number> {
+    try {
+        // Assuming HIRO_API_KEY might be needed for rate limiting / auth in future,
+        // but current actions.ts implementation doesn't use it for this specific call.
+        // Adapting to use environment variable if available, like in actions.ts getLpTokenBalance example.
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (process.env.HIRO_API_KEY) {
+            headers['Authorization'] = `Bearer ${process.env.HIRO_API_KEY}`;
+        }
+        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`, { headers });
+        if (!response.ok) {
+            throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        return Number(data.balance || 0);
+    } catch (error) {
+        console.error(`[vaultService] Failed fetching STX balance for ${address}:`, error);
+        return 0; // Consistent error handling with actions.ts
+    }
+}
+
+async function _fetchSip10Balance(contractAddress: string, contractName: string, userPrincipal: string): Promise<number> {
+    try {
+        const balanceCV = await callReadOnlyFunction(contractAddress, contractName, 'get-balance', [principalCV(userPrincipal)]);
+        // Assuming balanceCV.value directly holds the number or can be converted
+        return Number(cvToValue(balanceCV) || 0);
+    } catch (error) {
+        console.error(`[vaultService] Failed fetching SIP10 balance for ${contractAddress}.${contractName} for user ${userPrincipal}:`, error);
+        return 0;
+    }
+}
+
+export async function getFungibleTokenBalance(tokenContractId: string, userAddress: string): Promise<number> {
+    try {
+        if (tokenContractId === '.stx') {
+            return await _fetchStxBalance(userAddress);
+        } else {
+            const [addr, name] = tokenContractId.split('.');
+            if (!addr || !name) {
+                throw new Error(`Invalid SIP-10 token contract ID: ${tokenContractId}`);
+            }
+            return await _fetchSip10Balance(addr, name, userAddress);
+        }
+    } catch (error) {
+        console.error(`[vaultService] Error in getFungibleTokenBalance for ${tokenContractId} and user ${userAddress}:`, error);
+        return 0; // Default to 0 on error
+    }
+}
+
+export async function getLpTokenTotalSupply(vaultContractId: string): Promise<number> {
+    try {
+        const [addr, name] = vaultContractId.split('.');
+        if (!addr || !name) {
+            throw new Error(`Invalid vault contract ID for total supply: ${vaultContractId}`);
+        }
+        const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
+        return Number(cvToValue(supplyCV) || 0);
+    } catch (error) {
+        console.error(`[vaultService] Failed fetching total supply for ${vaultContractId}:`, error);
+        return 0;
+    }
+}
+
+export async function getLiquidityOperationQuote(
+    vaultContractId: string,
+    amount: number,
+    operationHex: string // e.g. OP_ADD_LIQUIDITY from lib/utils.ts
+): Promise<{ dx: number; dy: number; dk: number } | null> {
+    try {
+        const [addr, name] = vaultContractId.split('.');
+        if (!addr || !name) {
+            throw new Error(`Invalid vault contract ID for quote: ${vaultContractId}`);
+        }
+        const quoteResultCV = await callReadOnlyFunction(
+            addr, name, 'quote', [
+            uintCV(amount),
+            // The 'quote' function in the example contract might expect (optional (buff 1))
+            // Ensuring we use bufferFromHex for the opcode.
+            optionalCVOf(bufferFromHex(operationHex))
+        ]
+        );
+        const quoteValue = cvToValue(quoteResultCV);
+        if (quoteValue && quoteValue.dx !== undefined && quoteValue.dy !== undefined && quoteValue.dk !== undefined) {
+            return {
+                dx: Number(quoteValue.dx),
+                dy: Number(quoteValue.dy),
+                dk: Number(quoteValue.dk)
+            };
+        }
+        console.warn(`[vaultService] Invalid quote structure for ${vaultContractId} with op ${operationHex}:`, quoteValue);
+        return null;
+    } catch (error) {
+        console.error(`[vaultService] Failed fetching quote for ${vaultContractId} with op ${operationHex}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Fetches detailed contract information, including source code.
+ * Uses getContractInfo from @repo/polyglot.
+ */
+export async function getContractSourceDetails(contractId: string): Promise<any> {
+    try {
+        const [contractAddress, contractName] = contractId.split('.');
+        if (!contractAddress || !contractName) {
+            throw new Error(`Invalid contract ID for source details: ${contractId}`);
+        }
+        const contractInfo = await getContractInfo(contractId);
+        return contractInfo;
+    } catch (error) {
+        console.error(`[vaultService] Failed to get contract source details for ${contractId}:`, error);
+        return null;
+    }
+}
+
 
 // Example usage (uncomment to run once, then re-comment):
+/*
 removeVaults([
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-welsh-vault-wrapper-alex'
+    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-welsh-vault-wrapper-alex',
+    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-cha-vault-wrapper-alex'
 ]);
+*/

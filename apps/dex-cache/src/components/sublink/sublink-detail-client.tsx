@@ -11,11 +11,9 @@ import { SublinkBridgeCard } from '@/components/SublinkBridgeCard';
 import { Vault } from '@/lib/vaultService';
 import { KraxelPriceData } from '@repo/tokens';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getSubnetTokenBalance } from '@/app/actions';
+import { getSubnetTokenBalance } from '@/lib/server/subnets';
 
 // Add a simpler CSS animation for the flame
 const flameStyle = `
@@ -171,7 +169,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
     const [isLoadingTvl, setIsLoadingTvl] = useState(false);
     const [isRefreshingTvl, setIsRefreshingTvl] = useState(false);
     const [initialLoad, setInitialLoad] = useState(true);
-    const tokenDecimals = sublink.tokenA.decimals || 6;
+    const tokenDecimals = sublink.tokenA?.decimals || 6;
 
     // Calculate TVL on component mount
     useEffect(() => {
@@ -179,15 +177,15 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
             false,
             sublink.contractId,
             sublink,
-            sublink.tokenA.contractId,
-            prices[sublink.tokenA.contractId] || 0,
+            sublink.tokenA?.contractId!,
+            prices[sublink.tokenA?.contractId!] || 0,
             setIsLoadingTvl,
             setIsRefreshingTvl,
             setCalculatedTvl,
             setInitialLoad
         );
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sublink.contractId, sublink.tokenA.contractId]);
+    }, [sublink.contractId, sublink.tokenA?.contractId]);
 
     const renderContractInfo = () => {
         if (!contractInfo || Object.keys(contractInfo).length === 0) return null;
@@ -282,8 +280,8 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
             true,
             sublink.contractId,
             sublink,
-            sublink.tokenA.contractId,
-            prices[sublink.tokenA.contractId] || 0,
+            sublink.tokenA?.contractId!,
+            prices[sublink.tokenA?.contractId!] || 0,
             setIsLoadingTvl,
             setIsRefreshingTvl,
             setCalculatedTvl,
@@ -314,7 +312,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                 {/* Original Token */}
                                 <div className="flex flex-col items-center">
                                     <div className="relative w-10 h-10 z-10">
-                                        {sublink.tokenA.image ? (
+                                        {sublink.tokenA?.image ? (
                                             <Image
                                                 src={sublink.tokenA.image}
                                                 alt={`${sublink.tokenA.name}`}
@@ -327,7 +325,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                             </div>
                                         )}
                                     </div>
-                                    <span className="text-xs text-muted-foreground mt-1">{sublink.tokenA.symbol}</span>
+                                    <span className="text-xs text-muted-foreground mt-1">{sublink.tokenA?.symbol}</span>
                                 </div>
 
                                 {/* Arrow */}
@@ -358,7 +356,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                 {/* Subnet Token with Flame */}
                                 <div className="flex flex-col items-center">
                                     <div className="relative w-10 h-10 z-10">
-                                        {sublink.tokenA.image ? (
+                                        {sublink.tokenA?.image ? (
                                             <Image
                                                 src={sublink.tokenA.image}
                                                 alt={`${sublink.tokenA.name} (subnet)`}
@@ -453,14 +451,14 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                             <div className="p-4 bg-muted/30 border border-border/50 rounded-lg text-sm text-muted-foreground space-y-2">
                                 <h4 className="font-medium text-foreground">Using the Subnet Bridge</h4>
                                 <p>
-                                    This interface allows you to transfer {sublink.tokenA.symbol} assets between the Stacks mainnet and the subnet environment.
+                                    This interface allows you to transfer {sublink.tokenA?.symbol} assets between the Stacks mainnet and the subnet environment.
                                 </p>
                                 <ul className="list-disc pl-5 space-y-1 text-xs">
                                     <li>
-                                        <strong>Enter Subnet:</strong> Moves your {sublink.tokenA.symbol} from the Stacks mainnet to the subnet, where they will be represented as a wrapped version.
+                                        <strong>Enter Subnet:</strong> Moves your {sublink.tokenA?.symbol} from the Stacks mainnet to the subnet, where they will be represented as a wrapped version.
                                     </li>
                                     <li>
-                                        <strong>Exit Subnet:</strong> Returns your {sublink.tokenA.symbol} from the subnet back to the Stacks mainnet.
+                                        <strong>Exit Subnet:</strong> Returns your {sublink.tokenA?.symbol} from the subnet back to the Stacks mainnet.
                                     </li>
                                     <li>Ensure you have sufficient STX for transaction fees on the Stacks mainnet.</li>
                                     <li>Transaction times may vary depending on network congestion.</li>
@@ -484,7 +482,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                     <div className="p-5 border-b border-border/30">
                                         <div className="flex items-start gap-4">
                                             <div className="relative flex-shrink-0 w-12 h-12">
-                                                {sublink.tokenA.image ? (
+                                                {sublink.tokenA?.image ? (
                                                     <Image
                                                         src={sublink.tokenA.image}
                                                         alt={`${sublink.tokenA.name}`}
@@ -501,25 +499,25 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                 <h3 className="font-medium text-base mb-0.5 flex items-center">
                                                     Mainnet Token
                                                     <Badge variant="outline" className="ml-2 text-xs py-0">
-                                                        {sublink.tokenA.symbol}
+                                                        {sublink.tokenA?.symbol}
                                                     </Badge>
                                                 </h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-2">
                                                     <div>
                                                         <p className="text-xs text-muted-foreground mb-0.5">Token Name</p>
-                                                        <p className="text-sm font-medium">{sublink.tokenA.name}</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenA?.name}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-muted-foreground mb-0.5">Decimals</p>
-                                                        <p className="text-sm font-medium">{sublink.tokenA.decimals}</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenA?.decimals}</p>
                                                     </div>
                                                     <div className="md:col-span-2">
                                                         <p className="text-xs text-muted-foreground mb-0.5">Contract ID</p>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-mono bg-muted/70 p-1.5 rounded text-xs block overflow-hidden text-ellipsis">
-                                                                {sublink.tokenA.contractId}
+                                                            <span className="font-mono bg-muted/70 p-1.5 rounded text-xs block overflow-hidden text-ellipsis">
+                                                                {sublink.tokenA?.contractId}
                                                             </span>
-                                                            <Link href={`https://explorer.stacks.co/txid/${sublink.tokenA.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                            <Link href={`https://explorer.stacks.co/txid/${sublink.tokenA?.contractId}`} target="_blank" rel="noopener noreferrer">
                                                                 <Button variant="ghost" size="icon" className="h-7 w-7">
                                                                     <ExternalLinkIcon className="h-3.5 w-3.5" />
                                                                 </Button>
@@ -535,10 +533,10 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                     <div className="p-5 border-b border-border/30">
                                         <div className="flex items-start gap-4">
                                             <div className="relative flex-shrink-0 w-12 h-12">
-                                                {sublink.tokenA.image ? (
+                                                {sublink.tokenA?.image ? (
                                                     <div className="relative w-12 h-12">
                                                         <Image
-                                                            src={sublink.tokenA.image}
+                                                            src={sublink.tokenA?.image}
                                                             alt={`${sublink.tokenA.name} (subnet)`}
                                                             fill
                                                             className="rounded-full object-cover border border-border/50"
@@ -580,25 +578,25 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                 <h3 className="font-medium text-base mb-0.5 flex items-center">
                                                     Subnet Token
                                                     <Badge variant="outline" className="ml-2 text-xs py-0">
-                                                        {sublink.tokenB.symbol}
+                                                        {sublink.tokenB?.symbol}
                                                     </Badge>
                                                 </h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-2">
                                                     <div>
                                                         <p className="text-xs text-muted-foreground mb-0.5">Token Name</p>
-                                                        <p className="text-sm font-medium">{sublink.tokenB.name}</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenB?.name}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-muted-foreground mb-0.5">Decimals</p>
-                                                        <p className="text-sm font-medium">{sublink.tokenB.decimals}</p>
+                                                        <p className="text-sm font-medium">{sublink.tokenB?.decimals}</p>
                                                     </div>
                                                     <div className="md:col-span-2">
                                                         <p className="text-xs text-muted-foreground mb-0.5">Contract ID</p>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-mono bg-muted/70 p-1.5 rounded text-xs block overflow-hidden text-ellipsis">
-                                                                {sublink.tokenB.contractId}
+                                                            <span className="font-mono bg-muted/70 p-1.5 rounded text-xs block overflow-hidden text-ellipsis">
+                                                                {sublink.tokenB?.contractId}
                                                             </span>
-                                                            <Link href={`https://explorer.stacks.co/txid/${sublink.tokenB.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                            <Link href={`https://explorer.stacks.co/txid/${sublink.tokenB?.contractId}`} target="_blank" rel="noopener noreferrer">
                                                                 <Button variant="ghost" size="icon" className="h-7 w-7">
                                                                     <ExternalLinkIcon className="h-3.5 w-3.5" />
                                                                 </Button>

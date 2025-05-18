@@ -120,7 +120,7 @@ const getVaultTypeDisplay = (type: string) => {
         case 'SUBLINK':
             return 'Subnet Bridge';
         case 'ENERGY':
-            return 'Energy Vault';
+            return 'Hold-to-Earn';
         default:
             return type || 'Unknown';
     }
@@ -244,7 +244,7 @@ export default function VaultList({ vaults }: Props) {
                                 const vaultLink = vaultType === 'SUBLINK'
                                     ? `/sublinks/${v.contractId}`
                                     : vaultType === 'ENERGY'
-                                        ? `/energy/${v.contractId}`
+                                        ? `/energy`
                                         : `/vaults/${v.contractId}`;
 
                                 const lastUpdated = (v as any).reservesLastUpdatedAt;
@@ -268,7 +268,7 @@ export default function VaultList({ vaults }: Props) {
                                                     )}
                                                     <div>
                                                         <div className="font-semibold text-foreground group-hover:text-primary group-hover:underline">
-                                                            {v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span>
+                                                            {v.name}
                                                         </div>
                                                         {lastUpdated && (
                                                             <div className="text-xs text-muted-foreground mt-0.5">
@@ -286,9 +286,9 @@ export default function VaultList({ vaults }: Props) {
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge className={`
-                                                    ${vaultType === 'POOL' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' : ''}
-                                                    ${vaultType === 'SUBLINK' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' : ''}
-                                                    ${vaultType === 'ENERGY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30' : ''}
+                                                    ${vaultType === 'POOL' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30 hover:bg-blue-500/20 hover:text-blue-600 hover:border-blue-500/10' : ''}
+                                                    ${vaultType === 'SUBLINK' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30 hover:bg-purple-500/20 hover:text-purple-600 hover:border-purple-500/10' : ''}
+                                                    ${vaultType === 'ENERGY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 hover:text-yellow-600 hover:border-yellow-500/10' : ''}
                                                 `}>
                                                     {getVaultTypeDisplay(vaultType)}
                                                 </Badge>
@@ -441,7 +441,7 @@ export default function VaultList({ vaults }: Props) {
 
                                                         {vaultType === 'ENERGY' && (
                                                             <div className="space-y-2 bg-green-500/5 p-3 rounded-lg border border-green-500/20">
-                                                                <h4 className="text-sm font-medium text-green-500">Energy Vault Details</h4>
+                                                                <h4 className="text-sm font-medium text-green-500">Hold-to-Earn Details</h4>
                                                                 <p className="text-xs text-muted-foreground">
                                                                     This vault gives users energy for holding tokens.
                                                                 </p>

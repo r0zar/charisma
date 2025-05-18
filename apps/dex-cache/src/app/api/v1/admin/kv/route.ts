@@ -84,4 +84,54 @@ export async function DELETE(request: Request) {
             message: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
+}
+
+/**
+ * Update a key in the KV store
+ */
+export async function PUT(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const authKey = searchParams.get('key');
+
+    // Basic auth check
+    if (authKey !== ADMIN_SECRET) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        const body = await request.json();
+        const { updateKey, newValue } = body;
+
+        if (!updateKey) {
+            return NextResponse.json({ success: false, error: 'updateKey parameter is required in the body' }, { status: 400 });
+        }
+
+        // newValue can be any JSON-serializable value, including null or an empty object/array.
+        // So, we just check if the key exists in the body.
+        if (!('newValue' in body)) {
+            return NextResponse.json({ success: false, error: 'newValue parameter is required in the body' }, { status: 400 });
+        }
+
+        await kv.set(updateKey, newValue);
+        return NextResponse.json({
+            success: true,
+            message: `Key "${updateKey}" updated successfully`
+        });
+
+    } catch (error) {
+        console.error('Error updating KV store:', error);
+        // Check if error is due to JSON parsing
+        if (error instanceof SyntaxError) {
+            return NextResponse.json({
+                success: false,
+                error: 'Invalid JSON in request body',
+                message: error.message
+            }, { status: 400 });
+        }
+        return NextResponse.json({
+            success: false,
+            error: 'Failed to update KV store',
+            message: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
+    }
 } 

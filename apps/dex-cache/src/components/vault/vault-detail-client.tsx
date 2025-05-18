@@ -33,6 +33,7 @@ import { MetadataEditForm } from './metadata-edit-form';
 import TokenInfoCard from './token-info-card';
 
 interface Token {
+    type: string;
     contractId: string;
     identifier?: string;
     name: string;
@@ -42,6 +43,7 @@ interface Token {
 }
 
 interface Vault {
+    type: string;
     contractId: string;
     name: string;
     identifier: string;

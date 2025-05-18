@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
-import { getVaultData } from '@/lib/vaultService'; // Assuming vaultService is in lib
+import { getVaultData, Vault } from '@/lib/vaultService'; // Assuming vaultService is in lib
 import VaultDetailClient from '@/components/vault/vault-detail-client'; // Client component placeholder
 import { listPrices, KraxelPriceData } from '@repo/tokens'; // Hypothetical import
 import { fetchContractInfo } from '@/app/actions';
+import { Token } from '@/lib/cryptonomicon';
 
 // Revalidate data periodically (e.g., every 5 minutes)
 export const revalidate = 300;
@@ -86,11 +87,11 @@ export default async function VaultPage({ params }: VaultPageProps) {
             // Ensure token images are strings
             tokenA: {
                 ...vaultData.tokenA,
-                image: vaultData.tokenA.image || '', // Default to empty string
+                image: vaultData.tokenA?.image || '', // Default to empty string
             },
             tokenB: {
                 ...vaultData.tokenB,
-                image: vaultData.tokenB.image || '', // Default to empty string
+                image: vaultData.tokenB?.image || '', // Default to empty string
             },
         };
 
@@ -99,7 +100,7 @@ export default async function VaultPage({ params }: VaultPageProps) {
 
         return (
             <VaultDetailClient
-                vault={cleanVaultData}
+                vault={cleanVaultData as any}
                 prices={prices}
                 analytics={analytics}
                 contractInfo={contractInfo}

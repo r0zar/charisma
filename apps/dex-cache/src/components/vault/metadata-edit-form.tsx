@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 interface Token {
+    type: string;
     contractId: string;
     identifier?: string;
     name: string;
@@ -19,6 +20,7 @@ interface Token {
 }
 
 interface Vault {
+    type: string;
     contractId: string;
     name: string;
     symbol: string;

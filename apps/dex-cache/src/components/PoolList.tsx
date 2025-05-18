@@ -182,11 +182,11 @@ export default function PoolList({ vaults }: Props) {
                                 const isRemoving = removing === v.contractId;
                                 const isExpanded = expandedVault === v.contractId;
 
-                                const formattedReservesA = formatTokenAmount(v.reservesA || 0, v.tokenA.decimals || 0);
-                                const formattedReservesB = formatTokenAmount(v.reservesB || 0, v.tokenB.decimals || 0);
+                                const formattedReservesA = formatTokenAmount(v.reservesA || 0, v.tokenA?.decimals || 0);
+                                const formattedReservesB = formatTokenAmount(v.reservesB || 0, v.tokenB?.decimals || 0);
 
-                                const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA.decimals || 0, v.tokenA.contractId, prices);
-                                const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB.decimals || 0, v.tokenB.contractId, prices);
+                                const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA?.decimals || 0, v.tokenA?.contractId as `${string}.${string}`, prices);
+                                const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB?.decimals || 0, v.tokenB?.contractId as `${string}.${string}`, prices);
                                 const totalUsdValue = (usdValueA !== null && usdValueB !== null) ? (usdValueA + usdValueB) : null;
 
                                 const formattedUsdValueA = formatUsdValue(usdValueA);
@@ -233,25 +233,25 @@ export default function PoolList({ vaults }: Props) {
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
                                                     <span className="flex items-center">
-                                                        {v.tokenA.image && (
+                                                        {v.tokenA?.image && (
                                                             <img
-                                                                src={v.tokenA.image}
-                                                                alt={v.tokenA.symbol}
+                                                                src={v.tokenA?.image}
+                                                                alt={v.tokenA?.symbol}
                                                                 className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         )}
-                                                        <span className="text-primary font-medium">{v.tokenA.symbol}</span>
+                                                        <span className="text-primary font-medium">{v.tokenA?.symbol}</span>
                                                     </span>
                                                     <span className="text-muted-foreground">/</span>
                                                     <span className="flex items-center">
-                                                        {v.tokenB.image && (
+                                                        {v.tokenB?.image && (
                                                             <img
-                                                                src={v.tokenB.image}
-                                                                alt={v.tokenB.symbol}
+                                                                src={v.tokenB?.image}
+                                                                alt={v.tokenB?.symbol}
                                                                 className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         )}
-                                                        <span className="text-secondary font-medium">{v.tokenB.symbol}</span>
+                                                        <span className="text-secondary font-medium">{v.tokenB?.symbol}</span>
                                                     </span>
                                                 </div>
                                             </td>
@@ -264,7 +264,7 @@ export default function PoolList({ vaults }: Props) {
                                                         {formattedTotalUsdValue}
                                                     </span>
                                                     <span className="text-xs text-muted-foreground">
-                                                        {formattedReservesA} {v.tokenA.symbol} / {formattedReservesB} {v.tokenB.symbol}
+                                                        {formattedReservesA} {v.tokenA?.symbol} / {formattedReservesB} {v.tokenB?.symbol}
                                                     </span>
                                                 </div>
                                             </td>
@@ -326,16 +326,16 @@ export default function PoolList({ vaults }: Props) {
                                                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Token Details</h4>
                                                                 <div className="bg-muted/30 rounded-lg p-3 mb-2">
                                                                     <div className="flex items-center mb-1">
-                                                                        {v.tokenA.image && (
+                                                                        {v.tokenA?.image && (
                                                                             <img
                                                                                 src={v.tokenA.image}
                                                                                 alt={v.tokenA.symbol}
                                                                                 className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
                                                                             />
                                                                         )}
-                                                                        <h5 className="font-medium text-primary">{v.tokenA.symbol}</h5>
+                                                                        <h5 className="font-medium text-primary">{v.tokenA?.symbol}</h5>
                                                                     </div>
-                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenA.contractId}</p>
+                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenA?.contractId}</p>
                                                                     <div className="flex justify-between text-xs pl-7">
                                                                         <span>Balance: {formattedReservesA}</span>
                                                                         <span>Value: {formattedUsdValueA}</span>
@@ -344,16 +344,16 @@ export default function PoolList({ vaults }: Props) {
 
                                                                 <div className="bg-muted/30 rounded-lg p-3">
                                                                     <div className="flex items-center mb-1">
-                                                                        {v.tokenB.image && (
+                                                                        {v.tokenB?.image && (
                                                                             <img
                                                                                 src={v.tokenB.image}
                                                                                 alt={v.tokenB.symbol}
                                                                                 className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
                                                                             />
                                                                         )}
-                                                                        <h5 className="font-medium text-secondary">{v.tokenB.symbol}</h5>
+                                                                        <h5 className="font-medium text-secondary">{v.tokenB?.symbol}</h5>
                                                                     </div>
-                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenB.contractId}</p>
+                                                                    <p className="text-xs font-mono mb-1 pl-7">{v.tokenB?.contractId}</p>
                                                                     <div className="flex justify-between text-xs pl-7">
                                                                         <span>Balance: {formattedReservesB}</span>
                                                                         <span>Value: {formattedUsdValueB}</span>

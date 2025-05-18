@@ -42,7 +42,7 @@ export async function GET(request: Request) {
         }
 
         console.log('Fetching vaults');
-        let allVaults = await getAllVaultData(protocol || undefined);
+        let allVaults = await getAllVaultData({ protocol: protocol || undefined, type: type || undefined });
 
         if (type) {
             allVaults = allVaults.filter(vault => vault.type === type);

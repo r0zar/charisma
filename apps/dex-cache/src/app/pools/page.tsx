@@ -3,8 +3,8 @@ import { getVaultIds, getVault } from "../actions";
 import VaultList from '@/components/VaultList';
 import { Metadata } from 'next';
 import { Coins } from 'lucide-react';
-import { getAllVaults, Vault } from '@/lib/vaultService';
 import PoolList from '@/components/PoolList';
+import { getAllVaultData } from '@/lib/vaultService';
 
 // export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export default async function ExplorePoolsPage() {
 
-  const { pools } = await getAllVaults();
+  const pools = await getAllVaultData({ type: 'POOL' });
 
   return (
     <main className="flex-1 container py-8">

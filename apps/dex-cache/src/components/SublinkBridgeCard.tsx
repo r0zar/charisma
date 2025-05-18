@@ -38,10 +38,10 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
     const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
 
     const explorerBaseUrl = "https://explorer.stacks.co/txid/";
-    const tokenDecimals = sublink.tokenA.decimals || 6;
+    const tokenDecimals = sublink.tokenA?.decimals || 6;
 
     // Get token price from the prices object or default to 0
-    const tokenPrice = prices?.[sublink.tokenA.contractId] || 0;
+    const tokenPrice = prices?.[sublink.tokenA?.contractId as `${string}.${string}`] || 0;
 
     // Calculate USD values based on input amounts
     const depositUsdValue = parseFloat(amountToBridgeTo) * tokenPrice || 0;
@@ -135,7 +135,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
         try {
             // Parse token info
-            const tokenInfo = parseTokenContractId(sublink.tokenA.contractId);
+            const tokenInfo = parseTokenContractId(sublink.tokenA?.contractId as `${string}.${string}`);
             const subnetContractId = getSubnetTokenContractId(sublink.contractId);
 
             // Fetch mainnet token balance
@@ -244,7 +244,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
         // Check if user has sufficient balance
         if (mainnetBalance !== null && inputAmount > mainnetBalance) {
-            toast.error(`Insufficient balance. You have ${formatBalance(mainnetBalance, tokenDecimals)} ${sublink.tokenA.symbol}`);
+            toast.error(`Insufficient balance. You have ${formatBalance(mainnetBalance, tokenDecimals)} ${sublink.tokenA?.symbol}`);
             return;
         }
 
@@ -255,7 +255,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
             // Parse contract IDs
             const [contractAddress, contractName] = sublink.contractId.split('.');
-            const tokenInfo = parseTokenContractId(sublink.tokenA.contractId);
+            const tokenInfo = parseTokenContractId(sublink.tokenA?.contractId as `${string}.${string}`);
 
             // Set up post conditions
             const postConditions: PostCondition[] = [];
@@ -270,13 +270,13 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                 // Fungible token post condition
                 postConditions.push(
                     Pc.principal(walletState.address).willSendEq(amount).ft(
-                        sublink.tokenA.contractId as `${string}.${string}`,
-                        sublink.tokenA.identifier || tokenInfo.assetName
+                        sublink.tokenA?.contractId as `${string}.${string}`,
+                        sublink.tokenA?.identifier || tokenInfo.assetName
                     )
                 );
             }
 
-            console.log(`Bridging ${inputAmount} ${sublink.tokenA.symbol} to subnet via ${sublink.contractId}`);
+            console.log(`Bridging ${inputAmount} ${sublink.tokenA?.symbol} to subnet via ${sublink.contractId}`);
 
             // Set up contract call parameters
             const params = {
@@ -327,7 +327,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
         // Check if user has sufficient subnet balance
         if (subnetBalance !== null && inputAmount > subnetBalance) {
-            toast.error(`Insufficient subnet balance. You have ${formatBalance(subnetBalance, tokenDecimals)} ${sublink.tokenB.symbol}`);
+            toast.error(`Insufficient subnet balance. You have ${formatBalance(subnetBalance, tokenDecimals)} ${sublink.tokenB?.symbol}`);
             return;
         }
 
@@ -338,7 +338,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
             // Parse contract IDs
             const [contractAddress, contractName] = sublink.contractId.split('.');
-            const tokenInfo = parseTokenContractId(sublink.tokenA.contractId);
+            const tokenInfo = parseTokenContractId(sublink.tokenA?.contractId as `${string}.${string}`);
 
             // Set up post conditions for withdrawal
             // For withdrawals, we need a post-condition to ensure the subnet contract sends tokens to the user
@@ -363,12 +363,12 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                 postConditions.push(
                     Pc.principal(contractPrincipal)
                         .willSendEq(amount)
-                        .ft(sublink.tokenA.contractId as `${string}.${string}`,
-                            sublink.tokenA.identifier || tokenInfo.assetName)
+                        .ft(sublink.tokenA?.contractId as `${string}.${string}`,
+                            sublink.tokenA?.identifier || tokenInfo.assetName)
                 );
             }
 
-            console.log(`Bridging ${inputAmount} ${sublink.tokenB.symbol} from subnet via ${sublink.contractId}`);
+            console.log(`Bridging ${inputAmount} ${sublink.tokenB?.symbol} from subnet via ${sublink.contractId}`);
 
             // Set up contract call parameters
             const params = {
@@ -436,7 +436,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                         <Label htmlFor={`bridge-to-${sublink.contractId}`}>Enter Subnet</Label>
                         {walletState.connected && (
                             <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                Mainnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(mainnetBalance, tokenDecimals)} ${sublink.tokenA.symbol}`}
+                                Mainnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(mainnetBalance, tokenDecimals)} ${sublink.tokenA?.symbol}`}
                                 {!isLoadingBalances && mainnetBalance !== null && mainnetBalance > 0 && (
                                     <button
                                         type="button"
@@ -480,7 +480,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Token: <Link href={`${explorerBaseUrl}${sublink.tokenA.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center">{sublink.tokenA.name} ({sublink.tokenA.symbol}) <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
+                        Token: <Link href={`${explorerBaseUrl}${sublink.tokenA?.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center">{sublink.tokenA?.name} ({sublink.tokenA?.symbol}) <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
                     </p>
                 </div>
 
@@ -489,7 +489,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                         <Label htmlFor={`bridge-from-${sublink.contractId}`}>Exit Subnet</Label>
                         {walletState.connected && (
                             <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                Subnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(subnetBalance, tokenDecimals)} ${sublink.tokenB.symbol}`}
+                                Subnet Balance: {isLoadingBalances ? 'Loading...' : `${formatBalance(subnetBalance, tokenDecimals)} ${sublink.tokenB?.symbol}`}
                                 {!isLoadingBalances && subnetBalance !== null && subnetBalance > 0 && (
                                     <button
                                         type="button"
@@ -534,7 +534,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Token: <Link href={`${explorerBaseUrl}${sublink.tokenB.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center">{sublink.tokenB.name} ({sublink.tokenB.symbol}) <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
+                        Token: <Link href={`${explorerBaseUrl}${sublink.tokenB?.contractId}`} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center">{sublink.tokenB?.name} ({sublink.tokenB?.symbol}) <ExternalLinkIcon className="w-3 h-3 ml-1 opacity-70" /></Link>
                     </p>
                 </div>
             </CardContent>

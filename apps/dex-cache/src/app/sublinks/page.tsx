@@ -1,9 +1,9 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { ArrowRightLeft, Flame } from 'lucide-react';
-import { getAllVaults, Vault } from '@/lib/vaultService';
+import { getAllVaultData, Vault } from '@/lib/vaultService';
 import SublinkList from '@/components/SublinkList';
-import { getSubnetTokenBalance } from '@/app/actions';
+import { getSubnetTokenBalance } from '@/lib/server/subnets';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 
 // Replace dynamic rendering with time-based revalidation
@@ -61,17 +61,17 @@ async function enrichSublinksWithTvl(
         // Get the subnet token balance for each sublink
         const result = await getSubnetTokenBalance(
           sublink.contractId,
-          sublink.tokenA.contractId
+          sublink.tokenA?.contractId!
         );
 
         if (result.success && result.balance !== undefined) {
           // Get token decimals from the result or fall back to the token's decimals
-          const tokenDecimals = result.tokenDecimals || sublink.tokenA.decimals || 6;
+          const tokenDecimals = result.tokenDecimals || sublink.tokenA?.decimals || 6;
           // Convert from micro units to standard units
           const tokenBalance = result.balance / Math.pow(10, tokenDecimals);
 
           // Calculate USD value if a price is available
-          const tokenPrice = prices?.[sublink.tokenA.contractId] || 0;
+          const tokenPrice = prices?.[sublink.tokenA?.contractId!] || 0;
           const tvlUsd = tokenBalance * tokenPrice;
 
           console.log(`Subnet ${sublink.contractId} TVL: ${tokenBalance.toFixed(6)} tokens at $${tokenPrice.toFixed(2)} = $${tvlUsd.toFixed(2)}`);
@@ -109,8 +109,8 @@ async function enrichSublinksWithTvl(
 
 export default async function ExploreSubnetsPage() {
   // STEP 1: First, quickly get the basic data
-  const [{ sublinks }, prices] = await Promise.all([
-    getAllVaults(),
+  const [sublinks, prices] = await Promise.all([
+    getAllVaultData({ type: 'SUBLINK' }),
     listPrices()
   ]);
 

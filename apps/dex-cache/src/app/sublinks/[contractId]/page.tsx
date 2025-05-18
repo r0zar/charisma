@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getVaultData } from '@/lib/vaultService';
+import { getVaultData, Vault } from '@/lib/vaultService';
 import SublinkDetailClient from '@/components/sublink/sublink-detail-client';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { fetchContractInfo } from '@/app/actions';
@@ -92,11 +92,11 @@ export default async function SublinkPage({ params }: SublinkPageProps) {
             // Ensure token images are strings
             tokenA: {
                 ...sublinkData.tokenA,
-                image: sublinkData.tokenA.image || '', // Default to empty string
+                image: sublinkData.tokenA?.image || '', // Default to empty string
             },
             tokenB: {
                 ...sublinkData.tokenB,
-                image: sublinkData.tokenB.image || '', // Default to empty string
+                image: sublinkData.tokenB?.image || '', // Default to empty string
             },
         };
 
@@ -105,7 +105,7 @@ export default async function SublinkPage({ params }: SublinkPageProps) {
 
         return (
             <SublinkDetailClient
-                sublink={cleanSublinkData}
+                sublink={cleanSublinkData as Vault & { reservesA: number; reservesB: number }}
                 prices={prices}
                 analytics={analytics}
                 contractInfo={contractInfo}
