@@ -134,4 +134,64 @@ export async function PUT(request: Request) {
             message: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
     }
+}
+
+/**
+ * Create a new key in the KV store
+ */
+export async function POST(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const authKey = searchParams.get('key');
+
+    // Basic auth check
+    if (authKey !== ADMIN_SECRET) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        const body = await request.json();
+        const { newKey, newValue } = body;
+
+        if (!newKey || typeof newKey !== 'string' || newKey.trim() === '') {
+            return NextResponse.json({ success: false, error: 'newKey parameter (string) is required in the body' }, { status: 400 });
+        }
+
+        // Check if key already exists to prevent accidental overwrites via POST
+        // For updates, the PUT method should be used.
+        const existingValue = await kv.get(newKey);
+        if (existingValue !== null) {
+            return NextResponse.json(
+                { success: false, error: `Key "${newKey}" already exists. Use PUT to update.` },
+                { status: 409 } // 409 Conflict
+            );
+        }
+
+        // newValue can be any JSON-serializable value, including null or an empty object/array.
+        if (!('newValue' in body)) {
+            return NextResponse.json({ success: false, error: 'newValue parameter is required in the body' }, { status: 400 });
+        }
+
+        await kv.set(newKey, newValue);
+        return NextResponse.json({
+            success: true,
+            message: `Key "${newKey}" created successfully`,
+            key: newKey,
+            value: newValue
+        }, { status: 201 }); // 201 Created
+
+    } catch (error) {
+        console.error('Error creating KV store entry:', error);
+        if (error instanceof SyntaxError) {
+            return NextResponse.json({
+                success: false,
+                error: 'Invalid JSON in request body',
+                message: error.message
+            }, { status: 400 });
+        }
+        return NextResponse.json({
+            success: false,
+            error: 'Failed to create KV store entry',
+            message: error instanceof Error ? error.message : String(error)
+        }, { status: 500 });
+    }
 } 

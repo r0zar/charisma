@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, RefreshCw, Search, Trash, Database, Key, List, Save } from 'lucide-react';
+import { Loader2, RefreshCw, Search, Trash, Database, Key, List, Save, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -23,6 +23,10 @@ export default function AdminKVPage() {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [editableValueString, setEditableValueString] = useState<string>('');
     const [isJsonValid, setIsJsonValid] = useState<boolean>(true);
+    const [newKeyName, setNewKeyName] = useState<string>('');
+    const [newKeyValue, setNewKeyValue] = useState<string>('{\n  "exampleProperty": "exampleValue"\n}');
+    const [isNewValueJsonValid, setIsNewValueJsonValid] = useState<boolean>(true);
+    const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
 
     const authenticate = () => {
         if (authKey.trim()) {
@@ -198,6 +202,83 @@ export default function AdminKVPage() {
         }
     };
 
+    const handleNewKeyValueChange = (value: string) => {
+        setNewKeyValue(value);
+        try {
+            JSON.parse(value);
+            setIsNewValueJsonValid(true);
+        } catch (e) {
+            setIsNewValueJsonValid(false);
+        }
+    };
+
+    const handleCreateNewKey = async () => {
+        if (!newKeyName.trim()) {
+            setError("New key name cannot be empty.");
+            return;
+        }
+        if (!isNewValueJsonValid) {
+            setError("Cannot create: JSON for new value is invalid.");
+            return;
+        }
+
+        let parsedNewValue;
+        try {
+            parsedNewValue = JSON.parse(newKeyValue);
+        } catch (e) {
+            setError("Invalid JSON format for new value.");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+
+        try {
+            const res = await fetch(`/api/v1/admin/kv?key=${authKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    newKey: newKeyName.trim(),
+                    newValue: parsedNewValue,
+                }),
+            });
+
+            const data = await res.json(); // Always try to parse JSON, even for errors
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('admin_key');
+                    throw new Error('Unauthorized. Please re-authenticate.');
+                }
+                throw new Error(data.error || `API error: ${res.status} - ${res.statusText}`);
+            }
+
+            // Success case (status 201)
+            setSuccessMessage(data.message || `Key "${newKeyName.trim()}" created successfully`);
+            setTimeout(() => setSuccessMessage(null), 3000);
+            await fetchKeys(); // Refresh the key list
+            // Optionally, select the new key and display its value
+            setValueKey(data.key);
+            setSelectedValue(data.value);
+            setEditableValueString(JSON.stringify(data.value, null, 2));
+            setIsJsonValid(true);
+            // Reset new key form
+            setNewKeyName('');
+            setNewKeyValue('{\n  "exampleProperty": "exampleValue"\n}');
+            setShowCreateForm(false);
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error while creating key');
+            console.error('Error creating new key:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Check if we have a saved auth key on load
     useEffect(() => {
         const savedKey = localStorage.getItem('admin_key');
@@ -255,6 +336,60 @@ export default function AdminKVPage() {
                 <Alert className="mb-4 bg-green-50 border-green-200">
                     <AlertDescription className="text-green-600">{successMessage}</AlertDescription>
                 </Alert>
+            )}
+
+            {/* Create New Key Section Toggle */}
+            <div className="mb-4 flex justify-end">
+                <Button variant="outline" onClick={() => setShowCreateForm(!showCreateForm)}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    {showCreateForm ? 'Cancel Create' : 'Create New Key'}
+                </Button>
+            </div>
+
+            {/* Create New Key Form */}
+            {showCreateForm && (
+                <Card className="mb-6 bg-card/80 border-primary/20">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center">
+                            <PlusCircle className="w-5 h-5 mr-2 text-primary" /> Create New KV Pair
+                        </CardTitle>
+                        <CardDescription>Enter a unique key name and its JSON value.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <label htmlFor="newKeyName" className="block text-sm font-medium mb-1">New Key Name</label>
+                            <Input
+                                id="newKeyName"
+                                placeholder="e.g., user:settings:123 or config:featureFlags"
+                                value={newKeyName}
+                                onChange={(e) => setNewKeyName(e.target.value)}
+                                className="bg-background"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="newKeyValue" className="block text-sm font-medium mb-1">Value (JSON)</label>
+                            <Textarea
+                                id="newKeyValue"
+                                value={newKeyValue}
+                                onChange={(e) => handleNewKeyValueChange(e.target.value)}
+                                className="whitespace-pre-wrap break-all text-xs bg-background font-mono focus-visible:ring-1 focus-visible:ring-ring min-h-[150px]"
+                                rows={6}
+                            />
+                            {!isNewValueJsonValid && (
+                                <p className="text-xs text-red-500 px-1 py-1">Invalid JSON format.</p>
+                            )}
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            onClick={handleCreateNewKey}
+                            disabled={loading || !newKeyName.trim() || !isNewValueJsonValid}
+                        >
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Create Key
+                        </Button>
+                    </CardFooter>
+                </Card>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
