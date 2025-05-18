@@ -166,7 +166,6 @@ export default function UserEnergyDashboard() {
                     {/* Your Stats Section - With Total Energy */}
                     <div className="mb-8">
                         <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-primary" />
                             Your Overall Stats
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
