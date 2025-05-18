@@ -6,7 +6,7 @@ import type { EnergyTokenDashboardData } from '@/lib/server/energy';
 import { getEnergyTokenMetadata } from '@/lib/server/energy';
 import { TokenCacheData } from '@repo/tokens';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Activity, BarChart2, Zap, Clock, Archive, ZapIcon } from 'lucide-react';
+import { User, Activity, BarChart2, Zap, Clock, Archive, ZapIcon, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import Image from 'next/image';
@@ -155,7 +155,7 @@ export default function UserEnergyDashboard() {
                     </h2>
                 </div>
                 {userEnergyData.length > 0 && (
-                    <Badge variant="outline">
+                    <Badge variant="secondary">
                         Tracking {userEnergyData.length} token(s)
                     </Badge>
                 )}
@@ -163,30 +163,31 @@ export default function UserEnergyDashboard() {
 
             {userEnergyData.length > 0 ? (
                 <>
-                    {/* Aggregated Stats Section */}
+                    {/* Your Stats Section - With Total Energy */}
                     <div className="mb-8">
                         <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                            <BarChart2 className="h-5 w-5 text-primary" />
-                            Overall Energy Stats
+                            <Zap className="h-5 w-5 text-primary" />
+                            Your Overall Stats
                         </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {/* Total energy card */}
                             <StatCard
-                                title="Total Energy"
+                                title="Current Energy"
                                 value={formatEnergyValue(aggregatedStats.totalAccumulatedEnergy)}
                                 icon="energy"
-                                description="Accumulated across all tokens"
+                                colorScheme="secondary"
+                                description={`Your total accumulated energy${energyMetadata?.symbol ? ` (${energyMetadata.symbol})` : ''}`}
+                                size="md"
                             />
+
+                            {/* Total energy rate card */}
                             <StatCard
-                                title="Energy Rate"
+                                title="Generation Rate"
                                 value={formatEnergyValue(aggregatedStats.totalEnergyRatePerHour)}
                                 icon="clock"
-                                description="Energy per hour"
-                            />
-                            <StatCard
-                                title="Tokens Tracked"
-                                value={aggregatedStats.totalTokens}
-                                icon="layers"
-                                description="Earning energy"
+                                colorScheme="secondary"
+                                description="Your total energy per hour"
+                                size="md"
                             />
                             <StatCard
                                 title="Total Harvested"
@@ -194,14 +195,19 @@ export default function UserEnergyDashboard() {
                                 icon="database"
                                 description={`Across ${aggregatedStats.totalUniqueUsers} users`}
                             />
+                            <StatCard
+                                title="Tokens Tracked"
+                                value={aggregatedStats.totalTokens}
+                                icon="layers"
+                                description="Earning energy"
+                            />
                         </div>
-                        {aggregatedStats.latestUpdateTimestamp > 0 && (
+                        {userEnergyData.length > 0 && userEnergyData[0].lastRateCalculationTimestamp > 0 && (
                             <p className="text-xs text-muted-foreground mt-2 text-right">
-                                Last updated: {new Date(aggregatedStats.latestUpdateTimestamp).toLocaleString()}
+                                Last updated: {new Date(Math.max(...userEnergyData.map(d => d.lastRateCalculationTimestamp))).toLocaleString()}
                             </p>
                         )}
                     </div>
-
                 </>
             ) : (
                 <Card className="p-6 text-center">

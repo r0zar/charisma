@@ -3,7 +3,7 @@ export const revalidate = 300; // Revalidate this page at most every 5 minutes
 import EnergyVaultList from '@/components/hold-to-earn/EnergyVaultList';
 import UserEnergyDashboard from '@/components/hold-to-earn/UserEnergyDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Info, Clock, Shield, HandCoins } from 'lucide-react';
+import { Zap, Info, Clock, Shield, HandCoins, Battery } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getAllEnergyAnalyticsData } from '@/lib/server/energy';
@@ -39,11 +39,11 @@ export default async function EnergyPage() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg flex items-center">
                                 <Clock className="h-5 w-5 mr-2 text-primary" />
-                                Automatic Tracking
+                                Hold Tokens
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            Energy accumulates based on how long you hold tokens. Keep them in your wallet to start earning.
+                            Energy accumulates based on how long you hold tokens. Keep them in your wallet to start earning. Be aware, energy accumulates very quickly.
                         </CardContent>
                     </Card>
 
@@ -51,23 +51,23 @@ export default async function EnergyPage() {
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg flex items-center">
                                 <Zap className="h-5 w-5 mr-2 text-primary" />
-                                Harvest Rewards
+                                Harvest Energy
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            Claim your accumulated energy when you're ready. Your rewards scale with the duration and amount you hold.
+                            Claim your accumulated energy when you're ready. Your rewards scale with the duration and amount you hold. Energy can be harvested as frequently as you want.
                         </CardContent>
                     </Card>
 
                     <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg flex items-center">
-                                <HandCoins className="h-5 w-5 mr-2 text-primary" />
-                                Spend Energy on Rewards
+                                <Battery className="h-5 w-5 mr-2 text-primary" />
+                                Manage Capacity
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            Energy can be used for token rewards, enhanced protocol features, exclusive NFTs, and more.
+                            All accounts start with a max capacity of 100 energy, so you'll want to spend harvested energy on rewards fast. You can increase your maximum energy capacity by 10 for each Memobot NFT you hold.
                         </CardContent>
                     </Card>
 

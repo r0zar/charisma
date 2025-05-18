@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast as sonnerToast } from "sonner";
 import { useApp } from "@/lib/context/app-context";
 import { ArrowLeft, HelpCircle, Layers, ExternalLink, Search, X } from "lucide-react";
@@ -15,40 +14,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { truncateAddress } from "@/lib/utils/token-utils";
 import { generateLiquidityPoolContract, LiquidityPoolOptions } from "@/lib/templates/liquidity-pool-contract-template";
 import { TokenMetadata } from "@/lib/metadata-service";
 import {
-    Loader2,
     Image as ImageIconLucide,
-    CircleDot,
     Check,
-    ChevronRight,
-    DollarSign,
-    Percent,
-    AlertTriangle,
-    Info,
-    RefreshCw,
-    Shield
 } from "lucide-react";
 import { PostCondition } from "@stacks/connect/dist/types/methods";
-import { Pc } from "@stacks/transactions";
-// Import the newly created step component
 import { TokenSelectionStep, type EnhancedToken as WizardToken } from "@/components/liquidity-pool-wizard/token-selection-step";
 import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-step";
 import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
@@ -192,7 +165,7 @@ function LiquidityPoolWizard() {
                 console.log("Fetched Token Details:", result);
 
                 if (result.token1Meta) {
-                    setToken1(result.token1Meta.symbol);
+                    setToken1(result.token1Meta.symbol!);
                     setToken1Details({
                         ...result.token1Meta,
                         decimals: result.token1Meta.decimals!,
@@ -204,7 +177,7 @@ function LiquidityPoolWizard() {
                 }
 
                 if (result.token2Meta) {
-                    setToken2(result.token2Meta.symbol);
+                    setToken2(result.token2Meta.symbol!);
                     setToken2Details({
                         ...result.token2Meta,
                         decimals: result.token2Meta.decimals!,
@@ -707,7 +680,7 @@ function LiquidityPoolWizard() {
             // are explicitly added here with default/null values.
             // For example, if TokenCacheData requires 'ft', 'nft', 'lastRefreshed', they must be handled.
             // Assuming for now they are optional or will be added to WizardToken if strictly required.
-        } as TokenCacheData;
+        } as any;
     };
 
     const handleSelectToken1 = (selectedToken: WizardToken) => {
@@ -756,7 +729,7 @@ function LiquidityPoolWizard() {
         return foundToken?.image ?? undefined;
     };
 
-    const predefinedTokensForStep: Token[] = tokens.filter(t => {
+    const predefinedTokensForStep: any[] = tokens.filter(t => {
         if (t.contractId && t.symbol && t.name) {
             return true;
         }
