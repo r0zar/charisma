@@ -16,7 +16,6 @@ const MONITORED_CONTRACTS = [
 const getEnergyAnalyticsCacheKey = (contractId: string) => `energy:analytics:${contractId}`;
 const getCronLastRunKey = () => `energy:cron:last_run`;
 const getEnergyContractsKey = () => `energy:monitored_contracts`;
-const getEnergyHistoryKey = (contractId: string) => `energy:history:${contractId}`;
 
 /**
  * This handler will be invoked by a cron job to refresh analytics data
@@ -62,43 +61,6 @@ export async function GET(request: Request) {
                     // Save to cache with long expiration for cron-collected data
                     const cacheKey = getEnergyAnalyticsCacheKey(contractId);
                     await kv.set(cacheKey, data, { ex: 60 * 60 * 2 }); // 2 hour expiration
-
-                    // Store historical snapshot for rate history
-                    const historyKey = getEnergyHistoryKey(contractId);
-
-                    // Get existing history
-                    const history = await kv.get<any[]>(historyKey) || [];
-
-                    // Add new snapshot (only keep essential data to save storage)
-                    const snapshot = {
-                        timestamp: Date.now(),
-                        totalEnergyHarvested: data.stats.totalEnergyHarvested,
-                        uniqueUsers: data.stats.uniqueUsers,
-                        energyRate: data.rates.overallEnergyPerMinute
-                    };
-
-                    console.log('Energy snapshot data:', {
-                        totalEnergyHarvested: data.stats.totalEnergyHarvested,
-                        uniqueUsers: data.stats.uniqueUsers,
-                        overallEnergyPerMinute: data.rates.overallEnergyPerMinute,
-                        topUserRates: data.rates.topUserRates,
-                    });
-
-                    // Ensure energy rate is not zero when there's actually energy harvested
-                    if (snapshot.energyRate === 0 && snapshot.totalEnergyHarvested > 0 && data.rates.topUserRates.length > 0) {
-                        // Fall back to the highest user rate if overall rate calculation failed
-                        const highestUserRate = Math.max(...data.rates.topUserRates.map(ur => ur.energyPerMinute));
-                        if (highestUserRate > 0) {
-                            console.log(`Fixing zero energyRate with highest user rate: ${highestUserRate}`);
-                            snapshot.energyRate = highestUserRate;
-                        }
-                    }
-
-                    // Keep at most 100 snapshots to avoid excessive data storage
-                    const updatedHistory = [...history, snapshot].slice(-100);
-
-                    // Save updated history with a longer expiration (30 days)
-                    await kv.set(historyKey, updatedHistory, { ex: 60 * 60 * 24 * 30 });
 
                     return {
                         contractId,

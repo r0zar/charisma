@@ -1,5 +1,4 @@
 import React, { Suspense } from 'react';
-import VaultImporter from '@/components/PoolImporter';
 import { ListPlus, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -39,10 +38,7 @@ export default function ListingPage() {
                 </AlertDescription>
             </Alert>
 
-            {/* Wrap VaultImporter in Suspense */}
-            <Suspense fallback={<ListingLoadingFallback />}>
-                <VaultImporter />
-            </Suspense>
+
         </main>
     );
 }
