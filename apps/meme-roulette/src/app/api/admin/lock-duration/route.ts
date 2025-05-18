@@ -24,9 +24,16 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { durationMinutes } = body;
 
-        const signer = await verifySignatureAndGetSigner(request, {
+        const verificationResult = await verifySignatureAndGetSigner(request, {
             message: 'Set lock duration',
         });
+
+        if (verificationResult.signer !== 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS') {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
 
         if (!durationMinutes || typeof durationMinutes !== 'number' || isNaN(durationMinutes)) {
             return NextResponse.json(
