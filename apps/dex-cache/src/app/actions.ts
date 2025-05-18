@@ -163,3 +163,45 @@ export async function fetchContractInfo(contractId: string): Promise<{ success: 
         return { success: false, error: error.message || "Failed to fetch contract info." };
     }
 }
+
+/**
+ * Server action to fetch initial data needed for the Add Liquidity modal:
+ * - Token A balance for the user
+ * - Token B balance for the user
+ * - LP Token balance for the user
+ * - LP Token total supply
+ */
+export async function getAddLiquidityInitialData(
+    vaultContractId: string,
+    tokenAContractId: string,
+    tokenBContractId: string,
+    userAddress: string
+) {
+    try {
+        console.log(`[Server Action] Fetching initial data for ${vaultContractId} / ${userAddress}`);
+        const [tokenABalance, tokenBBalance, lpBalance, totalSupply] = await Promise.all([
+            getFungibleTokenBalance(tokenAContractId, userAddress),
+            getFungibleTokenBalance(tokenBContractId, userAddress),
+            getFungibleTokenBalance(vaultContractId, userAddress), // LP token balance
+            getLpTokenTotalSupply(vaultContractId)
+        ]);
+
+        console.log(`[Server Action] Data fetched: A=${tokenABalance}, B=${tokenBBalance}, LP=${lpBalance}, Supply=${totalSupply}`);
+
+        return {
+            success: true,
+            data: {
+                tokenABalance,
+                tokenBBalance,
+                lpBalance,
+                totalSupply
+            }
+        };
+    } catch (error) {
+        console.error("Error in getAddLiquidityInitialData:", error);
+        return {
+            success: false,
+            error: "Failed to fetch initial liquidity data."
+        };
+    }
+}

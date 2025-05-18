@@ -97,7 +97,7 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
         try {
             // Use the server action
             const result = await getRemoveLiquidityQuote(vault.contractId, targetLpAmountToBurn);
-            setQuotedAmounts(result.quote);
+            setQuotedAmounts(result.quote || { dx: 0, dy: 0, dk: 0 });
         } catch (error) {
             console.error("Error fetching remove quote:", error);
             toast.error("Failed to get liquidity removal quote.");

@@ -134,7 +134,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
         try {
             // Use the server action - supply is already fetched client-side
             const result = await getAddLiquidityQuoteAndSupply(vault.contractId, targetLpAmount);
-            setQuotedAmounts(result.quote);
+            setQuotedAmounts(result.quote || { dx: 0, dy: 0, dk: 0 });
             // No need to set total supply here anymore
         } catch (error) {
             console.error("Error fetching quote:", error);
