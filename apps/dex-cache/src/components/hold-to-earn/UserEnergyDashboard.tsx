@@ -109,10 +109,61 @@ export default function UserEnergyDashboard() {
 
     if (isLoading) {
         return (
-            <div className="py-12 text-center">
-                <div className="animate-pulse flex flex-col items-center">
-                    <div className="h-8 w-64 bg-muted rounded mb-4"></div>
-                    <div className="h-48 w-full max-w-md bg-muted rounded"></div>
+            <div className="py-12 animate-pulse">
+                {/* Skeleton for the title and badge */}
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-muted"></div> {/* Skeleton for Image/Icon */}
+                        <div>
+                            <div className="h-7 w-48 bg-muted rounded mb-1"></div> {/* Skeleton for "Energy Dashboard" title */}
+                            <div className="h-4 w-24 bg-muted rounded"></div> {/* Skeleton for symbol */}
+                        </div>
+                    </div>
+                    <div className="h-6 w-28 bg-muted rounded"></div> {/* Skeleton for Badge */}
+                </div>
+
+                {/* Skeleton for "Your Overall Stats" section */}
+                <div className="mb-8">
+                    <div className="h-6 w-40 bg-muted rounded mb-4"></div> {/* Skeleton for "Your Overall Stats" heading */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {/* Skeleton StatCard 1 */}
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="h-6 w-6 bg-muted rounded"></div> {/* Icon Skeleton */}
+                                <div className="h-4 w-20 bg-muted rounded"></div> {/* Title Skeleton */}
+                            </div>
+                            <div className="h-8 w-24 bg-muted rounded mb-1"></div> {/* Value Skeleton */}
+                            <div className="h-3 w-full bg-muted rounded"></div> {/* Description Skeleton */}
+                        </div>
+                        {/* Skeleton StatCard 2 */}
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="h-6 w-6 bg-muted rounded"></div> {/* Icon Skeleton */}
+                                <div className="h-4 w-20 bg-muted rounded"></div> {/* Title Skeleton */}
+                            </div>
+                            <div className="h-8 w-24 bg-muted rounded mb-1"></div> {/* Value Skeleton */}
+                            <div className="h-3 w-full bg-muted rounded"></div> {/* Description Skeleton */}
+                        </div>
+                        {/* Skeleton StatCard 3 */}
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="h-6 w-6 bg-muted rounded"></div> {/* Icon Skeleton */}
+                                <div className="h-4 w-20 bg-muted rounded"></div> {/* Title Skeleton */}
+                            </div>
+                            <div className="h-8 w-24 bg-muted rounded mb-1"></div> {/* Value Skeleton */}
+                            <div className="h-3 w-full bg-muted rounded"></div> {/* Description Skeleton */}
+                        </div>
+                        {/* Skeleton StatCard 4 */}
+                        <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="h-6 w-6 bg-muted rounded"></div> {/* Icon Skeleton */}
+                                <div className="h-4 w-20 bg-muted rounded"></div> {/* Title Skeleton */}
+                            </div>
+                            <div className="h-8 w-24 bg-muted rounded mb-1"></div> {/* Value Skeleton */}
+                            <div className="h-3 w-full bg-muted rounded"></div> {/* Description Skeleton */}
+                        </div>
+                    </div>
+                    <div className="h-3 w-32 bg-muted rounded mt-2 ml-auto"></div> {/* Skeleton for "Last updated" text */}
                 </div>
             </div>
         );
