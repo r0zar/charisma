@@ -2,14 +2,8 @@
 
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
-import { TokenMetadata } from '@/lib/metadata-service';
 import { connect, request } from "@stacks/connect";
 import { PostCondition } from '@stacks/connect/dist/types/methods';
-import { createAssetInfo, createSTXPostCondition, FungibleConditionCode, hexToCV, makeStandardFungiblePostCondition, Pc, principalCV, serializeCV } from '@stacks/transactions';
-import { AppConfig, UserSession } from '@stacks/connect';
-import { showConnect } from '@stacks/connect';
-import { signMessage as connectSignMessage } from '@stacks/connect';
-import { openContractDeploy } from '@stacks/connect';
 import { listTokens, TokenCacheData } from "@repo/tokens";
 
 // Types
@@ -192,8 +186,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 clarityCode: contractCode,
                 clarityVersion: 3,
                 postConditionMode: 'allow',
-                // postConditions: options?.postConditions || [],
-                fee: 10000,
+                postConditions: options?.postConditions || [],
             });
 
             if (!response || !response.txid) {

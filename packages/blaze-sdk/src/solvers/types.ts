@@ -1,4 +1,4 @@
-import { PostConditionMode } from "@stacks/transactions";
+import { PostCondition, PostConditionMode } from "@stacks/transactions";
 import { STACKS_MAINNET, STACKS_TESTNET } from "@stacks/network";
 
 // Derive type from the instances
@@ -45,6 +45,7 @@ export interface ContractCallTxOptions {
     network: StacksNetworkType; // Will be STACKS_MAINNET by default from solvers
     fee?: number;
     postConditionMode?: PostConditionMode;
+    postConditions?: PostCondition[];
     anchorMode?: any; // AnchorMode
     nonce?: number;
 }

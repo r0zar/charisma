@@ -24,6 +24,7 @@ import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { STACKS_MAINNET } from '@stacks/network';
 import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID } from '../constants';
 import { recoverSigner } from '../core';
+import { ContractCallTxOptions } from './types';
 
 // ====== Types and Interfaces ======
 
@@ -225,7 +226,9 @@ export function buildPostConditions(route: Route, routerCID: string): PostCondit
     return Array.from(pcMap.entries()).map(([key, amount]) => {
         const [principal, tokenId] = key.split('|');
 
-        if (tokenId === '.stx::stx') {
+        console.log('Post condition:', principal, tokenId, amount);
+
+        if (tokenId === '.stx::stx' || tokenId === '.stx') {
             return Pc.principal(principal).willSendEq(amount).ustx();
         }
 
@@ -331,7 +334,7 @@ export async function broadcastMultihopTransaction(
     privateKey: string
 ): Promise<TxBroadcastResult> {
     // Create transaction
-    const txOptions = {
+    const txOptions: ContractCallTxOptions = {
         contractAddress: txConfig.contractAddress,
         contractName: txConfig.contractName,
         functionName: txConfig.functionName,
@@ -341,9 +344,14 @@ export async function broadcastMultihopTransaction(
         anchorMode: AnchorMode.Any,
         postConditionMode: txConfig.postConditionMode || PostConditionMode.Deny,
         postConditions: txConfig.postConditions,
-        fee: txConfig.fee || 1500,
-        nonce: txConfig.nonce
     };
+
+    if (txConfig.fee) {
+        txOptions.fee = txConfig.fee;
+    }
+    if (txConfig.nonce) {
+        txOptions.nonce = txConfig.nonce;
+    }
 
     const transaction = await makeContractCall(txOptions);
 
