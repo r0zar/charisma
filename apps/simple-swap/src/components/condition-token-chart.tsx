@@ -27,6 +27,7 @@ export default function ConditionTokenChart({ token, baseToken, targetPrice, onT
     const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
     const priceLineRef = useRef<IPriceLine | null>(null);
 
+
     // create chart and series once
     useEffect(() => {
         if (!containerRef.current) return;
@@ -61,7 +62,7 @@ export default function ConditionTokenChart({ token, baseToken, targetPrice, onT
             if (!param.point || !seriesRef.current) return;
             const price = seriesRef.current.coordinateToPrice(param.point.y);
             if (price && !isNaN(price)) {
-                onTargetPriceChange(price.toFixed(4));
+                onTargetPriceChange(price.toPrecision(9));
             }
         };
         chartRef.current.subscribeClick(clickHandler);

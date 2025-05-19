@@ -315,7 +315,7 @@ export class Dexterity {
                 contractAddress,
                 contractName,
                 name: metadata.name,
-                symbol: metadata.symbol,
+                symbol: metadata.symbol!,
                 decimals: metadata.decimals!,
                 identifier: metadata.identifier!,
                 description: metadata.description || "",

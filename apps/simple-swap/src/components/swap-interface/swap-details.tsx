@@ -463,7 +463,7 @@ export default function SwapDetails({
                                 </div>
                                 <span className={`px-2 py-0.5 rounded-sm text-xs font-medium whitespace-nowrap ${totalPriceImpact.priceImpact > 0
                                     ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
-                                    : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+                                    : 'text-orange-600 dark:text-orange-400 bg-orange-100/30 dark:bg-orange-900/20'
                                     }`}>
                                     {totalPriceImpact.priceImpact > 0 ? '+' : ''}
                                     {totalPriceImpact.priceImpact.toFixed(2)}% impact

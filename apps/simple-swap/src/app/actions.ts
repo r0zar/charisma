@@ -245,15 +245,16 @@ export async function getTokenBalance(tokenContractId: string, holderPrincipal: 
             console.warn(`Invalid tokenContractId for getTokenBalance: ${tokenContractId}`);
             return 0; // Original fallback
         }
+        console.log('[getTokenBalance] calling get-balance for', { contractAddress, contractName, holderPrincipal });
         const result = await callReadOnlyFunction(
             contractAddress,
             contractName,
             "get-balance",
             [principalCV(holderPrincipal)]
         );
-        return result?.value;
+        return Number(result.value);
     } catch (error) {
-        console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}:`, error);
+        console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}`);
         return 0;
     }
 }

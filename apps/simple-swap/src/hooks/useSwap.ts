@@ -362,10 +362,6 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         // Subnet tokens: type === 'SUBNET'
         const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
 
-
-        console.log('[useSwap] mainnetTokens', mainnetTokens);
-        console.log('[useSwap] subnetTokens', subnetTokens);
-
         // Map base contractId to { mainnet, subnet }
         const tokenCounterparts = new Map<string, { mainnet: Token | null; subnet: Token | null }>();
         for (const mainnet of mainnetTokens) {
@@ -452,9 +448,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
             // Clear balance cache after successful swap
             clearBalanceCache();
-
             setSwapSuccessInfo({ txId: res.txId });
-            console.log("Swap successful, txId:", res.txId);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unexpected error occurred");
         }

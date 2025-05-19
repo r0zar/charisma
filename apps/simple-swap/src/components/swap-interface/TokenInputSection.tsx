@@ -22,7 +22,6 @@ interface TokenInputSectionProps {
     tokenValueUsd: string | null; // Formatted USD value
     formatUsd: (value: number | null) => string | null; // USD formatting function
     onSetMax: () => void;
-    // No longer passing convertToMicroUnits/setMicroAmount, handle amount changes via onAmountChange
 }
 
 export default function TokenInputSection({

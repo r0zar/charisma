@@ -107,11 +107,10 @@ export default function LimitConditionSection({
                     <div className="w-full sm:w-32 shrink-0">
                         {(() => {
                             // Build options with synthetic USD first then tokens
-                            const usdToken: Token = { contractId: 'USD', symbol: 'USD', name: 'US Dollar', decimals: 2 } as Token;
-                            const options: Token[] = [usdToken, ...displayTokens];
+                            const options: Token[] = [...displayTokens];
 
                             // Determine currently selected object
-                            const selected = baseToken ?? options.find(o => o.contractId === SUSDT_ID) ?? usdToken;
+                            const selected = baseToken ?? options.find(o => o.contractId === SUSDT_ID) ?? null;
 
                             return (
                                 <TokenDropdown

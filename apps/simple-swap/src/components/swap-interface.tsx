@@ -84,8 +84,6 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     priceError,
     formatTokenAmount,
     convertToMicroUnits,
-    convertFromMicroUnits,
-    getTokenLogo,
     handleSwap,
     handleSwitchTokens,
     swapSuccessInfo,
@@ -282,7 +280,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     const current = parseFloat(targetPrice || '0');
     if (isNaN(current) || current === 0) return;
     const updated = current * (1 + percent);
-    setTargetPrice(updated.toFixed(USD_PRECISION));
+    setTargetPrice(updated.toPrecision(9));
   };
 
   // Effect to handle mode changes, specifically defaulting for 'order' mode
@@ -291,34 +289,28 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     const prevMode = prevModeRef.current;
     prevModeRef.current = mode;
 
-    console.log(`Mode changed: ${prevMode} -> ${mode}. Condition token: ${conditionToken?.symbol}`);
 
     // Only default condition token when switching *into* order mode and not deep-linked tokens
     if (mode === 'order' && prevMode !== 'order' && !conditionToken && !initialParams.fromSymbol && !initialParams.toSymbol) {
-      console.log('Attempting to default to Charisma for Order mode...');
-      // Locate the base (main-net) Charisma token in the available list
-      const charismaBase = displayTokens.find(
-        (t) => t.contractId.includes('.charisma-token') && !t.contractId.includes('-subnet')
+      // Locate the base (main-net) sBTC token in the available list
+      const sbtcBase = displayTokens.find(
+        (t) => t.contractId.includes('.sbtc-token') && !t.contractId.includes('-subnet')
       );
 
-      if (!charismaBase) {
-        console.log('Charisma base token not found in displayTokens yet.');
+      if (!sbtcBase) {
         return;
       }
 
-      console.log('Found Charisma base token:', charismaBase);
-
-      // 1. Select Charisma as the base FROM token - REQUIRED for subnet toggle effect
-      setBaseSelectedFromToken(charismaBase);
+      // 1. Select sBTC as the base FROM token - REQUIRED for subnet toggle effect
+      setBaseSelectedFromToken(sbtcBase);
 
       // 2. Enable subnet mode for FROM token
       setUseSubnetFrom(true);
 
-      // 3. Set the condition token to Charisma (prefer subnet variant if present)
-      const counterparts = tokenCounterparts.get(charismaBase.contractId);
-      const charismaToSet = counterparts?.subnet ?? charismaBase;
-      setConditionToken(charismaToSet);
-      console.log('Defaulted From token base to Charisma, enabled subnet, set Condition token to Charisma:', charismaToSet);
+      // 3. Set the condition token to sBTC
+      const counterparts = tokenCounterparts.get(sbtcBase.contractId);
+      const sbtcToSet = counterparts?.subnet ?? sbtcBase;
+      setConditionToken(sbtcToSet);
     }
     // No else needed - we don't want to interfere if the mode is not 'order' or if a token is already selected
 
