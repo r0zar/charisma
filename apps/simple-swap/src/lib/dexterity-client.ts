@@ -246,6 +246,7 @@ export class Dexterity {
 
         // Fetch metadata using Cryptonomicon
         const metadata = await getTokenMetadataCached(contractId);
+        console.log('[DexterityClient] Metadata:', metadata);
 
         // If we couldn't get metadata, return null
         if (!metadata) {
@@ -409,6 +410,9 @@ export class Dexterity {
         this.nodes.clear();
 
         for (const vault of vaults) {
+            // defensive code to avoid bad data, should never happen if types are correct
+            if (!vault.tokenA || !vault.tokenB) continue;
+
             // Add to edges map
             this.edges.set(vault.contractId, vault);
 
