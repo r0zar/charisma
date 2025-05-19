@@ -3,11 +3,18 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "./wallet-button";
-import { Coins } from "lucide-react";
+import { Coins, Menu, X } from "lucide-react";
+import { Button } from "./ui/button";
 
 export function Header() {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
+    };
+
     return (
-        <header className="relative z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="relative z-20 border-b bg-background/95 backdrop-blur-md">
             <div className="container flex h-16 items-center justify-between">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-2">
@@ -33,7 +40,7 @@ export function Header() {
                         <Link href="/fiat" className="text-sm font-medium hover:text-primary transition-colors">
                             Buy With Card
                         </Link>
-                        <Link href="/otc" className="text-sm font-medium hover:text-primary transition-colors">
+                        <Link href="/otc/new" className="text-sm font-medium hover:text-primary transition-colors">
                             Offers
                         </Link>
                     </nav>
@@ -41,8 +48,38 @@ export function Header() {
 
                 <div className="flex items-center gap-4">
                     <WalletButton />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden"
+                        onClick={toggleMobileMenu}
+                        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+                    >
+                        {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                    </Button>
                 </div>
             </div>
+            {isMobileMenuOpen && (
+                <div className="md:hidden absolute top-16 left-0 right-0 z-10 bg-background/95 backdrop-blur border-b">
+                    <nav className="container flex flex-col gap-4 py-4">
+                        <Link href="/swap" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                            Swap
+                        </Link>
+                        <Link href="/orders" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                            Orders
+                        </Link>
+                        <Link href="/tokens" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                            Tokens
+                        </Link>
+                        <Link href="/fiat" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                            Buy With Card
+                        </Link>
+                        <Link href="/otc" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                            Offers
+                        </Link>
+                    </nav>
+                </div>
+            )}
         </header>
     );
-} 
+}

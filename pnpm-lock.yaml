@@ -952,6 +952,9 @@ importers:
       tailwind-merge:
         specifier: ^3.2.0
         version: 3.2.0
+      tw-animate-css:
+        specifier: ^1.2.8
+        version: 1.2.8
       uuid:
         specifier: ^11.0.0
         version: 11.1.0
@@ -969,7 +972,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/config-typescript
       '@tailwindcss/postcss':
-        specifier: ^4
+        specifier: ^4.1.4
         version: 4.1.4
       '@types/node':
         specifier: ^20
@@ -993,10 +996,10 @@ importers:
         specifier: ^9.24.0
         version: 9.24.0
       postcss:
-        specifier: ^8.4.35
+        specifier: ^8.5.3
         version: 8.5.3
       tailwindcss:
-        specifier: ^4
+        specifier: ^4.1.4
         version: 4.1.4
       typescript:
         specifier: ^5
