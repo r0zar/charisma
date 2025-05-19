@@ -34,7 +34,7 @@ export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
  * @throws Throws an error if the network request fails or if the response cannot be parsed as JSON.
  */
 export async function listPrices(): Promise<KraxelPriceData> {
-    const TIMEOUT_MS = 3000;
+    const TIMEOUT_MS = 5000;
 
     const fetchPrices = async (): Promise<KraxelPriceData> => {
         const response = await fetch(KRAXEL_API_URL);

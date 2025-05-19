@@ -288,21 +288,20 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     // Update prevModeRef *after* checking the condition
     const prevMode = prevModeRef.current;
     prevModeRef.current = mode;
-
-
     // Only default condition token when switching *into* order mode and not deep-linked tokens
     if (mode === 'order' && prevMode !== 'order' && !conditionToken && !initialParams.fromSymbol && !initialParams.toSymbol) {
       // Locate the base (main-net) sBTC token in the available list
-      const sbtcBase = displayTokens.find(
-        (t) => t.contractId.includes('.sbtc-token') && !t.contractId.includes('-subnet')
-      );
+      const sbtcBase = displayTokens.find((t) => t.contractId.includes('.sbtc-token'));
+      const charismaBase = displayTokens.find((t) => t.contractId.includes('.charisma-token'));
 
       if (!sbtcBase) {
         return;
       }
 
       // 1. Select sBTC as the base FROM token - REQUIRED for subnet toggle effect
-      setBaseSelectedFromToken(sbtcBase);
+      setBaseSelectedFromToken(charismaBase!);
+      setSelectedFromTokenSafe(charismaBase!);
+      setBaseToken(charismaBase!)
 
       // 2. Enable subnet mode for FROM token
       setUseSubnetFrom(true);

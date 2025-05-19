@@ -97,8 +97,8 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const [fromTokenBalance, setFromTokenBalance] = useState<string>("0");
     const [toTokenBalance, setToTokenBalance] = useState<string>("0");
 
-    const [displayAmount, setDisplayAmount] = useState<string>("1");
-    const [microAmount, setMicroAmount] = useState<string>("1000000");
+    const [displayAmount, setDisplayAmount] = useState<string>("");
+    const [microAmount, setMicroAmount] = useState<string>("");
 
     const [quote, setQuote] = useState<QuoteResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -195,27 +195,6 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             fetchTokensClient();
         }
     }, []);
-
-    // Auto‑select default tokens when list ready
-    useEffect(() => {
-        if (selectedTokens.length === 0 || routeableTokenIds.size === 0) return;
-        if (selectedFromToken && selectedToToken) return; // already set
-
-        const routeableTokens = selectedTokens.filter((t) => routeableTokenIds.has(t.contractId));
-        if (routeableTokens.length === 0) return;
-
-        // Prefer STX as source
-        const stxToken = routeableTokens.find(
-            (t) => t.contractId === ".stx" || t.symbol.toLowerCase() === "stx"
-        );
-        const from = stxToken ?? routeableTokens[0];
-        const btcToken = routeableTokens.find((t) => t.symbol.toLowerCase().includes("btc"));
-        const to = btcToken ?? routeableTokens.find((t) => t.contractId !== from.contractId) ?? from;
-
-        setSelectedFromToken(from);
-        setSelectedToToken(to);
-        setMicroAmount(swapClient.convertToMicroUnits(displayAmount, from.decimals));
-    }, [selectedTokens, routeableTokenIds]);
 
     // Function to check if a cached balance is still valid
     const isValidCache = useCallback((cacheKey: string) => {
@@ -402,7 +381,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
 
     // Safe setter that optionally forces subnet version if in order mode
     const setSelectedFromTokenSafe = (t: Token) => {
-        if (!t.contractId.includes('-subnet') && mode === 'order') return
+        if (t.type !== 'SUBNET' && mode === 'order') return
         setSelectedFromToken(t);
     }
 
