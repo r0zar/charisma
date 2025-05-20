@@ -40,7 +40,10 @@
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
-    "typescript": "5.8.2",
-    "ts-jest": "^29.3.0"
+    "ts-jest": "^29.3.0",
+    "typescript": "5.8.2"
+  },
+  "dependencies": {
+    "lucide-react": "0.511.0"
   }
 }

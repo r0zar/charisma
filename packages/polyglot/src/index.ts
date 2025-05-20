@@ -3,7 +3,7 @@ import { apiClient } from "./blockchain-api-client";
 import { TransactionEventsResponse, TransactionResults, Transaction } from "@stacks/stacks-blockchain-api-types";
 
 // Define the structure for the contract interface based on the API docs
-interface ContractInterface {
+export interface ContractInterface {
   functions: unknown[]; // Replace unknown with specific types if available
   variables: unknown[];
   maps: unknown[];
@@ -12,7 +12,7 @@ interface ContractInterface {
 }
 
 // Define the structure for the contract info based on the API docs
-interface ContractInfo {
+export interface ContractInfo {
   tx_id: string;
   canonical: boolean;
   contract_id: string;
@@ -25,7 +25,7 @@ interface ContractInfo {
 /**
  * Interface for STX token balance information 
  */
-interface StxBalanceInfo {
+export interface StxBalanceInfo {
   balance: string;
   total_sent: string;
   total_received: string;
@@ -39,7 +39,7 @@ interface StxBalanceInfo {
 /**
  * Interface for fungible token balances 
  */
-interface FungibleTokenBalances {
+export interface FungibleTokenBalances {
   [key: string]: {
     balance: string;
     total_sent: string;
@@ -50,7 +50,7 @@ interface FungibleTokenBalances {
 /**
  * Interface for non-fungible token balances 
  */
-interface NonFungibleTokenBalances {
+export interface NonFungibleTokenBalances {
   [key: string]: {
     count: string;
     total_sent: string;
@@ -61,7 +61,7 @@ interface NonFungibleTokenBalances {
 /**
  * Interface for account balances response 
  */
-interface AccountBalancesResponse {
+export interface AccountBalancesResponse {
   stx: StxBalanceInfo;
   fungible_tokens: FungibleTokenBalances;
   non_fungible_tokens: NonFungibleTokenBalances;

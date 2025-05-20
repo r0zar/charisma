@@ -15,6 +15,7 @@ import { IntentInput, signIntentWithWallet } from "blaze-sdk";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from 'next/navigation';
 import TokenLogo from "@/components/TokenLogo";
+import { CancelOffer } from "./CancelOffer";
 
 interface Props {
     intentUuid: string;
@@ -267,7 +268,7 @@ export default function EnhancedBidForm({ intentUuid, subnetTokens, offer, onBid
                 )}
 
                 <Alert variant="info" className="mt-4 flex items-start gap-2">
-                    <Info className="h-4 w-4" />
+                    <Info aria-hidden={true} className="h-4 w-4" />
                     <div>
 
                         <AlertTitle>How it works</AlertTitle>

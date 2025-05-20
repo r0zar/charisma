@@ -2,7 +2,6 @@ import { listTokens } from "@/app/actions";
 import { Header } from "@/components/header";
 import OfferForm from "@/components/otc/OfferForm";
 import { TokenDef } from "@/types/otc";
-import { Toaster } from "sonner";
 
 export default async function NewOfferPage() {
     // preload subnet tokens
@@ -25,7 +24,6 @@ export default async function NewOfferPage() {
                 <h1 className="mb-6 text-2xl font-bold">Marketplace Listing</h1>
                 <OfferForm subnetTokens={subnetTokens} />
             </main>
-            <Toaster />
         </div>
     );
 }

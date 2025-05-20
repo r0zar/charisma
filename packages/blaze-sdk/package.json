@@ -32,10 +32,11 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@stacks/connect": "latest",
-    "@stacks/transactions": "latest",
-    "@stacks/network": "latest",
     "@repo/polyglot": "workspace:*",
+    "@stacks/connect": "latest",
+    "@stacks/network": "latest",
+    "@stacks/transactions": "latest",
+    "lucide-react": "0.511.0",
     "zod": "^3.24.4"
   },
   "devDependencies": {
@@ -47,7 +48,7 @@
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
-    "typescript": "5.8.2",
-    "ts-jest": "^29.3.0"
+    "ts-jest": "^29.3.0",
+    "typescript": "5.8.2"
   }
 }

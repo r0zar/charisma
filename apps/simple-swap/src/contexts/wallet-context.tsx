@@ -3,6 +3,9 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { connect } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
+import { getAccountBalances } from '@repo/polyglot';
+import { AccountBalancesResponse } from '@repo/polyglot';
+import { KraxelPriceData, listPrices } from '@repo/tokens';
 
 interface WalletContextType {
     connected: boolean;
@@ -10,6 +13,8 @@ interface WalletContextType {
     isConnecting: boolean;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
+    balances: any;
+    prices: any;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -18,6 +23,8 @@ const WalletContext = createContext<WalletContextType>({
     isConnecting: false,
     connectWallet: async () => { },
     disconnectWallet: () => { },
+    balances: {},
+    prices: {},
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -26,6 +33,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [connected, setConnected] = useState(false);
     const [address, setAddress] = useState('');
     const [isConnecting, setIsConnecting] = useState(false);
+    const [balances, setBalances] = useState<AccountBalancesResponse>({} as AccountBalancesResponse);
+    const [prices, setPrices] = useState<KraxelPriceData>({} as KraxelPriceData);
 
     // Check for existing wallet connection
     useEffect(() => {
@@ -37,6 +46,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 setAddress(mainnetAddress);
             }
         }
+    }, []);
+
+    // get wallet balaces
+    useEffect(() => {
+        if (!address) return;
+        const fetchBalances = async () => {
+            const balances = await getAccountBalances(address);
+            if (balances) setBalances(balances);
+        };
+        fetchBalances();
+    }, [address]);
+
+    // get wallet prices
+    useEffect(() => {
+        const fetchPrices = async () => {
+            const prices = await listPrices();
+            if (prices) setPrices(prices);
+        };
+        fetchPrices();
     }, []);
 
     // Function to connect wallet
@@ -73,6 +101,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 isConnecting,
                 connectWallet,
                 disconnectWallet,
+                balances,
+                prices
             }}
         >
             {children}

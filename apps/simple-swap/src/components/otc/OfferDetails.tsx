@@ -1,8 +1,12 @@
+"use client";
+
 import { Offer } from "@/lib/otc/schema";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TokenDef } from "@/types/otc";
 import { Clock } from "lucide-react";
+import { CancelOffer } from "./CancelOffer";
+import { useWallet } from "@/contexts/wallet-context";
 
 // Helper to shorten addresses (optional, can be expanded)
 const shortenAddress = (address: string, startChars = 6, endChars = 4) => {
@@ -34,6 +38,7 @@ interface OfferDetailsProps {
 }
 
 export default function EnhancedOfferDetails({ offer, subnetTokens }: OfferDetailsProps) {
+    const { address } = useWallet();
     const getBadgeVariant = (status: Offer["status"]) => {
         switch (status) {
             case "open":
@@ -129,6 +134,11 @@ export default function EnhancedOfferDetails({ offer, subnetTokens }: OfferDetai
                     )}
                 </div>
             </CardContent>
+            <CardFooter>
+                {offer.status === "open" && offer.offerCreatorAddress === address && (
+                    <CancelOffer intentUuid={offer.intentUuid} />
+                )}
+            </CardFooter>
         </Card>
     );
 }

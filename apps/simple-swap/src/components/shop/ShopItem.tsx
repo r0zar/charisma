@@ -31,7 +31,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
     const [isMounted, setIsMounted] = useState(false);
 
     const router = useRouter();
-    const { address } = useWallet();
+    const { address, balances, prices } = useWallet();
 
     // Get a clean title without the symbol in parentheses if present
     const cleanTitle = item.title.replace(/\s*\([^)]*\)\s*/, '');
@@ -44,6 +44,8 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
         setIsMounted(true);
     }, []);
 
+    const energyBalance = balances.fungible_tokens['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy::energy'].balance;
+
     const handlePurchase = async () => {
         // Simulate purchase logic
         console.log("Purchasing item:", item.title, "for", formattedPrice);
@@ -51,11 +53,11 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
         try {
             const result = await request('stx_callContract', {
                 contract: item.vault as any,
-                functionName: 'execute',
-                functionArgs: [uintCV(100000000), optionalCVOf(bufferCV(new Uint8Array([0x00])))],
+                functionName: 'claim',
+                functionArgs: [uintCV(energyBalance)],
                 postConditions: [
-                    Pc.principal(address).willSendLte(1000000000).ft('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy', 'energy'),
-                    Pc.principal('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm').willSendLte(1000000000).ft('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl', 'hooter')
+                    Pc.principal(address).willSendLte(energyBalance).ft('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy', 'energy'),
+                    Pc.principal('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm').willSendLte(energyBalance).ft('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl', 'hooter')
                 ],
                 network: 'mainnet'
             });

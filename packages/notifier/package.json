@@ -46,6 +46,7 @@
         "typescript": "5.8.2"
     },
     "dependencies": {
+        "lucide-react": "0.511.0",
         "telegraf": "^4.16.3",
         "twilio": "^5.6.0"
     }

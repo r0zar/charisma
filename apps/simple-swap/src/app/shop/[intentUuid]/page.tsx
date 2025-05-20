@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import OfferDetails from "@/components/otc/OfferDetails";
 import BidForm from "@/components/otc/BidForm";
 import { Offer, TokenDef } from "@/types/otc";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import { getOffer } from "@/lib/otc/kv";
 import { kv } from "@vercel/kv";
 import { EnhancedActiveBids } from "@/components/otc/ActiveBids";
@@ -11,6 +11,9 @@ import { WalletProvider } from "@/contexts/wallet-context";
 import { listTokens } from "@/app/actions";
 import { Header } from "@/components/header";
 import { Offer as SchemaOffer, Bid as SchemaBid } from "@/lib/otc/schema";
+import { signedFetch, verifySignatureAndGetSigner } from "@repo/stacks";
+import { Toast } from "@/components/ui/toast";
+import { CancelOffer } from "@/components/otc/CancelOffer";
 
 interface PageProps { params: { intentUuid: string } }
 

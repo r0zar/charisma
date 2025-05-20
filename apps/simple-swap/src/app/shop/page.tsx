@@ -14,9 +14,9 @@ import Link from 'next/link';
 
 // Import types
 import { ShopItemType, ShopItem as ShopItemInterface } from '@/types/shop';
-import { Offer } from '@/lib/otc/schema';
 import { useRouter } from 'next/navigation';
 import { listTokens, TokenCacheData } from '@repo/tokens'; // Import the token-cache functions
+import { getAccountBalances } from '@repo/polyglot';
 
 export default function ShopPage() {
     const { address, connected } = useWallet();
@@ -24,25 +24,10 @@ export default function ShopPage() {
     const [filteredItems, setFilteredItems] = useState<ShopItemInterface[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [selectedCurrency, setSelectedCurrency] = useState<string>('all');
-    const [showCart, setShowCart] = useState(false);
-    const [cart, setCart] = useState<{ item: ShopItemInterface, quantity: number, status?: string }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-    const [tokens, setTokens] = useState<Record<string, TokenCacheData>>({});
     const router = useRouter();
-
-    // Load cart from localStorage on initial render
-    useEffect(() => {
-        try {
-            const savedCart = localStorage.getItem('shopCart');
-            if (savedCart) {
-                setCart(JSON.parse(savedCart));
-            }
-        } catch (err) {
-            console.error('Error loading cart from localStorage:', err);
-        }
-    }, []);
 
     // Fetch all offers and tokens
     useEffect(() => {
@@ -59,7 +44,6 @@ export default function ShopPage() {
                 const tokenList = await listTokens();
                 // convert to key value pair
                 const tokenMap = Object.fromEntries(tokenList.map(token => [token.contract_principal, token]));
-                setTokens(tokenMap);
 
                 if (keys && keys.length > 0) {
                     // Fetch offers in parallel
@@ -95,7 +79,7 @@ export default function ShopPage() {
                     currency: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy',
                     payToken: tokenMap['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy']!,
                     image: tokenMap["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl"].image,
-                    vault: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-rewards',
+                    vault: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-x10',
                     metadata: {
                         contractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl',
                         tokenSymbol: 'HOOT',
@@ -167,7 +151,6 @@ export default function ShopPage() {
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <Header />
-
             <main className="flex-1 container py-8">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                     <div>
