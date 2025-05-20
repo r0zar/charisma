@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-// enable cors for the token-cache api
-
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -29,26 +27,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS',
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization',
-          },
-        ],
-      },
-    ];
-  },
 };
+
 export default nextConfig;

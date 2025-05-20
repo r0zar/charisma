@@ -11,8 +11,8 @@ interface TokenOption {
 export async function GET() {
     const tokens = await listTokens();
     const out: TokenOption[] = tokens.map((t) => ({
-        contractId: t.contractId,
-        symbol: t.symbol,
+        contractId: t.contractId || '',
+        symbol: t.symbol || '',
         name: t.name,
     }));
     return NextResponse.json(out);

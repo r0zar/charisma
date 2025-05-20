@@ -1,7 +1,11 @@
+
+const isDevelopment = () => {
+    return process.env.NODE_ENV === 'development';
+}
+
 /**
  * Shape of the token metadata returned by the token-cache service.
  * Mirrors the API as closely as possible so consumers can rely on strong typing
- * without having to duplicate these interfaces everywhere.
  */
 export interface TokenCacheData {
     type: string;
@@ -140,8 +144,9 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
  * Retrieve a list of all known SIP-10 tokens from the token-cache service.
  */
 export async function listTokens(): Promise<TokenCacheData[]> {
-    const url = `https://tokens.charisma.rocks/api/v1/sip10`;
+    const url = true ? `http://localhost:3000/api/v1/sip10` : `https://tokens.charisma.rocks/api/v1/sip10`;
 
+    console.log(`Fetching tokens from ${url}`);
     try {
         const response = await fetch(url);
 
