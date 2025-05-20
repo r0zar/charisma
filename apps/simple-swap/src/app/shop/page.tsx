@@ -2,23 +2,16 @@ import { Suspense } from 'react';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import ShopClientPage from '@/components/shop/ShopPage';
 import { ShopItemType, ShopItem as ShopItemInterface } from '@/types/shop';
-import { getManagedTokenIds } from '@/lib/tokens';
+import { listTokens } from "@repo/tokens";
 import { kv } from '@vercel/kv';
 import { getOffer } from '@/lib/otc/kv';
 
 // Server component to fetch data
 export default async function ShopPage() {
-    // Get token IDs from server
-    const tokenIds = await getManagedTokenIds();
-
-    // Fetch token metadata for each token (in parallel for better performance)
-    const tokensPromises = tokenIds.map((id: string) => getTokenMetadataCached(id));
-    const tokensData = await Promise.all(tokensPromises);
-
-    // Create a map of tokens for easier access
-    const tokenMap: Record<string, TokenCacheData> = {};
-    tokenIds.forEach((id: string, index: number) => {
-        tokenMap[id] = tokensData[index];
+    const result = await listTokens();
+    const tokenMap: any = {}
+    result.forEach((token) => {
+        tokenMap[token.contract_principal as string] = token;
     });
 
     // Fetch offer keys
@@ -81,16 +74,16 @@ async function fetchOffers(keys: string[]): Promise<any[]> {
 // Helper function to transform offers data into shop items
 function transformOffersToItems(offersData: any[], tokenMap: Record<string, TokenCacheData>): ShopItemInterface[] {
     return offersData
-        .filter(result => result.success && result.offer && result.offer.status === 'open')
+        .filter(result => result.status === 'open')
         .map(result => {
             return {
                 ...result.offer,
-                id: result.offer.intentUuid,
+                id: result.intentUuid,
                 type: 'offer',
-                image: tokenMap[result.offer.offerAssets[0]?.token]?.image,
-                title: tokenMap[result.offer.offerAssets[0]?.token]?.symbol,
+                image: tokenMap[result.offerAssets[0]?.token]?.image,
+                title: tokenMap[result.offerAssets[0]?.token]?.symbol,
                 price: 1,
-                description: `Make a bid for ${tokenMap[result.offer.offerAssets[0]?.token]?.symbol}`,
+                description: `Make a bid for ${tokenMap[result.offerAssets[0]?.token]?.symbol}`,
             };
         });
 }
@@ -105,7 +98,7 @@ function createHootTokenItem(tokenMap: Record<string, TokenCacheData>): ShopItem
         price: 100,
         currency: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy',
         payToken: tokenMap['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy']!,
-        image: tokenMap["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl"]?.image || '',
+        image: tokenMap["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl"]?.image || null,
         vault: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-x10',
         metadata: {
             contractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl',

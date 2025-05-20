@@ -9,7 +9,7 @@ export interface ShopItem {
     description: string;
     price?: number;
     currency?: string;
-    image: string;
+    image?: string | null;
     payToken?: TokenCacheData;
     vault?: string;
     metadata: {

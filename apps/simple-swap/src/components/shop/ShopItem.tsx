@@ -91,7 +91,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                     onClick={handleItemClick}
                 >
                     <Image
-                        src={item.image}
+                        src={item.image || '/images/placeholder.png'}
                         alt={cleanTitle}
                         fill
                         className="object-cover rounded-lg"
@@ -124,7 +124,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                             <div className="flex items-center gap-4">
                                 <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border">
                                     <Image
-                                        src={item.image}
+                                        src={item.image || '/images/placeholder.png'}
                                         alt={cleanTitle}
                                         fill
                                         className="object-cover"

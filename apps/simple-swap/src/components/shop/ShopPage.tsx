@@ -18,7 +18,6 @@ interface ShopClientPageProps {
 }
 
 export default function ShopClientPage({ initialItems }: ShopClientPageProps) {
-    const { address, connected } = useWallet();
     const [items, setItems] = useState<ShopItemInterface[]>(initialItems);
     const [filteredItems, setFilteredItems] = useState<ShopItemInterface[]>(initialItems);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -26,6 +25,8 @@ export default function ShopClientPage({ initialItems }: ShopClientPageProps) {
     const [error, setError] = useState<string | null>(null);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
     const [selectedSort, setSelectedSort] = useState<string>('newest');
+
+    const { address, connected } = useWallet();
     const router = useRouter();
 
     // Handle price range changes
