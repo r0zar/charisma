@@ -312,7 +312,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
         const newContractId = `${principalAddress}.${tokenIdentifier}`;
 
         if (newContractId !== contractId) {
-            router.push(`/dashboard/new/${encodeURIComponent(newContractId)}`);
+            router.push(`/dashboard/${encodeURIComponent(newContractId)}`);
         }
 
         setEditingContractId(false);
