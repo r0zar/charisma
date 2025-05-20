@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLockDuration, setLockDuration } from '@/lib/state';
-import { verifySignatureAndGetSigner } from '@repo/stacks';
+import { verifySignatureAndGetSigner } from 'blaze-sdk';
 
 export async function GET() {
     try {

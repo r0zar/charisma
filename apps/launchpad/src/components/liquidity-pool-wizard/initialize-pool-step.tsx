@@ -22,7 +22,10 @@ export const InitializePoolStep = ({
     initialTokenRatio,
     onUpdateRatio,
     onPrevious,
-    onNext
+    onNext,
+    token1UsdPrice,
+    token2UsdPrice,
+    pricesLoading
 }: {
     token1: string;
     token2: string;
@@ -38,6 +41,9 @@ export const InitializePoolStep = ({
     }) => void;
     onPrevious: () => void;
     onNext: () => void;
+    token1UsdPrice: number | null;
+    token2UsdPrice: number | null;
+    pricesLoading: boolean;
 }) => {
     const [token1Amount, setToken1Amount] = useState(initialTokenRatio.token1Amount.toString());
     const [token2Amount, setToken2Amount] = useState(initialTokenRatio.token2Amount.toString());
@@ -107,7 +113,7 @@ export const InitializePoolStep = ({
                                     <Label htmlFor="token1Amount">
                                         Initial {token1} Amount
                                     </Label>
-                                    <div className="flex">
+                                    <div className="flex flex-col space-y-1">
                                         <Input
                                             id="token1Amount"
                                             value={token1Amount}
@@ -117,6 +123,12 @@ export const InitializePoolStep = ({
                                             min="0"
                                             className={errors.token1Amount ? "border-destructive" : ""}
                                         />
+                                        {useRatio && pricesLoading && <p className="text-xs text-muted-foreground">Loading price...</p>}
+                                        {useRatio && !pricesLoading && token1UsdPrice !== null && parseFloat(token1Amount) > 0 && (
+                                            <p className="text-xs text-muted-foreground text-right">
+                                                ~${(parseFloat(token1Amount) * token1UsdPrice).toFixed(2)} USD
+                                            </p>
+                                        )}
                                     </div>
                                     {errors.token1Amount && (
                                         <p className="text-destructive text-sm">{errors.token1Amount}</p>
@@ -127,7 +139,7 @@ export const InitializePoolStep = ({
                                     <Label htmlFor="token2Amount">
                                         Initial {token2} Amount
                                     </Label>
-                                    <div className="flex">
+                                    <div className="flex flex-col space-y-1">
                                         <Input
                                             id="token2Amount"
                                             value={token2Amount}
@@ -137,6 +149,12 @@ export const InitializePoolStep = ({
                                             min="0"
                                             className={errors.token2Amount ? "border-destructive" : ""}
                                         />
+                                        {useRatio && pricesLoading && <p className="text-xs text-muted-foreground">Loading price...</p>}
+                                        {useRatio && !pricesLoading && token2UsdPrice !== null && parseFloat(token2Amount) > 0 && (
+                                            <p className="text-xs text-muted-foreground text-right">
+                                                ~${(parseFloat(token2Amount) * token2UsdPrice).toFixed(2)} USD
+                                            </p>
+                                        )}
                                     </div>
                                     {errors.token2Amount && (
                                         <p className="text-destructive text-sm">{errors.token2Amount}</p>

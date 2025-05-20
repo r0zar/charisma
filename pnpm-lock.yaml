@@ -774,6 +774,9 @@ importers:
       '@vercel/kv':
         specifier: ^3.0.0
         version: 3.0.0
+      blaze-sdk:
+        specifier: workspace:*
+        version: link:../../packages/blaze-sdk
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -1128,6 +1131,9 @@ importers:
       '@stacks/connect':
         specifier: latest
         version: 8.1.9
+      '@stacks/encryption':
+        specifier: latest
+        version: 7.0.6
       '@stacks/network':
         specifier: latest
         version: 7.0.2

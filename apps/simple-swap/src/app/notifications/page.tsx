@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/contexts/wallet-context';
 import { UserNotificationSettings, OrderExecutedPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
-import { signMessage, type SignedMessage } from '@repo/stacks';
+import { signMessage, type SignedMessage } from 'blaze-sdk';
 
 // Helper to get default channel preference to avoid repetition
 const getDefaultChannelPref = (): ChannelSpecificPreference => ({ enabled: false, recipientId: '' });

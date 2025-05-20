@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getOrder, fillOrder } from '@/lib/orders/store';
-import { verifySignedRequest } from '@repo/stacks';
+import { verifySignedRequest } from 'blaze-sdk';
 import { executeTrade } from '@/lib/orders/executor';
 
 const ORDERS_API_KEY = process.env.ORDERS_API_KEY || process.env.METADATA_API_KEY; // fallback

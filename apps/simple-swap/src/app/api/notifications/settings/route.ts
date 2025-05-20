@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { UserNotificationSettings, OrderExecutedPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
-import { verifySignatureAndGetSigner, type SignatureVerificationOptions } from '@repo/stacks';
+import { verifySignatureAndGetSigner, type SignatureVerificationOptions } from 'blaze-sdk';
 import { STACKS_MAINNET } from '@stacks/network';
 
 async function getAuthenticatedUserPrincipal(

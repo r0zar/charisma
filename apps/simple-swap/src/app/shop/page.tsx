@@ -62,10 +62,10 @@ export default function ShopPage() {
                                 ...result.offer,
                                 id: result.offer.intentUuid,
                                 type: 'offer',
-                                image: tokenMap[result.offer.offerAssets[0].token].image,
-                                title: tokenMap[result.offer.offerAssets[0].token].symbol,
+                                image: tokenMap[result.offer.offerAssets[0].token]?.image,
+                                title: tokenMap[result.offer.offerAssets[0].token]?.symbol,
                                 price: 1,
-                                description: `Make a bid for ${tokenMap[result.offer.offerAssets[0].token].symbol}`,
+                                description: `Make a bid for ${tokenMap[result.offer.offerAssets[0].token]?.symbol}`,
                             }
                         });
                 }

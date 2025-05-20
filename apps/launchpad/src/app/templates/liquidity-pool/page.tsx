@@ -26,14 +26,12 @@ import { TokenSelectionStep, type EnhancedToken as WizardToken } from "@/compone
 import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-step";
 import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
 import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
-import { getTokenMetadataCached, listTokens, TokenCacheData } from "@repo/tokens"; // Import the clients
-import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly } from '@/app/actions'; // Make sure this path is correct
+import { getTokenMetadataCached, listTokens, TokenCacheData, listPrices, KraxelPriceData } from "@repo/tokens";
+import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly } from '@/app/actions';
 
 
 // Metadata constants
-const METADATA_BASE_URL = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3008'
-    : 'https://charisma-metadata.vercel.app';
+const METADATA_BASE_URL = 'https://metadata.charisma.rocks'
 const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
 
 // Wizard steps
@@ -48,13 +46,14 @@ enum WizardStep {
 interface Token {
     symbol: string;
     name: string;
-    address: string;
+    address: string; // This should be the contract ID
     description?: string;
     image?: string;
     decimals?: number;
     isSubnet?: boolean;
     isLpToken?: boolean;
     total_supply?: string | null;
+    identifier?: string; // Added for compatibility if used elsewhere
 }
 
 // Contract Stepper Component
@@ -105,10 +104,10 @@ function LiquidityPoolWizard() {
         stxAddress,
         deployContract,
         signMessage,
-        tokens, // <-- Use tokens from context
-        loading: contextLoading, // <-- Use loading state from context (renamed)
-        tokensError, // <-- Use error state from context
-        fetchTokens // <-- If needed for manual refresh later
+        tokens,
+        loading: contextLoading,
+        tokensError,
+        fetchTokens
     } = useApp();
     const [isDeploying, setIsDeploying] = useState(false);
     const [txid, setTxid] = useState<string | null>(null);
@@ -117,31 +116,43 @@ function LiquidityPoolWizard() {
     const [metadataApiError, setMetadataApiError] = useState(false);
     const [hasMetadataFlag, setHasMetadataFlag] = useState(false);
 
-    // Track token images separately from metadata
+    // Hoisted state definitions
+    const [token1, setToken1] = useState<string>("");
+    const [token2, setToken2] = useState<string>("");
+    const [token1Details, setToken1Details] = useState<Token | null>(null);
+    const [token2Details, setToken2Details] = useState<Token | null>(null);
+    const [token1Address, setToken1Address] = useState<string>("");
+    const [token2Address, setToken2Address] = useState<string>("");
+    const [poolName, setPoolName] = useState("");
+    const [lpTokenSymbol, setLpTokenSymbol] = useState("");
+    const [swapFee, setSwapFee] = useState<string>("0.003"); // Default fee (0.3%)
+
     const [token1Image, setToken1Image] = useState<string | undefined>(undefined);
     const [token2Image, setToken2Image] = useState<string | undefined>(undefined);
 
-    // Add state for initial token ratio
     const [initialTokenRatio, setInitialTokenRatio] = useState({
         token1Amount: 0,
         token2Amount: 0,
         useRatio: false
     });
 
-    // When metadata changes, ensure the hasMetadataFlag updates
+    const [token1UsdPrice, setToken1UsdPrice] = useState<number | null>(null);
+    const [token2UsdPrice, setToken2UsdPrice] = useState<number | null>(null);
+    const [pricesLoading, setPricesLoading] = useState<boolean>(false);
+
+    const [postConditions, setPostConditions] = useState<PostCondition[]>([]);
+    const [isUnlimitedAllowanceToken1, setIsUnlimitedAllowanceToken1] = useState(false);
+    const [isUnlimitedAllowanceToken2, setIsUnlimitedAllowanceToken2] = useState(false);
+
     useEffect(() => {
         const isValid = !!metadata && !!metadata.name;
         console.log("Metadata changed:", metadata, "valid:", isValid);
         setHasMetadataFlag(isValid);
     }, [metadata]);
 
-    // Use the state flag to determine if metadata is present
     const hasMetadata = hasMetadataFlag;
-
-    // Wizard step state
     const [currentStep, setCurrentStep] = useState<WizardStep>(WizardStep.SELECT_TOKENS);
 
-    // Add useEffect to handle URL parameters
     useEffect(() => {
         const tokenA_Param = searchParams.get('tokenA');
         const tokenB_Param = searchParams.get('tokenB');
@@ -149,89 +160,111 @@ function LiquidityPoolWizard() {
         const amountA_Param = searchParams.get('amountA');
         const useRatio_Param = searchParams.get('useRatio') === 'true';
 
-        console.log("Reading URL Params:", { tokenA_Param, tokenB_Param, fee_Param, amountA_Param, useRatio_Param });
-
-        // Check if required parameters are present
         if (tokenA_Param && tokenB_Param && fee_Param) {
-            console.log("Params detected, processing...");
             setToken1Address(tokenA_Param);
             setToken2Address(tokenB_Param);
             setSwapFee(fee_Param);
+            setPricesLoading(true);
 
-            // Fetch both token details concurrently
             Promise.all([
-                fetchTokenMetadataPairDirectly(tokenA_Param, tokenB_Param)
-            ]).then(([result]) => {
-                console.log("Fetched Token Details:", result);
-
-                if (result.token1Meta) {
-                    setToken1(result.token1Meta.symbol!);
-                    setToken1Details({
-                        ...result.token1Meta,
-                        decimals: result.token1Meta.decimals!,
-                        total_supply: result.token1Meta.total_supply !== undefined ? String(result.token1Meta.total_supply) : undefined,
-                    });
+                fetchTokenMetadataPairDirectly(tokenA_Param, tokenB_Param),
+                listPrices()
+            ]).then(([tokenDetailsResult, allPrices]) => {
+                if (tokenDetailsResult.token1Meta) {
+                    setToken1(tokenDetailsResult.token1Meta.symbol || "");
+                    const t1Details: Token = {
+                        address: tokenA_Param, // Use param directly as it's the contract ID
+                        symbol: tokenDetailsResult.token1Meta.symbol || "",
+                        name: tokenDetailsResult.token1Meta.name || "",
+                        decimals: tokenDetailsResult.token1Meta.decimals === undefined ? 6 : tokenDetailsResult.token1Meta.decimals, // Default to 6 if undefined
+                        image: tokenDetailsResult.token1Meta.image || undefined,
+                        total_supply: tokenDetailsResult.token1Meta.total_supply !== undefined ? String(tokenDetailsResult.token1Meta.total_supply) : undefined,
+                        identifier: tokenDetailsResult.token1Meta.identifier || tokenA_Param, // Added identifier
+                    };
+                    setToken1Details(t1Details);
+                    setToken1UsdPrice(allPrices[tokenA_Param] || null);
                 } else {
-                    console.error("Failed to fetch details for Token A:", tokenA_Param);
                     setToken1Details(null);
+                    setToken1UsdPrice(null);
                 }
 
-                if (result.token2Meta) {
-                    setToken2(result.token2Meta.symbol!);
-                    setToken2Details({
-                        ...result.token2Meta,
-                        decimals: result.token2Meta.decimals!,
-                        total_supply: result.token2Meta.total_supply !== undefined ? String(result.token2Meta.total_supply) : undefined,
-                    });
+                if (tokenDetailsResult.token2Meta) {
+                    setToken2(tokenDetailsResult.token2Meta.symbol || "");
+                    const t2Details: Token = {
+                        address: tokenB_Param, // Use param directly
+                        symbol: tokenDetailsResult.token2Meta.symbol || "",
+                        name: tokenDetailsResult.token2Meta.name || "",
+                        decimals: tokenDetailsResult.token2Meta.decimals === undefined ? 6 : tokenDetailsResult.token2Meta.decimals, // Default to 6
+                        image: tokenDetailsResult.token2Meta.image || undefined,
+                        total_supply: tokenDetailsResult.token2Meta.total_supply !== undefined ? String(tokenDetailsResult.token2Meta.total_supply) : undefined,
+                        identifier: tokenDetailsResult.token2Meta.identifier || tokenB_Param, // Added identifier
+                    };
+                    setToken2Details(t2Details);
+                    setToken2UsdPrice(allPrices[tokenB_Param] || null);
                 } else {
-                    console.error("Failed to fetch details for Token B:", tokenB_Param);
                     setToken2Details(null);
+                    setToken2UsdPrice(null);
                 }
 
-                // Auto-generate names ONLY if both fetches succeeded and name isn't already set
-                if (result.token1Meta && result.token2Meta && !poolName) {
-                    const generatedPoolName = `${result.token1Meta.symbol}-${result.token2Meta.symbol} Liquidity`;
-                    const generatedLpSymbol = `${result.token1Meta.symbol}-${result.token2Meta.symbol}`;
-                    console.log(`Auto-generating state: Pool Name='${generatedPoolName}', LP Symbol='${generatedLpSymbol}'`);
+                if (tokenDetailsResult.token1Meta && tokenDetailsResult.token2Meta && !poolName) { // Check poolName here before setting
+                    const generatedPoolName = `${tokenDetailsResult.token1Meta.symbol}-${tokenDetailsResult.token2Meta.symbol} Liquidity`;
+                    const generatedLpSymbol = `${tokenDetailsResult.token1Meta.symbol}-${tokenDetailsResult.token2Meta.symbol}`;
                     setPoolName(generatedPoolName);
                     setLpTokenSymbol(generatedLpSymbol);
                 }
 
-                // Set initial liquidity ratio if amountA is provided
                 if (amountA_Param) {
                     const amountA = parseFloat(amountA_Param);
                     if (!isNaN(amountA)) {
-                        let amountB = 0; // Default to 0 if useRatio is false
+                        let amountB = 0;
                         if (useRatio_Param) {
-                            amountB = 10; // Default Token B amount to 10 if useRatio is true
-                            console.log(`Setting initial amounts: Token A = ${amountA}, Token B = ${amountB} (Default), useRatio = ${useRatio_Param}`);
-                        } else {
-                            console.log(`Setting initial amount: Token A = ${amountA}, useRatio = ${useRatio_Param}`);
+                            amountB = 10;
                         }
-
                         setInitialTokenRatio(prev => ({
                             ...prev,
                             token1Amount: amountA,
-                            token2Amount: amountB, // Set Token B amount (0 or default 10)
-                            useRatio: useRatio_Param // Respect the flag from URL
+                            token2Amount: amountB,
+                            useRatio: useRatio_Param
                         }));
                     }
                 }
-
-                // Advance the wizard step directly to Review & Deploy only after processing
-                if (result.token1Meta && result.token2Meta) { // Ensure we have details before advancing
-                    console.log("Advancing wizard to REVIEW_DEPLOY");
-                    setCurrentStep(WizardStep.REVIEW_DEPLOY); // Go directly to the final step
+                if (tokenDetailsResult.token1Meta && tokenDetailsResult.token2Meta) {
+                    setCurrentStep(WizardStep.REVIEW_DEPLOY);
                 } else {
-                    // If one or both fetches failed, stay on the current step or handle error
-                    sonnerToast.error("Token Data Error", { description: "Could not fetch details for one or both tokens. Please verify contract IDs and try again." });
+                    sonnerToast.error("Token Data Error", { description: "Could not fetch details for one or both tokens." });
                 }
             }).catch(err => {
-                console.error("Error fetching token pair details:", err);
-                sonnerToast.error("Lookup Failed", { description: err.message || "Could not fetch token details." });
+                console.error("Error fetching token pair details or prices:", err);
+                sonnerToast.error("Data Lookup Failed", { description: err.message || "Could not fetch token details or prices." });
+                setToken1UsdPrice(null);
+                setToken2UsdPrice(null);
+            }).finally(() => {
+                setPricesLoading(false);
             });
         }
-    }, [searchParams]); // Rerun only when search params change
+    }, [searchParams]); // Only searchParams as dependency
+
+    useEffect(() => {
+        const fetchPricesForSelectedTokens = async () => {
+            // Ensure details and their addresses are available, and not currently processing URL params
+            if (token1Details?.address && token2Details?.address && !searchParams.get('tokenA')) {
+                setPricesLoading(true);
+                try {
+                    const allPrices = await listPrices();
+                    setToken1UsdPrice(allPrices[token1Details.address] || null);
+                    setToken2UsdPrice(allPrices[token2Details.address] || null);
+                } catch (error) {
+                    console.error("Error fetching prices for selected tokens:", error);
+                    sonnerToast.error("Price Fetch Failed", { description: "Could not fetch latest token prices." });
+                    setToken1UsdPrice(null);
+                    setToken2UsdPrice(null);
+                } finally {
+                    setPricesLoading(false);
+                }
+            }
+        };
+        fetchPricesForSelectedTokens();
+    }, [token1Details?.address, token2Details?.address, searchParams]); // searchParams ensures this doesn't run if URL params are present
 
     // Navigation functions
     const nextStep = () => {
@@ -252,19 +285,6 @@ function LiquidityPoolWizard() {
             setCurrentStep(currentStep - 1);
         }
     };
-
-    // Form state
-    const [poolName, setPoolName] = useState("");
-    const [lpTokenSymbol, setLpTokenSymbol] = useState("");
-    const [token1, setToken1] = useState("STX");
-    const [token1Address, setToken1Address] = useState(
-        "SP000000000000000000002Q6VF78.stx-token"
-    );
-    const [token1Details, setToken1Details] = useState<TokenCacheData | null>(null);
-    const [token2, setToken2] = useState("");
-    const [token2Address, setToken2Address] = useState("");
-    const [token2Details, setToken2Details] = useState<TokenCacheData | null>(null);
-    const [swapFee, setSwapFee] = useState("0.3");
 
     // Generate contract name from pool name
     const generateContractName = (name: string) => {
@@ -297,7 +317,7 @@ function LiquidityPoolWizard() {
         (token1 && token2 ? `${token1}-${token2}` : 'LP');
 
     // Full contract identifier
-    const contractIdentifier = stxAddress ? `${stxAddress}.${contractName}` : '';
+    const contractIdentifier = stxAddress && poolName ? `${stxAddress}.${generateContractName(poolName)}` : "";
 
     // Form validation
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -684,10 +704,22 @@ function LiquidityPoolWizard() {
     };
 
     const handleSelectToken1 = (selectedToken: WizardToken) => {
-        setToken1(selectedToken.symbol);
-        setToken1Address(selectedToken.address);
-        setToken1Image(selectedToken.image);
-        setToken1Details(adaptWizardTokenToCacheData(selectedToken));
+        console.log("Selected token 1:", selectedToken);
+        setToken1(selectedToken.symbol || "");
+        setToken1Address(selectedToken.address); // Use selectedToken.address
+
+        const details: Token = {
+            address: selectedToken.address,       // Use selectedToken.address
+            symbol: selectedToken.symbol || "",
+            name: selectedToken.name || "",
+            decimals: selectedToken.decimals === undefined ? 6 : selectedToken.decimals,
+            image: selectedToken.image || undefined,
+            description: selectedToken.description || undefined,
+            total_supply: selectedToken.total_supply !== undefined ? String(selectedToken.total_supply) : undefined,
+            identifier: selectedToken.identifier || selectedToken.address, // Use identifier or address
+        };
+        setToken1Details(details);
+        setToken1Image(findTokenImage(selectedToken.symbol || "", selectedToken.address)); // Use selectedToken.address
         // Auto-generate pool name if token2 is not yet selected or if pool name is empty
         if (!token2 || !poolName) {
             setPoolName(`${selectedToken.symbol} Liquidity Pool`);
@@ -696,10 +728,22 @@ function LiquidityPoolWizard() {
     };
 
     const handleSelectToken2 = (selectedToken: WizardToken) => {
-        setToken2(selectedToken.symbol);
-        setToken2Address(selectedToken.address);
-        setToken2Image(selectedToken.image);
-        setToken2Details(adaptWizardTokenToCacheData(selectedToken));
+        console.log("Selected token 2:", selectedToken);
+        setToken2(selectedToken.symbol || "");
+        setToken2Address(selectedToken.address); // Use selectedToken.address
+
+        const details: Token = {
+            address: selectedToken.address,       // Use selectedToken.address
+            symbol: selectedToken.symbol || "",
+            name: selectedToken.name || "",
+            decimals: selectedToken.decimals === undefined ? 6 : selectedToken.decimals,
+            image: selectedToken.image || undefined,
+            description: selectedToken.description || undefined,
+            total_supply: selectedToken.total_supply !== undefined ? String(selectedToken.total_supply) : undefined,
+            identifier: selectedToken.identifier || selectedToken.address, // Use identifier or address
+        };
+        setToken2Details(details);
+        setToken2Image(findTokenImage(selectedToken.symbol || "", selectedToken.address)); // Use selectedToken.address
         // Update pool name to reflect the token pair if token1 is set
         if (token1) {
             setPoolName(`${token1}-${selectedToken.symbol} Liquidity Pool`);
@@ -839,12 +883,15 @@ function LiquidityPoolWizard() {
 
                     {currentStep === WizardStep.INITIALIZE_POOL && (
                         <InitializePoolStep
-                            token1={token1}
-                            token2={token2}
+                            token1={token1 || "Token A"}
+                            token2={token2 || "Token B"}
                             initialTokenRatio={initialTokenRatio}
                             onUpdateRatio={setInitialTokenRatio}
                             onPrevious={prevStep}
                             onNext={nextStep}
+                            token1UsdPrice={token1UsdPrice}
+                            token2UsdPrice={token2UsdPrice}
+                            pricesLoading={pricesLoading}
                         />
                     )}
 

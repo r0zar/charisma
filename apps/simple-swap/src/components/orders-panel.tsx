@@ -13,7 +13,7 @@ import { ClipboardList, Copy, Check, Zap, Trash2 } from "lucide-react";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./ui/tooltip";
-import { signedFetch } from "@repo/stacks";
+import { signedFetch } from "blaze-sdk";
 
 interface BadgeProps {
     status: LimitOrder["status"];

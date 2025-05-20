@@ -34,6 +34,7 @@
   "dependencies": {
     "@repo/polyglot": "workspace:*",
     "@stacks/connect": "latest",
+    "@stacks/encryption": "latest",
     "@stacks/network": "latest",
     "@stacks/transactions": "latest",
     "zod": "^3.24.4"

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MetadataService } from '@/lib/metadata-service';
 // Assuming verifySignedMessage is exported from your @charisma/stacks package
-import { verifySignedRequest } from '@repo/stacks';
+import { verifySignedRequest } from 'blaze-sdk';
 import { generateCorsHeaders } from '@/lib/cors-helper';
 
 /* ───────────────────────────── helpers ───────────────────────────── */

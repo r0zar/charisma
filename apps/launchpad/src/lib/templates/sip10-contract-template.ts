@@ -14,6 +14,7 @@ export interface SIP10TokenOptions {
     hasBurning: boolean;
     contractName: string;
     deployerAddress: string;
+    customTokenUri?: string;
 }
 
 /**
@@ -27,7 +28,8 @@ export function generateSIP10TokenContract({
     hasMinting = false,
     hasBurning = false,
     contractName,
-    deployerAddress
+    deployerAddress,
+    customTokenUri
 }: SIP10TokenOptions): string {
     // Calculate actual initial supply with decimals
     const actualSupply = initialSupply * Math.pow(10, decimals);
@@ -38,10 +40,19 @@ export function generateSIP10TokenContract({
         .replace(/[^a-z0-9-]/g, '')
         .replace(/^(\d)/, 'token-$1');
 
-    // Build the token URI with the deployer address if available
-    const tokenUriBase = "https://charisma-metadata.vercel.app/api/v1/metadata/";
-    const fullContractId = `${deployerAddress}.${derivedContractName}`
-    const tokenUri = `${tokenUriBase}${fullContractId}`;
+    // Determine if it's a DMT (Direct Metadata Token) based on data URI
+    const isDMT = customTokenUri && customTokenUri.startsWith("data:");
+
+    // Determine the token URI value for the contract
+    let tokenUriValueForContract: string;
+    if (customTokenUri) {
+        tokenUriValueForContract = customTokenUri;
+    } else {
+        // Default to Charisma-hosted metadata URI if no custom URI is provided
+        const tokenUriBase = "https://metadata.charisma.rocks/api/v1/metadata/";
+        const fullContractId = `${deployerAddress}.${derivedContractName}`;
+        tokenUriValueForContract = `${tokenUriBase}${fullContractId}`;
+    }
 
     const contract = `
 ;; ${tokenName} - SIP-010 Fungible Token
@@ -59,7 +70,7 @@ export function generateSIP10TokenContract({
 
 ;; Token definition
 (define-fungible-token ${tokenSymbol.toUpperCase()} TOTAL-SUPPLY)
-(define-data-var token-uri (optional (string-utf8 256)) none)
+(define-data-var token-uri (optional (string-utf8 256)) (some u"${tokenUriValueForContract}"))
 ${hasMinting ? '(define-data-var is-minting-allowed bool true)' : ''}
 ${hasBurning ? '(define-data-var is-burning-allowed bool true)' : ''}
 
@@ -116,12 +127,13 @@ ${hasBurning ? `
     )
 )` : ''}
 
+${!isDMT ? `
 (define-public (set-token-uri (value (string-utf8 256)))
     (begin
         (asserts! (is-eq tx-sender DEPLOYER) ERR-OWNER-ONLY)
         (ok (var-set token-uri (some value)))
     )
-)
+)` : ';; DMT: set-token-uri function is intentionally omitted as token-uri is fixed on-chain.'}
 
 ;; Batch Transfer Function
 (define-public (send-many (recipients (list 200 { to: principal, amount: uint, memo: (optional (buff 34)) })))
@@ -159,8 +171,9 @@ ${hasMinting ? `
     )
 )` : ''}
 
-;; Initialize token URI with metadata endpoint
-(var-set token-uri (some u"${tokenUri}"))
+;; The token-uri is now initialized directly in its define-data-var statement.
+;; The following line is no longer needed:
+;; (var-set token-uri (some u"..."))
 
 ;; Initial mint to deployer
 (ft-mint? ${tokenSymbol.toUpperCase()} TOTAL-SUPPLY DEPLOYER)

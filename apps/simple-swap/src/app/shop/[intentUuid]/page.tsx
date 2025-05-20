@@ -11,7 +11,7 @@ import { WalletProvider } from "@/contexts/wallet-context";
 import { listTokens } from "@/app/actions";
 import { Header } from "@/components/header";
 import { Offer as SchemaOffer, Bid as SchemaBid } from "@/lib/otc/schema";
-import { signedFetch, verifySignatureAndGetSigner } from "@repo/stacks";
+import { signedFetch, verifySignatureAndGetSigner } from "blaze-sdk";
 import { Toast } from "@/components/ui/toast";
 import { CancelOffer } from "@/components/otc/CancelOffer";
 

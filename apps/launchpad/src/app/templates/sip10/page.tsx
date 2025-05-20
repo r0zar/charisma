@@ -37,16 +37,15 @@ import { DeploymentSidebar } from "@/components/deployment/deployment-sidebar";
 import { generateContractNameFromTokenName, calculateAtomicSupply } from "@/lib/utils/token-utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 
-// Fixed Charisma Token Address (Mainnet)
-const CHR_TOKEN_ADDRESS = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token";
-const CHR_TOKEN_SYMBOL = "CHR";
+// Charisma Token Address
+const CHA_TOKEN_ADDRESS = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token";
+const CHA_TOKEN_SYMBOL = "CHA";
 const FIXED_LP_FEE_PERCENT = 1.0;
 
 // Updated constants for all metadata-related URLs
-const METADATA_BASE_URL = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3008'
-    : 'https://charisma-metadata.vercel.app';
+const METADATA_BASE_URL = "https://metadata.charisma.rocks";
 
 const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
 
@@ -102,6 +101,9 @@ export default function SIP10DeployPage() {
     const [metadataApiError, setMetadataApiError] = useState(false);
     const [isCorsError, setIsCorsError] = useState(false);
     const [txid, setTxid] = useState<string | null>(null);
+    const [tokenUriInput, setTokenUriInput] = useState("");
+    const [isDMT, setIsDMT] = useState(false);
+    const [finalTokenUriForContract, setFinalTokenUriForContract] = useState<string | null>(null);
 
     // Form state
     const [tokenName, setTokenName] = useState("");
@@ -124,86 +126,154 @@ export default function SIP10DeployPage() {
     // Full contract identifier
     const contractIdentifier = stxAddress ? `${stxAddress}.${contractName}` : '';
 
-    // Function to check metadata
-    const checkMetadata = async () => {
-        if (!contractIdentifier) return;
+    // Function to load metadata from a provided URI
+    const handleLoadFromUri = async () => {
+        if (!tokenUriInput.trim()) {
+            toast({ variant: "destructive", title: "Token URI Required", description: "Please enter a valid Token URI." });
+            return;
+        }
 
+        const uri = tokenUriInput.trim();
         setIsCheckingMetadata(true);
         setMetadataApiError(false);
         setIsCorsError(false);
-        try {
-            // Use the metadata service directly if available in this project
-            // or call the API endpoint
-            let metadataData;
+        setHasMetadata(false);
+        setMetadata(null);
+        setIsDMT(false);
+
+        if (uri.startsWith("data:application/json;base64,")) {
+            if (uri.length > 256) {
+                toast({
+                    variant: "destructive",
+                    title: "Data URI Too Long",
+                    description: "Data URI must be 256 characters or less for on-chain use.",
+                });
+                setIsCheckingMetadata(false);
+                return;
+            }
             try {
-                // Try to use the local service first
+                const base64Data = uri.split(',')[1];
+                const jsonData = atob(base64Data);
+                const data = JSON.parse(jsonData);
+                const hasRequiredFields = data.name && data.image;
+
+                if (hasRequiredFields) {
+                    setMetadata(data as TokenMetadata);
+                    setHasMetadata(true);
+                    setIsDMT(true);
+                    setFinalTokenUriForContract(uri);
+                    toast({ title: "On-chain Metadata Loaded", description: "Successfully parsed Base64 Data URI." });
+                } else {
+                    throw new Error("Data URI metadata is missing required fields (name, image).");
+                }
+            } catch (error) {
+                console.error("Error processing Data URI:", error);
+                let description = "Could not parse Base64 Data URI. Ensure it's valid JSON.";
+                if (error instanceof Error) description = error.message;
+                toast({ variant: "destructive", title: "Invalid Data URI", description });
+                setHasMetadata(false);
+                setMetadata(null);
+                checkMetadata();
+            }
+        } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+            try {
+                const response = await fetch(uri);
+                if (!response.ok) throw new Error(`Failed to fetch metadata from URI: ${response.statusText}`);
+                const data = await response.json();
+                const hasRequiredFields = data.name && data.image;
+                if (hasRequiredFields) {
+                    setMetadata(data as TokenMetadata);
+                    setHasMetadata(true);
+                    setIsDMT(false);
+                    setFinalTokenUriForContract(uri);
+                    toast({ title: "Metadata Loaded", description: "Successfully loaded metadata from URL." });
+                } else {
+                    throw new Error("Metadata from URL is missing required fields (name, image).");
+                }
+            } catch (error) {
+                console.error("Error loading metadata from URL:", error);
+                let description = "Could not load metadata from URL.";
+                if (error instanceof Error) description = error.message;
+                toast({ variant: "destructive", title: "Failed to Load Metadata from URL", description });
+                setHasMetadata(false);
+                setMetadata(null);
+                checkMetadata();
+            }
+        } else {
+            toast({ variant: "destructive", title: "Invalid URI Scheme", description: "Token URI must start with data:application/json;base64, or http(s)://" });
+            checkMetadata();
+        }
+        setIsCheckingMetadata(false);
+    };
+
+    // Function to check metadata
+    const checkMetadata = async () => {
+        if (!contractIdentifier) return;
+        if (isDMT && finalTokenUriForContract?.startsWith("data:")) {
+            console.log("DMT metadata already loaded from data URI, skipping Charisma check unless input is empty.");
+            if (tokenUriInput.trim() === finalTokenUriForContract) return;
+        }
+
+        console.log("Checking Charisma-hosted metadata for:", contractIdentifier);
+        setIsCheckingMetadata(true);
+        setMetadataApiError(false);
+        setIsCorsError(false);
+        if (!tokenUriInput.trim()) {
+            setIsDMT(false);
+        }
+
+        try {
+            let metadataData;
+            const charismaHostedUri = `${METADATA_API_URL}/${contractIdentifier}`;
+
+            try {
                 metadataData = await MetadataService.get(contractIdentifier);
-
-                const hasRequiredFields =
-                    metadataData?.name &&
-                    metadataData?.description &&
-                    metadataData?.image;
-
+                const hasRequiredFields = metadataData?.name && metadataData?.description && metadataData?.image;
                 setHasMetadata(!!hasRequiredFields);
                 setMetadata(metadataData);
+                if (!!hasRequiredFields && (!finalTokenUriForContract || !finalTokenUriForContract.startsWith("data:"))) {
+                    setFinalTokenUriForContract(charismaHostedUri);
+                    setIsDMT(false);
+                }
             } catch (error) {
-                // Fallback to API call
-                console.log("Using API fallback for metadata");
+                console.log("Using API fallback for metadata (Charisma-hosted)");
                 try {
-                    const response = await fetch(`${METADATA_API_URL}/${contractIdentifier}`);
-
+                    const response = await fetch(charismaHostedUri);
                     if (response.ok) {
                         const data = await response.json();
-                        const hasRequiredFields =
-                            data.name &&
-                            data.description &&
-                            data.image;
-
+                        const hasRequiredFields = data.name && data.description && data.image;
                         setHasMetadata(!!hasRequiredFields);
                         setMetadata(data);
+                        if (!!hasRequiredFields && (!finalTokenUriForContract || !finalTokenUriForContract.startsWith("data:"))) {
+                            setFinalTokenUriForContract(charismaHostedUri);
+                            setIsDMT(false);
+                        }
                     } else {
-                        setHasMetadata(false);
-                        setMetadata(null);
+                        setHasMetadata(false); setMetadata(null);
                     }
                 } catch (fetchError) {
-                    console.error("Error fetching metadata from API:", fetchError);
-                    // Identify CORS errors
-                    if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
-                        setIsCorsError(true);
-                        toast({
-                            variant: "destructive",
-                            title: "CORS Error",
-                            description: "Cross-origin request blocked. The metadata service needs to allow requests from this domain.",
-                        });
-                    } else {
-                        setMetadataApiError(true);
-                        toast({
-                            variant: "destructive",
-                            title: "Metadata Service Error",
-                            description: "Could not connect to metadata service. Please try again later.",
-                        });
-                    }
-
-                    setHasMetadata(false);
-                    setMetadata(null);
+                    console.error("Error fetching Charisma-hosted metadata from API:", fetchError);
+                    if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) setIsCorsError(true);
+                    else setMetadataApiError(true);
+                    setHasMetadata(false); setMetadata(null);
                 }
             }
         } catch (error) {
-            console.error("Error checking metadata:", error);
-            setHasMetadata(false);
-            setMetadata(null);
+            console.error("Error checking Charisma-hosted metadata:", error);
+            setHasMetadata(false); setMetadata(null);
         } finally {
             setIsCheckingMetadata(false);
         }
     };
 
-    // Check for metadata when contract identifier changes
+    // Check for metadata when contract identifier changes, or if tokenUriInput is cleared
     useEffect(() => {
         if (contractIdentifier) {
-            checkMetadata();
+            if (!tokenUriInput.trim()) {
+                checkMetadata();
+            }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [contractIdentifier]); // We intentionally omit checkMetadata from dependencies to avoid infinite loops
+    }, [contractIdentifier, tokenUriInput]);
 
     // Form validation
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -328,7 +398,8 @@ export default function SIP10DeployPage() {
                 hasMinting: isMintable,
                 hasBurning: isBurnable,
                 deployerAddress: stxAddress!,
-                contractName: contractName
+                contractName: contractName,
+                customTokenUri: (isDMT && finalTokenUriForContract) ? finalTokenUriForContract : undefined
             });
 
             // Deploy the contract using the wallet
@@ -350,14 +421,14 @@ export default function SIP10DeployPage() {
                 // Construct URL for LP creation page
                 const lpRedirectUrl = new URL('/templates/liquidity-pool', window.location.origin);
                 lpRedirectUrl.searchParams.set('tokenA', contractIdentifier);
-                lpRedirectUrl.searchParams.set('tokenB', CHR_TOKEN_ADDRESS);
+                lpRedirectUrl.searchParams.set('tokenB', CHA_TOKEN_ADDRESS);
                 lpRedirectUrl.searchParams.set('fee', FIXED_LP_FEE_PERCENT.toString());
                 lpRedirectUrl.searchParams.set('amountA', amountForLP.toString());
                 lpRedirectUrl.searchParams.set('useRatio', 'true');
 
                 toast({
                     title: "Next Step: Create Liquidity Pool",
-                    description: `Redirecting you to set up the ${tokenSymbol}-${CHR_TOKEN_SYMBOL} liquidity pool...`,
+                    description: `Redirecting you to set up the ${tokenSymbol}-${CHA_TOKEN_SYMBOL} liquidity pool...`,
                 });
 
                 setTimeout(() => {
@@ -482,7 +553,7 @@ export default function SIP10DeployPage() {
                                     <Label htmlFor="tokenSymbol">Token Symbol</Label>
                                     <Input
                                         id="tokenSymbol"
-                                        placeholder="e.g. CHR"
+                                        placeholder="e.g. CHA"
                                         value={tokenSymbol}
                                         onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
                                         className={errors.tokenSymbol ? "border-red-500" : ""}
@@ -622,7 +693,7 @@ export default function SIP10DeployPage() {
                                         <div className="flex-1">
                                             <span className="font-medium">Create Liquidity Pool</span>
                                             <p className="text-sm text-muted-foreground mt-1 mb-4">
-                                                A portion of the initial supply will be prepared for a new liquidity pool paired with Charisma ({CHR_TOKEN_SYMBOL}) using a {FIXED_LP_FEE_PERCENT}% swap fee.
+                                                A portion of the initial supply will be prepared for a new liquidity pool paired with Charisma ({CHA_TOKEN_SYMBOL}) using a {FIXED_LP_FEE_PERCENT}% swap fee.
                                                 As the liquidity provider, you will recieve a share of these fees based on how much you provide to the pool.
                                                 You will be guided to deploy the pool contract after the token is deployed.
                                             </p>
@@ -653,7 +724,7 @@ export default function SIP10DeployPage() {
                                                     </div>
                                                     <p className="text-xs text-muted-foreground">
                                                         Approximately {calculateAtomicSupply((parseFloat(initialSupply || '0') * (parseFloat(lpPercentage) / 100)).toString(), decimals)} {tokenSymbol || 'tokens'} will be allocated.
-                                                        You will need to supply the corresponding {CHR_TOKEN_SYMBOL}.
+                                                        You will need to supply the corresponding {CHA_TOKEN_SYMBOL}.
                                                     </p>
                                                 </div>
                                             )}
@@ -679,16 +750,46 @@ export default function SIP10DeployPage() {
                                 <CardTitle>Token Metadata</CardTitle>
                                 <CardDescription>
                                     Review and verify the on-chain metadata for your token. Wallets and explorers use this information.
+                                    You can allow Charisma to host it, or provide your own Token URI.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <CardContent className="space-y-6">
+                                {/* Token URI Input Section */}
+                                <div className="space-y-2 p-4 border rounded-md bg-muted/20">
+                                    <Label htmlFor="tokenUriInput" className="flex items-center">Token URI (Optional)
+                                        {isDMT && (
+                                            <Badge variant="outline" className="ml-2 border-green-500 text-green-600 bg-green-50">DMT / On-chain</Badge>
+                                        )}
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="tokenUriInput"
+                                            placeholder="https://example.com/your-token-metadata.json"
+                                            value={tokenUriInput}
+                                            onChange={(e) => setTokenUriInput(e.target.value)}
+                                            className="flex-grow"
+                                        />
+                                        <Button onClick={handleLoadFromUri} variant="outline" disabled={isCheckingMetadata || !tokenUriInput.trim()}>
+                                            {isCheckingMetadata && !metadata?.name ? (
+                                                <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            ) : null}
+                                            Load from URI
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        If you host your own metadata JSON file (http/https), paste the direct link here.
+                                        For fully on-chain metadata (DMT), use a Base64 Data URI (max 256 chars).
+                                        This will override any metadata auto-detected by Charisma for this contract ID.
+                                    </p>
+                                </div>
+
                                 {/* Combined Metadata Info (Image/Name/Description) - Columns 1-2 */}
                                 <div className="md:col-span-2 space-y-4 flex flex-col">
                                     {/* Image Preview and Link */}
                                     <div className="flex flex-col items-start space-y-2">
                                         <Label className="text-sm text-muted-foreground">Preview</Label>
                                         <a
-                                            href={`${METADATA_BASE_URL}/tokens/new?tokenId=${encodeURIComponent(contractIdentifier?.split('.')?.pop() || '')}`}
+                                            href={`${METADATA_BASE_URL}/dashboard/${encodeURIComponent(contractIdentifier?.split('.')?.pop() || '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="group"
@@ -945,10 +1046,26 @@ export default function SIP10DeployPage() {
                                                             <p className="text-sm">Mint all tokens to deployer address.</p>
                                                         ) : (
                                                             <p className="text-sm">
-                                                                Allocate {lpPercentage}% of supply to a new Liquidity Pool paired with {CHR_TOKEN_SYMBOL} ({FIXED_LP_FEE_PERCENT}% fee).
+                                                                Allocate {lpPercentage}% of supply to a new Liquidity Pool paired with {CHA_TOKEN_SYMBOL} ({FIXED_LP_FEE_PERCENT}% fee).
                                                             </p>
                                                         )}
                                                     </div>
+                                                </div>
+
+                                                {/* Metadata Source */}
+                                                <div className="mt-6 pt-4 border-t">
+                                                    <div className="text-sm text-muted-foreground mb-1">Metadata Source</div>
+                                                    {isDMT && finalTokenUriForContract ? (
+                                                        <div className="font-mono text-xs bg-muted/40 p-2 rounded-md break-all">
+                                                            On-chain (Data URI): {truncateAddress(finalTokenUriForContract, 30)}
+                                                        </div>
+                                                    ) : finalTokenUriForContract ? (
+                                                        <a href={finalTokenUriForContract} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-primary hover:underline break-all">
+                                                            {finalTokenUriForContract}
+                                                        </a>
+                                                    ) : (
+                                                        <div className="text-xs text-muted-foreground italic">Default (Charisma Hosted)</div>
+                                                    )}
                                                 </div>
 
                                                 {/* Contract Identifier */}

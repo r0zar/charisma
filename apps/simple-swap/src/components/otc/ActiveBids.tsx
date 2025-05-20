@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Clock, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/wallet-context";
-import { signedFetch } from '@repo/stacks';
+import { signedFetch } from 'blaze-sdk';
 import Image from "next/image";
 
 // Helper to shorten addresses (optional, can be expanded)

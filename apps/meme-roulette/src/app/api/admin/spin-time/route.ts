@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setKVSpinScheduledAt } from '@/lib/state';
-import { verifySignatureAndGetSigner } from '@repo/stacks';
+import { verifySignatureAndGetSigner } from 'blaze-sdk';
 
 export async function POST(request: NextRequest) {
     const verificationResult = await verifySignatureAndGetSigner(request, {

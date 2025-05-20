@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setKVWinningToken } from '@/lib/state';
 import { listTokens } from 'dexterity-sdk';
-import { verifySignatureAndGetSigner } from '@repo/stacks';
+import { verifySignatureAndGetSigner } from 'blaze-sdk';
 
 export async function POST(request: NextRequest) {
     const verificationResult = await verifySignatureAndGetSigner(request, {

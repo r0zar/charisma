@@ -86,7 +86,7 @@ export function generateLiquidityPoolContract({
     };
 
     // Create the token URI
-    const tokenUri = `https://charisma-metadata.vercel.app/api/v1/metadata/${contractIdentifier}`;
+    const tokenUri = `https://metadata.charisma.rocks/api/v1/metadata/${contractIdentifier}`;
 
     // Create the main contract with the core functionality
     const contract = `

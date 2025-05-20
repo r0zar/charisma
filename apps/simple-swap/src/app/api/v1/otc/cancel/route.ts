@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOffer } from '@/lib/otc/kv';
 import { saveOffer } from '@/lib/otc/kv';
-import { verifySignatureAndGetSigner } from '@repo/stacks';
+import { verifySignatureAndGetSigner } from 'blaze-sdk';
 
 
 export async function DELETE(req: NextRequest) {

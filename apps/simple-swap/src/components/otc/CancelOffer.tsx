@@ -2,7 +2,7 @@
 
 "use client";
 import { Button } from "@/components/ui/button";
-import { signedFetch } from "@repo/stacks";
+import { signedFetch } from "blaze-sdk";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { redirect } from "next/navigation";
