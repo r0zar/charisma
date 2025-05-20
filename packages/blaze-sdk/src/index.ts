@@ -1,4 +1,5 @@
 export * from './intent';
+export * from './balances';
 export * from './constants';
 export * from './solvers';
 export * from './sip10';

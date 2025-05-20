@@ -44,7 +44,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
         setIsMounted(true);
     }, []);
 
-    const energyBalance = balances.fungible_tokens['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy::energy'].balance;
+    const energyBalance = balances.fungible_tokens['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy::energy']?.balance;
 
     const handlePurchase = async () => {
         // Simulate purchase logic

@@ -1,11 +1,3 @@
-import { principalCV } from "@stacks/transactions";
-
-// Base URL for the balances API – override via environment variable (e.g. NEXT_PUBLIC_BALANCE_API_BASE_URL)
-const BALANCE_API_BASE_URL =
-    process.env.NODE_ENV === 'production'
-        ? 'https://charisma-blaze-signer.vercel.app'
-        : 'http://localhost:3005';
-
 /**
  * Shape of the balance data returned by the balances endpoint.
  * Mirrors the API response closely so downstream consumers can rely on strong typing.
@@ -66,7 +58,7 @@ export async function getUserTokenBalance(
 ): Promise<BalanceData> {
     const encodedContractId = encodeURIComponent(contractId);
     const encodedAddress = encodeURIComponent(address);
-    const url = `${BALANCE_API_BASE_URL}/api/balances/${encodedContractId}/${encodedAddress}`;
+    const url = `https://blaze.charisma.rocks/api/balances/${encodedContractId}/${encodedAddress}`;
 
     try {
         const response = await fetch(url);

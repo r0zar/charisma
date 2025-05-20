@@ -2,8 +2,8 @@ import { kv } from '@vercel/kv';
 import { NotifierClient } from '@charisma/notifier';
 import type { UserNotificationSettings } from '@/types/notification-settings';
 import { LimitOrder } from '@/lib/orders/types'; // Assuming this path is correct for LimitOrder
-import { log } from '@repo/logger'; // Using the same logger as executor
 import type { Notification, NotificationChannel } from '@charisma/notifier';
+import { log } from '@repo/logger';
 
 // Placeholder for a function that might get more user-friendly token names/decimals
 // For now, we'll use the contract IDs or simple placeholders.
@@ -38,14 +38,14 @@ export async function sendOrderExecutedNotification(
 ): Promise<void> {
     const { recipient: userPrincipal, uuid, inputToken, outputToken, amountIn } = order;
 
-    log({ orderUuid: uuid, userPrincipal, txid }, 'Attempting to send order executed notification.');
+    console.log({ orderUuid: uuid, userPrincipal, txid }, 'Attempting to send order executed notification.');
 
     try {
         const settingsKey = `user:${userPrincipal}:notifications`;
         const settings = await kv.get<UserNotificationSettings>(settingsKey);
 
         if (!settings || !settings.orderExecuted) {
-            log({ orderUuid: uuid, userPrincipal }, 'User has no notification settings or orderExecuted preferences.');
+            console.log({ orderUuid: uuid, userPrincipal }, 'User has no notification settings or orderExecuted preferences.');
             return;
         }
 
@@ -63,7 +63,7 @@ export async function sendOrderExecutedNotification(
         }
 
         if (channelsToNotify.length === 0) {
-            log({ orderUuid: uuid, userPrincipal }, 'No enabled notification channels with recipient IDs for order execution.');
+            console.log({ orderUuid: uuid, userPrincipal }, 'No enabled notification channels with recipient IDs for order execution.');
             return;
         }
 
@@ -82,7 +82,7 @@ export async function sendOrderExecutedNotification(
 
         for (const notifyChannel of channelsToNotify) {
             try {
-                log({ orderUuid: uuid, userPrincipal, channelType: notifyChannel.type, recipientId: notifyChannel.recipientId }, `Sending notification via ${notifyChannel.type}`);
+                console.log({ orderUuid: uuid, userPrincipal, channelType: notifyChannel.type, recipientId: notifyChannel.recipientId }, `Sending notification via ${notifyChannel.type}`);
 
                 const notificationPayload: Notification = {
                     recipient: { id: notifyChannel.recipientId },
@@ -91,20 +91,20 @@ export async function sendOrderExecutedNotification(
 
                 await notifier.send(notifyChannel.type as NotificationChannel, notificationPayload);
 
-                log({ orderUuid: uuid, userPrincipal, channelType: notifyChannel.type }, `Notification sent successfully via ${notifyChannel.type}.`);
+                console.log({ orderUuid: uuid, userPrincipal, channelType: notifyChannel.type }, `Notification sent successfully via ${notifyChannel.type}.`);
             } catch (channelError) {
-                log({ orderUuid: uuid, userPrincipal, channelType: notifyChannel.type, error: channelError }, `Failed to send notification via ${notifyChannel.type}.`);
+                console.log({ orderUuid: uuid, userPrincipal, channelType: notifyChannel.type, error: channelError }, `Failed to send notification via ${notifyChannel.type}.`);
             }
         }
 
         // Cleanly destroy notifier if it has disposable resources
         if (typeof notifier.destroyAll === 'function') { // Check if destroyAll method exists
             await notifier.destroyAll();
-            log({ orderUuid: uuid, userPrincipal }, 'Notifier resources destroyed.');
+            console.log({ orderUuid: uuid, userPrincipal }, 'Notifier resources destroyed.');
         }
 
     } catch (error) {
-        log({ orderUuid: uuid, userPrincipal, error }, 'Failed to process order execution notification.');
+        console.log({ orderUuid: uuid, userPrincipal, error }, 'Failed to process order execution notification.');
         // Do not rethrow, as this should not block order processing
     }
 } 

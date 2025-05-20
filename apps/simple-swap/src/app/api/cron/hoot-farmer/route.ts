@@ -1,14 +1,12 @@
+import { broadcastTransaction, makeContractCall } from '@stacks/transactions';
 import { type NextRequest, NextResponse } from 'next/server';
-import { StacksClient } from '@repo/stacks'; // Import the custom client
 
 const CONTRACT_ADDRESS = "SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE";
 const CONTRACT_NAME = "powerful-farmer";
 const FUNCTION_NAME = "execute-both";
-const CONTRACT_ID = `${CONTRACT_ADDRESS}.${CONTRACT_NAME}`;
 
 /**
  * Cron job handler to call the execute-both function on the powerful-farmer contract
- * using the StacksClient from @repo/stacks.
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
@@ -34,32 +32,25 @@ export async function GET(request: NextRequest) {
 
     // --- Transaction Logic ---
     try {
-        console.log(`Minute Cron: Triggering ${CONTRACT_NAME}.${FUNCTION_NAME} via StacksClient...`);
+        console.log(`Minute Cron: Triggering ${CONTRACT_NAME}.${FUNCTION_NAME}...`);
 
-        // Configure and get the StacksClient instance
-        const stacksClient = StacksClient.getInstance({
-            privateKey: signerKey,
-            network: networkEnv === 'testnet' ? 'testnet' : 'mainnet',
-            // Assuming default API base URL is sufficient, otherwise add baseUrl
-            // baseUrl: networkEnv === 'testnet' ? 'https://api.testnet.hiro.so' : 'https://api.hiro.so',
-            debug: process.env.NODE_ENV === 'development', // Optional debug logging
+        const transaction = await makeContractCall({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: CONTRACT_NAME,
+            functionName: FUNCTION_NAME,
+            functionArgs: [],
+            postConditionMode: 'allow',
+            senderKey: signerKey,
         });
 
-        // Use the client to call the contract function
-        // The client should handle nonce and broadcasting internally
-        const txId = await stacksClient.callContractFunction(
-            CONTRACT_ID,
-            FUNCTION_NAME,
-            [], // No arguments
-            { postConditionMode: 'allow' } // No special options needed here unless specifying fee/nonce manually
-        );
+        const result = await broadcastTransaction({ transaction });
 
         // Success
-        console.log(`Minute Cron: Successfully initiated TxID: ${txId}`);
-        return NextResponse.json({ status: 'success', txId: txId });
+        console.log(`Minute Cron: Successfully initiated TxID: ${result.txid}`);
+        return NextResponse.json({ status: 'success', txId: result.txid });
 
     } catch (error: any) {
-        console.error("Error during minute cron execution via StacksClient:", error);
+        console.error("Error during minute cron execution:", error);
         let errorMessage = 'An unknown error occurred';
         if (error instanceof Error) {
             errorMessage = error.message;

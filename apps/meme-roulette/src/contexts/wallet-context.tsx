@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode, useRe
 import { connect, request } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
-import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID, broadcastMultihopTransaction } from "blaze-sdk"; // Reverting to relative path
+import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID, broadcastMultihopTransaction, getUserTokenBalance } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 import { fetchQuote, Router, loadVaults, buildSwapTransaction, Quote } from 'dexterity-sdk';
 import { broadcastTransaction, makeContractCall } from '@stacks/transactions';
@@ -136,11 +136,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (!userAddress) return;
         setBalanceLoading(true);
         try {
-            // For mainnet, we still use direct getUserTokenBalance or a similar specific API if needed
-            // This example assumes getUserTokenBalance is appropriate for mainnet CHA
-            // If mainnet CHA also needs an effective balance, a similar API endpoint would be needed for it.
-            const { getUserTokenBalance: getMainnetBalance } = await import('@repo/balances'); // Dynamically import for mainnet
-            const data = await getMainnetBalance(MAINNET_CHA_CONTRACT_ID, userAddress);
+            const data = await getUserTokenBalance(MAINNET_CHA_CONTRACT_ID, userAddress);
             setMainnetBalance(data.preconfirmationBalance);
         } catch (err) {
             console.error('Failed to fetch Mainnet Charisma balance:', err);

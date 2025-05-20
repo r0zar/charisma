@@ -236,16 +236,7 @@ export const getMempoolTransactions = async (params?: {
 
 export async function fetchStxBalance(address: string): Promise<number> {
   try {
-    const response = await fetch(`/extended/v1/address/${address}/stx`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.HIRO_API_KEY as string
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`STX Balance API Error: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json() as { balance: string };
+    const { data } = await apiClient.GET(`/extended/v1/address/${address}/stx` as any);
     return Number(data.balance || 0);
   } catch (error) {
     console.error(`Failed fetching STX balance for ${address}:`, error);
@@ -282,10 +273,8 @@ export const fetcHoldToEarnLogs = async (contractAddress: string) => {
     let txDetails = null;
     try {
       txDetails = await getTransactionDetails(log.tx_id as string);
-      // console.log('Transaction details:', txDetails); // For debugging if needed
     } catch (error) {
       console.error(`Failed to get transaction details for ${log.tx_id}:`, error);
-      // Decide how to handle this - perhaps return log without tx details or mark as failed
     }
 
     return {

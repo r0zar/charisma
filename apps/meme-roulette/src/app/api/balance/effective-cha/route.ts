@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserTokenBalance } from '@repo/balances';
+import { getUserTokenBalance } from 'blaze-sdk';
 import { getUserVotes } from '@/lib/state'; // Assuming getUserVotes fetches from KV
 import type { Vote } from '@/types/spin';
 
