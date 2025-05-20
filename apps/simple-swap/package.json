@@ -27,6 +27,7 @@
     "@repo/polyglot": "workspace:*",
     "@repo/stacks": "workspace:*",
     "@repo/tokens": "workspace:*",
+    "@sentry/nextjs": "^9.20.0",
     "@stacks/connect": "latest",
     "@stacks/encryption": "latest",
     "@stacks/network": "latest",
