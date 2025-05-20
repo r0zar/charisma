@@ -3,7 +3,6 @@ import { NotifierClient } from '@charisma/notifier';
 import type { UserNotificationSettings } from '@/types/notification-settings';
 import { LimitOrder } from '@/lib/orders/types'; // Assuming this path is correct for LimitOrder
 import type { Notification, NotificationChannel } from '@charisma/notifier';
-import { log } from '@repo/logger';
 
 // Placeholder for a function that might get more user-friendly token names/decimals
 // For now, we'll use the contract IDs or simple placeholders.
