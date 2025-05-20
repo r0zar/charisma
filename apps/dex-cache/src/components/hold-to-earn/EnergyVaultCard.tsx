@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { request } from '@stacks/connect';
-import { Coins, Zap, Check, Loader2, Clock, BarChart2, Wallet } from 'lucide-react';
+import { Coins, Zap, Check, Loader2, Clock, BarChart2, Wallet, AudioWaveform } from 'lucide-react';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useApp } from '@/lib/context/app-context';
 import { getEnergyTokenMetadata } from '@/lib/server/energy';
 import type { EnergyTokenDashboardData } from '@/lib/server/energy';
 import { getFungibleTokenBalance } from '@/lib/vaultService';
+import { BatteryLoader } from './battery-loader';
 
 // Interface shared with the parent component
 interface HoldToEarnVault {
@@ -40,6 +41,16 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
     const [isHarvesting, setIsHarvesting] = useState(false);
     const [harvestSuccess, setHarvestSuccess] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [maxCapacity, setMaxCapacity] = useState<number>(0);
+
+    // Separate state for calculated values that change with time
+    const [currentHarvestableEnergy, setCurrentHarvestableEnergy] = useState<number>(0);
+    const [energyPerSecond, setEnergyPerSecond] = useState<number>(0);
+
+    // Using ref to store the last update time to calculate energy in intervals
+    const lastUpdateTimeRef = useRef<number>(Date.now());
+    // Using ref to store the last known energy accumulation to build upon it
+    const lastKnownEnergyRef = useRef<number>(0);
 
     // useEffect to fetch the base token metadata
     useEffect(() => {
@@ -84,15 +95,43 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
                     throw new Error(`Failed to fetch energy data: ${response.statusText}`);
                 }
 
-                const allTokensData = await response.json();
+                const energyApiResponse = await response.json();
                 // Find the data for this specific token
-                const thisTokenData = allTokensData.find(
+                const thisTokenData = energyApiResponse.userEnergyDashboardData.find(
                     (token: EnergyTokenDashboardData) => token.contractId === vault.contractId
                 );
 
                 if (thisTokenData) {
                     setEnergyData(thisTokenData);
+                    // Initialize our refs with the current data
+                    lastUpdateTimeRef.current = Date.now();
+
+                    // Calculate initial harvestable energy
+                    const nowSeconds = Date.now() / 1000;
+                    const lastHarvestSeconds = thisTokenData.lastRateCalculationTimestamp / 1000;
+
+                    const secondsSinceLastHarvest = (lastHarvestSeconds > 0 && nowSeconds > lastHarvestSeconds)
+                        ? nowSeconds - lastHarvestSeconds
+                        : 0;
+
+                    console.log('secondsSinceLastHarvest:', secondsSinceLastHarvest);
+
+                    const initialAccumulated = secondsSinceLastHarvest * thisTokenData.estimatedEnergyRatePerSecond;
+                    const cappedInitialAccumulated = Math.min(
+                        Math.max(0, initialAccumulated),
+                        energyApiResponse.maxCapacity
+                    );
+
+                    lastKnownEnergyRef.current = cappedInitialAccumulated;
+                    setCurrentHarvestableEnergy(cappedInitialAccumulated);
+
+                    // Store energy rate per second for interval calculations
+                    setEnergyPerSecond(thisTokenData.estimatedEnergyRatePerSecond);
                 }
+
+                console.log('energyApiResponse for vault card:', energyApiResponse);
+                setMaxCapacity(energyApiResponse.maxCapacity);
+
             } catch (error) {
                 console.error('Error fetching user energy data:', error);
             }
@@ -100,6 +139,44 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
 
         fetchUserEnergyData();
     }, [stxAddress, vault.contractId]);
+
+    // Update the harvestable energy display in real-time with an interval
+    useEffect(() => {
+        if (!energyData || maxCapacity <= 0 || energyPerSecond <= 0) return;
+
+        // Function to update the current harvestable energy based on time passed
+        const updateHarvestableEnergy = () => {
+            const now = Date.now();
+            const secondsElapsed = (now - lastUpdateTimeRef.current) / 1000;
+            lastUpdateTimeRef.current = now;
+
+            // Calculate new energy based on seconds elapsed
+            const newEnergyGained = secondsElapsed * energyPerSecond;
+            const newTotal = lastKnownEnergyRef.current + newEnergyGained;
+
+            // Cap the energy at the maximum capacity
+            const cappedNewTotal = Math.min(newTotal, maxCapacity);
+
+            // Update our reference and state
+            lastKnownEnergyRef.current = cappedNewTotal;
+            setCurrentHarvestableEnergy(cappedNewTotal);
+        };
+
+        // Set up an interval to update the energy display every second
+        const intervalId = setInterval(updateHarvestableEnergy, 1000);
+
+        // Clean up the interval when the component unmounts
+        return () => clearInterval(intervalId);
+    }, [energyData, maxCapacity, energyPerSecond]);
+
+    // Reset the energy accumulation after harvesting
+    useEffect(() => {
+        if (harvestSuccess) {
+            lastKnownEnergyRef.current = 0;
+            lastUpdateTimeRef.current = Date.now();
+            setCurrentHarvestableEnergy(0);
+        }
+    }, [harvestSuccess]);
 
     // Fetch user token balance
     useEffect(() => {
@@ -127,7 +204,8 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
         const adjustedValue = value / divisor;
 
         return adjustedValue.toLocaleString(undefined, {
-            maximumFractionDigits: decimals
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 0
         });
     };
 
@@ -158,6 +236,24 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
             console.log(response);
             setHarvestSuccess(true);
 
+            // update the energy data
+            const energyApiResponse = await fetch(`/api/v1/energy/user-dashboard?address=${stxAddress}`);
+            const energyApiResponseData = await energyApiResponse.json();
+            const thisTokenData = energyApiResponseData.userEnergyDashboardData.find(
+                (token: EnergyTokenDashboardData) => token.contractId === vault.contractId
+            );
+
+            if (thisTokenData) {
+                // Update with the newest data from the API
+                thisTokenData.lastRateCalculationTimestamp = Date.now();
+                setEnergyData(thisTokenData);
+
+                // Reset energy counters
+                lastKnownEnergyRef.current = 0;
+                lastUpdateTimeRef.current = Date.now();
+                setCurrentHarvestableEnergy(0);
+            }
+
             // Reset success state after 2 seconds
             setTimeout(() => {
                 setHarvestSuccess(false);
@@ -179,7 +275,7 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
             onMouseLeave={() => setIsHovered(false)}
             style={{
                 transform: isHovered ? 'translateY(-2px)' : 'none',
-                backfaceVisibility: 'hidden'
+                backfaceVisibility: 'hidden',
             }}
         >
             {/* Loading overlay */}
@@ -222,15 +318,15 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                                        <Clock className="h-3.5 w-3.5 text-primary" />
+                                        <AudioWaveform className="h-3.5 w-3.5 text-primary" />
                                         <span>{energyMetadata
-                                            ? formatEnergyValue(energyData.estimatedEnergyRatePerSecond * 3600)
-                                            : (energyData.estimatedEnergyRatePerSecond * 3600).toLocaleString(undefined, { maximumFractionDigits: 1 })
-                                        }/hr</span>
+                                            ? formatEnergyValue(energyData.estimatedEnergyRatePerSecond)
+                                            : (energyData.estimatedEnergyRatePerSecond).toLocaleString(undefined, { maximumFractionDigits: 6, minimumFractionDigits: 6 })
+                                        }/sec</span>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom">
-                                    <p className="text-xs">Your energy rate per hour</p>
+                                    <p className="text-xs">Energy per second</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -334,7 +430,7 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
                         size="sm"
                         className={`transition-all duration-300 ${harvestSuccess ? 'bg-success text-white' : ''}`}
                         onClick={handleTapForEnergy}
-                        disabled={isHarvesting || isLoading}
+                        disabled={isHarvesting || isLoading || currentHarvestableEnergy <= 0}
                     >
                         {isHarvesting ? (
                             <>
@@ -359,6 +455,33 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
             {/* Subtle glow effect when hovered */}
             {isHovered && (
                 <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 to-transparent rounded-xl" />
+            )}
+
+            {/* Battery loader with logarithmic scaling */}
+            {energyData && maxCapacity > 0 && (
+                <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="mt-auto pt-2">
+                                <BatteryLoader
+                                    value={currentHarvestableEnergy}
+                                    maxCapacity={maxCapacity}
+                                    animationDuration={1000}
+                                    logBase={10} // Higher = more aggressive logarithmic curve
+                                />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-center">
+                            <p className="text-xs">
+                                Currently harvesting: {(currentHarvestableEnergy / Math.pow(10, 6)).toLocaleString(undefined, { maximumFractionDigits: 6 })} energy
+                                <br />
+                                Max capacity: {(maxCapacity / Math.pow(10, 6)).toLocaleString()} energy
+                                <br />
+                                Rate: {(energyPerSecond / Math.pow(10, 6)).toLocaleString(undefined, { maximumFractionDigits: 6 })} energy/second
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             )}
         </Card>
     );

@@ -4,7 +4,8 @@ import {
     Coins, DollarSign, Database, Banknote,
     Zap, Clock, Users, BarChart2, Activity,
     TrendingUp, Layers, ArrowUp, ArrowDown,
-    type LucideIcon
+    type LucideIcon,
+    BatteryCharging
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,7 +23,8 @@ const iconMap = {
     trending: TrendingUp,
     layers: Layers,
     up: ArrowUp,
-    down: ArrowDown
+    down: ArrowDown,
+    battery: BatteryCharging
 }
 
 type StatCardSize = 'sm' | 'md' | 'lg'

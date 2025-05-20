@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { kv } from "@vercel/kv";
 import { processAllEnergyData, EnergyAnalyticsData } from "@/lib/energy/analytics";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
+import { callReadOnlyFunction } from "@repo/polyglot";
+import { principalCV } from "@stacks/transactions";
 
 // --- Constants for energy data processing (moved/adapted from cron route) ---
 const MONITORED_CONTRACTS_FALLBACK = [
@@ -247,4 +249,12 @@ export async function getEnergyDashboardDataForUser(userAddress: string): Promis
 export async function getEnergyTokenMetadata(): Promise<TokenCacheData> {
     const data = await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy')
     return data;
+}
+
+export async function getUserMaxEnergyCapacity(userAddress: string): Promise<number> {
+    const data = await callReadOnlyFunction(
+        'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+        'power-cells', 'get-max-capacity',
+        [principalCV(userAddress)]);
+    return Number(data);
 }

@@ -367,66 +367,54 @@ export const getUserEnergyStats = (logs: EnergyLog[], userAddress: string): User
 };
 
 /**
- * Processes all energy data in one go for efficiency
- * @param contractId The contract ID to analyze 
- * @param userAddress Optional user address to get stats for
- * @returns Combined analytics data
+ * Processes all energy data for a given contract, including logs, stats, rates, and user-specific stats.
+ * If userAddress is provided, only that user's stats will be populated in detail.
+ * Otherwise, it attempts to calculate stats for all users found in the fetched logs.
  */
 export const processAllEnergyData = async (contractId: string, userAddress?: string): Promise<EnergyAnalyticsData> => {
-    try {
-        // Fetch all logs at once
-        const logs = await fetcHoldToEarnLogs(contractId);
+    console.log(`Starting to process all energy data for ${contractId}${userAddress ? ` (focusing on user ${userAddress})` : ''}`);
+    const startTime = Date.now();
 
-        if (!logs || logs.length === 0) {
-            return {
-                logs: [],
-                stats: calculateEnergyStats([]),
-                rates: calculateEnergyRates([]),
-                userStats: userAddress ? { [userAddress]: null } : {}
-            };
+    // Fetch a larger set of logs to increase accuracy of lastHarvestTimestamp
+    const logs = await fetcHoldToEarnLogs(contractId, 500); // Increased limit to 500
+
+    console.log(`Fetched ${logs.length} logs for ${contractId} in ${Date.now() - startTime}ms`);
+
+    const stats = calculateEnergyStats(logs);
+    const rates = calculateEnergyRates(logs);
+    const allUserStats: Record<string, UserEnergyStats | null> = {};
+
+    if (userAddress) {
+        const userData = getUserEnergyStats(logs, userAddress);
+        if (userData) {
+            allUserStats[userAddress] = userData;
         }
-
-        // Calculate all stats in parallel
-        const stats = calculateEnergyStats(logs);
-        const rates = calculateEnergyRates(logs);
-
-        // Process user stats if address provided
-        let userStats: Record<string, UserEnergyStats | null> = {};
-        if (userAddress) {
-            const userData = getUserEnergyStats(logs, userAddress);
-            if (userData) {
-                userStats[userAddress] = userData;
+    } else {
+        // If no specific user requested, process stats for all users
+        // Group logs by user
+        const userLogs = logs.reduce((acc: Record<string, any[]>, log) => {
+            if (!acc[log.sender]) {
+                acc[log.sender] = [];
             }
-        } else {
-            // If no specific user requested, process stats for all users
-            // Group logs by user
-            const userLogs = logs.reduce((acc: Record<string, any[]>, log) => {
-                if (!acc[log.sender]) {
-                    acc[log.sender] = [];
-                }
-                acc[log.sender].push(log);
-                return acc;
-            }, {});
+            acc[log.sender].push(log);
+            return acc;
+        }, {});
 
-            // Process each user (up to a reasonable limit to avoid excessive processing)
-            const userLimit = 20; // Limit number of users to process
-            const topUsers = Object.keys(userLogs)
-                .sort((a, b) => userLogs[b].length - userLogs[a].length)
-                .slice(0, userLimit);
+        // Process each user (up to a reasonable limit to avoid excessive processing)
+        const userLimit = 20; // Limit number of users to process
+        const topUsers = Object.keys(userLogs)
+            .sort((a, b) => userLogs[b].length - userLogs[a].length)
+            .slice(0, userLimit);
 
-            for (const address of topUsers) {
-                userStats[address] = getUserEnergyStats(logs, address);
-            }
+        for (const address of topUsers) {
+            allUserStats[address] = getUserEnergyStats(logs, address);
         }
-
-        return {
-            logs,
-            stats,
-            rates,
-            userStats
-        };
-    } catch (error) {
-        console.error(`Error processing energy data for ${contractId}:`, error);
-        throw error;
     }
+
+    return {
+        logs,
+        stats,
+        rates,
+        userStats: allUserStats
+    };
 };

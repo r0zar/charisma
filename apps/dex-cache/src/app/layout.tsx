@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => (
-  <html
+  <html suppressHydrationWarning
     lang="en"
     className="supports-[prefers-reduced-motion:no-preference]:scroll-smooth"
   >

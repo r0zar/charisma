@@ -472,9 +472,9 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                             disabled={isProcessingDeposit || !walletState.connected || !amountToBridgeTo}
                         >
                             {isProcessingDeposit ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 suppressHydrationWarning className="w-4 h-4 animate-spin" />
                             ) : (
-                                <TrendingUp className="w-4 h-4" />
+                                <TrendingUp suppressHydrationWarning className="w-4 h-4" />
                             )}
                             {isProcessingDeposit ? 'Processing...' : 'Enter Subnet'}
                         </Button>
@@ -514,7 +514,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                             />
                             {amountToBridgeFrom && !isNaN(parseFloat(amountToBridgeFrom)) && tokenPrice > 0 && (
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-xs text-muted-foreground">
-                                    <DollarSign className="h-3 w-3 mr-0.5" />
+                                    <DollarSign suppressHydrationWarning className="h-3 w-3 mr-0.5" />
                                     {formatUsdValue(withdrawUsdValue)}
                                 </div>
                             )}
@@ -526,9 +526,9 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                             disabled={isProcessingWithdraw || !walletState.connected || !amountToBridgeFrom}
                         >
                             {isProcessingWithdraw ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 suppressHydrationWarning className="w-4 h-4 animate-spin" />
                             ) : (
-                                <TrendingDown className="w-4 h-4" />
+                                <TrendingDown suppressHydrationWarning className="w-4 h-4" />
                             )}
                             {isProcessingWithdraw ? 'Processing...' : 'Exit Subnet'}
                         </Button>

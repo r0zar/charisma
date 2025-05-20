@@ -15,7 +15,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { request } from '@stacks/connect';
-import { Pc, stringAsciiCV, uintCV } from '@stacks/transactions';
+import { bufferCV, optionalCVOf, Pc, stringAsciiCV, uintCV } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { useWallet } from '@/contexts/wallet-context';
 
@@ -52,11 +52,12 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
             const result = await request('stx_callContract', {
                 contract: item.vault as any,
                 functionName: 'execute',
-                functionArgs: [uintCV(100000000), bufferFromHex('00')],
+                functionArgs: [uintCV(100000000), optionalCVOf(bufferCV(new Uint8Array([0x00])))],
                 postConditions: [
                     Pc.principal(address).willSendLte(1000000000).ft('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy', 'energy'),
                     Pc.principal('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm').willSendLte(1000000000).ft('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl', 'hooter')
-                ]
+                ],
+                network: 'mainnet'
             });
             console.log("Result:", result);
             // Close dialog after successful purchase

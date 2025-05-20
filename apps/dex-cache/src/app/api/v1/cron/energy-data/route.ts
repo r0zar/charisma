@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runEnergyDataProcessingForAllContracts } from '@/lib/server/energy';
 import { processAllEnergyData } from '@/lib/energy/analytics';
+import { kv } from '@vercel/kv';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -47,7 +48,6 @@ export async function POST(request: Request) {
     try {
         // This could be protected with admin authentication
         const { contractId } = await request.json();
-        const kv = (await import('@vercel/kv')).kv; // Dynamically import kv for POST/DELETE
         const getEnergyContractsKey = () => `energy:monitored_contracts`; // Local helper
         const getEnergyAnalyticsCacheKey = (contractId: string) => `energy:analytics:${contractId}`;
 

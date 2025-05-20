@@ -34,7 +34,7 @@ export default function Header() {
                         className="flex items-center space-x-2 transition-opacity hover:opacity-80"
                     >
                         <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-tr from-primary via-primary/80 to-primary/50">
-                            <HandCoinsIcon className="h-4 w-4 text-primary-foreground" />
+                            <HandCoinsIcon suppressHydrationWarning className="h-4 w-4 text-primary-foreground" />
                         </div>
                         <span className="hidden tracking-tight text-foreground sm:inline-block text-lg">
                             <span className="font-bold">Charisma</span>{" "}
@@ -63,7 +63,7 @@ export default function Header() {
                     <Sheet open={isOpen} onOpenChange={setIsOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="md:hidden">
-                                <Menu className="h-5 w-5" />
+                                <Menu suppressHydrationWarning className="h-5 w-5" />
                                 <span className="sr-only">Toggle menu</span>
                             </Button>
                         </SheetTrigger>
@@ -71,7 +71,7 @@ export default function Header() {
                             <SheetHeader className="mb-6">
                                 <SheetTitle className="flex items-center">
                                     <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-tr from-primary via-primary/80 to-primary/50 mr-2">
-                                        <HandCoinsIcon className="h-4 w-4 text-primary-foreground" />
+                                        <HandCoinsIcon suppressHydrationWarning className="h-4 w-4 text-primary-foreground" />
                                     </div>
                                     Charisma Invest
                                 </SheetTitle>

@@ -19,7 +19,7 @@ export default function UserEnergyDashboard() {
     const [userEnergyData, setUserEnergyData] = useState<EnergyTokenDashboardData[]>([]);
     const [energyMetadata, setEnergyMetadata] = useState<TokenCacheData | null>(null);
     const [energyBalance, setEnergyBalance] = useState<number>(0);
-
+    const [maxCapacity, setMaxCapacity] = useState<number>(0);
     // Fetch energy token metadata
     useEffect(() => {
         async function fetchEnergyMetadata() {
@@ -52,7 +52,8 @@ export default function UserEnergyDashboard() {
                 }
 
                 const data = await response.json();
-                setUserEnergyData(data);
+                setUserEnergyData(data.userEnergyDashboardData);
+                setMaxCapacity(data.maxCapacity);
             } catch (err) {
                 console.error('Error fetching user energy data:', err);
                 setError('Failed to load your energy data. Please try again later.');
@@ -93,6 +94,9 @@ export default function UserEnergyDashboard() {
         latestUpdateTimestamp: 0
     });
 
+    // Calculate energy capacity percentage
+    const energyCapacityPercentage = maxCapacity > 0 ? (energyBalance / maxCapacity) * 100 : 0;
+
     // Function to format energy values according to the token's decimals
     const formatEnergyValue = (value: number): string => {
         if (!energyMetadata) return value.toLocaleString();
@@ -103,7 +107,8 @@ export default function UserEnergyDashboard() {
         const adjustedValue = value / divisor;
 
         return adjustedValue.toLocaleString(undefined, {
-            maximumFractionDigits: 0
+            maximumFractionDigits: 6,
+            minimumFractionDigits: 0
         });
     };
 
@@ -237,31 +242,16 @@ export default function UserEnergyDashboard() {
                                 title="Current Balance"
                                 value={formatEnergyValue(energyBalance)}
                                 icon="energy"
-                                colorScheme="secondary"
+                                colorScheme="default"
                                 description={`Your current energy balance`}
                                 size="md"
                             />
-
-                            {/* Total energy rate card */}
                             <StatCard
-                                title="Generation Rate"
-                                value={formatEnergyValue(aggregatedStats.totalEnergyRatePerHour)}
-                                icon="clock"
-                                colorScheme="secondary"
-                                description="Your total energy per hour"
-                                size="md"
-                            />
-                            <StatCard
-                                title="Total Harvested"
-                                value={formatEnergyValue(aggregatedStats.totalHarvested)}
-                                icon="database"
-                                description={`Across ${aggregatedStats.totalUniqueUsers} users`}
-                            />
-                            <StatCard
-                                title="Tokens Tracked"
-                                value={aggregatedStats.totalTokens}
-                                icon="layers"
-                                description="Earning energy"
+                                title="Capacity Used"
+                                value={`${energyCapacityPercentage.toFixed(1)}%`}
+                                icon="battery"
+                                colorScheme="default"
+                                description={`Current: ${formatEnergyValue(energyBalance)} / Max: ${formatEnergyValue(maxCapacity)}`}
                             />
                         </div>
                         {userEnergyData.length > 0 && userEnergyData[0].lastRateCalculationTimestamp > 0 && (
