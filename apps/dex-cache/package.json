@@ -20,6 +20,7 @@
     "@react-spring/web": "^10.0.0",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
+    "@sentry/nextjs": "^9.20.0",
     "@stacks/connect": "^8.1.9",
     "@stacks/encryption": "^7",
     "@stacks/network": "^7.0.2",
