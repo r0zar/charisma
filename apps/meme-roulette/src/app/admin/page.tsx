@@ -237,6 +237,24 @@ export default function AdminPage() {
         setLoading(false);
     };
 
+    const handleExtendSpinOneHour = async () => {
+        const current = status?.spinStatus?.spinScheduledAt;
+        if (!current) {
+            toast.error('No spin scheduled to extend');
+            return;
+        }
+        const newTime = current + 60 * 60 * 1000;            // +1 hour
+        setLoading(true);
+        const result = await setSpinTime(newTime);
+        if (result.error) {
+            toast.error(`Failed to extend spin: ${result.error}`);
+        } else {
+            toast.success(`Spin pushed to ${new Date(newTime).toLocaleString()}`);
+            handleRefresh();
+        }
+        setLoading(false);
+    };
+
     const handleUpdateBet = async () => {
         if (!newBetTokenId) {
             toast.error('Please enter a token ID');
@@ -635,6 +653,23 @@ export default function AdminPage() {
                             <CardFooter>
                                 <Button onClick={handleSetSpinTime} disabled={loading}>
                                     Set Spin Time
+                                </Button>
+                            </CardFooter>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Extend Spin Time</CardTitle>
+                                <CardDescription>Extend the current round by 1 hour.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground">
+                                    Current spin end time: {status?.spinStatus?.spinScheduledAt ? formatDate(status.spinStatus.spinScheduledAt) : 'N/A'}
+                                </p>
+                            </CardContent>
+                            <CardFooter>
+                                <Button onClick={handleExtendSpinOneHour} disabled={loading || !status?.spinStatus?.spinScheduledAt}>
+                                    Extend by 1 Hour
                                 </Button>
                             </CardFooter>
                         </Card>

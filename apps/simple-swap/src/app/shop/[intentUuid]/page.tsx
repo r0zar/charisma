@@ -21,7 +21,7 @@ export default async function OfferPage({ params }: PageProps) {
     const headersList = await headers(); // Await the headers() call
     const host = headersList.get('host') || "localhost:3000";
     const protocol = headersList.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
-    const offerUrl = `${protocol}://${host}/otc/${intentUuid}`;
+    const offerUrl = `${protocol}://${host}/shop/${intentUuid}`;
 
     // Fetch and process tokens
     const tokensRes = await listTokens();

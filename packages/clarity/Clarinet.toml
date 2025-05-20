@@ -75,6 +75,16 @@ path = "contracts/vaults/hold-to-earn-vault.clar"
 clarity_version = 3
 epoch = 3.0
 
+[contracts.hoot-harvest]
+path = "contracts/deployed/vaults/hoot-harvest.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.energy]
+path = "contracts/energy.clar"
+clarity_version = 3
+epoch = 3.0
+
 [repl.analysis]
 passes = ["check_checker"]
 check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }

@@ -22,7 +22,7 @@ export default async function NewOfferPage() {
         <div className="relative flex min-h-screen flex-col">
             <Header />
             <main className="container py-8 max-w-lg">
-                <h1 className="mb-6 text-2xl font-bold">Create OTC Offer</h1>
+                <h1 className="mb-6 text-2xl font-bold">Marketplace Listing</h1>
                 <OfferForm subnetTokens={subnetTokens} />
             </main>
             <Toaster />

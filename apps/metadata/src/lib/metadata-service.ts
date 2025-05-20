@@ -117,30 +117,31 @@ export const constructSip16MetadataObject = (
     }
     // If no valid URI, newMetadata.localization is NOT set, so it should be omitted from the object.
 
+    if (existingTokenProperties) {
+        // Initialize properties, ensuring it exists if we are adding to it.
+        // Start with existing properties, then overwrite/add from formData and tokenIdentifier.
+        const properties: Record<string, any> = { ...(existingTokenProperties || {}) };
 
-    // Initialize properties, ensuring it exists if we are adding to it.
-    // Start with existing properties, then overwrite/add from formData and tokenIdentifier.
-    const properties: Record<string, any> = { ...(existingTokenProperties || {}) };
+        if (formData.symbol && formData.symbol.trim() !== "") {
+            properties.symbol = formData.symbol.trim();
+        }
+        if (typeof formData.decimals === 'number') {
+            properties.decimals = formData.decimals;
+        }
+        // Use formData.identifier for properties.identifier
+        // If formData.identifier is provided and not just whitespace, use it.
+        if (formData.identifier && formData.identifier.trim() !== "") {
+            properties.identifier = formData.identifier.trim();
+        }
 
-    if (formData.symbol && formData.symbol.trim() !== "") {
-        properties.symbol = formData.symbol.trim();
-    }
-    if (typeof formData.decimals === 'number') {
-        properties.decimals = formData.decimals;
-    }
-    // Use formData.identifier for properties.identifier
-    // If formData.identifier is provided and not just whitespace, use it.
-    if (formData.identifier && formData.identifier.trim() !== "") {
-        properties.identifier = formData.identifier.trim();
-    }
-
-    // Conditionally add properties if it's not an empty object
-    // after potentially adding symbol, decimals, and identifier.
-    if (Object.keys(properties).length > 0) {
-        newMetadata.properties = properties;
-    } else {
-        // Ensure properties is not set at all if it would be empty.
-        delete newMetadata.properties;
+        // Conditionally add properties if it's not an empty object
+        // after potentially adding symbol, decimals, and identifier.
+        if (Object.keys(properties).length > 0) {
+            newMetadata.properties = properties;
+        } else {
+            // Ensure properties is not set at all if it would be empty.
+            delete newMetadata.properties;
+        }
     }
 
     // Ensure name is set (already handled by initial assignment, but good for robustness)
@@ -162,21 +163,21 @@ export class MetadataService {
     // Legacy prefix for backward compatibility
     private static readonly LEGACY_KEY_PREFIX = 'sip10:';
 
-    static async get(contractId: string): Promise<TokenMetadata> {
+    static async get(uri: string): Promise<TokenMetadata> {
         // Try to get from metadata prefix first
-        let metadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${contractId}`);
+        let metadata = await kv.get<TokenMetadata>(`${this.KEY_PREFIX}${uri}`);
 
         // If not found, try legacy prefix
         if (!metadata) {
-            metadata = await kv.get<TokenMetadata>(`${this.LEGACY_KEY_PREFIX}${contractId}`);
+            metadata = await kv.get<TokenMetadata>(`${this.LEGACY_KEY_PREFIX}${uri}`);
         }
 
         console.log(`Metadata: ${JSON.stringify(metadata)}`);
         if (!metadata) {
-            console.log('Metadata not found for', contractId);
+            console.log('Metadata not found for', uri);
             return {} as TokenMetadata;
         }
-        return { ...metadata, contractId };
+        return { ...metadata };
     }
 
     static async set(contractId: string, metadata: TokenMetadata) {
@@ -203,60 +204,60 @@ export class MetadataService {
             await kv.set(`${this.KEY_PREFIX}${contractId}`, validatedMetadata);
 
             // --- BEGIN CACHE REFRESH LOGIC ---
-            const cacheRefreshBaseUrl = 'https://tokens.charisma.rocks/api/v1/sip10';
-            const refreshPromises: Promise<void>[] = [];
+            // const cacheRefreshBaseUrl = 'https://tokens.charisma.rocks/api/v1/sip10';
+            // const refreshPromises: Promise<void>[] = [];
 
-            // 1. Refresh cache for the current token itself
-            refreshPromises.push(
-                fetch(`${cacheRefreshBaseUrl}/${contractId}`)
-                    .then(res => {
-                        if (!res.ok) {
-                            console.warn(`Cache refresh for ${contractId} failed: ${res.status} ${res.statusText}`);
-                        } else {
-                            console.log(`Cache refresh successfully triggered for ${contractId}`);
-                        }
-                    })
-                    .catch(err => console.error(`Error triggering cache refresh for ${contractId}:`, err))
-            );
+            // // 1. Refresh cache for the current token itself
+            // refreshPromises.push(
+            //     fetch(`${cacheRefreshBaseUrl}/${contractId}`)
+            //         .then(res => {
+            //             if (!res.ok) {
+            //                 console.warn(`Cache refresh for ${contractId} failed: ${res.status} ${res.statusText}`);
+            //             } else {
+            //                 console.log(`Cache refresh successfully triggered for ${contractId}`);
+            //             }
+            //         })
+            //         .catch(err => console.error(`Error triggering cache refresh for ${contractId}:`, err))
+            // );
 
-            // 2. If it's an LP token, refresh base tokens
-            if (validatedMetadata.properties?.tokenAContract) {
-                const tokenA = validatedMetadata.properties.tokenAContract;
-                refreshPromises.push(
-                    fetch(`${cacheRefreshBaseUrl}/${tokenA}`)
-                        .then(res => {
-                            if (!res.ok) {
-                                console.warn(`Cache refresh for LP base token ${tokenA} failed: ${res.status} ${res.statusText}`);
-                            } else {
-                                console.log(`Cache refresh successfully triggered for LP base token ${tokenA}`);
-                            }
-                        })
-                        .catch(err => console.error(`Error triggering cache refresh for LP base token ${tokenA}:`, err))
-                );
-            }
-            if (validatedMetadata.properties?.tokenBContract) {
-                const tokenB = validatedMetadata.properties.tokenBContract;
-                refreshPromises.push(
-                    fetch(`${cacheRefreshBaseUrl}/${tokenB}`)
-                        .then(res => {
-                            if (!res.ok) {
-                                console.warn(`Cache refresh for LP base token ${tokenB} failed: ${res.status} ${res.statusText}`);
-                            } else {
-                                console.log(`Cache refresh successfully triggered for LP base token ${tokenB}`);
-                            }
-                        })
-                        .catch(err => console.error(`Error triggering cache refresh for LP base token ${tokenB}:`, err))
-                );
-            }
+            // // 2. If it's an LP token, refresh base tokens
+            // if (validatedMetadata.properties?.tokenAContract) {
+            //     const tokenA = validatedMetadata.properties.tokenAContract;
+            //     refreshPromises.push(
+            //         fetch(`${cacheRefreshBaseUrl}/${tokenA}`)
+            //             .then(res => {
+            //                 if (!res.ok) {
+            //                     console.warn(`Cache refresh for LP base token ${tokenA} failed: ${res.status} ${res.statusText}`);
+            //                 } else {
+            //                     console.log(`Cache refresh successfully triggered for LP base token ${tokenA}`);
+            //                 }
+            //             })
+            //             .catch(err => console.error(`Error triggering cache refresh for LP base token ${tokenA}:`, err))
+            //     );
+            // }
+            // if (validatedMetadata.properties?.tokenBContract) {
+            //     const tokenB = validatedMetadata.properties.tokenBContract;
+            //     refreshPromises.push(
+            //         fetch(`${cacheRefreshBaseUrl}/${tokenB}`)
+            //             .then(res => {
+            //                 if (!res.ok) {
+            //                     console.warn(`Cache refresh for LP base token ${tokenB} failed: ${res.status} ${res.statusText}`);
+            //                 } else {
+            //                     console.log(`Cache refresh successfully triggered for LP base token ${tokenB}`);
+            //                 }
+            //             })
+            //             .catch(err => console.error(`Error triggering cache refresh for LP base token ${tokenB}:`, err))
+            //     );
+            // }
 
-            // Execute all refresh promises but don't await them (fire-and-forget)
-            Promise.allSettled(refreshPromises).then(results => {
-                results.forEach(result => {
-                    if (result.status === 'rejected') {
-                        console.error('A cache refresh promise was rejected:', result.reason);
-                    }
-                });
-            });
+            // // Execute all refresh promises but don't await them (fire-and-forget)
+            // Promise.allSettled(refreshPromises).then(results => {
+            //     results.forEach(result => {
+            //         if (result.status === 'rejected') {
+            //             console.error('A cache refresh promise was rejected:', result.reason);
+            //         }
+            //     });
+            // });
             // --- END CACHE REFRESH LOGIC ---
 
             return {

@@ -444,8 +444,6 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
         try {
             const dataUrl = generateRandomSvgDataUri();
             setUnsavedImageUrl(dataUrl);
-            setSuccess('Random SVG generated! Remember to save metadata.');
-            setTimeout(() => setSuccess(''), 3000);
 
         } catch (error) {
             console.error('Failed to generate random SVG:', error);

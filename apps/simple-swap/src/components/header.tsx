@@ -14,12 +14,12 @@ export function Header() {
     };
 
     return (
-        <header className="relative z-20 border-b bg-background/95 backdrop-blur-md">
+        <header className="relative z-20 border-b bg-background/95 backdrop-blur">
             <div className="container flex h-16 items-center justify-between">
                 <div className="flex items-center gap-6">
                     <Link href="/" className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                            <Coins className="h-4 w-4 text-primary" aria-hidden={true} />
+                            <Coins suppressHydrationWarning className="h-4 w-4 text-primary" aria-hidden={true} />
                         </div>
                         <span className="hidden tracking-tight text-foreground sm:inline-block">
                             <span className="font-bold">Charisma</span>{" "}
@@ -40,8 +40,8 @@ export function Header() {
                         <Link href="/fiat" className="text-sm font-medium hover:text-primary transition-colors">
                             Buy With Card
                         </Link>
-                        <Link href="/otc/new" className="text-sm font-medium hover:text-primary transition-colors">
-                            Offers
+                        <Link href="/shop" className="text-sm font-medium hover:text-primary transition-colors">
+                            Marketplace
                         </Link>
                     </nav>
                 </div>
@@ -60,7 +60,7 @@ export function Header() {
                 </div>
             </div>
             {isMobileMenuOpen && (
-                <div className="md:hidden absolute top-16 left-0 right-0 z-10 bg-background/95 backdrop-blur border-b">
+                <div className="md:hidden absolute top-16 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/95 border-b">
                     <nav className="container flex flex-col gap-4 py-4">
                         <Link href="/swap" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
                             Swap
@@ -74,8 +74,8 @@ export function Header() {
                         <Link href="/fiat" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
                             Buy With Card
                         </Link>
-                        <Link href="/otc" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
-                            Offers
+                        <Link href="/shop" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                            Marketplace
                         </Link>
                     </nav>
                 </div>
