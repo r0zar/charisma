@@ -1,17 +1,16 @@
 'use client';
 
 import { useState, useMemo, startTransition, useRef, useEffect } from 'react';
-import { TokenMetadata } from "@repo/cryptonomicon";
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { removeTokenFromList, refreshTokenData } from '@/app/actions';
 import { Input } from "@/components/ui/input"; // Use shadcn Input
 import { Button } from "@/components/ui/button"; // Use shadcn Button
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Use shadcn Alert
 import { Card, CardContent } from "@/components/ui/card"; // Added Card import
 import { toast } from "sonner";
 import ReactJson from 'react-json-view';
-import { Loader2, Search, RefreshCw, Trash2, ChevronDown, Info, CheckCircle, XCircle, AlertCircle } from 'lucide-react'; // Added icons
+import { Loader2, Search, RefreshCw, Trash2, ChevronDown } from 'lucide-react'; // Added icons
+import { Token } from '@/lib/cryptonomicon';
 
 // Helper to check if a string looks like a Stacks contract ID (basic check)
 const looksLikeContractId = (id: string): boolean => {
@@ -37,7 +36,7 @@ const truncateContractId = (contractId: string, prefixLength = 4, suffixLength =
 };
 
 interface TokenListProps {
-    initialTokens: TokenMetadata[];
+    initialTokens: Token[];
     isDevelopment: boolean;
     initialSearchTerm?: string;
 }
@@ -297,7 +296,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                         <div className="text-left md:text-right">
                                             <span className="block font-medium text-foreground">Total Supply</span>
                                             <span className="block text-muted-foreground">
-                                                {formatSupplyWithDecimals(token.total_supply, token.decimals)}
+                                                {formatSupplyWithDecimals(token.supply, token.decimals)}
                                             </span>
                                         </div>
                                     </div>
