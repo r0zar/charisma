@@ -13,18 +13,23 @@ interface ShopFiltersProps {
     selectedCategory: string;
     priceRange: [number, number];
     onPriceRangeChange: (range: [number, number]) => void;
+    onSortChange: (sort: string) => void;
+    selectedSort: string;
 }
 
 const ShopFilters: React.FC<ShopFiltersProps> = ({
     onCategoryChange,
     selectedCategory,
     priceRange,
-    onPriceRangeChange
+    onPriceRangeChange,
+    onSortChange,
+    selectedSort
 }) => {
     // Reset filters to default values
     const handleResetFilters = () => {
         onCategoryChange('all');
         onPriceRangeChange([0, 1000]);
+        onSortChange('newest');
     };
 
     return (
@@ -52,6 +57,11 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                     <Badge variant="outline" className="text-xs">
                         {priceRange[0]}-{priceRange[1]}
                     </Badge>
+                    {selectedSort !== 'newest' && (
+                        <Badge variant="outline" className="text-xs capitalize">
+                            {selectedSort.replace('-', ' ')}
+                        </Badge>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -59,7 +69,6 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                 <div>
                     <h3 className="text-sm font-medium mb-3">Item Type</h3>
                     <RadioGroup
-                        defaultValue="all"
                         value={selectedCategory}
                         onValueChange={onCategoryChange}
                     >
@@ -116,7 +125,7 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
 
                 <div>
                     <h3 className="text-sm font-medium mb-3">Sort By</h3>
-                    <RadioGroup defaultValue="newest">
+                    <RadioGroup value={selectedSort} onValueChange={onSortChange}>
                         <div className="flex items-center space-x-2 mb-2">
                             <RadioGroupItem value="newest" id="sort-newest" />
                             <Label htmlFor="sort-newest" className="cursor-pointer">Newest First</Label>

@@ -7,6 +7,7 @@ import { AppProvider } from "@/lib/context/app-context";
 import Link from "next/link";
 import { WalletConnector } from "@/components/wallet-connector";
 import { Toaster as SonnerToaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Charisma Launchpad | Contract Deployment",
@@ -226,6 +227,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
         <SonnerToaster richColors position="bottom-right" />
       </AppProvider>
     </body>
+    <Analytics />
   </html>
 );
 

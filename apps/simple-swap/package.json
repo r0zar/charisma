@@ -33,6 +33,7 @@
     "@stacks/transactions": "latest",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.3.0",
+    "@vercel/analytics": "^1.5.0",
     "@vercel/kv": "^3.0.0",
     "@vercel/og": "^0.6.8",
     "blaze-sdk": "workspace:*",

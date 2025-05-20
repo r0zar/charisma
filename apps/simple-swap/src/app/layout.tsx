@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { WalletProvider } from '../contexts/wallet-context';
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
@@ -47,6 +48,7 @@ export default function RootLayout({
           <Toaster richColors theme="dark" position="bottom-right" />
         </WalletProvider>
       </body>
+      <Analytics />
     </html>
   );
 }

@@ -6,6 +6,7 @@ import { AppProvider } from "@/lib/context/app-context";
 import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Charisma Invest | Maximize Your Stacks Yield",
@@ -77,6 +78,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
         </AppProvider>
       </ThemeProvider>
     </body>
+    <Analytics />
   </html>
 );
 

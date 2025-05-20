@@ -5,6 +5,7 @@ import { Providers } from './providers';
 import AppShell from '@/components/layout/AppShell';
 import { Toaster } from '@/components/ui/sonner';
 import { spaceGrotesk, dmMono, inter } from '@/styles/fonts';
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: 'Meme Roulette | Group Token Pumper',
@@ -51,6 +52,7 @@ export default function RootLayout({
           <Toaster position="bottom-right" />
         </Providers>
       </body>
+      <Analytics />
     </html>
   );
 }

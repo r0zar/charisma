@@ -28,6 +28,7 @@
     "@stacks/connect": "^8",
     "@stacks/encryption": "^6.11.0",
     "@stacks/transactions": "^7",
+    "@vercel/analytics": "^1.5.0",
     "@vercel/blob": "^0.22.0",
     "@vercel/kv": "^3.0.0",
     "class-variance-authority": "^0.7.1",

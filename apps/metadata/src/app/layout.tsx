@@ -6,6 +6,7 @@ import "./globals.css";
 import { AppProvider } from "@/lib/context/app-context";
 import Link from "next/link";
 import { WalletConnector } from "@/components/wallet-connector";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Charisma Metadata | Token Management",
@@ -203,6 +204,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
         </div>
       </AppProvider>
     </body>
+    <Analytics />
   </html>
 );
 

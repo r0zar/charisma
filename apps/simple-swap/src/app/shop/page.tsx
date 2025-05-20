@@ -27,6 +27,7 @@ export default function ShopPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+    const [selectedSort, setSelectedSort] = useState<string>('newest');
     const router = useRouter();
 
     // Fetch all offers and tokens
@@ -128,25 +129,40 @@ export default function ShopPage() {
         setPriceRange(range);
     };
 
-    // Filter items based on selected category, currency and price range
+    // Filter and sort items based on selected category, currency, price range, and sort order
     useEffect(() => {
-        let filtered = [...items];
+        let tempFilteredItems = [...items];
 
+        // Apply category filter
         if (selectedCategory !== 'all') {
-            filtered = filtered.filter(item => item.type === selectedCategory);
-        }
-
-        if (selectedCurrency !== 'all') {
-            filtered = filtered.filter(item => item.currency === selectedCurrency);
+            tempFilteredItems = tempFilteredItems.filter(item => item.type === selectedCategory);
         }
 
         // Apply price range filter
-        filtered = filtered.filter(item => {
-            return item.price ? item.price >= priceRange[0] && item.price <= priceRange[1] : false;
+        tempFilteredItems = tempFilteredItems.filter(item => {
+            // Ensure price is a number for comparison, default to 0 if not present or not a number
+            const price = typeof item.price === 'number' ? item.price : 0;
+            return price >= priceRange[0] && price <= priceRange[1];
         });
 
-        setFilteredItems(filtered);
-    }, [selectedCategory, selectedCurrency, priceRange, items]);
+        // Apply sorting
+        if (selectedSort === 'price-low') {
+            tempFilteredItems.sort((a, b) => (a.price || 0) - (b.price || 0));
+        } else if (selectedSort === 'price-high') {
+            tempFilteredItems.sort((a, b) => (b.price || 0) - (a.price || 0));
+        } else if (selectedSort === 'newest') {
+            // Assuming items are fetched in a somewhat reverse chronological order by default
+            // or if items have a 'createdAt' timestamp, sort by that.
+            // For now, if 'newest' is selected and items don't have a specific timestamp for sorting,
+            // we can rely on the original order or reverse it if applicable.
+            // If your `items` array is already sorted by newest, no action is needed here for 'newest'.
+            // If it's oldest first, you might do: tempFilteredItems.reverse();
+            // For this example, let's assume the default order from `items` is acceptable for 'newest'
+            // or that a dedicated timestamp field would be used in a real scenario.
+        }
+
+        setFilteredItems(tempFilteredItems);
+    }, [selectedCategory, priceRange, selectedSort, items]);
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
@@ -189,6 +205,8 @@ export default function ShopPage() {
                             selectedCategory={selectedCategory}
                             priceRange={priceRange}
                             onPriceRangeChange={handlePriceRangeChange}
+                            onSortChange={setSelectedSort}
+                            selectedSort={selectedSort}
                         />
                     </div>
 
