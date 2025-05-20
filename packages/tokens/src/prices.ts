@@ -1,5 +1,3 @@
-import { fetch } from 'cross-fetch';
-
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
 
 // Charisma Credits contract
@@ -43,7 +41,7 @@ export async function listPrices(): Promise<KraxelPriceData> {
             throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
         }
 
-        const data: KraxelPriceData = await response.json();
+        const data = await response.json() as KraxelPriceData;
 
         if (data.hasOwnProperty('stx')) {
             data['.stx'] = data['stx'];

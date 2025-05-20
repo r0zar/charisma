@@ -21,10 +21,7 @@ export default async function OfferPage({ params }: PageProps) {
     const { intentUuid } = params; // No need to await params
 
     // Construct the full offer URL for sharing
-    const headersList = await headers(); // Await the headers() call
-    const host = headersList.get('host') || "localhost:3000";
-    const protocol = headersList.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
-    const offerUrl = `${protocol}://${host}/shop/${intentUuid}`;
+    const offerUrl = `https://swap.charisma.rocks/shop/${intentUuid}`;
 
     // Fetch and process tokens
     const tokensRes = await listTokens();

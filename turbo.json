@@ -23,7 +23,8 @@
         "KV_REST_API_TOKEN",
         "KV_REST_API_READ_ONLY_TOKEN",
         "HIRO_API_KEY",
-        "SENTRY_AUTH_TOKEN"
+        "SENTRY_AUTH_TOKEN",
+        "NEXT_PUBLIC_TOKEN_CACHE_URL"
       ]
     },
     "test": {
