@@ -467,7 +467,7 @@ export function EnergyVaultCard({ vault }: EnergyVaultCardProps) {
                                     value={currentHarvestableEnergy}
                                     maxCapacity={maxCapacity}
                                     animationDuration={1000}
-                                    logBase={10} // Higher = more aggressive logarithmic curve
+                                    logBase={100} // Higher = more aggressive logarithmic curve
                                 />
                             </div>
                         </TooltipTrigger>
