@@ -44,7 +44,6 @@
     "typescript": "5.8.2"
   },
   "dependencies": {
-    "cross-fetch": "^4.1.0",
-    "lucide-react": "0.511.0"
+    "cross-fetch": "^4.1.0"
   }
 }

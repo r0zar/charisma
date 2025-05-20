@@ -36,8 +36,7 @@
     "@repo/tokens": "workspace:*",
     "@stacks/encryption": "latest",
     "@stacks/network": "latest",
-    "@stacks/transactions": "latest",
-    "lucide-react": "0.511.0"
+    "@stacks/transactions": "latest"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

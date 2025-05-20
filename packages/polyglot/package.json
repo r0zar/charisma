@@ -32,13 +32,11 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@repo/stacks": "workspace:*",
     "@stacks/blockchain-api-client": "^8.8.0",
     "@stacks/connect": "^8.1.9",
     "@stacks/network": "^7",
     "@stacks/stacks-blockchain-api-types": "^7.14.1",
-    "@stacks/transactions": "^7.0.5",
-    "lucide-react": "0.511.0"
+    "@stacks/transactions": "^7.0.5"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

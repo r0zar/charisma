@@ -36,7 +36,6 @@
     "@stacks/connect": "latest",
     "@stacks/network": "latest",
     "@stacks/transactions": "latest",
-    "lucide-react": "0.511.0",
     "zod": "^3.24.4"
   },
   "devDependencies": {

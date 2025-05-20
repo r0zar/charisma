@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",
-    "@repo/stacks": "workspace:*",
     "@stacks/connect": "^8",
     "@stacks/encryption": "^6.11.0",
     "@stacks/transactions": "^6.11.0",
