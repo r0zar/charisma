@@ -8,9 +8,10 @@ import Image from 'next/image';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { constructSip16MetadataObject } from '@/lib/metadata-service';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, Layers, Save, ArrowLeft, RefreshCcw, Loader2, PencilLine, Check, X, Upload, ImageIcon, Edit, FileJson, Copy } from 'lucide-react';
+import { Sparkles, Layers, Save, ArrowLeft, RefreshCcw, Loader2, PencilLine, Check, X, Upload, ImageIcon, Edit, FileJson, Copy, LinkIcon } from 'lucide-react';
 import { generateRandomSvgDataUri } from '@/lib/image-utils';
 import dynamic from 'next/dynamic';
+import { useToast } from '@/components/ui/use-toast';
 
 const ReactJson = dynamic(() => import('react-json-view'), { ssr: false });
 
@@ -24,6 +25,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
     const { authenticated, stxAddress, signMessage, loading: contextLoading } = useApp();
     const [token, setToken] = useState<TokenMetadata | null>(null);
     const [initializing, setInitializing] = useState(true);
+    const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [imageUrl, setImageUrl] = useState('');
     const [saving, setSaving] = useState(false);
@@ -495,6 +497,27 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                 status: 'error',
                 message: "Error generating/copying full data URI. Check console."
             });
+        }
+    };
+
+    const handleCopyApiUrl = () => {
+        if (typeof window !== 'undefined') {
+            const apiUrl = `${window.location.origin}/api/v1/metadata/${contractId}`;
+            navigator.clipboard.writeText(apiUrl)
+                .then(() => {
+                    toast({
+                        title: "API URL Copied",
+                        description: "The metadata API URL has been copied to your clipboard.",
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to copy API URL: ', err);
+                    toast({
+                        variant: "destructive",
+                        title: "Copy Failed",
+                        description: "Could not copy the API URL to your clipboard.",
+                    });
+                });
         }
     };
 
@@ -1013,6 +1036,14 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         className="gap-2 w-full sm:w-auto"
                                     >
                                         <Copy className="h-4 w-4" /> Generate & Copy Full Data URI
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleCopyApiUrl}
+                                        className="gap-2 w-full sm:w-auto"
+                                    >
+                                        <LinkIcon className="h-4 w-4" /> Copy API URL
                                     </Button>
                                 </div>
 
