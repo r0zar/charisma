@@ -134,6 +134,44 @@ export async function callReadOnlyFunction(
   }
 }
 
+
+/**
+ * Generic wrapper for calling read-only functions on Stacks smart contracts.
+ * Returns the raw response without parsing.
+ * 
+ * @param contractId The contract's address and name (e.g., SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.satoshibles).
+ * @param functionName The function to call
+ * @param args The arguments to pass to the function (should be properly formatted for Clarity)
+ * @param sender Optional sender address (defaults to contract address)
+ * @returns A promise that resolves to the raw contract call response
+ */
+export async function callReadOnly(
+  contractId: string,
+  functionName: string,
+  args: ClarityValue[] = []
+): Promise<any> {
+  try {
+    const [contractAddress, contractName] = contractId.split(".");
+    const endpoint = `/v2/contracts/call-read/${contractAddress}/${contractName}/${functionName}`;
+
+    const response = await apiClient.POST(endpoint as any, {
+      body: {
+        sender: contractAddress,
+        arguments: args.map(arg => cvToHex(arg)),
+      }
+    });
+
+    if (!response.data?.result) {
+      console.warn(response.error)
+      return null
+    };
+    return cvToValue(hexToCV(response.data.result));
+  } catch (error) {
+    console.error(`Error calling ${contractId}:`, error);
+    return null;
+  }
+}
+
 /**
  * Fetches the information for a specified smart contract.
  * @param contract_id The Stacks address and name of the contract (e.g., SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.satoshibles).
@@ -142,16 +180,20 @@ export async function callReadOnlyFunction(
  */
 export async function getContractInfo(
   contract_id: string,
-  unanchored?: boolean
+  unanchored: boolean = false
 ): Promise<ContractInfo | null> {
   try {
-    const { data } = await apiClient.GET(`/extended/v1/contract/${contract_id}` as any, {
+    const { response, data, error } = await apiClient.GET(`/extended/v1/contract/${contract_id}` as any, {
       params: {
         query: {
           unanchored,
         },
       },
     });
+    if (!response.ok) {
+      console.error(error)
+      throw new Error(`${error.error}: ${error.message}`);
+    }
     return data as ContractInfo;
   } catch (error: any) {
     if (error?.response?.status === 404) {

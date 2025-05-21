@@ -1,5 +1,5 @@
-import { describe, it, expect, jest } from "@jest/globals";
-import { fetchTokens, listPrices } from "..";
+import { describe, it, expect, jest, test } from "@jest/globals";
+import { listPrices, listTokens, Token } from "..";
 
 describe("@repo/tokens", () => {
 
@@ -8,10 +8,19 @@ describe("@repo/tokens", () => {
     expect(prices).toBeDefined();
   });
 
-  it('gets all tokens', async () => {
-    const tokens = await fetchTokens();
+});
+
+
+describe('Token Cache', () => {
+  it('should list tokens add create Token objects', async () => {
+    const tokens = await listTokens();
     expect(tokens).toBeDefined();
-    expect(Object.keys(tokens).length).toBeGreaterThan(0);
-    console.log(tokens);
+    expect(tokens.length).toBeGreaterThan(0);
+    // create Token objects
+    const tokenObjects = tokens
+      .filter((token) => token.identifier)
+      .filter((token) => token.contractId !== '.stx')
+      .map((token) => new Token(token));
+    console.log(tokenObjects.map((token) => token.contractId));
   });
 });

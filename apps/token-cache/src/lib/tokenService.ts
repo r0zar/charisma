@@ -1,6 +1,6 @@
 import { Cryptonomicon } from "../lib/cryptonomicon";
 import { kv } from "@vercel/kv";
-
+import { SIP10 } from "@repo/tokens";
 const cryptonomicon = new Cryptonomicon({
     debug: true,
     apiKey: process.env.HIRO_API_KEY,
@@ -59,10 +59,7 @@ export const addContractIdToManagedList = async (contractId: string): Promise<vo
  * @param forceRefresh - If true, bypasses the cache check and fetches fresh data.
  * @returns A promise resolving to the TokenMetadata or null if not found/error.
  */
-export const getTokenData = async (
-    contractId: string,
-    forceRefresh: boolean = false
-) => {
+export const getTokenData = async (contractId: string, forceRefresh: boolean = false): Promise<SIP10 | null> => {
     if (!contractId) {
         console.error("getTokenData called with empty contractId");
         return null;
@@ -72,49 +69,33 @@ export const getTokenData = async (
 
     try {
         // 1. Check cache first (unless forcing refresh)
-        let cachedData: any = null;
+        let cachedData: SIP10 | null = null;
         if (!forceRefresh) {
-            cachedData = await kv.get<any>(cacheKey);
+            cachedData = await kv.get<SIP10>(cacheKey);
             if (cachedData) {
-                // console.log(`Cache hit for ${contractId}`);
-
-                // Ensure contract_principal is set even for cached data
-                if (!cachedData.contract_principal) {
-                    cachedData.contract_principal = contractId;
-                    // Also update the refresh timestamp when fixing cached data
-                    cachedData.lastRefreshed = Date.now();
-                    // Update the cache with the fixed data
+                if (!cachedData.contractId) {
+                    cachedData.contractId = contractId;
                     await kv.set(cacheKey, cachedData, { ex: CACHE_DURATION_SECONDS });
-                    console.log(`Updated cached data for ${contractId} with contract_principal`);
                 }
-
                 return cachedData;
             }
             console.log(`Cache miss for ${contractId}, fetching from source.`);
         } else {
             // If forceRefresh, still get the cached data as baseline
-            cachedData = await kv.get<any>(cacheKey);
+            cachedData = await kv.get<SIP10>(cacheKey);
             console.log(`Force refresh requested for ${contractId}, fetching from source.`);
         }
 
         const tokenMetadata = await cryptonomicon.getTokenMetadata(contractId);
-        console.log(`Token metadata: ${JSON.stringify(tokenMetadata)}`);
 
-        let mergedData: any = null;
+        let mergedData: SIP10 | null = null;
         if (tokenMetadata) {
-            // Ensure contract_principal is set
-            if (!tokenMetadata.contract_principal) {
-                tokenMetadata.contract_principal = contractId;
-            }
+            if (!tokenMetadata.contractId) tokenMetadata.contractId = contractId;
 
-            // Add the last refreshed timestamp before caching
-            tokenMetadata.lastRefreshed = Date.now();
-
-            // Merge: use cachedData as baseline, only overwrite with defined fields from tokenMetadata
             if (cachedData) {
                 mergedData = { ...cachedData };
                 for (const key of Object.keys(tokenMetadata)) {
-                    const value = (tokenMetadata as any)[key];
+                    const value = tokenMetadata[key];
                     if (value !== undefined) {
                         (mergedData as any)[key] = value;
                     }
@@ -123,28 +104,19 @@ export const getTokenData = async (
                 mergedData = tokenMetadata;
             }
 
-            // 3. Cache the merged data
             await kv.set(cacheKey, mergedData, { ex: CACHE_DURATION_SECONDS });
-            console.log(`Cached data for ${contractId}`);
-
             return mergedData;
         } else {
             console.warn(`Failed to fetch metadata for ${contractId}`);
-            return cachedData; // Return cached data if available, else null
+            return cachedData;
         }
     } catch (error) {
         console.error(`Error fetching or caching data for ${contractId}:`, error);
-        // Attempt to return cached data even if there was an error during fetch/set
         try {
-            const cachedData = await kv.get<any>(cacheKey);
+            const cachedData = await kv.get<SIP10>(cacheKey);
             if (cachedData) {
                 console.warn(`Returning stale cache for ${contractId} due to error.`);
-
-                // Ensure contract_principal is set even for cached data in error case
-                if (!cachedData.contract_principal) {
-                    cachedData.contract_principal = contractId;
-                }
-
+                if (!cachedData.contractId) cachedData.contractId = contractId;
                 return cachedData;
             }
         } catch (cacheError) {
@@ -169,13 +141,8 @@ export const getAllTokenData = async (): Promise<any[]> => {
     }
 
     let cacheHitCount = 0;
-    // 2. Fetch data for each ID (this uses the existing getTokenData with its caching)
     const allDataPromises = managedTokenIds.map(id => {
-        // We need to know if getTokenData hit the cache or not.
-        // Modify getTokenData slightly to return this info, or infer it here.
-        // Inferring: Check KV directly before calling getTokenData.
-        // This adds extra reads but avoids modifying getTokenData return signature.
-        return kv.get<any>(getCacheKey(id)).then(cached => {
+        return kv.get(getCacheKey(id)).then(cached => {
             if (cached) cacheHitCount++;
             return getTokenData(id); // Now call the actual function
         });
@@ -184,13 +151,11 @@ export const getAllTokenData = async (): Promise<any[]> => {
 
     const successfulData = allDataResults
         .filter(result => result.status === 'fulfilled' && result.value !== null)
-        .map((result, index) => {
-            const tokenData = (result as PromiseFulfilledResult<any>).value;
-            // Double-check that contract_principal is set for every token
-            if (!tokenData.contract_principal) {
-                tokenData.contract_principal = managedTokenIds[index];
-                console.log(`Fixed missing contract_principal for ${managedTokenIds[index]} in getAllTokenData`);
-            }
+        .map((result: any, index) => {
+            const tokenData = result.value;
+            if (!tokenData.contract_principal) tokenData.contract_principal = managedTokenIds[index]
+            if (!tokenData.contractId) tokenData.contractId = managedTokenIds[index]
+
             return tokenData;
         });
 

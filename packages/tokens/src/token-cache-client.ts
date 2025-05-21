@@ -1,7 +1,8 @@
-import Token from "./token";
+import { SIP10 } from "./token";
 
-const isDevelopment = () => {
-    return process.env.NODE_ENV === 'development';
+const TOKEN_CACHE = process.env.NEXT_PUBLIC_TOKEN_CACHE_URL || process.env.TOKEN_CACHE_URL || 'https://tokens.charisma.rocks'
+if (!TOKEN_CACHE) {
+    throw new Error('TOKEN_CACHE is not set');
 }
 
 /**
@@ -144,8 +145,8 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
 /**
  * Retrieve a list of all known SIP-10 tokens from the token-cache service.
  */
-export async function listTokens(): Promise<TokenCacheData[]> {
-    const url = `${process.env.NEXT_PUBLIC_TOKEN_CACHE_URL}/api/v1/sip10`;
+export async function listTokens(): Promise<SIP10[]> {
+    const url = `${TOKEN_CACHE}/api/v1/sip10`;
 
     console.log(`Fetching tokens from ${url}`);
     try {
@@ -166,23 +167,11 @@ export async function listTokens(): Promise<TokenCacheData[]> {
         // Optional: Basic validation/transformation on each item if needed
         // For now, we assume the API returns valid TokenCacheData[]
         // If not, map and validate similar to getTokenMetadataCached
-        return tokensArray as TokenCacheData[];
+        return tokensArray as SIP10[];
 
     } catch (err) {
         console.error(`Failed to fetch or parse token list:`, err);
         // Return empty array or throw error
         return [];
     }
-} 
-
-/**
- * Fetch all tokens from the token-cache service and return them as a map of contract ID to Token object.
- */
-export async function fetchTokens(): Promise<Record<string, Token>> {
-    const tokens = await listTokens();
-    return tokens.reduce((acc, token) => {
-        if (!token.contractId) return acc;
-        acc[token.contractId] = new Token(token);
-        return acc;
-    }, {} as Record<string, Token>);
 }
