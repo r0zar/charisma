@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
-import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
+import { SIP10 } from '@repo/tokens';
 import ShopClientPage from '@/components/shop/ShopPage';
-import { ShopItemType, ShopItem as ShopItemInterface } from '@/types/shop';
+import { ShopItem as ShopItemInterface } from '@/types/shop';
 import { listTokens } from "@repo/tokens";
 import { kv } from '@vercel/kv';
 import { getOffer } from '@/lib/otc/kv';
@@ -9,9 +9,9 @@ import { getOffer } from '@/lib/otc/kv';
 // Server component to fetch data
 export default async function ShopPage() {
     const result = await listTokens();
-    const tokenMap: any = {}
+    const tokenMap: Record<string, SIP10> = {}
     result.forEach((token) => {
-        tokenMap[token.contract_principal as string] = token;
+        tokenMap[token.contractId] = token;
     });
 
     // Fetch offer keys
@@ -72,7 +72,7 @@ async function fetchOffers(keys: string[]): Promise<any[]> {
 }
 
 // Helper function to transform offers data into shop items
-function transformOffersToItems(offersData: any[], tokenMap: Record<string, TokenCacheData>): ShopItemInterface[] {
+function transformOffersToItems(offersData: any[], tokenMap: Record<string, SIP10>): ShopItemInterface[] {
     return offersData
         .filter(result => result.status === 'open')
         .map(result => {
@@ -89,7 +89,7 @@ function transformOffersToItems(offersData: any[], tokenMap: Record<string, Toke
 }
 
 // Helper function to create the HOOT token item
-function createHootTokenItem(tokenMap: Record<string, TokenCacheData>): ShopItemInterface {
+function createHootTokenItem(tokenMap: Record<string, any>): ShopItemInterface {
     return {
         id: 'hooter-farm',
         type: 'token',

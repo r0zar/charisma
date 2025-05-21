@@ -26,7 +26,7 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
         }) : 'N/A';
 
     // Get contract ID for explorer link
-    const contractId = token.contractId || token.contract_principal || '';
+    const contractId = token.contractId || '';
 
     // Truncate contract ID for display
     const truncateAddress = (address: string) => {

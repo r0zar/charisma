@@ -15,7 +15,6 @@ export interface Token {
     supply?: number;
     image?: string;
     description?: string;
-    contract_principal?: string;
 }
 
 /**
@@ -217,7 +216,6 @@ export class Cryptonomicon {
                 decimals: 6,
                 description: "The native token of the Stacks blockchain",
                 image: "https://charisma.rocks/stx-logo.png",
-                contract_principal: ".stx"
             };
         }
 
@@ -235,7 +233,6 @@ export class Cryptonomicon {
                     decimals: metadata.decimals!,
                     description: metadata.description || "",
                     image: metadata.image || "",
-                    contract_principal: metadata.contract_principal || contractId
                 };
             }
 
@@ -255,7 +252,6 @@ export class Cryptonomicon {
                 decimals: decimals!,
                 description: "",
                 image: "",
-                contract_principal: contractId
             };
         } catch (error) {
             if (this.config.debug) {

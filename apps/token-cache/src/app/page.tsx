@@ -1,7 +1,7 @@
 import { getAllTokenData } from "@/lib/tokenService";
-import ClientWrapper from "@/components/ClientWrapper";
 import { Metadata } from 'next';
 import { List } from 'lucide-react'; // Import an icon
+import ClientPage from "@/components/ClientPage";
 
 // Update metadata if needed
 export const metadata: Metadata = {
@@ -24,8 +24,7 @@ export default async function HomePage() {
         Use the inspector tool to check specific tokens or refresh their data.
       </p>
 
-      {/* Render the client wrapper which likely contains the token list UI */}
-      <ClientWrapper initialTokens={tokens} />
+      <ClientPage initialTokens={tokens} />
     </main>
   );
 }

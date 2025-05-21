@@ -11,17 +11,15 @@ if (!TOKEN_CACHE) {
  */
 export interface TokenCacheData {
     type: string;
-    contractId?: string;
+    contractId: string;
     name: string;
     description?: string | null;
     image?: string | null;
     lastUpdated?: number | null;
     decimals?: number;
-    symbol?: string;
+    symbol: string;
     token_uri?: string | null;
-    contract_principal?: string | null;
-    error?: string | null;
-    identifier?: string | null;
+    identifier: string;
     total_supply?: string | null;
     tokenAContract?: string | null;
     tokenBContract?: string | null;
@@ -39,24 +37,17 @@ interface TokenCacheResponse {
 
 // --------------------------- helpers ---------------------------
 function createDefaultTokenData(contractId: string): TokenCacheData {
-    const [principal, contractName] = contractId.split('.');
-    const defaultName = (contractName || 'UnknownContract')
-        .replace(/-/g, ' ')
-        .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
-    const defaultSymbol = (contractName || '').substring(0, 5).toUpperCase();
 
     return {
         contractId,
-        name: defaultName,
-        description: 'Default data - cache unavailable',
+        name: '',
+        description: '',
         image: null,
         lastUpdated: null,
-        decimals: 6, // sensible default until fetched
-        symbol: defaultSymbol,
+        decimals: 6,
+        symbol: '',
         token_uri: null,
-        contract_principal: principal && contractName ? `${principal}.${contractName}` : contractId,
-        error: 'Cache data unavailable',
-        identifier: null,
+        identifier: '',
         total_supply: null,
         tokenAContract: null,
         tokenBContract: null,
@@ -105,27 +96,12 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
                         ? Number(result.data.decimals)
                         : defaults.decimals,
                 contractId: result.data.contractId || defaults.contractId,
-                error: result.data.error || null,
                 // Ensure new fields are also merged appropriately, falling back to defaults if not present or wrong type
                 type: typeof result.data.type === 'string' ? result.data.type : defaults.type,
                 lpRebatePercent: typeof result.data.lpRebatePercent === 'number' ? result.data.lpRebatePercent : defaults.lpRebatePercent,
                 externalPoolId: typeof result.data.externalPoolId === 'string' ? result.data.externalPoolId : defaults.externalPoolId,
                 engineContractId: typeof result.data.engineContractId === 'string' ? result.data.engineContractId : defaults.engineContractId,
             };
-
-            // If anything critical dropped back to the default value, make a note in the error field.
-            if (
-                merged.name === defaults.name ||
-                merged.symbol === defaults.symbol ||
-                merged.decimals === defaults.decimals
-            ) {
-                merged.error = merged.error ? `${merged.error}; partially defaulted` : 'partially defaulted';
-            }
-
-            // Clear default error when data came back fine.
-            if (merged.error === 'Cache data unavailable' && !result.data.error) {
-                merged.error = null;
-            }
 
             return merged;
         }

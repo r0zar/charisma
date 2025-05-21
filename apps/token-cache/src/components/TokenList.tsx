@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, startTransition, useRef, useEffect } from 'react';
+import { useState, startTransition, useRef, useEffect } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 import { removeTokenFromList, refreshTokenData } from '@/app/actions';
@@ -8,9 +8,15 @@ import { Input } from "@/components/ui/input"; // Use shadcn Input
 import { Button } from "@/components/ui/button"; // Use shadcn Button
 import { Card, CardContent } from "@/components/ui/card"; // Added Card import
 import { toast } from "sonner";
-import ReactJson from 'react-json-view';
 import { Loader2, Search, RefreshCw, Trash2, ChevronDown } from 'lucide-react'; // Added icons
-import { Token } from '@/lib/cryptonomicon';
+import { TokenCacheData } from '@repo/tokens';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ReactJson with SSR disabled
+const ReactJson = dynamic(() => import('react-json-view'), {
+    ssr: false,
+    loading: () => <p className="text-sm text-muted-foreground p-4">Loading JSON viewer...</p>
+});
 
 // Helper to check if a string looks like a Stacks contract ID (basic check)
 const looksLikeContractId = (id: string): boolean => {
@@ -36,18 +42,10 @@ const truncateContractId = (contractId: string, prefixLength = 4, suffixLength =
 };
 
 interface TokenListProps {
-    initialTokens: Token[];
+    initialTokens: TokenCacheData[];
     isDevelopment: boolean;
     initialSearchTerm?: string;
 }
-
-// Unified status message type
-type StatusMessage = {
-    id: string;
-    type: 'success' | 'error' | 'info' | 'loading';
-    message: string;
-    timestamp: number;
-};
 
 /**
  * Formats the raw total supply using the token's decimals.
@@ -80,52 +78,30 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
     const [isLookingUp, setIsLookingUp] = useState(false);
     const [removingTokenId, setRemovingTokenId] = useState<string | null>(null);
     const [refreshingTokenId, setRefreshingTokenId] = useState<string | null>(null);
-    const [statusMessages, setStatusMessages] = useState<StatusMessage[]>([]);
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const messageTimeoutRef = useRef<NodeJS.Timeout[]>([]);
     const searchPerformedRef = useRef(false);
-
-    // Clear message timeouts on unmount
-    useEffect(() => {
-        return () => {
-            messageTimeoutRef.current.forEach(timeout => clearTimeout(timeout));
-        };
-    }, []);
 
     // Effect to handle initialSearchTerm
     useEffect(() => {
         if (initialSearchTerm && !searchPerformedRef.current) {
             setSearchTerm(initialSearchTerm);
             if (looksLikeContractId(initialSearchTerm) &&
-                !initialTokens.some(token => token.contract_principal === initialSearchTerm)) {
+                !initialTokens.some(token => token.contractId === initialSearchTerm)) {
                 handleLookup(initialSearchTerm);
                 searchPerformedRef.current = true;
             }
         }
     }, [initialSearchTerm, initialTokens]);
 
-    // Add a status message using toast
-    const showStatusToast = (type: StatusMessage['type'], message: string) => {
-        switch (type) {
-            case 'success': toast.success(message); break;
-            case 'error': toast.error(message); break;
-            case 'info': toast.info(message); break;
-            case 'loading': toast.loading(message); break; // Use toast.loading
-            default: toast(message);
-        }
-    };
-
-    const filteredTokens = useMemo(() => {
-        if (!searchTerm) {
-            return initialTokens;
-        }
-        const lowerCaseSearchTerm = searchTerm.toLowerCase();
-        return initialTokens.filter(
+    // replace this with usestate and useEffect
+    const [filteredTokens, setFilteredTokens] = useState<TokenCacheData[]>(initialTokens);
+    useEffect(() => {
+        setFilteredTokens(initialTokens.filter(
             (token) =>
-                token.name?.toLowerCase().includes(lowerCaseSearchTerm) ||
-                token.symbol?.toLowerCase().includes(lowerCaseSearchTerm) ||
-                token.contract_principal?.toLowerCase().includes(lowerCaseSearchTerm)
-        );
+                token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                token.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                token.contractId?.toLowerCase().includes(searchTerm.toLowerCase())
+        ));
     }, [initialTokens, searchTerm]);
 
     const toggleExpand = (contractId: string) => {
@@ -169,6 +145,8 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                 if (result.success) {
                     toast.success(`Removed ${truncateContractId(contractId)}. Refresh page to see updated list.`, { id: loadingToastId });
                     router.refresh(); // Re-fetch server data after successful removal
+                    // optimistically remove the token from the list
+                    setFilteredTokens(filteredTokens.filter(token => token.contractId !== contractId));
                 } else {
                     toast.error(result.error || 'Failed to remove token.', { id: loadingToastId });
                 }
@@ -249,17 +227,17 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
             {filteredTokens.length > 0 && (
                 <ul className="space-y-3">
                     {filteredTokens.map((token) => {
-                        const isExpanded = expandedTokens[token.contract_principal || ''] || false;
-                        const isRemoving = removingTokenId === token.contract_principal;
-                        const isRefreshing = refreshingTokenId === token.contract_principal;
+                        const isExpanded = expandedTokens[token.contractId || ''] || false;
+                        const isRemoving = removingTokenId === token.contractId;
+                        const isRefreshing = refreshingTokenId === token.contractId;
                         const isLoading = isRemoving || isRefreshing;
 
                         return (
-                            <li key={token.contract_principal} className={`border rounded-lg overflow-hidden transition-all duration-300 ${isLoading ? 'opacity-70' : ''} ${isExpanded ? 'shadow-md bg-muted/30' : 'bg-card shadow-sm hover:shadow'}`}>
+                            <li key={token.contractId} className={`border rounded-lg overflow-hidden transition-all duration-300 ${isLoading ? 'opacity-70' : ''} ${isExpanded ? 'shadow-md bg-muted/30' : 'bg-card shadow-sm hover:shadow'}`}>
                                 {/* Main Row */}
                                 <div
                                     className={`flex items-center p-4 gap-4 ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
-                                    onClick={() => !isLoading && toggleExpand(token.contract_principal || '')}
+                                    onClick={() => !isLoading && toggleExpand(token.contractId || '')}
                                 >
                                     {/* Image */}
                                     <div className="flex-shrink-0">
@@ -286,9 +264,9 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                                 <span className="font-semibold text-base block text-foreground">{token.name || '(No Name)'}</span>
                                                 <span className="text-muted-foreground">({token.symbol || '?'})</span>
                                             </div>
-                                            <p className="text-xs text-muted-foreground break-all font-mono" title={token.contract_principal}>{truncateContractId(token.contract_principal || '', 4, 4)}</p>
+                                            <p className="text-xs text-muted-foreground break-all font-mono" title={token.contractId}>{truncateContractId(token.contractId || '', 4, 4)}</p>
                                         </div>
-                                        <div className="md:col-span-2 overflow-hidden text-muted-foreground" title={token.description}>
+                                        <div className="md:col-span-2 overflow-hidden text-muted-foreground" title={token.description || ''}>
                                             <p className="line-clamp-2">
                                                 {token.description || '-'}
                                             </p>
@@ -296,7 +274,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                         <div className="text-left md:text-right">
                                             <span className="block font-medium text-foreground">Total Supply</span>
                                             <span className="block text-muted-foreground">
-                                                {formatSupplyWithDecimals(token.supply, token.decimals)}
+                                                {formatSupplyWithDecimals(token.total_supply, token.decimals)}
                                             </span>
                                         </div>
                                     </div>
@@ -306,7 +284,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={(e) => { e.stopPropagation(); handleRefresh(token.contract_principal || ''); }}
+                                            onClick={(e) => { e.stopPropagation(); handleRefresh(token.contractId || ''); }}
                                             disabled={isLoading}
                                             aria-label={`Refresh ${token.symbol}`}
                                             title="Refresh Token Data"
@@ -318,7 +296,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={(e) => { e.stopPropagation(); handleRemove(token.contract_principal || ''); }}
+                                                onClick={(e) => { e.stopPropagation(); handleRemove(token.contractId || ''); }}
                                                 disabled={isLoading}
                                                 aria-label={`Remove ${token.symbol}`}
                                                 title="Remove (Dev Only)"
@@ -339,7 +317,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                 </div>
 
                                 {/* Expanded JSON View */}
-                                {isExpanded && (
+                                {/* {isExpanded && (
                                     <div className="border-t border-border bg-muted/50 animate-fadeDown">
                                         <ReactJson
                                             src={token}
@@ -351,14 +329,12 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                             style={{ padding: '1rem', background: 'transparent' }}
                                         />
                                     </div>
-                                )}
+                                )} */}
                             </li>
                         );
                     })}
                 </ul>
             )}
-
-            {/* Removed global styles, rely on Tailwind/theme */}
         </div>
     );
 }

@@ -10,7 +10,6 @@ interface TokenCacheData {
     decimals: number;
     symbol: string;
     token_uri?: string | null; // Note the underscore
-    contract_principal?: string | null; // The actual principal used for calls?
     error?: string | null; // API might include error details even on success? Or mark if data is default
     identifier?: string | null;
     totalSupply?: string | null; // Keep this if API might include it
@@ -42,7 +41,6 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
         decimals: 6, // Default to 6 decimals as a guess
         symbol: defaultSymbol,
         token_uri: null,
-        contract_principal: parts[0] ? `${parts[0]}.${contractName}` : contractId, // Best guess
         error: 'Cache data unavailable', // Mark that this is default data
         identifier: null,
         totalSupply: null,

@@ -17,12 +17,9 @@ import {
 import { truncateAddress } from "@/lib/utils/token-utils";
 import { generateLiquidityPoolContract, LiquidityPoolOptions } from "@/lib/templates/liquidity-pool-contract-template";
 import { TokenMetadata } from "@/lib/metadata-service";
-import {
-    Image as ImageIconLucide,
-    Check,
-} from "lucide-react";
+import { Check } from "lucide-react";
 import { PostCondition } from "@stacks/connect/dist/types/methods";
-import { TokenSelectionStep, type EnhancedToken as WizardToken } from "@/components/liquidity-pool-wizard/token-selection-step";
+import { TokenSelectionStep } from "@/components/liquidity-pool-wizard/token-selection-step";
 import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-step";
 import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
 import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
@@ -683,27 +680,7 @@ function LiquidityPoolWizard() {
         }
     };
 
-    // Helper function to adapt WizardToken (EnhancedToken) to TokenCacheData
-    const adaptWizardTokenToCacheData = (wizardToken: WizardToken): TokenCacheData => {
-        return {
-            ...wizardToken, // Spread existing compatible fields
-            contractId: wizardToken.address,
-            contract_principal: wizardToken.address,
-            decimals: wizardToken.decimals ?? 0,
-            total_supply: wizardToken.total_supply !== undefined && wizardToken.total_supply !== null
-                ? String(wizardToken.total_supply)
-                : undefined,
-            identifier: wizardToken.identifier || wizardToken.symbol,
-            name: wizardToken.name || wizardToken.symbol || 'Unknown Token',
-            symbol: wizardToken.symbol || 'UNK',
-            // Ensure any other fields *required* by TokenCacheData and not present on WizardToken
-            // are explicitly added here with default/null values.
-            // For example, if TokenCacheData requires 'ft', 'nft', 'lastRefreshed', they must be handled.
-            // Assuming for now they are optional or will be added to WizardToken if strictly required.
-        } as any;
-    };
-
-    const handleSelectToken1 = (selectedToken: WizardToken) => {
+    const handleSelectToken1 = (selectedToken: Token) => {
         console.log("Selected token 1:", selectedToken);
         setToken1(selectedToken.symbol || "");
         setToken1Address(selectedToken.address); // Use selectedToken.address
@@ -727,7 +704,7 @@ function LiquidityPoolWizard() {
         // Do not automatically advance here, let TokenSelectionStep handle it
     };
 
-    const handleSelectToken2 = (selectedToken: WizardToken) => {
+    const handleSelectToken2 = (selectedToken: Token) => {
         console.log("Selected token 2:", selectedToken);
         setToken2(selectedToken.symbol || "");
         setToken2Address(selectedToken.address); // Use selectedToken.address
@@ -779,8 +756,8 @@ function LiquidityPoolWizard() {
         }
         return false;
     }).map((token, index) => {
-        // Check for subnet using contract_principal from the original TokenCacheData
-        const isSubnet = !!token.contract_principal?.includes('subnet');
+        // Check for subnet using contractId from the original TokenCacheData
+        const isSubnet = !!token.contractId?.includes('subnet');
         // Check if it's an LP token by looking for specific properties
         const isLpToken = !!(token.tokenAContract && token.tokenBContract);
 

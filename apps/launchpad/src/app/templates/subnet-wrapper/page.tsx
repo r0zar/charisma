@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { generateSubnetWrapper } from '@/lib/contract-generators/subnet-wrapper';
-import { getTokenMetadataCached, listTokens, TokenCacheData } from '@repo/tokens'
+import { getTokenMetadataCached, listTokens, SIP10, TokenCacheData } from '@repo/tokens'
 import Image from 'next/image';
 
 // Schema for form validation
@@ -109,7 +109,7 @@ const TokenSelectionStep = ({
     onCustomSubmit
 }: {
     onSelect: (token: string) => void;
-    onCustomSubmit: (contract_principal: string) => void;
+    onCustomSubmit: (contractId: string) => void;
 }) => {
     const [showCustomInput, setShowCustomInput] = useState(false);
     const [customAddress, setCustomAddress] = useState("");
@@ -123,18 +123,18 @@ const TokenSelectionStep = ({
     const [fetchedToken, setFetchedToken] = useState<TokenCacheData | null>(null);
 
     // State for token list
-    const [tokens, setTokens] = useState<TokenCacheData[]>([]);
-    const [filteredTokens, setFilteredTokens] = useState<TokenCacheData[]>([]);
+    const [tokens, setTokens] = useState<SIP10[]>([]);
+    const [filteredTokens, setFilteredTokens] = useState<SIP10[]>([]);
 
     // Function to fetch token metadata by contract ID
-    const fetchTokenMetadata = async (contract_principal: string) => {
-        if (!contract_principal.trim()) {
+    const fetchTokenMetadata = async (contractId: string) => {
+        if (!contractId.trim()) {
             setCustomError("Contract address is required");
             return;
         }
 
         // Basic validation for Stacks contract address format
-        if (!/^[A-Z0-9]+\.[a-zA-Z0-9-]+$/.test(contract_principal)) {
+        if (!/^[A-Z0-9]+\.[a-zA-Z0-9-]+$/.test(contractId)) {
             setCustomError("Invalid contract address format. Should be like: SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token");
             return;
         }
@@ -144,7 +144,7 @@ const TokenSelectionStep = ({
 
         try {
             // Fetch token data from the API
-            const token = await getTokenMetadataCached(contract_principal);
+            const token = await getTokenMetadataCached(contractId);
 
             setFetchedToken(token);
         } catch (error) {
@@ -170,7 +170,7 @@ const TokenSelectionStep = ({
                 setError('Failed to load tokens. Using default list.');
 
                 // Fallback to a minimal default list
-                const defaultTokens: TokenCacheData[] = [];
+                const defaultTokens: SIP10[] = [];
                 setTokens(defaultTokens);
                 setFilteredTokens(defaultTokens);
             } finally {
@@ -193,7 +193,7 @@ const TokenSelectionStep = ({
             token =>
                 token.symbol?.toLowerCase().includes(query) ||
                 token.name?.toLowerCase().includes(query) ||
-                token.contract_principal?.toLowerCase().includes(query)
+                token.contractId?.toLowerCase().includes(query)
         );
 
         setFilteredTokens(filtered);
@@ -206,7 +206,7 @@ const TokenSelectionStep = ({
         }
 
         setCustomError(null);
-        onCustomSubmit(fetchedToken.contract_principal || "");
+        onCustomSubmit(fetchedToken.contractId || "");
 
         // Reset the custom input state
         setShowCustomInput(false);
@@ -310,7 +310,7 @@ const TokenSelectionStep = ({
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     <span className="block mb-1">Contract ID:</span>
-                                    <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.contract_principal}</span>
+                                    <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.contractId}</span>
                                 </div>
                             </div>
                         )}
@@ -354,11 +354,11 @@ const TokenSelectionStep = ({
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {filteredTokens.map((token) => (
-                                <div key={token.type + "-" + token.contract_principal}>
+                            {filteredTokens.map((token: any) => (
+                                <div key={token.type + "-" + token.contractId}>
                                     <Card
                                         className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                                        onClick={() => onSelect(token.contract_principal || "")}
+                                        onClick={() => onSelect(token.contractId || "")}
                                     >
                                         <div className="p-6 flex flex-col items-center">
                                             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
@@ -604,8 +604,8 @@ export default function SubnetWrapperWizard() {
     };
 
     // Token selection handlers
-    const handleSelectToken = (contract_principal: string) => {
-        setState(prev => ({ ...prev, tokenContract: contract_principal }));
+    const handleSelectToken = (contractId: string) => {
+        setState(prev => ({ ...prev, tokenContract: contractId }));
         nextStep();
     };
 

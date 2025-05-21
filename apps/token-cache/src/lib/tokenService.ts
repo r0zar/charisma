@@ -1,6 +1,6 @@
 import { Cryptonomicon } from "../lib/cryptonomicon";
 import { kv } from "@vercel/kv";
-import { SIP10 } from "@repo/tokens";
+import { TokenCacheData } from "@repo/tokens";
 const cryptonomicon = new Cryptonomicon({
     debug: true,
     apiKey: process.env.HIRO_API_KEY,
@@ -59,7 +59,7 @@ export const addContractIdToManagedList = async (contractId: string): Promise<vo
  * @param forceRefresh - If true, bypasses the cache check and fetches fresh data.
  * @returns A promise resolving to the TokenMetadata or null if not found/error.
  */
-export const getTokenData = async (contractId: string, forceRefresh: boolean = false): Promise<SIP10 | null> => {
+export const getTokenData = async (contractId: string, forceRefresh: boolean = false): Promise<TokenCacheData | null> => {
     if (!contractId) {
         console.error("getTokenData called with empty contractId");
         return null;
@@ -69,9 +69,9 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
 
     try {
         // 1. Check cache first (unless forcing refresh)
-        let cachedData: SIP10 | null = null;
+        let cachedData: TokenCacheData | null = null;
         if (!forceRefresh) {
-            cachedData = await kv.get<SIP10>(cacheKey);
+            cachedData = await kv.get<TokenCacheData>(cacheKey);
             if (cachedData) {
                 if (!cachedData.contractId) {
                     cachedData.contractId = contractId;
@@ -82,20 +82,20 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
             console.log(`Cache miss for ${contractId}, fetching from source.`);
         } else {
             // If forceRefresh, still get the cached data as baseline
-            cachedData = await kv.get<SIP10>(cacheKey);
+            cachedData = await kv.get<TokenCacheData>(cacheKey);
             console.log(`Force refresh requested for ${contractId}, fetching from source.`);
         }
 
         const tokenMetadata = await cryptonomicon.getTokenMetadata(contractId);
 
-        let mergedData: SIP10 | null = null;
+        let mergedData: TokenCacheData | null = null;
         if (tokenMetadata) {
             if (!tokenMetadata.contractId) tokenMetadata.contractId = contractId;
 
             if (cachedData) {
                 mergedData = { ...cachedData };
                 for (const key of Object.keys(tokenMetadata)) {
-                    const value = tokenMetadata[key];
+                    const value = tokenMetadata[key as keyof TokenCacheData];
                     if (value !== undefined) {
                         (mergedData as any)[key] = value;
                     }
@@ -113,7 +113,7 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
     } catch (error) {
         console.error(`Error fetching or caching data for ${contractId}:`, error);
         try {
-            const cachedData = await kv.get<SIP10>(cacheKey);
+            const cachedData = await kv.get<TokenCacheData>(cacheKey);
             if (cachedData) {
                 console.warn(`Returning stale cache for ${contractId} due to error.`);
                 if (!cachedData.contractId) cachedData.contractId = contractId;
@@ -131,7 +131,7 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
  *
  * @returns A promise resolving to an array of TokenMetadata objects.
  */
-export const getAllTokenData = async (): Promise<any[]> => {
+export const getAllTokenData = async (): Promise<TokenCacheData[]> => {
     // 1. Fetch the list of managed token IDs from KV
     const managedTokenIds = await getManagedTokenIds();
 
@@ -153,7 +153,6 @@ export const getAllTokenData = async (): Promise<any[]> => {
         .filter(result => result.status === 'fulfilled' && result.value !== null)
         .map((result: any, index) => {
             const tokenData = result.value;
-            if (!tokenData.contract_principal) tokenData.contract_principal = managedTokenIds[index]
             if (!tokenData.contractId) tokenData.contractId = managedTokenIds[index]
 
             return tokenData;

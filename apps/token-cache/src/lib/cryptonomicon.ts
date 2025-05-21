@@ -1,22 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { callReadOnlyFunction } from "@repo/polyglot";
-
-/**
- * Basic token information
- */
-export interface Token {
-    type: string;
-    contractId: string;
-    identifier?: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    supply?: number;
-    image?: string;
-    description?: string;
-    contract_principal?: string;
-}
+import { Token, TokenCacheData } from "@repo/tokens";
 
 /**
  * Configuration for the metadata service
@@ -54,69 +39,25 @@ export class Cryptonomicon {
      * @param contractId The contract ID to fetch metadata for
      * @returns TokenMetadata or null if not found
      */
-    async getTokenMetadata(contractId: string): Promise<any | null> {
+    async getTokenMetadata(contractId: string): Promise<TokenCacheData | null> {
         // Handle special case for STX token
         if (contractId === ".stx") {
             // Predefined metadata for native STX
             return {
                 type: "",
-                sip: 10, // STX conforms to SIP-010 interface conceptually
                 name: "Stacks Token",
                 symbol: "STX",
                 decimals: 6,
                 description: "The native token of the Stacks blockchain.",
-                image: "https://charisma.rocks/stx-logo.png", // Use a placeholder or official logo URL
+                image: "https://placehold.co/200?text=\?",
                 contractId: ".stx",
-                contract_principal: ".stx",
+                identifier: "",
             };
         }
 
-        let customSourceMetadata: any = {}; // Initialize for custom API data
-        // 1. Attempt to fetch from custom metadata API if configured
-        if (this.config.metadataApiBaseUrl) {
-            try {
-                const customApiUrl = `${this.config.metadataApiBaseUrl}/api/v1/metadata/${contractId}`.replace(/([^:]\/)\/+/g, "$1");
-                if (this.config.debug) console.debug(`[${contractId}] Attempting to fetch from custom metadata API: ${customApiUrl}`);
-                const response = await fetch(customApiUrl);
-
-                if (response.ok) {
-                    const customData = await response.json() as any;
-                    console.log(`[${contractId}] Custom API Data:`, customData);
-                    if (this.config.debug) console.debug(`[${contractId}] Custom API Data:`, customData);
-
-                    // Populate customSourceMetadata if data is useful, primarily name, description, image
-                    // but include any other relevant fields from the custom API response.
-                    if (customData && (customData.name || customData.description || customData.image)) {
-                        if (this.config.debug) console.debug(`[${contractId}] Data from custom metadata API will be used for merging.`);
-                        customSourceMetadata = {
-                            // Map all potential fields from customData that align with TokenMetadata
-                            ...customData, // Spread all fields from customData first
-                            // Explicitly ensure types or fallbacks for critical/expected fields if necessary
-                            name: customData.name || undefined,
-                            description: customData.description || undefined,
-                            image: customData.image || undefined,
-                            // Convert total_supply if it exists and is a string/number
-                            total_supply: customData.total_supply !== undefined ? Number(customData.total_supply) : undefined,
-                        };
-                    } else {
-                        if (this.config.debug) console.warn(`[${contractId}] Custom API data did not contain expected fields (name, description, image) or was empty.`);
-                    }
-                } else {
-                    if (this.config.debug) console.warn(`[${contractId}] Custom metadata API request failed: ${response.status} ${response.statusText}`);
-                }
-            } catch (customApiError) {
-                if (this.config.debug) {
-                    console.warn(`[${contractId}] Error fetching from custom metadata API:`, customApiError);
-                }
-                // If custom API fetch fails, customSourceMetadata remains empty, and we fall through
-            }
-        }
-
-        console.log(`[${contractId}] Custom Source Metadata:`, customSourceMetadata);
-
-        let externalMetadata: any = {};
+        let offChainMetadata: any = {};
         let fallbackContractData: any = {};
-        let apiMetadata: any = {};
+        let hiroApiMetadata: any = {};
         let tokenUri: string | null = null;
 
         try {
@@ -124,77 +65,71 @@ export class Cryptonomicon {
             try {
                 tokenUri = await this.getTokenUri(contractId); // Re-use existing method
                 if (tokenUri) {
-                    externalMetadata = await this.fetchMetadataFromUri(tokenUri);
-                    if (this.config.debug) console.debug(`[${contractId}] External URI (${tokenUri}) Data:`, externalMetadata);
+                    offChainMetadata = await this.fetchMetadataFromUri(tokenUri);
+                    console.log(`[${contractId}] External URI (${tokenUri}) Data:`, offChainMetadata);
                 }
             } catch (uriError) {
-                if (this.config.debug) {
-                    console.warn(`Failed to get or fetch from token_uri for ${contractId}: ${uriError}`);
-                }
+                console.warn(`Failed to get or fetch from token_uri for ${contractId}: ${uriError}`);
             }
 
-            // 2. Attempt to fetch from Hiro API
-            try {
-                const path = `/metadata/v1/ft/${contractId}`;
-                const baseUrl = "https://api.hiro.so";
-                const headers = new Headers({ 'Content-Type': 'application/json' });
-                const apiKey = this.config.apiKey || "";
-                if (apiKey) headers.set('x-api-key', apiKey);
-                const response = await fetch(`${baseUrl}${path}`, { headers });
+            console.log(`[${contractId}] External Metadata:`, offChainMetadata);
 
-                if (response.ok) {
-                    const rawApiData: any = await response.json();
-                    // Normalize Hiro structure (if necessary, adjust based on actual response)
-                    const normalizedApiData = {
-                        ...rawApiData,
-                        ...(rawApiData.metadata || {}),
-                        ...(rawApiData.properties || {}),
-                    };
-                    delete normalizedApiData.metadata;
-                    delete normalizedApiData.properties;
-                    delete normalizedApiData.generated;
+            // // 2. Attempt to fetch from Hiro API
+            // try {
+            //     const path = `/metadata/v1/ft/${contractId}`;
+            //     const baseUrl = "https://api.hiro.so";
+            //     const headers = new Headers({ 'Content-Type': 'application/json' });
+            //     const apiKey = this.config.apiKey || "";
+            //     if (apiKey) headers.set('x-api-key', apiKey);
+            //     const response = await fetch(`${baseUrl}${path}`, { headers });
 
-                    apiMetadata = {
-                        contractId: contractId,
-                        name: normalizedApiData.name,
-                        symbol: normalizedApiData.symbol,
-                        decimals: normalizedApiData.decimals,
-                        description: normalizedApiData.description,
-                        image: normalizedApiData.image_uri || normalizedApiData.image_canonical_uri,
-                        identifier: normalizedApiData.asset_identifier?.split("::")[1], // Extract identifier if present
-                        total_supply: normalizedApiData.total_supply?.value ? Number(normalizedApiData.total_supply.value) : undefined,
-                        // Add other relevant fields from Hiro API if needed
-                    };
-                    if (this.config.debug) console.debug(`[${contractId}] Hiro API Data:`, apiMetadata);
-                } else {
-                    if (this.config.debug) {
-                        console.warn(`Hiro API request failed for ${contractId}: ${response.status}`);
-                    }
-                }
-            } catch (apiError) {
-                if (this.config.debug) {
-                    console.warn(`Error fetching from Hiro API for ${contractId}: ${apiError}`);
-                }
-                // Continue even if Hiro API fails, we might have external or contract data
-            }
+            //     if (response.ok) {
+            //         const rawApiData: any = await response.json();
+            //         // Normalize Hiro structure (if necessary, adjust based on actual response)
+            //         const normalizedApiData = {
+            //             ...rawApiData,
+            //             ...(rawApiData.metadata || {}),
+            //             ...(rawApiData.properties || {}),
+            //         };
+            //         delete normalizedApiData.metadata;
+            //         delete normalizedApiData.properties;
+            //         delete normalizedApiData.generated;
+
+            //         hiroApiMetadata = {
+            //             contractId: contractId,
+            //             name: normalizedApiData.name,
+            //             symbol: normalizedApiData.symbol,
+            //             decimals: normalizedApiData.decimals,
+            //             description: normalizedApiData.description,
+            //             image: normalizedApiData.image_uri || normalizedApiData.image_canonical_uri,
+            //             identifier: normalizedApiData.asset_identifier?.split("::")[1], // Extract identifier if present
+            //             total_supply: normalizedApiData.total_supply?.value ? Number(normalizedApiData.total_supply.value) : undefined,
+            //             // Add other relevant fields from Hiro API if needed
+            //         };
+            //         if (this.config.debug) console.debug(`[${contractId}] Hiro API Data:`, hiroApiMetadata);
+            //     } else {
+            //         if (this.config.debug) {
+            //             console.warn(`Hiro API request failed for ${contractId}: ${response.status}`);
+            //         }
+            //     }
+            // } catch (apiError) {
+            //     console.warn(`Error fetching from Hiro API for ${contractId}: ${apiError}`);
+            // }
 
             // 3. Fetch essential data (name, symbol, decimals) directly from contract if needed
-            if (!apiMetadata.name || !apiMetadata.symbol || apiMetadata.decimals === undefined) {
-                try {
-                    const [name, symbol, decimals] = await Promise.all([
-                        this.getTokenName(contractId).catch(() => undefined),
-                        this.getTokenSymbol(contractId).catch(() => undefined),
-                        this.getTokenDecimals(contractId).catch(() => undefined)
-                    ]);
-                    // Assign ONLY name, symbol, decimals to fallback
-                    fallbackContractData = { name, symbol, decimals };
-                    if (this.config.debug) console.debug(`[${contractId}] Contract Fallback Data (Essentials):`, fallbackContractData);
-                } catch (contractError) {
-                    if (this.config.debug) {
-                        console.warn(`Failed to fetch basic info from contract ${contractId}: ${contractError}`);
-                    }
-                }
-            }
+            // if (!hiroApiMetadata.name || !hiroApiMetadata.symbol || hiroApiMetadata.decimals === undefined) {
+            //     try {
+            //         const [name, symbol, decimals] = await Promise.all([
+            //             this.getTokenName(contractId).catch(() => undefined),
+            //             this.getTokenSymbol(contractId).catch(() => undefined),
+            //             this.getTokenDecimals(contractId).catch(() => undefined)
+            //         ]);
+            //         // Assign ONLY name, symbol, decimals to fallback
+            //         fallbackContractData = { name, symbol, decimals };
+            //     } catch (contractError) {
+            //         console.warn(`Failed to fetch on-chain basic info from contract ${contractId}: ${contractError}`);
+            //     }
+            // }
 
             // 3b. ALWAYS try fetching total supply directly from the contract
             let onChainSupply: number | undefined = undefined;
@@ -211,24 +146,9 @@ export class Cryptonomicon {
 
             // 4. Merge data: Prioritize External -> Custom API -> Hiro API -> Contract Fallback
             const finalMetadata: any = {
-                ...this.filterUndefined(externalMetadata),         // Most precedent for many fields
                 ...this.filterUndefined(fallbackContractData),     // Least precedent
-                ...this.filterUndefined(apiMetadata),
-                ...this.filterUndefined(customSourceMetadata),     // Data from your custom API
-
-                // Explicitly set description and image with fallback chain
-                description: externalMetadata.description || customSourceMetadata.description || apiMetadata.description || fallbackContractData.description || "",
-                image: externalMetadata.image || customSourceMetadata.image || apiMetadata.image || fallbackContractData.image || "",
-
-                // token_uri: prioritize external, then custom, then direct contract call result (tokenUri)
-                token_uri: externalMetadata.token_uri || customSourceMetadata.token_uri || tokenUri || undefined,
-                contract_principal: contractId, // Always set this to the requested contractId
-
-                // Consolidate identifier and asset_identifier, prioritizing external, then custom, then api
-                identifier: externalMetadata.identifier || customSourceMetadata.identifier || apiMetadata.identifier || undefined,
-                asset_identifier: externalMetadata.asset_identifier || customSourceMetadata.asset_identifier ||
-                    externalMetadata.identifier || customSourceMetadata.identifier ||
-                    apiMetadata.identifier || undefined, // apiMetadata might only have 'identifier'
+                ...this.filterUndefined(offChainMetadata),         // Most precedent for many fields
+                // ...this.filterUndefined(hiroApiMetadata),
             };
 
             // 4b. Override total_supply with the on-chain value if fetched successfully
@@ -238,23 +158,14 @@ export class Cryptonomicon {
 
             if (this.config.debug) console.debug(`[${contractId}] Final Merged Metadata (Supply Overridden):`, finalMetadata);
 
-            // Basic validation: Ensure essential fields (name, symbol) are present
-            // Decimals are allowed to be undefined now.
-            if (!finalMetadata.name || !finalMetadata.symbol) {
+            if (!finalMetadata.name) {
                 if (this.config.debug) {
-                    // Adjusted warning message
                     console.warn(`Could not resolve essential metadata (name or symbol) for ${contractId}. Name: ${finalMetadata.name}, Symbol: ${finalMetadata.symbol}`);
                 }
                 // If name or symbol are missing after all attempts, return null
                 return null;
             }
 
-            // Add a debug warning if decimals is missing, but don't fail
-            if (finalMetadata.decimals === undefined && this.config.debug) {
-                console.warn(`Decimals information missing for ${contractId}. Proceeding without it.`);
-            }
-
-            // Cast to definitive type now that validation passed for required fields
             return finalMetadata;
         } catch (error) {
             if (this.config.debug) {
@@ -294,7 +205,7 @@ export class Cryptonomicon {
             metadataUri = uri.replace('ipfs://', this.config.ipfsGateway);
         }
 
-        if (!metadataUri.startsWith('http://') && !metadataUri.startsWith('https://')) {
+        if (!metadataUri.startsWith('http://') && !metadataUri.startsWith('https://') && !metadataUri.startsWith('data:application/json')) {
             if (this.config.debug) console.warn(`Invalid metadata URI scheme: ${metadataUri}`);
             return {};
         }
@@ -381,19 +292,18 @@ export class Cryptonomicon {
     /**
      * Get token information (unified method)
      */
-    async getTokenInfo(contractId: string): Promise<Token | null> {
+    async getTokenInfo(contractId: string): Promise<TokenCacheData | null> {
         // Handle special case for STX token
         if (contractId === ".stx") {
             return {
                 type: '',
                 contractId: ".stx",
                 identifier: "STX",
-                name: "Stacks Token",
+                name: "STX Token",
                 symbol: "STX",
                 decimals: 6,
                 description: "The native token of the Stacks blockchain",
                 image: "https://charisma.rocks/stx-logo.png",
-                contract_principal: ".stx"
             };
         }
 
@@ -411,7 +321,6 @@ export class Cryptonomicon {
                     decimals: metadata.decimals!,
                     description: metadata.description || "",
                     image: metadata.image || "",
-                    contract_principal: metadata.contract_principal || contractId
                 };
             }
 
@@ -425,13 +334,12 @@ export class Cryptonomicon {
             return {
                 type: '',
                 contractId,
-                identifier: undefined,
+                identifier: "",
                 name: name || "",
                 symbol: symbol || "",
                 decimals: decimals!,
                 description: "",
                 image: "",
-                contract_principal: contractId
             };
         } catch (error) {
             if (this.config.debug) {

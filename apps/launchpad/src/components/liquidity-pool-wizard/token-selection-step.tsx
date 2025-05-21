@@ -10,6 +10,7 @@ import { Loader2, Search, X, HelpCircle } from "lucide-react";
 
 // Define types locally or move to a shared types file
 interface Token {
+    contractId: string;
     symbol: string;
     name: string;
     address: string;
@@ -22,11 +23,6 @@ interface Token {
     total_supply?: string | null;
 }
 
-export interface EnhancedToken extends Token {
-    contract_principal?: string;
-}
-
-// TODO: Define these constants or import them if they live elsewhere
 const TOKEN_API_BASE_URL = process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000' // Assuming token-cache runs on 3000 locally
     : 'https://charisma-token-cache.vercel.app'; // Replace with your actual production URL
@@ -41,8 +37,8 @@ export const TokenSelectionStep = ({
     isLoadingTokens,
     tokenLoadError
 }: {
-    onSelectToken1: (token: EnhancedToken) => void;
-    onSelectToken2: (token: EnhancedToken) => void;
+    onSelectToken1: (token: Token) => void;
+    onSelectToken2: (token: Token) => void;
     token1Symbol: string;
     excludedToken?: string;
     predefinedTokens: Token[];
@@ -56,16 +52,10 @@ export const TokenSelectionStep = ({
 
     // Custom token fetch state
     const [isFetchingToken, setIsFetchingToken] = useState(false);
-    const [fetchedToken, setFetchedToken] = useState<EnhancedToken | null>(null);
+    const [fetchedToken, setFetchedToken] = useState<Token | null>(null);
 
-    // Token list state
-    const mapToEnhanced = (token: Token): EnhancedToken => ({
-        ...token,
-        contract_principal: token.address,
-        identifier: token.identifier || token.symbol,
-    });
 
-    const [filteredTokens, setFilteredTokens] = useState<EnhancedToken[]>(predefinedTokens.map(mapToEnhanced));
+    const [filteredTokens, setFilteredTokens] = useState<Token[]>(predefinedTokens);
     const [searchQuery, setSearchQuery] = useState("");
 
     // State to track image loading errors for the token list
@@ -107,13 +97,13 @@ export const TokenSelectionStep = ({
             // Check if custom token is LP
             const isLp = tokenInfo.symbol?.toUpperCase().includes('-LP') || tokenInfo.name?.toUpperCase().includes('-LP') || tokenInfo.properties?.tokenAContract || tokenInfo.properties?.tokenBContract || false;
 
-            const enhancedToken: EnhancedToken = {
+            const enhancedToken: Token = {
                 symbol: tokenInfo.symbol || 'Unknown',
                 name: tokenInfo.name || tokenInfo.symbol || 'Unknown Token',
-                address: tokenInfo.contract_principal || contractId,
+                address: tokenInfo.contractId || contractId,
                 description: tokenInfo.description || `${tokenInfo.symbol || 'Custom'} token`,
                 image: tokenInfo.image || tokenInfo.image_uri || '/placeholder-icon.svg',
-                contract_principal: tokenInfo.contract_principal || contractId,
+                contractId: tokenInfo.contractId || contractId,
                 decimals: tokenInfo.decimals === undefined ? 6 : Number(tokenInfo.decimals),
                 identifier: tokenInfo.identifier || tokenInfo.name || tokenInfo.symbol,
                 isSubnet: tokenInfo.isSubnet || false,
@@ -133,18 +123,18 @@ export const TokenSelectionStep = ({
 
     // Update filtered tokens when predefinedTokens change
     useEffect(() => {
-        setFilteredTokens(predefinedTokens.map(mapToEnhanced));
+        setFilteredTokens(predefinedTokens);
     }, [predefinedTokens]);
 
     // Filter tokens based on search query
     useEffect(() => {
         if (!searchQuery) {
-            setFilteredTokens(predefinedTokens.map(mapToEnhanced));
+            setFilteredTokens(predefinedTokens);
             return;
         }
 
         const query = searchQuery.toLowerCase();
-        const filtered = (predefinedTokens.map(mapToEnhanced)).filter(
+        const filtered = predefinedTokens.filter(
             token =>
                 token.symbol.toLowerCase().includes(query) ||
                 token.name.toLowerCase().includes(query) ||

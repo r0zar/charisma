@@ -19,7 +19,11 @@ export async function GET(req: NextRequest) {
 
     try {
         // Fetch all tokens using the existing service
-        const tokens = await getAllTokenData();
+        const cacheData = await getAllTokenData();
+
+        // Filter out tokens that don't have a contractId
+        const tokens = cacheData
+            .filter(token => token.symbol && token.image && token.decimals && token.contractId && token.identifier);
 
         // Return the tokens with CORS headers
         return NextResponse.json(tokens, {

@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { withAdminAuth } from '@/lib/auth';
-import { saveVaultData, VAULT_LIST_KEY } from "@/lib/vaultService";
-import { kv } from '@vercel/kv';
+import { saveVaultData } from "@/lib/vaultService";
 import { revalidatePath } from 'next/cache';
 
 // Define the expected structure for token data
@@ -13,7 +12,6 @@ interface TokenData {
     identifier?: string;
     description?: string;
     image?: string;
-    contract_principal?: string;
     // Add any other relevant fields from your Token type
 }
 

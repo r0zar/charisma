@@ -16,7 +16,6 @@ interface Token {
     supply?: number;
     image?: string;
     description?: string;
-    contract_principal?: string;
 }
 
 /**

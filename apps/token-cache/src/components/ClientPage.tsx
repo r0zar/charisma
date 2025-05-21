@@ -1,51 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { TokenMetadata } from "@repo/cryptonomicon";
 import TokenList from './TokenList';
-import { getAllTokenData } from "@/lib/tokenService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Info } from 'lucide-react';
+import { TokenCacheData } from '@repo/tokens';
 
-export default function ClientPage({ initialTokens = [] }: { initialTokens?: TokenMetadata[] }) {
-    const searchParams = useSearchParams();
-    const [tokens, setTokens] = useState<TokenMetadata[]>(initialTokens);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isLoading, setIsLoading] = useState(initialTokens.length === 0);
+export default function ClientPage({ initialTokens = [] }: { initialTokens?: TokenCacheData[] }) {
     const isDevelopment = process.env.NODE_ENV === 'development';
 
-    // Effect to handle URL search parameters
-    useEffect(() => {
-        const urlSearchParam = searchParams.get('search');
-        const contractIdParam = searchParams.get('contractId');
-        const term = urlSearchParam || contractIdParam || '';
-        setSearchTerm(term);
-    }, [searchParams]);
-
-    // Effect to fetch token data if not provided
-    useEffect(() => {
-        if (initialTokens.length === 0) {
-            const fetchData = async () => {
-                setIsLoading(true);
-                try {
-                    const data = await getAllTokenData();
-                    setTokens(data);
-                } catch (error) {
-                    console.error('Error fetching tokens:', error);
-                } finally {
-                    setIsLoading(false);
-                }
-            };
-            fetchData();
-        }
-    }, [initialTokens]);
-
     // Get an example contract ID for the API link, if tokens exist
-    const exampleContractId = tokens.length > 0 ? tokens[0].contract_principal : null;
+    const exampleContractId = initialTokens.length > 0 ? initialTokens[0].contractId : null;
     const exampleApiUrl = exampleContractId ? `/api/v1/sip10/${exampleContractId}` : null;
-    const exampleSearchUrl = exampleContractId ? `/?search=${exampleContractId}` : null;
 
     return (
         <div className="w-full">
@@ -73,15 +39,10 @@ export default function ClientPage({ initialTokens = [] }: { initialTokens?: Tok
                 </CardContent>
             </Card>
 
-            {isLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading tokens...</div>
-            ) : (
-                <TokenList
-                    initialTokens={tokens}
-                    isDevelopment={isDevelopment}
-                    initialSearchTerm={searchTerm}
-                />
-            )}
+            <TokenList
+                initialTokens={initialTokens}
+                isDevelopment={isDevelopment}
+            />
         </div>
     );
 } 
