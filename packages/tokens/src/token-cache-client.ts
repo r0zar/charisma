@@ -1,3 +1,4 @@
+import Token from "./token";
 
 const isDevelopment = () => {
     return process.env.NODE_ENV === 'development';
@@ -173,3 +174,15 @@ export async function listTokens(): Promise<TokenCacheData[]> {
         return [];
     }
 } 
+
+/**
+ * Fetch all tokens from the token-cache service and return them as a map of contract ID to Token object.
+ */
+export async function fetchTokens(): Promise<Record<string, Token>> {
+    const tokens = await listTokens();
+    return tokens.reduce((acc, token) => {
+        if (!token.contractId) return acc;
+        acc[token.contractId] = new Token(token);
+        return acc;
+    }, {} as Record<string, Token>);
+}
