@@ -1,8 +1,8 @@
 export * from './token-cache-client';
-export type { TokenCacheData } from './token-cache-client';
-export { listTokens } from './token-cache-client';
-export { getTokenMetadataCached } from './token-cache-client';
-
 export * from './prices';
-export { listPrices } from './prices';
+
+export type { TokenCacheData } from './token-cache-client';
 export type { KraxelPriceData } from './prices';
+
+export { getTokenMetadataCached, listTokens } from './token-cache-client';
+export { listPrices } from './prices';
