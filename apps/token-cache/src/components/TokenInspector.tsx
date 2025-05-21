@@ -27,8 +27,12 @@ interface InspectionResult {
     cacheError?: string | null;
 }
 
-export default function TokenInspector() {
-    const [contractId, setContractId] = useState('');
+interface TokenInspectorProps {
+    initialContractId?: string;
+}
+
+export default function TokenInspector({ initialContractId }: TokenInspectorProps) {
+    const [contractId, setContractId] = useState(initialContractId || '');
     const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -73,27 +77,44 @@ export default function TokenInspector() {
         }
     };
 
-    const handleInspect = async () => {
-        if (!looksLikeContractId(contractId)) {
-            toast.error('Invalid Contract ID format');
+    const handleInspect = useCallback(async (idToInspect?: string) => {
+        const targetId = idToInspect || contractId;
+        if (!looksLikeContractId(targetId)) {
+            if (idToInspect) { // Only show toast if it's an explicit call with bad ID
+                toast.error('Invalid Contract ID format for initial load');
+            }
             return;
         }
         setIsLoading(true);
         setIsEditing(false);
         setInspectionResult(null);
-        setLastInspectedId(contractId);
+        setLastInspectedId(targetId);
+        // Update the input field if we are inspecting a different ID (e.g. from prop)
+        if (targetId !== contractId) {
+            setContractId(targetId);
+        }
         try {
-            const result = await inspectTokenData(contractId);
+            const result = await inspectTokenData(targetId);
             setInspectionResult(result);
             setEditedCachedData(result.cachedData || null);
         } catch (err: any) {
             toast.error("Inspection failed", { description: err.message || 'Unknown error' });
-            setInspectionResult({ contractId, fetchError: err.message });
+            setInspectionResult({ contractId: targetId, fetchError: err.message });
             setEditedCachedData(null);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [contractId]);
+
+    useEffect(() => {
+        if (initialContractId && looksLikeContractId(initialContractId)) {
+            // Set contractId state and then call handleInspect
+            // We could call handleInspect directly with initialContractId,
+            // but setting the state ensures the input field reflects the ID.
+            setContractId(initialContractId);
+            handleInspect(initialContractId);
+        }
+    }, [initialContractId, handleInspect]);
 
     const handleRefresh = async () => {
         if (!lastInspectedId) return;
@@ -138,7 +159,7 @@ export default function TokenInspector() {
                         className="flex-grow"
                     />
                     <Button
-                        onClick={handleInspect}
+                        onClick={() => handleInspect()}
                         disabled={!looksLikeContractId(contractId) || isLoading || isRefreshing}
                         className="flex-shrink-0"
                     >

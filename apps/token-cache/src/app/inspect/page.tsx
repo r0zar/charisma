@@ -9,7 +9,9 @@ export const metadata: Metadata = {
     description: 'Inspect raw and cached token metadata.',
 };
 
-export default function InspectPage() {
+export default function InspectPage({ searchParams }: { searchParams?: { tokenId?: string } }) {
+    const tokenId = searchParams?.tokenId;
+
     return (
         <main className="container py-8">
             <div className="flex items-center gap-3 mb-6">
@@ -22,7 +24,7 @@ export default function InspectPage() {
             </p>
 
             {/* Render the inspector component */}
-            <TokenInspector />
+            <TokenInspector initialContractId={tokenId} />
         </main>
     );
 } 

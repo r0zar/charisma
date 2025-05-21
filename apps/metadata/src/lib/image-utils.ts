@@ -1,3 +1,6 @@
+import { PNG } from 'pngjs'
+import { randomBytes } from 'crypto'
+
 export const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
 export const getRandomInt = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -79,4 +82,17 @@ export const generateRandomSvgDataUri = (): string => {
     // 3. btoa to base64
     const base64Svg = btoa(unescape(encodeURIComponent(svgString)));
     return `data:image/svg+xml;base64,${base64Svg}`;
-}; 
+};
+
+export const genImageDataUri = (scale = 1): string => {
+    const size = Math.max(1, scale)
+    const png = new PNG({ width: size, height: size })
+    for (let y = 0; y < size; y++)
+        for (let x = 0; x < size; x++) {
+            const i = (y * size + x) * 4
+            const [r, g, b]: any = randomBytes(3)
+            png.data[i] = r; png.data[i + 1] = g; png.data[i + 2] = b; png.data[i + 3] = 255
+        }
+    const buf = PNG.sync.write(png)
+    return 'data:image/png;base64,' + buf.toString('base64')
+}

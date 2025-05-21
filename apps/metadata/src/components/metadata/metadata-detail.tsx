@@ -9,7 +9,7 @@ import { TokenMetadata } from '@/lib/metadata-service';
 import { constructSip16MetadataObject } from '@/lib/metadata-service';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Layers, Save, ArrowLeft, RefreshCcw, Loader2, PencilLine, Check, X, Upload, ImageIcon, Edit, FileJson, Copy, LinkIcon } from 'lucide-react';
-import { generateRandomSvgDataUri } from '@/lib/image-utils';
+import { generateRandomSvgDataUri, genImageDataUri } from '@/lib/image-utils';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -68,6 +68,9 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
     const router = useRouter();
 
     const [unsavedImageUrl, setUnsavedImageUrl] = useState('');
+
+    const [generatingSvg, setGeneratingSvg] = useState(false);
+    const [generatingPng, setGeneratingPng] = useState(false);
 
     // Memoize getFullMetadataObjectFromService
     const getFullMetadataObjectFromService = useCallback(() => {
@@ -440,18 +443,32 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
     };
 
     const handleGenerateRandomSvg = () => {
-        setGenerating(true);
+        setGeneratingSvg(true);
         setError('');
         setSuccess('');
         try {
             const dataUrl = generateRandomSvgDataUri();
             setUnsavedImageUrl(dataUrl);
-
         } catch (error) {
             console.error('Failed to generate random SVG:', error);
             setError('Failed to generate random SVG.');
         } finally {
-            setGenerating(false);
+            setGeneratingSvg(false);
+        }
+    };
+
+    const handleGenerateTinyPng = () => {
+        setGeneratingPng(true);
+        setError('');
+        setSuccess('');
+        try {
+            const dataUrl = genImageDataUri(1); // 1x1 PNG
+            setUnsavedImageUrl(dataUrl);
+        } catch (error) {
+            console.error('Failed to generate tiny PNG:', error);
+            setError('Failed to generate tiny PNG.');
+        } finally {
+            setGeneratingPng(false);
         }
     };
 
@@ -804,7 +821,9 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                             </svg>
                         </div>
-                        <div className="flex-1">{success}</div>
+                        <div className="flex-1 flex items-center gap-4">
+                            <span>{success}</span>
+                        </div>
                         <button onClick={() => setSuccess('')} className="ml-2 text-green-800/70 hover:text-green-800">✕</button>
                     </motion.div>
                 )}
@@ -877,29 +896,52 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                             {activeImageTab === 'random' && (
                                 <div className="space-y-3">
                                     <p className="text-sm text-muted-foreground">
-                                        Generate a unique, simple SVG image for your token.
+                                        Generate a unique, simple SVG or PNG image for your token.
                                     </p>
-                                    <Button
-                                        onClick={handleGenerateRandomSvg}
-                                        disabled={generating}
-                                        className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all
-                                            ${generating && activeImageTab === 'random'
-                                                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                                                : 'bg-gradient-to-r from-primary/90 to-primary/70 text-primary-foreground hover:from-primary hover:to-primary/80'
-                                            }`}
-                                    >
-                                        {generating && activeImageTab === 'random' ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <RefreshCcw className="h-4 w-4" />
-                                                Generate Random SVG
-                                            </>
-                                        )}
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={handleGenerateRandomSvg}
+                                            disabled={generatingSvg}
+                                            className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all
+                                                ${generatingSvg
+                                                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-primary/90 to-primary/70 text-primary-foreground hover:from-primary hover:to-primary/80'
+                                                }`}
+                                        >
+                                            {generatingSvg ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <RefreshCcw className="h-4 w-4" />
+                                                    Random SVG
+                                                </>
+                                            )}
+                                        </Button>
+                                        <Button
+                                            onClick={handleGenerateTinyPng}
+                                            disabled={generatingPng}
+                                            className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all
+                                                ${generatingPng
+                                                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-primary/90 to-primary/70 text-primary-foreground hover:from-primary hover:to-primary/80'
+                                                }`}
+                                        >
+                                            {generatingPng ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Generating...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <RefreshCcw className="h-4 w-4" />
+                                                    Tiny PNG
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
 
@@ -991,17 +1033,29 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                     <h3 className="text-lg font-medium">
                                         Token Metadata (SIP-16 JSON)
                                     </h3>
-                                    <Button variant="outline" size="sm" onClick={toggleJsonEdit} className="gap-2">
-                                        {isJsonEditing ? (
-                                            <>
-                                                <X className="h-4 w-4" /> Cancel Edit
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Edit className="h-4 w-4" /> Edit JSON
-                                            </>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={toggleJsonEdit} className="gap-2">
+                                            {isJsonEditing ? (
+                                                <>
+                                                    <X className="h-4 w-4" /> Cancel Edit
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Edit className="h-4 w-4" /> Edit JSON
+                                                </>
+                                            )}
+                                        </Button>
+                                        {unsavedImageUrl && (
+                                            <Button
+                                                onClick={() => handleSave(getFullMetadataObjectFromService())}
+                                                disabled={saving}
+                                                className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300"
+                                            >
+                                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                                Save
+                                            </Button>
                                         )}
-                                    </Button>
+                                    </div>
                                 </div>
 
                                 <div className="my-4 space-y-3">
@@ -1035,7 +1089,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         onClick={handleGenerateFullDataUri}
                                         className="gap-2 w-full sm:w-auto"
                                     >
-                                        <Copy className="h-4 w-4" /> Generate & Copy Full Data URI
+                                        <Copy className="h-4 w-4" /> Copy Data URI
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -1043,7 +1097,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         onClick={handleCopyApiUrl}
                                         className="gap-2 w-full sm:w-auto"
                                     >
-                                        <LinkIcon className="h-4 w-4" /> Copy API URL
+                                        <LinkIcon className="h-4 w-4" /> Copy API URI
                                     </Button>
                                 </div>
 

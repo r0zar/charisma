@@ -20,4 +20,9 @@ export function isLPToken(token: TokenMetadata | undefined | null): boolean {
         typeof properties.tokenBContract === 'string' &&
         typeof properties.swapFeePercent === 'number'
     );
-} 
+}
+
+export const genJsonDataUri = (name: string, imageUri: string): string => {
+    const payload = JSON.stringify({ sip: 16, name, image: imageUri })
+    return 'data:application/json;base64,' + Buffer.from(payload).toString('base64')
+}

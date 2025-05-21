@@ -26,6 +26,7 @@ export interface TokenCacheData {
     lpRebatePercent?: number | null;
     externalPoolId?: string | null;
     engineContractId?: string | null;
+    base?: string | null;
 }
 
 interface TokenCacheResponse {
@@ -56,6 +57,7 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
         lpRebatePercent: null,
         externalPoolId: null,
         engineContractId: null,
+        base: null,
     };
 }
 
@@ -65,7 +67,7 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
  * Falls back to a reasonable default structure when the cache is unavailable or incomplete.
  */
 export async function getTokenMetadataCached(contractId: string): Promise<TokenCacheData> {
-    const url = `https://tokens.charisma.rocks/api/v1/sip10/${contractId}`;
+    const url = `${TOKEN_CACHE}/api/v1/sip10/${contractId}`;
 
     try {
         const response = await fetch(url);
@@ -79,31 +81,7 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
 
         if (result.status === 'success' && result.data) {
             const defaults = createDefaultTokenData(contractId);
-            const merged: TokenCacheData = {
-                ...defaults,
-                ...result.data,
-                // ensure required fields are always present with the correct types
-                name:
-                    typeof result.data.name === 'string' && result.data.name.trim() !== ''
-                        ? result.data.name
-                        : defaults.name,
-                symbol:
-                    typeof result.data.symbol === 'string' && result.data.symbol.trim() !== ''
-                        ? result.data.symbol
-                        : defaults.symbol,
-                decimals:
-                    !Number.isNaN(Number(result.data.decimals))
-                        ? Number(result.data.decimals)
-                        : defaults.decimals,
-                contractId: result.data.contractId || defaults.contractId,
-                // Ensure new fields are also merged appropriately, falling back to defaults if not present or wrong type
-                type: typeof result.data.type === 'string' ? result.data.type : defaults.type,
-                lpRebatePercent: typeof result.data.lpRebatePercent === 'number' ? result.data.lpRebatePercent : defaults.lpRebatePercent,
-                externalPoolId: typeof result.data.externalPoolId === 'string' ? result.data.externalPoolId : defaults.externalPoolId,
-                engineContractId: typeof result.data.engineContractId === 'string' ? result.data.engineContractId : defaults.engineContractId,
-            };
-
-            return merged;
+            return { ...defaults, ...result.data };
         }
 
         // API responded with an error or missing data

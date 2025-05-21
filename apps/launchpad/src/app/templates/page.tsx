@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { Rocket, Layers, ArrowRight, Coins, Globe, Network } from 'lucide-react';
+import { Rocket, Layers, ArrowRight, Coins, Globe, Network, Vault } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ContractType } from '@/components/contracts/contracts-list';
 import { useApp } from '@/lib/context/app-context';
@@ -53,6 +53,10 @@ const TemplatesPage = () => {
             router.push(`/templates/liquidity-pool`);
         } else if (type === 'custom' || type === 'audit') {
             router.push(`/contact?service=${type}`);
+        }
+
+        if (type === 'sublink') {
+            router.push(`/templates/sublink`);
         }
     };
 
@@ -129,6 +133,21 @@ const TemplatesPage = () => {
                         'Off-chain signature-based transfers',
                         'Deferred and gasless transactions',
                         'Off-chain oracle logic integration',
+                    ],
+                    enabled: true
+                },
+                // Add this new item for Sublink
+                {
+                    id: 'sublink',
+                    title: 'Subnet Vault Wrapper',
+                    description: 'Integrate your subnet into the Charisma ecosystem by wrapping it with the Vault trait specification. This gives you access to the full suite of Charisma features.',
+                    icon: <Vault className="h-6 w-6" />,
+                    type: 'sublink' as ContractType,
+                    features: [
+                        'Integrate subnet into Charisma Swap',
+                        'Deposit and withdraw tokens from multihop router',
+                        'Limit order and dollar cost averaging',
+                        'OTC offers and P2P trading',
                     ],
                     enabled: true
                 }

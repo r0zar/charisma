@@ -8,9 +8,19 @@ import { Input } from "@/components/ui/input"; // Use shadcn Input
 import { Button } from "@/components/ui/button"; // Use shadcn Button
 import { Card, CardContent } from "@/components/ui/card"; // Added Card import
 import { toast } from "sonner";
-import { Loader2, Search, RefreshCw, Trash2, ChevronDown } from 'lucide-react'; // Added icons
+import {
+    Loader2,
+    Search,
+    RefreshCw,
+    Trash2,
+    ChevronDown,
+    ExternalLink, // Added ExternalLink
+    InspectionPanel,
+    Pencil
+} from 'lucide-react'; // Added icons
 import { TokenCacheData } from '@repo/tokens';
 import dynamic from 'next/dynamic';
+import Link from 'next/link'; // Added Link for navigation
 
 // Dynamically import ReactJson with SSR disabled
 const ReactJson = dynamic(() => import('react-json-view'), {
@@ -305,11 +315,24 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                                 {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                             </Button>
                                         )}
+                                        {/* Inspect Link Icon */}
+                                        {token.contractId && (
+                                            <Link href={`/inspect?tokenId=${encodeURIComponent(token.contractId)}`} >
+                                                <div
+                                                    title={`Inspect ${token.name || token.contractId}`}
+                                                    className="inline-flex items-center justify-center h-9 w-9 rounded-md text-primary hover:bg-primary/10 disabled:opacity-50"
+                                                    onClick={(e) => e.stopPropagation()} // Prevent card from toggling
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </div>
+                                            </Link>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             aria-label={isExpanded ? 'Collapse' : 'Expand'}
                                             className="text-muted-foreground hover:bg-accent"
+                                        // onClick={(e) => { e.stopPropagation(); toggleExpand(token.contractId || ''); }} // Already handled by parent div click
                                         >
                                             <ChevronDown className={`h-4 w-4 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                                         </Button>
@@ -317,7 +340,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                 </div>
 
                                 {/* Expanded JSON View */}
-                                {/* {isExpanded && (
+                                {isExpanded && (
                                     <div className="border-t border-border bg-muted/50 animate-fadeDown">
                                         <ReactJson
                                             src={token}
@@ -329,7 +352,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                             style={{ padding: '1rem', background: 'transparent' }}
                                         />
                                     </div>
-                                )} */}
+                                )}
                             </li>
                         );
                     })}
