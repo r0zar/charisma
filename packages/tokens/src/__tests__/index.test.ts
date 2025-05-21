@@ -20,7 +20,17 @@ describe('Token Cache', () => {
     const tokenObjects = tokens
       .filter((token) => token.identifier)
       .filter((token) => token.contractId !== '.stx')
-      .map((token) => new Token(token));
+      .map((token) => new Token(token as any));
     console.log(tokenObjects.map((token) => token.contractId));
+  });
+
+  it('should data integrity check subnet tokens', async () => {
+    const tokens = await listTokens();
+    const tokenObjects = tokens
+      .filter((token) => token.identifier)
+      .filter((token) => token.contractId !== '.stx')
+      .filter((token: any) => token.type === 'SUBNET')
+      .map((token) => token.contractId);
+    console.log(tokenObjects);
   });
 });
