@@ -16,7 +16,8 @@
         "TOKEN_CACHE_ENDPOINT",
         "HIRO_API_KEY",
         "OPENAI_API_KEY",
-        "ADMIN_SECRET"
+        "ADMIN_SECRET",
+        "SENTRY_AUTH_TOKEN"
       ]
     }
   }
