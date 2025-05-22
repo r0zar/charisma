@@ -6,11 +6,7 @@ import { toast } from "sonner";
 import debounce from 'lodash/debounce';
 import { getAddLiquidityQuoteAndSupply, getAddLiquidityInitialData } from '@/app/actions';
 import { request } from '@stacks/connect';
-import { STACKS_MAINNET } from "@stacks/network";
-import { uintCV, bufferCVFromString, principalCV, cvToValue, optionalCVOf, Pc, bufferCV } from '@stacks/transactions';
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { ClarityType } from '@stacks/transactions';
-
+import { uintCV, optionalCVOf, Pc } from '@stacks/transactions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -19,12 +15,7 @@ import { Wallet, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 // Import the centralized vault type definition and TokenCacheData
-import { ClientDisplayVault } from './vault-detail-client'; // Assuming vault-detail-client is in the same directory
-import { TokenCacheData } from '@repo/tokens';
-
-// Remove local Token and Vault interfaces
-// interface Token { ... }
-// interface Vault { ... }
+import { ClientDisplayVault } from './vault-detail-client';
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (
@@ -83,20 +74,6 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
     const tokenBDecimals = vault.tokenB.decimals ?? 6;
     const lpDecimals = vault.decimals; // This is from ClientDisplayVault root, should be number
 
-    // Calculate max potential LP tokens based on user balances and pool state
-    useEffect(() => {
-        const reserveA = Number(vault.reservesA || 0);
-        const reserveB = Number(vault.reservesB || 0);
-        if (balances.tokenA === 0 || balances.tokenB === 0 || reserveA === 0 || reserveB === 0 || totalSupply === 0) {
-            setMaxLpTokens(0);
-            return;
-        }
-        const maxFromA = (balances.tokenA / reserveA) * totalSupply;
-        const maxFromB = (balances.tokenB / reserveB) * totalSupply;
-        const calculatedMax = Math.min(maxFromA, maxFromB);
-        setMaxLpTokens(calculatedMax);
-    }, [balances, vault.reservesA, vault.reservesB, totalSupply]);
-
     // Fetch quote using server action
     const fetchQuote = useCallback(async (targetLpAmount: number) => {
         if (targetLpAmount <= 0 || maxLpTokens <= 0) {
@@ -135,8 +112,6 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                         walletState.address!
                     );
 
-                    console.log('[Add Liquidity Modal] Initial data:', result);
-
                     if (result.success && result.data) {
                         setBalances({
                             tokenA: result.data.tokenABalance,
@@ -144,6 +119,10 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                             lp: result.data.lpBalance
                         });
                         setTotalSupply(result.data.totalSupply);
+                        // Set maxLpTokens directly from server data
+                        setMaxLpTokens(result.data.maxPotentialLpTokens || 0);
+                        // We could also store result.data.reservesA and result.data.reservesB if needed elsewhere
+                        // For now, vault.reservesA and vault.reservesB passed as props should suffice for display if up-to-date
                     } else {
                         throw new Error(result.error || "Failed to fetch initial data.");
                     }
@@ -152,6 +131,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                     toast.error("Failed to fetch wallet balances or pool supply.");
                     setBalances({ tokenA: 0, tokenB: 0, lp: 0 });
                     setTotalSupply(0);
+                    setMaxLpTokens(0);
                 } finally {
                     setIsLoadingData(false);
                 }

@@ -1,9 +1,8 @@
 import { notFound } from 'next/navigation';
 import { getVaultData, Vault } from '@/lib/pool-service'; // Assuming vaultService is in lib
-import VaultDetailClient from '@/components/vault/vault-detail-client'; // Client component placeholder
+import VaultDetailClient from '@/components/pool/vault-detail-client'; // Client component placeholder
 import { listPrices, KraxelPriceData } from '@repo/tokens'; // Hypothetical import
 import { fetchContractInfo } from '@/app/actions';
-import { Token } from '@/lib/cryptonomicon';
 
 // Revalidate data periodically (e.g., every 5 minutes)
 export const revalidate = 300;

@@ -45,7 +45,8 @@ export interface Vault {
 
 // Cache constants
 export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
-const DAILY_RESERVE_REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours - For fetchAndUpdateReserves internal cooldown
+const RESERVE_CACHE_DURATION_MS = 30 * 1000; // 30 seconds
+const MIN_RESERVE_VALUE_TO_BE_VALID = 1; // Minimum value for a reserve to be considered valid
 
 // Define an extended Vault type for internal use with timestamp
 type CachedVault = Vault & { reservesLastUpdatedAt?: number };
@@ -70,13 +71,10 @@ export const getCacheKey = (contractId: string): string => `${VAULT_CACHE_KEY_PR
 async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedVault> {
     const now = Date.now();
 
-    // Check if reserves were updated recently (within the daily cooldown) and are valid
     if (cachedVault.reservesLastUpdatedAt &&
-        (now - cachedVault.reservesLastUpdatedAt < DAILY_RESERVE_REFRESH_COOLDOWN_MS) &&
-        (cachedVault.reservesA !== undefined && cachedVault.reservesA > 0 && cachedVault.reservesB !== undefined && cachedVault.reservesB > 0) // Check if reserves look valid
+        (now - cachedVault.reservesLastUpdatedAt < RESERVE_CACHE_DURATION_MS) &&
+        (cachedVault.reservesA !== undefined && cachedVault.reservesA >= MIN_RESERVE_VALUE_TO_BE_VALID && cachedVault.reservesB !== undefined && cachedVault.reservesB >= MIN_RESERVE_VALUE_TO_BE_VALID)
     ) {
-        console.log(`[fetchAndUpdateReserves] Reserves for ${cachedVault.contractId} are recent and valid. Skipping network refresh.`);
-        // Ensure reserves are numbers before returning, as a safeguard
         cachedVault.reservesA = Number(cachedVault.reservesA || 0);
         cachedVault.reservesB = Number(cachedVault.reservesB || 0);
         return cachedVault;
@@ -93,7 +91,7 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
     let reservesUpdated = false;
     let primaryError: Error | null = null;
 
-    console.log(`Attempting to refresh reserves for ${contractId}...`);
+    console.log(`[PoolService] Attempting to refresh reserves for ${contractId} if older than 30s or invalid...`);
 
     // 1. Primary attempt: get-reserves-quote
     try {
@@ -241,15 +239,14 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
 
 // Read a vault from KV cache, revalidating reserves periodically
 export const getVaultData = async (contractId: string): Promise<Vault | null> => {
-    const isSpecialToken = contractId === '.stx'; // Though STX itself won't be a typical vault
+    const isSpecialToken = contractId === '.stx';
     if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
-        console.warn(`[getVaultData] Invalid contractId format: ${contractId}`);
+        console.warn(`[PoolService] Invalid contractId format for getVaultData: ${contractId}`);
         return null;
     }
     const cacheKey = getCacheKey(contractId);
 
     try {
-        console.log(`[getVaultData] Attempting to fetch from KV: ${cacheKey}`);
         const rawCachedData = await kv.get<string | CachedVault>(cacheKey);
         let cachedVault: CachedVault | null = null;
 
@@ -263,33 +260,23 @@ export const getVaultData = async (contractId: string): Promise<Vault | null> =>
         } else if (typeof rawCachedData === 'object' && rawCachedData !== null) {
             cachedVault = rawCachedData as CachedVault;
         } else {
-            console.log(`[getVaultData] No data found in KV for ${cacheKey}.`);
             return null; // Not found in KV
         }
 
         if (!cachedVault) {
-            console.log(`[getVaultData] Vault data is null after attempting to read from KV for ${cacheKey}.`);
-            return null; // Should be caught by previous else, but as a safeguard
+            console.warn(`[PoolService] Vault data is null after attempting to read from KV for ${cacheKey}.`);
+            return null;
         }
 
-        // At this point, we have a vault from KV.
-        // Now, refresh its reserves.
-        // fetchAndUpdateReserves expects tokenA and tokenB to be present for POOL/SUBLINK types.
         if ((cachedVault.type === 'POOL' || cachedVault.type === 'SUBLINK') && cachedVault.tokenA && cachedVault.tokenB) {
-            console.log(`[getVaultData] Refreshing reserves for ${contractId} of type ${cachedVault.type}...`);
             const vaultWithFreshReserves = await fetchAndUpdateReserves(cachedVault);
 
-            // Asynchronously save back to cache with updated reserves
-            // Note: saveVaultData internally handles JSON.stringify and setting TTL
             saveVaultData(vaultWithFreshReserves).catch(saveErr => {
-                console.error(`[getVaultData] Failed async save after reserve refresh for ${contractId}:`, saveErr);
+                console.error(`[PoolService] Failed async save after reserve refresh for ${contractId}:`, saveErr);
             });
-            console.log(`[getVaultData] Returning vault ${contractId} with potentially updated reserves.`);
             return vaultWithFreshReserves;
         } else {
-            // For vault types other than POOL/SUBLINK, or if tokenA/tokenB are missing (which shouldn't happen for these types if data is consistent),
-            // return the cached vault as is, without attempting reserve refresh.
-            console.log(`[getVaultData] Returning vault ${contractId} without reserve refresh (type: ${cachedVault.type}, tokens missing: ${!cachedVault.tokenA || !cachedVault.tokenB}).`);
+            console.log(`[PoolService] Returning vault ${contractId} without reserve refresh (type: ${cachedVault.type}, tokens missing or not applicable).`);
             return cachedVault;
         }
 
@@ -465,7 +452,7 @@ async function _fetchSip10Balance(contractAddress: string, contractName: string,
     try {
         const balanceCV = await callReadOnlyFunction(contractAddress, contractName, 'get-balance', [principalCV(userPrincipal)]);
         // Assuming balanceCV.value directly holds the number or can be converted
-        return Number(cvToValue(balanceCV) || 0);
+        return Number(balanceCV?.value || 0);
     } catch (error) {
         console.error(`[vaultService] Failed fetching SIP10 balance for ${contractAddress}.${contractName} for user ${userPrincipal}:`, error);
         return 0;
@@ -496,7 +483,7 @@ export async function getLpTokenTotalSupply(vaultContractId: string): Promise<nu
             throw new Error(`Invalid vault contract ID for total supply: ${vaultContractId}`);
         }
         const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
-        return Number(cvToValue(supplyCV) || 0);
+        return Number(supplyCV?.value || 0);
     } catch (error) {
         console.error(`[vaultService] Failed fetching total supply for ${vaultContractId}:`, error);
         return 0;

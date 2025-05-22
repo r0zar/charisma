@@ -67,10 +67,8 @@ export async function getAddLiquidityQuoteAndSupply(vaultContractId: string, tar
             getLpTokenTotalSupply(vaultContractId),
             targetLpAmount > 0
                 ? getLiquidityOperationQuote(vaultContractId, targetLpAmount, OP_ADD_LIQUIDITY)
-                : Promise.resolve(null) // Ensure quote can be null if not fetched
+                : Promise.resolve(null)
         ]);
-        console.log('[getAddLiquidityQuoteAndSupply] Total supply:', totalSupply);
-        console.log('[getAddLiquidityQuoteAndSupply] Quote:', quote);
         return {
             success: true,
             totalSupply,
@@ -179,7 +177,14 @@ export async function getAddLiquidityInitialData(
     userAddress: string
 ) {
     try {
-        console.log(`[Server Action] Fetching initial data for ${vaultContractId} / ${userAddress}`);
+        const vaultData = await getVaultData(vaultContractId);
+        if (!vaultData) {
+            throw new Error(`Vault data not found for ${vaultContractId}`);
+        }
+        if (vaultData.reservesA === undefined || vaultData.reservesB === undefined) {
+            throw new Error(`Reserves not available for vault ${vaultContractId}`);
+        }
+
         const [tokenABalance, tokenBBalance, lpBalance, totalSupply] = await Promise.all([
             getFungibleTokenBalance(tokenAContractId, userAddress),
             getFungibleTokenBalance(tokenBContractId, userAddress),
@@ -187,7 +192,18 @@ export async function getAddLiquidityInitialData(
             getLpTokenTotalSupply(vaultContractId)
         ]);
 
-        console.log(`[Server Action] Data fetched: A=${tokenABalance}, B=${tokenBBalance}, LP=${lpBalance}, Supply=${totalSupply}`);
+        let maxPotentialLpTokens = 0;
+        const userBalanceA = Number(tokenABalance || 0);
+        const userBalanceB = Number(tokenBBalance || 0);
+        const poolReserveA = Number(vaultData.reservesA || 0);
+        const poolReserveB = Number(vaultData.reservesB || 0);
+        const currentLpTotalSupply = Number(totalSupply || 0);
+
+        if (userBalanceA > 0 && userBalanceB > 0 && poolReserveA > 0 && poolReserveB > 0 && currentLpTotalSupply > 0) {
+            const maxLpIfUsingAllA = (userBalanceA / poolReserveA) * currentLpTotalSupply;
+            const maxLpIfUsingAllB = (userBalanceB / poolReserveB) * currentLpTotalSupply;
+            maxPotentialLpTokens = Math.min(maxLpIfUsingAllA, maxLpIfUsingAllB);
+        }
 
         return {
             success: true,
@@ -195,14 +211,18 @@ export async function getAddLiquidityInitialData(
                 tokenABalance,
                 tokenBBalance,
                 lpBalance,
-                totalSupply
+                totalSupply,
+                reservesA: poolReserveA, // Also return reserves for potential client use
+                reservesB: poolReserveB, // Also return reserves for potential client use
+                maxPotentialLpTokens
             }
         };
     } catch (error) {
         console.error("Error in getAddLiquidityInitialData:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch initial liquidity data.";
         return {
             success: false,
-            error: "Failed to fetch initial liquidity data."
+            error: errorMessage
         };
     }
 }
