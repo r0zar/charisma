@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listVaultTokens } from '@/lib/vaultService';
+import { listVaultTokens } from '@/lib/pool-service';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',

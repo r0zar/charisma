@@ -8,7 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";
 import { SublinkBridgeCard } from '@/components/SublinkBridgeCard';
-import { Vault } from '@/lib/vaultService';
+import { Vault } from '@/lib/pool-service';
 import { KraxelPriceData } from '@repo/tokens';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -188,7 +188,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
     }, [sublink.contractId, sublink.tokenA?.contractId]);
 
     const renderContractInfo = () => {
-        if (!contractInfo || Object.keys(contractInfo).length === 0) return null;
+        if (!contractInfo || Object.keys(contractInfo).length === 0 || !contractInfo.contract_id) return null;
         return (
             <Card className="w-full mt-8 border-border/60">
                 <CardHeader>

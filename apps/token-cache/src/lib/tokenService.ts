@@ -131,7 +131,7 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
  *
  * @returns A promise resolving to an array of TokenMetadata objects.
  */
-export const getAllTokenData = async (): Promise<TokenCacheData[]> => {
+export const getAllMetadata = async (): Promise<TokenCacheData[]> => {
     // 1. Fetch the list of managed token IDs from KV
     const managedTokenIds = await getManagedTokenIds();
 
@@ -167,7 +167,7 @@ export const getAllTokenData = async (): Promise<TokenCacheData[]> => {
         }
     });
 
-    console.log(`[getAllTokenData] Processed ${managedTokenIds.length} tokens. Cache hits: ${cacheHitCount}. Fetched/Failed: ${managedTokenIds.length - cacheHitCount}.`);
+    console.log(`[getAllMetadata] Processed ${managedTokenIds.length} tokens. Cache hits: ${cacheHitCount}. Fetched/Failed: ${managedTokenIds.length - cacheHitCount}.`);
     return successfulData;
 };
 

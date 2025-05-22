@@ -1,13 +1,12 @@
 import { kv } from "@vercel/kv";
 import { callReadOnlyFunction, getContractInfo } from '@repo/polyglot';
 import { principalCV, cvToValue, ClarityType, uintCV, bufferCVFromString, optionalCVOf } from '@stacks/transactions';
-import { getTokenMetadataCached } from '@repo/tokens'
 import { bufferFromHex } from "@stacks/transactions/dist/cl";
 
 /**
  * Basic token information
  */
-interface Token {
+export interface Token {
     contractId: string;
     identifier?: string;
     name: string;
@@ -47,7 +46,7 @@ export interface Vault {
 // Cache constants
 const CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
 export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
-const RESERVE_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const DAILY_RESERVE_REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours - For fetchAndUpdateReserves internal cooldown
 
 // Define an extended Vault type for internal use with timestamp
 type CachedVault = Vault & { reservesLastUpdatedAt?: number };
@@ -67,114 +66,29 @@ export const getManagedVaultIds = async (): Promise<string[]> => {
 // Cache key builder for individual vault objects
 export const getCacheKey = (contractId: string): string => `${VAULT_CACHE_KEY_PREFIX}${contractId}`;
 
-// Helper function to build a vault structure from token metadata
-// This is similar to parts of confirmVault, but doesn't save, just constructs
-// It also doesn't rely on AI suggestions for this core path.
-function buildVaultStructureFromTokens(
-    contractId: string,
-    lpToken: any,
-    tokenA: any | null = null,
-    tokenB: any | null = null
-): CachedVault | null {
-    try {
-        const [contractAddress, contractName] = contractId.split('.');
-        if (!contractAddress || !contractName) {
-            console.error(`[buildVaultStructure] Invalid contractId format: ${contractId}`);
-            return null;
-        }
-        if (!lpToken) {
-            console.error(`[buildVaultStructure] Missing main token data for ${contractId}`);
-            return null;
-        }
-
-        // Determine vault type - defaults to POOL if not specified
-        const vaultType = lpToken.type?.toUpperCase() || 'POOL';
-
-        // Basic validation of essential fields
-        if (!lpToken.decimals && lpToken.decimals !== 0) {
-            console.warn(`[buildVaultStructure] Missing decimals for ${contractId}, defaulting to 0`);
-            lpToken.decimals = 0;
-        }
-        if (!lpToken.name) {
-            console.warn(`[buildVaultStructure] Missing name for ${contractId}, using contractId`);
-            lpToken.name = contractId;
-        }
-        if (!lpToken.symbol) {
-            console.warn(`[buildVaultStructure] Missing symbol for ${contractId}, generating from contractName`);
-            lpToken.symbol = contractName.toUpperCase();
-        }
-
-        // For POOL and SUBLINK types, tokens A and B are required
-        if ((vaultType === 'POOL' || vaultType === 'SUBLINK') && (!tokenA || !tokenB)) {
-            console.warn(`[buildVaultStructure] ${vaultType} type requires tokenA and tokenB, but one or both are missing`);
-            // Instead of failing, we'll create the vault but mark it as potentially incomplete
-            console.warn(`[buildVaultStructure] Creating incomplete vault structure for ${contractId}`);
-        }
-
-        // Calculate fee from lpRebatePercent if available
-        let fee = 0;
-        if (lpToken.fee) {
-            fee = lpToken.fee;
-        } else if (lpToken.lpRebatePercent) {
-            fee = Math.floor((lpToken.lpRebatePercent / 100) * 1_000_000);
-        } else if (lpToken.properties?.fee) {
-            fee = lpToken.properties.fee;
-        } else if (lpToken.properties?.lpRebatePercent) {
-            fee = Math.floor((lpToken.properties.lpRebatePercent / 100) * 1_000_000);
-        }
-
-        // Build the vault structure
-        const vault: CachedVault = {
-            type: vaultType,
-            protocol: lpToken.protocol || 'CHARISMA',
-            contractId,
-            contractAddress,
-            contractName,
-            name: lpToken.name,
-            symbol: lpToken.symbol,
-            decimals: lpToken.decimals,
-            identifier: lpToken.identifier || '',
-            description: lpToken.description || "",
-            image: lpToken.image || "",
-            fee,
-            externalPoolId: lpToken.externalPoolId || (lpToken.properties?.externalPoolId) || "",
-            engineContractId: lpToken.engineContractId || (lpToken.properties?.engineContractId) || "",
-            tokenBContract: lpToken.tokenBContract || lpToken.properties?.tokenBContract || "",
-            reservesLastUpdatedAt: 0 // Indicate reserves haven't been fetched yet
-        };
-
-        // Only add tokenA/tokenB if they exist
-        if (tokenA) {
-            vault.tokenA = tokenA;
-            vault.reservesA = 0;
-        }
-
-        if (tokenB) {
-            vault.tokenB = tokenB;
-            vault.reservesB = 0;
-        }
-
-        // Add any additional data fields that may be present
-        if (lpToken.additionalData) {
-            vault.additionalData = lpToken.additionalData;
-        }
-
-        return vault;
-    } catch (error) {
-        console.error(`[buildVaultStructure] Error constructing vault for ${contractId}:`, error);
-        return null;
-    }
-}
 
 // Helper to fetch and update reserves, trying primary then backup method
 async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedVault> {
+    const now = Date.now();
+
+    // Check if reserves were updated recently (within the daily cooldown) and are valid
+    if (cachedVault.reservesLastUpdatedAt &&
+        (now - cachedVault.reservesLastUpdatedAt < DAILY_RESERVE_REFRESH_COOLDOWN_MS) &&
+        (cachedVault.reservesA !== undefined && cachedVault.reservesA > 0 && cachedVault.reservesB !== undefined && cachedVault.reservesB > 0) // Check if reserves look valid
+    ) {
+        console.log(`[fetchAndUpdateReserves] Reserves for ${cachedVault.contractId} are recent and valid. Skipping network refresh.`);
+        // Ensure reserves are numbers before returning, as a safeguard
+        cachedVault.reservesA = Number(cachedVault.reservesA || 0);
+        cachedVault.reservesB = Number(cachedVault.reservesB || 0);
+        return cachedVault;
+    }
+
     // Only attempt to update reserves if we have tokenA and tokenB
     if (!cachedVault.tokenA || !cachedVault.tokenB) {
         console.log(`Skipping reserve update for ${cachedVault.contractId}: tokenA or tokenB missing`);
         return cachedVault;
     }
 
-    const now = Date.now();
     const contractId = cachedVault.contractId;
     const [contractAddress, contractName] = contractId.split('.');
     let reservesUpdated = false;
@@ -327,132 +241,61 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
 }
 
 // Read a vault from KV cache, revalidating reserves periodically
-export const getVaultData = async (contractId: string, refresh: boolean = false): Promise<Vault | null> => {
-    const isSpecialToken = contractId === '.stx';
+export const getVaultData = async (contractId: string): Promise<Vault | null> => {
+    const isSpecialToken = contractId === '.stx'; // Though STX itself won't be a typical vault
     if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
-        console.warn(`Invalid contractId format passed to getVaultData: ${contractId}`);
+        console.warn(`[getVaultData] Invalid contractId format: ${contractId}`);
         return null;
     }
     const cacheKey = getCacheKey(contractId);
 
     try {
-        // Attempt to get raw string data first for robust parsing
-        console.log(cacheKey);
+        console.log(`[getVaultData] Attempting to fetch from KV: ${cacheKey}`);
         const rawCachedData = await kv.get<string | CachedVault>(cacheKey);
-        let cached: CachedVault | null = null;
+        let cachedVault: CachedVault | null = null;
 
-        if (!refresh && typeof rawCachedData === 'string') { // Only parse if not forcing refresh
+        if (typeof rawCachedData === 'string') {
             try {
-                cached = JSON.parse(rawCachedData) as CachedVault;
+                cachedVault = JSON.parse(rawCachedData) as CachedVault;
             } catch (parseError) {
-                console.error(`Failed to parse cached data for ${contractId}:`, parseError);
-                cached = null; // Treat as cache miss if parse fails
+                console.error(`[getVaultData] Failed to parse cached data for ${contractId}:`, parseError);
+                return null; // If parsing fails, treat as not found or invalid
             }
-        } else if (!refresh && typeof rawCachedData === 'object' && rawCachedData !== null) { // Only use if not forcing refresh
-            cached = rawCachedData as CachedVault;
+        } else if (typeof rawCachedData === 'object' && rawCachedData !== null) {
+            cachedVault = rawCachedData as CachedVault;
+        } else {
+            console.log(`[getVaultData] No data found in KV for ${cacheKey}.`);
+            return null; // Not found in KV
         }
 
-        // --- Logic Branching ---
-
-        // Branch 1: Cache Hit and No Refresh Requested
-        if (cached && !refresh) {
-            const now = Date.now();
-            const lastUpdated = cached.reservesLastUpdatedAt || 0;
-            const needsReserveRefresh = (now - lastUpdated) > RESERVE_REFRESH_INTERVAL_MS;
-
-            // Only attempt reserve refresh for POOL and SUBLINK types
-            const canRefreshReserves = (cached.type === 'POOL' || cached.type === 'SUBLINK') && cached.tokenA && cached.tokenB;
-
-            if (needsReserveRefresh && canRefreshReserves) {
-                console.log(`[Cache Hit - Stale] Vault ${contractId}. Refreshing reserves...`);
-                const updatedCached = await fetchAndUpdateReserves(cached);
-                // Asynchronously save back to cache
-                saveVaultData(updatedCached).catch(saveErr => {
-                    console.error(`Failed async save after stale refresh for ${contractId}:`, saveErr);
-                });
-                return updatedCached;
-            } else {
-                // Make sure reserves are numbers if present
-                if (cached.reservesA !== undefined) {
-                    cached.reservesA = Number(cached.reservesA || 0);
-                }
-                if (cached.reservesB !== undefined) {
-                    cached.reservesB = Number(cached.reservesB || 0);
-                }
-                return cached;
-            }
+        if (!cachedVault) {
+            console.log(`[getVaultData] Vault data is null after attempting to read from KV for ${cacheKey}.`);
+            return null; // Should be caught by previous else, but as a safeguard
         }
-        // Branch 2: Cache Miss OR Refresh Requested
-        else {
-            console.log(refresh ? `[Refresh Requested] Vault ${contractId}` : `[Cache Miss] Vault ${contractId}`);
 
-            // 1. Fetch Main Token
-            const lpToken = await getTokenMetadataCached(contractId);
-            if (!lpToken) {
-                console.error(`[Fetch Scratch] Failed to fetch main token ${contractId}`);
-                return null;
-            }
+        // At this point, we have a vault from KV.
+        // Now, refresh its reserves.
+        // fetchAndUpdateReserves expects tokenA and tokenB to be present for POOL/SUBLINK types.
+        if ((cachedVault.type === 'POOL' || cachedVault.type === 'SUBLINK') && cachedVault.tokenA && cachedVault.tokenB) {
+            console.log(`[getVaultData] Refreshing reserves for ${contractId} of type ${cachedVault.type}...`);
+            const vaultWithFreshReserves = await fetchAndUpdateReserves(cachedVault);
 
-            // Determine vault type - default to POOL if not specified
-            const vaultType = lpToken.type?.toUpperCase() || 'POOL';
-
-            // 2. If this is a POOL or SUBLINK, extract underlying token contracts and fetch them
-            let tokenA = null;
-            let tokenB = null;
-
-            if (vaultType === 'POOL' || vaultType === 'SUBLINK') {
-                // Extract underlying token contracts
-                const tokenAContract = lpToken.tokenAContract;
-                const tokenBContract = lpToken.tokenBContract;
-
-                // Only proceed if we have tokenA and tokenB contracts
-                if (tokenAContract && tokenBContract) {
-                    // 3. Fetch Underlying Tokens
-                    [tokenA, tokenB] = await Promise.all([
-                        getTokenMetadataCached(tokenAContract),
-                        getTokenMetadataCached(tokenBContract)
-                    ]);
-
-                    if (!tokenA || !tokenB) {
-                        console.warn(`[Fetch Scratch] Failed to fetch one or both underlying tokens for ${contractId} (A: ${tokenAContract}, B: ${tokenBContract})`);
-                        // Continue anyway, we'll build the vault without the missing tokens
-                    } else {
-                        // Assign contractId if missing (can happen if fetched directly)
-                        if (!tokenA.contractId) tokenA.contractId = tokenAContract;
-                        if (!tokenB.contractId) tokenB.contractId = tokenBContract;
-                    }
-                } else {
-                    console.warn(`[Fetch Scratch] Could not determine underlying token contracts for ${vaultType} type ${contractId}`);
-                    // Continue anyway, we'll build the vault without underlying tokens
-                }
-            }
-
-            // 4. Build Initial Vault Structure - tokens can be null for non-POOL/SUBLINK types
-            const initialVault = buildVaultStructureFromTokens(contractId, lpToken, tokenA, tokenB);
-            if (!initialVault) {
-                console.error(`[Fetch Scratch] Failed to build initial vault structure for ${contractId}`);
-                return null;
-            }
-
-            // 5. Fetch Reserves for POOL and SUBLINK vault types if both tokens are available
-            let vaultWithReserves = initialVault;
-            if ((vaultType === 'POOL' || vaultType === 'SUBLINK') && tokenA && tokenB) {
-                console.log(`[Fetch Scratch] Fetching reserves for newly built ${vaultType} ${contractId}...`);
-                vaultWithReserves = await fetchAndUpdateReserves(initialVault);
-            }
-
-            // 6. Save the complete vault data to cache
-            console.log(`[Fetch Scratch] Saving fully constructed vault ${contractId} to cache...`);
-            const saved = await saveVaultData(vaultWithReserves);
-            if (!saved) {
-                // Log error, but still return the data if we have it
-                console.error(`[Fetch Scratch] Failed to save vault ${contractId} to cache, but returning fetched data.`);
-            }
-
-            return vaultWithReserves; // Return the newly fetched and constructed vault
+            // Asynchronously save back to cache with updated reserves
+            // Note: saveVaultData internally handles JSON.stringify and setting TTL
+            saveVaultData(vaultWithFreshReserves).catch(saveErr => {
+                console.error(`[getVaultData] Failed async save after reserve refresh for ${contractId}:`, saveErr);
+            });
+            console.log(`[getVaultData] Returning vault ${contractId} with potentially updated reserves.`);
+            return vaultWithFreshReserves;
+        } else {
+            // For vault types other than POOL/SUBLINK, or if tokenA/tokenB are missing (which shouldn't happen for these types if data is consistent),
+            // return the cached vault as is, without attempting reserve refresh.
+            console.log(`[getVaultData] Returning vault ${contractId} without reserve refresh (type: ${cachedVault.type}, tokens missing: ${!cachedVault.tokenA || !cachedVault.tokenB}).`);
+            return cachedVault;
         }
+
     } catch (error) {
-        console.error(`Error in getVaultData for ${contractId}:`, error);
+        console.error(`[getVaultData] Error processing for ${contractId}:`, error);
         return null;
     }
 };

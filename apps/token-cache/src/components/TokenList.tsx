@@ -16,7 +16,8 @@ import {
     ChevronDown,
     ExternalLink, // Added ExternalLink
     InspectionPanel,
-    Pencil
+    Pencil,
+    ClipboardCopy // Added ClipboardCopy
 } from 'lucide-react'; // Added icons
 import { TokenCacheData } from '@repo/tokens';
 import dynamic from 'next/dynamic';
@@ -274,7 +275,43 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                                 <span className="font-semibold text-base block text-foreground">{token.name || '(No Name)'}</span>
                                                 <span className="text-muted-foreground">({token.symbol || '?'})</span>
                                             </div>
-                                            <p className="text-xs text-muted-foreground break-all font-mono" title={token.contractId}>{truncateContractId(token.contractId || '', 4, 4)}</p>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <p
+                                                    className="text-sm text-muted-foreground break-all font-mono cursor-pointer hover:text-foreground transition-colors"
+                                                    title={`Click to copy: ${token.contractId}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (token.contractId) {
+                                                            navigator.clipboard.writeText(token.contractId)
+                                                                .then(() => {
+                                                                    toast.success("Copied to clipboard", { description: truncateContractId(token.contractId, 8, 8) });
+                                                                })
+                                                                .catch(err => {
+                                                                    console.error('Failed to copy: ', err);
+                                                                    toast.error("Failed to copy", { description: "Could not copy contract ID." });
+                                                                });
+                                                        }
+                                                    }}
+                                                >
+                                                    {truncateContractId(token.contractId || '', 4, 4)}
+                                                </p>
+                                                {token.contractId && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            window.open(`https://explorer.hiro.so/txid/${token.contractId}?chain=mainnet`, '_blank');
+                                                        }}
+                                                        disabled={isLoading} // Keep disabled state if parent is loading
+                                                        aria-label={`View ${token.symbol} on Explorer`}
+                                                        title="View on Explorer"
+                                                        className="h-5 w-5 text-muted-foreground hover:text-foreground disabled:opacity-50" // Adjusted size and styling
+                                                    >
+                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="md:col-span-2 overflow-hidden text-muted-foreground" title={token.description || ''}>
                                             <p className="line-clamp-2">

@@ -7,25 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Loader2, Search, X, HelpCircle } from "lucide-react";
-
-// Define types locally or move to a shared types file
-interface Token {
-    contractId: string;
-    symbol: string;
-    name: string;
-    address: string;
-    description?: string;
-    image?: string;
-    decimals?: number;
-    identifier?: string;
-    isSubnet?: boolean;
-    isLpToken?: boolean;
-    total_supply?: string | null;
-}
-
-const TOKEN_API_BASE_URL = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3000' // Assuming token-cache runs on 3000 locally
-    : 'https://charisma-token-cache.vercel.app'; // Replace with your actual production URL
+import { TokenCacheData, getTokenMetadataCached } from '@repo/tokens';
+import { truncateAddress } from '@/lib/utils/token-utils';
 
 // Token Selection Step Component
 export const TokenSelectionStep = ({
@@ -37,11 +20,11 @@ export const TokenSelectionStep = ({
     isLoadingTokens,
     tokenLoadError
 }: {
-    onSelectToken1: (token: Token) => void;
-    onSelectToken2: (token: Token) => void;
+    onSelectToken1: (token: TokenCacheData) => void;
+    onSelectToken2: (token: TokenCacheData) => void;
     token1Symbol: string;
-    excludedToken?: string;
-    predefinedTokens: Token[];
+    excludedToken?: string | null;
+    predefinedTokens: TokenCacheData[];
     isLoadingTokens: boolean;
     tokenLoadError: string | null;
 }) => {
@@ -52,66 +35,38 @@ export const TokenSelectionStep = ({
 
     // Custom token fetch state
     const [isFetchingToken, setIsFetchingToken] = useState(false);
-    const [fetchedToken, setFetchedToken] = useState<Token | null>(null);
+    const [fetchedToken, setFetchedToken] = useState<TokenCacheData | null>(null);
 
-
-    const [filteredTokens, setFilteredTokens] = useState<Token[]>(predefinedTokens);
+    const [filteredTokens, setFilteredTokens] = useState<TokenCacheData[]>(predefinedTokens);
     const [searchQuery, setSearchQuery] = useState("");
 
     // State to track image loading errors for the token list
     const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
     // Function to handle image loading error for token list
-    const handleImageError = (address: string) => {
-        setImageErrors(prev => ({ ...prev, [address]: true }));
+    const handleImageError = (contractId: string) => {
+        setImageErrors(prev => ({ ...prev, [contractId]: true }));
     };
 
     // Function to fetch token metadata by contract ID
-    const fetchTokenMetadata = async (contractId: string) => {
-        if (!contractId.trim()) {
-            setCustomError("Contract address is required");
+    const fetchTokenMetadata = async (contractIdInput: string) => {
+        const contractId = contractIdInput.trim();
+        if (!contractId) {
+            setCustomError("Contract ID is required");
             return;
         }
-
-        // Basic validation for Stacks contract address format
-        if (!/^[A-Z0-9]+\.[a-zA-Z0-9-]+$/.test(contractId)) {
-            setCustomError("Invalid contract address format. Should be like: SP...token-name");
+        if (!/^[A-Z0-9]+\.[a-zA-Z0-9\-]+$/.test(contractId)) {
+            setCustomError("Invalid contract ID format. Should be like: SP...token-name");
             return;
         }
-
         setCustomError(null);
         setIsFetchingToken(true);
-
         try {
-            const response = await fetch(`${TOKEN_API_BASE_URL}/api/v1/sip10/${contractId}`);
-
-            if (!response.ok) {
-                throw new Error(response.status === 404
-                    ? 'Token not found. Please verify the contract address.'
-                    : 'Failed to fetch token data');
+            const tokenData = await getTokenMetadataCached(contractId);
+            if (!tokenData || !tokenData.contractId) {
+                throw new Error('Token not found or invalid data returned.');
             }
-
-            const tokenData = await response.json();
-            const tokenInfo = tokenData.data || tokenData;
-
-            // Check if custom token is LP
-            const isLp = tokenInfo.symbol?.toUpperCase().includes('-LP') || tokenInfo.name?.toUpperCase().includes('-LP') || tokenInfo.properties?.tokenAContract || tokenInfo.properties?.tokenBContract || false;
-
-            const enhancedToken: Token = {
-                symbol: tokenInfo.symbol || 'Unknown',
-                name: tokenInfo.name || tokenInfo.symbol || 'Unknown Token',
-                address: tokenInfo.contractId || contractId,
-                description: tokenInfo.description || `${tokenInfo.symbol || 'Custom'} token`,
-                image: tokenInfo.image || tokenInfo.image_uri || '/placeholder-icon.svg',
-                contractId: tokenInfo.contractId || contractId,
-                decimals: tokenInfo.decimals === undefined ? 6 : Number(tokenInfo.decimals),
-                identifier: tokenInfo.identifier || tokenInfo.name || tokenInfo.symbol,
-                isSubnet: tokenInfo.isSubnet || false,
-                isLpToken: isLp,
-                total_supply: tokenInfo.total_supply ? String(tokenInfo.total_supply) : null
-            };
-
-            setFetchedToken(enhancedToken);
+            setFetchedToken(tokenData);
         } catch (error) {
             console.error('Error fetching token metadata:', error);
             setCustomError(error instanceof Error ? error.message : 'Failed to fetch token data');
@@ -132,33 +87,33 @@ export const TokenSelectionStep = ({
             setFilteredTokens(predefinedTokens);
             return;
         }
-
         const query = searchQuery.toLowerCase();
-        const filtered = predefinedTokens.filter(
-            token =>
-                token.symbol.toLowerCase().includes(query) ||
-                token.name.toLowerCase().includes(query) ||
-                token.address.toLowerCase().includes(query)
-        );
+        const currentTokens = selectingToken2
+            ? predefinedTokens.filter(token => token.contractId !== excludedToken)
+            : predefinedTokens;
 
+        const filtered = currentTokens.filter(
+            token =>
+                token.symbol?.toLowerCase().includes(query) ||
+                token.name?.toLowerCase().includes(query) ||
+                token.contractId?.toLowerCase().includes(query)
+        );
         setFilteredTokens(filtered);
-    }, [searchQuery, predefinedTokens]);
+    }, [searchQuery, predefinedTokens, selectingToken2, excludedToken]);
 
     const handleCustomSubmit = () => {
         if (!fetchedToken) {
             setCustomError("Please fetch a valid token first");
             return;
         }
-
         setCustomError(null);
-
         if (!selectingToken2) {
             onSelectToken1(fetchedToken);
             setSelectingToken2(true);
+            setSearchQuery("");
         } else {
             onSelectToken2(fetchedToken);
         }
-
         setShowCustomInput(false);
         setCustomAddress("");
         setFetchedToken(null);
@@ -170,6 +125,10 @@ export const TokenSelectionStep = ({
         setCustomError(null);
         setFetchedToken(null);
     };
+
+    const tokensToDisplay = selectingToken2
+        ? filteredTokens.filter(token => token.contractId !== excludedToken)
+        : filteredTokens;
 
     return (
         <div className="space-y-8">
@@ -215,7 +174,7 @@ export const TokenSelectionStep = ({
                                             setCustomError(null);
                                             setFetchedToken(null);
                                         }}
-                                        placeholder="e.g. SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.token-name"
+                                        placeholder="e.g. SP...token-name"
                                     />
                                 </div>
 
@@ -244,7 +203,7 @@ export const TokenSelectionStep = ({
                                                 {fetchedToken.image ? (
                                                     <Image
                                                         src={fetchedToken.image}
-                                                        alt={fetchedToken.symbol}
+                                                        alt={fetchedToken.symbol || 'token'}
                                                         layout="fill"
                                                         objectFit="cover"
                                                         sizes="40px"
@@ -252,7 +211,7 @@ export const TokenSelectionStep = ({
                                                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                     />
                                                 ) : (
-                                                    <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol.charAt(0)}</div>
+                                                    <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                 )}
                                             </div>
                                             <div>
@@ -262,7 +221,7 @@ export const TokenSelectionStep = ({
                                         </div>
                                         <div className="text-xs text-muted-foreground">
                                             <span className="block mb-1">Contract ID:</span>
-                                            <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.address}</span>
+                                            <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{truncateAddress(fetchedToken.contractId)}</span>
                                         </div>
                                     </div>
                                 )}
@@ -294,55 +253,62 @@ export const TokenSelectionStep = ({
                                 <div className="text-center text-destructive mb-4">
                                     {tokenLoadError}
                                 </div>
-                            ) : filteredTokens.length === 0 ? (
+                            ) : tokensToDisplay.length === 0 && !searchQuery ? (
                                 <div className="text-center py-8">
-                                    <p className="text-muted-foreground">No tokens found. Try a different search.</p>
+                                    <p className="text-muted-foreground">No tokens available. Try adding a custom token.</p>
+                                </div>
+                            ) : tokensToDisplay.length === 0 && searchQuery ? (
+                                <div className="text-center py-8">
+                                    <p className="text-muted-foreground">No tokens match your search "{searchQuery}".</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    {filteredTokens.map((token) => (
+                                    {tokensToDisplay.map((token) => (
                                         <Card
-                                            key={token.address + token.symbol}
+                                            key={token.contractId}
                                             className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
                                             onClick={() => {
-                                                onSelectToken1(token);
-                                                setSelectingToken2(true);
+                                                if (!selectingToken2) {
+                                                    onSelectToken1(token);
+                                                    setSelectingToken2(true);
+                                                    setSearchQuery("");
+                                                } else {
+                                                    onSelectToken2(token);
+                                                }
                                             }}
                                         >
-                                            {/* LP Token Badge */}
-                                            {token.isLpToken && (
+                                            {token.tokenAContract && token.tokenBContract && (
                                                 <span className="absolute top-2 left-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                                     LP Token
                                                 </span>
                                             )}
-                                            {/* Subnet Badge */}
-                                            {token.isSubnet && (
+                                            {token.type === 'SUBNET' && (
                                                 <span className="absolute top-2 right-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                                     Subnet
                                                 </span>
                                             )}
                                             <div className="p-6 flex flex-col items-center">
-                                                <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative">
-                                                    {token.image && !imageErrors[token.address] ? (
+                                                <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative bg-muted">
+                                                    {token.image && !imageErrors[token.contractId] ? (
                                                         <Image
                                                             src={token.image}
-                                                            alt={token.symbol}
+                                                            alt={token.symbol || token.name || 'token'}
                                                             layout="fill"
                                                             objectFit="cover"
                                                             sizes="64px"
                                                             quality={95}
-                                                            onError={() => handleImageError(token.address)}
+                                                            onError={() => handleImageError(token.contractId)}
                                                         />
                                                     ) : (
                                                         <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
-                                                            {token.symbol.charAt(0)}
+                                                            {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
                                                         </div>
                                                     )}
                                                 </div>
-                                                <h3 className="font-medium">{token.symbol}</h3>
-                                                <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
-                                                <p className="text-xs text-muted-foreground/80 mt-1">
-                                                    Supply: {token.total_supply ? Number(token.total_supply).toLocaleString() : 'N/A'}
+                                                <h3 className="font-medium truncate max-w-full">{token.symbol || 'N/A'}</h3>
+                                                <p className="text-sm text-muted-foreground truncate max-w-full">{token.name || 'Unknown Name'}</p>
+                                                <p className="text-xs text-muted-foreground font-mono group-hover:text-primary/80 transition-colors">
+                                                    {truncateAddress(token.contractId)}
                                                 </p>
                                             </div>
                                         </Card>
@@ -355,7 +321,7 @@ export const TokenSelectionStep = ({
                                                 <HelpCircle className="w-8 h-8 text-primary/60" />
                                             </div>
                                             <h3 className="font-medium">Custom Token</h3>
-                                            <p className="text-sm text-muted-foreground">Use another SIP-10 token</p>
+                                            <p className="text-sm text-muted-foreground">Enter contract ID manually</p>
                                         </div>
                                     </Card>
                                 </div>
@@ -405,7 +371,7 @@ export const TokenSelectionStep = ({
                                             setCustomError(null);
                                             setFetchedToken(null);
                                         }}
-                                        placeholder="e.g. SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.token-name"
+                                        placeholder="e.g. SP...token-name"
                                     />
                                 </div>
 
@@ -434,7 +400,7 @@ export const TokenSelectionStep = ({
                                                 {fetchedToken.image ? (
                                                     <Image
                                                         src={fetchedToken.image}
-                                                        alt={fetchedToken.symbol}
+                                                        alt={fetchedToken.symbol || 'token'}
                                                         layout="fill"
                                                         objectFit="cover"
                                                         sizes="40px"
@@ -442,7 +408,7 @@ export const TokenSelectionStep = ({
                                                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                     />
                                                 ) : (
-                                                    <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol.charAt(0)}</div>
+                                                    <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                 )}
                                             </div>
                                             <div>
@@ -452,7 +418,7 @@ export const TokenSelectionStep = ({
                                         </div>
                                         <div className="text-xs text-muted-foreground">
                                             <span className="block mb-1">Contract ID:</span>
-                                            <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{fetchedToken.address}</span>
+                                            <span className="font-mono bg-muted/30 px-1.5 py-0.5 rounded">{truncateAddress(fetchedToken.contractId)}</span>
                                         </div>
                                     </div>
                                 )}
@@ -484,58 +450,66 @@ export const TokenSelectionStep = ({
                                 <div className="text-center text-destructive mb-4">
                                     {tokenLoadError}
                                 </div>
-                            ) : filteredTokens.filter(token => token.symbol !== excludedToken && token.address !== token1Symbol).length === 0 ? (
+                            ) : tokensToDisplay.length === 0 && !searchQuery ? (
                                 <div className="text-center py-8">
-                                    <p className="text-muted-foreground">No tokens found. Try a different search.</p>
+                                    <p className="text-muted-foreground">No tokens available. Try adding a custom token.</p>
+                                </div>
+                            ) : tokensToDisplay.length === 0 && searchQuery ? (
+                                <div className="text-center py-8">
+                                    <p className="text-muted-foreground">No tokens match your search "{searchQuery}".</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    {filteredTokens
-                                        .filter((token) => token.symbol !== excludedToken && token.address !== token1Symbol)
-                                        .map((token) => (
-                                            <Card
-                                                key={token.address + token.symbol}
-                                                className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
-                                                onClick={() => onSelectToken2(token)}
-                                            >
-                                                {/* LP Token Badge */}
-                                                {token.isLpToken && (
-                                                    <span className="absolute top-2 left-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
-                                                        LP Token
-                                                    </span>
-                                                )}
-                                                {/* Subnet Badge */}
-                                                {token.isSubnet && (
-                                                    <span className="absolute top-2 right-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
-                                                        Subnet
-                                                    </span>
-                                                )}
-                                                <div className="p-6 flex flex-col items-center">
-                                                    <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 overflow-hidden relative">
-                                                        {token.image && !imageErrors[token.address] ? (
-                                                            <Image
-                                                                src={token.image}
-                                                                alt={token.symbol}
-                                                                layout="fill"
-                                                                objectFit="cover"
-                                                                sizes="64px"
-                                                                quality={95}
-                                                                onError={() => handleImageError(token.address)}
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
-                                                                {token.symbol.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <h3 className="font-medium">{token.symbol}</h3>
-                                                    <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
-                                                    <p className="text-xs text-muted-foreground/80 mt-1">
-                                                        Supply: {token.total_supply ? Number(token.total_supply).toLocaleString() : 'N/A'}
-                                                    </p>
+                                    {tokensToDisplay.map((token) => (
+                                        <Card
+                                            key={token.contractId}
+                                            className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
+                                            onClick={() => {
+                                                if (!selectingToken2) {
+                                                    onSelectToken1(token);
+                                                    setSelectingToken2(true);
+                                                    setSearchQuery("");
+                                                } else {
+                                                    onSelectToken2(token);
+                                                }
+                                            }}
+                                        >
+                                            {token.tokenAContract && token.tokenBContract && (
+                                                <span className="absolute top-2 left-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                                    LP Token
+                                                </span>
+                                            )}
+                                            {token.type === 'SUBNET' && (
+                                                <span className="absolute top-2 right-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                                    Subnet
+                                                </span>
+                                            )}
+                                            <div className="p-6 flex flex-col items-center">
+                                                <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative bg-muted">
+                                                    {token.image && !imageErrors[token.contractId] ? (
+                                                        <Image
+                                                            src={token.image}
+                                                            alt={token.symbol || token.name || 'token'}
+                                                            layout="fill"
+                                                            objectFit="cover"
+                                                            sizes="64px"
+                                                            quality={95}
+                                                            onError={() => handleImageError(token.contractId)}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                            {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </Card>
-                                        ))}
+                                                <h3 className="font-medium truncate max-w-full">{token.symbol || 'N/A'}</h3>
+                                                <p className="text-sm text-muted-foreground truncate max-w-full">{token.name || 'Unknown Name'}</p>
+                                                <p className="text-xs text-muted-foreground font-mono group-hover:text-primary/80 transition-colors">
+                                                    {truncateAddress(token.contractId)}
+                                                </p>
+                                            </div>
+                                        </Card>
+                                    ))}
                                     <Card className="cursor-pointer hover:border-primary/50 transition-colors"
                                         onClick={() => setShowCustomInput(true)}
                                     >
@@ -544,7 +518,7 @@ export const TokenSelectionStep = ({
                                                 <HelpCircle className="w-8 h-8 text-primary/60" />
                                             </div>
                                             <h3 className="font-medium">Custom Token</h3>
-                                            <p className="text-sm text-muted-foreground">Use another SIP-10 token</p>
+                                            <p className="text-sm text-muted-foreground">Enter contract ID manually</p>
                                         </div>
                                     </Card>
                                 </div>

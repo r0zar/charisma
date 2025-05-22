@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Vault } from '@/lib/vaultService'; // Assuming Vault is the correct type for sublinks for now
+import { Vault } from '@/lib/pool-service'; // Assuming Vault is the correct type for sublinks for now
 import Image from 'next/image'; // If sublinks have images
 
 // Add CSS for the flame animation

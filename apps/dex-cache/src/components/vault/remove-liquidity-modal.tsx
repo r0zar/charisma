@@ -17,31 +17,13 @@ import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowUpDown, Minus, AlertCircle, Loader2 } from 'lucide-react';
 
-interface Token {
-    contractId: string;
-    identifier?: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    image: string;
-}
+// Import the centralized vault type definition and TokenCacheData
+import { ClientDisplayVault } from './vault-detail-client';
+import { TokenCacheData } from '@repo/tokens';
 
-interface Vault {
-    contractId: string;
-    name: string;
-    identifier: string;
-    symbol: string;
-    decimals: number;
-    description: string;
-    image: string;
-    fee: number;
-    externalPoolId: string;
-    engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    reservesA: number;
-    reservesB: number;
-}
+// Remove local Token and Vault interfaces
+// interface Token { ... }
+// interface Vault { ... }
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (
@@ -51,7 +33,7 @@ const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoadin
             <div>
                 <div className="text-xs text-muted-foreground">{label}</div>
                 <div className="text-base font-medium">
-                    {amount.toLocaleString(undefined, { maximumFractionDigits: decimals || 6 })} {symbol || '--'}
+                    {amount.toLocaleString(undefined, { maximumFractionDigits: decimals ?? 6 })} {symbol || '--'}
                 </div>
             </div>
         </div>
@@ -63,14 +45,14 @@ const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoadin
 const BalanceInfo = ({ balance, symbol, decimals, isLoading }: any) => (
     <div className="flex justify-between text-xs text-muted-foreground">
         <span>
-            Balance: {isLoading ? '...' : (balance / (10 ** (decimals || 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol || '--'}
+            Balance: {isLoading ? '...' : (balance / (10 ** (decimals ?? 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol || '--'}
         </span>
     </div>
 );
 // --- End Placeholders ---
 
 interface RemoveLiquidityModalProps {
-    vault: Vault & { reservesA: number; reservesB: number };
+    vault: ClientDisplayVault; // Use ClientDisplayVault
     prices: Record<string, number>;
     trigger?: React.ReactNode; // Optional custom trigger
 }
@@ -86,6 +68,12 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
     const [isLoadingBalance, setIsLoadingBalance] = useState(false);
     const [isQuoting, setIsQuoting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // Use vault.tokenA.decimals (which is TokenCacheData.decimals, so number | undefined)
+    // Provide default for calculations
+    const tokenADecimals = vault.tokenA.decimals ?? 6;
+    const tokenBDecimals = vault.tokenB.decimals ?? 6;
+    const lpDecimals = vault.decimals; // This is from ClientDisplayVault root, should be number
 
     // Fetch quote using server action
     const fetchQuote = useCallback(async (targetLpAmountToBurn: number) => {
@@ -176,7 +164,7 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
             // PC for LP token burn (from user)
             if (quotedAmounts.dk > 0) {
                 postConditions.push(
-                    Pc.principal(walletState.address).willSendEq(quotedAmounts.dk).ft(vault.contractId as `${string}.${string}`, vault.identifier!)
+                    Pc.principal(walletState.address!).willSendEq(quotedAmounts.dk).ft(vault.contractId as `${string}.${string}`, vault.identifier!)
                 );
             }
 
@@ -266,41 +254,41 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
                     <div className="space-y-4">
                         {/* Token A Received */}
                         <TokenDisplay
-                            amount={tokenAReceived / (10 ** (vault.tokenA.decimals || 6))}
+                            amount={tokenAReceived / (10 ** tokenADecimals)}
                             symbol={vault.tokenA.symbol}
                             imgSrc={vault.tokenA.image}
                             price={prices[vault.tokenA.contractId]}
                             label="You will receive"
-                            decimals={vault.tokenA.decimals}
+                            decimals={tokenADecimals}
                             isLoading={isQuoting}
                         />
 
                         {/* Token B Received */}
                         <TokenDisplay
-                            amount={tokenBReceived / (10 ** (vault.tokenB.decimals || 6))}
+                            amount={tokenBReceived / (10 ** tokenBDecimals)}
                             symbol={vault.tokenB.symbol}
                             imgSrc={vault.tokenB.image}
                             price={prices[vault.tokenB.contractId]}
                             label="You will receive"
-                            decimals={vault.tokenB.decimals}
+                            decimals={tokenBDecimals}
                             isLoading={isQuoting}
                         />
 
                         {/* LP Tokens to Burn */}
                         <div className="space-y-1 pt-2">
                             <TokenDisplay
-                                amount={lpAmountToBurn / (10 ** (vault.decimals || 6))}
+                                amount={lpAmountToBurn / (10 ** lpDecimals)}
                                 symbol={vault.symbol}
                                 imgSrc={vault.image}
                                 price={prices[vault.contractId]} // Price of LP token might not be available
                                 label="You will burn (LP Tokens)"
-                                decimals={vault.decimals}
+                                decimals={lpDecimals}
                                 isLoading={isQuoting} // LP amount also depends on quote
                             />
                             <BalanceInfo
                                 balance={lpBalance}
                                 symbol={vault.symbol}
-                                decimals={vault.decimals}
+                                decimals={lpDecimals}
                                 isLoading={isLoadingBalance}
                             />
                         </div>

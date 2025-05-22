@@ -24,11 +24,13 @@ import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-s
 import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
 import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
 import { getTokenMetadataCached, listTokens, TokenCacheData, listPrices, KraxelPriceData } from "@repo/tokens";
-import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly } from '@/app/actions';
+import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly, saveMetadataToDexCache, Vault } from '@/app/actions';
 
+// Dynamically import colorthief
+// import ColorThief from 'colorthief'; // We will import it dynamically
 
 // Metadata constants
-const METADATA_BASE_URL = 'https://metadata.charisma.rocks'
+const METADATA_BASE_URL = process.env.NEXT_PUBLIC_METADATA_BASE_URL || 'https://metadata.charisma.rocks'
 const METADATA_API_URL = `${METADATA_BASE_URL}/api/v1/metadata`;
 
 // Wizard steps
@@ -39,19 +41,19 @@ enum WizardStep {
     REVIEW_DEPLOY = 3,
 }
 
-// Token type - Use TokenCacheData where EnhancedToken was used
-interface Token {
-    symbol: string;
-    name: string;
-    address: string; // This should be the contract ID
-    description?: string;
-    image?: string;
-    decimals?: number;
-    isSubnet?: boolean;
-    isLpToken?: boolean;
-    total_supply?: string | null;
-    identifier?: string; // Added for compatibility if used elsewhere
-}
+// Token type - REMOVE LOCAL Token interface, use TokenCacheData from @repo/tokens
+// interface Token {
+//     symbol: string;
+//     name: string;
+//     address: string; 
+//     description?: string;
+//     image?: string;
+//     decimals?: number;
+//     isSubnet?: boolean;
+//     isLpToken?: boolean;
+//     total_supply?: string | null;
+//     identifier?: string; 
+// }
 
 // Contract Stepper Component
 const ContractStepper = ({ currentStep }: { currentStep: WizardStep }) => {
@@ -101,31 +103,33 @@ function LiquidityPoolWizard() {
         stxAddress,
         deployContract,
         signMessage,
-        tokens,
+        tokens, // This is from useApp, likely already TokenCacheData[]
         loading: contextLoading,
         tokensError,
         fetchTokens
     } = useApp();
     const [isDeploying, setIsDeploying] = useState(false);
     const [txid, setTxid] = useState<string | null>(null);
-    const [metadata, setMetadata] = useState<TokenMetadata | null>(null);
+    const [metadata, setMetadata] = useState<TokenMetadata | null>(null); // This seems specific to the LP token being created
     const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
     const [metadataApiError, setMetadataApiError] = useState(false);
     const [hasMetadataFlag, setHasMetadataFlag] = useState(false);
 
     // Hoisted state definitions
-    const [token1, setToken1] = useState<string>("");
-    const [token2, setToken2] = useState<string>("");
-    const [token1Details, setToken1Details] = useState<Token | null>(null);
-    const [token2Details, setToken2Details] = useState<Token | null>(null);
-    const [token1Address, setToken1Address] = useState<string>("");
-    const [token2Address, setToken2Address] = useState<string>("");
+    const [token1Symbol, setToken1Symbol] = useState<string>(""); // Changed from token1 to token1Symbol for clarity
+    const [token2Symbol, setToken2Symbol] = useState<string>(""); // Changed from token2 to token2Symbol for clarity
+    const [token1Details, setToken1Details] = useState<TokenCacheData | null>(null); // Use TokenCacheData
+    const [token2Details, setToken2Details] = useState<TokenCacheData | null>(null); // Use TokenCacheData
+    // token1Address and token2Address can be derived from token1Details/token2Details.contractId
+    // const [token1Address, setToken1Address] = useState<string>("");
+    // const [token2Address, setToken2Address] = useState<string>("");
     const [poolName, setPoolName] = useState("");
     const [lpTokenSymbol, setLpTokenSymbol] = useState("");
     const [swapFee, setSwapFee] = useState<string>("0.003"); // Default fee (0.3%)
 
-    const [token1Image, setToken1Image] = useState<string | undefined>(undefined);
-    const [token2Image, setToken2Image] = useState<string | undefined>(undefined);
+    // Remove token1Image, token2Image, use token1Details.image directly
+    // const [token1Image, setToken1Image] = useState<string | undefined>(undefined);
+    // const [token2Image, setToken2Image] = useState<string | undefined>(undefined);
 
     const [initialTokenRatio, setInitialTokenRatio] = useState({
         token1Amount: 0,
@@ -158,27 +162,15 @@ function LiquidityPoolWizard() {
         const useRatio_Param = searchParams.get('useRatio') === 'true';
 
         if (tokenA_Param && tokenB_Param && fee_Param) {
-            setToken1Address(tokenA_Param);
-            setToken2Address(tokenB_Param);
-            setSwapFee(fee_Param);
             setPricesLoading(true);
 
             Promise.all([
                 fetchTokenMetadataPairDirectly(tokenA_Param, tokenB_Param),
                 listPrices()
-            ]).then(([tokenDetailsResult, allPrices]) => {
+            ]).then(async ([tokenDetailsResult, allPrices]) => {
                 if (tokenDetailsResult.token1Meta) {
-                    setToken1(tokenDetailsResult.token1Meta.symbol || "");
-                    const t1Details: Token = {
-                        address: tokenA_Param, // Use param directly as it's the contract ID
-                        symbol: tokenDetailsResult.token1Meta.symbol || "",
-                        name: tokenDetailsResult.token1Meta.name || "",
-                        decimals: tokenDetailsResult.token1Meta.decimals === undefined ? 6 : tokenDetailsResult.token1Meta.decimals, // Default to 6 if undefined
-                        image: tokenDetailsResult.token1Meta.image || undefined,
-                        total_supply: tokenDetailsResult.token1Meta.total_supply !== undefined ? String(tokenDetailsResult.token1Meta.total_supply) : undefined,
-                        identifier: tokenDetailsResult.token1Meta.identifier || tokenA_Param, // Added identifier
-                    };
-                    setToken1Details(t1Details);
+                    setToken1Symbol(tokenDetailsResult.token1Meta.symbol || "");
+                    setToken1Details(tokenDetailsResult.token1Meta);
                     setToken1UsdPrice(allPrices[tokenA_Param] || null);
                 } else {
                     setToken1Details(null);
@@ -186,24 +178,15 @@ function LiquidityPoolWizard() {
                 }
 
                 if (tokenDetailsResult.token2Meta) {
-                    setToken2(tokenDetailsResult.token2Meta.symbol || "");
-                    const t2Details: Token = {
-                        address: tokenB_Param, // Use param directly
-                        symbol: tokenDetailsResult.token2Meta.symbol || "",
-                        name: tokenDetailsResult.token2Meta.name || "",
-                        decimals: tokenDetailsResult.token2Meta.decimals === undefined ? 6 : tokenDetailsResult.token2Meta.decimals, // Default to 6
-                        image: tokenDetailsResult.token2Meta.image || undefined,
-                        total_supply: tokenDetailsResult.token2Meta.total_supply !== undefined ? String(tokenDetailsResult.token2Meta.total_supply) : undefined,
-                        identifier: tokenDetailsResult.token2Meta.identifier || tokenB_Param, // Added identifier
-                    };
-                    setToken2Details(t2Details);
+                    setToken2Symbol(tokenDetailsResult.token2Meta.symbol || "");
+                    setToken2Details(tokenDetailsResult.token2Meta);
                     setToken2UsdPrice(allPrices[tokenB_Param] || null);
                 } else {
                     setToken2Details(null);
                     setToken2UsdPrice(null);
                 }
 
-                if (tokenDetailsResult.token1Meta && tokenDetailsResult.token2Meta && !poolName) { // Check poolName here before setting
+                if (tokenDetailsResult.token1Meta && tokenDetailsResult.token2Meta && !poolName) {
                     const generatedPoolName = `${tokenDetailsResult.token1Meta.symbol}-${tokenDetailsResult.token2Meta.symbol} Liquidity`;
                     const generatedLpSymbol = `${tokenDetailsResult.token1Meta.symbol}-${tokenDetailsResult.token2Meta.symbol}`;
                     setPoolName(generatedPoolName);
@@ -243,25 +226,42 @@ function LiquidityPoolWizard() {
 
     useEffect(() => {
         const fetchPricesForSelectedTokens = async () => {
-            // Ensure details and their addresses are available, and not currently processing URL params
-            if (token1Details?.address && token2Details?.address && !searchParams.get('tokenA')) {
-                setPricesLoading(true);
-                try {
-                    const allPrices = await listPrices();
-                    setToken1UsdPrice(allPrices[token1Details.address] || null);
-                    setToken2UsdPrice(allPrices[token2Details.address] || null);
-                } catch (error) {
-                    console.error("Error fetching prices for selected tokens:", error);
-                    sonnerToast.error("Price Fetch Failed", { description: "Could not fetch latest token prices." });
+            if (!searchParams.get('tokenA')) {
+                if (token1Details?.contractId && token2Details?.contractId) {
+                    setPricesLoading(true);
+                    try {
+                        const allPrices = await listPrices();
+                        setToken1UsdPrice(allPrices[token1Details.contractId] || null);
+                        setToken2UsdPrice(allPrices[token2Details.contractId] || null);
+                    } catch (error) {
+                        console.error("Error fetching prices for selected tokens:", error);
+                        sonnerToast.error("Price Fetch Failed", { description: "Could not fetch latest token prices." });
+                        setToken1UsdPrice(null);
+                        setToken2UsdPrice(null);
+                    } finally {
+                        setPricesLoading(false);
+                    }
+                } else if (token1Details?.contractId && !token2Details?.contractId) {
+                    setPricesLoading(true);
+                    try {
+                        const allPrices = await listPrices();
+                        setToken1UsdPrice(allPrices[token1Details.contractId] || null);
+                        setToken2UsdPrice(null);
+                    } catch (error) {
+                        console.error("Error fetching price for token 1:", error);
+                        sonnerToast.error("Price Fetch Failed", { description: "Could not fetch latest price for Token 1." });
+                        setToken1UsdPrice(null);
+                    } finally {
+                        setPricesLoading(false);
+                    }
+                } else if (!token1Details?.contractId) {
                     setToken1UsdPrice(null);
                     setToken2UsdPrice(null);
-                } finally {
-                    setPricesLoading(false);
                 }
             }
         };
         fetchPricesForSelectedTokens();
-    }, [token1Details?.address, token2Details?.address, searchParams]); // searchParams ensures this doesn't run if URL params are present
+    }, [token1Details, token2Details, searchParams]);
 
     // Navigation functions
     const nextStep = () => {
@@ -295,23 +295,22 @@ function LiquidityPoolWizard() {
         // If needed, prepend 'pool-' prefix for names starting with numbers
         baseName = baseName.replace(/^(\d)/, 'pool-$1');
 
-        // Strip off any existing -amm, -lp, -pool, etc. suffixes to avoid duplication
+        // Strip off any existing -lp, -pool, etc. suffixes to avoid duplication
         baseName = baseName
             .replace(/-liquidity-pool$/, '')
             .replace(/-pool$/, '')
             .replace(/-lp$/, '')
-            .replace(/-amm$/, '');
 
         // Add the standard suffix
-        return `${baseName}-amm-lp-v1`;
+        return `${baseName}-lp-v1`;
     };
 
     // Get contract name from pool name
-    const contractName = generateContractName(poolName) || 'amm-pool';
+    const contractName = generateContractName(poolName) || 'pool';
 
     // Automatically generate LP token symbol if not set
     const effectiveLpTokenSymbol = lpTokenSymbol ||
-        (token1 && token2 ? `${token1}-${token2}` : 'LP');
+        (token1Symbol && token2Symbol ? `${token1Symbol}-${token2Symbol}` : 'LP');
 
     // Full contract identifier
     const contractIdentifier = stxAddress && poolName ? `${stxAddress}.${generateContractName(poolName)}` : "";
@@ -326,21 +325,21 @@ function LiquidityPoolWizard() {
             newErrors.poolName = "Pool name is required";
         }
 
-        if (!token1.trim()) {
+        if (!token1Symbol.trim()) {
             newErrors.token1 = "First token is required";
         }
 
-        if (!token1Address.trim()) {
+        if (!token1Details?.contractId) {
             newErrors.token1Address = "First token address is required";
         }
 
-        if (!token2.trim()) {
+        if (!token2Symbol.trim()) {
             newErrors.token2 = "Second token is required";
         }
 
-        if (!token2Address.trim()) {
+        if (!token2Details?.contractId) {
             newErrors.token2Address = "Second token address is required";
-        } else if (token1Address === token2Address) {
+        } else if (token1Details?.contractId === token2Details?.contractId) {
             newErrors.token2Address = "Both tokens cannot be the same";
         }
 
@@ -418,8 +417,8 @@ function LiquidityPoolWizard() {
             console.log("Using token decimals:", { tokenADecimals, tokenBDecimals, lpTokenDecimals });
 
             // Check if tokens are STX
-            const isToken1Stx = token1Address.includes('stx-token');
-            const isToken2Stx = token2Address.includes('stx-token');
+            const isToken1Stx = token1Details.contractId?.includes('stx-token');
+            const isToken2Stx = token2Details.contractId?.includes('stx-token');
 
             // Ensure we have initial liquidity values (use 0 if not enabled)
             const token1Amount = initialTokenRatio.useRatio ? initialTokenRatio.token1Amount : 0;
@@ -435,8 +434,8 @@ function LiquidityPoolWizard() {
 
             // Generate the liquidity pool contract code
             const contractCode = generateLiquidityPoolContract({
-                tokenA: token1Address,
-                tokenB: token2Address,
+                tokenA: token1Details.contractId, // Use contractId from TokenCacheData
+                tokenB: token2Details.contractId, // Use contractId from TokenCacheData
                 lpTokenName: poolName,
                 lpTokenSymbol: effectiveLpTokenSymbol,
                 swapFee: Math.round(parseFloat(swapFee) * 10000), // Convert percentage to integer parts per million
@@ -458,7 +457,7 @@ function LiquidityPoolWizard() {
                 let tokenRequirementsMessage = "Contract will transfer: ";
 
                 if (totalTokenAAmount > 0) {
-                    tokenRequirementsMessage += `${initialTokenRatio.token1Amount} ${token1}`;
+                    tokenRequirementsMessage += `${initialTokenRatio.token1Amount} ${token1Symbol}`;
                     if (totalTokenBAmount > 0) tokenRequirementsMessage += " and ";
 
                     // Add post-condition for token A
@@ -475,13 +474,13 @@ function LiquidityPoolWizard() {
                                 address: stxAddress!,
                                 condition: 'eq',
                                 amount: BigInt(totalTokenAAmount),
-                                asset: `${token1Address}::${token1Details.identifier}` as any
+                                asset: `${token1Details.contractId}::${token1Details.identifier}` as any // Use contractId from TokenCacheData
                             }
                     );
                 }
 
                 if (totalTokenBAmount > 0) {
-                    tokenRequirementsMessage += `${initialTokenRatio.token2Amount} ${token2}`;
+                    tokenRequirementsMessage += `${initialTokenRatio.token2Amount} ${token2Symbol}`;
 
                     // Add post-condition for token B
                     postConditions.push(
@@ -497,7 +496,7 @@ function LiquidityPoolWizard() {
                                 address: stxAddress!,
                                 condition: 'eq',
                                 amount: BigInt(totalTokenBAmount),
-                                asset: `${token2Address}::${token2Details.identifier}` as any
+                                asset: `${token2Details.contractId}::${token2Details.identifier}` as any // Use contractId from TokenCacheData
                             }
                     );
                 }
@@ -516,15 +515,51 @@ function LiquidityPoolWizard() {
             setTxid(result.txid);
             sonnerToast.success("Deployment Initiated", { description: `Tx ID: ${result.txid.substring(0, 10)}...` });
 
-            // --- Add Pool to Dex Cache --- 
-            // run this after 10 seconds
-            setTimeout(async () => {
-                await getTokenMetadataCached(deployedContractId);
-            }, 10000);
-            // --- End Add Pool to Dex Cache ---
+            // --- Save to Vercel KV / dex-cache AFTER successful deployment ---
+            if (metadata && token1Details && token2Details) { // Ensure all necessary data is present
+                const vaultToCache: Vault = {
+                    type: 'POOL',
+                    protocol: "CHARISMA",
+                    contractId: deployedContractId, // Use the actual deployed contract ID
+                    name: metadata.name || poolName, // Fallback to poolName if metadata.name is not set
+                    symbol: metadata.symbol || effectiveLpTokenSymbol, // Fallback to effectiveLpTokenSymbol
+                    decimals: metadata.decimals || 6, // Default LP decimals
+                    image: metadata.image || "", // LP token image from generated metadata
+                    fee: parseFloat(swapFee), // swapFee is a percentage string, convert to decimal e.g. "0.3" -> 0.003
+                    identifier: metadata.symbol || effectiveLpTokenSymbol, // LP token identifier
+                    description: metadata.description || `Liquidity pool for ${token1Symbol}-${token2Symbol}`,
+                    tokenA: {
+                        contractId: token1Details.contractId,
+                        symbol: token1Details.symbol || "",
+                        name: token1Details.name || "",
+                        image: token1Details.image || "",
+                        description: token1Details.description || "",
+                        identifier: token1Details.identifier || token1Details.symbol || "",
+                        decimals: token1Details.decimals || 0
+                    },
+                    tokenB: {
+                        contractId: token2Details.contractId,
+                        symbol: token2Details.symbol || "",
+                        name: token2Details.name || "",
+                        image: token2Details.image || "",
+                        description: token2Details.description || "",
+                        identifier: token2Details.identifier || token2Details.symbol || "",
+                        decimals: token2Details.decimals || 0
+                    }
+                };
+                const kvSaveResult = await saveMetadataToDexCache(deployedContractId, vaultToCache);
+                if (kvSaveResult.success) {
+                    sonnerToast.info("Dex Cache Update", { description: kvSaveResult.message });
+                } else {
+                    sonnerToast.warning("Dex Cache Update Failed", { description: kvSaveResult.error });
+                }
+            } else {
+                sonnerToast.warning("Dex Cache Update Skipped", { description: "Missing metadata or token details to save to dex-cache." });
+            }
+            // --- End Save to Vercel KV ---
 
-            // Redirect to contracts page after successful deployment
-            router.push(`/contracts?txid=${result.txid}`);
+            // Redirect to the new success page
+            router.push(`/templates/liquidity-pool/deploy-success?txid=${result.txid}&poolName=${encodeURIComponent(poolName)}&contractIdentifier=${encodeURIComponent(deployedContractId)}`);
         } catch (error) {
             console.error("Deployment error:", error);
             sonnerToast.error("Deployment Failed", {
@@ -574,9 +609,42 @@ function LiquidityPoolWizard() {
         }
     };
 
+    // Helper function to generate a 2x2 pixel art data URI
+    const generatePixelArtDataUri = (color1 = '#cccccc', color2 = '#999999', width = 4, height = 4): string => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+            // Create a 2x2 pattern
+            const patternCanvas = document.createElement('canvas');
+            patternCanvas.width = 2;
+            patternCanvas.height = 2;
+            const pctx = patternCanvas.getContext('2d');
+
+            if (pctx) {
+                pctx.fillStyle = color1;
+                pctx.fillRect(0, 0, 1, 1);
+                pctx.fillRect(1, 1, 1, 1);
+                pctx.fillStyle = color2;
+                pctx.fillRect(1, 0, 1, 1);
+                pctx.fillRect(0, 1, 1, 1);
+
+                // Scale the pattern to fill the main canvas
+                const pattern = ctx.createPattern(patternCanvas, 'repeat');
+                if (pattern) {
+                    ctx.fillStyle = pattern;
+                    ctx.fillRect(0, 0, width, height);
+                }
+            }
+        }
+        return canvas.toDataURL();
+    };
+
     // Function to generate metadata manually
     const generateMetadata = async () => {
-        if (!token1Address || !token2Address || !poolName || !stxAddress) {
+        if (!token1Details?.contractId || !token2Details?.contractId || !poolName || !stxAddress) {
             sonnerToast.warning("Missing Information", {
                 description: "Please ensure you have selected both tokens and provided a pool name.",
             });
@@ -609,22 +677,98 @@ function LiquidityPoolWizard() {
             // Sign the contractId with wallet for authentication
             const { signature, publicKey } = await signMessage(contractId);
 
+            // --- Generate default image ---
+            let lpImage = generatePixelArtDataUri(); // Default placeholder
+            try {
+                const ColorThiefImport = await import('colorthief');
+                const ColorThief = ColorThiefImport.default;
+                const colorThief = new ColorThief();
+
+                let c1 = '#CCCCCC'; // Default color 1
+                let c2 = '#999999'; // Default color 2
+
+                const fetchAndProcessImage = async (imageUrl: string | undefined, defaultColor: string): Promise<string> => {
+                    if (!imageUrl) return defaultColor;
+                    try {
+                        // Using a proxy for CORS issues if images are not on the same domain
+                        // Note: This proxy URL would need to be set up on your server.
+                        // const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+                        // For now, assuming direct access or CORS-enabled images
+                        const img = new Image();
+                        img.crossOrigin = "Anonymous"; // Attempt to enable CORS
+                        img.src = imageUrl;
+
+                        return new Promise<string>((resolve) => {
+                            img.onload = () => {
+                                try {
+                                    const dominantColor = colorThief.getColor(img);
+                                    resolve(`rgb(${dominantColor.join(',')})`);
+                                } catch (e) {
+                                    console.warn("ColorThief couldn't process image:", imageUrl, e);
+                                    resolve(defaultColor);
+                                }
+                            };
+                            img.onerror = (e) => {
+                                console.warn("Failed to load image for color extraction:", imageUrl, e);
+                                resolve(defaultColor);
+                            };
+                        });
+                    } catch (e) {
+                        console.warn("Error fetching/processing image:", imageUrl, e);
+                        return defaultColor;
+                    }
+                };
+
+                if (token1Details?.image) {
+                    c1 = await fetchAndProcessImage(token1Details.image, c1);
+                }
+                if (token2Details?.image) {
+                    c2 = await fetchAndProcessImage(token2Details.image, c2);
+                }
+
+                // Ensure c1 and c2 are different for better visual
+                if (c1 === c2) {
+                    // A simple way to make them different if they are the same
+                    // This could be made more sophisticated
+                    const isHexColor = (color: string) => /^#([0-9A-F]{3}){1,2}$/i.test(color);
+                    if (isHexColor(c2)) {
+                        // slightly darken or lighten hex color
+                        // Basic example: if it's light, make it darker, if dark, make it lighter
+                        const brightness = parseInt(c2.slice(1), 16);
+                        c2 = brightness > 0x7FFFFF ? '#555555' : '#AAAAAA';
+                    } else { // for rgb
+                        c2 = 'rgb(150,150,150)'; // a different default gray
+                    }
+                    if (c1 === c2) c2 = '#888888'; // final fallback if still same
+                }
+
+
+                lpImage = generatePixelArtDataUri(c1, c2);
+
+            } catch (e) {
+                console.error("Error during image generation or color thief import:", e);
+                // Fallback to default pixel art if colorthief or image processing fails
+                lpImage = generatePixelArtDataUri('#A0A0A0', '#D0D0D0'); // Different default colors for error
+            }
+            // --- End generate default image ---
+
+
             // Define the metadata structure with desired naming convention
-            const currentMetadata: Partial<TokenMetadata> = {
-                name: `${token1}-${token2} Liquidity`, // e.g., B-CHR Liquidity
-                symbol: `${token1}-${token2}`,    // e.g., B-CHR
-                description: `Liquidity pool token for the ${token1}-${token2} pair`,
+            const currentMetadata: Partial<TokenMetadata> & { image?: string } = {
+                name: `${token1Symbol}-${token2Symbol} Liquidity`, // e.g., B-CHR Liquidity
+                symbol: `${token1Symbol}-${token2Symbol}`,    // e.g., B-CHR
+                description: `Liquidity pool token for the ${token1Symbol}-${token2Symbol} pair`,
                 decimals: 6, // Standard for LP tokens
+                image: lpImage, // Add the generated image
                 // Add lpRebatePercent to top level for dex-cache compatibility
                 lpRebatePercent: parseFloat(swapFee),
                 properties: {
-                    tokenAContract: token1Address,
-                    tokenBContract: token2Address,
-                    // Keep swapFeePercent in properties for potential future use/consistency
+                    tokenAContract: token1Details.contractId, // Use contractId from TokenCacheData
+                    tokenBContract: token2Details.contractId, // Use contractId from TokenCacheData
                     swapFeePercent: parseFloat(swapFee),
                 },
-                // Optional: Add image prompt if your metadata service uses it
-                // imagePrompt: `Minimalist professional logo representing liquidity pool between ${token1} and ${token2}`
+                type: 'POOL',
+                protocol: "CHARISMA"
             };
 
             console.log("Generating metadata with payload:", currentMetadata);
@@ -646,15 +790,19 @@ function LiquidityPoolWizard() {
                     sonnerToast.success("Metadata Generated", {
                         description: "LP token metadata has been successfully created and saved.",
                     });
+
                 } else {
-                    throw new Error('Unexpected response structure');
+                    throw new Error('Unexpected response structure from metadata API');
                 }
             } else {
-                throw new Error('Metadata service responded with error');
+                const errorText = await resp.text();
+                console.error("Metadata service responded with error:", resp.status, errorText);
+                throw new Error(`Metadata service responded with ${resp.status}: ${errorText || 'Unknown error'}`);
             }
         } catch (e) {
             console.error('Metadata generation error', e);
             setMetadataApiError(true);
+            setMetadata(null); // Explicitly clear metadata on error
             sonnerToast.error("Metadata Generation Failed", {
                 description: e instanceof Error ? e.message : "There was an error generating metadata. Please try again.",
             });
@@ -668,7 +816,7 @@ function LiquidityPoolWizard() {
         setMetadataApiError(false);
 
         // Verify the right conditions before triggering refresh
-        const shouldGenerate = token1Address && token2Address && poolName && stxAddress;
+        const shouldGenerate = token1Details?.contractId && token2Details?.contractId && poolName && stxAddress;
         if (shouldGenerate) {
             // Clear existing metadata and regenerate
             setMetadata(null);
@@ -680,53 +828,29 @@ function LiquidityPoolWizard() {
         }
     };
 
-    const handleSelectToken1 = (selectedToken: Token) => {
+    const handleSelectToken1 = (selectedToken: TokenCacheData) => { // Expect TokenCacheData
         console.log("Selected token 1:", selectedToken);
-        setToken1(selectedToken.symbol || "");
-        setToken1Address(selectedToken.address); // Use selectedToken.address
+        setToken1Symbol(selectedToken.symbol || "");
+        // setToken1Address(selectedToken.contractId); // No longer needed, use selectedToken.contractId directly
+        setToken1Details(selectedToken); // Store full TokenCacheData
+        // setToken1Image(findTokenImage(selectedToken.symbol || "", selectedToken.contractId)); // No longer needed
 
-        const details: Token = {
-            address: selectedToken.address,       // Use selectedToken.address
-            symbol: selectedToken.symbol || "",
-            name: selectedToken.name || "",
-            decimals: selectedToken.decimals === undefined ? 6 : selectedToken.decimals,
-            image: selectedToken.image || undefined,
-            description: selectedToken.description || undefined,
-            total_supply: selectedToken.total_supply !== undefined ? String(selectedToken.total_supply) : undefined,
-            identifier: selectedToken.identifier || selectedToken.address, // Use identifier or address
-        };
-        setToken1Details(details);
-        setToken1Image(findTokenImage(selectedToken.symbol || "", selectedToken.address)); // Use selectedToken.address
-        // Auto-generate pool name if token2 is not yet selected or if pool name is empty
-        if (!token2 || !poolName) {
-            setPoolName(`${selectedToken.symbol} Liquidity Pool`);
+        if (!token2Symbol || !poolName) { // Use token2Symbol
+            setPoolName(`${selectedToken.symbol || 'TKN'} Liquidity Pool`);
         }
-        // Do not automatically advance here, let TokenSelectionStep handle it
     };
 
-    const handleSelectToken2 = (selectedToken: Token) => {
+    const handleSelectToken2 = (selectedToken: TokenCacheData) => { // Expect TokenCacheData
         console.log("Selected token 2:", selectedToken);
-        setToken2(selectedToken.symbol || "");
-        setToken2Address(selectedToken.address); // Use selectedToken.address
+        setToken2Symbol(selectedToken.symbol || "");
+        // setToken2Address(selectedToken.contractId); // No longer needed
+        setToken2Details(selectedToken); // Store full TokenCacheData
+        // setToken2Image(findTokenImage(selectedToken.symbol || "", selectedToken.contractId)); // No longer needed
 
-        const details: Token = {
-            address: selectedToken.address,       // Use selectedToken.address
-            symbol: selectedToken.symbol || "",
-            name: selectedToken.name || "",
-            decimals: selectedToken.decimals === undefined ? 6 : selectedToken.decimals,
-            image: selectedToken.image || undefined,
-            description: selectedToken.description || undefined,
-            total_supply: selectedToken.total_supply !== undefined ? String(selectedToken.total_supply) : undefined,
-            identifier: selectedToken.identifier || selectedToken.address, // Use identifier or address
-        };
-        setToken2Details(details);
-        setToken2Image(findTokenImage(selectedToken.symbol || "", selectedToken.address)); // Use selectedToken.address
-        // Update pool name to reflect the token pair if token1 is set
-        if (token1) {
-            setPoolName(`${token1}-${selectedToken.symbol} Liquidity Pool`);
+        if (token1Symbol) { // Use token1Symbol
+            setPoolName(`${token1Symbol}-${selectedToken.symbol || 'TKN'} Liquidity Pool`);
         }
-        // TokenSelectionStep will call nextStep after this if it's the final selection in that component
-        nextStep(); // Explicitly call next step after second token selection
+        nextStep();
     };
 
     // Check metadata when the component mounts or when key dependencies change
@@ -740,42 +864,6 @@ function LiquidityPoolWizard() {
             checkExistingMetadata();
         }
     }, [currentStep, contractIdentifier, hasMetadataFlag, isGeneratingMetadata]);
-
-    // Helper function to find a token's image from the token list (USE CONTEXT TOKENS)
-    const findTokenImage = (symbol: string, contractIdInput: string): string | undefined => {
-        const foundToken = tokens.find(t =>
-            (t.contractId && t.contractId.toLowerCase() === contractIdInput.toLowerCase()) ||
-            (t.symbol && t.symbol.toUpperCase() === symbol.toUpperCase())
-        );
-        return foundToken?.image ?? undefined;
-    };
-
-    const predefinedTokensForStep: any[] = tokens.filter(t => {
-        if (t.contractId && t.symbol && t.name) {
-            return true;
-        }
-        return false;
-    }).map((token, index) => {
-        // Check for subnet using contractId from the original TokenCacheData
-        const isSubnet = !!token.contractId?.includes('subnet');
-        // Check if it's an LP token by looking for specific properties
-        const isLpToken = !!(token.tokenAContract && token.tokenBContract);
-
-        return {
-            symbol: token.symbol,
-            name: token.name,
-            address: token.contractId, // Ensure address is always a valid string
-            description: token.description ?? undefined,
-            image: token.image ?? undefined,
-            decimals: token.decimals,
-            isSubnet: isSubnet,
-            isLpToken: isLpToken,
-            total_supply: token.total_supply ?? null,
-        };
-    });
-
-    const [isLoadingToken1Details, setIsLoadingToken1Details] = useState(false);
-    const [isLoadingToken2Details, setIsLoadingToken2Details] = useState(false);
 
     if (!authenticated) {
         return (
@@ -836,9 +924,9 @@ function LiquidityPoolWizard() {
                         <TokenSelectionStep
                             onSelectToken1={handleSelectToken1}
                             onSelectToken2={handleSelectToken2}
-                            token1Symbol={token1}
-                            excludedToken={token1}
-                            predefinedTokens={predefinedTokensForStep}
+                            token1Symbol={token1Symbol}
+                            excludedToken={token1Details?.contractId || undefined}
+                            predefinedTokens={tokens}
                             isLoadingTokens={contextLoading}
                             tokenLoadError={tokensError}
                         />
@@ -850,8 +938,8 @@ function LiquidityPoolWizard() {
                             onPoolNameChange={handlePoolNameChange}
                             swapFee={swapFee}
                             onSwapFeeChange={setSwapFee}
-                            token1={token1}
-                            token2={token2}
+                            token1={token1Symbol}
+                            token2={token2Symbol}
                             errors={errors}
                             onPrevious={prevStep}
                             onNext={nextStep}
@@ -860,8 +948,8 @@ function LiquidityPoolWizard() {
 
                     {currentStep === WizardStep.INITIALIZE_POOL && (
                         <InitializePoolStep
-                            token1={token1 || "Token A"}
-                            token2={token2 || "Token B"}
+                            token1={token1Symbol || "Token A"}
+                            token2={token2Symbol || "Token B"}
                             initialTokenRatio={initialTokenRatio}
                             onUpdateRatio={setInitialTokenRatio}
                             onPrevious={prevStep}
@@ -876,8 +964,10 @@ function LiquidityPoolWizard() {
                         <ReviewDeployStep
                             poolName={poolName}
                             lpTokenSymbol={effectiveLpTokenSymbol}
-                            token1={token1}
-                            token2={token2}
+                            token1={token1Symbol}
+                            token2={token2Symbol}
+                            token1Address={token1Details?.contractId}
+                            token2Address={token2Details?.contractId}
                             swapFee={swapFee}
                             contractIdentifier={contractIdentifier}
                             isGeneratingMetadata={isGeneratingMetadata}
@@ -885,8 +975,8 @@ function LiquidityPoolWizard() {
                             hasMetadata={hasMetadata}
                             metadata={metadata}
                             isDeploying={isDeploying}
-                            token1Image={token1Image}
-                            token2Image={token2Image}
+                            token1Image={token1Details?.image || undefined}
+                            token2Image={token2Details?.image || undefined}
                             initialTokenRatio={initialTokenRatio}
                             onGenerateMetadata={generateMetadata}
                             onRefreshMetadata={refreshMetadata}

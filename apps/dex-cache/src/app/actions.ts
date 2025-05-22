@@ -10,7 +10,7 @@ import {
     getLpTokenTotalSupply,
     getLiquidityOperationQuote,
     getContractSourceDetails
-} from "@/lib/vaultService";
+} from "@/lib/pool-service";
 
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
 
@@ -19,7 +19,7 @@ export async function refreshVaultData(contractId: string): Promise<{ success: b
     if (!contractId) return { success: false, error: 'ContractId required' };
     console.log(`Starting forced refresh for vault: ${contractId}`);
     try {
-        const refreshedVault = await getVaultData(contractId, true);
+        const refreshedVault = await getVaultData(contractId);
         if (refreshedVault) {
             console.log(`Refresh process initiated for ${contractId}. Revalidating path.`);
             revalidatePath('/');

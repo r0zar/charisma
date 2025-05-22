@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getVaultData, addVaultIdToManagedList } from '@/lib/vaultService';
+import { getVaultData } from '@/lib/pool-service';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -18,7 +18,6 @@ export async function GET(
     context: { params: { contractId: string } }
 ) {
     const { contractId } = await context.params;
-    const refresh = _request.url.includes('refresh=true');
 
     if (!contractId) {
         return NextResponse.json({ status: 'error', error: 'Contract ID is required' }, { status: 400, headers });
@@ -31,13 +30,10 @@ export async function GET(
     }
 
     try {
-        const vault = await getVaultData(contractId, refresh);
+        const vault = await getVaultData(contractId);
         if (!vault) {
             return NextResponse.json({ status: 'error', error: 'Vault not found' }, { status: 404, headers });
         }
-
-        // add to managed list for future fetches
-        await addVaultIdToManagedList(contractId);
 
         return NextResponse.json({ status: 'success', data: vault }, { status: 200, headers });
     } catch (error: any) {

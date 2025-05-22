@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getManagedVaultIds } from '@/lib/vaultService';
+import { getManagedVaultIds } from '@/lib/pool-service';
 import { withAdminAuth } from '@/lib/auth';
 
 // TODO: Add authentication/authorization check here for admin access

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getVaultData, Vault } from '@/lib/vaultService';
+import { getVaultData, Vault } from '@/lib/pool-service';
 import SublinkDetailClient from '@/components/sublink/sublink-detail-client';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { fetchContractInfo } from '@/app/actions';

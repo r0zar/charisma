@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
-import { Plus, Info, Loader2 } from 'lucide-react';
+import { Plus, Info, Loader2, ClipboardCopy, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
@@ -205,12 +205,39 @@ interface TokenCardProps {
 
 function TokenCard({ token, index }: TokenCardProps) {
     const router = useRouter();
+    const { toast } = useToast();
     const contractId = token.contractId || '';
     const isLp = isLPToken(token);
 
     const handleNavigate = () => {
         if (contractId) {
             router.push(`/dashboard/${encodeURIComponent(contractId)}`);
+        }
+    };
+
+    const handleCopyToClipboard = () => {
+        if (contractId) {
+            navigator.clipboard.writeText(contractId)
+                .then(() => {
+                    toast({
+                        title: "Copied to clipboard",
+                        description: contractId,
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                    toast({
+                        variant: "destructive",
+                        title: "Failed to copy",
+                        description: "Could not copy contract ID to clipboard.",
+                    });
+                });
+        }
+    };
+
+    const handleViewOnExplorer = () => {
+        if (contractId) {
+            window.open(`https://explorer.hiro.so/txid/${contractId}?chain=mainnet`, '_blank');
         }
     };
 
@@ -275,14 +302,32 @@ function TokenCard({ token, index }: TokenCardProps) {
                         {token.description || 'No description provided'}
                     </p>
                 </div>
-                <div className="pt-2 pb-4 flex items-center p-6">
+                <div className="pt-2 pb-4 flex items-center justify-between p-6">
                     <Button
                         variant="ghost"
-                        className="w-full"
+                        className="flex-grow mr-2"
                         onClick={handleNavigate}
                     >
                         View Details
                     </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleCopyToClipboard}
+                            title="Copy Contract ID"
+                        >
+                            <ClipboardCopy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleViewOnExplorer}
+                            title="View on Explorer"
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </div>
         </motion.div>

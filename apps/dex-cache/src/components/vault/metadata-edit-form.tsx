@@ -9,40 +9,22 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
-interface Token {
-    type: string;
-    contractId: string;
-    identifier?: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    image: string;
-}
+// Import the centralized vault type definition
+import { ClientDisplayVault } from './vault-detail-client';
+// TokenCacheData might not be directly needed here if ClientDisplayVault already uses it for its tokens
 
-interface Vault {
-    type: string;
-    contractId: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    description: string;
-    image: string;
-    fee: number;
-    externalPoolId: string;
-    engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    reservesA: number;
-    reservesB: number;
-}
+// Remove local Token and Vault interfaces
+// interface Token { ... }
+// interface Vault { ... }
 
 interface MetadataEditFormProps {
-    vault: Vault & { reservesA: number; reservesB: number };
-    onMetadataUpdate: (updatedMetadata: Partial<Vault>) => void;
+    vault: ClientDisplayVault; // Use ClientDisplayVault
+    onMetadataUpdate: (updatedMetadata: Partial<ClientDisplayVault>) => void; // Use ClientDisplayVault
 }
 
 export function MetadataEditForm({ vault, onMetadataUpdate }: MetadataEditFormProps) {
     const { walletState, fetchWithAdminAuth } = useApp();
+    // Initialize with the passed vault, which should conform to ClientDisplayVault
     const [jsonString, setJsonString] = useState(() => JSON.stringify(vault, null, 2));
     const [isValidJson, setIsValidJson] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -68,9 +50,9 @@ export function MetadataEditForm({ vault, onMetadataUpdate }: MetadataEditFormPr
             return;
         }
 
-        let newMetadataObject: Partial<Vault>;
+        let newMetadataObject: Partial<ClientDisplayVault>; // Use ClientDisplayVault here
         try {
-            newMetadataObject = JSON.parse(jsonString);
+            newMetadataObject = JSON.parse(jsonString) as Partial<ClientDisplayVault>; // Assert type if confident
         } catch (error) {
             toast.error("Failed to parse JSON. Please correct the format.");
             return;
@@ -97,7 +79,9 @@ export function MetadataEditForm({ vault, onMetadataUpdate }: MetadataEditFormPr
 
             if (result.success) {
                 toast.success("Metadata updated successfully!");
-                onMetadataUpdate(result.updatedMetadata || newMetadataObject);
+                // The API should return the full updated vault that matches ClientDisplayVault
+                const updatedVaultData = result.updatedMetadata as Partial<ClientDisplayVault>;
+                onMetadataUpdate(updatedVaultData || newMetadataObject);
                 if (result.updatedMetadata) {
                     setJsonString(JSON.stringify(result.updatedMetadata, null, 2));
                 }

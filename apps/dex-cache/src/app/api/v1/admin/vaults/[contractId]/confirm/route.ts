@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { withAdminAuth } from '@/lib/auth';
-import { saveVaultData } from "@/lib/vaultService";
+import { saveVaultData } from "@/lib/pool-service";
 import { revalidatePath } from 'next/cache';
 
 // Define the expected structure for token data

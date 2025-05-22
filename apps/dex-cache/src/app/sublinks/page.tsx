@@ -1,10 +1,11 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { ArrowRightLeft, Flame } from 'lucide-react';
-import { getAllVaultData, Vault } from '@/lib/vaultService';
+import { getAllVaultData, Vault } from '@/lib/pool-service';
 import SublinkList from '@/components/SublinkList';
 import { getSubnetTokenBalance } from '@/lib/server/subnets';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
+import AddSublinkButton from '@/components/sublink/AddSublinkButton';
 
 // Replace dynamic rendering with time-based revalidation
 // This will cache the page for 5 minutes (300 seconds)
@@ -140,11 +141,14 @@ export default async function ExploreSubnetsPage() {
 
   return (
     <main className="flex-1 container py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="relative">
-          <ArrowRightLeft className="h-6 w-6 text-primary" />
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <ArrowRightLeft className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold">Subnets</h1>
         </div>
-        <h1 className="text-2xl font-bold">Subnets</h1>
+        <AddSublinkButton />
       </div>
       <p className="text-muted-foreground mb-6 max-w-3xl">
         Subnet bridges allow you to transfer tokens between the Stacks mainnet and subnet environments.

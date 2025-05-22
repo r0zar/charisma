@@ -30,13 +30,47 @@ import {
     X
 } from "lucide-react";
 import { TokenMetadata } from "@/lib/metadata-service"; // Assuming this type lives here or is globally defined
+import { truncateAddress } from "@/lib/utils/token-utils";
+import Image from "next/image";
+
+// Define InitialTokenRatio locally
+interface InitialTokenRatio {
+    token1Amount: number;
+    token2Amount: number;
+    useRatio: boolean;
+}
+
+interface ReviewDeployStepProps {
+    poolName: string;
+    lpTokenSymbol: string;
+    token1: string;
+    token2: string;
+    token1Address?: string;
+    token2Address?: string;
+    swapFee: string;
+    contractIdentifier: string;
+    isGeneratingMetadata: boolean;
+    metadataApiError: boolean;
+    hasMetadata: boolean;
+    metadata: TokenMetadata | null;
+    isDeploying: boolean;
+    token1Image?: string;
+    token2Image?: string;
+    initialTokenRatio: InitialTokenRatio;
+    onGenerateMetadata: () => void;
+    onRefreshMetadata: () => void;
+    onPrevious: () => void;
+    onDeploy: () => void;
+}
 
 // Review and Deploy Step Component
-export const ReviewDeployStep = ({
+export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
     poolName,
     lpTokenSymbol,
     token1,
     token2,
+    token1Address,
+    token2Address,
     swapFee,
     contractIdentifier,
     isGeneratingMetadata,
@@ -51,29 +85,6 @@ export const ReviewDeployStep = ({
     onRefreshMetadata,
     onPrevious,
     onDeploy
-}: {
-    poolName: string;
-    lpTokenSymbol: string;
-    token1: string;
-    token2: string;
-    swapFee: string;
-    contractIdentifier: string;
-    isGeneratingMetadata: boolean;
-    metadataApiError: boolean;
-    hasMetadata: boolean;
-    metadata: TokenMetadata | null;
-    isDeploying: boolean;
-    token1Image?: string;
-    token2Image?: string;
-    initialTokenRatio: {
-        token1Amount: number;
-        token2Amount: number;
-        useRatio: boolean;
-    };
-    onGenerateMetadata: () => void;
-    onRefreshMetadata: () => void;
-    onPrevious: () => void;
-    onDeploy: () => void;
 }) => {
     // Track when metadata was successfully generated to show success message
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -293,10 +304,12 @@ export const ReviewDeployStep = ({
                                 <div className="md:w-1/3 flex flex-col items-center justify-center">
                                     <div className="relative w-48 h-48 rounded-lg overflow-hidden bg-muted/50 border-2 border-muted/30 flex items-center justify-center">
                                         {metadata?.image ? (
-                                            <img
+                                            <Image
                                                 src={metadata.image}
                                                 alt={metadata.name || "LP Token"}
                                                 className="w-full h-full object-cover"
+                                                width={192}
+                                                height={192}
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                     const fallbackEl = document.createElement('div');

@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useApp } from '@/lib/context/app-context';
 import { getEnergyTokenMetadata } from '@/lib/server/energy';
 import type { EnergyTokenDashboardData } from '@/lib/server/energy';
-import { getFungibleTokenBalance } from '@/lib/vaultService';
+import { getFungibleTokenBalance } from '@/lib/pool-service';
 import { BatteryLoader } from './battery-loader';
 
 // Interface shared with the parent component

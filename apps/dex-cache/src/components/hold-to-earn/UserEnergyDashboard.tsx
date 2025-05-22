@@ -10,7 +10,7 @@ import { User, Activity, BarChart2, Zap, Clock, Archive, ZapIcon, TrendingUp } f
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/ui/stat-card';
 import Image from 'next/image';
-import { getFungibleTokenBalance } from '@/lib/vaultService';
+import { getFungibleTokenBalance } from '@/lib/pool-service';
 
 export default function UserEnergyDashboard() {
     const { stxAddress } = useApp();

@@ -114,12 +114,13 @@ export const PoolConfigStep = ({
                         onValueChange={onSwapFeeChange}
                     >
                         <SelectTrigger className={errors.swapFee ? "border-destructive" : ""}>
-                            <SelectValue placeholder="Select swap fee" />
+                            <SelectValue defaultValue="0.3" placeholder="Select swap fee" />
                         </SelectTrigger>
                         <SelectContent className="bg-background">
                             <SelectItem value="0.1">0.1% (Stable pairs)</SelectItem>
                             <SelectItem value="0.3">0.3% (Standard)</SelectItem>
                             <SelectItem value="1.0">1.0% (Exotic pairs)</SelectItem>
+                            <SelectItem value="3.0">3.0% (Meme pairs)</SelectItem>
                         </SelectContent>
                     </Select>
                     {errors.swapFee && (

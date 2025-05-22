@@ -57,28 +57,6 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
                   className="hidden gap-6 md:flex items-center"
                 >
                   <Link
-                    href="/contracts"
-                    className="flex items-center space-x-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline decoration-primary/50 underline-offset-4"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width={16}
-                      height={16}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                    >
-                      <path d="M21 9V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" />
-                      <path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
-                      <path d="M21 12H3" />
-                    </svg>
-                    <span>My Contracts</span>
-                  </Link>
-                  <Link
                     href="/templates"
                     className="flex items-center space-x-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline decoration-primary/50 underline-offset-4"
                   >

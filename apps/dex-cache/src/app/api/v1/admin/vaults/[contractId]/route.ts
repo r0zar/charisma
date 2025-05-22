@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { getVaultData, saveVaultData } from '@/lib/vaultService';
+import { getVaultData, saveVaultData } from '@/lib/pool-service';
 import { withAdminAuth } from '@/lib/auth'; // Import the HOF
 
 // TODO: Add authentication/authorization check here for admin access

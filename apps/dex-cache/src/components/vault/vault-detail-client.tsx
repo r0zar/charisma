@@ -21,10 +21,13 @@ import {
     PieChart,
     AlertCircle,
     ChevronRight,
-    CheckCircle
+    CheckCircle,
+    Package,
+    DollarSign
 } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { TokenCacheData } from '@repo/tokens';
 
 // Import the modals
 import { AddLiquidityModal } from './add-liquidity-modal';
@@ -32,36 +35,27 @@ import { RemoveLiquidityModal } from './remove-liquidity-modal';
 import { MetadataEditForm } from './metadata-edit-form';
 import TokenInfoCard from './token-info-card';
 
-interface Token {
-    type: string;
-    contractId: string;
-    identifier?: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    image: string;
-}
-
-interface Vault {
+// Renamed local Vault interface to avoid potential naming collisions
+export interface ClientDisplayVault {
     type: string;
     contractId: string;
     name: string;
     identifier: string;
     symbol: string;
-    decimals: number;
+    decimals: number; // Decimals of the LP token itself
     description: string;
     image: string;
     fee: number;
     externalPoolId: string;
     engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
+    tokenA: TokenCacheData; // Use TokenCacheData, which has optional decimals
+    tokenB: TokenCacheData; // Use TokenCacheData, which has optional decimals
     reservesA: number;
     reservesB: number;
 }
 
 interface VaultDetailClientProps {
-    vault: Vault & { reservesA: number; reservesB: number };
+    vault: ClientDisplayVault & { reservesA: number; reservesB: number }; // Use renamed interface
     prices: Record<string, number>;
     analytics: {
         tvl: number;
@@ -121,17 +115,16 @@ const ComingSoonMask = ({ children }: { children: React.ReactNode }) => (
 
 export default function VaultDetailClient({ vault, prices, analytics, contractInfo }: VaultDetailClientProps) {
     const { walletState } = useApp();
-    const [currentVaultData, setCurrentVaultData] = React.useState(vault);
+    const [currentVaultData, setCurrentVaultData] = React.useState<ClientDisplayVault>(vault); // Use renamed interface
 
     // Calculate derived values
-    const feePercent = vault.fee ? (vault.fee / 10000).toFixed(2) : 0;
+    const feePercent = currentVaultData.fee ? (currentVaultData.fee / 10000).toFixed(2) : "0.00";
 
-    // Add mock data for a professional advisor view
     const riskLevel = "Moderate";
     const recommendationStatus = "Recommended";
     const expectedApy = typeof analytics.apy === 'number' ? analytics.apy : undefined;
 
-    const handleMetadataUpdate = (updatedMetadata: Partial<Vault>) => {
+    const handleMetadataUpdate = (updatedMetadata: Partial<ClientDisplayVault>) => { // Use renamed interface
         setCurrentVaultData(prev => ({
             ...prev,
             ...updatedMetadata
@@ -156,7 +149,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
 
     // Render contract info if available
     const renderContractInfo = () => {
-        if (!contractInfo) return null;
+        if (!contractInfo || !contractInfo.contract_id) return null;
         return (
             <div className="mt-8">
                 <Card className="bg-card/70 backdrop-blur-sm border border-border/50 overflow-hidden">
@@ -254,71 +247,86 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                         {/* Left Panel - Summary & Key Metrics */}
                         <div className="lg:col-span-4 space-y-6">
                             {/* Investment Card */}
-                            <Card className="overflow-hidden border border-primary/10 shadow-md bg-gradient-to-br from-card to-muted/20 backdrop-blur-sm">
-                                <div className="p-6 flex flex-col items-center">
-                                    <div className="relative h-32 w-32 mb-4">
-                                        <div className="absolute inset-0 rounded-lg bg-primary/5 animate-pulse"></div>
+                            <Card className="relative overflow-hidden border border-primary/10 shadow-md bg-card backdrop-blur-sm">
+                                {/* Background Image Layer */}
+                                {currentVaultData.image && (
+                                    <div className="absolute inset-0 z-0">
                                         <Image
-                                            src={currentVaultData.image || '/placeholder.png'}
-                                            alt={currentVaultData.name || 'Vault'}
-                                            fill
-                                            className="rounded-lg object-cover p-0 border-2 border-foreground/5"
-                                            onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
+                                            src={currentVaultData.image}
+                                            alt={`${currentVaultData.name || 'Vault'} background`}
+                                            layout="fill"
+                                            objectFit="cover"
+                                            className="opacity-20 filter blur-[1px]" // Adjust opacity and blur as needed
+                                            onError={(e) => { e.currentTarget.style.display = 'none'; }} // Hide if image fails
                                         />
+                                        {/* Overlay to improve text readability */}
+                                        <div className="absolute inset-0 bg-black/30 z-10"></div>
                                     </div>
+                                )}
 
-                                    <div className="text-center">
-                                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
-                                            {currentVaultData.name || 'Unnamed Vault'}
-                                        </h1>
-                                        <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
-                                            <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenA.symbol}</Badge>
-                                            <span>+</span>
-                                            <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenB.symbol}</Badge>
-                                        </div>
+                                {/* Content Layer - make sure this is above the background/overlay */}
+                                <div className="relative z-20">
+                                    <div className="p-6 flex flex-col items-center">
 
-                                        <div className="bg-muted/30 p-3 rounded-lg mb-6 border border-foreground/5">
-                                            <div className="text-sm text-muted-foreground mb-1">Expected Annual Yield</div>
-                                            <div className="text-3xl font-bold text-primary">{expectedApy !== undefined ? expectedApy.toFixed(2) + '%' : 'Calibrating...'}</div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                                Fee Rebate: {feePercent}% of pool fees
+                                        <div className="text-center">
+                                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
+                                                {currentVaultData.name || 'Unnamed Vault'}
+                                            </h1>
+                                            <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+                                                <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenA.symbol}</Badge>
+                                                <span>+</span>
+                                                <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenB.symbol}</Badge>
+                                            </div>
+
+                                            <div className="bg-muted/30 p-3 rounded-lg mb-6 border border-foreground/5">
+                                                <div className="text-sm text-muted-foreground mb-1">Expected Annual Yield</div>
+                                                <div className="text-3xl font-bold text-primary">{expectedApy !== undefined ? expectedApy.toFixed(2) + '%' : 'Calibrating...'}</div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    Fee Rebate: {feePercent}% of pool fees
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex w-full gap-3">
-                                        <AddLiquidityModal
-                                            vault={currentVaultData}
-                                            prices={prices}
-                                            trigger={
-                                                <Button className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
-                                                    <Wallet className="w-4 h-4" />
-                                                    Invest Now
-                                                </Button>
-                                            }
-                                        />
-                                        <RemoveLiquidityModal
-                                            vault={currentVaultData}
-                                            prices={prices}
-                                            trigger={
-                                                <Button variant="outline" className="flex-1 gap-2 border-primary/20 text-primary hover:bg-primary/5" disabled={buttonsDisabled}>
-                                                    <ArrowUpDown className="w-4 h-4" />
-                                                    Withdraw
-                                                </Button>
-                                            }
-                                        />
+                                        <div className="flex w-full gap-3">
+                                            <AddLiquidityModal
+                                                vault={currentVaultData}
+                                                prices={prices}
+                                                trigger={
+                                                    <Button className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
+                                                        <Wallet className="w-4 h-4" />
+                                                        Invest Now
+                                                    </Button>
+                                                }
+                                            />
+                                            <RemoveLiquidityModal
+                                                vault={currentVaultData}
+                                                prices={prices}
+                                                trigger={
+                                                    <Button variant="outline" className="flex-1 gap-2 border-primary/20 text-primary hover:bg-primary/5" disabled={buttonsDisabled}>
+                                                        <ArrowUpDown className="w-4 h-4" />
+                                                        Withdraw
+                                                    </Button>
+                                                }
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Investment Description */}
-                                {currentVaultData.description && (
-                                    <div className="p-4 bg-background/50 border-t border-border/40">
-                                        <h3 className="font-medium text-sm mb-2 text-muted-foreground">ABOUT THIS POOL</h3>
-                                        <p className="text-sm leading-relaxed">
-                                            {currentVaultData.description}
-                                        </p>
-                                    </div>
-                                )}
+                                {/* LP TOKEN OVERVIEW - Ensure content has contrast or its own background if needed */}
+                                <div className="relative z-20 px-6 py-4 border-t border-border/40 bg-card/80 backdrop-blur-xs space-y-3"> {/* Added bg for this section */}
+                                    <h3 className="font-medium text-sm text-muted-foreground mb-2">LP TOKEN OVERVIEW</h3>
+
+                                    {(() => {
+                                        if (currentVaultData.description) {
+                                            return (
+                                                <p className="text-sm leading-relaxed">
+                                                    {currentVaultData.description}
+                                                </p>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
                             </Card>
 
                             {/* Key Metrics */}
@@ -380,8 +388,12 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
 
                                     {/* Token Assets */}
                                     <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <TokenInfoCard token={currentVaultData.tokenA} reserves={currentVaultData.reservesA} price={prices[currentVaultData.tokenA.contractId]} />
-                                        <TokenInfoCard token={currentVaultData.tokenB} reserves={currentVaultData.reservesB} price={prices[currentVaultData.tokenB.contractId]} />
+                                        {currentVaultData.tokenA &&
+                                            <TokenInfoCard token={currentVaultData.tokenA} reserves={currentVaultData.reservesA} price={prices[currentVaultData.tokenA.contractId]} />
+                                        }
+                                        {currentVaultData.tokenB &&
+                                            <TokenInfoCard token={currentVaultData.tokenB} reserves={currentVaultData.reservesB} price={prices[currentVaultData.tokenB.contractId]} />
+                                        }
                                     </div>
 
                                     {/* Pool Metrics */}

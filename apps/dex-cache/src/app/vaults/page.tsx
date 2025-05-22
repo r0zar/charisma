@@ -3,7 +3,7 @@ import { getVaultIds, getVault } from "../actions";
 import VaultList from '@/components/VaultList';
 import { Metadata } from 'next';
 import { Coins } from 'lucide-react';
-import { getAllVaultData } from '@/lib/vaultService';
+import { getAllVaultData } from '@/lib/pool-service';
 
 // export const dynamic = 'force-dynamic';
 

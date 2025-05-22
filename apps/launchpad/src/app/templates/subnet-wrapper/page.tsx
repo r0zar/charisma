@@ -40,12 +40,14 @@ import {
     Zap,
     Clock,
     FileSignature,
-    Loader2
+    Loader2,
+    ExternalLinkIcon
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { generateSubnetWrapper } from '@/lib/contract-generators/subnet-wrapper';
 import { getTokenMetadataCached, listTokens, SIP10, TokenCacheData } from '@repo/tokens'
 import Image from 'next/image';
+import { createSubnetMetadataAction } from '@/lib/actions/metadataActions';
 
 // Schema for form validation
 const schema = z.object({
@@ -583,6 +585,7 @@ export default function SubnetWrapperWizard() {
     const [isDeploying, setIsDeploying] = useState(false);
     const [generated, setGenerated] = useState<string>('');
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [finalDeploymentTxId, setFinalDeploymentTxId] = useState<string | null>(null);
 
     const [state, setState] = useState<FormState>({
         tokenContract: '',
@@ -666,17 +669,45 @@ export default function SubnetWrapperWizard() {
         }
 
         setIsDeploying(true);
+        setFinalDeploymentTxId(null);
+        let deployedContractName = '';
+
         try {
-            const filename = `${deriveName(state.tokenContract)}-subnet`;
-            const result = await deployContract(generated, filename);
-            toast({ title: 'Deployment Initiated', description: `TxID: ${result.txid.substring(0, 10)}...` });
-            setCurrentStep(WizardStep.DEPLOY);
-            // Wait a moment for the success message to appear
-            setTimeout(() => {
-                router.push(`/contracts?txid=${result.txid}`);
-            }, 2000);
+            deployedContractName = `${deriveName(state.tokenContract)}-subnet`;
+            const deploymentResult = await deployContract(generated, deployedContractName);
+
+            if (deploymentResult && deploymentResult.txid) {
+                setFinalDeploymentTxId(deploymentResult.txid);
+                toast({ title: 'Deployment Transaction Submitted', description: `Contract: ${deployedContractName}, TxID: ${deploymentResult.txid.substring(0, 10)}...` });
+
+                const deployedSubnetContractId = `${stxAddress}.${deployedContractName}`;
+                toast({
+                    title: 'Processing Metadata',
+                    description: `Creating metadata for ${deployedSubnetContractId}...`
+                });
+                const metadataResult = await createSubnetMetadataAction({
+                    deployedSubnetContractId: deployedSubnetContractId,
+                    baseTokenContractId: state.tokenContract
+                });
+                if (metadataResult.success) {
+                    toast({
+                        title: 'Metadata Created',
+                        description: metadataResult.message || `Successfully created metadata for ${deployedSubnetContractId}.`
+                    });
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Metadata Creation Failed',
+                        description: metadataResult.error || 'Could not save metadata for the new subnet.'
+                    });
+                    console.error("Metadata creation failed:", metadataResult.error);
+                }
+                setCurrentStep(WizardStep.DEPLOY);
+            } else {
+                throw new Error("Deployment did not return a transaction ID.");
+            }
         } catch (err: any) {
-            toast({ variant: 'destructive', title: 'Deployment failed', description: err.message || 'Error' });
+            toast({ variant: 'destructive', title: 'Deployment failed', description: err.message || 'An error occurred during deployment or metadata creation.' });
         } finally {
             setIsDeploying(false);
         }
@@ -790,9 +821,9 @@ export default function SubnetWrapperWizard() {
                 return (
                     <div className="space-y-6">
                         <div className="text-center mb-8">
-                            <h2 className="text-2xl font-bold mb-2">Deployment Successful!</h2>
+                            <h2 className="text-2xl font-bold mb-2">Deployment Submitted!</h2>
                             <p className="text-muted-foreground">
-                                Your subnet wrapper has been deployed
+                                Your subnet wrapper transaction has been submitted to the network.
                             </p>
                         </div>
 
@@ -801,14 +832,21 @@ export default function SubnetWrapperWizard() {
                                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
                                     <Check className="h-8 w-8 text-green-600" />
                                 </div>
-                                <h3 className="text-xl font-semibold mb-2">Subnet Deployed!</h3>
+                                <h3 className="text-xl font-semibold mb-2">Transaction Submitted</h3>
                                 <p className="text-center text-muted-foreground max-w-md mb-6">
-                                    Your subnet has been deployed. You can now peg tokens into and out of a subnet, enabling advanced transaction patterns.
+                                    Your subnet contract deployment has been broadcast. You can monitor its status using a Stacks Explorer.
                                 </p>
+                                {finalDeploymentTxId && (
+                                    <a
+                                        href={`https://explorer.hiro.so/txid/${finalDeploymentTxId}?chain=mainnet`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mb-4"
+                                    >
+                                        View Transaction on Explorer <ExternalLinkIcon className="ml-2 h-4 w-4" />
+                                    </a>
+                                )}
                                 <div className="flex flex-col gap-2 w-full max-w-xs">
-                                    <Button onClick={() => router.push('/contracts')}>
-                                        View My Contracts
-                                    </Button>
                                     <Button variant="outline" onClick={() => router.push('/templates')}>
                                         Deploy Another Contract
                                     </Button>

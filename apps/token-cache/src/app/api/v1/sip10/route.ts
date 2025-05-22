@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllTokenData } from '@/lib/tokenService';
+import { getAllMetadata } from '@/lib/tokenService';
 
 /**
  * Define CORS headers for API routes
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     try {
         // Fetch all tokens using the existing service
-        const cacheData = await getAllTokenData();
+        const cacheData = await getAllMetadata();
 
         // Filter out tokens that don't have a contractId
         const tokens = cacheData

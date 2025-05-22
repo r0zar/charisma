@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllVaultData, getVaultData } from '@/lib/vaultService';
+import { getAllVaultData, getVaultData } from '@/lib/pool-service';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',

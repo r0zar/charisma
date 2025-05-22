@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
 import Link from 'next/link';
-import { Vault } from '@/lib/vaultService';
+import { Vault } from '@/lib/pool-service';
 import Image from 'next/image';
 
 // Utility to truncate contract id for display

@@ -17,7 +17,7 @@ export default function Header() {
                         </div>
                         <span className="hidden tracking-tight text-foreground sm:inline-block text-lg">
                             {/* Adjusted Branding */}
-                            <span className="font-bold">Token</span> Cache
+                            <span className="font-bold">Charisma</span> Cache
                         </span>
                     </Link>
 
@@ -27,7 +27,19 @@ export default function Header() {
                             href="/"
                             className="transition-colors hover:text-foreground/80 text-foreground/60"
                         >
-                            Tokens
+                            All Metadata
+                        </Link>
+                        <Link
+                            href="/subnets"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Subnets
+                        </Link>
+                        <Link
+                            href="/vaults"
+                            className="transition-colors hover:text-foreground/80 text-foreground/60"
+                        >
+                            Vaults
                         </Link>
                         <Link
                             href="/inspect"

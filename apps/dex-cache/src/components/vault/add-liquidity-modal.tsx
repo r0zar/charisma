@@ -18,30 +18,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Wallet, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
-interface Token {
-    contractId: string;
-    identifier?: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    image: string;
-}
+// Import the centralized vault type definition and TokenCacheData
+import { ClientDisplayVault } from './vault-detail-client'; // Assuming vault-detail-client is in the same directory
+import { TokenCacheData } from '@repo/tokens';
 
-interface Vault {
-    contractId: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    description: string;
-    image: string;
-    fee: number;
-    externalPoolId: string;
-    engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    reservesA: number;
-    reservesB: number;
-}
+// Remove local Token and Vault interfaces
+// interface Token { ... }
+// interface Vault { ... }
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (
@@ -51,7 +34,7 @@ const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoadin
             <div>
                 <div className="text-xs text-muted-foreground">{label}</div>
                 <div className="text-base font-medium">
-                    {amount.toLocaleString(undefined, { maximumFractionDigits: decimals || 6 })} {symbol || '--'}
+                    {amount.toLocaleString(undefined, { maximumFractionDigits: decimals ?? 6 })} {symbol || '--'}
                 </div>
             </div>
         </div>
@@ -63,11 +46,11 @@ const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoadin
 const BalanceInfo = ({ balance, symbol, decimals, required, isLoading }: any) => (
     <div className="flex justify-between text-xs text-muted-foreground">
         <span>
-            Balance: {isLoading ? '...' : (balance / (10 ** (decimals || 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol || '--'}
+            Balance: {isLoading ? '...' : (balance / (10 ** (decimals ?? 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })} {symbol || '--'}
         </span>
         {required > 0 && (
             <span className={balance < required ? 'text-destructive' : ''}>
-                Required: {(required / (10 ** (decimals || 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                Required: {(required / (10 ** (decimals ?? 6))).toLocaleString(undefined, { maximumFractionDigits: 6 })}
             </span>
         )}
     </div>
@@ -75,7 +58,7 @@ const BalanceInfo = ({ balance, symbol, decimals, required, isLoading }: any) =>
 // --- End Placeholders ---
 
 interface AddLiquidityModalProps {
-    vault: Vault & { reservesA: number; reservesB: number };
+    vault: ClientDisplayVault; // Use ClientDisplayVault
     prices: Record<string, number>;
     trigger?: React.ReactNode; // Optional custom trigger
 }
@@ -94,48 +77,36 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
     const [isQuoting, setIsQuoting] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Use vault.tokenA.decimals (which is TokenCacheData.decimals, so number | undefined)
+    // Provide default for calculations
+    const tokenADecimals = vault.tokenA.decimals ?? 6;
+    const tokenBDecimals = vault.tokenB.decimals ?? 6;
+    const lpDecimals = vault.decimals; // This is from ClientDisplayVault root, should be number
+
     // Calculate max potential LP tokens based on user balances and pool state
     useEffect(() => {
-        // Ensure reserves are numbers
         const reserveA = Number(vault.reservesA || 0);
         const reserveB = Number(vault.reservesB || 0);
-
-        console.log('[maxLpTokens Calc] Inputs:', {
-            balanceA: balances.tokenA,
-            balanceB: balances.tokenB,
-            reserveA,
-            reserveB,
-            totalSupply
-        });
-
         if (balances.tokenA === 0 || balances.tokenB === 0 || reserveA === 0 || reserveB === 0 || totalSupply === 0) {
-            console.log('[maxLpTokens Calc] Setting maxLpTokens to 0 due to zero input.');
             setMaxLpTokens(0);
             return;
         }
-        // Estimate max LP tokens based on the limiting token balance relative to pool reserves
         const maxFromA = (balances.tokenA / reserveA) * totalSupply;
         const maxFromB = (balances.tokenB / reserveB) * totalSupply;
         const calculatedMax = Math.min(maxFromA, maxFromB);
-        console.log('calculatedMax', calculatedMax);
-
-        console.log('[maxLpTokens Calc] Calculation:', { maxFromA, maxFromB, calculatedMax });
         setMaxLpTokens(calculatedMax);
-
     }, [balances, vault.reservesA, vault.reservesB, totalSupply]);
 
     // Fetch quote using server action
     const fetchQuote = useCallback(async (targetLpAmount: number) => {
-        if (targetLpAmount <= 0 || maxLpTokens <= 0) { // Also check maxLpTokens
+        if (targetLpAmount <= 0 || maxLpTokens <= 0) {
             setQuotedAmounts({ dx: 0, dy: 0, dk: 0 });
             return;
         }
         setIsQuoting(true);
         try {
-            // Use the server action - supply is already fetched client-side
             const result = await getAddLiquidityQuoteAndSupply(vault.contractId, targetLpAmount);
             setQuotedAmounts(result.quote || { dx: 0, dy: 0, dk: 0 });
-            // No need to set total supply here anymore
         } catch (error) {
             console.error("Error fetching quote:", error);
             toast.error("Failed to get liquidity quote.");
@@ -311,30 +282,30 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                     <div className="space-y-4">
                         {/* LP Tokens to Receive */}
                         <TokenDisplay
-                            amount={currentLpAmount / (10 ** (vault.decimals || 6))}
+                            amount={currentLpAmount / (10 ** lpDecimals)}
                             symbol={vault.symbol}
                             imgSrc={vault.image}
                             price={prices[vault.contractId]}
                             label="You will receive (LP Tokens)"
-                            decimals={vault.decimals}
+                            decimals={lpDecimals}
                             isLoading={isQuoting || isLoadingData} // Combine loading states
                         />
 
                         {/* Token A Deposit */}
                         <div className="space-y-1">
                             <TokenDisplay
-                                amount={requiredTokenA / (10 ** (vault.tokenA.decimals || 6))}
+                                amount={requiredTokenA / (10 ** tokenADecimals)}
                                 symbol={vault.tokenA.symbol}
                                 imgSrc={vault.tokenA.image}
                                 price={prices[vault.tokenA.contractId]}
                                 label="You will deposit"
-                                decimals={vault.tokenA.decimals}
+                                decimals={tokenADecimals}
                                 isLoading={isQuoting || isLoadingData} // Combine loading states
                             />
                             <BalanceInfo
                                 balance={balances.tokenA}
                                 symbol={vault.tokenA.symbol}
-                                decimals={vault.tokenA.decimals}
+                                decimals={tokenADecimals}
                                 required={requiredTokenA}
                                 isLoading={isLoadingData} // Only balance loading
                             />
@@ -343,18 +314,18 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                         {/* Token B Deposit */}
                         <div className="space-y-1">
                             <TokenDisplay
-                                amount={requiredTokenB / (10 ** (vault.tokenB.decimals || 6))}
+                                amount={requiredTokenB / (10 ** tokenBDecimals)}
                                 symbol={vault.tokenB.symbol}
                                 imgSrc={vault.tokenB.image}
                                 price={prices[vault.tokenB.contractId]}
                                 label="You will deposit"
-                                decimals={vault.tokenB.decimals}
+                                decimals={tokenBDecimals}
                                 isLoading={isQuoting || isLoadingData} // Combine loading states
                             />
                             <BalanceInfo
                                 balance={balances.tokenB}
                                 symbol={vault.tokenB.symbol}
-                                decimals={vault.tokenB.decimals}
+                                decimals={tokenBDecimals}
                                 required={requiredTokenB}
                                 isLoading={isLoadingData} // Only balance loading
                             />

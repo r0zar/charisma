@@ -1,6 +1,6 @@
 'use server'
 
-import { getAllVaultData, Vault } from "../vaultService";
+import { getAllVaultData, Vault } from "../pool-service";
 import { revalidatePath } from "next/cache";
 import { kv } from "@vercel/kv";
 import { processAllEnergyData, EnergyAnalyticsData } from "@/lib/energy/analytics";

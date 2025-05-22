@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVaultData, saveVaultData } from '@/lib/vaultService';
+import { getVaultData, saveVaultData } from '@/lib/pool-service';
 // import { verifyMessageSignature } from '@stacks/encryption'; // Middleware handles this
 import { withAdminAuth } from '@/lib/auth'; // Import the middleware
 import { revalidatePath } from 'next/cache'; // Import revalidatePath

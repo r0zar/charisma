@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getVaultData, Vault } from '@/lib/vaultService'; // Assuming vaultService is in lib
+import { getVaultData, Vault } from '@/lib/pool-service'; // Assuming vaultService is in lib
 import VaultDetailClient from '@/components/vault/vault-detail-client'; // Client component placeholder
 import { listPrices, KraxelPriceData } from '@repo/tokens'; // Hypothetical import
 import { fetchContractInfo } from '@/app/actions';

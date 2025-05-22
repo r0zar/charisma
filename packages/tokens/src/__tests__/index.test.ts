@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, test } from "@jest/globals";
-import { listPrices, listTokens, Token } from "..";
+import { fetchMetadata, listPrices, listTokens, Token } from "..";
 
 describe("@repo/tokens", () => {
 
@@ -25,12 +25,19 @@ describe('Token Cache', () => {
   });
 
   it('should data integrity check subnet tokens', async () => {
-    const tokens = await listTokens();
-    const tokenObjects = tokens
-      .filter((token) => token.identifier)
-      .filter((token) => token.contractId !== '.stx')
-      .filter((token: any) => token.type === 'SUBNET')
-      .map((token) => token.contractId);
-    console.log(tokenObjects);
+    const metadataList = await fetchMetadata();
+    const metadata = metadataList
+      .filter((metadata: any) => metadata.type === 'SUBNET')
+      .map((metadata) => metadata.contractId);
+    console.log(metadata);
+  });
+
+
+  it('should data integrity check sublinks', async () => {
+    const metadataList = await fetchMetadata();
+    const metadata = metadataList
+      .filter((metadata: any) => metadata.type === 'SUBLINK')
+      .map((metadata) => metadata.contractId);
+    console.log(metadata);
   });
 });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllTokenData } from '@/lib/tokenService';
+import { getAllMetadata } from '@/lib/tokenService';
 
 /**
  * Define CORS headers for API routes
@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     const headers = corsHeaders;
 
     try {
-        // Fetch all tokens using the existing service
-        const cacheData = await getAllTokenData();
+        // Fetch all metadata using the existing service
+        const cacheData = await getAllMetadata();
 
         // Return the tokens with CORS headers
         return NextResponse.json(cacheData, {

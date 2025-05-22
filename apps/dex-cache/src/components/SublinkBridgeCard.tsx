@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Vault } from '@/lib/vaultService';
+import { Vault } from '@/lib/pool-service';
 import { ArrowRightLeft, TrendingDown, TrendingUp, ExternalLinkIcon, Loader2, RefreshCw, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { useApp } from '@/lib/context/app-context';
