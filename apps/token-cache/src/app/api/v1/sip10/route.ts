@@ -8,6 +8,9 @@ const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': '*, X-Requested-With, Content-Type, Authorization',
+    'Content-Type': 'application/json',
+    // Cache for 5 minutes on CDN, stale-while-revalidate for 1 day
+    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400'
 };
 
 /**

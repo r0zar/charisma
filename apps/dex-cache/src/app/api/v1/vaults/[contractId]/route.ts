@@ -3,10 +3,11 @@ import { getVaultData } from '@/lib/pool-service';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': '*, X-Requested-With, Content-Type, Authorization',
     'Content-Type': 'application/json',
-    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400' // 5 min edge, 1d SWR
+    // Cache for 5 minutes on CDN, stale-while-revalidate for 1 day
+    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400'
 };
 
 export async function OPTIONS() {
