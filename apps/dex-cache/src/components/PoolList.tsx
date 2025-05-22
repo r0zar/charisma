@@ -208,7 +208,7 @@ export default function PoolList({ vaults }: Props) {
                                                                 height={32}
                                                                 src={v.image}
                                                                 alt={`${v.name} logo`}
-                                                                className="h-8 w-8 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                className="h-8 w-8 rounded-md object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         </div>
                                                     )}

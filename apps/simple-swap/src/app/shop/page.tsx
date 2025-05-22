@@ -30,9 +30,9 @@ export default async function ShopPage() {
     const allItems = [hootTokenItem, ...shopItems];
 
     return (
-        <Suspense fallback={<div>Loading shop...</div>}>
-            <ShopClientPage initialItems={allItems} />
-        </Suspense>
+        // <Suspense fallback={<div>Loading shop...</div>}>
+        <ShopClientPage initialItems={allItems} />
+        // </Suspense>
     );
 }
 
