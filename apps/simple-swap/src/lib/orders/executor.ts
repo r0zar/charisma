@@ -43,14 +43,12 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
  */
 export async function executeTrade(order: LimitOrder): Promise<string> {
     // get quote for multi-hop swap
-    const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn,
-        { excludeVaultIds: ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-cha-vault-wrapper-alex'] }
-    );
+    const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn);
 
     if (!quoteRes.success || !quoteRes.data) throw new Error('Route fetch failed');
 
     const result = await executeMultihopSwap(
-        quoteRes.data.route,
+        quoteRes.data,
         {
             amountIn: order.amountIn,
             signature: order.signature,
