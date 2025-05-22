@@ -138,7 +138,6 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
 
     // Only update if the target token exists and is different from the current actual token
     if (targetToken && targetToken.contractId !== selectedFromToken?.contractId) {
-      console.log(`Setting ACTUAL From Token: ${targetToken.symbol} (${targetToken.contractId}) based on toggle ${useSubnetFrom}`);
       setSelectedFromTokenSafe(targetToken);
       // Recalculate microAmount when the underlying token (and thus decimals) might change
       setMicroAmount(convertToMicroUnits(displayAmount, targetToken.decimals));
@@ -150,7 +149,6 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     if (mode === 'order' && selectedFromToken?.type !== 'SUBNET') {
       const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
       if (subnetTokens.length > 0) {
-        console.log(subnetTokens[0])
         setSelectedFromTokenSafe(subnetTokens[0]);
       }
     }

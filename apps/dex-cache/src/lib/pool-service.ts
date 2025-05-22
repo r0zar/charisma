@@ -44,7 +44,6 @@ export interface Vault {
 }
 
 // Cache constants
-const CACHE_DURATION_SECONDS = 30 * 24 * 60 * 60; // 30 days
 export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
 const DAILY_RESERVE_REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours - For fetchAndUpdateReserves internal cooldown
 
@@ -355,8 +354,7 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
         }
 
         try {
-            // Use JSON.stringify for saving data to KV
-            await kv.set(cacheKey, JSON.stringify(vaultToSave), { ex: CACHE_DURATION_SECONDS });
+            await kv.set(cacheKey, JSON.stringify(vaultToSave));
         } catch (setError) {
             console.error('Error during KV.set operation:', setError);
             throw new Error(`KV.set failed: ${setError instanceof Error ? setError.message : 'Unknown error'}`);
