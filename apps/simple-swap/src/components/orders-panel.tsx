@@ -388,7 +388,7 @@ export default function OrdersPanel() {
                                                         <span>{o.outputTokenMeta.symbol}</span>
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals)}</td>
+                                                <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}</td>
                                                 <td className="px-4 py-2">
                                                     <span className="flex items-center gap-1">
                                                         <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
@@ -507,7 +507,7 @@ export default function OrdersPanel() {
                                                                                 <span className="text-muted-foreground">From:</span>
                                                                                 <span className="flex items-center gap-1">
                                                                                     <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
-                                                                                    {o.inputTokenMeta.symbol} ({formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals)})
+                                                                                    {o.inputTokenMeta.symbol} ({formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)})
                                                                                 </span>
                                                                             </div>
                                                                             <div className="flex justify-between">

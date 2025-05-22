@@ -1,9 +1,9 @@
 "use client";
 
 import React from 'react';
-import type { Token } from '../../lib/swap-client'; // Assuming Token type is needed
 import { Button } from '../ui/button';
-// Import QuoteResponse type if needed, or simplify props
+import { Route } from 'dexterity-sdk';
+import { TokenCacheData } from '@repo/tokens';
 
 interface Vault {
     contractId: string;
@@ -12,25 +12,13 @@ interface Vault {
     symbol: string;
 }
 
-interface Hop {
-    vault: Vault;
-}
-
-interface Route {
-    hops: Hop[];
-}
-
-interface QuoteResponse {
-    route: Route;
-}
-
 interface SwapButtonProps {
-    quote: QuoteResponse | null;
+    quote: Route | null;
     isLoadingQuote: boolean;
     swapping: boolean;
     handleSwap: () => void;
-    selectedFromToken: Token | null;
-    selectedToToken: Token | null;
+    selectedFromToken: TokenCacheData | null;
+    selectedToToken: TokenCacheData | null;
     displayAmount: string;
 }
 
@@ -48,24 +36,17 @@ export default function SwapButton({
     const showShimmer = !isLoadingQuote && !swapping && quote && selectedFromToken && selectedToToken && displayAmount && displayAmount !== "0";
 
     // Determine if this is a subnet shift operation
-    const isSubnetShift = quote?.route.hops.some(hop =>
-        hop.vault.name === 'SUB_LINK' ||
-        hop.vault.contractName === 'SUB_LINK' ||
-        hop.vault.symbol === 'SL'
+    const isSubnetShift = quote?.hops.some(hop =>
+        hop.vault.type === 'SUBLINK'
     );
 
     // Determine shift direction for button text
     const getShiftDirection = () => {
         if (!isSubnetShift || !selectedToToken) return null;
-        return selectedToToken.contractId.includes('-subnet') ? 'to-subnet' : 'from-subnet';
+        return selectedToToken.type === 'SUBNET' ? 'to-subnet' : 'from-subnet';
     };
 
     const shiftDirection = getShiftDirection();
-
-    // For clearer UI terminology
-    const operationType = isSubnetShift
-        ? (shiftDirection === 'to-subnet' ? 'Deposit' : 'Withdraw')
-        : 'Swap';
 
     let buttonContent;
     if (isLoadingQuote) {

@@ -9,7 +9,7 @@
  *-------------------------------------------------------------*/
 
 /*************  External deps  *************/
-import { callReadOnlyFunction } from '@repo/polyglot';
+import { callReadOnly } from '@repo/polyglot';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import {
   bufferCV,
@@ -26,21 +26,18 @@ import {
 export interface Token {
   type: string;
   contractId: string;
-  contractAddress: string;
-  contractName: string;
   name: string;
   symbol: string;
   decimals: number;
-  identifier?: string;
+  identifier: string;
   description?: string;
   image?: string;
+  base?: string;
 }
 
 export interface Vault {
   type: string;
   contractId: string;
-  contractAddress: string;
-  contractName: string;
   name: string;
   symbol: string;
   decimals: number;
@@ -165,18 +162,15 @@ export const buildVault = async (
   ]);
 
   const deriveToken = (meta: any, cid: string): Token => {
-    const [a, n] = cid.split('.');
     return {
       contractId: cid,
-      contractAddress: a,
-      contractName: n,
-      name: meta.name || n,
-      symbol: meta.symbol || '???',
-      decimals: meta.decimals ?? 0,
-      identifier: meta.identifier ?? undefined,
-      description: meta.description || '',
-      image: meta.image || '',
-      type: meta.type || '',
+      name: meta.name,
+      symbol: meta.symbol,
+      decimals: meta.decimals,
+      identifier: meta.identifier,
+      description: meta.description,
+      image: meta.image,
+      type: meta.type,
     };
   };
 
@@ -187,12 +181,7 @@ export const buildVault = async (
   let reservesA = 0,
     reservesB = 0;
   try {
-    const r = await callReadOnlyFunction(
-      addr,
-      name,
-      'get-reserves-quote',
-      [],
-    );
+    const r = await callReadOnly(contractId, 'get-reserves-quote', []);
     reservesA = Number(r.dx.value);
     reservesB = Number(r.dy.value);
   } catch (e) {
@@ -207,8 +196,6 @@ export const buildVault = async (
   return {
     type: raw.type || '',
     contractId,
-    contractAddress: addr,
-    contractName: name,
     name: raw.name || name,
     symbol: raw.symbol || 'LP',
     decimals: raw.decimals ?? 0,
@@ -235,12 +222,7 @@ export const quoteVault = async (
   op: number,
 ): Promise<Delta | null> => {
   try {
-    const r = await callReadOnlyFunction(
-      v.contractAddress,
-      v.contractName,
-      'quote',
-      [uintCV(amt), opcodeCV(op)],
-    );
+    const r = await callReadOnly(v.contractId, 'quote', [uintCV(amt), opcodeCV(op)]);
     return {
       dx: Number(r.value.dx.value),
       dy: Number(r.value.dy.value),
@@ -275,7 +257,8 @@ export class Router {
     this.edges.clear();
     this.nodes.clear();
 
-    for (const v of vaults) {
+    // TODO: Fix energy vaults compatibility with router
+    for (const v of vaults.filter(v => v.type !== 'ENERGY')) {
       this.edges.set(v.contractId, v);
 
       const { tokenA: t0, tokenB: t1 } = v;
@@ -427,9 +410,9 @@ export class Router {
     const paths = this.findAllPaths(from, to);
     if (!paths.length) return new Error('no paths');
 
-    console.log('[Router] findBestRoute', paths);
     const routes = await Promise.all(paths.map(p => this.evaluatePath(p, amount)));
     const ok = routes.filter((r): r is Route => !(r instanceof Error));
+
     return ok.length
       ? ok.sort((a, b) => b.amountOut - a.amountOut)[0]
       : new Error('all routes failed');
@@ -530,8 +513,8 @@ export const buildSwapPostConditions = async (
   const amtOut = BigInt(hop.quote?.amountOut ?? 0);
 
   if (opcode === OPCODES.OP_DEPOSIT) return [mk(tokenIn, amtIn, sender, 'eq')];
-  if (opcode === OPCODES.OP_WITHDRAW)
-    return [mk(tokenOut, amtOut, vault.externalPoolId || vault.contractId, 'eq')];
+  // TODO: fix sublink data for externalPoolId - bit of a hack to use tokenB.contractId
+  if (opcode === OPCODES.OP_WITHDRAW) return [mk(tokenOut, amtOut, vault.externalPoolId || vault.tokenB.contractId || vault.contractId, 'eq')];
 
   const maxIn = BigInt(Math.floor(Number(amtIn) * (1 + cfg.defaultSlippage)));
   const minOut = BigInt(Math.floor(Number(amtOut) * (1 - cfg.defaultSlippage)));
@@ -552,9 +535,7 @@ const DEFAULT_DEX_CACHE_URL = 'https://invest.charisma.rocks/api/v1';
 /**
  * Fetch vault inventory from Charisma dex‑cache.
  */
-export const fetchVaults = async (
-  dexCacheUrl: string = DEFAULT_DEX_CACHE_URL,
-): Promise<Vault[]> => {
+export const fetchVaults = async (dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): Promise<Vault[]> => {
   const res: any = await fetch(`${dexCacheUrl}/vaults`);
   if (!res.ok) {
     const errBody = await res.json().catch(() => undefined);
@@ -571,10 +552,7 @@ export const fetchVaults = async (
 /**
  * Convenience wrapper – populate Router straight from dex‑cache.
  */
-export const loadVaults = async (
-  router: Router,
-  dexCacheUrl: string = DEFAULT_DEX_CACHE_URL,
-): Promise<Vault[]> => {
+export const loadVaults = async (router: Router, dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): Promise<Vault[]> => {
   const vaults = await fetchVaults(dexCacheUrl);
   router.loadVaults(vaults);
   return vaults;
@@ -587,9 +565,7 @@ export const createRouter = async (cfg: Partial<RouterConfig> = {}) => {
 };
 
 /** Simple token list helper (used by frontends) */
-export const listTokens = async (
-  dexCacheUrl: string = DEFAULT_DEX_CACHE_URL,
-): Promise<Token[]> => {
+export const listTokens = async (dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): Promise<Token[]> => {
   const res: any = await fetch(`${dexCacheUrl}/tokens`);
   if (!res.ok) {
     const errBody = await res.json()

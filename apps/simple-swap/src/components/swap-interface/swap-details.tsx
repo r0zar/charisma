@@ -1,61 +1,15 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { Token } from '../../lib/swap-client';
 import TokenLogo from '../TokenLogo';
 import Image from 'next/image';
 import { KraxelPriceData } from '@repo/tokens';
-
-// Copied type definitions from useSwap.ts
-interface Vault {
-    type: string;
-    contractId: string;
-    contractAddress: string;
-    contractName: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    identifier: string;
-    description: string;
-    image: string;
-    fee: number;
-    externalPoolId: string;
-    engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    reservesA: number;
-    reservesB: number;
-}
-
-interface Hop {
-    vault: Vault;
-    tokenIn: Token;
-    tokenOut: Token;
-    opcode: number;
-    quote?: {
-        amountIn: number;
-        amountOut: number;
-    };
-}
-
-interface Route {
-    path: Token[];
-    hops: Hop[];
-    amountIn: number;
-    amountOut: number;
-}
-
-interface QuoteResponse {
-    amountOut: number;
-    expectedPrice: number;
-    minimumReceived: number;
-    route: Route;
-}
-// --- End of copied types ---
+import { Hop, Route } from 'dexterity-sdk';
+import { TokenCacheData } from '@repo/tokens';
 
 interface SwapDetailsProps {
-    quote: QuoteResponse | null;
-    selectedToToken: Token | null;
+    quote: Route | null;
+    selectedToToken: TokenCacheData | null;
     microAmount: string;
     tokenPrices: KraxelPriceData;
     totalPriceImpact: {
@@ -92,18 +46,18 @@ export default function SwapDetails({
     const [showRouteDetails, setShowRouteDetails] = useState(true);
 
     // Determine if this is a subnet shift operation by checking for SUBLINK vault type
-    const isSubnetShift = quote?.route.hops.some(hop => hop.vault.type === 'SUBLINK');
+    const isSubnetShift = quote?.hops.some(hop => hop.vault.type === 'SUBLINK');
 
     // Detect if both from and to tokens are subnet tokens using type property
-    const isFromSubnet = quote?.route.path[0]?.type === 'SUBNET';
-    const isToSubnet = quote?.route.path[quote.route.path.length - 1]?.type === 'SUBNET';
+    const isFromSubnet = quote?.path[0]?.type === 'SUBNET';
+    const isToSubnet = quote?.path[quote.path.length - 1]?.type === 'SUBNET';
     const isSubnetToSubnet = isFromSubnet && isToSubnet;
 
     // Get the direction of the shift (to or from subnet)
     const getShiftDirection = () => {
         if (!isSubnetShift || !quote) return null;
-        const destinationToken = quote.route.path[quote.route.path.length - 1];
-        return destinationToken.contractId.includes('-subnet') ? 'to-subnet' : 'from-subnet';
+        const destinationToken = quote.path[quote.path.length - 1];
+        return destinationToken.type === 'SUBNET' ? 'to-subnet' : 'from-subnet';
     };
 
     const shiftDirection = getShiftDirection();
@@ -176,7 +130,7 @@ export default function SwapDetails({
                 {!isLoadingQuote && quote && (
                     <div className="text-sm text-muted-foreground flex items-center">
                         <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs">
-                            {quote.route.path.length - 1} {quote.route.path.length - 1 === 1 ? 'hop' : 'hops'}
+                            {quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'}
                         </span>
                     </div>
                 )}
@@ -198,7 +152,7 @@ export default function SwapDetails({
                                         : 'Minimum received'}
                             </span>
                             <span className="font-medium text-foreground flex items-center">
-                                {formatTokenAmount(Number(quote.minimumReceived), selectedToToken.decimals || 0)} {selectedToToken.symbol}
+                                {formatTokenAmount(Number(quote.amountOut * 0.95), selectedToToken.decimals || 0)} {selectedToToken.symbol}
                             </span>
                         </div>
                     )}
@@ -218,18 +172,18 @@ export default function SwapDetails({
                                         ? 'Subnet swap route'
                                         : isSubnetShift
                                             ? `${operationType} route`
-                                            : 'Route details'} ({quote.route.path.length - 1} {quote.route.path.length - 1 === 1 ? 'hop' : 'hops'})
+                                            : 'Route details'} ({quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'})
                                 </span>
                                 <div className="flex items-center gap-1">
                                     {/* Replace price impact with mini-path view */}
-                                    {quote && quote.route.path.length > 0 && (
+                                    {quote && quote.path.length > 0 && (
                                         <div className="flex items-center space-x-0.5">
-                                            {quote.route.path.map((token: Token, index: number) => (
+                                            {quote.path.map((token: TokenCacheData, index: number) => (
                                                 <React.Fragment key={token.contractId || index}>
                                                     <div className="h-4 w-4 rounded-full bg-background flex items-center justify-center overflow-hidden border border-border/30">
                                                         <TokenLogo token={token} size="sm" />
                                                     </div>
-                                                    {index < quote.route.path.length - 1 && (
+                                                    {index < quote.path.length - 1 && (
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                                         </svg>
@@ -255,20 +209,20 @@ export default function SwapDetails({
                                     <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
                                         <div className="flex items-center mb-2">
                                             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
-                                                <TokenLogo token={quote.route.path[0]} size="lg" />
+                                                <TokenLogo token={quote.path[0]} size="lg" />
                                             </div>
                                             <div className="ml-2 sm:ml-2.5">
                                                 <div className="font-medium text-sm sm:text-base">
-                                                    {quote.route.path[0].symbol}
+                                                    {quote.path[0].symbol}
                                                     <span className="font-normal ml-1 text-xs text-muted-foreground">
-                                                        ({formatTokenAmount(Number(microAmount), quote.route.path[0].decimals || 6)})
+                                                        ({formatTokenAmount(Number(microAmount), quote.path[0].decimals || 6)})
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center">
                                                     <span>Start</span>
-                                                    {tokenPrices && tokenPrices[quote.route.path[0].contractId] && (
+                                                    {tokenPrices && tokenPrices[quote.path[0].contractId] && (
                                                         <span className="ml-1">
-                                                            ~{formatUsd(Number(microAmount) * tokenPrices[quote.route.path[0].contractId] / (10 ** (quote.route.path[0].decimals || 6)))}
+                                                            ~{formatUsd(Number(microAmount) * tokenPrices[quote.path[0].contractId] / (10 ** (quote.path[0].decimals || 6)))}
                                                         </span>
                                                     )}
                                                 </div>
@@ -277,9 +231,9 @@ export default function SwapDetails({
                                     </div>
 
                                     {/* Hops with price impact */}
-                                    {quote.route.hops.map((hop: Hop, idx: number) => {
-                                        const fromToken = quote.route.path[idx];
-                                        const toToken = quote.route.path[idx + 1];
+                                    {quote.hops.map((hop: Hop, idx: number) => {
+                                        const fromToken = quote.path[idx];
+                                        const toToken = quote.path[idx + 1];
                                         const vaultName = hop.vault.name || 'Liquidity Pool';
                                         const formattedFee = (hop.vault.fee / 10000).toFixed(2);
                                         const priceImpact = priceImpacts[idx];
@@ -372,7 +326,7 @@ export default function SwapDetails({
                                                 </div>
 
                                                 {/* Only show intermediate tokens (not the final destination) */}
-                                                {idx < quote.route.hops.length - 1 && (
+                                                {idx < quote.hops.length - 1 && (
                                                     <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
                                                         <div className="flex items-center">
                                                             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
@@ -403,13 +357,13 @@ export default function SwapDetails({
                                         }`}>
                                         <div className="flex items-center">
                                             <div className="h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
-                                                <TokenLogo token={quote.route.path[quote.route.path.length - 1]} size="lg" />
+                                                <TokenLogo token={quote.path[quote.path.length - 1]} size="lg" />
                                             </div>
                                             <div className="ml-2 sm:ml-2.5">
                                                 <div className="font-medium text-xs sm:text-base">
-                                                    {quote.route.path[quote.route.path.length - 1].symbol}
+                                                    {quote.path[quote.path.length - 1].symbol}
                                                     <span className="font-normal ml-1 text-xs text-muted-foreground">
-                                                        ({formatTokenAmount(Number(quote.amountOut), quote.route.path[quote.route.path.length - 1].decimals || 6)})
+                                                        ({formatTokenAmount(Number(quote.amountOut), quote.path[quote.path.length - 1].decimals || 6)})
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center">
@@ -426,9 +380,9 @@ export default function SwapDetails({
                                                                 : 'Destination'
                                                         }
                                                     </span>
-                                                    {tokenPrices && tokenPrices[quote.route.path[quote.route.path.length - 1].contractId] && (
+                                                    {tokenPrices && tokenPrices[quote.path[quote.path.length - 1].contractId] && (
                                                         <span className="ml-1 text-xs text-muted-foreground">
-                                                            ~{formatUsd(Number(quote.amountOut) * tokenPrices[quote.route.path[quote.route.path.length - 1].contractId] / (10 ** (quote.route.path[quote.route.path.length - 1].decimals || 6)))}
+                                                            ~{formatUsd(Number(quote.amountOut) * tokenPrices[quote.path[quote.path.length - 1].contractId] / (10 ** (quote.path[quote.path.length - 1].decimals || 6)))}
                                                         </span>
                                                     )}
                                                 </div>

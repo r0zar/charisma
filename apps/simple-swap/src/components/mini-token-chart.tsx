@@ -9,7 +9,7 @@ import {
     LineSeries,
     ColorType,
 } from "lightweight-charts";
-import type { Token } from "../lib/swap-client";
+import type { Token } from "../lib/_swap-client";
 import { useDominantColor } from "./utils/useDominantColor";
 
 interface MiniTokenChartProps {

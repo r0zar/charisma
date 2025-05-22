@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from './ui/button';
 import TokenLogo from './TokenLogo';
 import { Loader2, Check, X as XIcon } from 'lucide-react';
-import type { Token } from '../lib/swap-client';
+import type { Token } from '../lib/_swap-client';
 import { useRouter } from 'next/navigation';
 
 interface DcaDialogProps {

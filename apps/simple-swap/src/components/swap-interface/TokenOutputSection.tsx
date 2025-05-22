@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { Token } from '../../lib/swap-client';
+import type { Token } from '../../lib/_swap-client';
 import TokenDropdown from '../TokenDropdown';
 import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';

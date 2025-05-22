@@ -1,67 +1,14 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { getQuote, getRoutableTokens, getStxBalance, getTokenBalance, listTokens as fetchAllTokensServerAction } from "../app/actions";
-import { createSwapClient, Token } from "../lib/swap-client";
 import { useWallet } from "../contexts/wallet-context";
 import { listPrices, KraxelPriceData, SIP10, TokenCacheData } from '@repo/tokens';
-import { signTriggeredSwap } from "@/lib/swap-client";
-
-/**
- * Vault instance representing a liquidity pool
- */
-interface Vault {
-    type: string;
-    contractId: string;
-    contractAddress: string;
-    contractName: string;
-    name: string;
-    symbol: string;
-    decimals: number;
-    identifier: string;
-    description: string;
-    image: string;
-    fee: number;
-    externalPoolId: string;
-    engineContractId: string;
-    tokenA: Token;
-    tokenB: Token;
-    reservesA: number;
-    reservesB: number;
-}
-
-/**
- * Route between tokens
- */
-export interface Route {
-    path: Token[];
-    hops: Hop[];
-    amountIn: number;
-    amountOut: number;
-}
-
-/**
- * Hop in a route
- */
-export interface Hop {
-    vault: Vault;
-    tokenIn: Token;
-    tokenOut: Token;
-    opcode: number;
-    quote?: {
-        amountIn: number;
-        amountOut: number;
-    };
-}
-
-// Quote response mirrors server action structure
-interface QuoteResponse {
-    amountOut: number;
-    expectedPrice: number;
-    minimumReceived: number;
-    route: Route;
-}
+import { buildSwapTransaction, loadVaults, Route, Router } from "dexterity-sdk";
+import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf } from '@stacks/transactions';
+import { request } from "@stacks/connect";
+import { TransactionResult } from "@stacks/connect/dist/types/methods";
 
 interface UseSwapOptions {
-    initialTokens?: Token[];
+    initialTokens?: TokenCacheData[];
 }
 
 // Cache validity period in milliseconds (30 minutes)
@@ -80,7 +27,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const { address: walletAddress } = useWallet();
 
     // ---------------------- State ----------------------
-    const [selectedTokens, setSelectedTokens] = useState<Token[]>(initialTokens);
+    const [selectedTokens, setSelectedTokens] = useState<TokenCacheData[]>(initialTokens);
     const [routeableTokenIds, setRouteableTokenIds] = useState<Set<string>>(new Set());
     const [isInitializing, setIsInitializing] = useState(true);
     const [isLoadingRouteInfo, setIsLoadingRouteInfo] = useState(false);
@@ -90,8 +37,8 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // User address state - now derived from wallet context
     const [userAddress, setUserAddress] = useState<string>("");
 
-    const [selectedFromToken, setSelectedFromToken] = useState<Token | null>(null);
-    const [selectedToToken, setSelectedToToken] = useState<Token | null>(null);
+    const [selectedFromToken, setSelectedFromToken] = useState<TokenCacheData | null>(null);
+    const [selectedToToken, setSelectedToToken] = useState<TokenCacheData | null>(null);
 
     // Balance states
     const [fromTokenBalance, setFromTokenBalance] = useState<string>("0");
@@ -100,10 +47,10 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const [displayAmount, setDisplayAmount] = useState<string>("");
     const [microAmount, setMicroAmount] = useState<string>("");
 
-    const [quote, setQuote] = useState<QuoteResponse | null>(null);
+    const [quote, setQuote] = useState<Route | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoadingQuote, setIsLoadingQuote] = useState(false);
-    const [swapSuccessInfo, setSwapSuccessInfo] = useState<{ txId: string } | null>(null);
+    const [swapSuccessInfo, setSwapSuccessInfo] = useState<TransactionResult | null>(null);
 
     // Price state
     const [rawKraxelPrices, setRawKraxelPrices] = useState<KraxelPriceData>({});
@@ -113,8 +60,15 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     // Balance cache ref (will persist between renders but won't cause re-renders)
     const balanceCacheRef = useRef<BalanceCache>({});
 
-    // Initialize swap client
-    const swapClient = createSwapClient({ stxAddress: walletAddress });
+    const router = useRef<Router>(new Router({
+        maxHops: 3,
+        defaultSlippage: 0.05,
+        routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',
+    }));
+
+    useEffect(() => {
+        loadVaults(router.current);
+    }, []);
 
     // Update userAddress when wallet address changes
     useEffect(() => {
@@ -229,7 +183,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             }
 
             // Format balance using decimals
-            const formattedBalance = swapClient.formatTokenAmount(balance, decimals);
+            const formattedBalance = formatTokenAmount(balance, decimals);
 
             // Cache the result
             balanceCacheRef.current[cacheKey] = {
@@ -259,7 +213,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
                 const balance = await getTokenBalanceWithCache(
                     selectedFromToken.contractId,
                     userAddress,
-                    selectedFromToken.decimals
+                    selectedFromToken.decimals!
                 );
                 setFromTokenBalance(balance);
             }
@@ -269,7 +223,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
                 const balance = await getTokenBalanceWithCache(
                     selectedToToken.contractId,
                     userAddress,
-                    selectedToToken.decimals
+                    selectedToToken.decimals!
                 );
                 setToTokenBalance(balance);
             }
@@ -335,8 +289,8 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             const price = tokenPrices[selectedToToken.contractId];
             const microAmountOut = Number(quote.amountOut);
             const decimals = selectedToToken.decimals;
-            if (decimals >= 0 && !isNaN(microAmountOut)) {
-                const humanReadableAmountOut = microAmountOut / Math.pow(10, decimals);
+            if (decimals! >= 0 && !isNaN(microAmountOut)) {
+                const humanReadableAmountOut = microAmountOut / Math.pow(10, decimals!);
 
                 if (price !== undefined && !isNaN(humanReadableAmountOut) && !isNaN(price)) {
                     toValue = humanReadableAmountOut * price;
@@ -362,7 +316,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             return {
                 displayTokens: [],
                 subnetDisplayTokens: [],
-                tokenCounterparts: new Map<string, { mainnet: Token | null; subnet: Token | null }>()
+                tokenCounterparts: new Map<string, { mainnet: TokenCacheData | null; subnet: TokenCacheData | null }>()
             };
         }
 
@@ -372,7 +326,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
 
         // Map base contractId to { mainnet, subnet }
-        const tokenCounterparts = new Map<string, { mainnet: Token | null; subnet: Token | null }>();
+        const tokenCounterparts = new Map<string, { mainnet: TokenCacheData | null; subnet: TokenCacheData | null }>();
         for (const mainnet of mainnetTokens) {
             tokenCounterparts.set(mainnet.contractId, { mainnet, subnet: null });
         }
@@ -398,7 +352,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         };
     }, [selectedTokens]);
 
-    const hasBothVersions = useCallback((token: Token | null): boolean => {
+    const hasBothVersions = useCallback((token: TokenCacheData | null): boolean => {
         if (!token) return false;
         if (token.type === 'SUBNET') {
             // Subnet token: check if mainnet exists
@@ -410,7 +364,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     }, [tokenCounterparts]);
 
     // Safe setter that optionally forces subnet version if in order mode
-    const setSelectedFromTokenSafe = (t: Token) => {
+    const setSelectedFromTokenSafe = (t: TokenCacheData) => {
         if (t.type !== 'SUBNET' && mode === 'order') return
         setSelectedFromToken(t);
     }
@@ -429,8 +383,8 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
                 selectedToToken.contractId,
                 microAmount
             );
-            if (result.success && result.data) {
-                setQuote(result.data as QuoteResponse);
+            if (result && result.data) {
+                setQuote(result.data);
             } else {
                 throw new Error(result.error || "Failed to get quote");
             }
@@ -447,17 +401,20 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         setError(null);
         setSwapSuccessInfo(null);
         try {
-            const res = await swapClient.executeSwap(quote.route as any);
+
+            const txCfg = await buildSwapTransaction(router.current, quote, walletAddress);
+            const res = await request('stx_callContract', txCfg);
             console.log("Swap result:", res);
 
             if ("error" in res) {
-                setError(res.error || "Swap failed");
+                console.error("Swap failed:", res.error);
+                setError("Swap failed");
                 return;
             }
 
             // Clear balance cache after successful swap
             clearBalanceCache();
-            setSwapSuccessInfo({ txId: res.txId });
+            setSwapSuccessInfo(res);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unexpected error occurred");
         }
@@ -467,25 +424,26 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         if (!selectedFromToken || !selectedToToken) return;
         setSelectedFromToken(selectedToToken);
         setSelectedToToken(selectedFromToken);
-        setMicroAmount(swapClient.convertToMicroUnits(displayAmount, selectedToToken.decimals));
+        setMicroAmount(convertToMicroUnits(displayAmount, selectedToToken.decimals!));
     }
 
     /**
      * Create a triggered swap order (off-chain limit order)
      */
     async function createTriggeredSwap(opts: {
-        conditionToken: Token;
-        baseToken: Token | null;
+        conditionToken: TokenCacheData;
+        baseToken: TokenCacheData | null;
         targetPrice: string;
         direction: 'lt' | 'gt';
         amountDisplay: string;
         validFrom?: string;
         validTo?: string;
     }) {
+
         if (!walletAddress) throw new Error('Connect wallet');
         const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
 
-        const micro = swapClient.convertToMicroUnits(opts.amountDisplay, selectedFromToken?.decimals || 6);
+        const micro = convertToMicroUnits(opts.amountDisplay, selectedFromToken?.decimals || 6);
 
         const signature = await signTriggeredSwap({
             subnetTokenContractId: selectedFromToken?.contractId!,
@@ -561,10 +519,10 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         priceError,
 
         // helpers from swapClient
-        formatTokenAmount: swapClient.formatTokenAmount,
-        convertToMicroUnits: swapClient.convertToMicroUnits,
-        convertFromMicroUnits: swapClient.convertFromMicroUnits,
-        getTokenLogo: swapClient.getTokenLogo,
+        formatTokenAmount,
+        convertToMicroUnits,
+        convertFromMicroUnits,
+        getTokenLogo,
 
         // setters & handlers
         setDisplayAmount,
@@ -584,4 +542,100 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         fromTokenValueUsd,
         toTokenValueUsd,
     };
-} 
+}
+
+
+async function signTriggeredSwap({
+    subnetTokenContractId,
+    uuid,
+    amountMicro,
+    multihopContractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
+    intent = 'TRANSFER_TOKENS',
+    domainName = 'BLAZE_PROTOCOL',
+    version = 'v1.0',
+}: {
+    subnetTokenContractId: string;
+    uuid: string;
+    amountMicro: bigint; // already in micro units
+    multihopContractId?: string;
+    intent?: string;
+    domainName?: string;
+    version?: string;
+}): Promise<string> {
+    const domain = tupleCV({
+        name: stringAsciiCV(domainName),
+        version: stringAsciiCV(version),
+        'chain-id': uintCV(1),
+    });
+
+    const message = tupleCV({
+        contract: principalCV(subnetTokenContractId),
+        intent: stringAsciiCV(intent),
+        opcode: noneCV(),
+        amount: optionalCVOf(uintCV(amountMicro)),
+        target: optionalCVOf(principalCV(multihopContractId)),
+        uuid: stringAsciiCV(uuid),
+    });
+
+    // @ts-ignore – upstream types don't include method yet
+    const res = await request('stx_signStructuredMessage', { domain, message });
+    if (!res?.signature) throw new Error('User cancelled the signature');
+    return res.signature as string; // raw 65-byte hex
+}
+
+/**
+ * Utility functions for working with token amounts
+ */
+function formatTokenAmount(amount: number, decimals: number): string {
+    return (amount / Math.pow(10, decimals)).toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
+}
+
+/**
+ * Convert user input to micro units based on token decimals
+ */
+function convertToMicroUnits(input: string, decimals: number): string {
+    if (!input || input === '') return '0';
+    try {
+        const floatValue = parseFloat(input);
+        if (isNaN(floatValue)) return '0';
+        return Math.floor(floatValue * Math.pow(10, decimals)).toString();
+    } catch {
+        return '0';
+    }
+}
+
+/**
+ * Convert micro units to human readable format for input
+ */
+function convertFromMicroUnits(microUnits: string, decimals: number): string {
+    if (!microUnits || microUnits === '0') return '';
+    return (parseFloat(microUnits) / Math.pow(10, decimals)).toLocaleString(undefined, {
+        maximumFractionDigits: decimals,
+        minimumFractionDigits: decimals
+    });
+}
+
+/**
+ * Get token logo URL
+ */
+function getTokenLogo(token: TokenCacheData): string {
+    if (token.image) {
+        return token.image;
+    }
+
+    const symbol = token.symbol?.toLowerCase() || '';
+
+    if (symbol === "stx") {
+        return "https://assets.coingecko.com/coins/images/2069/standard/Stacks_logo_full.png";
+    } else if (symbol.includes("btc") || symbol.includes("xbtc")) {
+        return "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png";
+    } else if (symbol.includes("usda")) {
+        return "https://assets.coingecko.com/coins/images/17333/standard/usda.png";
+    }
+
+    // Default logo - first 2 characters of symbol
+    return `https://placehold.co/32x32?text=${(token.symbol || "??").slice(0, 2)}`;
+}

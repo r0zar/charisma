@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import TokenDropdown from "./TokenDropdown";
 import { useSwap } from "../hooks/useSwap";
-import TokenLogo from "./TokenLogo";
 import { ArrowDown, ClockArrowUp, Flame, Repeat } from 'lucide-react';
 import TokenInputSection from './swap-interface/TokenInputSection';
 import TokenOutputSection from './swap-interface/TokenOutputSection';
@@ -13,22 +11,12 @@ import SwapButton from './swap-interface/swap-button';
 import SwapHeader from './swap-interface/swap-header';
 import LimitConditionSection from './swap-interface/LimitConditionSection';
 import { Button } from "./ui/button";
-import MiniTokenChartWrapper from './mini-token-chart-wrapper';
 import { DcaDialog } from "./dca-dialog";
 import { useSearchParams } from "next/navigation";
-
-interface Token {
-  contractId: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  image?: string;
-  type: string;
-  base?: string;
-}
+import { TokenCacheData } from "@repo/tokens";
 
 interface SwapInterfaceProps {
-  initialTokens?: Token[];
+  initialTokens?: TokenCacheData[];
   urlParams?: any;
 }
 
@@ -53,13 +41,13 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
 
   // Keep track of the token selected by the user from the dropdown (might be base or subnet)
   // This helps manage the state before the useEffect updates the actual selected token in useSwap
-  const [baseSelectedFromToken, setBaseSelectedFromToken] = useState<Token | null>(null);
-  const [baseSelectedToToken, setBaseSelectedToToken] = useState<Token | null>(null);
+  const [baseSelectedFromToken, setBaseSelectedFromToken] = useState<TokenCacheData | null>(null);
+  const [baseSelectedToToken, setBaseSelectedToToken] = useState<TokenCacheData | null>(null);
 
   // market vs limit
   const [targetPrice, setTargetPrice] = useState('');
-  const [conditionToken, setConditionToken] = useState<Token | null>(null);
-  const [baseToken, setBaseToken] = useState<Token | null>(null); // null = USD
+  const [conditionToken, setConditionToken] = useState<TokenCacheData | null>(null);
+  const [baseToken, setBaseToken] = useState<TokenCacheData | null>(null); // null = USD
   const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
 
   const {
@@ -140,7 +128,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     if (targetToken && targetToken.contractId !== selectedFromToken?.contractId) {
       setSelectedFromTokenSafe(targetToken);
       // Recalculate microAmount when the underlying token (and thus decimals) might change
-      setMicroAmount(convertToMicroUnits(displayAmount, targetToken.decimals));
+      setMicroAmount(convertToMicroUnits(displayAmount, targetToken.decimals!));
     }
   }, [baseSelectedFromToken, useSubnetFrom, tokenCounterparts, setSelectedFromTokenSafe, selectedFromToken?.contractId, setMicroAmount, displayAmount, convertToMicroUnits]);
 
@@ -229,7 +217,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     if (!quote) return;
 
     // Simple heuristic: based on number of hops
-    const hops = quote.route.path.length - 1;
+    const hops = quote.path.length - 1;
     if (hops === 1) setSecurityLevel('high');
     else if (hops === 2) setSecurityLevel('medium');
     else setSecurityLevel('low');
@@ -259,7 +247,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
     if (!conditionToken) return;
     if (!tokenPrices || Object.keys(tokenPrices).length === 0) return;
 
-    const getPrice = (t: Token | null): number | undefined => {
+    const getPrice = (t: TokenCacheData | null): number | undefined => {
       if (!t) return undefined;
       if (t.contractId === '.stx') return tokenPrices['stx'];
       return tokenPrices[t.contractId];
@@ -360,8 +348,8 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
 
     if (fromPrice === undefined || toPrice === undefined) return null;
 
-    const inputValueUsd = Number(microAmount) * fromPrice / (10 ** selectedFromToken.decimals);
-    const outputValueUsd = Number(quote.amountOut) * toPrice / (10 ** selectedToToken.decimals);
+    const inputValueUsd = Number(microAmount) * fromPrice / (10 ** selectedFromToken.decimals!);
+    const outputValueUsd = Number(quote.amountOut) * toPrice / (10 ** selectedToToken.decimals!);
 
     if (isNaN(inputValueUsd) || isNaN(outputValueUsd) || inputValueUsd === 0) return null; // Avoid division by zero or NaN results
 
@@ -383,9 +371,9 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
       return contractId === '.stx' ? tokenPrices['stx'] : tokenPrices[contractId];
     };
 
-    const impacts = quote.route.hops.map((hop, index) => {
-      const fromToken = quote.route.path[index];
-      const toToken = quote.route.path[index + 1];
+    const impacts = quote.hops.map((hop, index) => {
+      const fromToken = quote.path[index];
+      const toToken = quote.path[index + 1];
 
       const fromPrice = getPrice(fromToken.contractId);
       const toPrice = getPrice(toToken.contractId);
@@ -450,7 +438,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
   const currentToBalance = toTokenBalance;
 
   // Determine if this is a subnet shift operation
-  const isSubnetShift = quote?.route.hops.some(hop =>
+  const isSubnetShift = quote?.hops.some(hop =>
     hop.vault.type === 'SUBLINK'
   );
 
@@ -578,7 +566,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
             if (/^[0-9]*\.?[0-9]*$/.test(v) || v === "") {
               setDisplayAmount(v);
               if (selectedFromToken) {
-                setMicroAmount(convertToMicroUnits(v, selectedFromToken.decimals));
+                setMicroAmount(convertToMicroUnits(v, selectedFromToken.decimals!));
               }
             }
           }}
@@ -607,7 +595,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
           onSetMax={() => {
             setDisplayAmount(currentFromBalance);
             if (selectedFromToken) {
-              setMicroAmount(convertToMicroUnits(currentFromBalance, selectedFromToken.decimals));
+              setMicroAmount(convertToMicroUnits(currentFromBalance, selectedFromToken.decimals!));
             }
           }}
         />
@@ -626,7 +614,8 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
           selectedToken={selectedToToken}
           displayedToken={displayedToToken}
           outputAmount={quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00"}
-          minimumReceived={quote && selectedToToken ? formatTokenAmount(Number(quote.minimumReceived), selectedToToken.decimals || 0) : ""}
+          // TODO: Remove this once we have a better way to handle minimum received
+          minimumReceived={quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut * 0.95), selectedToToken.decimals || 0) : ""}
           balance={currentToBalance}
           displayTokens={displayTokens}
           onSelectToken={(t) => {
@@ -652,7 +641,7 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
           isLoadingPrice={isLoadingPrices}
           tokenValueUsd={formatUsd(toTokenValueUsd)}
           formatUsd={formatUsd}
-          quoteHops={quote ? quote.route.path.length - 1 : null}
+          quoteHops={quote ? quote.path.length - 1 : null}
           priceImpactDisplay={
             totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && !isLoadingQuote ? (
               <div className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${totalPriceImpact.priceImpact > 0
@@ -721,12 +710,12 @@ export default function SwapInterface({ initialTokens = [], urlParams: _unused }
                 <div className="flex items-center space-x-1 text-xs">
                   <span className="text-muted-foreground">View on explorer:</span>
                   <a
-                    href={getExplorerUrl(swapSuccessInfo.txId)}
+                    href={getExplorerUrl(swapSuccessInfo.txid!)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:text-primary/90 hover:underline flex items-center font-medium"
                   >
-                    {swapSuccessInfo.txId.substring(0, 8)}...{swapSuccessInfo.txId.substring(swapSuccessInfo.txId.length - 6)}
+                    {swapSuccessInfo.txid?.substring(0, 8)}...{swapSuccessInfo.txid?.substring(swapSuccessInfo.txid.length - 6)}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>

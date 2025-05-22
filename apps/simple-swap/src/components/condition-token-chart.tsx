@@ -11,11 +11,10 @@ import {
     type IPriceLine,
     LineStyle,
 } from "lightweight-charts";
-import type { Token } from "../lib/swap-client";
-
+import { TokenCacheData } from "@repo/tokens";
 interface Props {
-    token: Token;
-    baseToken?: Token | null; // null means SUSDT / USD
+    token: TokenCacheData;
+    baseToken?: TokenCacheData | null; // null means SUSDT / USD
     targetPrice: string; // decimal string (ratio)
     onTargetPriceChange: (price: string) => void;
     colour?: string;
@@ -148,7 +147,7 @@ export default function ConditionTokenChart({ token, baseToken, targetPrice, onT
         }
     }, [token]);
 
-    async function loadSeriesData(tok: Token, baseTok?: Token | null) {
+    async function loadSeriesData(tok: TokenCacheData, baseTok?: TokenCacheData | null) {
         if (!seriesRef.current) return;
         try {
             const r = await fetch(`/api/price-series?contractId=${encodeURIComponent(tok.contractId)}`);

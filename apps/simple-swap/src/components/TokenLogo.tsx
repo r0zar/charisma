@@ -1,8 +1,8 @@
+import { TokenCacheData } from "@repo/tokens";
 import React from "react";
-import type { Token } from "../lib/swap-client";
 
 interface TokenLogoProps {
-    token: Token;
+    token: TokenCacheData;
     size?: "sm" | "md" | "lg";
     className?: string;
 }
@@ -14,7 +14,7 @@ export default function TokenLogo({ token, size = "md", className = "" }: TokenL
         lg: "w-10 h-10",
     };
 
-    const getTokenLogo = (token: Token) => {
+    const getTokenLogo = (token: TokenCacheData) => {
         return token.image || `https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/${token.contractId}/logo.png`;
     };
 

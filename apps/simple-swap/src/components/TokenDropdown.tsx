@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { type Token } from "../lib/swap-client";
+import { type Token } from "../lib/_swap-client";
 import TokenLogo from "./TokenLogo";
 
 interface TokenDropdownProps {
@@ -128,8 +128,8 @@ export default function TokenDropdown({
                                         close();
                                     }}
                                     className={`flex cursor-pointer items-center space-x-3 px-3 py-2 transition-colors hover:bg-dark-300/30 ${selected?.contractId === token.contractId
-                                            ? "bg-dark-300/50"
-                                            : ""
+                                        ? "bg-dark-300/50"
+                                        : ""
                                         }`}
                                 >
                                     <TokenLogo token={token} size="sm" />
