@@ -79,14 +79,15 @@ function transformOffersToItems(offersData: any[], tokenMap: Record<string, SIP1
     return offersData
         .filter(result => result.status === 'open')
         .map(result => {
+            const tokenInfo = tokenMap[result.offerAssets[0]?.token];
             return {
                 ...result.offer,
                 id: result.intentUuid,
                 type: 'offer',
-                image: tokenMap[result.offerAssets[0]?.token]?.image,
-                title: tokenMap[result.offerAssets[0]?.token]?.symbol,
+                image: tokenInfo?.image || 'https://placehold.co/400?text=Offer',
+                title: tokenInfo?.symbol || 'OTC Offer',
                 price: 1,
-                description: `Make a bid for ${tokenMap[result.offerAssets[0]?.token]?.symbol}`,
+                description: `Make a bid for ${tokenInfo?.symbol || 'this token'}`,
             };
         });
 }
