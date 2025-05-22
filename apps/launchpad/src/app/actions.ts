@@ -79,6 +79,19 @@ export interface Vault {
 }
 
 /**
+ * Interface for the data structure to be saved in Vercel KV for Sublinks.
+ */
+export interface SublinkDexEntry {
+    name: string;
+    image: string; // data URI
+    contractId: string; // The sublink contract identifier itself
+    type: "SUBLINK";
+    tokenAContract: string; // Source token (e.g., mainnet SIP-10)
+    tokenBContract: string; // Subnet token representation
+    // Add other SUBLINK specific fields if necessary from dex-cache perspective
+}
+
+/**
  * Server action to save token metadata to the dex-cache (Vercel KV).
  * This function is intended to be called after metadata is successfully generated or updated for a liquidity pool.
  */
@@ -109,6 +122,44 @@ export async function saveMetadataToDexCache(
         return {
             success: false,
             error: error.message || "An unexpected error occurred while saving metadata to dex-cache.",
+        };
+    }
+}
+
+/**
+ * Server action to save Sublink data to the dex-cache (Vercel KV).
+ */
+export async function saveSublinkDataToDexCache(
+    sublinkContractId: string,
+    sublinkData: SublinkDexEntry
+): Promise<{ success: boolean; message?: string; error?: string }> {
+    if (!sublinkContractId) {
+        console.error("[saveSublinkDataToDexCache] Sublink Contract ID is required.");
+        return { success: false, error: "Sublink Contract ID is required." };
+    }
+    if (!sublinkData || Object.keys(sublinkData).length === 0) {
+        console.error("[saveSublinkDataToDexCache] Sublink data is required.");
+        return { success: false, error: "Sublink data is required." };
+    }
+    if (sublinkData.type !== "SUBLINK") {
+        console.error("[saveSublinkDataToDexCache] Invalid type for Sublink data.");
+        return { success: false, error: "Invalid type, expected SUBLINK." };
+    }
+
+    const kvKey = `dex-vault:${sublinkContractId}`;
+
+    try {
+        console.log(`[saveSublinkDataToDexCache] Saving Sublink data to Vercel KV for key: ${kvKey}`, sublinkData);
+        await kv.set(kvKey, sublinkData);
+
+        console.log(`[saveSublinkDataToDexCache] Successfully saved Sublink data for ${sublinkContractId} to Vercel KV.`);
+        return { success: true, message: "Sublink data saved to dex-cache successfully." };
+
+    } catch (error: any) {
+        console.error(`[saveSublinkDataToDexCache] Error saving Sublink data to Vercel KV for ${sublinkContractId}:`, error);
+        return {
+            success: false,
+            error: error.message || "An unexpected error occurred while saving Sublink data to dex-cache.",
         };
     }
 } 

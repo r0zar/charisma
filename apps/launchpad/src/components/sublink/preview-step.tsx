@@ -2,9 +2,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Loader2, Globe, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, Globe, ExternalLink, Sparkles, Info } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { generatePixelArtDataUri } from "../../lib/utils/image-utils";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // shorten the address but show the full contract name
 function shortenAddress(address: string) {
@@ -71,6 +79,27 @@ const PreviewStep = ({
         if (onMetadataUriChange) onMetadataUriChange(e.target.value);
     };
 
+    const handleGenerateDefaultMetadata = () => {
+        if (!onMetadataUriChange || !tokenSymbol) {
+            // console.warn("Cannot generate default metadata: onMetadataUriChange or tokenSymbol is missing.");
+            return;
+        }
+
+        const defaultName = `${tokenSymbol}-sublink-meta`; // Simple name
+        const defaultImage = generatePixelArtDataUri(); // Generates 4x4 by default
+
+        const metadataJson = JSON.stringify({
+            name: defaultName,
+            image: defaultImage,
+            description: `Sublink metadata for ${tokenSymbol}`
+        });
+
+        const base64EncodedJson = Buffer.from(metadataJson).toString('base64');
+        const dataUri = `data:application/json;base64,${base64EncodedJson}`;
+
+        onMetadataUriChange(dataUri);
+    };
+
     return (
         <div className="space-y-6">
             <div className="text-center mb-8">
@@ -88,11 +117,51 @@ const PreviewStep = ({
                 </CardHeader>
                 <CardContent>
                     <div className="mb-4">
-                        <Input
-                            placeholder="Enter metadata URI (must return JSON with 'name' and 'image')"
-                            value={metadataUri}
-                            onChange={handleUriChange}
-                        />
+                        {onMetadataUriChange && (
+                            <div className="space-y-2 pt-4 border-t mt-4">
+                                <Label htmlFor="metadataUri" className="flex items-center">
+                                    Metadata URI (Optional)
+                                    <TooltipProvider>
+                                        <Tooltip delayDuration={100}>
+                                            <TooltipTrigger className="ml-1.5 cursor-help">
+                                                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-xs p-3">
+                                                <p className="text-xs">
+                                                    Provide a URL to a JSON file containing your sublink's metadata (name, image, description).
+                                                    Alternatively, generate a default on-chain metadata URI.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="metadataUri"
+                                        type="text"
+                                        placeholder="https://.../metadata.json or data:..."
+                                        value={state.metadataUri}
+                                        onChange={(e) => onMetadataUriChange(e.target.value)}
+                                        className="flex-grow"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleGenerateDefaultMetadata}
+                                        disabled={!tokenSymbol} // Disable if no tokenSymbol to derive name
+                                        className="shrink-0"
+                                    >
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        Generate Default
+                                    </Button>
+                                </div>
+                                {state.metadataUri.startsWith('data:application/json;base64,') && (
+                                    <p className="text-xs text-muted-foreground pt-1">
+                                        Using generated on-chain metadata. Length: {state.metadataUri.length} characters.
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                     {metaLoading && <div className="text-sm text-muted-foreground">Loading metadata...</div>}
                     {metaError && <div className="text-sm text-destructive">{metaError}</div>}
@@ -151,6 +220,9 @@ const PreviewStep = ({
                                             </div>
                                         </Link>
                                     </div>
+                                </div>
+                                <div>
+                                    <span className="font-semibold">Contract name:</span> {contractName}
                                 </div>
                             </div>
                         </div>

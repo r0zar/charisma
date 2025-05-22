@@ -25,9 +25,7 @@ import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initializ
 import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
 import { getTokenMetadataCached, listTokens, TokenCacheData, listPrices, KraxelPriceData } from "@repo/tokens";
 import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly, saveMetadataToDexCache, Vault } from '@/app/actions';
-
-// Dynamically import colorthief
-// import ColorThief from 'colorthief'; // We will import it dynamically
+import { generatePixelArtDataUri } from "@/lib/utils/image-utils";
 
 // Metadata constants
 const METADATA_BASE_URL = process.env.NEXT_PUBLIC_METADATA_BASE_URL || 'https://metadata.charisma.rocks'
@@ -305,12 +303,18 @@ function LiquidityPoolWizard() {
         return `${baseName}-lp-v1`;
     };
 
+    const sanitizeTokenSymbol = (symbol: string): string => {
+        // Remove any non-alphanumeric characters, but keep hyphens
+        return symbol.replace(/[^a-zA-Z0-9-]/g, '');
+    };
+
     // Get contract name from pool name
     const contractName = generateContractName(poolName) || 'pool';
-
     // Automatically generate LP token symbol if not set
     const effectiveLpTokenSymbol = lpTokenSymbol ||
         (token1Symbol && token2Symbol ? `${token1Symbol}-${token2Symbol}` : 'LP');
+
+    const lpTokenIdentifier = sanitizeTokenSymbol(effectiveLpTokenSymbol);
 
     // Full contract identifier
     const contractIdentifier = stxAddress && poolName ? `${stxAddress}.${generateContractName(poolName)}` : "";
@@ -446,6 +450,7 @@ function LiquidityPoolWizard() {
                 tokenADecimals,
                 tokenBDecimals,
                 contractIdentifier,
+                lpTokenIdentifier,
             });
 
             // Create post-conditions array
@@ -525,7 +530,7 @@ function LiquidityPoolWizard() {
                     symbol: metadata.symbol || effectiveLpTokenSymbol, // Fallback to effectiveLpTokenSymbol
                     decimals: metadata.decimals || 6, // Default LP decimals
                     image: metadata.image || "", // LP token image from generated metadata
-                    fee: parseFloat(swapFee), // swapFee is a percentage string, convert to decimal e.g. "0.3" -> 0.003
+                    fee: parseFloat(swapFee) * 10000,
                     identifier: metadata.symbol || effectiveLpTokenSymbol, // LP token identifier
                     description: metadata.description || `Liquidity pool for ${token1Symbol}-${token2Symbol}`,
                     tokenA: {

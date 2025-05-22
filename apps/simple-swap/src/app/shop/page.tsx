@@ -30,9 +30,9 @@ export default async function ShopPage() {
     const allItems = [hootTokenItem, ...shopItems];
 
     return (
-        // <Suspense fallback={<div>Loading shop...</div>}>
-        <ShopClientPage initialItems={allItems} />
-        // </Suspense>
+        <Suspense fallback={<div>Loading shop...</div>}>
+            <ShopClientPage initialItems={allItems} />
+        </Suspense>
     );
 }
 
@@ -43,10 +43,13 @@ async function getAllOfferKeys(): Promise<string[]> {
 
         // Extract just the UUIDs from the keys
         const uuids = keys.map(key => {
-            // Extract the UUID part from the key format "otc:offer:UUID"
-            const parts = key.split(':');
-            return parts.length >= 3 ? parts[2] : key;
-        });
+            // Ensure key is a string and extract the UUID part from the key format "otc:offer:UUID"
+            if (typeof key === 'string') {
+                const parts = key.split(':');
+                return parts.length >= 3 ? parts[2] : key;
+            }
+            return null; // Or handle as an error/skip
+        }).filter(uuid => uuid !== null) as string[]; // Filter out nulls and assert type
         return uuids;
     } catch (error) {
         console.error('Error fetching offer keys:', error);

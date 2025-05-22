@@ -16,9 +16,10 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { truncateAddress } from "@/lib/utils/token-utils";
-import { fetchSingleTokenMetadataDirectly } from '@/app/actions';
+import { fetchSingleTokenMetadataDirectly, saveSublinkDataToDexCache, SublinkDexEntry } from '@/app/actions';
 import { TokenCacheData } from "@repo/tokens";
 import { generateSublink } from "@/lib/contract-generators/sublink";
+import { generatePixelArtDataUri } from "@/lib/utils/image-utils";
 import TokenSelectionStep from "./token-selection-step";
 import SubnetTokenSelectionStep from "./subnet-token-selection-step";
 import PreviewStep from "./preview-step";
@@ -151,7 +152,7 @@ export default function SublinkWizard() {
         );
         if (subnet) {
             setSelectedSubnetToken(subnet);
-            setConfig(prev => ({ ...prev, tokenContract: token.contractId }));
+            setConfig(prev => ({ ...prev, tokenContract: token.base! }));
             await fetchTokenMetadataDirectly(subnet.contractId);
             setCurrentStep(WizardStep.PREVIEW);
         } else {
@@ -215,8 +216,34 @@ export default function SublinkWizard() {
             sonnerToast.success("Deployment Initiated", {
                 description: `Tx ID: ${result.txid.substring(0, 10)}...`
             });
-            // Redirect to contracts page after successful deployment
-            router.push(`/contracts?txid=${result.txid}`);
+
+            const deployedContractIdentifier = stxAddress ? `${stxAddress}.${contractName}` : contractName;
+
+            // --- Save Sublink data to Vercel KV / dex-cache ---
+            if (config.tokenContract && config.subnetContract && deployedContractIdentifier) {
+                const sublinkDexData: SublinkDexEntry = {
+                    name: contractName,
+                    image: generatePixelArtDataUri(), // Using default pixel art
+                    contractId: deployedContractIdentifier,
+                    type: "SUBLINK",
+                    tokenAContract: config.tokenContract, // Source Token
+                    tokenBContract: config.subnetContract,  // Subnet Token (acts as TokenB in vault context)
+                };
+
+                const kvSaveResult = await saveSublinkDataToDexCache(deployedContractIdentifier, sublinkDexData);
+                if (kvSaveResult.success) {
+                    sonnerToast.info("Dex Cache Update (Sublink)", { description: kvSaveResult.message });
+                } else {
+                    sonnerToast.warning("Dex Cache Update Failed (Sublink)", { description: kvSaveResult.error });
+                }
+            } else {
+                sonnerToast.warning("Dex Cache Update Skipped (Sublink)", { description: "Missing data for sublink dex cache entry." });
+            }
+            // --- End Save Sublink data to Vercel KV ---
+
+            // Redirect to the new success page
+            router.push(`/templates/sublink/deploy-success?txid=${result.txid}&contractName=${encodeURIComponent(contractName)}&contractIdentifier=${encodeURIComponent(deployedContractIdentifier)}&sourceTokenContractId=${encodeURIComponent(config.tokenContract)}&subnetTokenContractId=${encodeURIComponent(config.subnetContract)}`);
+
         } catch (error) {
             console.error("Deployment error:", error);
             sonnerToast.error("Deployment Failed", {

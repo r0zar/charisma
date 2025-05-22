@@ -28,6 +28,7 @@ export interface LiquidityPoolOptions {
     tokenADecimals: number;
     tokenBDecimals: number;
     contractIdentifier: string; // Full contract principal for the LP token metadata
+    lpTokenIdentifier: string; // Full contract principal for the LP token
 }
 
 /**
@@ -49,6 +50,7 @@ export function generateLiquidityPoolContract({
     tokenADecimals,
     tokenBDecimals,
     contractIdentifier, // Full contract principal for the LP token
+    lpTokenIdentifier,
 }: LiquidityPoolOptions): string {
     // Helper function to generate transfer code based on token type
     const generateTransferIn = (isStx: boolean, tokenContract: string, amount: string, sender: string, recipient: string): string => {
@@ -67,22 +69,6 @@ export function generateLiquidityPoolContract({
         return isStx
             ? `(stx-get-balance ${owner})`
             : `(unwrap-panic (contract-call? '${tokenContract} get-balance ${owner}))`;
-    };
-
-    // Helper function to scale values for different token decimals
-    const scaleInitialAmounts = (amountA: number, amountB: number): { scaledA: string, scaledB: string } => {
-        // Convert to string with appropriate decimal scaling
-        const scaledA = (amountA * Math.pow(10, tokenADecimals)).toLocaleString('fullwide', {
-            useGrouping: false,
-            maximumFractionDigits: 0
-        });
-
-        const scaledB = (amountB * Math.pow(10, tokenBDecimals)).toLocaleString('fullwide', {
-            useGrouping: false,
-            maximumFractionDigits: 0
-        });
-
-        return { scaledA, scaledB };
     };
 
     // Create the token URI
@@ -118,7 +104,7 @@ export function generateLiquidityPoolContract({
 (define-constant OP_LOOKUP_RESERVES 0x04)  ;; Read pool reserves
 
 ;; Define LP token
-(define-fungible-token ${lpTokenSymbol})
+(define-fungible-token ${lpTokenIdentifier})
 (define-data-var token-uri (optional (string-utf8 256)) none)
 
 ;; --- SIP10 Functions ---
@@ -126,7 +112,7 @@ export function generateLiquidityPoolContract({
 (define-public (transfer (amount uint) (sender principal) (recipient principal) (memo (optional (buff 34))))
     (begin
         (asserts! (is-eq tx-sender sender) ERR_UNAUTHORIZED)
-        (try! (ft-transfer? ${lpTokenSymbol} amount sender recipient))
+        (try! (ft-transfer? ${lpTokenIdentifier} amount sender recipient))
         (match memo to-print (print to-print) 0x0000)
         (ok true)))
 
@@ -140,10 +126,10 @@ export function generateLiquidityPoolContract({
     (ok u6))
 
 (define-read-only (get-balance (who principal))
-    (ok (ft-get-balance ${lpTokenSymbol} who)))
+    (ok (ft-get-balance ${lpTokenIdentifier} who)))
 
 (define-read-only (get-total-supply)
-    (ok (ft-get-supply ${lpTokenSymbol})))
+    (ok (ft-get-supply ${lpTokenIdentifier})))
 
 (define-read-only (get-token-uri)
     (ok (var-get token-uri)))
@@ -205,7 +191,7 @@ export function generateLiquidityPoolContract({
         (delta (get-liquidity-quote amount)))
         ${generateTransferIn(isTokenAStx, tokenA, '(get dx delta)', 'sender', 'CONTRACT')}
         ${generateTransferIn(isTokenBStx, tokenB, '(get dy delta)', 'sender', 'CONTRACT')}
-        (try! (ft-mint? ${lpTokenSymbol} (get dk delta) sender))
+        (try! (ft-mint? ${lpTokenIdentifier} (get dk delta) sender))
         (print {op: "add-liquidity", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
@@ -213,7 +199,7 @@ export function generateLiquidityPoolContract({
     (let (
         (sender tx-sender)
         (delta (get-liquidity-quote amount)))
-        (try! (ft-burn? ${lpTokenSymbol} (get dk delta) sender))
+        (try! (ft-burn? ${lpTokenIdentifier} (get dk delta) sender))
         ${generateTransferOut(isTokenAStx, tokenA, '(get dx delta)', 'CONTRACT', 'sender')}
         ${generateTransferOut(isTokenBStx, tokenB, '(get dy delta)', 'CONTRACT', 'sender')}
         (print {op: "remove-liquidity", sender: sender, amount: amount, delta: delta})
@@ -251,7 +237,7 @@ export function generateLiquidityPoolContract({
 
 (define-read-only (get-liquidity-quote (amount uint))
     (let (
-        (k (ft-get-supply ${lpTokenSymbol}))
+        (k (ft-get-supply ${lpTokenIdentifier}))
         (reserves (get-reserves)))
         {
           dx: (if (> k u0) (/ (* amount (get a reserves)) k) amount),
@@ -262,7 +248,7 @@ export function generateLiquidityPoolContract({
 (define-read-only (get-reserves-quote)
     (let (
         (reserves (get-reserves))
-        (supply (ft-get-supply ${lpTokenSymbol})))
+        (supply (ft-get-supply ${lpTokenIdentifier})))
         {
           dx: (get a reserves),
           dy: (get b reserves),
@@ -314,7 +300,6 @@ export function generateLiquidityPoolContract({
 
         if (additionalTokenA > 0) {
             initBlock += `
-    
     ;; Transfer additional token A to achieve desired ratio
     ${generateTransferIn(
                 isTokenAStx,
@@ -327,7 +312,6 @@ export function generateLiquidityPoolContract({
 
         if (additionalTokenB > 0) {
             initBlock += `
-    
     ;; Transfer additional token B to achieve desired ratio
     ${generateTransferIn(
                 isTokenBStx,
