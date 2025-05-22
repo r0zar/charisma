@@ -48,6 +48,20 @@ export default function ConditionTokenChart({ token, baseToken, targetPrice, onT
                 scaleMargins: { top: 0.2, bottom: 0.2 },
             },
             rightPriceScale: { visible: false },
+            localization: {
+                priceFormatter: (price: number) => {
+                    // Determine the number of decimal places needed
+                    // For very small numbers, use more precision.
+                    // This is a basic heuristic; can be made more sophisticated.
+                    if (price === 0) return '0.00';
+                    const absPrice = Math.abs(price);
+                    let decimals = 2;
+                    if (absPrice < 0.0001) decimals = 8;
+                    else if (absPrice < 0.01) decimals = 6;
+                    else if (absPrice < 1) decimals = 4;
+                    return price.toFixed(decimals);
+                },
+            },
         });
 
         seriesRef.current = chartRef.current.addSeries(LineSeries, {
