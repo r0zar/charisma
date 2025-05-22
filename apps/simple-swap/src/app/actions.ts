@@ -245,7 +245,6 @@ export async function getTokenBalance(tokenContractId: string, holderPrincipal: 
             console.warn(`Invalid tokenContractId for getTokenBalance: ${tokenContractId}`);
             return 0; // Original fallback
         }
-        console.log('[getTokenBalance] calling get-balance for', { contractAddress, contractName, holderPrincipal });
         const result = await callReadOnlyFunction(
             contractAddress,
             contractName,

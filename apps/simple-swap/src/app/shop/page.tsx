@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { SIP10 } from '@repo/tokens';
+import { TokenCacheData } from '@repo/tokens';
 import ShopClientPage from '@/components/shop/ShopPage';
 import { ShopItem as ShopItemInterface } from '@/types/shop';
 import { listTokens } from "@repo/tokens";
@@ -9,7 +9,7 @@ import { getOffer } from '@/lib/otc/kv';
 // Server component to fetch data
 export default async function ShopPage() {
     const result = await listTokens();
-    const tokenMap: Record<string, SIP10> = {}
+    const tokenMap: Record<string, TokenCacheData> = {}
     result.forEach((token) => {
         tokenMap[token.contractId] = token;
     });
@@ -75,7 +75,7 @@ async function fetchOffers(keys: string[]): Promise<any[]> {
 }
 
 // Helper function to transform offers data into shop items
-function transformOffersToItems(offersData: any[], tokenMap: Record<string, SIP10>): ShopItemInterface[] {
+function transformOffersToItems(offersData: any[], tokenMap: Record<string, TokenCacheData>): ShopItemInterface[] {
     return offersData
         .filter(result => result.status === 'open')
         .map(result => {

@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { listTokens } from '../actions';
 import SwapInterface from '@/components/swap-interface';
 import { Header } from '@/components/header';
+import { listPrices } from '@repo/tokens';
 
 type Props = {
     searchParams: { [key: string]: string | string[] | undefined }

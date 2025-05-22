@@ -1,6 +1,8 @@
+// import { listTokens, SIP10 } from './token-cache-client'; // Remove this import
+
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
 
-// Charisma Credits contract
+// Restore manual subnet contract mappings
 export const CHARISMA_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
 export const WELSH_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1"
 export const SBTC_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1"
@@ -35,20 +37,24 @@ export async function listPrices(): Promise<KraxelPriceData> {
     const TIMEOUT_MS = 5000;
 
     const fetchPrices = async (): Promise<KraxelPriceData> => {
+        // Remove token listing and subnet mapping logic
         const response = await fetch(KRAXEL_API_URL);
-
         if (!response.ok) {
             throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
         }
-
         const data = await response.json() as KraxelPriceData;
 
+        // Handle STX price key ('.stx' vs 'stx')
         if (data.hasOwnProperty('stx')) {
             data['.stx'] = data['stx'];
         } else {
-            console.warn("Price data from Kraxel API is missing 'stx' key.");
+            // If 'stx' is not present, check if '.stx' is, if not, then warn.
+            if (!data.hasOwnProperty('.stx')) {
+                console.warn("Price data from Kraxel API is missing 'stx' and '.stx' keys.");
+            }
         }
 
+        // Restore manual subnet price mappings
         if (data.hasOwnProperty(CHARISMA_TOKEN_CONTRACT)) {
             data[CHARISMA_SUBNET_CONTRACT] = data[CHARISMA_TOKEN_CONTRACT];
         } else {
@@ -67,21 +73,18 @@ export async function listPrices(): Promise<KraxelPriceData> {
             console.warn(`Price data from Kraxel API is missing '${SBTC_TOKEN_CONTRACT}' key.`);
         }
 
-        // Ensure SUSDC_TOKEN_CONTRACT key exists
         if (data.hasOwnProperty(SUSDC_TOKEN_CONTRACT)) {
             data[SUSDC_SUBNET_CONTRACT] = data[SUSDC_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${SUSDC_TOKEN_CONTRACT}' key.`);
         }
 
-        // Ensure PEPE_TOKEN_CONTRACT key exists
         if (data.hasOwnProperty(PEPE_TOKEN_CONTRACT)) {
             data[PEPE_SUBNET_CONTRACT] = data[PEPE_TOKEN_CONTRACT];
         } else {
             console.warn(`Price data from Kraxel API is missing '${PEPE_TOKEN_CONTRACT}' key.`);
         }
 
-        // Ensure MALI_TOKEN_CONTRACT key exists
         if (data.hasOwnProperty(MALI_TOKEN_CONTRACT)) {
             data[MALI_SUBNET_CONTRACT] = data[MALI_TOKEN_CONTRACT];
         } else {
@@ -98,7 +101,6 @@ export async function listPrices(): Promise<KraxelPriceData> {
     });
 
     try {
-        // Race the fetch operation against the timeout
         const result = await Promise.race([fetchPrices(), timeoutPromise]);
         return result;
     } catch (error) {
@@ -107,6 +109,6 @@ export async function listPrices(): Promise<KraxelPriceData> {
         } else {
             console.error(`Failed to parse price data from Kraxel API or other fetch error: ${error instanceof Error ? error.message : String(error)}`);
         }
-        return {}; // Return empty object on any error (including timeout)
+        return {}; // Return empty object on any error
     }
 } 
