@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // import removed Blaze
-import { callReadOnlyFunction } from '@repo/polyglot'
+import { callReadOnly, callReadOnlyFunction } from '@repo/polyglot'
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import {
     bufferCV,
@@ -374,7 +374,7 @@ export class Dexterity {
             const opcodeCV = this.opcodeCV(opcode)
 
             // Make the contract call
-            const result = await callReadOnlyFunction(vault.contractAddress, vault.contractName, 'quote', [uintCV(amount), opcodeCV]);
+            const result = await callReadOnly(vault.contractId, 'quote', [uintCV(amount), opcodeCV]);
 
             // Parse the result
             return {
