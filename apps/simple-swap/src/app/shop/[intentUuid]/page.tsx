@@ -111,6 +111,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
                         width: 1200,
                         height: 630,
                         alt: `${offerTitle} - Charisma OTC Offer`,
+                    },
+                    {
+                        url: '/charisma.png',
+                        width: 800,
+                        height: 600,
+                        alt: 'Charisma Logo',
+                        type: 'image/png',
                     }
                 ],
             },
@@ -130,6 +137,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
                 title: "Charisma OTC Offer",
                 description: "View and bid on token offers in the Charisma marketplace",
                 type: 'website',
+                images: [
+                    {
+                        url: '/charisma.png',
+                        width: 800,
+                        height: 600,
+                        alt: 'Charisma Logo',
+                        type: 'image/png',
+                    }
+                ],
             },
             twitter: {
                 card: 'summary_large_image',

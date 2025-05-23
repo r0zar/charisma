@@ -12,6 +12,15 @@ export const metadata: Metadata = {
         type: 'website',
         url: '/shop',
         siteName: 'Charisma',
+        images: [
+            {
+                url: '/charisma.png',
+                width: 800,
+                height: 600,
+                alt: 'Charisma Logo',
+                type: 'image/png',
+            }
+        ],
     },
     twitter: {
         card: 'summary_large_image',

@@ -170,6 +170,7 @@ const PurchaseDialog: React.FC<PurchaseDialogProps> = ({
                         Cancel
                     </Button>
                     <Button
+                        disabled={true}
                         onClick={() => onPurchase(selectedItem)}
                         className="button-primary"
                     >
