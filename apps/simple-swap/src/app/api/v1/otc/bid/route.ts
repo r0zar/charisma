@@ -6,7 +6,7 @@ import {
     Offer,
 } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
-import { recoverSigner } from "blaze-sdk";
+import { recoverSigner, verifySignatureAndGetSigner } from "blaze-sdk";
 
 /* POST ────────────────────────────────────────────────*/
 export async function POST(req: NextRequest) {
@@ -50,29 +50,48 @@ export async function POST(req: NextRequest) {
 /* DELETE ──────────────────────────────────────────────*/
 export async function DELETE(req: NextRequest) {
     try {
-        const { originalOfferIntentUuid, bidId, requestingAddress } =
-            bidCancelSchema.parse(await req.json());
+        const { originalOfferIntentUuid, bidId } = bidCancelSchema.parse(await req.json());
+
+        // Verify the signature and get the signer
+        const verified = await verifySignatureAndGetSigner(req, {
+            message: bidId, // Use bidId as the message to sign
+        });
+
+        if (verified.status !== 200) {
+            return NextResponse.json({ success: false, error: "Invalid signature." }, { status: 401 });
+        }
 
         const offer = await getOffer(originalOfferIntentUuid);
-        if (!offer) throw new Error("offer not found");
+        if (!offer) {
+            return NextResponse.json({ success: false, error: "Offer not found." }, { status: 404 });
+        }
 
         const idx = offer.bids.findIndex((b) => b.bidId === bidId);
-        if (idx === -1) throw new Error("bid not found");
+        if (idx === -1) {
+            return NextResponse.json({ success: false, error: "Bid not found." }, { status: 404 });
+        }
 
         const bid = offer.bids[idx];
-        if (bid.bidderAddress !== requestingAddress)
-            throw new Error("unauthorized");
-        if (bid.status !== "pending")
-            throw new Error(`cannot cancel bid with status ${bid.status}`);
+        if (bid.bidderAddress !== verified.signer) {
+            return NextResponse.json({ success: false, error: "Unauthorized: You can only cancel your own bids." }, { status: 403 });
+        }
+
+        if (bid.status !== "pending") {
+            return NextResponse.json({ success: false, error: `Cannot cancel bid with status "${bid.status}". Only pending bids can be cancelled.` }, { status: 400 });
+        }
 
         offer.bids[idx].status = "cancelled";
         await saveOffer(offer);
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({
+            success: true,
+            message: "Bid cancelled successfully.",
+            bidId: bidId
+        });
     } catch (err: any) {
-        const msg = err.message ?? "bad request";
-        const code =
-            msg === "offer not found" || msg === "bid not found" ? 404 : 400;
+        console.error("Error cancelling bid:", err);
+        const msg = err.message ?? "Bad request";
+        const code = msg.includes("not found") ? 404 : 400;
         return NextResponse.json({ success: false, error: msg }, { status: code });
     }
 }

@@ -57,6 +57,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
     const { address } = useWallet();
     const [bidBalances, setBidBalances] = useState<Record<string, BalanceInfo>>({});
     const [localBidStatuses, setLocalBidStatuses] = useState<Record<string, Bid['status']>>({});
+    const [cancellingBids, setCancellingBids] = useState<Set<string>>(new Set());
 
     // Fetch bidder balance for a specific bid
     const fetchBidderBalance = async (bid: Bid) => {
@@ -142,6 +143,53 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
             toast.dismiss();
             toast.error("An error occurred while accepting the bid");
             console.error("Error accepting bid:", error);
+        }
+    };
+
+    const handleCancelBid = async (bidId: string) => {
+        if (!address) {
+            toast.error("Please connect your wallet to cancel a bid.");
+            return;
+        }
+
+        setCancellingBids(prev => new Set(prev).add(bidId));
+        toast.loading("Cancelling bid...");
+
+        try {
+            const response = await signedFetch(`/api/v1/otc/bid`, {
+                method: "DELETE",
+                body: JSON.stringify({
+                    originalOfferIntentUuid: offer.intentUuid,
+                    bidId: bidId,
+                }),
+                message: bidId, // Use bidId as the message to sign
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                toast.dismiss();
+                toast.success("Bid cancelled successfully!");
+
+                // Update local state immediately for better UX
+                setLocalBidStatuses(prev => ({ ...prev, [bidId]: 'cancelled' }));
+
+                // Call parent callback if provided
+                onBidUpdate?.(bidId, 'cancelled');
+            } else {
+                toast.dismiss();
+                toast.error(data.error || "Failed to cancel bid");
+            }
+        } catch (error) {
+            toast.dismiss();
+            toast.error("An error occurred while cancelling the bid");
+            console.error("Error cancelling bid:", error);
+        } finally {
+            setCancellingBids(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(bidId);
+                return newSet;
+            });
         }
     };
 
@@ -308,10 +356,14 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() => toast.info("Cancelling bids is not yet implemented")}
+                                                onClick={() => handleCancelBid(bid.bidId)}
                                                 className="ml-2"
+                                                disabled={cancellingBids.has(bid.bidId)}
                                             >
-                                                Cancel
+                                                {cancellingBids.has(bid.bidId) && (
+                                                    <div className="animate-spin -ml-1 mr-2 h-3 w-3 border border-current border-t-transparent rounded-full"></div>
+                                                )}
+                                                {cancellingBids.has(bid.bidId) ? 'Cancelling...' : 'Cancel'}
                                             </Button>
                                         )}
                                     </div>
@@ -321,6 +373,20 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                     <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
                                         <p className="text-green-600 dark:text-green-400 font-medium">Bid accepted</p>
                                         <p>Trade has been executed successfully.</p>
+                                    </div>
+                                )}
+
+                                {currentStatus === 'cancelled' && (
+                                    <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
+                                        <p className="text-amber-600 dark:text-amber-400 font-medium">Bid cancelled</p>
+                                        <p>This bid has been cancelled by the bidder.</p>
+                                    </div>
+                                )}
+
+                                {currentStatus === 'rejected' && (
+                                    <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
+                                        <p className="text-red-600 dark:text-red-400 font-medium">Bid rejected</p>
+                                        <p>Another bid was accepted for this offer.</p>
                                     </div>
                                 )}
                             </div>

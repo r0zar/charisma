@@ -40,7 +40,6 @@ export const bidCreateSchema = z.object({
 export const bidCancelSchema = z.object({
     originalOfferIntentUuid: z.string().uuid(),
     bidId: z.string().uuid(),
-    requestingAddress: z.string().min(1),
 });
 
 export type BidPayload = z.infer<typeof bidCreateSchema>;
