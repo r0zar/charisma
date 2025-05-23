@@ -19,18 +19,16 @@ import { truncateAddress } from "@/lib/utils/token-utils";
 import { fetchSingleTokenMetadataDirectly, saveSublinkDataToDexCache, SublinkDexEntry } from '@/app/actions';
 import { TokenCacheData } from "@repo/tokens";
 import { generateSublink } from "@/lib/contract-generators/sublink";
-import { generatePixelArtDataUri } from "@/lib/utils/image-utils";
+import { generate1x1ColorPixel } from "@/lib/utils/image-utils";
 import TokenSelectionStep from "./token-selection-step";
-import SubnetTokenSelectionStep from "./subnet-token-selection-step";
 import PreviewStep from "./preview-step";
 import ContractStepper from "./contract-stepper";
 
 // Wizard steps
 enum WizardStep {
-    SELECT_SOURCE_TOKEN = 0,
-    SELECT_SUBNET_TOKEN = 1,
-    PREVIEW = 2,
-    DEPLOY = 3,
+    SELECT_SUBNET_TOKEN = 0,
+    PREVIEW = 1,
+    DEPLOY = 2,
 }
 
 // Main Sublink Wizard Component
@@ -39,7 +37,7 @@ export default function SublinkWizard() {
     const searchParams = useSearchParams();
     const { authenticated, stxAddress, deployContract, tokens, loading: tokensLoading } = useApp();
 
-    const [currentStep, setCurrentStep] = useState<WizardStep>(WizardStep.SELECT_SOURCE_TOKEN);
+    const [currentStep, setCurrentStep] = useState<WizardStep>(WizardStep.SELECT_SUBNET_TOKEN);
     const [isDeploying, setIsDeploying] = useState(false);
     const [txid, setTxid] = useState<string | null>(null);
     const [contractCode, setContractCode] = useState("");
@@ -48,9 +46,8 @@ export default function SublinkWizard() {
     const [selectedToken, setSelectedToken] = useState<TokenCacheData | null>(null);
     const [tokenDetails, setTokenDetails] = useState<TokenCacheData | null>(null);
 
-    // Subnet token info
+    // Subnet token info  
     const [selectedSubnetToken, setSelectedSubnetToken] = useState<TokenCacheData | null>(null);
-    const [subnetTokenDetails, setSubnetTokenDetails] = useState<TokenCacheData | null>(null);
 
     // Configuration state
     const [config, setConfig] = useState({
@@ -100,7 +97,7 @@ export default function SublinkWizard() {
 
                 // Move to next step if token was loaded from URL parameter
                 if (searchParams.get('token')) {
-                    setCurrentStep(WizardStep.SELECT_SUBNET_TOKEN);
+                    setCurrentStep(WizardStep.PREVIEW);
                 }
             } else {
                 throw new Error("Token metadata not found");
@@ -116,17 +113,25 @@ export default function SublinkWizard() {
     // Generate the contract name based on token symbol
     const deriveName = (tokenSymbol: string, address: string) => {
         if (tokenSymbol) {
-            return `${tokenSymbol.toLowerCase()}-sublink`;
+            // Remove non-alphanumeric characters except hyphens, then convert to lowercase
+            const cleanSymbol = tokenSymbol.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+            return `${cleanSymbol}-sublink`;
         }
         // Fallback: extract from address
         const parts = address.split('.');
         return (parts.length > 1 ? parts[1] : address).toLowerCase().replace(/[^a-z0-9-]/g, '-') + '-sublink';
     };
 
-    // Calculate the contract name based on the selected token
+    // Calculate the contract name based on the selected base token (not subnet token)
     const contractName = selectedToken?.symbol
         ? deriveName(selectedToken.symbol, selectedToken.contractId)
         : "";
+
+    // Filter tokens for sublink - only show subnet tokens or tokens that have corresponding subnet tokens
+    const getSubnetRelatedTokens = () => {
+        const subnetTokens = tokens.filter(token => token.type === 'SUBNET');
+        return [...subnetTokens];
+    };
 
     // Navigation functions
     const nextStep = async () => {
@@ -136,65 +141,45 @@ export default function SublinkWizard() {
     };
 
     const prevStep = () => {
-        if (currentStep > WizardStep.SELECT_SOURCE_TOKEN) {
+        if (currentStep > WizardStep.SELECT_SUBNET_TOKEN) {
             setCurrentStep(prevStep => (prevStep - 1) as WizardStep);
         }
     };
 
-    // Handle token selection
+    // Handle token selection - now handles subnet token selection directly
     const handleSelectToken = async (token: TokenCacheData) => {
-        setSelectedToken(token);
-        setConfig(prev => ({ ...prev, tokenContract: token.contractId }));
-        await fetchTokenMetadataDirectly(token.contractId);
-        // Try to find a subnet token with .base === selected token's contractId
-        const subnet = tokens.find(
-            t => t.type === 'SUBNET' && t.base === token.contractId
-        );
-        if (subnet) {
-            setSelectedSubnetToken(subnet);
-            setConfig(prev => ({ ...prev, tokenContract: token.base! }));
-            await fetchTokenMetadataDirectly(subnet.contractId);
-            setCurrentStep(WizardStep.PREVIEW);
-        } else {
-            nextStep();
-        }
-    };
-
-    // Handle custom token selection
-    const handleCustomTokenSubmit = async (contractId: string) => {
-        await fetchTokenMetadataDirectly(contractId);
-        // Try to find a subnet token with .base === contractId
-        const subnet = tokens.find(
-            t => t.type === 'SUBNET' && t.base === contractId
-        );
-        if (subnet) {
-            setSelectedSubnetToken(subnet);
-            setConfig(prev => ({ ...prev, tokenContract: contractId }));
-            await fetchTokenMetadataDirectly(subnet.contractId);
-            setCurrentStep(WizardStep.PREVIEW);
-        } else {
-            nextStep();
-        }
-    };
-
-    // Handle subnet token selection
-    const handleSelectSubnetToken = (token: TokenCacheData) => {
         setSelectedSubnetToken(token);
         setConfig(prev => ({ ...prev, subnetContract: token.contractId }));
-        fetchTokenMetadataDirectly(token.contractId);
-        nextStep();
+
+        // Get the base token from the subnet token's .base property
+        if (token.base) {
+            setConfig(prev => ({ ...prev, tokenContract: token.base! }));
+            // Try to find the base token details from our token list
+            const baseToken = tokens.find(t => t.contractId === token.base);
+            if (baseToken) {
+                setSelectedToken(baseToken);
+                setTokenDetails(baseToken);
+            } else {
+                // If not found in our list, fetch it directly
+                const result = await fetchSingleTokenMetadataDirectly(token.base);
+                if (result.meta) {
+                    setSelectedToken(result.meta);
+                    setTokenDetails(result.meta);
+                }
+            }
+        } else {
+            console.warn('Subnet token missing base property:', token);
+        }
+
+        // Skip subnet selection step and go directly to preview
+        setCurrentStep(WizardStep.PREVIEW);
     };
 
-    // Handle custom subnet token selection
-    const handleCustomSubnetTokenSubmit = async (contractId: string) => {
-        const result = await fetchSingleTokenMetadataDirectly(contractId);
-        if (result.meta) {
-            setSelectedSubnetToken(result.meta);
-            if (result.meta.contractId) {
-                setConfig(prev => ({ ...prev, subnetContract: result.meta!.contractId }));
-            }
-        }
-        nextStep();
+    // Handle custom token selection - now handles custom subnet token
+    const handleCustomTokenSubmit = async (contractId: string) => {
+        await fetchTokenMetadataDirectly(contractId);
+        // Skip subnet selection step since we selected a subnet token directly
+        setCurrentStep(WizardStep.PREVIEW);
     };
 
     // Handle deploy action
@@ -220,21 +205,43 @@ export default function SublinkWizard() {
             const deployedContractIdentifier = stxAddress ? `${stxAddress}.${contractName}` : contractName;
 
             // --- Save Sublink data to Vercel KV / dex-cache ---
-            if (config.tokenContract && config.subnetContract && deployedContractIdentifier) {
-                const sublinkDexData: SublinkDexEntry = {
-                    name: contractName,
-                    image: generatePixelArtDataUri(), // Using default pixel art
-                    contractId: deployedContractIdentifier,
-                    type: "SUBLINK",
-                    tokenAContract: config.tokenContract, // Source Token
-                    tokenBContract: config.subnetContract,  // Subnet Token (acts as TokenB in vault context)
-                };
+            if (config.tokenContract && config.subnetContract && deployedContractIdentifier && selectedToken && selectedSubnetToken) {
+                try {
+                    // Fetch full metadata for both tokens to ensure we have complete data
+                    const [tokenAResult, tokenBResult] = await Promise.all([
+                        fetchSingleTokenMetadataDirectly(config.tokenContract),
+                        fetchSingleTokenMetadataDirectly(config.subnetContract)
+                    ]);
 
-                const kvSaveResult = await saveSublinkDataToDexCache(deployedContractIdentifier, sublinkDexData);
-                if (kvSaveResult.success) {
-                    sonnerToast.info("Dex Cache Update (Sublink)", { description: kvSaveResult.message });
-                } else {
-                    sonnerToast.warning("Dex Cache Update Failed (Sublink)", { description: kvSaveResult.error });
+                    if (tokenAResult.meta && tokenBResult.meta) {
+                        const sublinkDexData: SublinkDexEntry = {
+                            name: contractName,
+                            image: generate1x1ColorPixel('random'), // Using random color pixel
+                            contractId: deployedContractIdentifier,
+                            type: "SUBLINK",
+                            protocol: "CHARISMA",
+                            tokenAContract: config.tokenContract, // Source Token
+                            tokenBContract: config.subnetContract,  // Subnet Token (acts as TokenB in vault context)
+                            tokenA: tokenAResult.meta, // Full metadata for the source token
+                            tokenB: tokenBResult.meta, // Full metadata for the subnet token
+                        };
+
+                        const kvSaveResult = await saveSublinkDataToDexCache(deployedContractIdentifier, sublinkDexData);
+                        if (kvSaveResult.success) {
+                            sonnerToast.success("Dex Cache Update (Sublink)", { description: kvSaveResult.message });
+                        } else {
+                            sonnerToast.warning("Dex Cache Update Failed (Sublink)", { description: kvSaveResult.error });
+                        }
+                    } else {
+                        sonnerToast.warning("Dex Cache Update Skipped (Sublink)", {
+                            description: "Could not fetch complete token metadata for both tokens."
+                        });
+                    }
+                } catch (metadataError) {
+                    console.error("Error fetching token metadata for dex cache:", metadataError);
+                    sonnerToast.warning("Dex Cache Update Skipped (Sublink)", {
+                        description: "Failed to fetch token metadata for dex cache entry."
+                    });
                 }
             } else {
                 sonnerToast.warning("Dex Cache Update Skipped (Sublink)", { description: "Missing data for sublink dex cache entry." });
@@ -260,7 +267,7 @@ export default function SublinkWizard() {
             if (currentStep === WizardStep.PREVIEW) {
                 const generatedCode = await generateSublink({
                     tokenName: selectedToken?.symbol || "",
-                    subnetContract: selectedSubnetToken?.contractId || "",
+                    subnetContract: config.subnetContract,
                     metadataUri: config.metadataUri
                 });
                 setContractCode(generatedCode.code);
@@ -268,7 +275,7 @@ export default function SublinkWizard() {
         };
         updateContractCode();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentStep, config.metadataUri, config.tokenContract, config.subnetContract, selectedToken?.symbol, selectedSubnetToken?.contractId]);
+    }, [currentStep, config.metadataUri, config.tokenContract, config.subnetContract, selectedToken?.symbol]);
 
     // Handle authentication flow
     if (!authenticated) {
@@ -326,22 +333,12 @@ export default function SublinkWizard() {
                     <ContractStepper currentStep={currentStep} />
 
                     {/* Step content */}
-                    {currentStep === WizardStep.SELECT_SOURCE_TOKEN && (
+                    {currentStep === WizardStep.SELECT_SUBNET_TOKEN && (
                         <TokenSelectionStep
                             onSelectToken={handleSelectToken}
                             onCustomSubmit={handleCustomTokenSubmit}
                             isLoadingTokens={tokensLoading}
-                            predefinedTokens={tokens}
-                        />
-                    )}
-
-                    {currentStep === WizardStep.SELECT_SUBNET_TOKEN && (
-                        <SubnetTokenSelectionStep
-                            onSelectToken={handleSelectSubnetToken}
-                            isLoadingTokens={tokensLoading}
-                            predefinedTokens={tokens}
-                            onCustomSubmit={handleCustomSubnetTokenSubmit}
-                            sourceTokenSymbol={selectedToken?.symbol || ""}
+                            predefinedTokens={getSubnetRelatedTokens()}
                         />
                     )}
 
@@ -383,6 +380,18 @@ export default function SublinkWizard() {
                             </div>
 
                             <div>
+                                <h3 className="font-medium mb-1">Subnet Token</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {selectedSubnetToken ? (
+                                        <span className="flex items-center gap-1">
+                                            {selectedSubnetToken.symbol}
+                                            <span className="text-xs opacity-70">({truncateAddress(selectedSubnetToken.contractId)})</span>
+                                        </span>
+                                    ) : 'Not selected yet'}
+                                </p>
+                            </div>
+
+                            <div>
                                 <h3 className="font-medium mb-1">Base Token</h3>
                                 <p className="text-sm text-muted-foreground">
                                     {selectedToken ? (
@@ -390,7 +399,7 @@ export default function SublinkWizard() {
                                             {selectedToken.symbol}
                                             <span className="text-xs opacity-70">({truncateAddress(selectedToken.contractId)})</span>
                                         </span>
-                                    ) : 'Not selected yet'}
+                                    ) : selectedSubnetToken?.base ? truncateAddress(selectedSubnetToken.base) : 'Auto-detected from subnet'}
                                 </p>
                             </div>
 

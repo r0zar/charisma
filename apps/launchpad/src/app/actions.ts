@@ -86,8 +86,11 @@ export interface SublinkDexEntry {
     image: string; // data URI
     contractId: string; // The sublink contract identifier itself
     type: "SUBLINK";
+    protocol: string; // e.g., 'CHARISMA'
     tokenAContract: string; // Source token (e.g., mainnet SIP-10)
-    tokenBContract: string; // Subnet token representation
+    tokenBContract: string; // Subnet token representation=
+    tokenA: TokenCacheData; // Full metadata for the source token
+    tokenB: TokenCacheData; // Full metadata for the subnet token=
     // Add other SUBLINK specific fields if necessary from dex-cache perspective
 }
 
@@ -127,7 +130,7 @@ export async function saveMetadataToDexCache(
 }
 
 /**
- * Server action to save Sublink data to the dex-cache (Vercel KV).
+ * Enhanced server action to save Sublink data with full token metadata to the dex-cache (Vercel KV).
  */
 export async function saveSublinkDataToDexCache(
     sublinkContractId: string,
@@ -145,21 +148,131 @@ export async function saveSublinkDataToDexCache(
         console.error("[saveSublinkDataToDexCache] Invalid type for Sublink data.");
         return { success: false, error: "Invalid type, expected SUBLINK." };
     }
+    if (!sublinkData.tokenA || !sublinkData.tokenB) {
+        console.error("[saveSublinkDataToDexCache] Both tokenA and tokenB metadata are required.");
+        return { success: false, error: "Both tokenA and tokenB metadata are required." };
+    }
 
     const kvKey = `dex-vault:${sublinkContractId}`;
 
     try {
-        console.log(`[saveSublinkDataToDexCache] Saving Sublink data to Vercel KV for key: ${kvKey}`, sublinkData);
+        console.log(`[saveSublinkDataToDexCache] Saving enhanced Sublink data to Vercel KV for key: ${kvKey}`, sublinkData);
         await kv.set(kvKey, sublinkData);
 
-        console.log(`[saveSublinkDataToDexCache] Successfully saved Sublink data for ${sublinkContractId} to Vercel KV.`);
-        return { success: true, message: "Sublink data saved to dex-cache successfully." };
+        console.log(`[saveSublinkDataToDexCache] Successfully saved enhanced Sublink data for ${sublinkContractId} to Vercel KV.`);
+        return { success: true, message: "Enhanced sublink data with full token metadata saved to dex-cache successfully." };
 
     } catch (error: any) {
         console.error(`[saveSublinkDataToDexCache] Error saving Sublink data to Vercel KV for ${sublinkContractId}:`, error);
         return {
             success: false,
             error: error.message || "An unexpected error occurred while saving Sublink data to dex-cache.",
+        };
+    }
+}
+
+/**
+ * Utility function to enhance existing sublink metadata with full tokenA and tokenB data.
+ * This can be used to update existing sublinks that don't have the complete token metadata.
+ */
+export async function enhanceSublinkWithTokenMetadata(
+    sublinkContractId: string,
+    tokenAContract: string,
+    tokenBContract: string
+): Promise<{ success: boolean; message?: string; error?: string; enhancedData?: SublinkDexEntry }> {
+    if (!sublinkContractId || !tokenAContract || !tokenBContract) {
+        return { success: false, error: "All contract IDs are required." };
+    }
+
+    try {
+        console.log(`[enhanceSublinkWithTokenMetadata] Enhancing sublink ${sublinkContractId} with token metadata`);
+
+        // Fetch full metadata for both tokens
+        const [tokenAResult, tokenBResult] = await Promise.allSettled([
+            getTokenMetadataCached(tokenAContract),
+            getTokenMetadataCached(tokenBContract)
+        ]);
+
+        const tokenAMeta = tokenAResult.status === 'fulfilled' ? tokenAResult.value : null;
+        const tokenBMeta = tokenBResult.status === 'fulfilled' ? tokenBResult.value : null;
+
+        if (!tokenAMeta || !tokenBMeta) {
+            const errors = [];
+            if (!tokenAMeta) errors.push(`Failed to fetch metadata for tokenA: ${tokenAContract}`);
+            if (!tokenBMeta) errors.push(`Failed to fetch metadata for tokenB: ${tokenBContract}`);
+            return { success: false, error: errors.join(', ') };
+        }
+
+        // Create enhanced sublink data structure
+        const enhancedSublinkData: SublinkDexEntry = {
+            name: `${tokenAMeta.symbol || 'Token'}-sublink`,
+            image: tokenAMeta.image || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjcH5Z/R8ABcECp4N5vh4AAAAASUVORK5CYII=',
+            contractId: sublinkContractId,
+            type: "SUBLINK",
+            protocol: "CHARISMA",
+            tokenAContract,
+            tokenBContract,
+            tokenA: tokenAMeta,
+            tokenB: tokenBMeta,
+        };
+
+        console.log(`[enhanceSublinkWithTokenMetadata] Successfully enhanced sublink metadata for ${sublinkContractId}`);
+        return {
+            success: true,
+            message: "Sublink metadata enhanced with full token data.",
+            enhancedData: enhancedSublinkData
+        };
+
+    } catch (error: any) {
+        console.error(`[enhanceSublinkWithTokenMetadata] Error enhancing sublink ${sublinkContractId}:`, error);
+        return {
+            success: false,
+            error: error.message || "An unexpected error occurred while enhancing sublink metadata.",
+        };
+    }
+}
+
+/**
+ * Function to update an existing sublink with enhanced metadata.
+ * This can be called to fix existing sublinks that don't have complete token metadata.
+ */
+export async function updateExistingSublinkMetadata(
+    sublinkContractId: string,
+    tokenAContract: string,
+    tokenBContract: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+        // First, enhance the metadata
+        const enhanceResult = await enhanceSublinkWithTokenMetadata(
+            sublinkContractId,
+            tokenAContract,
+            tokenBContract
+        );
+
+        if (!enhanceResult.success || !enhanceResult.enhancedData) {
+            return enhanceResult;
+        }
+
+        // Then save the enhanced data to the dex cache
+        const saveResult = await saveSublinkDataToDexCache(
+            sublinkContractId,
+            enhanceResult.enhancedData
+        );
+
+        if (saveResult.success) {
+            return {
+                success: true,
+                message: `Successfully updated sublink ${sublinkContractId} with enhanced metadata including full tokenA and tokenB data.`
+            };
+        } else {
+            return saveResult;
+        }
+
+    } catch (error: any) {
+        console.error(`[updateExistingSublinkMetadata] Error updating sublink ${sublinkContractId}:`, error);
+        return {
+            success: false,
+            error: error.message || "An unexpected error occurred while updating sublink metadata.",
         };
     }
 } 

@@ -96,8 +96,11 @@ const TokenSelectionStep = ({
     return (
         <div className="space-y-8">
             <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Select Token for Sublink</h2>
-                <p className="text-muted-foreground">Choose the token you want to connect to a subnet</p>
+                <h2 className="text-2xl font-bold mb-2">Select Subnet Token</h2>
+                <p className="text-muted-foreground">Choose the subnet token you want to create a sublink for</p>
+                <div className="mt-2 text-sm text-muted-foreground/80">
+                    The base token will be automatically detected from the subnet token
+                </div>
             </div>
             {!showCustomInput && (
                 <div className="relative mx-auto max-w-md mb-4">
@@ -215,11 +218,11 @@ const TokenSelectionStep = ({
                                     className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
                                     onClick={() => onSelectToken(token)}
                                 >
-                                    {token.type === 'SUBNET' && (
-                                        <span className="absolute top-2 right-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                    {token.type === 'SUBNET' ? (
+                                        <span className="absolute top-2 right-2 bg-primary/20 text-primary border border-primary/30 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                             Subnet
                                         </span>
-                                    )}
+                                    ) : null}
                                     <div className="p-6 flex flex-col items-center">
                                         <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative">
                                             {token.image ? (
@@ -240,6 +243,9 @@ const TokenSelectionStep = ({
                                         </div>
                                         <h3 className="font-medium">{token.symbol}</h3>
                                         <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
+                                        {token.type === 'SUBNET' && (
+                                            <p className="text-xs text-primary/70 mt-1">Direct subnet token</p>
+                                        )}
                                     </div>
                                 </Card>
                             ))}
@@ -251,7 +257,7 @@ const TokenSelectionStep = ({
                                         <HelpCircle className="w-8 h-8 text-primary/60" />
                                     </div>
                                     <h3 className="font-medium">Custom Token</h3>
-                                    <p className="text-sm text-muted-foreground">Use another SIP-10 token</p>
+                                    <p className="text-sm text-muted-foreground">Use another subnet token</p>
                                 </div>
                             </Card>
                         </div>
