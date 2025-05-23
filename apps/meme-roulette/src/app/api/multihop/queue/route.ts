@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { incrementKVTokenBet, recordUserVote } from '@/lib/state';
+import { incrementKVTokenBet } from '@/lib/state';
 import { listTokens } from 'dexterity-sdk';
 import { recoverMultihopSigner } from 'blaze-sdk';
+import { recordVoteWithLeaderboard } from '@/lib/leaderboard-integration';
 
 // Load environment constants
 const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
@@ -68,16 +69,16 @@ export async function POST(req: NextRequest) {
         if (isNaN(betAmountMicroUnits)) {
             return NextResponse.json({ success: false, error: 'Invalid bet amount format' }, { status: 400 });
         }
-        const newAmountForToken = await incrementKVTokenBet(body.destinationContract, betAmountMicroUnits);
-        if (newAmountForToken === null) {
-            return NextResponse.json({ success: false, error: 'Failed to record bet' }, { status: 500 });
-        }
 
         // Record the user's vote using destinationContract
-        // recordUserVote now receives micro-units (integer). Ensure its logic is compatible.
-        const vote = await recordUserVote(userId, body.destinationContract, betAmountMicroUnits);
-        if (!vote) {
+        // recordVoteWithLeaderboard receives micro-units (integer) and returns { vote, achievements }
+        // This function will also handle incrementing the token bet internally
+        const voteResult = await recordVoteWithLeaderboard(userId, body.destinationContract, betAmountMicroUnits);
+        if (!voteResult.vote) {
             console.warn('Queue API: Vote recorded in total count but failed to track for user');
+            return NextResponse.json({ success: false, error: 'Failed to record vote' }, { status: 500 });
+        } else if (voteResult.achievements.length > 0) {
+            console.log(`Queue API: User ${userId} earned ${voteResult.achievements.length} new achievements`);
         }
 
         // Enqueue intent with the new structure

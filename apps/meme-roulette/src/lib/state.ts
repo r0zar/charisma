@@ -263,6 +263,9 @@ export async function resetKVForNextSpin() {
     const currentBets = await getKVTokenBets();
     const currentRoundTotal = Object.values(currentBets).reduce((sum, amount) => sum + amount, 0);
 
+    // Get winning token and user votes for leaderboard integration
+    const winningTokenId = await kv.get<string>(KV_WINNING_TOKEN_ID);
+
     // Update ATH if current round beats it
     const newATH = await updateATHIfNeeded(currentRoundTotal);
 
@@ -273,6 +276,16 @@ export async function resetKVForNextSpin() {
         console.log(`🎉 Round completed with NEW ATH: ${currentRoundTotal} CHA!`);
     } else {
         console.log(`Round completed with total: ${currentRoundTotal} CHA (ATH: ${await getATHTotalAmount()} CHA)`);
+    }
+
+    // Complete round with leaderboard integration
+    if (winningTokenId && winningTokenId !== 'none') {
+        console.log(`Round completed with winner: ${winningTokenId}`);
+
+        // Call leaderboard integration without earnings calculation
+        // Real earnings will be calculated after actual swaps complete in /api/multihop/process
+        const { completeRoundWithLeaderboard } = await import('./leaderboard-integration');
+        await completeRoundWithLeaderboard(winningTokenId);
     }
 
     await kv.multi()

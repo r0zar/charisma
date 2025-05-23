@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { incrementKVTokenBet, recordUserVote, buildKVDataPacket } from '@/lib/state';
+import { incrementKVTokenBet, buildKVDataPacket } from '@/lib/state';
+import { recordVoteWithLeaderboard } from '@/lib/leaderboard-integration';
 import { listTokens } from 'dexterity-sdk';
 import type { SpinFeedData } from '@/types/spin';
 
@@ -77,30 +78,32 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        // Increment the value for the specific token in the KV hash
-        console.log(`API/PlaceBet: Received bet of ${chaAmount} CHA for ${tokenId} from user ${userId}. Attempting increment...`);
-        const newAmountForToken = await incrementKVTokenBet(tokenId, chaAmount);
+        // Record the user's vote - this will also increment the token bet internally
+        console.log(`API/PlaceBet: Received bet of ${chaAmount} CHA for ${tokenId} from user ${userId}. Recording vote...`);
+        const voteResult = await recordVoteWithLeaderboard(userId, tokenId, chaAmount);
 
-        if (newAmountForToken === null) {
-            // Handle potential error from incrementKVTokenBet (e.g., invalid input, KV error)
-            console.error(`API/PlaceBet: Failed to increment bet for token ${tokenId}.`);
+        if (!voteResult.vote) {
+            // Handle potential error from vote recording
+            console.error(`API/PlaceBet: Failed to record vote for token ${tokenId}.`);
             return NextResponse.json({ success: false, error: 'Failed to record bet' }, { status: 500 });
         }
 
-        // Record the user's vote
-        const vote = await recordUserVote(userId, tokenId, chaAmount);
-
-        console.log(`API/PlaceBet: New total for ${tokenId} in KV: ${newAmountForToken}`);
+        console.log(`API/PlaceBet: Vote recorded successfully for ${tokenId}`);
 
         // Broadcast the new vote to all connected clients
-        if (vote) {
-            await broadcastNewVote(tokenId, chaAmount, vote.id, userId);
+        if (voteResult.vote) {
+            await broadcastNewVote(tokenId, chaAmount, voteResult.vote.id, userId);
+
+            // Log achievements if any were earned
+            if (voteResult.achievements.length > 0) {
+                console.log(`API/PlaceBet: User ${userId} earned ${voteResult.achievements.length} new achievements`);
+            }
         }
 
         return NextResponse.json({
             success: true,
             message: 'Bet placed successfully',
-            voteId: vote?.id
+            voteId: voteResult.vote?.id
         });
 
     } catch (error) {

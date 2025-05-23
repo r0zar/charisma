@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -12,207 +12,39 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Search, Trophy, ArrowUp, ArrowDown, Sparkles, Flame, Clock, Users, RefreshCw } from 'lucide-react';
+import { Search, Trophy, ArrowUp, ArrowDown, Sparkles, Flame, Clock, Users, RefreshCw, HandCoins, TrendingUp, Zap } from 'lucide-react';
+import { useSpin } from '@/contexts/SpinContext';
+import { useTokenPrices } from '@/hooks/useTokenPrices';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+import TokenAmountDisplay from '@/components/TokenAmountDisplay';
+import type { Vote } from '@/types/spin';
 
-// Sample data for the leaderboard
-const leaderboardData = [
-  {
-    id: 1,
-    rank: 1,
-    username: 'CryptoWhale',
-    address: 'cryptowhale.btc',
-    xp: 8750,
-    level: 42,
-    earnings: 12500,
-    staked: 5000,
-    achievements: 12,
-    change: 'up',
-    badges: ['OG', 'Whale', 'Diamond']
-  },
-  {
-    id: 2,
-    rank: 2,
-    username: 'Satoshi2077',
-    address: 'satoshi2077.btc',
-    xp: 7920,
-    level: 38,
-    earnings: 9800,
-    staked: 12000,
-    achievements: 9,
-    change: 'same',
-    badges: ['Staker', 'Early']
-  },
-  {
-    id: 3,
-    rank: 3,
-    username: 'BlockNinja',
-    address: 'blockninja.btc',
-    xp: 7100,
-    level: 35,
-    earnings: 8750,
-    staked: 3200,
-    achievements: 15,
-    change: 'up',
-    badges: ['Collector', 'Strategist']
-  },
-  {
-    id: 4,
-    rank: 4,
-    username: 'StacksBuilder',
-    address: 'stacksbuilder.btc',
-    xp: 6800,
-    level: 33,
-    earnings: 6200,
-    staked: 8900,
-    achievements: 7,
-    change: 'down',
-    badges: ['Staker', 'Builder']
-  },
-  {
-    id: 5,
-    rank: 5,
-    username: 'CryptoQueen',
-    address: 'cryptoqueen.btc',
-    xp: 6200,
-    level: 31,
-    earnings: 7500,
-    staked: 4300,
-    achievements: 10,
-    change: 'same',
-    badges: ['OG', 'Social']
-  },
-  {
-    id: 6,
-    rank: 6,
-    username: 'Web3Wizard',
-    address: 'web3wiz.btc',
-    xp: 5800,
-    level: 29,
-    earnings: 5200,
-    staked: 6700,
-    achievements: 8,
-    change: 'up',
-    badges: ['Explorer', 'Trader']
-  },
-  {
-    id: 7,
-    rank: 7,
-    username: 'DefiGuru',
-    address: 'defiguru.btc',
-    xp: 5300,
-    level: 27,
-    earnings: 4800,
-    staked: 9100,
-    achievements: 6,
-    change: 'up',
-    badges: ['Staker', 'Trader']
-  },
-  {
-    id: 8,
-    rank: 8,
-    username: 'GameMaster',
-    address: 'gamemaster.btc',
-    xp: 4900,
-    level: 25,
-    earnings: 3900,
-    staked: 2100,
-    achievements: 11,
-    change: 'down',
-    badges: ['Gamer', 'Collector']
-  },
-  {
-    id: 9,
-    rank: 9,
-    username: 'ChainChampion',
-    address: 'chainchamp.btc',
-    xp: 4500,
-    level: 23,
-    earnings: 3200,
-    staked: 4600,
-    achievements: 5,
-    change: 'down',
-    badges: ['Explorer', 'Social']
-  },
-  {
-    id: 10,
-    rank: 10,
-    username: 'StacksHodler',
-    address: 'stackshodl.btc',
-    xp: 4100,
-    level: 21,
-    earnings: 2800,
-    staked: 7300,
-    achievements: 4,
-    change: 'up',
-    badges: ['Staker', 'Holder']
-  },
-];
-
-// Badge color mapping
-const badgeColors = {
-  'OG': 'bg-primary/20 text-primary border-primary/30',
-  'Whale': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  'Diamond': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-  'Staker': 'bg-green-500/20 text-green-400 border-green-500/30',
-  'Early': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  'Collector': 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  'Strategist': 'bg-red-500/20 text-red-400 border-red-500/30',
-  'Builder': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  'Social': 'bg-fuchsia-500/20 text-fuchsia-400 border-fuchsia-500/30',
-  'Explorer': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  'Trader': 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-  'Gamer': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-  'Holder': 'bg-teal-500/20 text-teal-400 border-teal-500/30'
-};
-
-// Format currency with K/M/B suffixes
-const formatCurrency = (amount: number) => {
-  if (amount >= 1000000000) {
-    return `$${(amount / 1000000000).toFixed(2)}B`;
-  }
-  if (amount >= 1000000) {
-    return `$${(amount / 1000000).toFixed(2)}M`;
-  }
-  if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(2)}K`;
-  }
-  return `$${amount}`;
-};
-
-// Truncate address for display
-const truncateAddress = (address: string) => {
-  if (!address.includes('.btc')) {
-    const start = address.slice(0, 6);
-    const end = address.slice(-4);
-    return `${start}...${end}`;
-  }
-  return address;
-};
+// CHA decimals constant
+const CHA_DECIMALS = 6;
 
 const LeaderboardComponent = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortType, setSortType] = useState('xp');
+  const [sortType, setSortType] = useState<'total_cha' | 'total_votes' | 'current_round'>('total_cha');
 
-  // Filter data based on search term
-  const filteredData = leaderboardData.filter(user =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const { state: { feedData, myBets, isFeedLoading } } = useSpin();
+  const { chaPrice } = useTokenPrices();
 
-  // Sort data based on selected type
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (sortType === 'xp') return b.xp - a.xp;
-    if (sortType === 'earnings') return b.earnings - a.earnings;
-    if (sortType === 'staked') return b.staked - a.staked;
-    if (sortType === 'achievements') return b.achievements - a.achievements;
-    return 0;
+  // Use the real leaderboard system
+  const { data: leaderboardData, isLoading: isLeaderboardLoading, error } = useLeaderboard({
+    type: sortType,
+    limit: 100,
+    refreshInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Re-rank based on the current sort
-  const rankedData = sortedData.map((user, index) => ({
-    ...user,
-    currentRank: index + 1
-  }));
+  // Filter data based on search term
+  const filteredData = useMemo(() => {
+    if (!leaderboardData?.entries) return [];
+
+    return leaderboardData.entries.filter(entry =>
+      entry.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      entry.userId.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [leaderboardData?.entries, searchTerm]);
 
   const getMedalColor = (rank: number) => {
     switch (rank) {
@@ -223,6 +55,17 @@ const LeaderboardComponent = () => {
     }
   };
 
+  const getSortTypeLabel = (type: string) => {
+    switch (type) {
+      case 'total_cha': return 'Total CHA';
+      case 'total_votes': return 'Total Votes';
+      case 'current_round': return 'Current Round';
+      default: return 'Total CHA';
+    }
+  };
+
+  const isLoading = isLeaderboardLoading || isFeedLoading;
+
   return (
     <div className="flex flex-col gap-0 md:gap-6 mb-0 md:mb-8">
       {/* Header Section */}
@@ -231,19 +74,19 @@ const LeaderboardComponent = () => {
           <div>
             <h1 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
               <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Experience Leaderboard
+              Player Leaderboard
             </h1>
-            <p className="text-sm text-muted-foreground">Top players ranked by their contribution and achievements</p>
+            <p className="text-sm text-muted-foreground">Top players ranked by their meme roulette activity</p>
           </div>
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
               <div className="bg-green-500 w-2 h-2 rounded-full animate-pulse"></div>
               <Users className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">1,243 Active</span>
+              <span className="text-muted-foreground">{leaderboardData?.totalUsers || 0} Active</span>
             </div>
             <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
               <RefreshCw className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">5m ago</span>
+              <span className="text-muted-foreground">Live</span>
             </div>
           </div>
         </div>
@@ -262,19 +105,16 @@ const LeaderboardComponent = () => {
             />
           </div>
 
-          <Tabs defaultValue="xp" className="w-full md:w-auto" onValueChange={setSortType}>
+          <Tabs defaultValue="total_cha" className="w-full md:w-auto" onValueChange={(value) => setSortType(value as typeof sortType)}>
             <TabsList className="bg-muted/20">
-              <TabsTrigger value="xp" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Sparkles className="h-4 w-4 mr-1" /> XP
+              <TabsTrigger value="total_cha" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <HandCoins className="h-4 w-4 mr-1" /> Total CHA
               </TabsTrigger>
-              <TabsTrigger value="earnings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Flame className="h-4 w-4 mr-1" /> Earnings
+              <TabsTrigger value="total_votes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TrendingUp className="h-4 w-4 mr-1" /> Votes
               </TabsTrigger>
-              <TabsTrigger value="staked" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Flame className="h-4 w-4 mr-1" /> Staked
-              </TabsTrigger>
-              <TabsTrigger value="achievements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Trophy className="h-4 w-4 mr-1" /> Achievements
+              <TabsTrigger value="current_round" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Clock className="h-4 w-4 mr-1" /> This Round
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -289,104 +129,202 @@ const LeaderboardComponent = () => {
               <TableRow className="border-b border-border/50">
                 <TableHead className="w-[60px] text-center font-display">Rank</TableHead>
                 <TableHead className="font-display">Player</TableHead>
-                <TableHead className="text-right font-display hidden sm:table-cell">Level</TableHead>
-                <TableHead className="text-right font-display">XP</TableHead>
-                <TableHead className="text-right font-display hidden md:table-cell">Earnings</TableHead>
-                <TableHead className="text-right font-display hidden lg:table-cell">Staked</TableHead>
-                <TableHead className="text-right font-display hidden xl:table-cell">Achievements</TableHead>
-                <TableHead className="font-display hidden sm:table-cell">Badges</TableHead>
+                <TableHead className="text-right font-display">{getSortTypeLabel(sortType)}</TableHead>
+                <TableHead className="text-right font-display hidden sm:table-cell">Total Votes</TableHead>
+                <TableHead className="text-right font-display hidden md:table-cell">Avg. Vote</TableHead>
+                <TableHead className="text-right font-display hidden lg:table-cell">Biggest Vote</TableHead>
+                <TableHead className="text-right font-display hidden xl:table-cell">Win Rate</TableHead>
+                <TableHead className="font-display hidden sm:table-cell">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rankedData.map((user) => (
-                <TableRow
-                  key={user.id}
-                  className="relative hover:bg-muted/20 transition-colors"
-                >
-                  <TableCell className="font-medium text-center relative w-[60px]">
-                    <div className={`
-                      rounded-full w-8 h-8 flex items-center justify-center mx-auto
-                      ${user.currentRank < 4 ? 'bg-muted/30' : ''}
-                      ${user.currentRank === 1 ? 'animate-pulse-slow' : ''}
-                    `}>
-                      {user.currentRank <= 3 ? (
-                        <Trophy className={`h-4 w-4 ${getMedalColor(user.currentRank)}`} />
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="text-sm text-muted-foreground">{user.currentRank}</span>
-                          {user.change === 'up' && <ArrowUp className="text-green-500 h-3 w-3 ml-1" />}
-                          {user.change === 'down' && <ArrowDown className="text-red-500 h-3 w-3 ml-1" />}
+              {isLoading ? (
+                // Loading skeleton
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="text-center">
+                      <div className="w-8 h-8 bg-muted/30 rounded-full animate-pulse mx-auto" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-muted/30 rounded-full animate-pulse" />
+                        <div className="space-y-1">
+                          <div className="w-24 h-4 bg-muted/30 rounded animate-pulse" />
+                          <div className="w-16 h-3 bg-muted/30 rounded animate-pulse" />
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium font-display truncate">{user.username}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{truncateAddress(user.address)}</div>
                       </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="w-20 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right hidden sm:table-cell">
+                      <div className="w-12 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right hidden md:table-cell">
+                      <div className="w-16 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right hidden lg:table-cell">
+                      <div className="w-16 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
+                    </TableCell>
+                    <TableCell className="text-right hidden xl:table-cell">
+                      <div className="w-12 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="w-16 h-6 bg-muted/30 rounded animate-pulse" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filteredData.length > 0 ? filteredData.map((entry) => {
+                const currentUser = feedData?.currentUserBets?.[0]?.userId;
+                const isCurrentUser = entry.userId === currentUser;
+                const winRate = entry.stats.totalRoundsParticipated > 0
+                  ? (entry.stats.winCount / entry.stats.totalRoundsParticipated) * 100
+                  : 0;
 
-                  <TableCell className="text-right hidden sm:table-cell">
-                    <div className="inline-flex items-center justify-center bg-primary/10 text-primary rounded-md px-2 py-1 text-xs font-medium border border-primary/20">
-                      Lvl {user.level}
-                    </div>
-                  </TableCell>
+                return (
+                  <TableRow
+                    key={entry.userId}
+                    className={`relative hover:bg-muted/20 transition-colors ${isCurrentUser ? 'bg-primary/5' : ''}`}
+                  >
+                    <TableCell className="font-medium text-center relative w-[60px]">
+                      <div className={`
+                        rounded-full w-8 h-8 flex items-center justify-center mx-auto
+                        ${entry.rank <= 3 ? 'bg-muted/30' : ''}
+                        ${entry.rank === 1 ? 'animate-pulse-slow' : ''}
+                      `}>
+                        {entry.rank <= 3 ? (
+                          <Trophy className={`h-4 w-4 ${getMedalColor(entry.rank)}`} />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{entry.rank}</span>
+                        )}
+                      </div>
+                    </TableCell>
 
-                  <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium">
-                    {user.xp.toLocaleString()}
-                  </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium font-display truncate flex items-center gap-2">
+                            {entry.displayName}
+                            {isCurrentUser && (
+                              <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
+                                You
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {entry.stats.achievements.length} achievements
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
 
-                  <TableCell className="text-right font-mono text-green-400 hidden md:table-cell">
-                    {formatCurrency(user.earnings)}
-                  </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium">
+                      <TokenAmountDisplay
+                        amount={entry.score}
+                        decimals={CHA_DECIMALS}
+                        symbol="CHA"
+                        usdPrice={chaPrice}
+                        className="text-primary"
+                        size="sm"
+                        showUsdInTooltip={true}
+                      />
+                    </TableCell>
 
-                  <TableCell className="text-right font-mono text-blue-400 hidden lg:table-cell">
-                    {formatCurrency(user.staked)}
-                  </TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground hidden sm:table-cell">
+                      {entry.stats.totalVotes.toLocaleString()}
+                    </TableCell>
 
-                  <TableCell className="text-right font-mono text-amber-400 hidden xl:table-cell">
-                    {user.achievements}
-                  </TableCell>
+                    <TableCell className="text-right font-mono text-blue-400 hidden md:table-cell">
+                      <TokenAmountDisplay
+                        amount={entry.stats.averageVoteSize}
+                        decimals={CHA_DECIMALS}
+                        symbol="CHA"
+                        usdPrice={chaPrice}
+                        className="text-blue-400"
+                        size="sm"
+                        showUsdInTooltip={true}
+                      />
+                    </TableCell>
 
-                  <TableCell className="hidden sm:table-cell">
-                    <div className="flex flex-wrap gap-1">
-                      {user.badges.slice(0, 2).map((badge, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className={`text-xs ${badgeColors[badge as keyof typeof badgeColors] || 'bg-muted/20 text-muted-foreground border-muted'}`}
-                        >
-                          {badge}
-                        </Badge>
-                      ))}
-                      {user.badges.length > 2 && (
-                        <Badge variant="outline" className="text-xs bg-muted/20 text-muted-foreground border-muted">
-                          +{user.badges.length - 2}
-                        </Badge>
-                      )}
-                    </div>
+                    <TableCell className="text-right font-mono text-green-400 hidden lg:table-cell">
+                      <TokenAmountDisplay
+                        amount={entry.stats.biggestVote}
+                        decimals={CHA_DECIMALS}
+                        symbol="CHA"
+                        usdPrice={chaPrice}
+                        className="text-green-400"
+                        size="sm"
+                        showUsdInTooltip={true}
+                      />
+                    </TableCell>
+
+                    <TableCell className="text-right font-mono text-amber-400 hidden xl:table-cell">
+                      {winRate.toFixed(1)}%
+                    </TableCell>
+
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {entry.stats.lastActivityTime > Date.now() - (24 * 60 * 60 * 1000) && (
+                          <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
+                            Active
+                          </Badge>
+                        )}
+                        {entry.stats.biggestVote >= 100 * (10 ** CHA_DECIMALS) && (
+                          <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                            Whale
+                          </Badge>
+                        )}
+                        {entry.stats.currentStreak >= 5 && (
+                          <Badge variant="outline" className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">
+                            Streak
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <HandCoins className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No voting activity yet. Be the first to vote!</p>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
 
-          {rankedData.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No players found matching your search.</p>
+          {/* Coming Soon Features */}
+          <div className="mt-6 p-4 bg-muted/10 border border-border/20 rounded-lg">
+            <h3 className="font-medium font-display mb-2 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" />
+              Coming Soon Features
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Soon</Badge>
+                <span>XP & Level System</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Soon</Badge>
+                <span>Achievement Badges</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Soon</Badge>
+                <span>Earnings Tracking</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">Soon</Badge>
+                <span>Historical Rankings</span>
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
         <div className="mt-4 pt-4 border-t border-border/30 flex justify-between items-center text-xs text-muted-foreground">
           <div>
-            Showing {rankedData.length} of {leaderboardData.length} players
+            Showing {filteredData.length} of {leaderboardData?.totalUsers || 0} players • Updated live
           </div>
           <div className="flex items-center gap-1">
             <span>Powered by</span>
