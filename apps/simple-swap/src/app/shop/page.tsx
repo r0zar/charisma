@@ -14,10 +14,10 @@ export const metadata: Metadata = {
         siteName: 'Charisma',
         images: [
             {
-                url: '/charisma.png',
+                url: '/shop.png',
                 width: 800,
                 height: 600,
-                alt: 'Charisma Logo',
+                alt: 'Charisma Shop',
                 type: 'image/png',
             }
         ],
