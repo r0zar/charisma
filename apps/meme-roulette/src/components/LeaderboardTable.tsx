@@ -24,10 +24,43 @@ const formatAtomicToWholeUnit = (atomicAmount: number | undefined | null, decima
     return wholeUnitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 };
 
+// Helper function to format CHA amounts
+const formatCHAAmount = (atomicAmount: number, decimals: number = 6) => {
+    const wholeAmount = atomicAmount / (10 ** decimals);
+    if (wholeAmount >= 1000000) {
+        return `${(wholeAmount / 1000000).toFixed(1)}M`;
+    } else if (wholeAmount >= 1000) {
+        return `${(wholeAmount / 1000).toFixed(1)}K`;
+    }
+    return wholeAmount.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    });
+};
+
+// Helper function to format USD amounts
+const formatUSDAmount = (atomicAmount: number, usdPrice: number | undefined, decimals: number = 6) => {
+    if (!usdPrice || atomicAmount === 0) return null;
+
+    const wholeAmount = atomicAmount / (10 ** decimals);
+    const usdValue = wholeAmount * usdPrice;
+
+    if (usdValue >= 1000000) {
+        return `$${(usdValue / 1000000).toFixed(1)}M`;
+    } else if (usdValue >= 1000) {
+        return `$${(usdValue / 1000).toFixed(1)}K`;
+    } else if (usdValue >= 1) {
+        return `$${usdValue.toFixed(2)}`;
+    } else {
+        return `$${usdValue.toFixed(4)}`;
+    }
+};
+
 interface LeaderboardTableProps {
     tokens: Token[]; // Expect the full token list as a prop
     tokenBets: Record<string, number>; // Expect tokenBets as a prop
     isLoading: boolean; // Add loading state from HubPage
+    chaPrice?: number; // Add CHA USD price for conversions
 }
 
 // Define the expected shape of a leaderboard item
@@ -36,7 +69,7 @@ interface LeaderboardItem {
     totalBet: number;
 }
 
-export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTableProps) {
+export function LeaderboardTable({ tokens, tokenBets, isLoading, chaPrice }: LeaderboardTableProps) {
     // Get leaderboard data and loading status from context
     const {
         leaderboard,
@@ -131,10 +164,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                         return (
                             <TableRow
                                 key={item.token.id}
-                                className={`
-                                    relative hover:bg-muted/20 transition-colors
-                                    ${index === 0 ? 'bg-primary/5' : ''}
-                                `}
+                                className="relative hover:bg-muted/20 transition-colors"
                             >
                                 {/* Percentage bar in background */}
 
@@ -163,15 +193,9 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                                                 height={36}
                                                 className={`
                                                     rounded-full object-cover bg-muted h-9 w-9
-                                                    border-2 ${index === 0 ? 'border-primary/50' : 'border-transparent'}
                                                 `}
                                                 onError={(e) => { e.currentTarget.src = '/placeholder-token.png'; }}
                                             />
-                                            {index === 0 && (
-                                                <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                                                    <TrendingUp className="h-3 w-3" />
-                                                </div>
-                                            )}
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <div className="font-medium font-display truncate">{item.token.name}</div>
@@ -181,7 +205,14 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading }: LeaderboardTa
                                 </TableCell>
 
                                 <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium w-[120px]">
-                                    {item.totalBet / 10 ** 6}
+                                    <div className="text-right">
+                                        <div className="font-bold">{formatCHAAmount(item.totalBet)} CHA</div>
+                                        {chaPrice && (
+                                            <div className="text-xs text-muted-foreground/60 font-normal">
+                                                ≈{formatUSDAmount(item.totalBet, chaPrice)}
+                                            </div>
+                                        )}
+                                    </div>
                                 </TableCell>
 
                                 <TableCell className="text-right text-muted-foreground relative z-10 hidden sm:table-cell w-[480px] ">

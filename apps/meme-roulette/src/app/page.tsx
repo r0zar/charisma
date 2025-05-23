@@ -10,6 +10,8 @@ import LockOverlay from '@/components/LockOverlay';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import Confetti from 'react-confetti';
 import useWindowSize from '@/hooks/useWindowSize';
+import { useTokenPrices } from '@/hooks/useTokenPrices';
+import TokenAmountDisplay from '@/components/TokenAmountDisplay';
 import { HandCoins, Trophy, Rocket, TrendingUp, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import type { Vote } from '@/types/spin';
@@ -43,6 +45,10 @@ export default function HubPage() {
       myBets
     }
   } = useSpin();
+
+  // Add token price hook
+  const { chaPrice, isLoading: isPriceLoading } = useTokenPrices();
+
   const [pageTokens, setPageTokens] = useState<SpinToken[]>([]);
   const [loadingPageTokens, setLoadingPageTokens] = useState(true);
   const [isPlaceBetModalOpen, setIsPlaceBetModalOpen] = useState(false);
@@ -188,7 +194,6 @@ export default function HubPage() {
             {sortedBets.map((vote: Vote) => {
               const token = getTokenInfo(vote.tokenId);
               const isWinningBet = vote.tokenId === feedData?.winningTokenId;
-              const displayVoteAmount = formatAtomicToWholeUnit(vote.voteAmountCHA, CHA_DECIMALS);
               return (
                 <div
                   key={vote.id}
@@ -215,7 +220,15 @@ export default function HubPage() {
                     <div className="flex-1 min-w-0">
                       <span className="font-semibold font-display text-foreground truncate block">{token?.symbol || vote.tokenId}</span>
                       <p className="text-sm text-muted-foreground">
-                        Committed: <span className="numeric font-medium text-primary">{displayVoteAmount} CHA</span>
+                        Committed: <TokenAmountDisplay
+                          amount={vote.voteAmountCHA}
+                          decimals={CHA_DECIMALS}
+                          symbol="CHA"
+                          usdPrice={chaPrice}
+                          className="font-medium text-primary"
+                          size="sm"
+                          showUsdInTooltip={true}
+                        />
                       </p>
                       <p className="text-xs text-muted-foreground/70">Time: {new Date(vote.voteTime)?.toLocaleString()}</p>
                     </div>
@@ -331,25 +344,45 @@ export default function HubPage() {
 
                   {/* Current Amount */}
                   <div className="text-center lg:text-left mb-4">
-                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display text-primary mb-1 numeric" aria-live="polite">
-                      {formatAtomicToWholeUnit(totalBetSum, CHA_DECIMALS)}
-                    </p>
-                    <p className="text-sm text-muted-foreground font-medium">CHA Committed</p>
+                    <div className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display text-primary mb-1 numeric" aria-live="polite">
+                      <TokenAmountDisplay
+                        amount={totalBetSum}
+                        decimals={CHA_DECIMALS}
+                        symbol="CHA"
+                        usdPrice={chaPrice}
+                        className="text-primary"
+                        size="lg"
+                        showUsd={true}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground font-medium">Committed this round</p>
                   </div>
 
                   {/* Quick Stats */}
                   <div className="space-y-2 mb-4 text-xs">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">ATH:</span>
-                      <span className="font-mono font-bold">
-                        {formatAtomicToWholeUnit(feedData?.athTotalAmount || 0, CHA_DECIMALS)} CHA
-                      </span>
+                      <TokenAmountDisplay
+                        amount={feedData?.athTotalAmount || 0}
+                        decimals={CHA_DECIMALS}
+                        symbol="CHA"
+                        usdPrice={chaPrice}
+                        className="font-bold"
+                        size="sm"
+                        showUsdInTooltip={true}
+                      />
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Last Round:</span>
-                      <span className="font-mono font-bold">
-                        {formatAtomicToWholeUnit(feedData?.previousRoundAmount || 0, CHA_DECIMALS)} CHA
-                      </span>
+                      <TokenAmountDisplay
+                        amount={feedData?.previousRoundAmount || 0}
+                        decimals={CHA_DECIMALS}
+                        symbol="CHA"
+                        usdPrice={chaPrice}
+                        className="font-bold"
+                        size="sm"
+                        showUsdInTooltip={true}
+                      />
                     </div>
                   </div>
                 </div>
@@ -361,6 +394,7 @@ export default function HubPage() {
                     athAmount={feedData?.athTotalAmount || 0}
                     previousRoundAmount={feedData?.previousRoundAmount || 0}
                     decimals={CHA_DECIMALS}
+                    usdPrice={chaPrice}
                   />
                 </div>
               </div>
@@ -395,6 +429,7 @@ export default function HubPage() {
             tokens={pageTokens}
             tokenBets={tokenBets || {}}
             isLoading={loadingPageTokens || isFeedLoading}
+            chaPrice={chaPrice}
           />
         </div>
 

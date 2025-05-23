@@ -2,19 +2,22 @@
 
 import React, { useMemo, useEffect, useState } from 'react';
 import { Trophy, TrendingUp, Target, Zap, Crown, Star } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface BetProgressProps {
     current: number; // Current total CHA bet (in atomic units)
     athAmount?: number; // All-Time High amount (in atomic units) 
     previousRoundAmount?: number; // Previous round amount for comparison
     decimals?: number; // Token decimals for formatting
+    usdPrice?: number; // USD price per token
 }
 
 const BetProgress = ({
     current,
     athAmount = 0, // Start from 0 for new systems
     previousRoundAmount = 0,
-    decimals = 6
+    decimals = 6,
+    usdPrice
 }: BetProgressProps) => {
     const [showCelebration, setShowCelebration] = useState(false);
     const [newRecord, setNewRecord] = useState(false);
@@ -24,18 +27,77 @@ const BetProgress = ({
     const isNewSystem = athAmount === 0;
     const isEmptyRound = current === 0 && isNewSystem;
 
-    // Format amounts for display
-    const formatAmount = (amount: number) => {
+    // Format CHA amounts only (no USD)
+    const formatCHAAmount = (amount: number) => {
         const wholeAmount = amount / (10 ** decimals);
+
         if (wholeAmount >= 1000000) {
             return `${(wholeAmount / 1000000).toFixed(1)}M`;
         } else if (wholeAmount >= 1000) {
             return `${(wholeAmount / 1000).toFixed(1)}K`;
+        } else {
+            return wholeAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
         }
-        return wholeAmount.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        });
+    };
+
+    // Format USD amounts for tooltips
+    const formatUSDAmount = (amount: number) => {
+        if (!usdPrice || amount === 0) return null;
+
+        const wholeAmount = amount / (10 ** decimals);
+        const usdValue = wholeAmount * usdPrice;
+
+        if (usdValue >= 1000000) {
+            return `$${(usdValue / 1000000).toFixed(1)}M`;
+        } else if (usdValue >= 1000) {
+            return `$${(usdValue / 1000).toFixed(1)}K`;
+        } else if (usdValue >= 1) {
+            return `$${usdValue.toFixed(2)}`;
+        } else {
+            return `$${usdValue.toFixed(4)}`;
+        }
+    };
+
+    // Legacy formatAmount function for places that still need combined format
+    const formatAmount = (amount: number) => {
+        const chaAmount = formatCHAAmount(amount);
+        const usdAmount = formatUSDAmount(amount);
+
+        if (usdAmount) {
+            return `${chaAmount} (~${usdAmount})`;
+        }
+
+        return chaAmount;
+    };
+
+    // Component for CHA amount with optional USD tooltip
+    const CHAAmountWithTooltip = ({ amount, className = "" }: { amount: number; className?: string }) => {
+        const chaAmount = formatCHAAmount(amount);
+        const usdAmount = formatUSDAmount(amount);
+
+        if (usdAmount) {
+            return (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className={`font-mono font-bold cursor-help ${className}`}>
+                            {chaAmount} CHA
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{usdAmount} USD</p>
+                    </TooltipContent>
+                </Tooltip>
+            );
+        }
+
+        return (
+            <span className={`font-mono font-bold ${className}`}>
+                {chaAmount} CHA
+            </span>
+        );
     };
 
     // Calculate progress and milestones
@@ -89,7 +151,7 @@ const BetProgress = ({
             milestone,
             urgencyLevel
         };
-    }, [current, effectiveATH, previousRoundAmount, isEmptyRound, isNewSystem]);
+    }, [current, effectiveATH, previousRoundAmount, isEmptyRound, isNewSystem, usdPrice]);
 
     // Trigger celebration effect for new records
     useEffect(() => {
@@ -165,7 +227,7 @@ const BetProgress = ({
                         <div
                             className="absolute top-0 h-full w-0.5 bg-muted-foreground/40 z-10"
                             style={{ left: `${Math.min(100, (previousRoundAmount / effectiveATH) * 100)}%` }}
-                            title={`Previous Round: ${formatAmount(previousRoundAmount)} CHA`}
+                            title={`Previous Round: ${formatCHAAmount(previousRoundAmount)} CHA`}
                         />
                     )}
 
@@ -173,7 +235,7 @@ const BetProgress = ({
                     <div
                         className="absolute top-0 h-full w-0.5 bg-yellow-500 z-10 opacity-80"
                         style={{ left: '100%' }}
-                        title={`ATH: ${formatAmount(effectiveATH)} CHA`}
+                        title={`ATH: ${formatCHAAmount(effectiveATH)} CHA`}
                     />
 
                     {/* Progress fill */}
@@ -221,7 +283,7 @@ const BetProgress = ({
             <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-4">
                     <span className="text-muted-foreground">
-                        Current: <span className={`font-mono font-bold ${textColor}`}>{formatAmount(current)} CHA</span>
+                        Current: <CHAAmountWithTooltip amount={current} className={textColor} />
                     </span>
                     {previousRoundAmount > 0 && (
                         <span className="text-muted-foreground">
@@ -233,7 +295,7 @@ const BetProgress = ({
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Trophy className="h-4 w-4" />
-                    <span>ATH: <span className="font-mono font-bold">{formatAmount(effectiveATH)} CHA</span></span>
+                    <span>ATH: <CHAAmountWithTooltip amount={effectiveATH} /></span>
                 </div>
             </div>
 
