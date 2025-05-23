@@ -24,10 +24,18 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-// Simple interface for quote response based on wallet context
+// Interface for quote response based on dexterity-sdk documentation
 interface QuoteResponse {
+    amountIn: string | number;
     amountOut: string | number;
+    expectedPrice?: string | number;
     minimumReceived?: string | number;
+    route?: {
+        hops: Array<{
+            vault: string;
+            opcode: number;
+        }>;
+    };
 }
 
 // --- Constants ---
@@ -156,16 +164,14 @@ export function SwapStxToChaButton({
                 }
 
                 // Assuming getQuote from useWallet returns:
-                // - { quote: QuoteResponseData } for success
-                // - An Error instance for failure
+                // - { success: true, quote: QuoteResponseData } for success
+                // - { success: false, error: string } for failure
                 const response = await getQuote('.stx', CHARISMA_SUBNET_CONTRACT, amountInMicroStx);
 
-                if (response instanceof Error) {
-                    setQuoteState({ data: null, loading: false, error: response.message });
-                } else if (response && typeof response === 'object' && response.quote !== undefined) {
+                if (response.success && response.quote) {
                     setQuoteState({ data: response.quote as QuoteResponse, loading: false, error: null });
                 } else {
-                    setQuoteState({ data: null, loading: false, error: 'Invalid quote data received.' });
+                    setQuoteState({ data: null, loading: false, error: response.error || 'Failed to get quote' });
                 }
             } catch (err) {
                 setQuoteState({
@@ -203,15 +209,10 @@ export function SwapStxToChaButton({
         setLastTxId(null); // Reset last TxId
 
         try {
-            // Assuming swapTokens from useWallet takes these arguments: tokenInId, tokenOutId, amountString (human-readable)
-            // And internally uses the best route, or if it needs a quote/route object, that should be passed.
-            // The current implementation of swapTokens in the original file was `swapTokens()`
-            // which might imply it gets context elsewhere.
-            // Reverting to the more explicit version for clarity if it's a generic swap function:
+            // Call swapTokens with the required parameters
             const result = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, values.stxAmount);
 
-
-            // Assuming result has { txid: string } on success or { error: string } on failure from useWallet().swapTokens
+            // Handle successful transaction
             if (result && typeof result === 'object' && 'txid' in result && result.txid) {
                 const txId = String(result.txid);
                 setLastTxId(txId);
@@ -226,8 +227,9 @@ export function SwapStxToChaButton({
                 clearQuote();   // Clear the quote
                 setIsOpen(false); // Close dialog
                 onSwapSuccess?.(txId);
-            } else if (result && typeof result === 'object' && 'error' in result) {
-                const errorMessage = String(result.error) || 'Swap failed or was cancelled by the wallet.';
+            } else if (result && typeof result === 'object' && result.success === false) {
+                // Handle explicit error response
+                const errorMessage = result.error || 'Swap failed';
                 toast.error('Swap Failed', { description: errorMessage });
                 onSwapError?.(new Error(errorMessage));
             } else {

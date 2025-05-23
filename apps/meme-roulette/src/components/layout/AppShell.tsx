@@ -140,6 +140,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <nav className="hidden md:flex gap-6">
                         <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">Home</Link>
                         <Link href="/about" className="text-foreground/80 hover:text-primary transition-colors">About</Link>
+                        <Link href="/leaderboard" className="text-foreground/80 hover:text-primary transition-colors">Leaderboard</Link>
                     </nav>
 
                     {/* User Info & Actions Panel */}

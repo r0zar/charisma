@@ -33,7 +33,7 @@ interface WalletContextType {
     disconnectWallet: () => void;
     placeBet: (amount: number, tokenId: string) => Promise<{ success: boolean; uuid?: string; error?: string }>;
     getQuote: (from: string, to: string, amount: number) => Promise<{ success: boolean; quote?: any; error?: string }>;
-    swapTokens: any;
+    swapTokens: (from: string, to: string, amount: string) => Promise<any>;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -50,7 +50,7 @@ const WalletContext = createContext<WalletContextType>({
     disconnectWallet: () => { },
     placeBet: async () => ({ success: false, error: 'Wallet not connected' }),
     getQuote: async () => ({ success: false, error: 'Failed to get quote' }),
-    swapTokens: async () => { }
+    swapTokens: async () => ({ success: false, error: 'Wallet not connected' })
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -263,10 +263,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
-
-    const swapTokens = async () => {
+    const swapTokens = async (from: string, to: string, amount: string) => {
         try {
-            const txCfg = await buildSwapTransaction(router, quoteRef.current?.route!, address);
+            if (!quoteRef.current) {
+                throw new Error('No quote available for swap');
+            }
+
+            // buildSwapTransaction expects the entire quote object (Route), not quote.route
+            const txCfg = await buildSwapTransaction(router, quoteRef.current, address);
             const response = await request('stx_callContract', txCfg);
             return response;
         } catch (error: any) {
@@ -274,8 +278,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             return { success: false, error: error.message || String(error) };
         }
     };
-
-
 
     return (
         <WalletContext.Provider
