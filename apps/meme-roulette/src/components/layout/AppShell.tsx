@@ -5,13 +5,13 @@ import Footer from './Footer';
 import MobileNav from './MobileNav';
 import { useSpinFeed } from '@/hooks/useSpinFeed';
 import { useWallet } from '@/contexts/wallet-context';
-import PlaceBetModal from '@/components/PlaceBetModal';
+import VoteModal from '@/components/VoteModal';
 import { Button } from '@/components/ui/button';
 import { Rocket, LogOut, Menu } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
 import { listTokens } from 'dexterity-sdk'; // Import server action
-import type { Token as SpinToken } from '@/types/spin'; // Import the type expected by PlaceBetModal
+import type { Token as SpinToken } from '@/types/spin'; // Import the type expected by VoteModal
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
 import {
     Tooltip,
@@ -234,7 +234,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <MobileNav />
 
             {/* Modals and popups */}
-            <PlaceBetModal
+            <VoteModal
                 isOpen={isBetModalOpen}
                 onClose={() => setIsBetModalOpen(false)}
                 tokens={dexTokens}

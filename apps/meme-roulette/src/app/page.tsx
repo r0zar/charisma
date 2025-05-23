@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSpin } from '@/contexts/SpinContext';
-import PlaceBetModal from '@/components/PlaceBetModal';
+import VoteModal from '@/components/VoteModal';
 import { LeaderboardTable } from '@/components/LeaderboardTable';
 import SpinCountdown from '@/components/SpinCountdown';
 import BetProgress from '@/components/BetProgress';
@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { InstructionsButton } from '@/components/InstructionsButton';
+import { useWallet } from '@/contexts/wallet-context';
 
 // Define CHA decimals (ideally, get this from token data if CHA is in pageTokens)
 const CHA_DECIMALS = 6;
@@ -51,7 +52,7 @@ export default function HubPage() {
 
   const [pageTokens, setPageTokens] = useState<SpinToken[]>([]);
   const [loadingPageTokens, setLoadingPageTokens] = useState(true);
-  const [isPlaceBetModalOpen, setIsPlaceBetModalOpen] = useState(false);
+  const [isVoteModalOpen, setIsVoteModalOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const { width, height } = useWindowSize();
@@ -134,9 +135,9 @@ export default function HubPage() {
     return () => clearInterval(interval);
   }, [spinTime]);
 
-  const handlePlaceBetClick = () => {
+  const handleVoteClick = () => {
     if (!isBettingLocked && !isSpinComplete) {
-      setIsPlaceBetModalOpen(true);
+      setIsVoteModalOpen(true);
     }
   };
 
@@ -170,11 +171,11 @@ export default function HubPage() {
             </div>
             <p className="text-muted-foreground mb-4">You haven't committed any CHA yet.</p>
             <Button
-              onClick={handlePlaceBetClick}
+              onClick={handleVoteClick}
               disabled={isBettingLocked || isSpinComplete}
               variant="outline"
             >
-              Make Your First Commitment
+              🚀 Vote for Your Favorite!
             </Button>
           </div>
         </div>
@@ -431,12 +432,12 @@ export default function HubPage() {
             <div className="max-w-md mx-auto">
               <Button
                 size="lg"
-                onClick={handlePlaceBetClick}
+                onClick={handleVoteClick}
                 disabled={isBettingLocked}
                 className={`button-primary w-full py-4 text-base sm:text-lg shadow-lg ${isBettingLocked ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-medium'}`}
               >
                 <Rocket className="h-5 w-5" />
-                {isBettingLocked ? 'Voting Locked' : 'Vote to Pump a Token'}
+                {isBettingLocked ? 'Voting Locked' : 'Vote for Your Favorite Meme!'}
               </Button>
             </div>
           </div>
@@ -461,9 +462,9 @@ export default function HubPage() {
           {renderMyBetsSection()}
         </div>
 
-        <PlaceBetModal
-          isOpen={isPlaceBetModalOpen}
-          onClose={() => setIsPlaceBetModalOpen(false)}
+        <VoteModal
+          isOpen={isVoteModalOpen}
+          onClose={() => setIsVoteModalOpen(false)}
           tokens={pageTokens}
         />
       </>
