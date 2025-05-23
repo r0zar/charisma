@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { generateSubnetWrapper } from '@/lib/contract-generators/subnet-wrapper';
-import { getTokenMetadataCached, listTokens, SIP10, TokenCacheData } from '@repo/tokens'
+import { getTokenMetadataCached, listTokens, TokenCacheData } from '@repo/tokens'
 import Image from 'next/image';
 import { createSubnetMetadataAction } from '@/lib/actions/metadataActions';
 
@@ -125,8 +125,8 @@ const TokenSelectionStep = ({
     const [fetchedToken, setFetchedToken] = useState<TokenCacheData | null>(null);
 
     // State for token list
-    const [tokens, setTokens] = useState<SIP10[]>([]);
-    const [filteredTokens, setFilteredTokens] = useState<SIP10[]>([]);
+    const [tokens, setTokens] = useState<TokenCacheData[]>([]);
+    const [filteredTokens, setFilteredTokens] = useState<TokenCacheData[]>([]);
 
     // Function to fetch token metadata by contract ID
     const fetchTokenMetadata = async (contractId: string) => {
@@ -172,7 +172,7 @@ const TokenSelectionStep = ({
                 setError('Failed to load tokens. Using default list.');
 
                 // Fallback to a minimal default list
-                const defaultTokens: SIP10[] = [];
+                const defaultTokens: TokenCacheData[] = [];
                 setTokens(defaultTokens);
                 setFilteredTokens(defaultTokens);
             } finally {
