@@ -123,10 +123,10 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
     // Dynamic recommendation - higher fees get better ratings
     const getRecommendationStatus = () => {
         const fee = parseFloat(feePercent);
-        if (fee >= 3.0) return "Highly Recommended";  // Premium protection
+        if (fee >= 2.0) return "Highly Recommended";  // Premium protection
         if (fee >= 1.0) return "Recommended";         // Strong protection
         if (fee >= 0.3) return "Consider";            // Moderate protection
-        return "Caution Advised";                     // Low protection
+        return "Neutral";                     // Low protection
     };
 
     const recommendationStatus = getRecommendationStatus();
@@ -246,7 +246,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                     ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
                                     : recommendationStatus === "Consider"
                                         ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300"
-                                        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300"
+                                        : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:border-gray-700 dark:text-gray-300"
                                 }`}>
                                 <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
                                 {recommendationStatus}
