@@ -6,7 +6,7 @@ import { TokenDef } from "@/types/otc";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, Check, X, User, CheckCircle, XCircle, Wallet } from "lucide-react";
+import { AlertCircle, Clock, Check, X, User, CheckCircle, XCircle, Wallet, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/wallet-context";
 import { signedFetch } from 'blaze-sdk';
@@ -17,6 +17,12 @@ import { checkBidderBalance } from "@/app/actions";
 const shortenAddress = (address: string, startChars = 6, endChars = 4) => {
     if (!address || address.length < startChars + endChars + 2) return address;
     return `${address.substring(0, startChars)}...${address.substring(address.length - endChars)}`;
+};
+
+// Helper to generate blockchain explorer URL
+const getExplorerUrl = (txId: string) => {
+    const network = process.env.NODE_ENV === 'development' ? 'testnet' : 'mainnet';
+    return `https://explorer.hiro.so/txid/${txId}?chain=${network}`;
 };
 
 // Helper to format token amount (similar to ActiveBids)
@@ -127,7 +133,16 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
 
             if (response.ok) {
                 toast.dismiss();
-                toast.success("Bid accepted successfully! Trade is being executed.");
+                const responseData = await response.json();
+                const txId = responseData.transactionDetails?.transferTxId;
+
+                if (txId) {
+                    toast.success("Bid accepted successfully! Trade is being executed.", {
+                        description: `Transaction ID: ${txId.slice(0, 8)}...${txId.slice(-4)}`
+                    });
+                } else {
+                    toast.success("Bid accepted successfully! Trade is being executed.");
+                }
 
                 // Update local state immediately for better UX
                 setLocalBidStatuses(prev => ({ ...prev, [bidId]: 'accepted' }));
@@ -300,6 +315,18 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                                 <span>{new Date(bid.createdAt).toLocaleDateString()}</span>
                                             </div>
 
+                                            {/* Bid Message */}
+                                            {bid.message && bid.message.trim() && (
+                                                <div className="mt-2 p-2 bg-muted/20 rounded text-xs">
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <span className="font-medium text-primary">💬 Message:</span>
+                                                    </div>
+                                                    <p className="text-muted-foreground italic">
+                                                        "{bid.message.trim()}"
+                                                    </p>
+                                                </div>
+                                            )}
+
                                             {/* Balance Information */}
                                             {isOfferCreator && isPending && (
                                                 <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
@@ -373,6 +400,19 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                     <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
                                         <p className="text-green-600 dark:text-green-400 font-medium">Bid accepted</p>
                                         <p>Trade has been executed successfully.</p>
+                                        {bid.acceptanceDetails?.txId && (
+                                            <div className="mt-2">
+                                                <a
+                                                    href={getExplorerUrl(bid.acceptanceDetails.txId)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                                >
+                                                    <ExternalLink className="h-3 w-3" />
+                                                    View transaction
+                                                </a>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

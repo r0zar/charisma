@@ -234,6 +234,19 @@ export async function POST(req: NextRequest) {
         const response = await broadcastTransaction({ transaction });
         console.log("transfer response", response);
 
+        // Capture the transaction ID from the transfer
+        const transferTxId = response.txid || response;
+        console.log("Transfer transaction ID:", transferTxId);
+
+        // Ensure we have a valid transaction ID
+        if (!transferTxId || typeof transferTxId !== 'string') {
+            console.error("Failed to capture valid transaction ID:", transferTxId);
+            return NextResponse.json({
+                success: false,
+                error: "Transaction failed - no valid transaction ID received"
+            }, { status: 500 });
+        }
+
         // Loop through all offer assets and create a redeem for each
         for (const offerAsset of offer.offerAssets) {
             // delay for 3 seconds
@@ -262,7 +275,13 @@ export async function POST(req: NextRequest) {
             if (b.bidId === data.acceptedBidId) {
                 return {
                     ...b,
-                    status: "accepted" as Bid['status']
+                    status: "accepted" as Bid['status'],
+                    acceptanceDetails: {
+                        executeOtcSwapIntentUuid: offer.intentUuid,
+                        acceptanceSignature: "automated", // Could be enhanced with actual signature
+                        executeOpcodeHex: "automated",    // Could be enhanced with actual opcode
+                        txId: transferTxId
+                    }
                 };
             } else if (b.status === "pending") {
                 // Construct a new object for the rejected bid, omitting sensitive fields
@@ -295,6 +314,7 @@ export async function POST(req: NextRequest) {
             transactionDetails: {
                 transferAmount: acceptedBidNumericAmount,
                 transferToken: bid.bidAssets[0].token,
+                transferTxId: transferTxId,
                 redeemAssets: offer.offerAssets.map(asset => ({
                     token: asset.token,
                     amount: asset.amount

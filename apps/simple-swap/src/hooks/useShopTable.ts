@@ -256,6 +256,7 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
                 bidAssets: [{ token: selectedTokenInfo.id, amount: atomicBidAmountStr }],
                 bidSignature: signedBidIntent.signature,
                 bidderSideIntentUuid: bidderSideIntentUuid,
+                message: bidMessage.trim() || undefined,
             };
 
             const res = await fetch(`/api/v1/otc/bid`, {

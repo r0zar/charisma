@@ -36,6 +36,7 @@ export const bidCreateSchema = z.object({
     bidAssets: z.array(assetSchema).length(1),
     bidSignature: z.string().min(1),
     bidderSideIntentUuid: z.string().uuid(),
+    message: z.string().optional(),
 });
 export const bidCancelSchema = z.object({
     originalOfferIntentUuid: z.string().uuid(),
@@ -50,10 +51,12 @@ export interface Bid extends Omit<BidPayload, 'bidSignature' | 'bidderSideIntent
     status: "pending" | "accepted" | "rejected" | "cancelled";
     bidSignature?: string;
     bidderSideIntentUuid?: string;
+    message?: string;
     acceptanceDetails?: {
         executeOtcSwapIntentUuid: string;
         acceptanceSignature: string;
         executeOpcodeHex: string;
+        txId?: string;
     };
 }
 

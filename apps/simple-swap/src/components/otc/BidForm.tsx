@@ -43,6 +43,7 @@ export default function EnhancedBidForm({ intentUuid, subnetTokens, offer, onBid
     const router = useRouter();
     const { address: stxAddress } = useWallet();
     const [bidAsset, setBidAsset] = useState<Asset>({ token: "", amount: "" });
+    const [bidMessage, setBidMessage] = useState("");
     const [isSigning, setIsSigning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -115,6 +116,7 @@ export default function EnhancedBidForm({ intentUuid, subnetTokens, offer, onBid
                 bidAssets: [{ token: bidAsset.token, amount: atomicBidAmountStr }],
                 bidSignature: signedBidIntent.signature,
                 bidderSideIntentUuid: bidderSideIntentUuid,
+                message: bidMessage,
             };
 
             const res = await fetch(`/api/v1/otc/bid`, {
@@ -129,6 +131,7 @@ export default function EnhancedBidForm({ intentUuid, subnetTokens, offer, onBid
                 router.refresh();
                 onBidPlaced?.();
                 setBidAsset({ token: "", amount: "" });
+                setBidMessage("");
             } else {
                 throw new Error(json.error || "API failed to process the bid.");
             }
@@ -209,6 +212,18 @@ export default function EnhancedBidForm({ intentUuid, subnetTokens, offer, onBid
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-muted-foreground mb-1.5 block">Message (Optional)</label>
+                                <Input
+                                    type="text"
+                                    placeholder="Add a message to your bid..."
+                                    value={bidMessage}
+                                    onChange={(e) => setBidMessage(e.target.value)}
+                                    disabled={isLoading}
+                                    className="w-full"
+                                />
                             </div>
                         </div>
                     </div>
