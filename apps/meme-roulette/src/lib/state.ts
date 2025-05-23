@@ -16,6 +16,9 @@ const KV_ROUND_DURATION = 'spin:round_duration';
 const KV_LOCK_DURATION = 'spin:lock_duration';
 export const KV_TOKEN_BETS = 'spin:token_bets';
 export const KV_USER_VOTES = 'spin:user_votes';
+// ATH tracking keys
+const KV_ATH_TOTAL_AMOUNT = 'spin:ath_total_amount';
+const KV_PREVIOUS_ROUND_AMOUNT = 'spin:previous_round_amount';
 
 // --- Get Current Round Duration ---
 export async function getRoundDuration(): Promise<number> {
@@ -47,6 +50,53 @@ export async function setLockDuration(durationMs: number): Promise<void> {
     console.log(`Lock duration set to ${durationMs}ms (${durationMs / 60000} minutes)`);
 }
 
+// --- ATH Tracking Functions ---
+
+// Get current All-Time High total CHA amount
+export async function getATHTotalAmount(): Promise<number> {
+    const amount = await kv.get<number>(KV_ATH_TOTAL_AMOUNT);
+    return amount ?? 0; // Start from 0 if no ATH exists
+}
+
+// Set new All-Time High total CHA amount
+export async function setATHTotalAmount(amount: number): Promise<void> {
+    if (typeof amount !== 'number' || amount < 0) {
+        console.warn('Invalid ATH amount:', amount);
+        return;
+    }
+    await kv.set(KV_ATH_TOTAL_AMOUNT, amount);
+    console.log(`New ATH total amount set: ${amount} CHA (atomic units)`);
+}
+
+// Get previous round total CHA amount
+export async function getPreviousRoundAmount(): Promise<number> {
+    const amount = await kv.get<number>(KV_PREVIOUS_ROUND_AMOUNT);
+    return amount ?? 0; // Return 0 if no previous round data
+}
+
+// Set previous round total CHA amount
+export async function setPreviousRoundAmount(amount: number): Promise<void> {
+    if (typeof amount !== 'number' || amount < 0) {
+        console.warn('Invalid previous round amount:', amount);
+        return;
+    }
+    await kv.set(KV_PREVIOUS_ROUND_AMOUNT, amount);
+    console.log(`Previous round amount set: ${amount} CHA (atomic units)`);
+}
+
+// Update ATH if current round total exceeds it
+export async function updateATHIfNeeded(currentRoundTotal: number): Promise<boolean> {
+    const currentATH = await getATHTotalAmount();
+
+    if (currentRoundTotal > currentATH) {
+        await setATHTotalAmount(currentRoundTotal);
+        console.log(`🏆 NEW ATH! Previous: ${currentATH}, New: ${currentRoundTotal} CHA`);
+        return true; // New ATH was set
+    }
+
+    return false; // No new ATH
+}
+
 // --- Initialization Function ---
 export async function initializeKVState() {
     const now = Date.now();
@@ -59,6 +109,9 @@ export async function initializeKVState() {
         kv.set(KV_LAST_TOKEN_FETCH, 0, { nx: true }),
         kv.set(KV_ROUND_DURATION, roundDuration, { nx: true }),
         kv.set(KV_LOCK_DURATION, DEFAULT_LOCK_DURATION_MS, { nx: true }),
+        // Initialize ATH tracking with 0 values
+        kv.set(KV_ATH_TOTAL_AMOUNT, 0, { nx: true }),
+        kv.set(KV_PREVIOUS_ROUND_AMOUNT, 0, { nx: true }),
     ]);
 
     // Initialize the hash only if it doesn't exist
@@ -73,7 +126,7 @@ export async function initializeKVState() {
         await kv.set(KV_USER_VOTES, {});
     }
 
-    console.log('KV State Initialized (if needed).');
+    console.log('KV State Initialized (if needed) with ATH tracking.');
 }
 
 // --- User Vote Tracking ---
@@ -206,6 +259,22 @@ export async function resetKVForNextSpin() {
     const roundDuration = await getRoundDuration();
     const nextSpinTime = Date.now() + roundDuration;
 
+    // Get current round's total for ATH tracking
+    const currentBets = await getKVTokenBets();
+    const currentRoundTotal = Object.values(currentBets).reduce((sum, amount) => sum + amount, 0);
+
+    // Update ATH if current round beats it
+    const newATH = await updateATHIfNeeded(currentRoundTotal);
+
+    // Set current round total as previous round amount for next round
+    await setPreviousRoundAmount(currentRoundTotal);
+
+    if (newATH) {
+        console.log(`🎉 Round completed with NEW ATH: ${currentRoundTotal} CHA!`);
+    } else {
+        console.log(`Round completed with total: ${currentRoundTotal} CHA (ATH: ${await getATHTotalAmount()} CHA)`);
+    }
+
     await kv.multi()
         .set(KV_SPIN_SCHEDULED_AT, nextSpinTime)
         .set(KV_WINNING_TOKEN_ID, null)
@@ -246,6 +315,11 @@ export async function buildKVDataPacket(): Promise<Omit<SpinFeedData, 'initialTo
     const status = await getKVSpinStatus();
     const bets = await getKVTokenBets();
     const lockDuration = await getLockDuration();
+
+    // Get ATH tracking data
+    const athTotalAmount = await getATHTotalAmount();
+    const previousRoundAmount = await getPreviousRoundAmount();
+
     const now = Date.now();
 
     return {
@@ -256,6 +330,8 @@ export async function buildKVDataPacket(): Promise<Omit<SpinFeedData, 'initialTo
         winningTokenId: status.winningTokenId ?? undefined,
         tokenVotes: bets,
         roundDuration: status.roundDuration, // Include round duration in the packet
-        lockDuration: lockDuration // Include lock duration in the packet
+        lockDuration: lockDuration, // Include lock duration in the packet
+        athTotalAmount: athTotalAmount, // Include ATH total amount
+        previousRoundAmount: previousRoundAmount // Include previous round amount
     };
 } 

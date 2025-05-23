@@ -14,7 +14,6 @@ import { HandCoins, Trophy, Rocket, TrendingUp, DollarSign } from 'lucide-react'
 import Image from 'next/image';
 import type { Vote } from '@/types/spin';
 import { listTokens } from 'dexterity-sdk';
-import type { Token as SwapClientToken } from '@/lib/swap-client';
 import type { Token as SpinToken } from '@/types/spin';
 import SpinAnimationOverlay from '@/components/SpinAnimationOverlay';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -64,7 +63,7 @@ export default function HubPage() {
       try {
         const result = await listTokens();
         if (result) {
-          const mappedTokens: SpinToken[] = result.map((token: SwapClientToken) => ({
+          const mappedTokens: SpinToken[] = result.map((token: any) => ({
             id: token.contractId,
             contractId: token.contractId,
             name: token.name,
@@ -139,45 +138,27 @@ export default function HubPage() {
     return pageTokens.find((t: SpinToken) => t.id === tokenId);
   }, [pageTokens]);
 
-  const renderTimeLeft = () => {
-    if (!spinTime || !hasMounted) return <div className="text-sm h-5">Loading...</div>;
-    if (isSpinComplete) {
-      const winnerToken = getTokenInfo(feedData.winningTokenId!);
-      return <div className="text-center text-lg font-display font-semibold text-pump animate-pulse-slow">Pump Complete! Winner: {winnerToken?.symbol || 'Unknown'}</div>;
-    }
-    if (isBettingLocked) {
-      return <div className="text-center text-sm text-warning font-medium">Commitment Locked! Preparing pump...</div>;
-    }
-    const minutes = Math.floor(timeLeft / 60000);
-    const seconds = Math.floor((timeLeft % 60000) / 1000);
-    return (
-      <div className="text-center text-sm text-primary font-medium font-display" aria-live="polite">
-        Time left to commit: <span className="numeric">{minutes}:{seconds.toString().padStart(2, '0')}</span>
-      </div>
-    );
-  };
-
   const renderMyBetsSection = () => {
     if (!hasMounted || (isFeedLoading && myBets?.length === 0)) {
       return (
-        <>
-          <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
-            <HandCoins className="h-5 w-5 text-primary" />
+        <div className="bg-background/30 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+          <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
+            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             My Votes
           </h2>
           <SkeletonLoader type="generic" count={2} />
-        </>
+        </div>
       );
     }
 
     if (!myBets || myBets.length === 0) {
       return (
-        <>
-          <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
-            <HandCoins className="h-5 w-5 text-primary" />
+        <div className="bg-background/30 md:glass-card px-4 py-6 md:p-6 md:border md:rounded-xl">
+          <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
+            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             My Votes
           </h2>
-          <div className="glass-card p-8 rounded-xl text-center border">
+          <div className="bg-muted/20 md:glass-card p-6 sm:p-8 rounded-xl text-center border-0 md:border">
             <div className="text-muted-foreground/70 mb-3 justify-center flex items-center">
               <HandCoins size={40} />
             </div>
@@ -190,16 +171,16 @@ export default function HubPage() {
               Make Your First Commitment
             </Button>
           </div>
-        </>
+        </div>
       );
     }
 
     const sortedBets = [...myBets].sort((a, b) => b.voteTime - a.voteTime);
 
     return (
-      <>
-        <h2 className="text-lg font-semibold font-display mb-4 flex items-center gap-2">
-          <HandCoins className="h-5 w-5 text-primary" />
+      <div className="bg-background/30 md:glass-card px-4 py-6 md:p-6 md:border md:rounded-xl">
+        <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
+          <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           My Votes
         </h2>
         <ScrollArea className="h-[220px] pr-3 -mr-3">
@@ -247,7 +228,7 @@ export default function HubPage() {
             })}
           </div>
         </ScrollArea>
-      </>
+      </div>
     );
   };
 
@@ -323,57 +304,91 @@ export default function HubPage() {
           />
         )}
 
-        <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
-          <div className="md:col-span-1 glass-card p-6">
-            <h2 className="text-lg font-semibold mb-4 text-center font-display flex items-center justify-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Next Mass Buy In
-            </h2>
-            <SpinCountdown
-              timeLeft={timeLeft}
-              totalTime={5 * 60 * 1000}
-              label={isSpinComplete ? "Time until next round" : "Time until mass buy"}
-            />
-            <div className="text-center text-sm mt-3 h-5 font-medium" aria-live="polite">
-              {isSpinComplete ? (
-                <span className="text-pump font-display">Pump Complete</span>
-              ) : isBettingLocked ? (
-                <span className="text-warning font-display">Voting Locked</span>
-              ) : (
-                <span className="text-primary font-display animate-pulse-medium">Open for Voting</span>
-              )}
-            </div>
-          </div>
-
-          <div className="md:col-span-2 glass-card p-6">
-            <h2 className="text-lg font-semibold mb-3 font-display flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Funds Raised for Pump
-            </h2>
-            <p className="text-3xl font-bold font-display text-primary mb-4 numeric" aria-live="polite">
-              {formatAtomicToWholeUnit(totalBetSum, CHA_DECIMALS)} CHA
-            </p>
-            <BetProgress current={totalBetSum} target={1000000 * (10 ** CHA_DECIMALS)} />
-
-            {!isSpinComplete && !showSpinAnimation && (
-              <div className="mt-5">
-                <Button
-                  size="lg"
-                  onClick={handlePlaceBetClick}
-                  disabled={isBettingLocked}
-                  className={`button-primary w-full py-4 text-lg shadow-lg ${isBettingLocked ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-medium'}`}
-                >
-                  <Rocket className="h-5 w-5" />
-                  {isBettingLocked ? 'Voting Locked' : 'Vote to Pump a Token'}
-                </Button>
+        <div className={`flex flex-col gap-0 md:gap-6 mb-0 md:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+          {/* Combined Status Section - Full width, better balanced layout */}
+          <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Countdown Section */}
+              <div className="lg:col-span-2">
+                <h2 className="text-base sm:text-lg font-semibold mb-4 font-display flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  Next Mass Buy In
+                </h2>
+                <SpinCountdown
+                  timeLeft={timeLeft}
+                  totalTime={spinDuration}
+                  label={isSpinComplete ? "Time until next round" : "Time until mass buy"}
+                />
               </div>
-            )}
+
+              {/* Enhanced Funds Raised Section */}
+              <div className="lg:col-span-1 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-base sm:text-lg font-semibold mb-3 font-display flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    Funds Raised
+                  </h2>
+
+                  {/* Current Amount */}
+                  <div className="text-center lg:text-left mb-4">
+                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold font-display text-primary mb-1 numeric" aria-live="polite">
+                      {formatAtomicToWholeUnit(totalBetSum, CHA_DECIMALS)}
+                    </p>
+                    <p className="text-sm text-muted-foreground font-medium">CHA Committed</p>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="space-y-2 mb-4 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">ATH:</span>
+                      <span className="font-mono font-bold">
+                        {formatAtomicToWholeUnit(feedData?.athTotalAmount || 0, CHA_DECIMALS)} CHA
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Last Round:</span>
+                      <span className="font-mono font-bold">
+                        {formatAtomicToWholeUnit(feedData?.previousRoundAmount || 0, CHA_DECIMALS)} CHA
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Section */}
+                <div>
+                  <BetProgress
+                    current={totalBetSum}
+                    athAmount={feedData?.athTotalAmount || 0}
+                    previousRoundAmount={feedData?.previousRoundAmount || 0}
+                    decimals={CHA_DECIMALS}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className={`glass-card p-6 mb-6 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
-          <h2 className="text-lg font-semibold mb-4 font-display flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
+        {/* Action Section */}
+        {!isSpinComplete && !showSpinAnimation && (
+          <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl mb-0 md:mb-8">
+            <div className="max-w-md mx-auto">
+              <Button
+                size="lg"
+                onClick={handlePlaceBetClick}
+                disabled={isBettingLocked}
+                className={`button-primary w-full py-4 text-base sm:text-lg shadow-lg ${isBettingLocked ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-medium'}`}
+              >
+                <Rocket className="h-5 w-5" />
+                {isBettingLocked ? 'Voting Locked' : 'Vote to Pump a Token'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Leaderboard Section */}
+        <div className={`bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl md:mb-6 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 font-display flex items-center gap-2">
+            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Token Leaderboard
           </h2>
           <LeaderboardTable
@@ -383,7 +398,8 @@ export default function HubPage() {
           />
         </div>
 
-        <div className={`mb-24 sm:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+        {/* My Votes Section */}
+        <div className={`mb-20 sm:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           {renderMyBetsSection()}
         </div>
 

@@ -13,7 +13,9 @@ import {
     UPDATE_INTERVAL, // Get interval constants from state module
     KV_TOKEN_BETS, // Import the KV key for token bets
     getLockDuration,
-    getUserVotes // Import the getUserVotes function from the state module
+    getUserVotes,
+    getATHTotalAmount, // Import ATH functions for logging
+    getPreviousRoundAmount
 } from '@/lib/state';
 import { NextRequest } from 'next/server';
 
@@ -260,6 +262,10 @@ const updateAndBroadcast = async () => {
     const currentStatus = await getKVSpinStatus(); // re-fetch status for most up-to-date endTime etc.
     const lockDuration = await getLockDuration();
 
+    // Get ATH tracking data for broadcasts
+    const athTotalAmount = await getATHTotalAmount();
+    const previousRoundAmount = await getPreviousRoundAmount();
+
     const basePacket: Omit<SpinFeedData, 'currentUserBets' | 'initialTokens'> = {
         type: currentStatus.winningTokenId ? 'spin_result' : 'update',
         startTime: currentStatus.spinScheduledAt - currentStatus.roundDuration,
@@ -269,6 +275,8 @@ const updateAndBroadcast = async () => {
         lastUpdated: Date.now(),
         roundDuration: currentStatus.roundDuration,
         lockDuration: lockDuration,
+        athTotalAmount: athTotalAmount, // Include ATH data in broadcasts
+        previousRoundAmount: previousRoundAmount // Include previous round data in broadcasts
     };
 
     await broadcast(basePacket); // Pass the base packet
@@ -316,6 +324,13 @@ export async function GET(request: NextRequest) {
                 const lockDuration = await getLockDuration();
                 const currentUserVotes = userId !== 'anonymous' ? await getUserVotes(userId) : [];
 
+                // Get ATH tracking data
+                const athTotalAmount = await getATHTotalAmount();
+                const previousRoundAmount = await getPreviousRoundAmount();
+
+                // Log ATH data for verification
+                console.log(`API/Stream: ATH tracking data - ATH: ${athTotalAmount}, Previous: ${previousRoundAmount}`);
+
                 const initialDataPacket: SpinFeedData = {
                     type: initialStatus.winningTokenId ? 'spin_result' : 'initial',
                     initialTokens: initialTokens,
@@ -326,7 +341,9 @@ export async function GET(request: NextRequest) {
                     lastUpdated: Date.now(),
                     roundDuration: initialStatus.roundDuration,
                     lockDuration: lockDuration,
-                    currentUserBets: currentUserVotes
+                    currentUserBets: currentUserVotes,
+                    athTotalAmount: athTotalAmount, // Include ATH data
+                    previousRoundAmount: previousRoundAmount // Include previous round data
                 };
                 const message = `data: ${JSON.stringify(initialDataPacket)}\n\n`;
                 controller.enqueue(new TextEncoder().encode(message));

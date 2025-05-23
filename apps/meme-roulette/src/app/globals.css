@@ -98,11 +98,43 @@
   }
   
   h1 {
-    @apply text-3xl md:text-4xl lg:text-5xl leading-tight;
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight;
   }
   
   h2 {
-    @apply text-2xl md:text-3xl lg:text-4xl leading-tight;
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-tight;
+  }
+  
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl leading-snug;
+  }
+  
+  /* Mobile-optimized text sizes */
+  .text-mobile-lg {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+  
+  .text-mobile-base {
+    @apply text-sm sm:text-base md:text-lg;
+  }
+  
+  /* Mobile-friendly spacing */
+  .space-mobile-tight > * + * {
+    margin-top: 0.75rem;
+  }
+  
+  .space-mobile-normal > * + * {
+    margin-top: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .space-mobile-tight > * + * {
+      margin-top: 1rem;
+    }
+    
+    .space-mobile-normal > * + * {
+      margin-top: 1.5rem;
+    }
   }
   
   .numeric, .price, .cha-amount {
@@ -130,6 +162,7 @@
 /* COMPONENTS LAYER */
 @layer components {
   .glass-card {
+    /* Desktop glass card styling */
     background-color: color-mix(in srgb, var(--color-card) 50%, transparent);
     border-color: color-mix(in srgb, var(--color-border) 40%, var(--color-primary) 5%);
     border-width: 1px;
@@ -143,6 +176,27 @@
   .glass-card:hover {
     /* transform: translateY(-1px); */
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 10, 20, 0.15), 0 0 2px rgba(var(--color-primary), 0.3);
+  }
+
+  /* Mobile-native sections - full width with subtle backgrounds */
+  .mobile-section {
+    @apply px-4 py-6 border-b border-border/20;
+    background-color: color-mix(in srgb, var(--color-background) 70%, var(--color-card) 30%);
+  }
+  
+  .mobile-section:last-child {
+    @apply border-b-0;
+  }
+
+  /* Subtle dividers for mobile sections */
+  .section-divider {
+    @apply border-b border-border/20;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      color-mix(in srgb, var(--color-border) 30%, transparent) 50%, 
+      transparent 100%
+    );
+    height: 1px;
   }
 
   .button-primary {
@@ -185,10 +239,19 @@
     }
   }
 
+  /* Updated token select for mobile-native design */
   .token-select {
-    @apply flex items-center gap-2 px-3 py-2 rounded-xl bg-muted cursor-pointer transition-all;
+    @apply flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all;
+    /* Mobile: subtle background, no border */
+    background-color: color-mix(in srgb, var(--color-background) 80%, var(--color-muted) 20%);
     border: 1px solid transparent;
     transition: all var(--duration-normal) var(--ease-smooth);
+    
+    /* Desktop: restore muted background */
+    @media (min-width: 768px) {
+      @apply bg-muted;
+    }
+    
     &:hover {
       background-color: color-mix(in srgb, var(--color-muted) 80%, var(--color-primary) 20%);
       border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
@@ -243,6 +306,42 @@
     padding-block-end: env(safe-area-inset-bottom);
   }
 
+  /* Mobile-native utilities */
+  .mobile-full-width {
+    @apply w-full;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .mobile-edge-to-edge {
+    @apply -mx-4 px-4;
+    width: calc(100% + 2rem);
+    @media (min-width: 640px) {
+      @apply mx-0;
+      width: 100%;
+    }
+  }
+
+  .subtle-divider-bottom {
+    position: relative;
+  }
+  
+  .subtle-divider-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      color-mix(in srgb, var(--color-border) 40%, transparent) 20%,
+      color-mix(in srgb, var(--color-border) 60%, transparent) 50%,
+      color-mix(in srgb, var(--color-border) 40%, transparent) 80%,
+      transparent 100%
+    );
+  }
+
   .text-pump {
     color: var(--color-pump);
   }
@@ -258,6 +357,40 @@
   .bg-blur {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Background variations for mobile sections */
+  .bg-section-primary {
+    background-color: color-mix(in srgb, var(--color-background) 60%, var(--color-card) 40%);
+  }
+  
+  .bg-section-secondary {
+    background-color: color-mix(in srgb, var(--color-background) 80%, var(--color-card) 20%);
+  }
+  
+  .bg-section-tertiary {
+    background-color: color-mix(in srgb, var(--color-background) 90%, var(--color-card) 10%);
+  }
+
+  /* Smooth section transitions for mobile */
+  .section-transition {
+    transition: background-color var(--duration-normal) var(--ease-smooth),
+                border-color var(--duration-normal) var(--ease-smooth),
+                opacity var(--duration-normal) var(--ease-smooth);
+  }
+  
+  /* Mobile-optimized focus states */
+  .mobile-focus:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+
+  /* Touch-friendly interactive areas */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    @apply flex items-center justify-center;
   }
 
   /* Custom animations */
@@ -277,7 +410,7 @@
       transform: translateX(-100%) skewX(-15deg);
     }
     100% {
-      transform: translateX(100%) skewX(-15deg);
+      transform: translateX(300%) skewX(-15deg);
     }
   }
 
@@ -419,10 +552,17 @@
     perspective: 1000px;
 }
 
-/* FLUID CONTAINER */
+/* RESPONSIVE CONTAINER */
 .container {
   width: 100%;
   margin-inline: auto;
-  padding-inline: clamp(1rem, 4vw, 2rem);
   max-width: 80rem; /* 1280px */
+  
+  /* Mobile: edge-to-edge, no horizontal padding */
+  padding-inline: 0;
+  
+  /* Tablet and up: restore horizontal padding */
+  @media (min-width: 640px) {
+    padding-inline: clamp(1rem, 4vw, 2rem);
+  }
 } 

@@ -57,4 +57,6 @@ export interface SpinFeedData {
     roundDuration: number; // Duration of the current round in milliseconds
     lockDuration?: number; // Duration of the lock period before spin in milliseconds
     newVote?: NewVoteData; // Data for a new vote notification (only present when type is 'new_vote')
+    athTotalAmount?: number; // All-Time High total CHA amount from any single round
+    previousRoundAmount?: number; // Total CHA amount from the previous completed round
 }

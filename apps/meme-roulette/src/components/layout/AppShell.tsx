@@ -11,7 +11,6 @@ import { Rocket, LogOut, Menu } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
 import { listTokens } from 'dexterity-sdk'; // Import server action
-import type { Token as SwapClientToken } from '@/lib/swap-client'; // Rename imported type
 import type { Token as SpinToken } from '@/types/spin'; // Import the type expected by PlaceBetModal
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
 import {
@@ -86,8 +85,8 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 if (result) {
                     console.log(`[AppShell] Received ${result.length} tokens from action.`);
 
-                    // Map SwapClientToken to SpinToken
-                    const mappedTokens: SpinToken[] = result.map((token: SwapClientToken) => ({
+                    // Map dexterity-sdk Token to SpinToken
+                    const mappedTokens: SpinToken[] = result.map((token: any) => ({
                         type: token.type,
                         base: token.base,
                         id: token.contractId, // Use contractId as id
@@ -119,13 +118,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-200">
             {/* Connection status LED (small circle) */}
             {/* We place it with the logo for subtlety */}
-            <header className="py-4 px-4 border-b border-border/30 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
+            <header className="py-3 px-2 sm:py-4 sm:px-4 border-b border-border/30 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
                 <div className="container mx-auto flex items-center justify-between">
                     {/* Logo and title */}
                     <div className="flex items-center gap-2">
                         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                             <Rocket className="text-primary h-5 w-5 animate-float" aria-hidden="true" />
-                            <span className="font-display font-bold text-lg">Meme Roulette</span>
+                            <span className="font-display font-bold text-base sm:text-lg">Meme Roulette</span>
                         </Link>
                         {/* LED indicator */}
                         <span
@@ -210,32 +209,13 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             </div>
                         ) : null}
 
-                        {/* Mobile CHA balance display - only show when connected */}
-                        {connected && (
-                            <div className="sm:hidden flex items-center rounded-md px-2 py-1 bg-muted/30 border border-border/30">
-                                <span className="text-xs mr-1">CHA:</span>
-                                <span className="text-xs font-mono font-medium text-primary">
-                                    {subnetBalanceLoading ? '...' : formatBalance(subnetBalance)}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Connect/Disconnect Button - Mobile version is more compact */}
-                        {connected ? (
-                            <Button
-                                onClick={disconnectWallet}
-                                variant="ghost"
-                                size="icon"
-                                className="sm:hidden h-8 w-8 text-muted-foreground hover:text-destructive/80"
-                                title="Sign Out"
-                            >
-                                <LogOut className="h-4 w-4" />
-                            </Button>
-                        ) : (
+                        {/* Desktop-only Connect Button when not connected */}
+                        {!connected && (
                             <Button
                                 onClick={connectWallet}
                                 disabled={isConnecting}
                                 size="sm"
+                                className="hidden sm:block"
                             >
                                 {isConnecting ? 'Connecting...' : 'Connect Wallet'}
                             </Button>
@@ -244,7 +224,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
             </header>
 
-            <main className="flex-grow container mx-auto px-4 py-8 pb-[calc(var(--mobile-nav-height,70px)+2rem)] sm:pb-8">
+            <main className="flex-grow container mx-auto px-0 py-4 pb-[calc(var(--mobile-nav-height,65px)+1rem)] sm:px-4 sm:py-8 sm:pb-8">
                 {children}
             </main>
 
@@ -265,7 +245,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             {/* Apply CSS variable for mobile nav height */}
             <style jsx global>{`
                 :root {
-                    --mobile-nav-height: 70px;
+                    --mobile-nav-height: 65px;
                 }
             `}</style>
         </div>

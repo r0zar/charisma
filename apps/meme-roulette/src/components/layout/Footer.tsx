@@ -11,7 +11,7 @@ interface FooterProps {
 
 const Footer: React.FC<FooterProps> = (/* { onShowInstructions } */) => {
     return (
-        <footer className="bg-muted/40 border-t border-border/40 py-4 text-center text-sm text-muted-foreground">
+        <footer className="hidden sm:block bg-muted/40 border-t border-border/40 py-4 text-center text-sm text-muted-foreground">
             <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span>© {new Date().getFullYear()} Charisma. All rights reserved.</span>
                 <div className="flex items-center gap-2">
