@@ -120,11 +120,19 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
     // Calculate derived values
     const feePercent = currentVaultData.fee ? (currentVaultData.fee / 10000).toFixed(2) : "0.00";
 
-    const riskLevel = "Moderate";
-    const recommendationStatus = "Recommended";
+    // Dynamic recommendation - higher fees get better ratings
+    const getRecommendationStatus = () => {
+        const fee = parseFloat(feePercent);
+        if (fee >= 3.0) return "Highly Recommended";  // Premium protection
+        if (fee >= 1.0) return "Recommended";         // Strong protection
+        if (fee >= 0.3) return "Consider";            // Moderate protection
+        return "Caution Advised";                     // Low protection
+    };
+
+    const recommendationStatus = getRecommendationStatus();
     const expectedApy = typeof analytics.apy === 'number' ? analytics.apy : undefined;
 
-    const handleMetadataUpdate = (updatedMetadata: Partial<ClientDisplayVault>) => { // Use renamed interface
+    const handleMetadataUpdate = (updatedMetadata: Partial<ClientDisplayVault>) => {
         setCurrentVaultData(prev => ({
             ...prev,
             ...updatedMetadata
@@ -232,11 +240,14 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                             <span className="text-foreground">{vault.tokenA.symbol}-{vault.tokenB.symbol} Pool</span>
                         </div>
                         <div className="flex items-center gap-4">
-                            <Badge className="bg-primary/10 text-primary border-primary/30 px-3 py-1 font-medium">
-                                <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
-                                Risk: {riskLevel}
-                            </Badge>
-                            <Badge className="bg-secondary/10 text-secondary border-secondary/30 px-3 py-1 font-medium">
+                            <Badge className={`px-3 py-1 font-medium ${recommendationStatus === "Highly Recommended"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300"
+                                : recommendationStatus === "Recommended"
+                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
+                                    : recommendationStatus === "Consider"
+                                        ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300"
+                                        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300"
+                                }`}>
                                 <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
                                 {recommendationStatus}
                             </Badge>
@@ -272,17 +283,58 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">
                                                 {currentVaultData.name || 'Unnamed Vault'}
                                             </h1>
-                                            <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
-                                                <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenA.symbol}</Badge>
-                                                <span>+</span>
-                                                <Badge className="bg-muted/50 text-foreground/80 border border-foreground/5">{currentVaultData.tokenB.symbol}</Badge>
-                                            </div>
 
-                                            <div className="bg-muted/30 p-3 rounded-lg mb-6 border border-foreground/5">
-                                                <div className="text-sm text-muted-foreground mb-1">Expected Annual Yield</div>
-                                                <div className="text-3xl font-bold text-primary">{expectedApy !== undefined ? expectedApy.toFixed(2) + '%' : 'Calibrating...'}</div>
-                                                <div className="text-xs text-muted-foreground mt-1">
-                                                    Fee Rebate: {feePercent}% of pool fees
+                                            {/* Token Pair Display with Overlapping Design */}
+                                            <div className="relative flex justify-center items-center mb-6 h-32">
+                                                {/* Token Images with Overlap */}
+                                                <div className="relative flex items-center">
+                                                    {/* Token A - Back */}
+                                                    <div className="relative z-10">
+                                                        <div className="w-24 h-24 rounded-full bg-muted/20 backdrop-blur-sm border-2 border-border/50 overflow-hidden shadow-lg">
+                                                            {currentVaultData.tokenA.image ? (
+                                                                <img
+                                                                    src={currentVaultData.tokenA.image}
+                                                                    alt={currentVaultData.tokenA.symbol}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        e.currentTarget.src = '/placeholder.png';
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                                                                    {currentVaultData.tokenA.symbol?.charAt(0) || '?'}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {/* Token A Title Card */}
+                                                        <div className="absolute -bottom-2 -left-2 z-20 bg-card/90 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-1 shadow-md">
+                                                            <div className="text-xs font-bold">{currentVaultData.tokenA.symbol}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Token B - Front with Overlap */}
+                                                    <div className="relative z-20 -ml-8">
+                                                        <div className="w-24 h-24 rounded-full bg-muted/20 backdrop-blur-sm border-2 border-border/50 overflow-hidden shadow-lg">
+                                                            {currentVaultData.tokenB.image ? (
+                                                                <img
+                                                                    src={currentVaultData.tokenB.image}
+                                                                    alt={currentVaultData.tokenB.symbol}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        e.currentTarget.src = '/placeholder.png';
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                                                                    {currentVaultData.tokenB.symbol?.charAt(0) || '?'}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {/* Token B Title Card */}
+                                                        <div className="absolute -bottom-2 -right-2 z-30 bg-card/90 backdrop-blur-sm border border-border/50 rounded-lg px-3 py-1 shadow-md">
+                                                            <div className="text-xs font-bold">{currentVaultData.tokenB.symbol}</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -330,36 +382,42 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                             </Card>
 
                             {/* Key Metrics */}
-                            <ComingSoonMask>
-                                <div>
-                                    <h2 className="text-lg font-semibold mb-3 flex items-center">
-                                        <PieChart className="w-5 h-5 mr-2 text-primary" />
-                                        Key Metrics
-                                    </h2>
-                                    <div className="space-y-3">
-                                        <StatCard
-                                            title="Total Value Locked"
-                                            value={formatNumber(analytics.tvl, 'currency')}
-                                            icon={<Wallet className="w-5 h-5 text-primary" />}
-                                            trend={{ value: 12.4, positive: true }}
-                                            footnote="Total assets under management"
-                                        />
-                                        <StatCard
-                                            title="Expected Annual Yield"
-                                            value={expectedApy !== undefined ? formatNumber(expectedApy, 'percent') : 'Calibrating...'}
-                                            icon={<LineChart className="w-5 h-5 text-primary" />}
-                                            trend={undefined}
-                                            footnote="Based on current pool performance"
-                                        />
-                                        <StatCard
-                                            title="Fee Structure"
-                                            value={`${feePercent}%`}
-                                            icon={<Shield className="w-5 h-5 text-primary" />}
-                                            footnote="LP fee rebate percentage"
-                                        />
+                            <div>
+                                <h2 className="text-lg font-semibold mb-3 flex items-center">
+                                    <PieChart className="w-5 h-5 mr-2 text-primary" />
+                                    Key Metrics
+                                </h2>
+                                <div className="space-y-3">
+                                    <StatCard
+                                        title="Total Value Locked"
+                                        value={formatNumber(analytics.tvl, 'currency')}
+                                        icon={<Wallet className="w-5 h-5 text-primary" />}
+                                        footnote="Total assets under management"
+                                    />
+                                    <StatCard
+                                        title="Fee Structure"
+                                        value={`${feePercent}%`}
+                                        icon={<Shield className="w-5 h-5 text-primary" />}
+                                        footnote="LP fee rebate percentage"
+                                    />
+                                    {/* APY hidden until we have real calculation */}
+                                    <div className="relative">
+                                        <div className="filter blur-sm brightness-90 pointer-events-none select-none">
+                                            <StatCard
+                                                title="Expected Annual Yield"
+                                                value="Calculating..."
+                                                icon={<LineChart className="w-5 h-5 text-primary" />}
+                                                footnote="Based on current pool performance"
+                                            />
+                                        </div>
+                                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                                            <div className="bg-background/80 border border-border/60 rounded-lg px-4 py-2 text-center text-sm font-medium text-muted-foreground shadow-lg">
+                                                Coming Soon
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </ComingSoonMask>
+                            </div>
                         </div>
 
                         {/* Right Panel - Detailed Info */}
@@ -453,6 +511,127 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                         </p>
                                     </div>
 
+                                    {/* Fee Structure Analysis */}
+                                    <Card className="border border-border/50">
+                                        <div className="border-b border-border/50 p-4">
+                                            <h3 className="text-lg font-medium flex items-center mb-3">
+                                                <DollarSign className="w-5 h-5 mr-2 text-primary" />
+                                                Fee Structure & LP Economics
+                                            </h3>
+
+                                            {/* Fee Tier Categories */}
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground font-medium mr-2">Fee Tiers:</span>
+                                                    <div className="inline-flex flex-wrap gap-1.5 text-xs">
+                                                        <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) >= 3.0
+                                                            ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Premium (3%+)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) >= 1.0 && parseFloat(feePercent) < 3.0
+                                                            ? 'bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            High (1-3%)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) >= 0.3 && parseFloat(feePercent) < 1.0
+                                                            ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Moderate (0.3-1%)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) < 0.3
+                                                            ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Low (&lt;0.3%)
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <span className="text-xs text-muted-foreground font-medium mr-2">TVL Ranges:</span>
+                                                    <div className="inline-flex flex-wrap gap-1.5 text-xs">
+                                                        <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 10000000
+                                                            ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Mega ($10M+)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 1000000 && analytics.tvl < 10000000
+                                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Large ($1M-$10M)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 100000 && analytics.tvl < 1000000
+                                                            ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Medium ($100K-$1M)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 10000 && analytics.tvl < 100000
+                                                            ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Small ($10K-$100K)
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded-md border ${analytics.tvl < 10000
+                                                            ? 'bg-gray-50 border-gray-200 text-gray-700 dark:bg-gray-900/20 dark:border-gray-700 dark:text-gray-300 font-medium'
+                                                            : 'bg-muted/30 border-muted text-muted-foreground'
+                                                            }`}>
+                                                            Micro (&lt;$10K)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-4">
+                                            <div className="prose prose-sm max-w-none text-sm text-muted-foreground leading-relaxed">
+                                                <p className="mb-3">
+                                                    This pool operates with a <strong className="text-foreground">{feePercent}% trading fee</strong>, which directly impacts both trader costs and LP profitability.
+                                                    {parseFloat(feePercent) >= 3.0 ? (
+                                                        <>This represents a <strong className="text-foreground">premium protection tier</strong> (3%+ fees) typically reserved for valuable tokens as their liquidity grows. These highest-tier fees provide <strong className="text-foreground">maximum protection from arbitrage extraction</strong> and ensure that volatility translates into substantial yield for LP providers rather than being drained by sophisticated arbitrage bots.</>
+                                                    ) : parseFloat(feePercent) >= 1.0 ? (
+                                                        <>This high fee tier (1-3%) provides <strong className="text-foreground">strong protection from arbitrage bots</strong> and converts significant trading volatility into yield for LP providers. This level is well-suited for emerging or volatile tokens where arbitrage activity could otherwise extract substantial value from the ecosystem.</>
+                                                    ) : parseFloat(feePercent) >= 0.3 ? (
+                                                        <>This moderate fee tier (0.3-1%) offers <strong className="text-foreground">balanced protection</strong> while maintaining competitive trading costs. It's suitable for established tokens with moderate volatility, providing decent arbitrage protection without deterring regular trading activity.</>
+                                                    ) : (
+                                                        <>This low fee tier (0.3%) is <strong className="text-foreground">optimized for high-frequency trading</strong> and is typically used for stable pairs or major tokens like BTC/ETH with deep liquidity, where tight spreads encourage maximum trading volume.</>
+                                                    )}
+                                                </p>
+
+                                                <p className="mb-3">
+                                                    With the current pool size of <strong className="text-foreground">{formatNumber(analytics.tvl, 'currency')}</strong>,
+                                                    {analytics.tvl > 100000 ? (
+                                                        <> this represents substantial liquidity depth that can absorb larger trades with minimal slippage.</>
+                                                    ) : analytics.tvl > 10000 ? (
+                                                        <> this provides moderate liquidity suitable for most retail trading activities.</>
+                                                    ) : (
+                                                        <> LPs should be aware that smaller pool sizes may experience higher price impact on trades.</>
+                                                    )}
+                                                    {parseFloat(feePercent) >= 1.0 && (
+                                                        <> The elevated fee structure means that instead of price volatility being extracted by arbitrage bots, <strong className="text-foreground">significantly more of that movement gets converted into fee income for LP holders</strong>, creating a highly sustainable yield mechanism.</>
+                                                    )}
+                                                </p>
+
+                                                <p>
+                                                    {parseFloat(feePercent) >= 3.0 ? (
+                                                        <>For LP providers, this premium tier offers <strong className="text-foreground">maximum value capture</strong> from trading activity. While trading volume may be lower due to higher costs, each transaction generates substantial fees, making this ideal for valuable tokens where protecting LP capital from arbitrage is the primary concern.</>
+                                                    ) : parseFloat(feePercent) >= 1.0 ? (
+                                                        <>For LP providers, this high fee level strikes an excellent balance between protecting against sophisticated arbitrage strategies while maintaining reasonable trading accessibility. This tier maximizes fee generation per transaction while still encouraging organic trading volume.</>
+                                                    ) : parseFloat(feePercent) >= 0.3 ? (
+                                                        <>This moderate fee structure provides decent protection against arbitrage while encouraging steady trading volume. LPs benefit from consistent fee generation with reduced risk of value extraction, suitable for most token pairs with established market presence.</>
+                                                    ) : (
+                                                        <>This competitive fee structure prioritizes high trading volume, which can generate substantial absolute returns for LPs despite the lower percentage per trade. However, this setup works best with highly liquid, stable token pairs where arbitrage risk is naturally lower.</>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </Card>
+
                                     {/* Performance Chart Placeholder */}
                                     <ComingSoonMask>
                                         <Card className="p-6 border border-border/50">
@@ -464,53 +643,6 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                         </Card>
                                     </ComingSoonMask>
 
-                                    {/* Risk Analysis */}
-                                    <ComingSoonMask>
-                                        <Card className="border border-border/50">
-                                            <div className="border-b border-border/50 p-4">
-                                                <h3 className="text-lg font-medium">Risk Assessment</h3>
-                                            </div>
-                                            <div className="p-4">
-                                                <div className="space-y-4">
-                                                    <div className="flex items-start">
-                                                        <div className="p-2 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500 mr-3 mt-0.5">
-                                                            <AlertCircle className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-medium mb-1">Impermanent Loss Risk</h4>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Moderate risk of impermanent loss if token prices diverge significantly. Historical correlation between these assets is relatively stable.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-start">
-                                                        <div className="p-2 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500 mr-3 mt-0.5">
-                                                            <ShieldIcon className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-medium mb-1">Contract Security</h4>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Smart contracts have undergone security audits. The pool uses standard AMM mechanics with well-established risk parameters.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-start">
-                                                        <div className="p-2 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-500 mr-3 mt-0.5">
-                                                            <Info className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-medium mb-1">Market Conditions</h4>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Current market sentiment is neutral to positive for both tokens. Trading volumes have remained consistent over the past 30 days.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </ComingSoonMask>
                                 </TabsContent>
 
                                 <TabsContent value="settings" className="space-y-6">

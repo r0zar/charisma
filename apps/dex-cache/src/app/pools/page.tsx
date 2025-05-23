@@ -38,9 +38,6 @@ export default async function ExplorePoolsPage() {
         Liquidity pools are essential for the Stacks ecosystem because they allow users to swap between tokens.
         By adding liquidity to a pool, you are providing a service to the pool and earning a fee for doing so.
       </p>
-
-      {/* Render the VaultList component with the fetched vaults */}
-      {/* VaultList fetches its own prices client-side */}
       <PoolList vaults={pools} />
     </main>
   );

@@ -3,8 +3,13 @@ import Image from "next/image";
 import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { TokenCacheData } from "@repo/tokens";
+import { useState, useEffect } from "react";
+import { getTokenTotalSupply } from "@/app/actions";
 
 const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; reserves: number; price: number | undefined }) => {
+    const [totalSupplyDisplay, setTotalSupplyDisplay] = useState<string>('Loading...');
+    const [isLoadingSupply, setIsLoadingSupply] = useState(true);
+
     const tokenDecimals = token.decimals ?? 6;
     const reserveAmount = reserves / (10 ** tokenDecimals);
     const tvl = price !== undefined ? reserveAmount * price : null;
@@ -24,19 +29,56 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
         maximumFractionDigits: price < 1 ? 10 : 2
     })}` : 'N/A';
 
-    let totalSupplyDisplay = 'N/A';
-    if (token.total_supply !== undefined && token.total_supply !== null) {
-        try {
-            const supplyNumber = BigInt(token.total_supply);
-            const divisor = BigInt(10 ** tokenDecimals);
-            totalSupplyDisplay = (Number(supplyNumber * 100n / divisor) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
-        } catch (e) {
-            console.error("Error formatting total supply:", e);
-            totalSupplyDisplay = 'Error';
-        }
-    }
+    // Fetch total supply when component mounts
+    useEffect(() => {
+        const fetchTotalSupply = async () => {
+            setIsLoadingSupply(true);
+
+            // First check if we already have total_supply in the token data
+            if (token.total_supply && token.total_supply !== '' && token.total_supply !== null) {
+                try {
+                    const supplyString = String(token.total_supply);
+                    const supplyNumber = BigInt(supplyString);
+                    const divisor = BigInt(10 ** tokenDecimals);
+                    const humanReadableSupply = Number(supplyNumber) / Number(divisor);
+                    setTotalSupplyDisplay(humanReadableSupply.toLocaleString(undefined, {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: 0
+                    }));
+                    setIsLoadingSupply(false);
+                    return;
+                } catch (e) {
+                    console.error("Error formatting cached total supply for", token.symbol, ":", e);
+                }
+            }
+
+            // If no cached data, fetch from the blockchain
+            try {
+                const result = await getTokenTotalSupply(token.contractId);
+                if (result.success && result.totalSupply) {
+                    const supplyNumber = BigInt(result.totalSupply);
+                    const divisor = BigInt(10 ** tokenDecimals);
+                    const humanReadableSupply = Number(supplyNumber) / Number(divisor);
+                    setTotalSupplyDisplay(humanReadableSupply.toLocaleString(undefined, {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: 0
+                    }));
+                } else {
+                    setTotalSupplyDisplay('Not Available');
+                }
+            } catch (error) {
+                console.error("Error fetching total supply for", token.symbol, ":", error);
+                setTotalSupplyDisplay('Error');
+            } finally {
+                setIsLoadingSupply(false);
+            }
+        };
+
+        fetchTotalSupply();
+    }, [token.contractId, token.total_supply, token.symbol, tokenDecimals]);
 
     const contractId = token.contractId || '';
+    const isStxToken = contractId === '.stx' || token.symbol === 'STX';
 
     const truncateAddress = (address: string) => {
         if (!address) return '';
@@ -64,15 +106,17 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                             <h3 className="font-semibold text-lg leading-tight">{token.name || 'Unknown Token'}</h3>
                             <div className="text-sm text-muted-foreground flex items-center mt-0.5">
                                 <span className="mr-2 font-mono bg-muted/50 px-1.5 py-0.5 rounded text-xs">{token.symbol || '--'}</span>
-                                <a
-                                    href={`https://explorer.hiro.so/txid/${contractId}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center text-xs text-primary hover:underline"
-                                >
-                                    {truncateAddress(contractId)}
-                                    <ExternalLink className="h-3 w-3 ml-1" />
-                                </a>
+                                {!isStxToken && (
+                                    <a
+                                        href={`https://explorer.hiro.so/txid/${contractId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center text-xs text-primary hover:underline"
+                                    >
+                                        {truncateAddress(contractId)}
+                                        <ExternalLink className="h-3 w-3 ml-1" />
+                                    </a>
+                                )}
                             </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-2">
@@ -105,7 +149,12 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                                 <Package className="w-3.5 h-3.5 mr-1.5" />
                                 <span>Total Supply:</span>
                             </div>
-                            <div className="font-medium">{totalSupplyDisplay}</div>
+                            <div className="font-medium flex items-center">
+                                {isLoadingSupply && (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                                )}
+                                {totalSupplyDisplay}
+                            </div>
                         </div>
                     </div>
                 </div>

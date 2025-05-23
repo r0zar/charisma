@@ -13,6 +13,7 @@ import {
 } from "@/lib/pool-service";
 
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
+import { getStxTotalSupply } from '@repo/polyglot';
 
 /** Force refresh vault data */
 export async function refreshVaultData(contractId: string): Promise<{ success: boolean; error?: string; vault?: Vault }> {
@@ -223,6 +224,36 @@ export async function getAddLiquidityInitialData(
         return {
             success: false,
             error: errorMessage
+        };
+    }
+}
+
+/**
+ * Server action to fetch total supply for any token contract
+ */
+export async function getTokenTotalSupply(tokenContractId: string): Promise<{ success: boolean; totalSupply?: number; error?: string }> {
+    try {
+        if (!tokenContractId || tokenContractId === '.stx') {
+            // Use the polyglot function to get real STX total supply
+            const stxTotalSupply = await getStxTotalSupply();
+            // Convert from STX to microSTX (multiply by 1,000,000)
+            const microStxSupply = (stxTotalSupply * 1_000_000)
+            return {
+                success: true,
+                totalSupply: microStxSupply
+            };
+        }
+
+        const totalSupply = await getLpTokenTotalSupply(tokenContractId);
+        return {
+            success: true,
+            totalSupply
+        };
+    } catch (error) {
+        console.error("Error in getTokenTotalSupply:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to fetch token total supply"
         };
     }
 }

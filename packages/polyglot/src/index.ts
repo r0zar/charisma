@@ -286,6 +286,28 @@ export async function fetchStxBalance(address: string): Promise<number> {
   }
 }
 
+/**
+ * Fetches the total supply of STX tokens from the Hiro API.
+ * Returns the total supply for STX tokens as a string (uses the estimated future total supply for the year 2050).
+ * 
+ * @returns A promise that resolves to the total STX supply as a string
+ */
+export async function getStxTotalSupply(): Promise<number> {
+  try {
+    const response = await apiClient.GET('/extended/v1/stx_supply/total/plain' as any);
+
+    if (!response.data) {
+      throw new Error(`STX total supply API error: ${response.error}`);
+    }
+
+    const totalSupply = Number(response.data);
+    return totalSupply
+  } catch (error) {
+    console.error('Failed fetching STX total supply:', error);
+    throw new Error('Failed to fetch STX total supply');
+  }
+}
+
 export async function getTransactionDetails(txId: string): Promise<Transaction> {
   const { data } = await apiClient.GET(`/extended/v1/tx/${txId}` as any, {
     params: {
