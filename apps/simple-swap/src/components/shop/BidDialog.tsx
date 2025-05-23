@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShopItem, isOfferItem, OfferItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import Image from 'next/image';
@@ -28,10 +28,14 @@ import {
     Info,
     ArrowRightLeft,
     Coins,
-    DollarSign
+    DollarSign,
+    Wallet,
+    AlertTriangle,
+    CheckCircle
 } from 'lucide-react';
 import { useWallet } from '@/contexts/wallet-context';
 import { getTokenPrice, formatTokenAmount, calculateOfferValue, formatOfferAssetAmount } from '@/utils/shop-table-utils';
+import { getTokenBalance } from '@/app/actions';
 
 interface BidDialogProps {
     isOpen: boolean;
@@ -48,6 +52,12 @@ interface BidDialogProps {
     onViewDetails: (item: ShopItem) => void;
     isSigning?: boolean;
     isSubmitting?: boolean;
+    onBidSuccess?: (data: {
+        hasInsufficientBalance: boolean;
+        tokenSymbol: string;
+        currentBalance: number;
+        bidAmount: number;
+    }) => void;
 }
 
 const BidDialog: React.FC<BidDialogProps> = ({
@@ -64,10 +74,63 @@ const BidDialog: React.FC<BidDialogProps> = ({
     onSubmitBid,
     onViewDetails,
     isSigning,
-    isSubmitting
+    isSubmitting,
+    onBidSuccess
 }) => {
-    const { prices } = useWallet();
+    const { prices, address } = useWallet();
 
+    // Balance tracking state
+    const [userBalance, setUserBalance] = useState<number>(0);
+    const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
+    const [showDepositPrompt, setShowDepositPrompt] = useState<boolean>(false);
+
+    // Fetch user's balance for the selected token
+    const fetchUserBalance = async (tokenSymbol: string) => {
+        if (!address || !tokenSymbol) {
+            setUserBalance(0);
+            return;
+        }
+
+        const selectedToken = subnetTokens.find(t => t.symbol === tokenSymbol);
+        if (!selectedToken) {
+            setUserBalance(0);
+            return;
+        }
+
+        setBalanceLoading(true);
+        try {
+            const balance = await getTokenBalance(selectedToken.id, address);
+            const humanReadableBalance = balance / Math.pow(10, selectedToken.decimals);
+            setUserBalance(humanReadableBalance);
+        } catch (error) {
+            console.error('Error fetching user balance:', error);
+            setUserBalance(0);
+        } finally {
+            setBalanceLoading(false);
+        }
+    };
+
+    // Fetch balance when token selection changes
+    useEffect(() => {
+        if (bidToken) {
+            fetchUserBalance(bidToken);
+        }
+    }, [bidToken, address]);
+
+    // Reset balance when dialog opens/closes
+    useEffect(() => {
+        if (!isOpen) {
+            setUserBalance(0);
+            setBalanceLoading(false);
+        }
+    }, [isOpen]);
+
+    // Check if user has sufficient balance
+    const bidAmountNum = parseFloat(bidAmount) || 0;
+    const hasSufficientBalance = userBalance >= bidAmountNum;
+    const balanceStatus = bidAmountNum > 0 ? (hasSufficientBalance ? 'sufficient' : 'insufficient') : 'unknown';
+
+    // Early return after all hooks
     if (!selectedItem || !isOfferItem(selectedItem)) return null;
 
     const offerItem = selectedItem as OfferItem;
@@ -82,8 +145,8 @@ const BidDialog: React.FC<BidDialogProps> = ({
         if (!selectedToken) return 0;
 
         const tokenPrice = getTokenPrice(selectedToken.id, prices || {});
-        const bidAmountNum = parseFloat(bidAmount);
-        return isNaN(bidAmountNum) ? 0 : bidAmountNum * tokenPrice;
+        const bidAmountNumber = parseFloat(bidAmount);
+        return isNaN(bidAmountNumber) ? 0 : bidAmountNumber * tokenPrice;
     };
 
     const bidUsdValue = getBidUsdValue();
@@ -107,6 +170,33 @@ const BidDialog: React.FC<BidDialogProps> = ({
             symbol: tokenInfo.symbol,
             usdValue: usdValue
         };
+    };
+
+    // Handle successful bid submission
+    const handleBidSubmit = async () => {
+        // Store the current balance status before submission
+        const shouldShowPrompt = balanceStatus === 'insufficient' && bidAmountNum > 0;
+
+        // Call the parent's submit function
+        await onSubmitBid();
+
+        // If the dialog is still open after submission, it means there was an error
+        // If it closes successfully, the deposit prompt will be handled by the useEffect below
+        if (shouldShowPrompt) {
+            // Set a timeout to show the prompt after the dialog closes
+            setTimeout(() => {
+                setShowDepositPrompt(true);
+            }, 500);
+        }
+
+        if (onBidSuccess) {
+            onBidSuccess({
+                hasInsufficientBalance: balanceStatus === 'insufficient',
+                tokenSymbol: bidToken,
+                currentBalance: userBalance,
+                bidAmount: bidAmountNum
+            });
+        }
     };
 
     const latestBidInfo = getLatestBidInfo();
@@ -255,6 +345,54 @@ const BidDialog: React.FC<BidDialogProps> = ({
                                         ~${bidUsdValue.toFixed(2)} USD
                                     </div>
                                 )}
+
+                                {/* User Balance Display */}
+                                {bidToken && (
+                                    <div className="text-xs">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <Wallet className="h-3 w-3 text-muted-foreground" />
+                                            <span className="text-muted-foreground">Your Balance:</span>
+                                        </div>
+                                        {balanceLoading ? (
+                                            <div className="flex items-center gap-1 text-muted-foreground">
+                                                <div className="animate-pulse">Loading...</div>
+                                            </div>
+                                        ) : (
+                                            <div className={`flex items-center gap-1 ${balanceStatus === 'sufficient' ? 'text-green-600 dark:text-green-400' :
+                                                balanceStatus === 'insufficient' ? 'text-red-600 dark:text-red-400' :
+                                                    'text-muted-foreground'
+                                                }`}>
+                                                {balanceStatus === 'sufficient' && <CheckCircle className="h-3 w-3" />}
+                                                {balanceStatus === 'insufficient' && <AlertTriangle className="h-3 w-3" />}
+                                                <span>
+                                                    {userBalance.toLocaleString(undefined, {
+                                                        maximumFractionDigits: 6,
+                                                        minimumFractionDigits: 0,
+                                                    })} {bidToken}
+                                                </span>
+                                                {bidAmountNum > 0 && (
+                                                    <span className="text-xs">
+                                                        {balanceStatus === 'sufficient' ? '✓' : balanceStatus === 'insufficient' ? '(Insufficient)' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Warning for insufficient balance */}
+                                        {balanceStatus === 'insufficient' && (
+                                            <div className="mt-1 p-2 bg-red-50 dark:bg-red-950/20 rounded text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                                <div className="flex items-center gap-1">
+                                                    <AlertTriangle className="h-3 w-3" />
+                                                    <span className="font-medium">Insufficient Balance</span>
+                                                </div>
+                                                <p className="mt-1">
+                                                    You need {(bidAmountNum - userBalance).toLocaleString()} more {bidToken} for this bid.
+                                                    Consider depositing tokens to the subnet after placing your bid.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="bidToken">Payment Token</Label>
@@ -289,7 +427,7 @@ const BidDialog: React.FC<BidDialogProps> = ({
                                     </div>
                                 )}
                                 <p className="text-xs text-muted-foreground">
-                                    Only eligible subnet tokens can be used for bidding
+                                    Only subnet tokens can be used for bidding
                                 </p>
                             </div>
                         </div>
@@ -362,7 +500,7 @@ const BidDialog: React.FC<BidDialogProps> = ({
                         Cancel
                     </Button>
                     <Button
-                        onClick={onSubmitBid}
+                        onClick={handleBidSubmit}
                         disabled={!bidAmount || !bidToken || subnetTokens.length === 0 || isSigning || isSubmitting}
                         className="button-primary"
                     >
@@ -372,8 +510,19 @@ const BidDialog: React.FC<BidDialogProps> = ({
                         {isSubmitting && !isSigning && (
                             <div className="animate-pulse -ml-1 mr-2 h-4 w-4 bg-white rounded-full"></div>
                         )}
-                        {!isSigning && !isSubmitting && <Gavel className="h-4 w-4 mr-2" />}
-                        {isSigning ? 'Signing...' : isSubmitting ? 'Submitting...' : subnetTokens.length === 0 ? 'No Tokens Available' : 'Place Bid'}
+                        {!isSigning && !isSubmitting && (
+                            <>
+                                {balanceStatus === 'insufficient' && bidAmountNum > 0 && (
+                                    <AlertTriangle className="h-4 w-4 mr-2" />
+                                )}
+                                {(balanceStatus !== 'insufficient' || bidAmountNum === 0) && <Gavel className="h-4 w-4 mr-2" />}
+                            </>
+                        )}
+                        {isSigning ? 'Signing...' :
+                            isSubmitting ? 'Submitting...' :
+                                subnetTokens.length === 0 ? 'No Tokens Available' :
+                                    balanceStatus === 'insufficient' && bidAmountNum > 0 ? 'Place Bid (Deposit Required)' :
+                                        'Place Bid'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

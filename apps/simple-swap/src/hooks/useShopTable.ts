@@ -39,6 +39,14 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
     const [isSigning, setIsSigning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Deposit prompt state
+    const [showDepositPrompt, setShowDepositPrompt] = useState(false);
+    const [depositPromptData, setDepositPromptData] = useState<{
+        tokenSymbol: string;
+        currentBalance: number;
+        bidAmount: number;
+    } | null>(null);
+
     // BNS names cache
     const [bnsNames, setBnsNames] = useState<Record<string, string | null>>({});
 
@@ -287,6 +295,27 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         setBidMessage('');
     }, [subnetTokens]);
 
+    const handleBidSuccess = useCallback((data: {
+        hasInsufficientBalance: boolean;
+        tokenSymbol: string;
+        currentBalance: number;
+        bidAmount: number;
+    }) => {
+        if (data.hasInsufficientBalance) {
+            setDepositPromptData({
+                tokenSymbol: data.tokenSymbol,
+                currentBalance: data.currentBalance,
+                bidAmount: data.bidAmount
+            });
+            setShowDepositPrompt(true);
+        }
+    }, []);
+
+    const closeDepositPrompt = useCallback(() => {
+        setShowDepositPrompt(false);
+        setDepositPromptData(null);
+    }, []);
+
     return {
         // State
         searchTerm,
@@ -307,6 +336,8 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         filteredAndSortedItems,
         isSigning,
         isSubmitting,
+        showDepositPrompt,
+        depositPromptData,
 
         // Handlers
         handleSort,
@@ -314,6 +345,8 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         handleViewDetails,
         handlePurchase,
         handleSubmitBid,
-        closeDialog
+        closeDialog,
+        handleBidSuccess,
+        closeDepositPrompt
     };
 }; 

@@ -27,6 +27,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import Image from 'next/image';
 import {
     ArrowUpDown,
@@ -42,7 +50,9 @@ import {
     CheckCircle,
     XCircle,
     Wallet,
-    AlertTriangle
+    AlertTriangle,
+    Info,
+    ExternalLink
 } from 'lucide-react';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { useWallet } from '@/contexts/wallet-context';
@@ -58,6 +68,10 @@ import BidDialog from './BidDialog';
 import PurchaseDialog from './PurchaseDialog';
 import { useRouter } from 'next/navigation';
 import { getTokenBalance } from '@/app/actions';
+import { request } from '@stacks/connect';
+import { uintCV, noneCV, PostCondition, Pc } from '@stacks/transactions';
+import { getTokenMetadataCached } from '@repo/tokens';
+import { toast } from 'sonner';
 
 interface ShopTableProps {
     items: ShopItem[];
@@ -103,14 +117,8 @@ const TableRowComponent = React.memo(({
         onItemClick(item);
     }, [item, onItemClick]);
 
-    const tableRow = (
-        <TableRow
-            className={`border-0 cursor-pointer transition-all duration-200 ease-out hover:bg-muted/30 ${isOfferItem(item) && item.offerAssets
-                ? 'hover:shadow-sm'
-                : ''
-                }`}
-            onClick={handleRowClick}
-        >
+    const tableRowContent = (
+        <>
             {/* Image */}
             <TableCell>
                 <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted">
@@ -129,14 +137,35 @@ const TableRowComponent = React.memo(({
                 </div>
             </TableCell>
 
-            {/* Name */}
+            {/* Name - with tooltip for offers */}
             <TableCell>
-                <div className="space-y-1">
-                    <p className="font-medium line-clamp-1">{item.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                        {item.description}
-                    </p>
-                </div>
+                {isOfferItem(item) && item.offerAssets ? (
+                    <CursorFollowingTooltip
+                        delayDuration={200}
+                        className="p-0 max-w-none z-50 border-border/50"
+                        content={
+                            <OfferTooltip
+                                item={item}
+                                subnetTokens={subnetTokens}
+                                prices={prices}
+                            />
+                        }
+                    >
+                        <div className="space-y-1">
+                            <p className="font-medium line-clamp-1">{item.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                                {item.description}
+                            </p>
+                        </div>
+                    </CursorFollowingTooltip>
+                ) : (
+                    <div className="space-y-1">
+                        <p className="font-medium line-clamp-1">{item.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                            {item.description}
+                        </p>
+                    </div>
+                )}
             </TableCell>
 
             {/* Creator */}
@@ -332,39 +361,104 @@ const TableRowComponent = React.memo(({
                     )}
                 </div>
             </TableCell>
-        </TableRow>
+        </>
     );
 
-    // Wrap offers with tooltip
-    if (isOfferItem(item) && item.offerAssets) {
-        return (
-            <CursorFollowingTooltip
-                delayDuration={200}
-                className="p-0 max-w-none z-50 border-border/50"
-                content={
-                    <OfferTooltip
-                        item={item}
-                        subnetTokens={subnetTokens}
-                        prices={prices}
-                    />
-                }
-            >
-                {tableRow}
-            </CursorFollowingTooltip>
-        );
-    }
-
-    return tableRow;
+    return (
+        <TableRow
+            className={`border-0 cursor-pointer transition-colors duration-200 hover:bg-muted/30 ${isOfferItem(item) && item.offerAssets ? 'hover:shadow-sm' : ''}`}
+            onClick={handleRowClick}
+        >
+            {tableRowContent}
+        </TableRow>
+    );
 });
 
 TableRowComponent.displayName = 'TableRowComponent';
 
 const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
-    const { prices } = useWallet();
+    const { prices, address } = useWallet();
     const router = useRouter();
 
     // Balance status tracking for offer creators
     const [balanceStatuses, setBalanceStatuses] = useState<Record<string, BalanceStatus>>({});
+
+    // Deposit transaction state
+    const [isDepositing, setIsDepositing] = useState(false);
+
+    // Function to handle deposit transaction
+    const handleDepositTransaction = async (
+        tokenSymbol: string,
+        amount: number
+    ): Promise<{ success: boolean; txId?: string; error?: string }> => {
+        if (!address) {
+            return { success: false, error: 'Wallet not connected' };
+        }
+
+        try {
+            // Find the subnet token
+            const subnetToken = subnetTokens.find(t => t.symbol === tokenSymbol);
+            if (!subnetToken) {
+                return { success: false, error: `Token ${tokenSymbol} not found in subnet tokens` };
+            }
+
+            // The subnet contract is the same as the token contract
+            const subnetContractId = subnetToken.id;
+
+            // Get the subnet token metadata to find the base token
+            const subnetMetadata = await getTokenMetadataCached(subnetContractId);
+            if (!subnetMetadata?.base) {
+                return { success: false, error: `No base token found for subnet ${tokenSymbol}` };
+            }
+
+            // Get the base token metadata (this is what the user will be sending)
+            const baseTokenMetadata = await getTokenMetadataCached(subnetMetadata.base);
+            if (!baseTokenMetadata) {
+                return { success: false, error: `Base token metadata not found for ${tokenSymbol}` };
+            }
+
+            // Convert amount to atomic units
+            const decimals = baseTokenMetadata.decimals || 6;
+            const atomicAmount = Math.floor(amount * Math.pow(10, decimals));
+
+            // Parse subnet contract address and name
+            const [contractAddress, contractName] = subnetContractId.split('.');
+            if (!contractAddress || !contractName) {
+                return { success: false, error: 'Invalid subnet contract format' };
+            }
+
+            // Set up post conditions - user sends base tokens
+            const postConditions: PostCondition[] = [
+                Pc.principal(address)
+                    .willSendEq(atomicAmount)
+                    .ft(baseTokenMetadata.contractId as `${string}.${string}`, baseTokenMetadata.identifier!)
+            ];
+
+            // Set up contract call parameters
+            const params = {
+                contract: subnetContractId as `${string}.${string}`,
+                functionName: 'deposit',
+                functionArgs: [
+                    uintCV(atomicAmount),
+                    noneCV() // recipient defaults to tx-sender
+                ],
+                postConditions,
+            };
+
+            // Execute the transaction
+            const result = await request('stx_callContract', params);
+
+            if (result && result.txid) {
+                return { success: true, txId: result.txid };
+            } else {
+                return { success: false, error: 'Transaction failed or was rejected' };
+            }
+        } catch (error) {
+            console.error('Deposit transaction error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            return { success: false, error: errorMessage };
+        }
+    };
 
     // Check balance for a specific offer
     const checkOfferBalance = async (offerItem: ShopItem) => {
@@ -439,6 +533,8 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
         setBidMessage,
         bnsNames,
         filteredAndSortedItems,
+        showDepositPrompt,
+        depositPromptData,
 
         // Handlers
         handleSort,
@@ -448,7 +544,9 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
         handleSubmitBid,
         closeDialog,
         isSigning,
-        isSubmitting
+        isSubmitting,
+        handleBidSuccess,
+        closeDepositPrompt
     } = useShopTable(items, subnetTokens);
 
     // Get sort icon
@@ -616,29 +714,18 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                 const TypeIcon = typeConfig.icon;
 
                                 return (
-                                    <motion.div
+                                    <TableRowComponent
                                         key={item.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{
-                                            delay: index * 0.05,
-                                            duration: 0.3,
-                                            ease: "easeOut"
-                                        }}
-                                        style={{ display: 'contents' }}
-                                    >
-                                        <TableRowComponent
-                                            item={item}
-                                            typeConfig={typeConfig}
-                                            TypeIcon={TypeIcon}
-                                            bnsNames={bnsNames}
-                                            subnetTokens={subnetTokens}
-                                            prices={prices || {}}
-                                            balanceStatuses={balanceStatuses}
-                                            onItemClick={handleItemClick}
-                                            onViewDetailsClick={handleViewDetailsClick}
-                                        />
-                                    </motion.div>
+                                        item={item}
+                                        typeConfig={typeConfig}
+                                        TypeIcon={TypeIcon}
+                                        bnsNames={bnsNames}
+                                        subnetTokens={subnetTokens}
+                                        prices={prices || {}}
+                                        balanceStatuses={balanceStatuses}
+                                        onItemClick={handleItemClick}
+                                        onViewDetailsClick={handleViewDetailsClick}
+                                    />
                                 );
                             })}
                         </TableBody>
@@ -681,7 +768,132 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                     onViewDetails={handleViewDetails}
                     isSigning={isSigning}
                     isSubmitting={isSubmitting}
+                    onBidSuccess={handleBidSuccess}
                 />
+
+                {/* Deposit Prompt Dialog */}
+                <Dialog open={showDepositPrompt} onOpenChange={closeDepositPrompt}>
+                    <DialogContent className="sm:max-w-[560px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Wallet className="h-5 w-5 text-primary" />
+                                Deposit Tokens to Complete Your Bid
+                            </DialogTitle>
+                            <DialogDescription>
+                                Your bid has been placed successfully, but you'll need to deposit tokens to the subnet for it to be processable.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {depositPromptData && (
+                            <div className="space-y-4">
+                                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                        <span className="font-medium text-amber-600 dark:text-amber-400">Action Required</span>
+                                    </div>
+                                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                                        You currently have {depositPromptData.currentBalance.toLocaleString()} {depositPromptData.tokenSymbol} but bid {depositPromptData.bidAmount.toLocaleString()} {depositPromptData.tokenSymbol}.
+                                        You need to deposit at least {(depositPromptData.bidAmount - depositPromptData.currentBalance).toLocaleString()} more {depositPromptData.tokenSymbol} to the subnet.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="font-medium">Why deposit to the subnet?</h4>
+                                    <ul className="space-y-2 text-sm text-muted-foreground">
+                                        <li className="flex items-start gap-2">
+                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                            <span>Enables automatic trade execution when your bid is accepted</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                            <span>Secures your position in the trading queue</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                            <span>Prevents failed transactions due to insufficient balance</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                        <span className="font-medium text-blue-600 dark:text-blue-400">How to Deposit</span>
+                                    </div>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                                        You can deposit {depositPromptData.tokenSymbol} tokens to the Charisma subnet through the main dashboard or wallet interface.
+                                        The deposit will be reflected in your subnet balance within a few minutes.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        <DialogFooter className="flex gap-2">
+                            <Button variant="outline" onClick={closeDepositPrompt}>
+                                I'll Deposit Later
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    closeDepositPrompt();
+                                    window.open('https://invest.charisma.rocks/sublinks', '_blank');
+                                }}
+                            >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Explore Blaze Subnets
+                            </Button>
+                            {depositPromptData && (
+                                <Button
+                                    onClick={async () => {
+                                        if (!depositPromptData) return;
+
+                                        setIsDepositing(true);
+                                        toast.loading("Initiating deposit transaction...");
+
+                                        try {
+                                            const amountToDeposit = Math.max(
+                                                depositPromptData.bidAmount - depositPromptData.currentBalance,
+                                                depositPromptData.bidAmount // Ensure we deposit at least the bid amount
+                                            );
+
+                                            const result = await handleDepositTransaction(
+                                                depositPromptData.tokenSymbol,
+                                                amountToDeposit
+                                            );
+
+                                            toast.dismiss();
+
+                                            if (result.success) {
+                                                toast.success("Deposit transaction submitted!", {
+                                                    description: `TxID: ${result.txId?.substring(0, 10)}...`
+                                                });
+                                                closeDepositPrompt();
+                                            } else {
+                                                toast.error("Deposit failed", {
+                                                    description: result.error
+                                                });
+                                            }
+                                        } catch (error) {
+                                            toast.dismiss();
+                                            toast.error("Failed to initiate deposit", {
+                                                description: error instanceof Error ? error.message : 'Unknown error'
+                                            });
+                                        } finally {
+                                            setIsDepositing(false);
+                                        }
+                                    }}
+                                    disabled={isDepositing}
+                                    className="bg-primary hover:bg-primary/90"
+                                >
+                                    {isDepositing && (
+                                        <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                    )}
+                                    {isDepositing ? 'Depositing...' : 'Deposit Now'}
+                                </Button>
+                            )}
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </TooltipProvider>
     );
