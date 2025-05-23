@@ -5,6 +5,33 @@ function deriveName(principal: string) {
     return (parts.length > 1 ? parts[1] : principal).toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
 
+// Generate bold, vibrant colors for dynamic metadata
+function generateBoldRandomColor(): string {
+    const boldColors = [
+        // Bright blues
+        '#0066FF', '#00AAFF', '#0088FF', '#0099FF', '#0077CC',
+        // Vibrant reds
+        '#FF3333', '#FF1744', '#FF0066', '#CC0000', '#E91E63',
+        // Electric greens
+        '#00FF66', '#00CC44', '#00AA33', '#33FF33', '#66FF66',
+        // Bright oranges
+        '#FF6600', '#FF8800', '#FF9900', '#FF7722', '#FF5500',
+        // Deep purples
+        '#6600FF', '#8800FF', '#9933FF', '#7700CC', '#AA33FF',
+        // Cyan/Teal
+        '#00FFFF', '#00CCCC', '#00AAAA', '#0099AA', '#00BBBB',
+        // Bright yellows
+        '#FFDD00', '#FFCC00', '#FFBB00', '#FFD700', '#FFC107',
+        // Hot pinks
+        '#FF0099', '#FF1177', '#FF3388', '#FF0088', '#E91E63',
+        // Electric lime
+        '#CCFF00', '#AAFF00', '#88FF00', '#99FF00', '#BBFF00',
+        // Bold magentas
+        '#FF00AA', '#FF0077', '#CC0066', '#DD0088', '#FF00CC'
+    ];
+    return boldColors[Math.floor(Math.random() * boldColors.length)];
+}
+
 import { useState, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -41,13 +68,18 @@ import {
     Clock,
     FileSignature,
     Loader2,
-    ExternalLinkIcon
+    ExternalLinkIcon,
+    Vault,
+    Sparkles,
+    ArrowUpRight
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { generateSubnetWrapper } from '@/lib/contract-generators/subnet-wrapper';
+import { generateSublink } from '@/lib/contract-generators/sublink';
 import { getTokenMetadataCached, listTokens, TokenCacheData } from '@repo/tokens'
 import Image from 'next/image';
 import { createSubnetMetadataAction } from '@/lib/actions/metadataActions';
+import { generateCustomOptimizedMetadata } from '@/lib/utils/image-utils';
 
 // Schema for form validation
 const schema = z.object({
@@ -148,6 +180,13 @@ const TokenSelectionStep = ({
             // Fetch token data from the API
             const token = await getTokenMetadataCached(contractId);
 
+            // Additional check: if the fetched token has type 'SUBNET', reject it
+            if (token?.type === 'SUBNET') {
+                setCustomError("This token is marked as a subnet token. Please select the original/base token instead.");
+                setFetchedToken(null);
+                return;
+            }
+
             setFetchedToken(token);
         } catch (error) {
             console.error('Error fetching token metadata:', error);
@@ -186,17 +225,27 @@ const TokenSelectionStep = ({
     // Filter tokens based on search query
     useEffect(() => {
         if (!searchQuery) {
-            setFilteredTokens(tokens);
+            // Filter out subnet tokens - we only want base tokens for subnet creation
+            // Check both the type field AND contract name containing 'subnet'
+            const baseTokens = tokens.filter(token =>
+                token.type !== 'SUBNET'
+            );
+            setFilteredTokens(baseTokens);
             return;
         }
 
         const query = searchQuery.toLowerCase();
-        const filtered = tokens.filter(
-            token =>
-                token.symbol?.toLowerCase().includes(query) ||
-                token.name?.toLowerCase().includes(query) ||
-                token.contractId?.toLowerCase().includes(query)
-        );
+        // Filter out subnet tokens and apply search
+        const filtered = tokens
+            .filter(token =>
+                token.type !== 'SUBNET'
+            ) // Only show base tokens
+            .filter(
+                token =>
+                    token.symbol?.toLowerCase().includes(query) ||
+                    token.name?.toLowerCase().includes(query) ||
+                    token.contractId?.toLowerCase().includes(query)
+            );
 
         setFilteredTokens(filtered);
     }, [searchQuery, tokens]);
@@ -228,6 +277,11 @@ const TokenSelectionStep = ({
             <div className="text-center">
                 <h2 className="text-2xl font-bold mb-2">Select Token to Wrap</h2>
                 <p className="text-muted-foreground">Choose the SIP-10 token to be wrapped from the subnet</p>
+                <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <p className="text-sm text-primary">
+                        <strong>Select base/original tokens only.</strong> Do NOT select tokens with "-subnet" in their contract name or those marked as type "SUBNET". You cannot create a subnet from an existing subnet.
+                    </p>
+                </div>
             </div>
 
             {/* Search Bar */}
@@ -355,51 +409,96 @@ const TokenSelectionStep = ({
                             <p className="text-muted-foreground">No tokens found. Try a different search.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-3">
                             {filteredTokens.map((token: any) => (
-                                <div key={token.type + "-" + token.contractId}>
-                                    <Card
-                                        className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
-                                        onClick={() => onSelect(token.contractId || "")}
-                                    >
-                                        <div className="p-6 flex flex-col items-center">
-                                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
-                                                {token.image ? (
-                                                    <Image
-                                                        width={64}
-                                                        height={64}
-                                                        src={token.image}
-                                                        alt={token.symbol || ""}
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            (e.target as HTMLImageElement).src = '';
-                                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-8 h-8 text-primary/60">${token.symbol?.charAt(0)}</div>`;
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div className="w-8 h-8 font-bold text-primary/60 flex items-center justify-center">
-                                                        {token.symbol?.charAt(0)}
-                                                    </div>
-                                                )}
+                                <div
+                                    key={token.type + "-" + token.contractId}
+                                    className="group cursor-pointer bg-background border border-border hover:border-primary/50 hover:bg-accent/20 transition-all duration-200 rounded-lg p-4"
+                                    onClick={() => onSelect(token.contractId || "")}
+                                >
+                                    <div className="flex items-center justify-between w-full">
+                                        {/* Left section: Image + Token Info */}
+                                        <div className="flex items-center space-x-4 flex-1 min-w-0">
+                                            {/* Token Image */}
+                                            <div className="flex-shrink-0">
+                                                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-2 ring-border">
+                                                    {token.image ? (
+                                                        <Image
+                                                            width={56}
+                                                            height={56}
+                                                            src={token.image}
+                                                            alt={token.symbol || ""}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = '';
+                                                                (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-7 h-7 font-bold text-primary flex items-center justify-center">${token.symbol?.charAt(0) || '?'}</div>`;
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-7 h-7 font-bold text-primary flex items-center justify-center">
+                                                            {token.symbol?.charAt(0) || '?'}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <h3 className="font-medium">{token.symbol}</h3>
-                                            <p className="text-sm text-muted-foreground truncate max-w-full">{token.name}</p>
+
+                                            {/* Token Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center space-x-3 mb-2">
+                                                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                        {token.symbol}
+                                                    </h3>
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {token.name}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-xs text-muted-foreground">Contract:</span>
+                                                    <code className="text-xs font-mono text-foreground bg-muted/80 px-2 py-1 rounded border">
+                                                        {token.contractId}
+                                                    </code>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </Card>
+
+                                        {/* Right section: Arrow */}
+                                        <div className="flex-shrink-0 ml-4">
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                <ArrowRight className="h-5 w-5 text-primary" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
-                            <Card
-                                className="cursor-pointer hover:border-primary/50 transition-colors"
+
+                            {/* Custom Token Option */}
+                            <div
+                                className="group cursor-pointer bg-background border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/20 transition-all duration-200 rounded-lg p-4"
                                 onClick={() => setShowCustomInput(true)}
                             >
-                                <div className="p-6 flex flex-col items-center">
-                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                        <HelpCircle className="w-8 h-8 text-primary/60" />
+                                <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="flex-shrink-0">
+                                            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center ring-2 ring-border">
+                                                <HelpCircle className="w-7 h-7 text-primary/60" />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                Custom Token
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Use another SIP-10 token not shown in the list
+                                            </p>
+                                        </div>
                                     </div>
-                                    <h3 className="font-medium">Custom Token</h3>
-                                    <p className="text-sm text-muted-foreground">Use another SIP-10 token</p>
+                                    <div className="flex-shrink-0 ml-4">
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            <ArrowRight className="h-5 w-5 text-primary" />
+                                        </div>
+                                    </div>
                                 </div>
-                            </Card>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -593,6 +692,15 @@ export default function SubnetWrapperWizard() {
         enableLTE: true,
     });
 
+    // Vault wrapper deployment state
+    const [showVaultWrapperOption, setShowVaultWrapperOption] = useState(false);
+    const [isDeployingVaultWrapper, setIsDeployingVaultWrapper] = useState(false);
+    const [vaultWrapperTxId, setVaultWrapperTxId] = useState<string | null>(null);
+
+    // Metadata verification state
+    const [isVerifyingMetadata, setIsVerifyingMetadata] = useState(false);
+    const [metadataVerificationResult, setMetadataVerificationResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
+
     // Navigation functions
     const nextStep = () => {
         if (currentStep < WizardStep.DEPLOY) {
@@ -629,6 +737,155 @@ export default function SubnetWrapperWizard() {
                 setFormErrors(errors);
             }
             return false;
+        }
+    };
+
+    // Deploy vault wrapper (sublink) function
+    const deployVaultWrapper = async () => {
+        if (!authenticated || !stxAddress || !finalDeploymentTxId) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Deploy Vault Wrapper",
+                description: "Wallet not connected or subnet not deployed yet."
+            });
+            return;
+        }
+
+        setIsDeployingVaultWrapper(true);
+        setVaultWrapperTxId(null);
+
+        try {
+            const deployedSubnetContractId = `${stxAddress}.${deriveName(state.tokenContract)}-subnet`;
+
+            // Get token metadata for the base token
+            const baseTokenMetadata = await getTokenMetadataCached(state.tokenContract);
+            const tokenSymbol = baseTokenMetadata?.symbol || deriveName(state.tokenContract);
+
+            // Generate bold, vibrant metadata with dynamic colors that stays under 256 character limit
+            const boldColor = generateBoldRandomColor();
+            const { dataUri: metadataUri, length } = generateCustomOptimizedMetadata(
+                tokenSymbol,
+                'svg', // Use SVG for better compression with colors
+                boldColor
+            );
+
+            console.log(`Generated dynamic colored metadata URI: ${length} characters (limit: 256), color: ${boldColor}`);
+
+            if (length > 256) {
+                // Fallback to simpler color pixel if SVG is too long
+                const fallbackResult = generateCustomOptimizedMetadata(tokenSymbol, 'color', boldColor);
+                if (fallbackResult.length <= 256) {
+                    console.log(`Fallback to color pixel: ${fallbackResult.length} characters`);
+                } else {
+                    throw new Error(`Metadata URI too long even with fallback: ${fallbackResult.length} characters (max 256). Try a shorter token symbol.`);
+                }
+            }
+
+            // Generate the sublink contract
+            const sublinkResult = await generateSublink({
+                tokenName: tokenSymbol,
+                subnetContract: deployedSubnetContractId,
+                metadataUri: metadataUri
+            });
+
+            // Deploy the contract
+            const contractName = `${tokenSymbol.toLowerCase()}-vault`;
+            const deploymentResult = await deployContract(sublinkResult.code, contractName);
+
+            if (deploymentResult && deploymentResult.txid) {
+                setVaultWrapperTxId(deploymentResult.txid);
+                toast({
+                    title: "Vault Wrapper Deployed!",
+                    description: `Contract: ${contractName}, TxID: ${deploymentResult.txid.substring(0, 10)}...`
+                });
+            } else {
+                throw new Error("Vault wrapper deployment did not return a transaction ID.");
+            }
+        } catch (err: any) {
+            toast({
+                variant: "destructive",
+                title: "Vault Wrapper Deployment Failed",
+                description: err.message || "An error occurred during vault wrapper deployment."
+            });
+        } finally {
+            setIsDeployingVaultWrapper(false);
+        }
+    };
+
+    // Verify subnet metadata function
+    const verifySubnetMetadata = async () => {
+        if (!stxAddress || !finalDeploymentTxId) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Verify Metadata",
+                description: "Subnet not deployed yet."
+            });
+            return;
+        }
+
+        setIsVerifyingMetadata(true);
+        setMetadataVerificationResult(null);
+
+        try {
+            const deployedSubnetContractId = `${stxAddress}.${deriveName(state.tokenContract)}-subnet`;
+
+            // Try to fetch the subnet metadata using the token cache
+            const subnetMetadata = await getTokenMetadataCached(deployedSubnetContractId);
+
+            if (subnetMetadata && subnetMetadata.contractId) {
+                // Check if it has the expected properties
+                const hasCorrectType = subnetMetadata.type === 'SUBNET';
+                const hasBaseToken = subnetMetadata.base === state.tokenContract;
+                const hasBasicMetadata = subnetMetadata.name && subnetMetadata.symbol;
+
+                if (hasCorrectType && hasBaseToken && hasBasicMetadata) {
+                    setMetadataVerificationResult({
+                        success: true,
+                        message: "✅ Subnet metadata found and properly configured!",
+                        data: subnetMetadata
+                    });
+                    toast({
+                        title: "Metadata Verified",
+                        description: "Subnet metadata is properly stored and accessible."
+                    });
+                } else {
+                    setMetadataVerificationResult({
+                        success: false,
+                        message: `⚠️ Subnet metadata found but incomplete. Missing: ${!hasCorrectType ? 'type, ' : ''}${!hasBaseToken ? 'base token, ' : ''}${!hasBasicMetadata ? 'name/symbol' : ''}`.replace(/, $/, ''),
+                        data: subnetMetadata
+                    });
+                    toast({
+                        variant: "destructive",
+                        title: "Metadata Incomplete",
+                        description: "Subnet metadata exists but is missing some required fields."
+                    });
+                }
+            } else {
+                setMetadataVerificationResult({
+                    success: false,
+                    message: "❌ Subnet metadata not found in token cache.",
+                    data: null
+                });
+                toast({
+                    variant: "destructive",
+                    title: "Metadata Not Found",
+                    description: `Subnet metadata for ${deployedSubnetContractId} could not be found.`
+                });
+            }
+        } catch (err: any) {
+            console.error("Error verifying subnet metadata:", err);
+            setMetadataVerificationResult({
+                success: false,
+                message: `❌ Error verifying metadata: ${err.message}`,
+                data: null
+            });
+            toast({
+                variant: "destructive",
+                title: "Verification Failed",
+                description: err.message || "An error occurred while verifying subnet metadata."
+            });
+        } finally {
+            setIsVerifyingMetadata(false);
         }
     };
 
@@ -703,6 +960,8 @@ export default function SubnetWrapperWizard() {
                     console.error("Metadata creation failed:", metadataResult.error);
                 }
                 setCurrentStep(WizardStep.DEPLOY);
+                // Show vault wrapper option after successful deployment
+                setTimeout(() => setShowVaultWrapperOption(true), 1000);
             } else {
                 throw new Error("Deployment did not return a transaction ID.");
             }
@@ -841,11 +1100,121 @@ export default function SubnetWrapperWizard() {
                                         href={`https://explorer.hiro.so/txid/${finalDeploymentTxId}?chain=mainnet`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mb-4"
+                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mb-6"
                                     >
                                         View Transaction on Explorer <ExternalLinkIcon className="ml-2 h-4 w-4" />
                                     </a>
                                 )}
+
+                                {/* Vault Wrapper Option */}
+                                {showVaultWrapperOption && (
+                                    <div className="w-full max-w-md mb-6">
+                                        <div className="bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20 rounded-lg p-6 space-y-4">
+                                            <div className="flex items-center justify-center">
+                                                <div className="p-2 bg-primary/10 rounded-full mr-3">
+                                                    <Vault className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <div className="text-center">
+                                                    <h4 className="font-semibold text-foreground">Unlock DeFi Integration</h4>
+                                                    <p className="text-sm text-muted-foreground">Deploy a Vault Wrapper for your subnet</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-center space-y-2">
+                                                <p className="text-sm text-muted-foreground">
+                                                    Integrate your subnet into Charisma's DeFi ecosystem with one click!
+                                                </p>
+                                                <div className="flex flex-wrap justify-center gap-1 text-xs">
+                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">Limit Orders</span>
+                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">DCA</span>
+                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">OTC Trading</span>
+                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">Swapping</span>
+                                                </div>
+                                            </div>
+
+                                            {vaultWrapperTxId ? (
+                                                <div className="text-center space-y-3">
+                                                    <div className="flex items-center justify-center text-green-600 dark:text-green-400">
+                                                        <Check className="h-5 w-5 mr-2" />
+                                                        <span className="font-medium">Vault Wrapper Deployed!</span>
+                                                    </div>
+                                                    <a
+                                                        href={`https://explorer.hiro.so/txid/${vaultWrapperTxId}?chain=mainnet`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center text-sm text-primary hover:text-primary/80"
+                                                    >
+                                                        View Vault Transaction <ArrowUpRight className="ml-1 h-3 w-3" />
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    onClick={deployVaultWrapper}
+                                                    disabled={isDeployingVaultWrapper}
+                                                    className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground"
+                                                >
+                                                    {isDeployingVaultWrapper ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Deploying Vault...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Sparkles className="mr-2 h-4 w-4" />
+                                                            Deploy Vault Wrapper
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Metadata Verification Section */}
+                                <div className="w-full max-w-md mb-6">
+                                    <div className="bg-accent border border-border rounded-lg p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-medium text-accent-foreground">Verify Subnet Metadata</h4>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={verifySubnetMetadata}
+                                                disabled={isVerifyingMetadata}
+                                            >
+                                                {isVerifyingMetadata ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                                        Checking...
+                                                    </>
+                                                ) : (
+                                                    "Check Metadata"
+                                                )}
+                                            </Button>
+                                        </div>
+
+                                        {metadataVerificationResult && (
+                                            <div className={`p-3 rounded text-sm border ${metadataVerificationResult.success
+                                                ? 'bg-green-50 dark:bg-green-950/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800'
+                                                : 'bg-yellow-50 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800'
+                                                }`}>
+                                                <p>{metadataVerificationResult.message}</p>
+                                                {metadataVerificationResult.data && (
+                                                    <details className="mt-2">
+                                                        <summary className="cursor-pointer font-medium">View metadata details</summary>
+                                                        <pre className="mt-2 text-xs overflow-auto bg-background/50 p-2 rounded">
+                                                            {JSON.stringify(metadataVerificationResult.data, null, 2)}
+                                                        </pre>
+                                                    </details>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-muted-foreground">
+                                            This checks if your subnet was properly added to the token cache and is discoverable by other applications.
+                                        </p>
+                                    </div>
+                                </div>
+
                                 <div className="flex flex-col gap-2 w-full max-w-xs">
                                     <Button variant="outline" onClick={() => router.push('/templates')}>
                                         Deploy Another Contract

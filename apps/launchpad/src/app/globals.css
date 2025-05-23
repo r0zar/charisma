@@ -9,10 +9,18 @@
   --color-secondary-foreground: hsl(210 40% 98%);
   --color-destructive:          hsl(0 72% 51%);
   --color-destructive-foreground: hsl(0 0% 98%);
+  --color-success:              hsl(142 72% 29%);  /* green for success states */
+  --color-success-foreground:   hsl(0 0% 98%);
+  --color-warning:              hsl(45 93% 47%);   /* amber for warnings */
+  --color-warning-foreground:   hsl(45 30% 11%);
   --color-muted:                hsl(220 9% 10%);
   --color-muted-foreground:     hsl(215 14% 34%);
   --color-accent:               hsl(210 40% 96.1%);
   --color-accent-foreground:    hsl(222.2 47.4% 11.2%);
+  --color-card:                 hsl(0 0% 100%);    /* card backgrounds */
+  --color-card-foreground:      hsl(240 10% 3.9%);
+  --color-popover:              hsl(0 0% 100%);    /* dropdown/popover backgrounds */
+  --color-popover-foreground:   hsl(240 10% 3.9%);
   --color-border:               hsl(214.3 31.8% 91.4%);
   --color-input:                var(--color-border);
   --color-ring:                 var(--color-primary);
@@ -39,9 +47,21 @@
   @theme {
     --color-background: hsl(240 10% 3.9%);
     --color-foreground: hsl(0 0% 98%);
+    --color-card:       hsl(240 10% 3.9%);
+    --color-card-foreground: hsl(0 0% 98%);
+    --color-popover:    hsl(240 10% 3.9%);
+    --color-popover-foreground: hsl(0 0% 98%);
+    --color-muted:      hsl(240 3.7% 15.9%);
+    --color-muted-foreground: hsl(240 5% 64.9%);
+    --color-accent:     hsl(240 3.7% 15.9%);
+    --color-accent-foreground: hsl(0 0% 98%);
     --color-border:     hsl(240 3.7% 15.9%);
     --color-input:      var(--color-border);
     --color-ring:       var(--color-primary);
+    --color-success:    hsl(142 72% 29%);
+    --color-success-foreground: hsl(0 0% 98%);
+    --color-warning:    hsl(45 93% 47%);
+    --color-warning-foreground: hsl(45 30% 11%);
 
     --pattern-color: hsl(0 0% 0%); /* Dark gray #1a1a1a */
   }
@@ -62,6 +82,38 @@
                            var(--color-secondary)); }
 
   img, svg, video { display:block; max-inline-size:100%; height:auto; }
+
+  /* Better text selection */
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+
+  /* Focus ring improvements */
+  *:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Custom scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-muted);
+    border-radius: var(--radius);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-muted-foreground);
+    border-radius: var(--radius);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border);
+  }
 }
 
 /* UTILITIES -------------------------------------------------- */

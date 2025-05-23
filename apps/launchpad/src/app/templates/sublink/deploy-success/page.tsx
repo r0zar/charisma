@@ -83,11 +83,9 @@ function SublinkDeploySuccessContent() {
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Templates
                         </Button>
-                        {/* Optional: Link to a page where users can manage/view their sublinks, if such a page exists */}
-                        {/* For now, this just goes back to the sublink creation wizard */}
-                        <Button onClick={() => router.push("/templates/sublink")} className="flex-1">
+                        <Button onClick={() => router.push("/templates/subnet-wrapper")} className="flex-1">
                             <Globe className="mr-2 h-4 w-4" />
-                            Deploy Another Sublink
+                            Deploy Another Subnet
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground text-center pt-4">

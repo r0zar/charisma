@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, HelpCircle, Search, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { TokenCacheData } from "@repo/tokens";
+import { fetchSingleTokenMetadataDirectly } from "@/app/actions";
 
 interface TokenSelectionStepProps {
     onSelectToken: (token: TokenCacheData) => void;
@@ -56,7 +57,7 @@ const TokenSelectionStep = ({
         setIsFetchingToken(true);
         try {
             // This fetchSingleTokenMetadataDirectly must be passed in or imported as needed in your app
-            const result = await (window as any).fetchSingleTokenMetadataDirectly(contractId);
+            const result = await fetchSingleTokenMetadataDirectly(contractId);
             if (result.error) {
                 throw new Error(result.error);
             }

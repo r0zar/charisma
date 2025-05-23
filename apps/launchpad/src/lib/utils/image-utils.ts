@@ -141,7 +141,7 @@ export const generateOptimizedOnChainMetadata = (
 
     // Use standard field names but optimize content for brevity - no description to save space
     const metadata = {
-        name: `${symbol}-sublink`, // Shortened but descriptive
+        name: `${symbol}-SL`, // Shortened but descriptive
         image
     };
 
