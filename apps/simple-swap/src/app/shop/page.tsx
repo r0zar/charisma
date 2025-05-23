@@ -27,6 +27,9 @@ export const metadata: Metadata = {
         title: 'Charisma Marketplace',
         description: 'Trade tokens, place bids on offers, and discover new opportunities in the Charisma ecosystem.',
     },
+    other: {
+        'og:logo': 'https://charisma.rocks/charisma.png',
+    },
 };
 
 // Server component to fetch data

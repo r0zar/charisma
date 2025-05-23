@@ -11,6 +11,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CursorFollowingTooltip } from '@/components/ui/cursor-following-tooltip';
 import {
     Table,
     TableBody,
@@ -337,25 +338,19 @@ const TableRowComponent = React.memo(({
     // Wrap offers with tooltip
     if (isOfferItem(item) && item.offerAssets) {
         return (
-            <Tooltip delayDuration={200}>
-                <TooltipTrigger asChild>
-                    {tableRow}
-                </TooltipTrigger>
-                <TooltipContent
-                    side="top"
-                    align="start"
-                    sideOffset={8}
-                    className="p-0 max-w-none z-50 border-border/50"
-                    avoidCollisions={true}
-                    collisionPadding={8}
-                >
+            <CursorFollowingTooltip
+                delayDuration={200}
+                className="p-0 max-w-none z-50 border-border/50"
+                content={
                     <OfferTooltip
                         item={item}
                         subnetTokens={subnetTokens}
                         prices={prices}
                     />
-                </TooltipContent>
-            </Tooltip>
+                }
+            >
+                {tableRow}
+            </CursorFollowingTooltip>
         );
     }
 

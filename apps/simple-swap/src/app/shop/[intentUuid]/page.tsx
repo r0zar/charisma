@@ -127,6 +127,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
                 description,
                 images: [`${baseUrl}/shop/${intentUuid}/opengraph-image`],
             },
+            other: {
+                'og:logo': 'https://charisma.rocks/charisma.png',
+            },
         };
     } catch (error) {
         console.error("Error generating metadata:", error);
@@ -151,6 +154,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
                 card: 'summary_large_image',
                 title: "Charisma OTC Offer",
                 description: "View and bid on token offers in the Charisma marketplace",
+            },
+            other: {
+                'og:logo': 'https://charisma.rocks/charisma.png',
             },
         };
     }
