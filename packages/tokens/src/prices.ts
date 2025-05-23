@@ -28,6 +28,58 @@ type PriceUSD = number;
 export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
 
 /**
+ * Interface for tokens with subnet information
+ */
+export interface TokenWithSubnetInfo {
+    contractId: string;
+    type?: string;
+    base?: string | null;
+}
+
+/**
+ * Process token prices to handle STX key normalization and subnet token price proxying.
+ * This function:
+ * 1. Normalizes STX price keys ('.stx' vs 'stx')
+ * 2. Proxies subnet token prices from their base tokens
+ * 
+ * @param rawPrices - The raw price data from the API
+ * @param tokens - Array of tokens with subnet information (optional)
+ * @returns Processed price data with subnet tokens mapped to their base token prices
+ */
+export function processTokenPrices(
+    rawPrices: KraxelPriceData,
+    tokens?: TokenWithSubnetInfo[]
+): KraxelPriceData {
+    const processedPrices: KraxelPriceData = { ...rawPrices };
+
+    // Handle STX price key ('.stx' vs 'stx')
+    if (processedPrices.hasOwnProperty('stx') && !processedPrices.hasOwnProperty('.stx')) {
+        processedPrices['.stx'] = processedPrices['stx'];
+    } else if (processedPrices.hasOwnProperty('.stx') && !processedPrices.hasOwnProperty('stx')) {
+        // If only .stx exists, ensure stx is also available if something expects it
+        // processedPrices['stx'] = processedPrices['.stx']; 
+    } else if (!processedPrices.hasOwnProperty('stx') && !processedPrices.hasOwnProperty('.stx')) {
+        console.warn("Price data from Kraxel API is missing both 'stx' and '.stx' keys.");
+    }
+
+    // Handle subnet token price proxying
+    if (tokens && tokens.length > 0) {
+        tokens.forEach(token => {
+            if (token.type === 'SUBNET' && token.base) {
+                const baseTokenPrice = processedPrices[token.base];
+                if (baseTokenPrice !== undefined) {
+                    processedPrices[token.contractId] = baseTokenPrice;
+                } else {
+                    // console.warn(`Price for base token '${token.base}' (for subnet '${token.contractId}') not found.`);
+                }
+            }
+        });
+    }
+
+    return processedPrices;
+}
+
+/**
  * Fetches the latest token prices from the Kraxel API.
  *
  * @returns A promise that resolves to an object containing token identifiers as keys and their prices as values.
@@ -37,61 +89,23 @@ export async function listPrices(): Promise<KraxelPriceData> {
     const TIMEOUT_MS = 5000;
 
     const fetchPrices = async (): Promise<KraxelPriceData> => {
-        // Remove token listing and subnet mapping logic
         const response = await fetch(KRAXEL_API_URL);
         if (!response.ok) {
             throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
         }
         const data = await response.json() as KraxelPriceData;
 
-        // Handle STX price key ('.stx' vs 'stx')
-        if (data.hasOwnProperty('stx')) {
-            data['.stx'] = data['stx'];
-        } else {
-            // If 'stx' is not present, check if '.stx' is, if not, then warn.
-            if (!data.hasOwnProperty('.stx')) {
-                console.warn("Price data from Kraxel API is missing 'stx' and '.stx' keys.");
-            }
-        }
+        // Use the new processTokenPrices function with manual mappings
+        const manualTokenMappings: TokenWithSubnetInfo[] = [
+            { contractId: CHARISMA_SUBNET_CONTRACT, type: 'SUBNET', base: CHARISMA_TOKEN_CONTRACT },
+            { contractId: WELSH_SUBNET_CONTRACT, type: 'SUBNET', base: WELSHCORGICOIN_CONTRACT },
+            { contractId: SBTC_SUBNET_CONTRACT, type: 'SUBNET', base: SBTC_TOKEN_CONTRACT },
+            { contractId: SUSDC_SUBNET_CONTRACT, type: 'SUBNET', base: SUSDC_TOKEN_CONTRACT },
+            { contractId: PEPE_SUBNET_CONTRACT, type: 'SUBNET', base: PEPE_TOKEN_CONTRACT },
+            { contractId: MALI_SUBNET_CONTRACT, type: 'SUBNET', base: MALI_TOKEN_CONTRACT },
+        ];
 
-        // Restore manual subnet price mappings
-        if (data.hasOwnProperty(CHARISMA_TOKEN_CONTRACT)) {
-            data[CHARISMA_SUBNET_CONTRACT] = data[CHARISMA_TOKEN_CONTRACT];
-        } else {
-            console.warn(`Price data from Kraxel API is missing '${CHARISMA_TOKEN_CONTRACT}' key.`);
-        }
-
-        if (data.hasOwnProperty(WELSHCORGICOIN_CONTRACT)) {
-            data[WELSH_SUBNET_CONTRACT] = data[WELSHCORGICOIN_CONTRACT];
-        } else {
-            console.warn(`Price data from Kraxel API is missing '${WELSHCORGICOIN_CONTRACT}' key.`);
-        }
-
-        if (data.hasOwnProperty(SBTC_TOKEN_CONTRACT)) {
-            data[SBTC_SUBNET_CONTRACT] = data[SBTC_TOKEN_CONTRACT];
-        } else {
-            console.warn(`Price data from Kraxel API is missing '${SBTC_TOKEN_CONTRACT}' key.`);
-        }
-
-        if (data.hasOwnProperty(SUSDC_TOKEN_CONTRACT)) {
-            data[SUSDC_SUBNET_CONTRACT] = data[SUSDC_TOKEN_CONTRACT];
-        } else {
-            console.warn(`Price data from Kraxel API is missing '${SUSDC_TOKEN_CONTRACT}' key.`);
-        }
-
-        if (data.hasOwnProperty(PEPE_TOKEN_CONTRACT)) {
-            data[PEPE_SUBNET_CONTRACT] = data[PEPE_TOKEN_CONTRACT];
-        } else {
-            console.warn(`Price data from Kraxel API is missing '${PEPE_TOKEN_CONTRACT}' key.`);
-        }
-
-        if (data.hasOwnProperty(MALI_TOKEN_CONTRACT)) {
-            data[MALI_SUBNET_CONTRACT] = data[MALI_TOKEN_CONTRACT];
-        } else {
-            console.warn(`Price data from Kraxel API is missing '${MALI_TOKEN_CONTRACT}' key.`);
-        }
-
-        return data;
+        return processTokenPrices(data, manualTokenMappings);
     };
 
     const timeoutPromise = new Promise<KraxelPriceData>((_, reject) => {

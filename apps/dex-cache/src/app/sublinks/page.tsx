@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { ArrowRightLeft, Flame } from 'lucide-react';
 import { getAllVaultData, Vault } from '@/lib/pool-service';
 import SublinkList from '@/components/SublinkList';
-import { getSubnetTokenBalance } from '@/lib/server/subnets';
+import { getTokenBalanceForContract } from '@/lib/server/subnets';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import AddSublinkButton from '@/components/sublink/AddSublinkButton';
 
@@ -46,8 +46,6 @@ async function enrichSublinksWithTvl(
 ): Promise<EnhancedVault[]> {
   if (!sublinks || sublinks.length === 0) return [];
 
-  console.log(`Enriching ${sublinks.length} sublinks with TVL data`);
-
   // Process sublinks in batches to avoid too many concurrent requests
   const batchSize = 5;
   const enrichedSublinks: EnhancedVault[] = [];
@@ -55,13 +53,21 @@ async function enrichSublinksWithTvl(
   // Process sublinks in batches
   for (let i = 0; i < sublinks.length; i += batchSize) {
     const batch = sublinks.slice(i, i + batchSize);
-    console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(sublinks.length / batchSize)}`);
 
     const batchPromises = batch.map(async (sublink: Vault) => {
       try {
-        // Get the subnet token balance for each sublink
-        const result = await getSubnetTokenBalance(
-          sublink.contractId,
+        // Get subnet contract ID from either tokenBContract or tokenB.contractId
+        const subnetContractId = sublink.tokenBContract || sublink.tokenB?.contractId;
+
+        // Check if we have the subnet contract ID
+        if (!subnetContractId) {
+          console.warn(`No subnet contract found for ${sublink.contractId} - skipping TVL enrichment`);
+          return sublink as EnhancedVault;
+        }
+
+        // Get the token balance held by the subnet contract
+        const result = await getTokenBalanceForContract(
+          subnetContractId, // Use the subnet contract ID
           sublink.tokenA?.contractId!
         );
 
@@ -74,8 +80,6 @@ async function enrichSublinksWithTvl(
           // Calculate USD value if a price is available
           const tokenPrice = prices?.[sublink.tokenA?.contractId!] || 0;
           const tvlUsd = tokenBalance * tokenPrice;
-
-          console.log(`Subnet ${sublink.contractId} TVL: ${tokenBalance.toFixed(6)} tokens at $${tokenPrice.toFixed(2)} = $${tvlUsd.toFixed(2)}`);
 
           // Return enhanced sublink with TVL data
           return {
@@ -91,6 +95,8 @@ async function enrichSublinksWithTvl(
               tvlUsd
             }
           };
+        } else {
+          console.warn(`Failed to get balance for ${sublink.contractId}: ${result.error}`);
         }
 
         return sublink as EnhancedVault;
@@ -124,7 +130,6 @@ export default async function ExploreSubnetsPage() {
   const cachedSublinks = enrichedSublinks.map(sublink => {
     // If a sublink doesn't have TVL data, check if we have it in our cache
     if (!sublink.tvlData && tvlCache.has(sublink.contractId)) {
-      console.log(`Using cached TVL data for ${sublink.contractId}`);
       return {
         ...sublink,
         tvlData: tvlCache.get(sublink.contractId)

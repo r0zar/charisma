@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { removeVault, refreshVaultData } from '@/app/actions'; // These actions might need to be adjusted for sublinks
+import { refreshVaultData } from '@/app/actions';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
+import { RefreshCw, Coins, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Vault } from '@/lib/pool-service'; // Assuming Vault is the correct type for sublinks for now
-import Image from 'next/image'; // If sublinks have images
+import { Vault } from '@/lib/pool-service';
+import Image from 'next/image';
 
 // Add CSS for the flame animation
 const flameStyle = `
@@ -24,14 +24,21 @@ const flameStyle = `
   }
 `;
 
-// Utility functions (truncateContractId, formatTokenAmount, formatUsdValue, formatTimestamp, getTimeSinceUpdate, calculateUsdValue)
-// These are kept from the original PoolList structure and can be adjusted or removed if not needed for sublinks
-
+// Utility functions 
 const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
     const [addr, name] = id.split('.');
     if (!addr) return id;
     if (addr.length <= prefix + suffix + 3) return id;
     return `${addr.slice(0, prefix)}...${addr.slice(-suffix)}.${name}`;
+};
+
+const formatUsdValue = (value: number | null): string => {
+    if (value === null || isNaN(value)) return '—';
+    if (value < 0.01 && value > -0.01 && value !== 0) return '< $0.01';
+    if (value < 1 && value > -1) return `$${value.toFixed(2)}`;
+    if (value < 1000 && value > -1000) return `$${value.toFixed(2)}`;
+    if (value < 1000000 && value > -1000000) return `$${(value / 1000).toFixed(1)}K`;
+    return `$${(value / 1000000).toFixed(1)}M`;
 };
 
 const formatTokenAmount = (amount: number, decimals: number): string => {
@@ -51,15 +58,6 @@ const formatTokenAmount = (amount: number, decimals: number): string => {
             maximumFractionDigits: Math.min(2, decimals)
         });
     }
-};
-
-const formatUsdValue = (value: number | null): string => {
-    if (value === null || isNaN(value)) return '—';
-    if (value < 0.01 && value > -0.01 && value !== 0) return '< $0.01'; // Handle very small positive/negative
-    if (value < 1 && value > -1) return `$${value.toFixed(2)}`;
-    if (value < 1000 && value > -1000) return `$${value.toFixed(2)}`;
-    if (value < 1000000 && value > -1000000) return `$${(value / 1000).toFixed(1)}K`;
-    return `$${(value / 1000000).toFixed(1)}M`;
 };
 
 const formatTimestamp = (timestamp?: number): string => {
@@ -98,8 +96,6 @@ interface SublinkListProps {
 
 export default function SublinkList({ vaults, prices }: SublinkListProps) {
     const [refreshing, setRefreshing] = useState<string | null>(null);
-    const [removing, setRemoving] = useState<string | null>(null);
-    const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
     // Fetch prices client-side if they weren't provided as props
     const [localPrices, setLocalPrices] = useState<KraxelPriceData | null>(prices || null);
@@ -122,18 +118,11 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
     // Use the provided prices or the locally fetched ones
     const effectivePrices = prices || localPrices;
 
-    const handleRefresh = async (id: string) => { // This might need a different backend action for sublinks
+    const handleRefresh = async (id: string) => {
         setRefreshing(id);
-        // await refreshSublinkData(id); // Example: new action
-        await refreshVaultData(id); // Using existing for now
+        await refreshVaultData(id);
         window.location.reload(); // Consider optimistic updates instead of reload
         setRefreshing(null);
-    };
-
-    // const handleRemove = async (id: string) => { ... }; // If needed
-
-    const toggleExpand = (id: string) => {
-        setExpandedItem(expandedItem === id ? null : id);
     };
 
     if (!vaults || vaults.length === 0) {
@@ -178,33 +167,14 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                         <tbody className="divide-y divide-border">
                             {vaults.map(sublink => {
                                 const isRefreshingThis = refreshing === sublink.contractId;
-                                const isExpandedThis = expandedItem === sublink.contractId;
 
-                                // For liquidity, prioritize using the precomputed tvlData if available
-                                let totalUsdLiquidity: number | null = null;
-
-                                if (sublink.tvlData) {
-                                    // Use the precomputed TVL data from the server
-                                    totalUsdLiquidity = sublink.tvlData.tvlUsd;
-                                } else {
-                                    // Fallback to client-side calculation (old method)
-                                    const liquidityA = sublink.reservesA || 0;
-                                    const liquidityB = sublink.reservesB || 0;
-                                    const decimalsA = sublink.tokenA?.decimals || 0;
-                                    const decimalsB = sublink.tokenB?.decimals || 0;
-                                    const contractA = sublink.tokenA?.contractId || '';
-                                    const contractB = sublink.tokenB?.contractId || '';
-
-                                    const usdA = calculateUsdValue(liquidityA, decimalsA, contractA, effectivePrices);
-                                    const usdB = calculateUsdValue(liquidityB, decimalsB, contractB, effectivePrices);
-                                    totalUsdLiquidity = (usdA !== null && usdB !== null) ? usdA + usdB : null;
-                                }
-
+                                // Use enriched TVL data if available, otherwise show no data
+                                const totalUsdLiquidity = sublink.tvlData?.tvlUsd || null;
                                 const formattedTotalUsd = formatUsdValue(totalUsdLiquidity);
 
                                 return (
                                     <React.Fragment key={sublink.contractId}>
-                                        <tr className={`${isExpandedThis ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
+                                        <tr className={`hover:bg-muted/10 transition-colors`}>
                                             <td className="p-4 whitespace-nowrap font-medium">
                                                 <div className="flex items-center gap-2">
                                                     {sublink.image && (

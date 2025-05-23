@@ -187,11 +187,17 @@ export default function PoolList({ vaults }: Props) {
 
                                 const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA?.decimals || 0, v.tokenA?.contractId as `${string}.${string}`, prices);
                                 const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB?.decimals || 0, v.tokenB?.contractId as `${string}.${string}`, prices);
-                                const totalUsdValue = (usdValueA !== null && usdValueB !== null) ? (usdValueA + usdValueB) : null;
+
+                                // Calculate total USD value from available prices (handle missing prices gracefully)
+                                let totalUsdValue = 0;
+                                if (usdValueA !== null) totalUsdValue += usdValueA;
+                                if (usdValueB !== null) totalUsdValue += usdValueB;
+                                // If no prices available at all, show null
+                                const finalTotalUsdValue = (usdValueA === null && usdValueB === null) ? null : totalUsdValue;
 
                                 const formattedUsdValueA = formatUsdValue(usdValueA);
                                 const formattedUsdValueB = formatUsdValue(usdValueB);
-                                const formattedTotalUsdValue = formatUsdValue(totalUsdValue);
+                                const formattedTotalUsdValue = formatUsdValue(finalTotalUsdValue);
 
                                 const lastUpdated = (v as any).reservesLastUpdatedAt;
                                 const updateStatus = getTimeSinceUpdate(lastUpdated);

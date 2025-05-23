@@ -53,7 +53,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const [swapSuccessInfo, setSwapSuccessInfo] = useState<TransactionResult | null>(null);
 
     // Price state
-    const [rawKraxelPrices, setRawKraxelPrices] = useState<KraxelPriceData>({});
+    const [tokenPrices, setTokenPrices] = useState<KraxelPriceData>({});
     const [isLoadingPrices, setIsLoadingPrices] = useState(false);
     const [priceError, setPriceError] = useState<string | null>(null);
 
@@ -89,7 +89,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
             setPriceError(null);
             try {
                 const prices = await listPrices();
-                setRawKraxelPrices(prices);
+                setTokenPrices(prices);
             } catch (err) {
                 console.error("Failed to fetch token prices:", err);
                 setPriceError("Could not load token prices.");
@@ -241,36 +241,6 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
         }
         fetchQuote();
     }, [selectedFromToken, selectedToToken, microAmount]);
-
-    // Derived tokenPrices with subnet proxying
-    const tokenPrices = useMemo(() => {
-        const processedPrices: KraxelPriceData = { ...rawKraxelPrices };
-
-        // Handle STX price key ('.stx' vs 'stx')
-        if (processedPrices.hasOwnProperty('stx') && !processedPrices.hasOwnProperty('.stx')) {
-            processedPrices['.stx'] = processedPrices['stx'];
-        } else if (processedPrices.hasOwnProperty('.stx') && !processedPrices.hasOwnProperty('stx')) {
-            // If only .stx exists, ensure stx is also available if something expects it
-            // processedPrices['stx'] = processedPrices['.stx']; 
-        } else if (!processedPrices.hasOwnProperty('stx') && !processedPrices.hasOwnProperty('.stx')) {
-            console.warn("Price data from Kraxel API is missing both 'stx' and '.stx' keys.");
-        }
-
-        if (selectedTokens && selectedTokens.length > 0) {
-            selectedTokens.forEach(token => {
-                // Use the 'token' variable directly as it's of type 'Token' from swap-client which has 'type' and 'base'
-                if (token.type === 'SUBNET' && token.base) {
-                    const baseTokenPrice = processedPrices[token.base];
-                    if (baseTokenPrice !== undefined) {
-                        processedPrices[token.contractId] = baseTokenPrice;
-                    } else {
-                        // console.warn(`Price for base token '${token.base}' (for subnet '${token.contractId}') not found.`);
-                    }
-                }
-            });
-        }
-        return processedPrices;
-    }, [rawKraxelPrices, selectedTokens]);
 
     // ---------------------- Derived Values (USD) ----------------------
     const { fromTokenValueUsd, toTokenValueUsd } = useMemo(() => {

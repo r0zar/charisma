@@ -13,7 +13,7 @@ import { KraxelPriceData } from '@repo/tokens';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getSubnetTokenBalance } from '@/lib/server/subnets';
+import { getTokenBalanceForContract } from '@/lib/server/subnets';
 import { SublinkMetadataEditForm } from './sublink-metadata-edit-form';
 
 // Add a simpler CSS animation for the flame
@@ -93,23 +93,20 @@ const formatUsdValue = (value: number | null): string => {
 
 // Helper to get subnet token contract ID
 const getSubnetTokenContractId = (sublinkContractId: string, sublinkData: any) => {
-    // Use the tokenBContract directly from the sublink metadata if available
+    // Method 1: Use tokenBContract directly from the sublink metadata if available
     if (sublinkData && sublinkData.tokenBContract) {
-        console.log(`Using sublinkData.tokenBContract: ${sublinkData.tokenBContract}`);
         return sublinkData.tokenBContract;
     }
 
-    // Fallback to tokenB.contractId if tokenBContract doesn't exist
+    // Method 2: Use tokenB.contractId if tokenBContract doesn't exist
     if (sublinkData && sublinkData.tokenB && sublinkData.tokenB.contractId) {
-        console.log(`Using sublinkData.tokenB.contractId: ${sublinkData.tokenB.contractId}`);
         return sublinkData.tokenB.contractId;
     }
 
     // Last resort fallback (should not happen with proper data)
-    console.warn("No tokenBContract or tokenB.contractId found in sublink metadata, using fallback");
+    console.warn("No subnet contract found in sublink metadata, using fallback");
     const [address] = sublinkContractId.split('.');
     const fallback = `${address}.charisma-token-subnet-v1`;
-    console.log(`Using fallback subnet contract: ${fallback}`);
     return fallback;
 };
 
@@ -132,8 +129,19 @@ const calculateTvl = async (
     }
 
     try {
+        // Get the subnet contract ID from the sublink data
+        const subnetContractId = getSubnetTokenContractId(sublinkContractId, sublinkData);
+
+        if (!subnetContractId) {
+            console.error("No subnet contract ID found for sublink");
+            toast.error("Could not determine subnet contract", {
+                description: "This sublink may need to be reconfigured"
+            });
+            return;
+        }
+
         // Call the server action to get the token balance
-        const result = await getSubnetTokenBalance(sublinkContractId, tokenContractId);
+        const result = await getTokenBalanceForContract(subnetContractId, tokenContractId);
 
         if (result.success && result.balance !== undefined) {
             // Convert from micro units to standard units using the returned decimals or default
@@ -143,8 +151,6 @@ const calculateTvl = async (
             // Calculate TVL (token balance * token price)
             const tvl = tokenBalance * tokenPrice;
             setCalculatedTvl(tvl);
-
-            console.log(`Calculated TVL: ${tvl} USD from ${tokenBalance} tokens at $${tokenPrice} each`);
         } else {
             console.error("Error fetching subnet balance:", result.error);
             toast.error("Could not fetch subnet token balance", {

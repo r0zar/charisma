@@ -42,14 +42,13 @@ async function fetchVaultAnalytics(vaultId: string, vault: any, prices: KraxelPr
         prices
     );
 
-    // Total TVL is the sum of both token values
-    const tvl = (usdValueA !== null && usdValueB !== null)
-        ? (usdValueA + usdValueB)
-        : null;
+    // Calculate TVL from available token values (handle missing prices gracefully)
+    let tvl = 0;
+    if (usdValueA !== null) tvl += usdValueA;
+    if (usdValueB !== null) tvl += usdValueB;
 
-    // Only return the real data we have
     return {
-        tvl: tvl || 0,
+        tvl,
         // Other metrics are omitted since we don't have real data yet
     };
 }

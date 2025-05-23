@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/lib/context/app-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,12 +28,15 @@ import {
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { TokenCacheData } from '@repo/tokens';
+import Link from 'next/link';
 
 // Import the modals
-import { AddLiquidityModal } from './add-liquidity-modal';
-import { RemoveLiquidityModal } from './remove-liquidity-modal';
-import { MetadataEditForm } from './metadata-edit-form';
-import TokenInfoCard from './token-info-card';
+import { AddLiquidityModal } from '@/components/pool/add-liquidity-modal';
+import { RemoveLiquidityModal } from '@/components/pool/remove-liquidity-modal';
+import { MetadataEditForm } from '@/components/pool/metadata-edit-form';
+import TokenInfoCard from '@/components/pool/token-info-card';
+import APYSimulator from '@/components/pool/apy-simulator';
+import ProfitSimulator from '@/components/pool/profit-simulator';
 
 // Renamed local Vault interface to avoid potential naming collisions
 export interface ClientDisplayVault {
@@ -116,6 +119,7 @@ const ComingSoonMask = ({ children }: { children: React.ReactNode }) => (
 export default function VaultDetailClient({ vault, prices, analytics, contractInfo }: VaultDetailClientProps) {
     const { walletState } = useApp();
     const [currentVaultData, setCurrentVaultData] = React.useState<ClientDisplayVault>(vault); // Use renamed interface
+    const [currentAPY, setCurrentAPY] = React.useState<number>(0);
 
     // Calculate derived values
     const feePercent = currentVaultData.fee ? (currentVaultData.fee / 10000).toFixed(2) : "0.00";
@@ -454,53 +458,21 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                         }
                                     </div>
 
-                                    {/* Pool Metrics */}
-                                    <ComingSoonMask>
-                                        <Card className="border border-border/50 p-5">
-                                            <h3 className="text-lg font-medium mb-4">Pool Performance Metrics</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                                <div className="bg-muted/20 p-4 rounded-lg text-center">
-                                                    <div className="text-sm text-muted-foreground mb-1">Stability Score</div>
-                                                    <div className="text-2xl font-bold">86/100</div>
-                                                    <div className="text-xs text-muted-foreground mt-1">Low volatility</div>
-                                                </div>
-                                                <div className="bg-muted/20 p-4 rounded-lg text-center">
-                                                    <div className="text-sm text-muted-foreground mb-1">Historical APY</div>
-                                                    <div className="text-2xl font-bold text-green-500">12.85%</div>
-                                                    <div className="text-xs text-muted-foreground mt-1">Last 90 days</div>
-                                                </div>
-                                                <div className="bg-muted/20 p-4 rounded-lg text-center">
-                                                    <div className="text-sm text-muted-foreground mb-1">Liquidity Score</div>
-                                                    <div className="text-2xl font-bold">74/100</div>
-                                                    <div className="text-xs text-muted-foreground mt-1">Medium depth</div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </ComingSoonMask>
-
-                                    {/* Investment Recommendation */}
-                                    <ComingSoonMask>
-                                        <Card className="border-primary/20 border bg-gradient-to-r from-primary/5 to-transparent">
-                                            <div className="p-5">
-                                                <h3 className="text-lg font-medium mb-3 flex items-center">
-                                                    <CheckCircle className="w-5 h-5 mr-2 text-primary" />
-                                                    Advisor Recommendation
-                                                </h3>
-                                                <p className="text-sm leading-relaxed mb-4">
-                                                    This liquidity pool offers a balanced risk-return profile with consistent fee generation.
-                                                    The pairing of established tokens provides lower impermanent loss risk compared to more
-                                                    volatile pairs. Recommended allocation: 5-15% of your DeFi portfolio.
-                                                </p>
-                                                <div className="flex items-center justify-between text-sm bg-card/70 rounded-lg p-3">
-                                                    <div className="flex items-center text-muted-foreground">
-                                                        <Clock className="w-4 h-4 mr-2" />
-                                                        Recommended holding period
-                                                    </div>
-                                                    <div className="font-medium">3+ months</div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </ComingSoonMask>
+                                    {/* Investment Simulators */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        <APYSimulator
+                                            tvl={analytics.tvl}
+                                            feeRate={vault.fee / 100}
+                                            tokenASymbol={currentVaultData.tokenA.symbol}
+                                            tokenBSymbol={currentVaultData.tokenB.symbol}
+                                            onAPYChange={setCurrentAPY}
+                                        />
+                                        <ProfitSimulator
+                                            apy={currentAPY}
+                                            vault={currentVaultData}
+                                            prices={prices}
+                                        />
+                                    </div>
                                 </TabsContent>
 
                                 <TabsContent value="analysis" className="space-y-6">
@@ -631,17 +603,6 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                             </div>
                                         </div>
                                     </Card>
-
-                                    {/* Performance Chart Placeholder */}
-                                    <ComingSoonMask>
-                                        <Card className="p-6 border border-border/50">
-                                            <h3 className="text-lg font-medium mb-4">Historical Performance</h3>
-                                            <div className="h-[250px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg">
-                                                <LineChart className="w-6 h-6 mr-2" />
-                                                <span>Performance chart would appear here</span>
-                                            </div>
-                                        </Card>
-                                    </ComingSoonMask>
 
                                 </TabsContent>
 
