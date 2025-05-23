@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Search, Trophy, ArrowUp, ArrowDown, Sparkles, Flame, Clock } from 'lucide-react';
+import { Search, Trophy, ArrowUp, ArrowDown, Sparkles, Flame, Clock, Users, RefreshCw } from 'lucide-react';
 
 // Sample data for the leaderboard
 const leaderboardData = [
@@ -150,19 +150,19 @@ const leaderboardData = [
 
 // Badge color mapping
 const badgeColors = {
-  'OG': 'bg-purple-600 hover:bg-purple-700',
-  'Whale': 'bg-blue-600 hover:bg-blue-700',
-  'Diamond': 'bg-indigo-600 hover:bg-indigo-700',
-  'Staker': 'bg-green-600 hover:bg-green-700',
-  'Early': 'bg-amber-600 hover:bg-amber-700',
-  'Collector': 'bg-pink-600 hover:bg-pink-700',
-  'Strategist': 'bg-red-600 hover:bg-red-700',
-  'Builder': 'bg-cyan-600 hover:bg-cyan-700',
-  'Social': 'bg-fuchsia-600 hover:bg-fuchsia-700',
-  'Explorer': 'bg-emerald-600 hover:bg-emerald-700',
-  'Trader': 'bg-violet-600 hover:bg-violet-700',
-  'Gamer': 'bg-rose-600 hover:bg-rose-700',
-  'Holder': 'bg-teal-600 hover:bg-teal-700'
+  'OG': 'bg-primary/20 text-primary border-primary/30',
+  'Whale': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  'Diamond': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+  'Staker': 'bg-green-500/20 text-green-400 border-green-500/30',
+  'Early': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  'Collector': 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+  'Strategist': 'bg-red-500/20 text-red-400 border-red-500/30',
+  'Builder': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  'Social': 'bg-fuchsia-500/20 text-fuchsia-400 border-fuchsia-500/30',
+  'Explorer': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  'Trader': 'bg-violet-500/20 text-violet-400 border-violet-500/30',
+  'Gamer': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  'Holder': 'bg-teal-500/20 text-teal-400 border-teal-500/30'
 };
 
 // Format currency with K/M/B suffixes
@@ -214,56 +214,66 @@ const LeaderboardComponent = () => {
     currentRank: index + 1
   }));
 
+  const getMedalColor = (rank: number) => {
+    switch (rank) {
+      case 1: return "text-yellow-400";
+      case 2: return "text-gray-300";
+      case 3: return "text-amber-600";
+      default: return "text-muted-foreground";
+    }
+  };
+
   return (
-    <div className="w-full max-w-6xl mx-auto bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 shadow-xl">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-violet-900 to-indigo-900 p-6">
-        <div className="flex justify-between items-center">
+    <div className="flex flex-col gap-0 md:gap-6 mb-0 md:mb-8">
+      {/* Header Section */}
+      <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center">
-              <Trophy className="mr-2 h-6 w-6 text-yellow-400" />
+            <h1 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Experience Leaderboard
             </h1>
-            <p className="text-zinc-300 mt-1">Top players ranked by their contribution and achievements</p>
+            <p className="text-sm text-muted-foreground">Top players ranked by their contribution and achievements</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center bg-zinc-800 rounded-md p-1 text-sm">
-              <div className="bg-green-500 w-2 h-2 rounded-full animate-pulse mr-2 ml-2"></div>
-              <span className="text-zinc-300 mr-2">1,243 Active Players</span>
+          <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
+              <div className="bg-green-500 w-2 h-2 rounded-full animate-pulse"></div>
+              <Users className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">1,243 Active</span>
             </div>
-            <div className="flex items-center bg-zinc-800 rounded-md p-1 text-sm">
-              <Clock className="h-4 w-4 text-zinc-400 mr-1 ml-1" />
-              <span className="text-zinc-300 mr-1">Updated 5m ago</span>
+            <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
+              <RefreshCw className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">5m ago</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="p-4 bg-zinc-800 border-b border-zinc-700">
+      <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search by username or address"
-              className="pl-10 bg-zinc-900 border-zinc-700 placeholder:text-zinc-500 focus:border-violet-500 focus:ring-violet-500"
+              placeholder="Search players..."
+              className="pl-10 bg-background border-border"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           <Tabs defaultValue="xp" className="w-full md:w-auto" onValueChange={setSortType}>
-            <TabsList className="bg-zinc-900">
-              <TabsTrigger value="xp" className="data-[state=active]:bg-violet-700">
+            <TabsList className="bg-muted/20">
+              <TabsTrigger value="xp" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Sparkles className="h-4 w-4 mr-1" /> XP
               </TabsTrigger>
-              <TabsTrigger value="earnings" className="data-[state=active]:bg-violet-700">
+              <TabsTrigger value="earnings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Flame className="h-4 w-4 mr-1" /> Earnings
               </TabsTrigger>
-              <TabsTrigger value="staked" className="data-[state=active]:bg-violet-700">
+              <TabsTrigger value="staked" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Flame className="h-4 w-4 mr-1" /> Staked
               </TabsTrigger>
-              <TabsTrigger value="achievements" className="data-[state=active]:bg-violet-700">
+              <TabsTrigger value="achievements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Trophy className="h-4 w-4 mr-1" /> Achievements
               </TabsTrigger>
             </TabsList>
@@ -272,98 +282,116 @@ const LeaderboardComponent = () => {
       </div>
 
       {/* Leaderboard Table */}
-      <div className="p-4">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-zinc-800 bg-zinc-900">
-              <TableHead className="text-zinc-300">Rank</TableHead>
-              <TableHead className="text-zinc-300">Player</TableHead>
-              <TableHead className="text-zinc-300 text-right">Level</TableHead>
-              <TableHead className="text-zinc-300 text-right">XP</TableHead>
-              <TableHead className="text-zinc-300 text-right">Earnings</TableHead>
-              <TableHead className="text-zinc-300 text-right">Staked</TableHead>
-              <TableHead className="text-zinc-300 text-right">Achievements</TableHead>
-              <TableHead className="text-zinc-300">Badges</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rankedData.map((user) => (
-              <TableRow
-                key={user.id}
-                className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors"
-              >
-                <TableCell className="font-medium text-zinc-300 w-16">
-                  <div className="flex items-center">
-                    {user.currentRank <= 3 ? (
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${user.currentRank === 1 ? 'bg-yellow-500' :
-                        user.currentRank === 2 ? 'bg-zinc-300' : 'bg-amber-700'
-                        }`}>
-                        {user.currentRank}
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <span className="ml-3 mr-1">{user.currentRank}</span>
-                        {user.change === 'up' && <ArrowUp className="text-green-500 h-4 w-4" />}
-                        {user.change === 'down' && <ArrowDown className="text-red-500 h-4 w-4" />}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-semibold text-white">{user.username}</div>
-                    <div className="text-xs text-zinc-500">{truncateAddress(user.address)}</div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="inline-flex items-center justify-center bg-indigo-950 text-indigo-300 rounded-md px-2 py-1 text-sm font-medium">
-                    Lvl {user.level}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-mono text-zinc-300">
-                  {user.xp.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right font-mono text-green-400">
-                  {formatCurrency(user.earnings)}
-                </TableCell>
-                <TableCell className="text-right font-mono text-blue-400">
-                  {formatCurrency(user.staked)}
-                </TableCell>
-                <TableCell className="text-right font-mono text-amber-400">
-                  {user.achievements}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {user.badges.map((badge, index) => (
-                      <Badge
-                        key={index}
-                        className={`text-xs ${badgeColors[badge as keyof typeof badgeColors] || 'bg-zinc-600'}`}
-                      >
-                        {badge}
-                      </Badge>
-                    ))}
-                  </div>
-                </TableCell>
+      <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+        <div className="rounded-xl overflow-hidden">
+          <Table className="w-full">
+            <TableHeader className="bg-card">
+              <TableRow className="border-b border-border/50">
+                <TableHead className="w-[60px] text-center font-display">Rank</TableHead>
+                <TableHead className="font-display">Player</TableHead>
+                <TableHead className="text-right font-display hidden sm:table-cell">Level</TableHead>
+                <TableHead className="text-right font-display">XP</TableHead>
+                <TableHead className="text-right font-display hidden md:table-cell">Earnings</TableHead>
+                <TableHead className="text-right font-display hidden lg:table-cell">Staked</TableHead>
+                <TableHead className="text-right font-display hidden xl:table-cell">Achievements</TableHead>
+                <TableHead className="font-display hidden sm:table-cell">Badges</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {rankedData.map((user) => (
+                <TableRow
+                  key={user.id}
+                  className="relative hover:bg-muted/20 transition-colors"
+                >
+                  <TableCell className="font-medium text-center relative w-[60px]">
+                    <div className={`
+                      rounded-full w-8 h-8 flex items-center justify-center mx-auto
+                      ${user.currentRank < 4 ? 'bg-muted/30' : ''}
+                      ${user.currentRank === 1 ? 'animate-pulse-slow' : ''}
+                    `}>
+                      {user.currentRank <= 3 ? (
+                        <Trophy className={`h-4 w-4 ${getMedalColor(user.currentRank)}`} />
+                      ) : (
+                        <div className="flex items-center">
+                          <span className="text-sm text-muted-foreground">{user.currentRank}</span>
+                          {user.change === 'up' && <ArrowUp className="text-green-500 h-3 w-3 ml-1" />}
+                          {user.change === 'down' && <ArrowDown className="text-red-500 h-3 w-3 ml-1" />}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
 
-        {rankedData.length === 0 && (
-          <div className="text-center py-8 text-zinc-400">
-            No players found matching your search.
-          </div>
-        )}
-      </div>
+                  <TableCell>
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium font-display truncate">{user.username}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{truncateAddress(user.address)}</div>
+                      </div>
+                    </div>
+                  </TableCell>
 
-      {/* Footer */}
-      <div className="p-3 bg-zinc-800 border-t border-zinc-700 flex justify-between items-center text-xs text-zinc-400">
-        <div>
-          Showing {rankedData.length} of {leaderboardData.length} players
+                  <TableCell className="text-right hidden sm:table-cell">
+                    <div className="inline-flex items-center justify-center bg-primary/10 text-primary rounded-md px-2 py-1 text-xs font-medium border border-primary/20">
+                      Lvl {user.level}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium">
+                    {user.xp.toLocaleString()}
+                  </TableCell>
+
+                  <TableCell className="text-right font-mono text-green-400 hidden md:table-cell">
+                    {formatCurrency(user.earnings)}
+                  </TableCell>
+
+                  <TableCell className="text-right font-mono text-blue-400 hidden lg:table-cell">
+                    {formatCurrency(user.staked)}
+                  </TableCell>
+
+                  <TableCell className="text-right font-mono text-amber-400 hidden xl:table-cell">
+                    {user.achievements}
+                  </TableCell>
+
+                  <TableCell className="hidden sm:table-cell">
+                    <div className="flex flex-wrap gap-1">
+                      {user.badges.slice(0, 2).map((badge, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className={`text-xs ${badgeColors[badge as keyof typeof badgeColors] || 'bg-muted/20 text-muted-foreground border-muted'}`}
+                        >
+                          {badge}
+                        </Badge>
+                      ))}
+                      {user.badges.length > 2 && (
+                        <Badge variant="outline" className="text-xs bg-muted/20 text-muted-foreground border-muted">
+                          +{user.badges.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {rankedData.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No players found matching your search.</p>
+            </div>
+          )}
         </div>
-        <div className="flex items-center">
-          <span className="mr-1">Powered by</span>
-          <span className="font-bold text-white">Charisma</span>
+
+        {/* Footer */}
+        <div className="mt-4 pt-4 border-t border-border/30 flex justify-between items-center text-xs text-muted-foreground">
+          <div>
+            Showing {rankedData.length} of {leaderboardData.length} players
+          </div>
+          <div className="flex items-center gap-1">
+            <span>Powered by</span>
+            <span className="font-bold text-primary">Charisma</span>
+          </div>
         </div>
       </div>
     </div>

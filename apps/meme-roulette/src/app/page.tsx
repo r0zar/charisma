@@ -147,7 +147,7 @@ export default function HubPage() {
   const renderMyBetsSection = () => {
     if (!hasMounted || (isFeedLoading && myBets?.length === 0)) {
       return (
-        <div className="bg-background/30 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+        <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
           <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
             <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             My Votes
@@ -159,12 +159,12 @@ export default function HubPage() {
 
     if (!myBets || myBets.length === 0) {
       return (
-        <div className="bg-background/30 md:glass-card px-4 py-6 md:p-6 md:border md:rounded-xl">
+        <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
           <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
             <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             My Votes
           </h2>
-          <div className="bg-muted/20 md:glass-card p-6 sm:p-8 rounded-xl text-center border-0 md:border">
+          <div className="bg-muted/10 border border-border/20 p-6 sm:p-8 rounded-xl text-center">
             <div className="text-muted-foreground/70 mb-3 justify-center flex items-center">
               <HandCoins size={40} />
             </div>
@@ -184,43 +184,59 @@ export default function HubPage() {
     const sortedBets = [...myBets].sort((a, b) => b.voteTime - a.voteTime);
 
     return (
-      <div className="bg-background/30 md:glass-card px-4 py-6 md:p-6 md:border md:rounded-xl">
+      <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
         <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
           <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           My Votes
         </h2>
-        <ScrollArea className="h-[220px] pr-3 -mr-3">
-          <div className="space-y-3">
+        <ScrollArea className="h-[220px] sm:h-[280px] lg:h-[320px] pr-3 -mr-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             {sortedBets.map((vote: Vote) => {
               const token = getTokenInfo(vote.tokenId);
               const isWinningBet = vote.tokenId === feedData?.winningTokenId;
               return (
                 <div
                   key={vote.id}
-                  className={`token-card ${isWinningBet ? 'animate-pulse-glow' : ''}`}
+                  className={`
+                    bg-card/50 border border-border/20 rounded-lg p-3 sm:p-4 
+                    hover:bg-card/70 transition-all duration-200
+                    ${isWinningBet ? 'bg-primary/5 border-primary/20 animate-pulse-glow' : ''}
+                  `}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {token?.imageUrl && (
-                      <div className="relative">
+                      <div className="relative flex-shrink-0">
                         <Image
                           src={token.imageUrl}
                           alt={token.symbol || 'Token'}
-                          width={40}
-                          height={40}
-                          className="rounded-full object-cover flex-shrink-0"
+                          width={32}
+                          height={32}
+                          className={`
+                            rounded-full object-cover bg-muted 
+                            ${isWinningBet ? 'ring-2 ring-primary/30' : ''}
+                          `}
                           unoptimized
                         />
                         {isWinningBet && (
-                          <div className="absolute -top-1 -right-1 bg-success text-white rounded-full flex items-center justify-center w-5 h-5">
-                            <Trophy className="h-3 w-3" />
+                          <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full flex items-center justify-center w-4 h-4">
+                            <Trophy className="h-2.5 w-2.5" />
                           </div>
                         )}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <span className="font-semibold font-display text-foreground truncate block">{token?.symbol || vote.tokenId}</span>
-                      <p className="text-sm text-muted-foreground">
-                        Committed: <TokenAmountDisplay
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold font-display text-foreground truncate text-sm">
+                          {token?.symbol || vote.tokenId}
+                        </span>
+                        {isWinningBet && (
+                          <Badge variant="secondary" className="flex-shrink-0 text-xs animate-pulse-medium">
+                            WIN
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        <TokenAmountDisplay
                           amount={vote.voteAmountCHA}
                           decimals={CHA_DECIMALS}
                           symbol="CHA"
@@ -230,12 +246,11 @@ export default function HubPage() {
                           showUsdInTooltip={true}
                         />
                       </p>
-                      <p className="text-xs text-muted-foreground/70">Time: {new Date(vote.voteTime)?.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground/70 truncate">
+                        {new Date(vote.voteTime)?.toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
-                  {isWinningBet && (
-                    <Badge variant="secondary" className="flex-shrink-0 mt-2 sm:mt-0 animate-pulse-medium">WINNING PUMP!</Badge>
-                  )}
                 </div>
               );
             })}
@@ -362,27 +377,35 @@ export default function HubPage() {
                   <div className="space-y-2 mb-4 text-xs">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">ATH:</span>
-                      <TokenAmountDisplay
-                        amount={feedData?.athTotalAmount || 0}
-                        decimals={CHA_DECIMALS}
-                        symbol="CHA"
-                        usdPrice={chaPrice}
-                        className="font-bold"
-                        size="sm"
-                        showUsdInTooltip={true}
-                      />
+                      {(feedData?.athTotalAmount || 0) > 0 ? (
+                        <TokenAmountDisplay
+                          amount={feedData?.athTotalAmount || 0}
+                          decimals={CHA_DECIMALS}
+                          symbol="CHA"
+                          usdPrice={chaPrice}
+                          className="font-bold"
+                          size="sm"
+                          showUsdInTooltip={true}
+                        />
+                      ) : (
+                        <span className="font-bold text-muted-foreground/60">No data</span>
+                      )}
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Last Round:</span>
-                      <TokenAmountDisplay
-                        amount={feedData?.previousRoundAmount || 0}
-                        decimals={CHA_DECIMALS}
-                        symbol="CHA"
-                        usdPrice={chaPrice}
-                        className="font-bold"
-                        size="sm"
-                        showUsdInTooltip={true}
-                      />
+                      {(feedData?.previousRoundAmount || 0) > 0 ? (
+                        <TokenAmountDisplay
+                          amount={feedData?.previousRoundAmount || 0}
+                          decimals={CHA_DECIMALS}
+                          symbol="CHA"
+                          usdPrice={chaPrice}
+                          className="font-bold"
+                          size="sm"
+                          showUsdInTooltip={true}
+                        />
+                      ) : (
+                        <span className="font-bold text-muted-foreground/60">No data</span>
+                      )}
                     </div>
                   </div>
                 </div>
