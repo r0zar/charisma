@@ -973,6 +973,9 @@ importers:
       dexterity-sdk:
         specifier: workspace:*
         version: link:../../packages/dexterity
+      framer-motion:
+        specifier: ^12.7.4
+        version: 12.7.4(react-dom@19.1.0)(react@19.1.0)
       lightweight-charts:
         specifier: ^5
         version: 5.0.6

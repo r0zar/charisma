@@ -184,3 +184,45 @@ export async function getStxBalance(address: string): Promise<number> {
         return 0;
     }
 }
+
+/**
+ * Check if a bidder has sufficient balance for their bid
+ */
+export async function checkBidderBalance(
+    bidderAddress: string,
+    tokenContractId: string,
+    requiredAmount: string
+): Promise<{
+    sufficient: boolean;
+    actualBalance: string;
+    requiredAmount: string;
+    humanReadableBalance: number;
+    humanReadableRequired: number;
+}> {
+    try {
+        const actualBalance = await getTokenBalance(tokenContractId, bidderAddress);
+        const sufficient = BigInt(actualBalance) >= BigInt(requiredAmount);
+
+        // Convert to human readable (assuming 6 decimals, but this should ideally get token info)
+        const decimals = 6; // This could be improved by getting actual token decimals
+        const humanReadableBalance = actualBalance / Math.pow(10, decimals);
+        const humanReadableRequired = parseFloat(requiredAmount) / Math.pow(10, decimals);
+
+        return {
+            sufficient,
+            actualBalance: actualBalance.toString(),
+            requiredAmount,
+            humanReadableBalance,
+            humanReadableRequired
+        };
+    } catch (error) {
+        console.error('Error checking bidder balance:', error);
+        return {
+            sufficient: false,
+            actualBalance: "0",
+            requiredAmount,
+            humanReadableBalance: 0,
+            humanReadableRequired: parseFloat(requiredAmount) / Math.pow(10, 6)
+        };
+    }
+}

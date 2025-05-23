@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
         // Filter out tokens that don't have a contractId
         const tokens = cacheData
-            .filter(token => token.symbol && token.image && token.decimals && token.contractId && token.identifier);
+            .filter(token => token.symbol && token.image && token.decimals && token.contractId);
 
         // Return the tokens with CORS headers
         return NextResponse.json(tokens, {

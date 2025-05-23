@@ -763,23 +763,25 @@ export default function SubnetWrapperWizard() {
 
             // Generate bold, vibrant metadata with dynamic colors that stays under 256 character limit
             const boldColor = generateBoldRandomColor();
-            const { dataUri: metadataUri, length } = generateCustomOptimizedMetadata(
+            let metadataResult = generateCustomOptimizedMetadata(
                 tokenSymbol,
                 'svg', // Use SVG for better compression with colors
                 boldColor
             );
 
-            console.log(`Generated dynamic colored metadata URI: ${length} characters (limit: 256), color: ${boldColor}`);
+            console.log(`Generated dynamic colored metadata URI: ${metadataResult.length} characters (limit: 256), color: ${boldColor}`);
 
-            if (length > 256) {
+            if (metadataResult.length > 256) {
                 // Fallback to simpler color pixel if SVG is too long
-                const fallbackResult = generateCustomOptimizedMetadata(tokenSymbol, 'color', boldColor);
-                if (fallbackResult.length <= 256) {
-                    console.log(`Fallback to color pixel: ${fallbackResult.length} characters`);
+                metadataResult = generateCustomOptimizedMetadata(tokenSymbol, 'color', boldColor);
+                if (metadataResult.length <= 256) {
+                    console.log(`Fallback to color pixel: ${metadataResult.length} characters`);
                 } else {
-                    throw new Error(`Metadata URI too long even with fallback: ${fallbackResult.length} characters (max 256). Try a shorter token symbol.`);
+                    throw new Error(`Metadata URI too long even with fallback: ${metadataResult.length} characters (max 256). Try a shorter token symbol.`);
                 }
             }
+
+            const metadataUri = metadataResult.dataUri;
 
             // Generate the sublink contract
             const sublinkResult = await generateSublink({

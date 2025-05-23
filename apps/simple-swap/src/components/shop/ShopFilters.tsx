@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { SHOP_CATEGORIES, SORT_OPTIONS, DEFAULT_PRICE_RANGE } from '@/lib/shop/constants';
 
 interface ShopFiltersProps {
     onCategoryChange: (category: string) => void;
@@ -27,9 +28,9 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
 }) => {
     // Reset filters to default values
     const handleResetFilters = () => {
-        onCategoryChange('all');
-        onPriceRangeChange([0, 1000]);
-        onSortChange('newest');
+        onCategoryChange(SHOP_CATEGORIES.ALL);
+        onPriceRangeChange(DEFAULT_PRICE_RANGE);
+        onSortChange(SORT_OPTIONS.NEWEST);
     };
 
     return (
@@ -49,7 +50,7 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                 </div>
                 {/* Show active filters summary */}
                 <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedCategory !== 'all' && (
+                    {selectedCategory !== SHOP_CATEGORIES.ALL && (
                         <Badge variant="outline" className="text-xs capitalize">
                             {selectedCategory}
                         </Badge>
@@ -57,7 +58,7 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                     <Badge variant="outline" className="text-xs">
                         {priceRange[0]}-{priceRange[1]}
                     </Badge>
-                    {selectedSort !== 'newest' && (
+                    {selectedSort !== SORT_OPTIONS.NEWEST && (
                         <Badge variant="outline" className="text-xs capitalize">
                             {selectedSort.replace('-', ' ')}
                         </Badge>
@@ -73,19 +74,19 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                         onValueChange={onCategoryChange}
                     >
                         <div className="flex items-center space-x-2 mb-2">
-                            <RadioGroupItem value="all" id="all" />
+                            <RadioGroupItem value={SHOP_CATEGORIES.ALL} id="all" />
                             <Label htmlFor="all" className="cursor-pointer">All Items</Label>
                         </div>
                         <div className="flex items-center space-x-2 mb-2">
-                            <RadioGroupItem value="nft" id="nft" />
+                            <RadioGroupItem value={SHOP_CATEGORIES.NFT} id="nft" />
                             <Label htmlFor="nft" className="cursor-pointer">NFTs</Label>
                         </div>
                         <div className="flex items-center space-x-2 mb-2">
-                            <RadioGroupItem value="token" id="token" />
+                            <RadioGroupItem value={SHOP_CATEGORIES.TOKEN} id="token" />
                             <Label htmlFor="token" className="cursor-pointer">Tokens</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="offer" id="offer" />
+                            <RadioGroupItem value={SHOP_CATEGORIES.OFFER} id="offer" />
                             <Label htmlFor="offer" className="cursor-pointer">Offers</Label>
                         </div>
                     </RadioGroup>
@@ -127,15 +128,15 @@ const ShopFilters: React.FC<ShopFiltersProps> = ({
                     <h3 className="text-sm font-medium mb-3">Sort By</h3>
                     <RadioGroup value={selectedSort} onValueChange={onSortChange}>
                         <div className="flex items-center space-x-2 mb-2">
-                            <RadioGroupItem value="newest" id="sort-newest" />
+                            <RadioGroupItem value={SORT_OPTIONS.NEWEST} id="sort-newest" />
                             <Label htmlFor="sort-newest" className="cursor-pointer">Newest First</Label>
                         </div>
                         <div className="flex items-center space-x-2 mb-2">
-                            <RadioGroupItem value="price-low" id="sort-price-low" />
+                            <RadioGroupItem value={SORT_OPTIONS.PRICE_LOW} id="sort-price-low" />
                             <Label htmlFor="sort-price-low" className="cursor-pointer">Price: Low to High</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="price-high" id="sort-price-high" />
+                            <RadioGroupItem value={SORT_OPTIONS.PRICE_HIGH} id="sort-price-high" />
                             <Label htmlFor="sort-price-high" className="cursor-pointer">Price: High to Low</Label>
                         </div>
                     </RadioGroup>

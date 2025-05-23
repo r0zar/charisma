@@ -68,6 +68,13 @@ export interface AccountBalancesResponse {
 }
 
 /**
+ * Interface for BNS names response
+ */
+export interface BnsNamesResponse {
+  names: string[];
+}
+
+/**
  * Fetches the interface for a specified smart contract.
  * @param contractAddress The Stacks address of the contract.
  * @param contractName The name of the contract.
@@ -357,4 +364,46 @@ export const fetcHoldToEarnLogs = async (contractAddress: string) => {
 
   const logsFormatted = await Promise.all(logsFormattedPromises);
   return logsFormatted;
+}
+
+/**
+ * Fetches BNS names owned by a given address
+ * @param address The Bitcoin or Stacks address to lookup
+ * @param blockchain The blockchain type (bitcoin or stacks)
+ * @returns A promise that resolves to the list of names owned by the address
+ */
+export async function getBnsNamesByAddress(
+  address: string,
+  blockchain: 'bitcoin' | 'stacks' = 'stacks'
+): Promise<string[]> {
+  try {
+    const { data } = await apiClient.GET(`/v1/addresses/${blockchain}/${address}` as any);
+    return (data as BnsNamesResponse)?.names || [];
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      console.warn(`No BNS names found for address: ${address}`);
+      return [];
+    }
+    console.error(`Error fetching BNS names for ${address}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Gets the primary BNS name for an address (first name in the list)
+ * @param address The Bitcoin or Stacks address to lookup
+ * @param blockchain The blockchain type (bitcoin or stacks)
+ * @returns A promise that resolves to the primary BNS name or null
+ */
+export async function getPrimaryBnsName(
+  address: string,
+  blockchain: 'bitcoin' | 'stacks' = 'stacks'
+): Promise<string | null> {
+  try {
+    const names = await getBnsNamesByAddress(address, blockchain);
+    return names.length > 0 ? names[0] : null;
+  } catch (error) {
+    console.error(`Error fetching primary BNS name for ${address}:`, error);
+    return null;
+  }
 }

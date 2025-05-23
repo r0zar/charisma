@@ -1,33 +1,53 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useWallet } from '@/contexts/wallet-context';
 import { Header } from '@/components/header';
 import ShopItem from '@/components/shop/ShopItem';
 import ShopFilters from '@/components/shop/ShopFilters';
-import { Package, AlertCircle, Plus } from 'lucide-react';
+import { Package, AlertCircle, Plus, TrendingUp, Users, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRouter } from 'next/navigation';
 import { ShopItem as ShopItemInterface } from '@/types/shop';
+import { TokenDef } from '@/types/otc';
+import { SHOP_CATEGORIES, SORT_OPTIONS, DEFAULT_PRICE_RANGE } from '@/lib/shop/constants';
+import { ShopService } from '@/lib/shop/shop-service';
+import ShopTable from './ShopTable';
+import { Card } from '@/components/ui/card';
 
-interface ShopClientPageProps {
+interface ShopPageProps {
     initialItems: ShopItemInterface[];
 }
 
-export default function ShopClientPage({ initialItems }: ShopClientPageProps) {
+export default function ShopPage({ initialItems }: ShopPageProps) {
     const [items, setItems] = useState<ShopItemInterface[]>(initialItems);
+    const [subnetTokens, setSubnetTokens] = useState<TokenDef[]>([]);
     const [filteredItems, setFilteredItems] = useState<ShopItemInterface[]>(initialItems);
-    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>(SHOP_CATEGORIES.ALL);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-    const [selectedSort, setSelectedSort] = useState<string>('newest');
+    const [priceRange, setPriceRange] = useState<[number, number]>(DEFAULT_PRICE_RANGE);
+    const [selectedSort, setSelectedSort] = useState<string>(SORT_OPTIONS.NEWEST);
 
     const { address, connected } = useWallet();
     const router = useRouter();
+
+    // Fetch subnet tokens on mount
+    useEffect(() => {
+        const fetchSubnetTokens = async () => {
+            try {
+                const tokens = await ShopService.getSubnetTokensForOTC();
+                setSubnetTokens(tokens);
+            } catch (error) {
+                console.error('Failed to fetch subnet tokens:', error);
+            }
+        };
+
+        fetchSubnetTokens();
+    }, []);
 
     // Handle price range changes
     const handlePriceRangeChange = (range: [number, number]) => {
@@ -39,7 +59,7 @@ export default function ShopClientPage({ initialItems }: ShopClientPageProps) {
         let tempFilteredItems = [...items];
 
         // Apply category filter
-        if (selectedCategory !== 'all') {
+        if (selectedCategory !== SHOP_CATEGORIES.ALL) {
             tempFilteredItems = tempFilteredItems.filter(item => item.type === selectedCategory);
         }
 
@@ -51,9 +71,9 @@ export default function ShopClientPage({ initialItems }: ShopClientPageProps) {
         });
 
         // Apply sorting
-        if (selectedSort === 'price-low') {
+        if (selectedSort === SORT_OPTIONS.PRICE_LOW) {
             tempFilteredItems.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (selectedSort === 'price-high') {
+        } else if (selectedSort === SORT_OPTIONS.PRICE_HIGH) {
             tempFilteredItems.sort((a, b) => (b.price || 0) - (a.price || 0));
         }
         // For 'newest' sorting, we'll rely on the original order from the server
@@ -61,105 +81,81 @@ export default function ShopClientPage({ initialItems }: ShopClientPageProps) {
         setFilteredItems(tempFilteredItems);
     }, [selectedCategory, priceRange, selectedSort, items]);
 
+    // Calculate stats
+    const stats = {
+        totalItems: items.length,
+        totalOffers: items.filter(item => item.type === 'offer').length,
+        totalBids: items.reduce((sum, item) => sum + (item.metadata?.bids?.length || 0), 0),
+        activeItems: items.filter(item => item.metadata?.status === 'open' || !item.metadata?.status).length,
+    };
+
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <Header />
-            <main className="flex-1 container py-8">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold">Marketplace</h1>
-                        <p className="text-muted-foreground mt-2">
-                            Browse and trade OTC offers and digital assets
-                        </p>
-                    </div>
+            <motion.main
+                className="flex-1 container py-8 space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+                {/* Header */}
+                <motion.div
+                    className="text-center space-y-4"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.8 }}
+                >
+                    <h1 className="text-4xl font-bold tracking-tight">
+                        Charisma <span className="text-primary">Marketplace</span>
+                    </h1>
+                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                        Trade tokens, place bids on offers, and discover new opportunities in the Charisma ecosystem.
+                    </p>
+                </motion.div>
 
-                    <div className="flex flex-wrap gap-3">
-                        <Button
-                            variant="default"
-                            className="flex items-center gap-2"
-                            onClick={() => router.push('/shop/new')}
+                {/* Stats Cards */}
+                <motion.div
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.6 }}
+                >
+                    {[
+                        { icon: Package, label: 'Total Items', value: stats.totalItems, color: 'text-primary' },
+                        { icon: TrendingUp, label: 'Active Offers', value: stats.totalOffers, color: 'text-secondary' },
+                        { icon: Users, label: 'Total Bids', value: stats.totalBids, color: 'text-accent-foreground' },
+                        { icon: Clock, label: 'Available Now', value: stats.activeItems, color: 'text-primary' }
+                    ].map((stat, index) => (
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5 + index * 0.1, duration: 0.4 }}
                         >
-                            <Plus className="h-4 w-4" />
-                            <span>Create Listing</span>
-                        </Button>
-                    </div>
-                </div>
-
-                {error && (
-                    <Alert variant="destructive" className="mb-6">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            {error}
-                        </AlertDescription>
-                    </Alert>
-                )}
-
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-                    {/* Sidebar Filters */}
-                    <div className="lg:col-span-1">
-                        <ShopFilters
-                            onCategoryChange={setSelectedCategory}
-                            selectedCategory={selectedCategory}
-                            priceRange={priceRange}
-                            onPriceRangeChange={handlePriceRangeChange}
-                            onSortChange={setSelectedSort}
-                            selectedSort={selectedSort}
-                        />
-                    </div>
-
-                    {/* Main content */}
-                    <div className="lg:col-span-3">
-                        <div className="mb-6">
-                            <Tabs defaultValue={selectedCategory} value={selectedCategory} onValueChange={setSelectedCategory}>
-                                <TabsList>
-                                    <TabsTrigger value="all">All Items</TabsTrigger>
-                                    <TabsTrigger value="offer">OTC Offers</TabsTrigger>
-                                    <TabsTrigger value="nft">NFTs</TabsTrigger>
-                                    <TabsTrigger value="token">Tokens</TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
-
-                        {isLoading ? (
-                            // Loading state
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                                {[1, 2, 3, 4, 5, 6].map(i => (
-                                    <div key={i} className="border border-border/50 rounded-lg overflow-hidden">
-                                        <Skeleton className="h-32 w-full" />
+                            <Card className="p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-primary/10 rounded-lg">
+                                        <stat.icon className={`h-5 w-5 ${stat.color}`} />
                                     </div>
-                                ))}
-                            </div>
-                        ) : filteredItems.length === 0 ? (
-                            // Empty state
-                            <div className="text-center py-16 bg-muted/20 rounded-xl">
-                                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="text-xl font-medium mb-2">No items found</h3>
-                                <p className="text-muted-foreground mb-6">
-                                    {items.length === 0 ?
-                                        "No items are currently available in the marketplace." :
-                                        "Try changing your filters to see more items."}
-                                </p>
+                                    <div>
+                                        <p className="text-2xl font-bold">{stat.value}</p>
+                                        <p className="text-sm text-muted-foreground">{stat.label}</p>
+                                    </div>
+                                </div>
+                            </Card>
+                        </motion.div>
+                    ))}
+                </motion.div>
 
-                                <Button
-                                    variant="default"
-                                    onClick={() => router.push('/shop/new')}
-                                    className="flex items-center gap-2"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    Create New Offer
-                                </Button>
-                            </div>
-                        ) : (
-                            // Items grid
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                                {filteredItems.map(item => (
-                                    <ShopItem key={item.id} item={item} />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </main>
+                {/* Main Table */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                >
+                    <ShopTable items={items} subnetTokens={subnetTokens} />
+                </motion.div>
+            </motion.main>
         </div>
     );
 }

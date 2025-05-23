@@ -13,7 +13,7 @@ interface WalletContextType {
     isConnecting: boolean;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
-    balances: any;
+    balances: AccountBalancesResponse;
     prices: any;
 }
 
@@ -23,7 +23,15 @@ const WalletContext = createContext<WalletContextType>({
     isConnecting: false,
     connectWallet: async () => { },
     disconnectWallet: () => { },
-    balances: {},
+    balances: {
+        stx: {
+            balance: '0',
+            total_sent: '0',
+            total_received: '0'
+        },
+        fungible_tokens: {},
+        non_fungible_tokens: {}
+    },
     prices: {},
 });
 

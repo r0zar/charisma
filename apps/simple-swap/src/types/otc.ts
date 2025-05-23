@@ -1,6 +1,7 @@
 export interface Asset {
     token: string;
     amount: string;
+    identifier: string;
 }
 
 export interface Bid {
@@ -26,4 +27,6 @@ export interface TokenDef {
     logo?: string;
     symbol: string;
     decimals: number;
+    image: string;
+    identifier: string;
 }

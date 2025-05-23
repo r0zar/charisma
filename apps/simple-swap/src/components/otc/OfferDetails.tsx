@@ -16,11 +16,15 @@ const shortenAddress = (address: string, startChars = 6, endChars = 4) => {
 
 // Helper to format token amount (similar to ActiveBids)
 const formatTokenAmount = (atomicAmount: string, tokenInfo: TokenDef | undefined): string => {
-    if (!tokenInfo) return atomicAmount + " (atomic)";
-    const amount = parseInt(atomicAmount) / 10 ** tokenInfo.decimals;
+    if (!tokenInfo || !atomicAmount) return atomicAmount ? atomicAmount + " (unknown token)" : "0";
+
+    const parsedAmount = parseFloat(atomicAmount);
+    if (isNaN(parsedAmount)) return "0 " + tokenInfo.symbol;
+
+    const amount = parsedAmount / 10 ** tokenInfo.decimals;
     return amount.toLocaleString(undefined, {
-        maximumFractionDigits: tokenInfo.decimals,
-        minimumFractionDigits: Math.min(tokenInfo.decimals, 2),
+        maximumFractionDigits: Math.min(tokenInfo.decimals, 8),
+        minimumFractionDigits: 0,
     }) + ` ${tokenInfo.symbol}`;
 };
 
@@ -35,10 +39,12 @@ const getTimeAgo = (timestamp: number) => {
 interface OfferDetailsProps {
     offer: Offer;
     subnetTokens: TokenDef[];
+    offerTokenMetadata?: Record<string, TokenDef>;
 }
 
-export default function EnhancedOfferDetails({ offer, subnetTokens }: OfferDetailsProps) {
+export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMetadata }: OfferDetailsProps) {
     const { address } = useWallet();
+
     const getBadgeVariant = (status: Offer["status"]) => {
         switch (status) {
             case "open":
@@ -50,6 +56,32 @@ export default function EnhancedOfferDetails({ offer, subnetTokens }: OfferDetai
             default:
                 return "outline";
         }
+    };
+
+    // Enhanced token lookup function
+    const getTokenInfo = (tokenId: string): TokenDef | undefined => {
+        // First check offer token metadata (most accurate)
+        if (offerTokenMetadata && offerTokenMetadata[tokenId]) {
+            return offerTokenMetadata[tokenId];
+        }
+
+        // Fallback to subnet tokens
+        const subnetToken = subnetTokens?.find(t => t.id === tokenId);
+        if (subnetToken) {
+            return subnetToken;
+        }
+
+        // Create fallback token info
+        const contractParts = tokenId.split('.');
+        const tokenName = contractParts[1] || 'Unknown Token';
+
+        return {
+            id: tokenId,
+            name: tokenName,
+            symbol: tokenName.toUpperCase(),
+            logo: '',
+            decimals: 6,
+        };
     };
 
     return (
@@ -75,7 +107,7 @@ export default function EnhancedOfferDetails({ offer, subnetTokens }: OfferDetai
                         <h3 className="text-sm font-medium mb-3 text-muted-foreground">Assets Offered:</h3>
                         <div className="space-y-3">
                             {offer.offerAssets.map((asset, index) => {
-                                const tokenInfo = subnetTokens?.find(t => t.id === asset.token);
+                                const tokenInfo = getTokenInfo(asset.token);
                                 const formattedAmount = formatTokenAmount(asset.amount, tokenInfo);
 
                                 return (

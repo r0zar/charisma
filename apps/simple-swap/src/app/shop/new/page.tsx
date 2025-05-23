@@ -1,21 +1,10 @@
-import { listTokens } from "@/app/actions";
 import { Header } from "@/components/header";
 import OfferForm from "@/components/otc/OfferForm";
-import { TokenDef } from "@/types/otc";
+import { ShopService } from "@/lib/shop/shop-service";
 
 export default async function NewOfferPage() {
-    // preload subnet tokens
-    const result = await listTokens();
-    const subnetTokens: TokenDef[] = result.success
-        ? result.tokens?.filter((t: any) => t.type === "SUBNET").map((t: any) => ({
-            id: t.contractId,
-            name: t.name,
-            symbol: t.symbol,
-            logo: t.image,
-            decimals: t.decimals,
-            image: t.image,
-        })) || []
-        : [];
+    // Use centralized service to get subnet tokens
+    const subnetTokens = await ShopService.getSubnetTokensForOTC();
 
     return (
         <div className="relative flex min-h-screen flex-col">
