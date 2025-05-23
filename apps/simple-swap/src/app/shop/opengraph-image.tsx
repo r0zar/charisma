@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og';
-import { ShopService } from '@/lib/shop/shop-service';
 
 export const runtime = 'edge';
 
@@ -13,16 +12,6 @@ export const contentType = 'image/png';
 
 export default async function Image() {
     try {
-        // Get marketplace stats
-        const allItems = await ShopService.getAllShopItems();
-        const totalOffers = allItems.filter(item => item.type === 'offer').length;
-        const totalBids = allItems.reduce((sum, item) => {
-            if (item.type === 'offer') {
-                return sum + ((item as any).bids?.length || 0);
-            }
-            return sum;
-        }, 0);
-
         return new ImageResponse(
             (
                 <div
@@ -47,7 +36,8 @@ export default async function Image() {
                             right: 0,
                             bottom: 0,
                             opacity: 0.1,
-                            background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                            backgroundImage: 'radial-gradient(circle at 20px 20px, white 1px, transparent 0)',
+                            backgroundSize: '40px 40px',
                         }}
                     />
 
@@ -86,7 +76,7 @@ export default async function Image() {
                             Marketplace
                         </div>
 
-                        {/* Stats */}
+                        {/* Features */}
                         <div
                             style={{
                                 display: 'flex',
@@ -107,21 +97,21 @@ export default async function Image() {
                             >
                                 <div
                                     style={{
-                                        fontSize: 48,
-                                        fontWeight: 'bold',
-                                        color: 'white',
+                                        fontSize: 24,
+                                        color: 'rgba(255,255,255,0.8)',
+                                        marginBottom: 8,
                                     }}
                                 >
-                                    {totalOffers}
+                                    🎯
                                 </div>
                                 <div
                                     style={{
                                         fontSize: 18,
-                                        color: 'rgba(255,255,255,0.8)',
-                                        marginTop: 4,
+                                        color: 'white',
+                                        fontWeight: 600,
                                     }}
                                 >
-                                    Active Offers
+                                    OTC Trading
                                 </div>
                             </div>
 
@@ -138,21 +128,52 @@ export default async function Image() {
                             >
                                 <div
                                     style={{
-                                        fontSize: 48,
-                                        fontWeight: 'bold',
-                                        color: 'white',
+                                        fontSize: 24,
+                                        color: 'rgba(255,255,255,0.8)',
+                                        marginBottom: 8,
                                     }}
                                 >
-                                    {totalBids}
+                                    💰
                                 </div>
                                 <div
                                     style={{
                                         fontSize: 18,
-                                        color: 'rgba(255,255,255,0.8)',
-                                        marginTop: 4,
+                                        color: 'white',
+                                        fontWeight: 600,
                                     }}
                                 >
-                                    Total Bids
+                                    Token Offers
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                    padding: '24px 32px',
+                                    borderRadius: 16,
+                                    backdropFilter: 'blur(10px)',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        fontSize: 24,
+                                        color: 'rgba(255,255,255,0.8)',
+                                        marginBottom: 8,
+                                    }}
+                                >
+                                    🚀
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: 18,
+                                        color: 'white',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    DeFi Hub
                                 </div>
                             </div>
                         </div>

@@ -1,16 +1,26 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ShopItem, isOfferItem, isPurchasableItem } from '@/types/shop';
+import { ShopItem, isOfferItem, isPurchasableItem, OfferItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { useRouter } from 'next/navigation';
 import { getPrimaryBnsName } from '@repo/polyglot';
+import { useWallet } from '@/contexts/wallet-context';
+import { IntentInput, signIntentWithWallet } from 'blaze-sdk';
+import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
 
 type SortField = 'name' | 'type' | 'price' | 'bids' | 'created' | 'creator' | 'balance';
 type SortDirection = 'asc' | 'desc';
 type DialogMode = 'purchase' | 'bid' | null;
 
+// Helper function to convert human-readable amount to atomic units
+const toAtomicString = (amountStr: string, decimals: number): string => {
+    return (Number(amountStr) * 10 ** decimals).toString();
+};
+
 export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
     const router = useRouter();
+    const { address: stxAddress } = useWallet();
 
     // State management
     const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +34,10 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
     const [bidAmount, setBidAmount] = useState('');
     const [bidToken, setBidToken] = useState('');
     const [bidMessage, setBidMessage] = useState('');
+
+    // Loading states
+    const [isSigning, setIsSigning] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // BNS names cache
     const [bnsNames, setBnsNames] = useState<Record<string, string | null>>({});
@@ -136,6 +150,17 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         return filtered;
     }, [items, searchTerm, categoryFilter, sortField, sortDirection]);
 
+    // Validation function for bid
+    const isValidBid = useCallback(() => {
+        if (!stxAddress) return false;
+        if (!selectedItem || !isOfferItem(selectedItem)) return false;
+        if (!bidAmount || !bidToken) return false;
+        const tokenInfo = subnetTokens.find(t => t.symbol === bidToken);
+        if (!tokenInfo) return false;
+        const amountNum = parseFloat(bidAmount);
+        return amountNum > 0 && !isNaN(amountNum);
+    }, [stxAddress, selectedItem, bidAmount, bidToken, subnetTokens]);
+
     // Memoized handlers to prevent unnecessary re-renders
     const handleSort = useCallback((field: SortField) => {
         if (sortField === field) {
@@ -173,21 +198,86 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
     }, [subnetTokens]);
 
     const handleSubmitBid = useCallback(async () => {
-        if (!selectedItem || !bidAmount) return;
+        if (!isValidBid()) {
+            if (!stxAddress) {
+                toast.error("Please connect your wallet to place a bid.");
+            } else {
+                toast.error("Please select a token and enter a valid amount for your bid.");
+            }
+            return;
+        }
 
-        console.log('Submit bid:', {
-            item: selectedItem,
-            amount: bidAmount,
-            token: bidToken,
-            message: bidMessage
-        });
+        if (!signIntentWithWallet) {
+            toast.error("Signing function is not available. Please try again.");
+            return;
+        }
 
-        setDialogMode(null);
-        setSelectedItem(null);
-        setBidAmount('');
-        setBidToken(subnetTokens.length > 0 ? subnetTokens[0].symbol : '');
-        setBidMessage('');
-    }, [selectedItem, bidAmount, bidToken, bidMessage, subnetTokens]);
+        const offerItem = selectedItem as OfferItem;
+        const selectedTokenInfo = subnetTokens.find(t => t.symbol === bidToken);
+
+        if (!selectedTokenInfo) {
+            toast.error("Selected token details not found.");
+            return;
+        }
+
+        setIsSigning(true);
+        try {
+            const atomicBidAmountStr = toAtomicString(bidAmount, selectedTokenInfo.decimals);
+            const numericAtomicBidAmount = parseInt(atomicBidAmountStr, 10);
+
+            if (isNaN(numericAtomicBidAmount)) {
+                throw new Error(`Failed to convert bid amount to atomic units for ${selectedTokenInfo.name}`);
+            }
+
+            const bidderSideIntentUuid = uuidv4();
+            const intentInputForBidAsset: IntentInput = {
+                intent: "TRANSFER_TOKENS",
+                contract: selectedTokenInfo.id,
+                amount: numericAtomicBidAmount,
+                uuid: bidderSideIntentUuid,
+                target: offerItem.offerCreatorAddress,
+            };
+
+            const signedBidIntent = await signIntentWithWallet(intentInputForBidAsset);
+            setIsSigning(false);
+            setIsSubmitting(true);
+
+            const payload = {
+                originalOfferIntentUuid: offerItem.intentUuid,
+                bidderAddress: stxAddress!,
+                bidAssets: [{ token: selectedTokenInfo.id, amount: atomicBidAmountStr }],
+                bidSignature: signedBidIntent.signature,
+                bidderSideIntentUuid: bidderSideIntentUuid,
+            };
+
+            const res = await fetch(`/api/v1/otc/bid`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const json = await res.json();
+
+            if (json.success) {
+                toast.success("Bid placed successfully!");
+                router.refresh();
+
+                // Close dialog and reset form
+                setDialogMode(null);
+                setSelectedItem(null);
+                setBidAmount('');
+                setBidToken(subnetTokens.length > 0 ? subnetTokens[0].symbol : '');
+                setBidMessage('');
+            } else {
+                throw new Error(json.error || "API failed to process the bid.");
+            }
+        } catch (err: any) {
+            console.error("Error placing bid:", err);
+            toast.error(err.message || "Failed to place bid due to an unexpected error.");
+        } finally {
+            setIsSigning(false);
+            setIsSubmitting(false);
+        }
+    }, [selectedItem, bidAmount, bidToken, bidMessage, subnetTokens, stxAddress, isValidBid, router]);
 
     const closeDialog = useCallback(() => {
         setDialogMode(null);
@@ -215,6 +305,8 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         setBidMessage,
         bnsNames,
         filteredAndSortedItems,
+        isSigning,
+        isSubmitting,
 
         // Handlers
         handleSort,

@@ -1,6 +1,5 @@
 import { ImageResponse } from 'next/og';
 import { getOffer } from '@/lib/otc/kv';
-import { getTokenMetadataCached } from '@repo/tokens';
 
 export const runtime = 'edge';
 
@@ -20,45 +19,24 @@ export default async function Image({ params }: Props) {
     try {
         const { intentUuid } = await params;
 
-        // Get offer data
-        const offerData = await getOffer(intentUuid);
+        // Get basic offer data with timeout protection
+        const offerData = await Promise.race([
+            getOffer(intentUuid),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 2000)
+            )
+        ]) as any;
+
         if (!offerData) {
             throw new Error('Offer not found');
         }
 
-        // Get token metadata for offered assets
-        const tokenMetadata = await Promise.all(
-            offerData.offerAssets.slice(0, 3).map(async (asset: any) => {
-                try {
-                    const metadata = await getTokenMetadataCached(asset.token);
-                    return {
-                        symbol: metadata?.symbol || asset.token.split('.')[1] || 'Token',
-                        name: metadata?.name || 'Unknown Token',
-                        amount: asset.amount,
-                        decimals: metadata?.decimals || 6,
-                    };
-                } catch {
-                    return {
-                        symbol: asset.token.split('.')[1] || 'Token',
-                        name: 'Unknown Token',
-                        amount: asset.amount,
-                        decimals: 6,
-                    };
-                }
-            })
-        );
-
         const bidCount = offerData.bids?.length || 0;
-        const isMultiToken = offerData.offerAssets.length > 1;
+        const tokenCount = offerData.offerAssets?.length || 0;
+        const isMultiToken = tokenCount > 1;
 
-        // Format amounts
-        const formatAmount = (amount: string, decimals: number) => {
-            const num = parseInt(amount) / Math.pow(10, decimals);
-            return num.toLocaleString(undefined, {
-                maximumFractionDigits: decimals > 6 ? 6 : decimals,
-                minimumFractionDigits: 0,
-            });
-        };
+        // Simple token symbol extraction without additional API calls
+        const primaryTokenSymbol = offerData.offerAssets?.[0]?.token?.split('.')[1] || 'Token';
 
         return new ImageResponse(
             (
@@ -81,7 +59,8 @@ export default async function Image({ params }: Props) {
                             right: 0,
                             bottom: 0,
                             opacity: 0.05,
-                            background: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E")`,
+                            backgroundImage: 'radial-gradient(circle at 20px 20px, white 1px, transparent 0)',
+                            backgroundSize: '40px 40px',
                         }}
                     />
 
@@ -120,79 +99,39 @@ export default async function Image({ params }: Props) {
                         >
                             {isMultiToken
                                 ? `Multi-Token Bundle`
-                                : `${tokenMetadata[0]?.symbol || 'Token'} Offer`}
+                                : `${primaryTokenSymbol} Offer`}
                         </div>
 
-                        {/* Token Details */}
+                        {/* Token Count Info */}
                         <div
                             style={{
                                 display: 'flex',
-                                flexDirection: 'column',
-                                gap: 12,
+                                alignItems: 'center',
+                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                padding: '16px 24px',
+                                borderRadius: 12,
                                 marginBottom: 32,
+                                backdropFilter: 'blur(10px)',
                             }}
                         >
-                            {tokenMetadata.slice(0, 2).map((token, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        backgroundColor: 'rgba(255,255,255,0.1)',
-                                        padding: '12px 20px',
-                                        borderRadius: 12,
-                                        backdropFilter: 'blur(10px)',
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            width: 12,
-                                            height: 12,
-                                            backgroundColor: '#10b981',
-                                            borderRadius: '50%',
-                                            marginRight: 16,
-                                        }}
-                                    />
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                color: 'white',
-                                                fontSize: 20,
-                                                fontWeight: 600,
-                                            }}
-                                        >
-                                            {formatAmount(token.amount, token.decimals)} {token.symbol}
-                                        </div>
-                                        <div
-                                            style={{
-                                                color: '#94a3b8',
-                                                fontSize: 14,
-                                            }}
-                                        >
-                                            {token.name}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {offerData.offerAssets.length > 2 && (
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '8px 20px',
-                                        color: '#64748b',
-                                        fontSize: 16,
-                                    }}
-                                >
-                                    +{offerData.offerAssets.length - 2} more tokens
-                                </div>
-                            )}
+                            <div
+                                style={{
+                                    width: 12,
+                                    height: 12,
+                                    backgroundColor: '#10b981',
+                                    borderRadius: '50%',
+                                    marginRight: 16,
+                                }}
+                            />
+                            <div
+                                style={{
+                                    color: 'white',
+                                    fontSize: 20,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {tokenCount} Token{tokenCount !== 1 ? 's' : ''} Available
+                            </div>
                         </div>
 
                         {/* Creator */}
@@ -213,7 +152,7 @@ export default async function Image({ params }: Props) {
                                     marginRight: 12,
                                 }}
                             />
-                            Created by {offerData.offerCreatorAddress.slice(0, 8)}...{offerData.offerCreatorAddress.slice(-6)}
+                            Created by {offerData.offerCreatorAddress?.slice(0, 8) || 'Unknown'}...{offerData.offerCreatorAddress?.slice(-6) || ''}
                         </div>
                     </div>
 
@@ -244,7 +183,7 @@ export default async function Image({ params }: Props) {
                                 marginBottom: 32,
                             }}
                         >
-                            {offerData.status}
+                            {offerData.status || 'Open'}
                         </div>
 
                         {/* Bid Count */}
@@ -285,11 +224,13 @@ export default async function Image({ params }: Props) {
                                 textAlign: 'center',
                             }}
                         >
-                            {new Date(offerData.createdAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                            })}
+                            {offerData.createdAt ?
+                                new Date(offerData.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                }) : 'Recently created'
+                            }
                         </div>
 
                         {/* CTA */}
@@ -305,7 +246,7 @@ export default async function Image({ params }: Props) {
                                 textAlign: 'center',
                             }}
                         >
-                            {offerData.status === 'open' ? 'Place Your Bid' : 'View Details'}
+                            {(offerData.status === 'open' || !offerData.status) ? 'Place Your Bid' : 'View Details'}
                         </div>
                     </div>
                 </div>

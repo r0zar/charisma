@@ -46,6 +46,8 @@ interface BidDialogProps {
     setBidMessage: (message: string) => void;
     onSubmitBid: () => Promise<void>;
     onViewDetails: (item: ShopItem) => void;
+    isSigning?: boolean;
+    isSubmitting?: boolean;
 }
 
 const BidDialog: React.FC<BidDialogProps> = ({
@@ -60,7 +62,9 @@ const BidDialog: React.FC<BidDialogProps> = ({
     bidMessage,
     setBidMessage,
     onSubmitBid,
-    onViewDetails
+    onViewDetails,
+    isSigning,
+    isSubmitting
 }) => {
     const { prices } = useWallet();
 
@@ -359,11 +363,17 @@ const BidDialog: React.FC<BidDialogProps> = ({
                     </Button>
                     <Button
                         onClick={onSubmitBid}
-                        disabled={!bidAmount || !bidToken || subnetTokens.length === 0}
+                        disabled={!bidAmount || !bidToken || subnetTokens.length === 0 || isSigning || isSubmitting}
                         className="button-primary"
                     >
-                        <Gavel className="h-4 w-4 mr-2" />
-                        {subnetTokens.length === 0 ? 'No Tokens Available' : 'Place Bid'}
+                        {isSigning && (
+                            <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        )}
+                        {isSubmitting && !isSigning && (
+                            <div className="animate-pulse -ml-1 mr-2 h-4 w-4 bg-white rounded-full"></div>
+                        )}
+                        {!isSigning && !isSubmitting && <Gavel className="h-4 w-4 mr-2" />}
+                        {isSigning ? 'Signing...' : isSubmitting ? 'Submitting...' : subnetTokens.length === 0 ? 'No Tokens Available' : 'Place Bid'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

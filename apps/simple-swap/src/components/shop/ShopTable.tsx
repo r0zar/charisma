@@ -446,7 +446,9 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
         handleViewDetails,
         handlePurchase,
         handleSubmitBid,
-        closeDialog
+        closeDialog,
+        isSigning,
+        isSubmitting
     } = useShopTable(items, subnetTokens);
 
     // Get sort icon
@@ -677,6 +679,8 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                     setBidMessage={setBidMessage}
                     onSubmitBid={handleSubmitBid}
                     onViewDetails={handleViewDetails}
+                    isSigning={isSigning}
+                    isSubmitting={isSubmitting}
                 />
             </div>
         </TooltipProvider>
