@@ -47,51 +47,95 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
         if (!offer) {
             return {
-                title: "Offer Not Found | Charisma Shop",
+                title: "Offer Not Found | Charisma Marketplace",
                 description: "The requested offer could not be found.",
             };
         }
 
         // Get token info for better metadata
-        const firstAsset = offer.offerAssets?.[0];
-        let tokenInfo = null;
-        if (firstAsset?.token) {
-            try {
-                tokenInfo = await getTokenMetadataCached(firstAsset.token);
-            } catch (error) {
-                console.warn(`Failed to fetch token metadata for SEO: ${firstAsset.token}`);
-            }
-        }
+        const tokenMetadata = await Promise.all(
+            offer.offerAssets?.slice(0, 3).map(async (asset) => {
+                try {
+                    const metadata = await getTokenMetadataCached(asset.token);
+                    return {
+                        symbol: metadata?.symbol || asset.token.split('.')[1] || 'Token',
+                        name: metadata?.name || 'Unknown Token',
+                        amount: asset.amount,
+                        decimals: metadata?.decimals || 6,
+                    };
+                } catch {
+                    return {
+                        symbol: asset.token.split('.')[1] || 'Token',
+                        name: 'Unknown Token',
+                        amount: asset.amount,
+                        decimals: 6,
+                    };
+                }
+            }) || []
+        );
 
-        const tokenSymbols = offer.offerAssets
-            ?.map(asset => tokenInfo?.symbol || asset.token.split('.')[1])
-            .filter(Boolean)
-            .join(', ') || 'tokens';
+        const bidCount = offer.bids?.length || 0;
+        const isMultiToken = offer.offerAssets?.length > 1;
 
-        const title = `${tokenSymbols} Offer | Charisma Shop`;
-        const description = `Make a bid on this ${tokenSymbols} offer. ${offer.bids?.length || 0} bids received.`;
+        // Generate title and description
+        const offerTitle = isMultiToken
+            ? `Multi-Token Bundle (${offer.offerAssets.length} tokens)`
+            : `${tokenMetadata[0]?.symbol || 'Token'} Offer`;
+
+        const formattedTokens = tokenMetadata.map(token => {
+            const amount = parseInt(token.amount) / Math.pow(10, token.decimals);
+            return `${amount.toLocaleString()} ${token.symbol}`;
+        }).join(', ');
+
+        const title = `${offerTitle} | Charisma Marketplace`;
+        const description = `${offer.status === 'open' ? 'Place a bid on' : 'View'} this OTC offer for ${formattedTokens}. ${bidCount} bid${bidCount !== 1 ? 's' : ''} received. Created by ${offer.offerCreatorAddress.slice(0, 8)}...`;
+
+        const baseUrl = process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : process.env.NODE_ENV === 'production'
+                ? 'https://swap.charisma.rocks'
+                : 'http://localhost:3000';
 
         return {
             title,
             description,
             openGraph: {
-                title,
+                title: offerTitle,
                 description,
-                type: "website",
-                images: tokenInfo?.image ? [tokenInfo.image] : undefined,
+                type: 'website',
+                url: `/shop/${intentUuid}`,
+                siteName: 'Charisma Marketplace',
+                images: [
+                    {
+                        url: `/shop/${intentUuid}/opengraph-image`,
+                        width: 1200,
+                        height: 630,
+                        alt: `${offerTitle} - Charisma OTC Offer`,
+                    }
+                ],
             },
             twitter: {
-                card: "summary",
-                title,
+                card: 'summary_large_image',
+                title: offerTitle,
                 description,
-                images: tokenInfo?.image ? [tokenInfo.image] : undefined,
+                images: [`${baseUrl}/shop/${intentUuid}/opengraph-image`],
             },
         };
     } catch (error) {
         console.error("Error generating metadata:", error);
         return {
-            title: "Offer | Charisma Shop",
-            description: "View and bid on token offers",
+            title: "OTC Offer | Charisma Marketplace",
+            description: "View and bid on token offers in the Charisma marketplace",
+            openGraph: {
+                title: "Charisma OTC Offer",
+                description: "View and bid on token offers in the Charisma marketplace",
+                type: 'website',
+            },
+            twitter: {
+                card: 'summary_large_image',
+                title: "Charisma OTC Offer",
+                description: "View and bid on token offers in the Charisma marketplace",
+            },
         };
     }
 }

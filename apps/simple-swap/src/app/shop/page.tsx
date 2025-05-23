@@ -1,6 +1,24 @@
 import { Suspense } from 'react';
+import { Metadata } from 'next';
 import ShopPage from '@/components/shop/ShopPage';
 import { ShopService } from '@/lib/shop/shop-service';
+
+export const metadata: Metadata = {
+    title: 'Charisma Marketplace - Trade Tokens & Place Bids',
+    description: 'Trade tokens, place bids on offers, and discover new opportunities in the Charisma ecosystem. Join the decentralized marketplace for OTC token trading.',
+    openGraph: {
+        title: 'Charisma Marketplace',
+        description: 'Trade tokens, place bids on offers, and discover new opportunities in the Charisma ecosystem.',
+        type: 'website',
+        url: '/shop',
+        siteName: 'Charisma',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Charisma Marketplace',
+        description: 'Trade tokens, place bids on offers, and discover new opportunities in the Charisma ecosystem.',
+    },
+};
 
 // Server component to fetch data
 export default async function ShopPageRoute() {
