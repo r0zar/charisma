@@ -7,8 +7,6 @@ import { PlusCircle } from 'lucide-react';
 
 export default function AddNewPoolButton() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    // Define the Launchpad URL here. This could also come from an environment variable.
-    const launchpadLiquidityPoolUrl = process.env.NEXT_PUBLIC_LAUNCHPAD_BASE_URL ? `${process.env.NEXT_PUBLIC_LAUNCHPAD_BASE_URL}/templates/liquidity-pool` : '/templates/liquidity-pool';
 
     const handleOpenDialog = () => {
         setIsDialogOpen(true);
@@ -23,7 +21,6 @@ export default function AddNewPoolButton() {
             <AddNewPoolDialog
                 isOpen={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
-                launchpadUrl={launchpadLiquidityPoolUrl}
             />
         </>
     );

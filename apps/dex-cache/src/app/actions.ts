@@ -257,3 +257,57 @@ export async function getTokenTotalSupply(tokenContractId: string): Promise<{ su
         };
     }
 }
+
+/**
+ * Server action to fetch token metadata for a contract ID
+ */
+export async function getTokenMetadata(contractId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+        if (!contractId || (!contractId.includes('.') && contractId !== '.stx')) {
+            return { success: false, error: 'Invalid contract ID format' };
+        }
+
+        // For STX, return predefined metadata
+        if (contractId === '.stx') {
+            return {
+                success: true,
+                data: {
+                    contractId: '.stx',
+                    name: 'Stacks',
+                    symbol: 'STX',
+                    decimals: 6,
+                    description: 'The native token of the Stacks blockchain',
+                    image: 'https://cryptologos.cc/logos/stacks-stx-logo.png',
+                    identifier: 'STX'
+                }
+            };
+        }
+
+        // Use the shared token cache client (it's available in the dex-cache context)
+        const { getTokenMetadataCached } = await import('@repo/tokens');
+        const metadata = await getTokenMetadataCached(contractId);
+
+        if (metadata && metadata.name) {
+            return {
+                success: true,
+                data: {
+                    contractId: metadata.contractId || contractId,
+                    name: metadata.name,
+                    symbol: metadata.symbol || '',
+                    decimals: metadata.decimals || 6,
+                    description: metadata.description || '',
+                    image: metadata.image || '',
+                    identifier: metadata.identifier || metadata.symbol || ''
+                }
+            };
+        } else {
+            return { success: false, error: 'Token metadata not found or incomplete' };
+        }
+    } catch (error) {
+        console.error("Error in getTokenMetadata:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to fetch token metadata"
+        };
+    }
+}
