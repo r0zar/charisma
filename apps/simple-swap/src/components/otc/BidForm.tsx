@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Asset, TokenDef } from "@/types/otc";
+import { Asset } from "@/lib/otc/schema";
+import { TokenDef } from "@/types/otc";
 import { Offer } from "@/lib/otc/schema";
 import TokenDropdown from "@/components/TokenDropdown";
 import { Button } from "@/components/ui/button";

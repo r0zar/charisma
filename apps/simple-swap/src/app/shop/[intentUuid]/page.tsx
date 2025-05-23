@@ -220,6 +220,29 @@ export default async function OfferPage({ params }: PageProps) {
 
                             {/* Sidebar */}
                             <div className="space-y-6">
+
+                                {/* Creator Info */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Users className="h-5 w-5" />
+                                            Offer Creator
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                                                <Users className="h-5 w-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-sm">
+                                                    {offer.offerCreatorAddress.slice(0, 8)}...{offer.offerCreatorAddress.slice(-4)}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">Creator</div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                                 {/* Bid Form or Status */}
                                 <Card className="sticky top-8">
                                     <CardHeader>
@@ -247,29 +270,6 @@ export default async function OfferPage({ params }: PageProps) {
                                         ) : (
                                             <ClosedOfferInfo offer={offer} />
                                         )}
-                                    </CardContent>
-                                </Card>
-
-                                {/* Creator Info */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Users className="h-5 w-5" />
-                                            Creator
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
-                                                <Users className="h-5 w-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-sm">
-                                                    {offer.offerCreatorAddress.slice(0, 8)}...{offer.offerCreatorAddress.slice(-4)}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">Creator</div>
-                                            </div>
-                                        </div>
                                     </CardContent>
                                 </Card>
 

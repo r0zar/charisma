@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ShopItem } from '@/types/shop';
+import { ShopItem, isOfferItem, isPurchasableItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { useRouter } from 'next/navigation';
 import { getPrimaryBnsName } from '@repo/polyglot';
 
-type SortField = 'name' | 'type' | 'price' | 'bids' | 'created' | 'creator';
+type SortField = 'name' | 'type' | 'price' | 'bids' | 'created' | 'creator' | 'balance';
 type SortDirection = 'asc' | 'desc';
 type DialogMode = 'purchase' | 'bid' | null;
 
@@ -31,8 +31,9 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
     // Memoize unique offer creators to prevent recalculation
     const offerCreators = useMemo(() => {
         return items
-            .filter(item => item.type === SHOP_CATEGORIES.OFFER && item.metadata?.offerCreatorAddress)
-            .map(item => item.metadata!.offerCreatorAddress!)
+            .filter(isOfferItem)
+            .filter(item => item.offerCreatorAddress)
+            .map(item => item.offerCreatorAddress)
             .filter((address, index, self) => self.indexOf(address) === index); // Remove duplicates
     }, [items]);
 
@@ -74,7 +75,7 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         }
     }, [offerCreators]); // Removed bnsNames from dependencies to prevent infinite loop
 
-    // Filtering and sorting logic - Added better memoization
+    // Filtering and sorting logic - Fixed for new type system
     const filteredAndSortedItems = useMemo(() => {
         let filtered = items.filter(item => {
             const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,20 +97,31 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
                     bValue = b.type;
                     break;
                 case 'price':
-                    aValue = a.price || 0;
-                    bValue = b.price || 0;
+                    if (isPurchasableItem(a) && isPurchasableItem(b)) {
+                        aValue = a.price || 0;
+                        bValue = b.price || 0;
+                    } else {
+                        aValue = isPurchasableItem(a) ? a.price || 0 : 0;
+                        bValue = isPurchasableItem(b) ? b.price || 0 : 0;
+                    }
                     break;
                 case 'bids':
-                    aValue = a.metadata?.bids?.length || 0;
-                    bValue = b.metadata?.bids?.length || 0;
+                    aValue = isOfferItem(a) ? a.bids?.length || 0 : 0;
+                    bValue = isOfferItem(b) ? b.bids?.length || 0 : 0;
                     break;
                 case 'created':
-                    aValue = new Date(a.metadata?.createdAt || 0).getTime();
-                    bValue = new Date(b.metadata?.createdAt || 0).getTime();
+                    aValue = new Date(a.createdAt || 0).getTime();
+                    bValue = new Date(b.createdAt || 0).getTime();
                     break;
                 case 'creator':
-                    aValue = a.metadata?.offerCreatorAddress || '';
-                    bValue = b.metadata?.offerCreatorAddress || '';
+                    aValue = isOfferItem(a) ? a.offerCreatorAddress || '' : '';
+                    bValue = isOfferItem(b) ? b.offerCreatorAddress || '' : '';
+                    break;
+                case 'balance':
+                    // For balance sorting, we'll sort by whether balance is sufficient (1) or not (0)
+                    // Non-offers get neutral value (0.5)
+                    aValue = isOfferItem(a) ? 0.5 : 0.5; // Will be enhanced with actual balance status
+                    bValue = isOfferItem(b) ? 0.5 : 0.5; // Will be enhanced with actual balance status
                     break;
                 default:
                     aValue = a.title;

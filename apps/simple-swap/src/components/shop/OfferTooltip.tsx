@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { ShopItem } from '@/types/shop';
+import { motion } from 'framer-motion';
+import { ShopItem, OfferItem, isOfferItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import Image from 'next/image';
 import { TrendingUp, Coins } from 'lucide-react';
-import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { getTokenPrice, formatTokenAmount } from '@/utils/shop-table-utils';
 
 interface OfferTooltipProps {
@@ -21,54 +21,52 @@ const truncateContractId = (contractId: string, startChars: number = 6, endChars
 };
 
 const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices }) => {
+    // Early return if not an offer
+    if (!isOfferItem(item)) {
+        return null;
+    }
+
+    // Now TypeScript knows item is OfferItem
+    const offerItem = item as OfferItem;
+
     // Memoize the asset details calculation
     const { assetDetails, grandTotal } = useMemo(() => {
-        if (item.type !== SHOP_CATEGORIES.OFFER || !item.metadata?.offerAssets) {
-            return { assetDetails: [], grandTotal: 0 };
-        }
-
-        console.log('OfferTooltip - item.metadata.offerAssets:', item.metadata.offerAssets);
-        console.log('OfferTooltip - available subnetTokens:', subnetTokens);
-
         let total = 0;
-        const details = item.metadata.offerAssets.map((asset: any, index: number) => {
+        const details = offerItem.offerAssets.map((asset, index) => {
             console.log(`Processing asset ${index}:`, asset);
 
-            // Try multiple ways to find the token info
-            let tokenInfo = null;
-
-            // Method 1: Try by contractId/token field
-            if (asset.contractId) {
-                tokenInfo = subnetTokens.find(t => t.id === asset.contractId);
-            }
-            if (!tokenInfo && asset.token) {
-                tokenInfo = subnetTokens.find(t => t.id === asset.token);
-            }
-
-            // Method 2: Try by symbol
-            if (!tokenInfo && asset.symbol) {
-                tokenInfo = subnetTokens.find(t => t.symbol === asset.symbol);
-            }
-
-            // Method 3: Try by name matching
-            if (!tokenInfo && asset.name) {
-                tokenInfo = subnetTokens.find(t => t.name === asset.name);
-            }
-
+            // We already have tokenData from the OfferAsset structure
+            const tokenInfo = asset.tokenData;
             console.log(`Token info found for asset ${index}:`, tokenInfo);
 
             const decimals = tokenInfo?.decimals || 6;
-            const amount = asset.amount || '0';
-            const formattedAmount = formatTokenAmount(String(amount), decimals);
+            const rawAmount = asset.amount || '0';
 
-            // Get price using the token identifier (prefer contractId, then token, then symbol)
-            const tokenIdentifier = asset.contractId || asset.token || asset.symbol || '';
-            const pricePerToken = getTokenPrice(tokenIdentifier, prices);
+            console.log(`Raw amount for asset ${index}:`, rawAmount, 'decimals:', decimals);
+
+            // Handle different amount formats
+            let formattedAmount = 0;
+            if (rawAmount && rawAmount !== '0') {
+                // Check if amount is already a decimal number (not atomic units)
+                const numericAmount = parseFloat(String(rawAmount));
+                if (!isNaN(numericAmount)) {
+                    // If the amount is very large, assume it's in atomic units
+                    if (numericAmount > 1000000) {
+                        formattedAmount = formatTokenAmount(String(rawAmount), decimals);
+                    } else {
+                        // If it's a smaller number, it might already be formatted
+                        formattedAmount = numericAmount;
+                    }
+                }
+            }
+
+            console.log(`Formatted amount for asset ${index}:`, formattedAmount);
+
+            // Get price using the token identifier
+            const pricePerToken = getTokenPrice(asset.token, prices);
             const totalValue = formattedAmount * pricePerToken;
 
             total += totalValue;
-
-            const fullTokenId = asset.contractId || asset.token || asset.symbol || '';
 
             return {
                 ...asset,
@@ -78,24 +76,23 @@ const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices 
                 totalValue,
                 index,
                 // Add fallback values for display
-                displayName: tokenInfo?.name || asset.name || asset.symbol || 'Unknown Token',
-                displaySymbol: tokenInfo?.symbol || asset.symbol || 'UNK',
-                tokenId: fullTokenId,
-                truncatedTokenId: truncateContractId(fullTokenId),
+                displayName: tokenInfo?.name || tokenInfo?.symbol || 'Unknown Token',
+                displaySymbol: tokenInfo?.symbol || 'UNK',
             };
         });
 
         console.log('Processed asset details:', details);
         return { assetDetails: details, grandTotal: total };
-    }, [item, subnetTokens, prices]);
-
-    if (item.type !== SHOP_CATEGORIES.OFFER || !item.metadata?.offerAssets) {
-        return null;
-    }
+    }, [offerItem.offerAssets, prices]);
 
     if (assetDetails.length === 0) {
         return (
-            <div className="w-80 p-4 space-y-3">
+            <motion.div
+                className="w-80 p-4 space-y-3"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+            >
                 <div className="flex items-center gap-2 border-b border-border pb-2">
                     <TrendingUp className="h-4 w-4 text-primary" />
                     <span className="font-semibold">Offer Contents</span>
@@ -103,29 +100,54 @@ const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices 
                 <div className="text-center py-4 text-sm text-muted-foreground">
                     No assets found in this offer
                 </div>
-            </div>
+            </motion.div>
         );
     }
 
     return (
-        <div className="w-80 p-4 space-y-3">
-            <div className="flex items-center gap-2 border-b border-border pb-2">
+        <motion.div
+            className="w-96 p-4 space-y-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+            <motion.div
+                className="flex items-center gap-2 border-b border-border pb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+            >
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="font-semibold">Offer Contents</span>
-            </div>
+            </motion.div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-                {assetDetails.map((asset) => (
-                    <div key={asset.index} className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg">
+            <motion.div
+                className="space-y-2 max-h-60 overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
+            >
+                {assetDetails.map((asset, index) => (
+                    <motion.div
+                        key={asset.index}
+                        className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors duration-150"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{
+                            delay: 0.2 + index * 0.03,
+                            duration: 0.2,
+                            ease: "easeOut"
+                        }}
+                    >
                         <div className="relative h-8 w-8 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                            {(asset.image || asset.tokenInfo?.logo) ? (
+                            {asset.tokenInfo?.image ? (
                                 <Image
-                                    src={asset.image || asset.tokenInfo?.logo}
+                                    src={asset.tokenInfo.image}
                                     alt={asset.displaySymbol}
                                     fill
                                     className="object-cover"
                                     onError={(e) => {
-                                        console.log('Token image failed to load:', asset.image || asset.tokenInfo?.logo);
+                                        console.log('Token image failed to load:', asset.tokenInfo?.image);
                                         // Hide the image on error
                                         (e.target as HTMLImageElement).style.display = 'none';
                                     }}
@@ -144,7 +166,16 @@ const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices 
                                         {asset.displayName}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {asset.formattedAmount.toLocaleString()} {asset.displaySymbol}
+                                        {asset.formattedAmount > 0
+                                            ? `${asset.formattedAmount < 0.001
+                                                ? asset.formattedAmount.toExponential(3)
+                                                : asset.formattedAmount.toLocaleString(undefined, {
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: asset.formattedAmount < 1 ? 6 : 2
+                                                })
+                                            } ${asset.displaySymbol}`
+                                            : `0 ${asset.displaySymbol} (amount not available)`
+                                        }
                                     </p>
                                 </div>
                                 <div className="text-right">
@@ -165,12 +196,17 @@ const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices 
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
-            </div>
+            </motion.div>
 
             {grandTotal > 0 && (
-                <div className="border-t border-border pt-2">
+                <motion.div
+                    className="border-t border-border pt-2"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 + assetDetails.length * 0.03, duration: 0.2 }}
+                >
                     <div className="flex items-center justify-between">
                         <span className="font-semibold">Estimated Total:</span>
                         <span className="font-bold text-lg text-primary">
@@ -180,18 +216,23 @@ const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices 
                     <p className="text-xs text-muted-foreground mt-1">
                         Based on current market prices
                     </p>
-                </div>
+                </motion.div>
             )}
 
-            {item.metadata?.bids && item.metadata.bids.length > 0 && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-2">
+            {offerItem.bids && offerItem.bids.length > 0 && (
+                <motion.div
+                    className="bg-primary/5 border border-primary/20 rounded-lg p-2"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 + assetDetails.length * 0.03, duration: 0.2 }}
+                >
                     <div className="flex items-center gap-2">
                         <TrendingUp className="h-3 w-3 text-primary" />
                         <span className="text-sm font-medium text-primary">
-                            {item.metadata.bids.length} active bid{item.metadata.bids.length !== 1 ? 's' : ''}
+                            {offerItem.bids.length} active bid{offerItem.bids.length !== 1 ? 's' : ''}
                         </span>
                     </div>
-                </div>
+                </motion.div>
             )}
 
             {/* Debug info - remove in production */}
@@ -203,12 +244,12 @@ const OfferTooltip: React.FC<OfferTooltipProps> = ({ item, subnetTokens, prices 
                             totalAssets: assetDetails.length,
                             hasSubnetTokens: subnetTokens.length,
                             hasPrices: Object.keys(prices).length,
-                            rawAssets: item.metadata?.offerAssets
+                            rawAssets: offerItem.offerAssets
                         }, null, 2)}
                     </pre>
                 </details>
             )}
-        </div>
+        </motion.div>
     );
 };
 

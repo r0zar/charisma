@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ShopItem as ShopItemInterface } from '@/types/shop';
+import { ShopItem as ShopItemInterface, isOfferItem, isPurchasableItem } from '@/types/shop';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -207,8 +207,8 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                 >
                     {/* Image Section */}
                     <div className="relative h-32 bg-muted/30 overflow-hidden">
-                        {item.type === SHOP_CATEGORIES.OFFER ? (
-                            <OfferAssetsDisplay assets={item.metadata?.offerAssets || []} />
+                        {isOfferItem(item) ? (
+                            <OfferAssetsDisplay assets={item.offerAssets.map(asset => asset.tokenData).filter(Boolean) || []} />
                         ) : (
                             <Image
                                 src={item.image || '/images/placeholder.png'}
@@ -252,10 +252,10 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                     <div className="p-3 space-y-2">
                         {/* Title */}
                         <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
-                            {item.type === SHOP_CATEGORIES.OFFER && item.metadata?.offerAssets && item.metadata.offerAssets.length > 0
+                            {isOfferItem(item) && item.offerAssets && item.offerAssets.length > 0
                                 ? (() => {
-                                    const symbols = item.metadata.offerAssets
-                                        .map((asset: any) => asset?.symbol || asset?.contractId?.split('.')[1])
+                                    const symbols = item.offerAssets
+                                        .map((asset) => asset.tokenData?.symbol || asset.token?.split('.')[1])
                                         .filter(Boolean);
 
                                     if (symbols.length === 0) {
@@ -277,20 +277,20 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
 
                         {/* Price and Action Section */}
                         <div className="flex items-center justify-between pt-1">
-                            {item.type === SHOP_CATEGORIES.OFFER ? (
+                            {isOfferItem(item) ? (
                                 // Show bid information for offers
                                 <div className="flex flex-col">
                                     <span className="text-xs text-muted-foreground">
-                                        {item.metadata?.bids && item.metadata.bids.length > 0 ? 'Latest Bid' : 'Bids'}
+                                        {item.bids && item.bids.length > 0 ? 'Latest Bid' : 'Bids'}
                                     </span>
-                                    {item.metadata?.bids && item.metadata.bids.length > 0 ? (
+                                    {item.bids && item.bids.length > 0 ? (
                                         <div className="flex items-center gap-1">
                                             <TrendingUp className="h-3 w-3 text-primary" />
                                             <span className="font-semibold text-sm">
-                                                {item.metadata.bids[item.metadata.bids.length - 1]?.amount || 'N/A'}
+                                                {item.bids[item.bids.length - 1]?.bidAssets?.[0]?.amount || 'N/A'}
                                             </span>
                                             <span className="text-xs text-muted-foreground">
-                                                {item.metadata.bids[item.metadata.bids.length - 1]?.token?.symbol || 'STX'}
+                                                {item.bids[item.bids.length - 1]?.bidAssets?.[0]?.token?.split('.')[1] || 'STX'}
                                             </span>
                                         </div>
                                     ) : (
@@ -301,13 +301,13 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                                             </span>
                                         </div>
                                     )}
-                                    {item.metadata?.bids && item.metadata.bids.length > 0 && (
+                                    {item.bids && item.bids.length > 0 && (
                                         <span className="text-xs text-muted-foreground">
-                                            {item.metadata.bids.length} bid{item.metadata.bids.length !== 1 ? 's' : ''}
+                                            {item.bids.length} bid{item.bids.length !== 1 ? 's' : ''}
                                         </span>
                                     )}
                                 </div>
-                            ) : item.price ? (
+                            ) : isPurchasableItem(item) && item.price ? (
                                 // Show price for regular items
                                 <div className="flex flex-col">
                                     <span className="text-xs text-muted-foreground">Price</span>
@@ -356,18 +356,18 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                         </div>
 
                         {/* Additional Info for Offers */}
-                        {item.type === SHOP_CATEGORIES.OFFER && item.metadata?.offerAssets && (
+                        {isOfferItem(item) && item.offerAssets && (
                             <div className="pt-2 border-t border-border/50">
                                 <div className="flex flex-col gap-1">
                                     <span className="text-xs text-muted-foreground">
-                                        Offering {item.metadata.offerAssets.length} token{item.metadata.offerAssets.length !== 1 ? 's' : ''}:
+                                        Offering {item.offerAssets.length} token{item.offerAssets.length !== 1 ? 's' : ''}:
                                     </span>
                                     <div className="flex flex-wrap gap-1">
-                                        {item.metadata.offerAssets.slice(0, 3).map((asset: any, index: number) => (
+                                        {item.offerAssets.slice(0, 3).map((asset, index: number) => (
                                             <div key={index} className="flex items-center gap-1 bg-muted/30 rounded px-2 py-1">
-                                                {asset?.image ? (
+                                                {asset.tokenData?.image ? (
                                                     <Image
-                                                        src={asset.image}
+                                                        src={asset.tokenData.image}
                                                         alt=""
                                                         width={12}
                                                         height={12}
@@ -377,14 +377,14 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                                                     <Coins className="h-3 w-3 text-muted-foreground" />
                                                 )}
                                                 <span className="text-xs font-medium">
-                                                    {asset?.symbol || asset?.contractId?.split('.')[1] || 'Token'}
+                                                    {asset.tokenData?.symbol || asset.token?.split('.')[1] || 'Token'}
                                                 </span>
                                             </div>
                                         ))}
-                                        {item.metadata.offerAssets.length > 3 && (
+                                        {item.offerAssets.length > 3 && (
                                             <div className="flex items-center gap-1 bg-muted/30 rounded px-2 py-1">
                                                 <span className="text-xs font-medium text-muted-foreground">
-                                                    +{item.metadata.offerAssets.length - 3} more
+                                                    +{item.offerAssets.length - 3} more
                                                 </span>
                                             </div>
                                         )}
@@ -394,7 +394,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                         )}
 
                         {/* Additional Info for Featured Items */}
-                        {item.id === 'hooter-farm' && item.metadata?.maxQuantity && (
+                        {item.id === 'hooter-farm' && isPurchasableItem(item) && item.metadata?.maxQuantity && (
                             <div className="pt-2 border-t border-border/50">
                                 <div className="flex items-center justify-between text-xs">
                                     <span className="text-muted-foreground">Max per purchase:</span>

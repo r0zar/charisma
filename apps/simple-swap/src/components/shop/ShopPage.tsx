@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRouter } from 'next/navigation';
-import { ShopItem as ShopItemInterface } from '@/types/shop';
+import { ShopItem as ShopItemInterface, isOfferItem, isPurchasableItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CATEGORIES, SORT_OPTIONS, DEFAULT_PRICE_RANGE } from '@/lib/shop/constants';
 import { ShopService } from '@/lib/shop/shop-service';
@@ -85,8 +85,18 @@ export default function ShopPage({ initialItems }: ShopPageProps) {
     const stats = {
         totalItems: items.length,
         totalOffers: items.filter(item => item.type === 'offer').length,
-        totalBids: items.reduce((sum, item) => sum + (item.metadata?.bids?.length || 0), 0),
-        activeItems: items.filter(item => item.metadata?.status === 'open' || !item.metadata?.status).length,
+        totalBids: items.reduce((sum, item) => {
+            if (isOfferItem(item)) {
+                return sum + (item.bids?.length || 0);
+            }
+            return sum;
+        }, 0),
+        activeItems: items.filter(item => {
+            if (isOfferItem(item)) {
+                return item.status === 'open';
+            }
+            return true; // PurchasableItems are always available
+        }).length,
     };
 
     return (

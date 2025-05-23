@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShopItem } from '@/types/shop';
+import { ShopItem, isOfferItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,11 @@ import {
     Gavel,
     Eye,
     User,
-    Plus
+    Plus,
+    CheckCircle,
+    XCircle,
+    Wallet,
+    AlertTriangle
 } from 'lucide-react';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { useWallet } from '@/contexts/wallet-context';
@@ -52,13 +56,22 @@ import OfferTooltip from './OfferTooltip';
 import BidDialog from './BidDialog';
 import PurchaseDialog from './PurchaseDialog';
 import { useRouter } from 'next/navigation';
+import { getTokenBalance } from '@/app/actions';
 
 interface ShopTableProps {
     items: ShopItem[];
     subnetTokens: TokenDef[];
 }
 
-type SortField = 'name' | 'type' | 'price' | 'bids' | 'created' | 'creator';
+type SortField = 'name' | 'type' | 'price' | 'bids' | 'created' | 'creator' | 'balance';
+
+// Balance status for offer creators
+interface BalanceStatus {
+    loading: boolean;
+    allSufficient: boolean;
+    insufficientTokens: string[];
+    error?: string;
+}
 
 // Memoized table row component to prevent unnecessary re-renders
 const TableRowComponent = React.memo(({
@@ -68,6 +81,7 @@ const TableRowComponent = React.memo(({
     bnsNames,
     subnetTokens,
     prices,
+    balanceStatuses,
     onItemClick,
     onViewDetailsClick
 }: {
@@ -77,6 +91,7 @@ const TableRowComponent = React.memo(({
     bnsNames: Record<string, string | null>;
     subnetTokens: TokenDef[];
     prices: Record<string, any>;
+    balanceStatuses: Record<string, BalanceStatus>;
     onItemClick: (item: ShopItem) => void;
     onViewDetailsClick: (item: ShopItem, e: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
@@ -89,7 +104,10 @@ const TableRowComponent = React.memo(({
 
     const tableRow = (
         <TableRow
-            className="cursor-pointer hover:bg-muted/30 transition-colors"
+            className={`border-0 cursor-pointer transition-all duration-200 ease-out hover:bg-muted/30 ${isOfferItem(item) && item.offerAssets
+                ? 'hover:shadow-sm'
+                : ''
+                }`}
             onClick={handleRowClick}
         >
             {/* Image */}
@@ -122,21 +140,21 @@ const TableRowComponent = React.memo(({
 
             {/* Creator */}
             <TableCell className="hidden md:table-cell">
-                {item.type === SHOP_CATEGORIES.OFFER && item.metadata?.offerCreatorAddress ? (
+                {isOfferItem(item) && item.offerCreatorAddress ? (
                     <div className="text-xs">
                         <div className="flex items-center gap-1">
                             <User className="h-3 w-3 text-muted-foreground" />
                             <span
                                 className={
-                                    bnsNames[item.metadata.offerCreatorAddress]
+                                    bnsNames[item.offerCreatorAddress]
                                         ? "font-medium text-primary"
                                         : "font-mono text-muted-foreground"
                                 }
-                                title={item.metadata.offerCreatorAddress}
+                                title={item.offerCreatorAddress}
                             >
-                                {bnsNames[item.metadata.offerCreatorAddress] === undefined
+                                {bnsNames[item.offerCreatorAddress] === undefined
                                     ? "Loading..."
-                                    : formatCreator(item.metadata.offerCreatorAddress, bnsNames)
+                                    : bnsNames[item.offerCreatorAddress] || `${item.offerCreatorAddress.slice(0, 6)}...${item.offerCreatorAddress.slice(-4)}`
                                 }
                             </span>
                         </div>
@@ -164,10 +182,10 @@ const TableRowComponent = React.memo(({
             {/* Bids */}
             <TableCell className="hidden md:table-cell">
                 <div className="text-sm">
-                    {item.type === SHOP_CATEGORIES.OFFER ? (
+                    {isOfferItem(item) ? (
                         <span className="flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
-                            {item.metadata?.bids?.length || 0}
+                            {item.bids?.length || 0}
                         </span>
                     ) : (
                         <span className="text-muted-foreground">-</span>
@@ -178,15 +196,103 @@ const TableRowComponent = React.memo(({
             {/* Time */}
             <TableCell className="hidden lg:table-cell">
                 <div className="text-xs text-muted-foreground">
-                    {item.metadata?.createdAt ? (
+                    {item.createdAt ? (
                         <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {new Date(item.metadata.createdAt).toLocaleDateString()}
+                            {new Date(item.createdAt).toLocaleDateString()}
                         </span>
                     ) : (
                         'N/A'
                     )}
                 </div>
+            </TableCell>
+
+            {/* Balance Status (for offers only) */}
+            <TableCell className="hidden lg:table-cell">
+                {isOfferItem(item) ? (
+                    <div className="flex items-center gap-1">
+                        {(() => {
+                            const balanceStatus = balanceStatuses[item.id];
+                            if (!balanceStatus) return null;
+
+                            if (balanceStatus.loading) {
+                                return (
+                                    <Tooltip delayDuration={300}>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 text-muted-foreground cursor-help">
+                                                <div className="animate-pulse h-3 w-3 bg-muted-foreground/30 rounded-full"></div>
+                                                <span className="text-xs">Checking...</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Verifying offer creator has sufficient token balances</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            }
+
+                            if (balanceStatus.error) {
+                                return (
+                                    <Tooltip delayDuration={300}>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 text-muted-foreground cursor-help">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                <span className="text-xs">Error</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Failed to verify balances: {balanceStatus.error}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            }
+
+                            if (balanceStatus.allSufficient) {
+                                return (
+                                    <Tooltip delayDuration={300}>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 cursor-help">
+                                                <CheckCircle className="h-3 w-3" />
+                                                <span className="text-xs">Verified</span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>✅ Offer creator has sufficient balance for all offered tokens</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            } else {
+                                return (
+                                    <Tooltip delayDuration={300}>
+                                        <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 cursor-help">
+                                                <XCircle className="h-3 w-3" />
+                                                <span className="text-xs">
+                                                    Insufficient ({balanceStatus.insufficientTokens.length})
+                                                </span>
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <div>
+                                                <p>⚠️ Insufficient balance for:</p>
+                                                <ul className="mt-1 space-y-1">
+                                                    {balanceStatus.insufficientTokens.map((token, idx) => (
+                                                        <li key={idx} className="text-xs">• {token}</li>
+                                                    ))}
+                                                </ul>
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    This offer may not be executable
+                                                </p>
+                                            </div>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                );
+                            }
+                        })()}
+                    </div>
+                ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                )}
             </TableCell>
 
             {/* Actions */}
@@ -229,17 +335,19 @@ const TableRowComponent = React.memo(({
     );
 
     // Wrap offers with tooltip
-    if (item.type === SHOP_CATEGORIES.OFFER && item.metadata?.offerAssets) {
+    if (isOfferItem(item) && item.offerAssets) {
         return (
-            <Tooltip delayDuration={300}>
+            <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
                     {tableRow}
                 </TooltipTrigger>
                 <TooltipContent
                     side="top"
                     align="start"
-                    sideOffset={10}
-                    className="p-0 max-w-none z-50"
+                    sideOffset={8}
+                    className="p-0 max-w-none z-50 border-border/50"
+                    avoidCollisions={true}
+                    collisionPadding={8}
                 >
                     <OfferTooltip
                         item={item}
@@ -259,6 +367,64 @@ TableRowComponent.displayName = 'TableRowComponent';
 const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
     const { prices } = useWallet();
     const router = useRouter();
+
+    // Balance status tracking for offer creators
+    const [balanceStatuses, setBalanceStatuses] = useState<Record<string, BalanceStatus>>({});
+
+    // Check balance for a specific offer
+    const checkOfferBalance = async (offerItem: ShopItem) => {
+        if (!isOfferItem(offerItem)) return;
+
+        setBalanceStatuses(prev => ({
+            ...prev,
+            [offerItem.id]: { loading: true, allSufficient: false, insufficientTokens: [] }
+        }));
+
+        try {
+            const insufficientTokens: string[] = [];
+
+            // Check balance for each offered token
+            for (const asset of offerItem.offerAssets) {
+                const balance = await getTokenBalance(asset.token, offerItem.offerCreatorAddress);
+                const requiredAmount = parseInt(asset.amount);
+
+                if (balance < requiredAmount) {
+                    const tokenSymbol = asset.tokenData?.symbol || asset.token.split('.')[1] || 'Unknown';
+                    insufficientTokens.push(tokenSymbol);
+                }
+            }
+
+            setBalanceStatuses(prev => ({
+                ...prev,
+                [offerItem.id]: {
+                    loading: false,
+                    allSufficient: insufficientTokens.length === 0,
+                    insufficientTokens
+                }
+            }));
+        } catch (error) {
+            console.error('Error checking offer balance:', error);
+            setBalanceStatuses(prev => ({
+                ...prev,
+                [offerItem.id]: {
+                    loading: false,
+                    allSufficient: false,
+                    insufficientTokens: [],
+                    error: 'Failed to check balance'
+                }
+            }));
+        }
+    };
+
+    // Check balances for all offers when component mounts or items change
+    useEffect(() => {
+        const offers = items.filter(isOfferItem);
+        offers.forEach(offer => {
+            if (!balanceStatuses[offer.id]) {
+                checkOfferBalance(offer);
+            }
+        });
+    }, [items]);
 
     const {
         // State
@@ -433,6 +599,17 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                         {getSortIcon('created')}
                                     </Button>
                                 </TableHead>
+                                <TableHead className="hidden lg:table-cell">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-auto p-0 font-semibold hover:bg-transparent"
+                                        onClick={() => handleSort('balance')}
+                                    >
+                                        Balance
+                                        {getSortIcon('balance')}
+                                    </Button>
+                                </TableHead>
                                 <TableHead className="w-32">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -460,6 +637,7 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                             bnsNames={bnsNames}
                                             subnetTokens={subnetTokens}
                                             prices={prices || {}}
+                                            balanceStatuses={balanceStatuses}
                                             onItemClick={handleItemClick}
                                             onViewDetailsClick={handleViewDetailsClick}
                                         />

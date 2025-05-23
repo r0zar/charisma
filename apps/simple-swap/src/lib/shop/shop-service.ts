@@ -1,7 +1,7 @@
 import { TokenCacheData, listTokens, getTokenMetadataCached } from '@repo/tokens';
 import { kv } from '@vercel/kv';
 import { getOffer } from '@/lib/otc/kv';
-import { ShopItem } from '@/types/shop';
+import { ShopItem, PurchasableItem, OfferItem, OfferAsset, LegacyShopItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CONTRACTS, FEATURED_ITEMS, OFFER_STATUS } from './constants';
 
@@ -99,64 +99,79 @@ export class ShopService {
     }
 
     /**
-     * Transform offers into shop items
+     * Transform offers into shop items with proper token amounts
      */
     static transformOffersToItems(
         offersData: any[],
         tokenMap: Record<string, TokenCacheData>
-    ): ShopItem[] {
+    ): OfferItem[] {
         return offersData
             .filter(result => result.status === OFFER_STATUS.OPEN)
             .map(result => {
-                const tokenInfo = tokenMap[result.offerAssets[0]?.token];
-
-                // Map offer assets with better error handling
-                const mappedOfferAssets = result.offerAssets?.map((asset: any) => {
+                // Properly map offer assets with amounts preserved
+                const offerAssets: OfferAsset[] = result.offerAssets?.map((asset: any) => {
                     const tokenData = tokenMap[asset.token];
                     if (!tokenData) {
                         console.warn(`Token data not found for: ${asset.token}`);
-                        // Return a fallback object with available data
-                        return {
+                        // Create fallback token data
+                        const fallbackTokenData: TokenCacheData = {
                             contractId: asset.token,
                             symbol: asset.token?.split('.')[1] || 'Unknown',
                             name: asset.token?.split('.')[1] || 'Unknown Token',
-                            image: null,
-                            decimals: 6 // Default decimals
+                            image: '',
+                            decimals: 6,
+                            identifier: asset.token,
+                            type: 'SUBNET'
+                        };
+                        return {
+                            token: asset.token,
+                            amount: asset.amount, // Preserve the amount!
+                            tokenData: fallbackTokenData
                         };
                     }
-                    return tokenData;
+                    return {
+                        token: asset.token,
+                        amount: asset.amount, // Preserve the amount!
+                        tokenData: tokenData
+                    };
                 }) || [];
 
+                // Get primary token info for title/image
+                const primaryToken = offerAssets[0]?.tokenData;
+                const tokenCount = offerAssets.length;
+
+                // Generate descriptive title
+                const title = tokenCount === 1
+                    ? `${primaryToken?.symbol || 'Token'} Offer`
+                    : tokenCount <= 3
+                        ? `${offerAssets.map(a => a.tokenData?.symbol).join(', ')} Bundle`
+                        : `Multi-Token Bundle (${tokenCount} tokens)`;
+
                 return {
-                    ...result.offer,
                     id: result.intentUuid,
-                    type: 'offer',
-                    image: tokenInfo?.image || 'https://placehold.co/400?text=Offer',
-                    title: tokenInfo?.symbol || 'OTC Offer',
-                    // No price for offers - they are bid on
-                    description: `Make a bid for ${tokenInfo?.symbol || 'this token'}`,
-                    metadata: {
-                        ...result.offer?.metadata,
-                        offerAssets: mappedOfferAssets,
-                        bids: result.bids || [],
-                        intentUuid: result.intentUuid,
-                        offerCreatorAddress: result.offerCreatorAddress,
-                        createdAt: result.createdAt,
-                        status: result.status
-                    }
-                } as ShopItem;
+                    type: 'offer' as const,
+                    title,
+                    description: `OTC offer with ${tokenCount} token${tokenCount !== 1 ? 's' : ''}`,
+                    image: primaryToken?.image || 'https://placehold.co/400?text=Offer',
+                    createdAt: result.createdAt,
+                    intentUuid: result.intentUuid,
+                    offerCreatorAddress: result.offerCreatorAddress,
+                    offerAssets, // Now properly includes amounts!
+                    status: result.status,
+                    bids: result.bids || []
+                } as OfferItem;
             });
     }
 
     /**
      * Create the featured HOOT token item
      */
-    static createHootTokenItem(tokenMap: Record<string, TokenCacheData>): ShopItem {
+    static createHootTokenItem(tokenMap: Record<string, TokenCacheData>): PurchasableItem {
         const config = FEATURED_ITEMS.HOOT_FARM;
 
         return {
             id: config.id,
-            type: config.type,
+            type: config.type as 'token',
             title: config.title,
             description: config.description,
             price: config.price,
@@ -167,11 +182,9 @@ export class ShopService {
             metadata: {
                 contractId: SHOP_CONTRACTS.HOOT_TOKEN,
                 tokenSymbol: 'HOOT',
-                amount: config.price.toString(),
-                maxQuantity: config.maxQuantity,
-                offerAssets: [tokenMap[SHOP_CONTRACTS.HOOT_TOKEN]].filter(Boolean)
+                maxQuantity: config.maxQuantity
             }
-        };
+        } as PurchasableItem;
     }
 
     /**

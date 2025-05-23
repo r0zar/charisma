@@ -269,9 +269,7 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
             const json = await res.json();
 
             if (json.success && json.offer && json.offer.intentUuid) {
-                toast.success("Offer created successfully!", {
-                    action: <Button onClick={() => router.push(`/shop/${json.offer.intentUuid}`)}>View Offer</Button>,
-                });
+                toast.success("Offer created successfully!");
                 router.push(`/shop/${json.offer.intentUuid}`);
             } else {
                 throw new Error(json.error || "Failed to create offer. API returned an error.");

@@ -1,4 +1,4 @@
-import { ShopItem } from '@/types/shop';
+import { ShopItem, OfferItem, PurchasableItem, isOfferItem, isPurchasableItem, OfferAsset } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { TrendingUp, Coins, ImageIcon, Star } from 'lucide-react';
@@ -28,14 +28,32 @@ export const formatTokenAmount = (atomicAmount: string | number, decimals: numbe
     return parsedAmount / Math.pow(10, decimals);
 };
 
+// Helper function to format time ago
+const formatTimeAgo = (timestamp: number): string => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'just now';
+};
+
 // Helper function to format creator display
-export const formatCreator = (address: string, bnsNames: Record<string, string | null>): string => {
-    const bnsName = bnsNames[address];
-    if (bnsName) {
-        return bnsName;
+export const formatCreator = (item: ShopItem): string => {
+    if (isOfferItem(item)) {
+        const bidCount = item.bids?.length || 0;
+        const status = bidCount > 0 ? `${bidCount} bid${bidCount !== 1 ? 's' : ''}` : 'No bids';
+        const latestBid = item.bids?.[bidCount - 1];
+        const timeAgo = latestBid ? formatTimeAgo(latestBid.createdAt) : '';
+
+        return `${status}${timeAgo ? ` • Latest ${timeAgo}` : ''}`;
     }
-    // Show shortened address as fallback
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+
+    return 'Available';
 };
 
 // Get type configuration
@@ -74,14 +92,14 @@ export const formatPrice = (
     subnetTokens: TokenDef[],
     formatTokenAmount: (amount: string, decimals: number) => number
 ) => {
-    if (item.type === SHOP_CATEGORIES.OFFER) {
-        const bidCount = item.metadata?.bids?.length || 0;
+    if (isOfferItem(item)) {
+        const bidCount = item.bids?.length || 0;
 
         if (bidCount > 0) {
-            const latestBid = item.metadata?.bids?.[bidCount - 1];
-            if (latestBid && latestBid.offeredAssets && latestBid.offeredAssets.length > 0) {
-                // Get the first offered asset from the latest bid
-                const firstAsset = latestBid.offeredAssets[0];
+            const latestBid = item.bids?.[bidCount - 1];
+            if (latestBid && latestBid.bidAssets && latestBid.bidAssets.length > 0) {
+                // Get the first bid asset from the latest bid
+                const firstAsset = latestBid.bidAssets[0];
                 const amount = firstAsset.amount || '0';
 
                 // Try to get token info for better symbol display
@@ -99,9 +117,76 @@ export const formatPrice = (
         return 'No bids';
     }
 
-    if (item.price) {
+    if (isPurchasableItem(item) && item.price) {
         return `${item.price} ${item.payToken?.symbol || 'STX'}`;
     }
 
     return 'Free';
+};
+
+/**
+ * Format OfferAsset amount with proper decimal handling
+ */
+export const formatOfferAssetAmount = (asset: OfferAsset): string => {
+    if (!asset.amount || asset.amount === '0') {
+        return '0';
+    }
+
+    const decimals = asset.tokenData?.decimals || 6;
+    const formattedAmount = formatTokenAmount(asset.amount, decimals);
+
+    if (formattedAmount < 0.001) {
+        return formattedAmount.toExponential(3);
+    } else if (formattedAmount < 1) {
+        return formattedAmount.toFixed(6);
+    } else {
+        return formattedAmount.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        });
+    }
+};
+
+/**
+ * Calculate total USD value for an offer
+ */
+export const calculateOfferValue = (offerItem: OfferItem, prices: Record<string, any>): number => {
+    return offerItem.offerAssets.reduce((total, asset) => {
+        const decimals = asset.tokenData?.decimals || 6;
+        const formattedAmount = formatTokenAmount(asset.amount, decimals);
+        const pricePerToken = getTokenPrice(asset.token, prices);
+        return total + (formattedAmount * pricePerToken);
+    }, 0);
+};
+
+/**
+ * Get offer summary for display
+ */
+export const getOfferSummary = (offerItem: OfferItem): {
+    tokenCount: number;
+    primaryToken: string;
+    totalTokens: string;
+} => {
+    const tokenCount = offerItem.offerAssets.length;
+    const primaryToken = offerItem.offerAssets[0]?.tokenData?.symbol || 'Unknown';
+
+    if (tokenCount === 1) {
+        return {
+            tokenCount,
+            primaryToken,
+            totalTokens: primaryToken
+        };
+    } else if (tokenCount <= 3) {
+        return {
+            tokenCount,
+            primaryToken,
+            totalTokens: offerItem.offerAssets.map(a => a.tokenData?.symbol || 'UNK').join(', ')
+        };
+    } else {
+        return {
+            tokenCount,
+            primaryToken,
+            totalTokens: `${primaryToken} & ${tokenCount - 1} more`
+        };
+    }
 }; 
