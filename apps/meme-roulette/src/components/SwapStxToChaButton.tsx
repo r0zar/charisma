@@ -24,10 +24,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-// Assuming QuoteResponse is correctly defined in swap-client and represents the structure of a successful quote.
-// If it's the structure from dexterity-sdk's `Quote` type, ensure that's what `useWallet().getQuote()` actually returns.
-// For now, using the existing import.
-import type { QuoteResponse } from '../lib/swap-client';
+// Simple interface for quote response based on wallet context
+interface QuoteResponse {
+    amountOut: string | number;
+    minimumReceived?: string | number;
+}
 
 // --- Constants ---
 const STX_DECIMALS = 6;
@@ -275,9 +276,22 @@ export function SwapStxToChaButton({
                     <div className="space-y-1.5">
                         <div className="flex justify-between items-center">
                             <Label htmlFor="stxAmount">You Pay (STX)</Label>
-                            <span className="text-xs text-muted-foreground">
-                                Balance: {stxBalanceLoading ? 'Loading...' : availableStxFormatted} STX
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                    Balance: {stxBalanceLoading ? 'Loading...' : availableStxFormatted} STX
+                                </span>
+                                <button
+                                    type="button"
+                                    disabled={isSubmitting || quoteState.loading || stxBalanceLoading}
+                                    onClick={() => {
+                                        const maxAmount = formatStxAmount(stxBalance);
+                                        form.setValue('stxAmount', maxAmount);
+                                    }}
+                                    className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Max
+                                </button>
+                            </div>
                         </div>
                         <Input
                             id="stxAmount"

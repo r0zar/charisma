@@ -193,7 +193,20 @@ export function DepositCharismaButton({
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
                     <div className="space-y-1.5">
-                        <Label htmlFor="amount">Amount (CHA)</Label>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="amount">Amount (CHA)</Label>
+                            <button
+                                type="button"
+                                disabled={isSubmitting || balanceLoading}
+                                onClick={() => {
+                                    const maxAmount = formatBalance(mainnetBalance);
+                                    form.setValue('amount', maxAmount);
+                                }}
+                                className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Max
+                            </button>
+                        </div>
                         <Input
                             id="amount"
                             type="number"
