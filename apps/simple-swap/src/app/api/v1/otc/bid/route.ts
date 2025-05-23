@@ -17,16 +17,6 @@ export async function POST(req: NextRequest) {
         if (!offer) throw new Error("offer not found");
         if (offer.status !== "open") throw new Error("offer not open");
 
-        /* sig check */
-        const [{ token, amount }] = data.bidAssets;
-        await recoverSigner(
-            data.bidSignature,
-            token,
-            "TRANSFER_TOKENS",
-            data.bidderSideIntentUuid,
-            { amount, target: offer.offerCreatorAddress }
-        );
-
         const newBid: Bid = {
             ...data,
             bidId: data.bidderSideIntentUuid,

@@ -12,6 +12,7 @@ import { useWallet } from "@/contexts/wallet-context";
 import { signedFetch } from 'blaze-sdk';
 import Image from "next/image";
 import { checkBidderBalance } from "@/app/actions";
+import { getPrimaryBnsName } from '@repo/polyglot';
 
 // Helper to shorten addresses (optional, can be expanded)
 const shortenAddress = (address: string, startChars = 6, endChars = 4) => {
@@ -35,12 +36,58 @@ const formatTokenAmount = (atomicAmount: string, tokenInfo: TokenDef | undefined
     }) + ` ${tokenInfo.symbol}`;
 };
 
-const getTimeAgo = (timestamp: number) => {
+// Enhanced time formatting helper
+const formatTimeDisplay = (timestamp: number) => {
     const now = new Date();
     const then = new Date(timestamp);
     const diff = now.getTime() - then.getTime();
-    const diffMinutes = Math.floor(diff / (1000 * 60));
-    return `${diffMinutes} minutes ago`;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+
+    // Show relative time for recent bids
+    if (seconds < 60) {
+        return {
+            relative: "Just now",
+            absolute: then.toLocaleString(),
+            isVeryRecent: true
+        };
+    } else if (minutes < 60) {
+        return {
+            relative: `${minutes}m ago`,
+            absolute: then.toLocaleString(),
+            isRecent: minutes < 30
+        };
+    } else if (hours < 24) {
+        return {
+            relative: `${hours}h ago`,
+            absolute: then.toLocaleString(),
+            isRecent: hours < 6
+        };
+    } else if (days < 7) {
+        return {
+            relative: `${days}d ago`,
+            absolute: then.toLocaleString(),
+            isRecent: false
+        };
+    } else if (weeks < 4) {
+        return {
+            relative: `${weeks}w ago`,
+            absolute: then.toLocaleString(),
+            isRecent: false
+        };
+    } else {
+        // For older bids, show the date
+        return {
+            relative: then.toLocaleDateString(),
+            absolute: then.toLocaleString(),
+            isRecent: false
+        };
+    }
 };
 
 // Reusing formatTokenAmount and shortenAddress from EnhancedOfferDetails
@@ -64,6 +111,41 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
     const [bidBalances, setBidBalances] = useState<Record<string, BalanceInfo>>({});
     const [localBidStatuses, setLocalBidStatuses] = useState<Record<string, Bid['status']>>({});
     const [cancellingBids, setCancellingBids] = useState<Set<string>>(new Set());
+    const [bnsNames, setBnsNames] = useState<Record<string, string | null>>({});
+    const [currentTime, setCurrentTime] = useState(Date.now());
+
+    // Update current time for relative time calculations
+    useEffect(() => {
+        // Check if there are any very recent bids (less than 5 minutes)
+        const hasRecentBids = bids.some(bid => {
+            const diff = Date.now() - bid.createdAt;
+            return diff < 5 * 60 * 1000; // 5 minutes
+        });
+
+        // Update more frequently if there are recent bids
+        const updateInterval = hasRecentBids ? 10000 : 60000; // 10s vs 1min
+
+        const interval = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, updateInterval);
+
+        return () => clearInterval(interval);
+    }, [bids]);
+
+    // Fetch BNS name for a bidder address
+    const fetchBnsName = async (address: string) => {
+        if (bnsNames[address] !== undefined) return; // Already fetched or in progress
+
+        setBnsNames(prev => ({ ...prev, [address]: null })); // Mark as loading
+
+        try {
+            const bnsName = await getPrimaryBnsName(address, 'stacks');
+            setBnsNames(prev => ({ ...prev, [address]: bnsName }));
+        } catch (error) {
+            console.warn(`Failed to fetch BNS for ${address}:`, error);
+            setBnsNames(prev => ({ ...prev, [address]: null }));
+        }
+    };
 
     // Fetch bidder balance for a specific bid
     const fetchBidderBalance = async (bid: Bid) => {
@@ -116,7 +198,27 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                 fetchBidderBalance(bid);
             }
         });
+
+        // Fetch BNS names for all unique bidder addresses
+        const uniqueBidders = [...new Set(bids.map(bid => bid.bidderAddress))];
+        uniqueBidders.forEach(bidderAddress => {
+            fetchBnsName(bidderAddress);
+        });
     }, [bids]);
+
+    // Helper to get display name for bidder
+    const getBidderDisplayName = (address: string) => {
+        const bnsName = bnsNames[address];
+        if (bnsName === undefined) return "Loading..."; // Still fetching
+        return bnsName || shortenAddress(address);
+    };
+
+    // Helper to get display class for bidder name
+    const getBidderDisplayClass = (address: string) => {
+        const bnsName = bnsNames[address];
+        if (bnsName === undefined) return "animate-pulse text-muted-foreground"; // Loading
+        return bnsName ? "font-medium text-primary" : "font-mono text-muted-foreground";
+    };
 
     const handleSelectBid = async (bidId: string) => {
         toast.loading("Processing bid acceptance...");
@@ -280,6 +382,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                         const { name: tokenName, formattedAmount, logo: tokenLogo, symbol } = getBidAssetDisplayInfo(bid);
                         const isOfferCreator = offer.offerCreatorAddress === address;
                         const isBidder = bid.bidderAddress === address;
+                        const timeInfo = formatTimeDisplay(bid.createdAt);
 
                         // Use local status override if available, otherwise use original bid status
                         const currentStatus = localBidStatuses[bid.bidId] || bid.status;
@@ -287,7 +390,8 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                         const balanceInfo = bidBalances[bid.bidId];
 
                         return (
-                            <div key={bid.bidId} className="p-4 rounded-lg border border-border bg-card">
+                            <div key={bid.bidId} className={`p-4 rounded-lg border border-border bg-card ${timeInfo.isVeryRecent ? 'ring-1 ring-green-500/20 bg-green-50/30 dark:bg-green-950/10' : ''
+                                }`}>
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-start gap-3 flex-1">
                                         <div className="flex items-center gap-2">
@@ -308,11 +412,25 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
 
                                             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                                                 <User className="h-3 w-3" />
-                                                <span title={bid.bidderAddress}>
-                                                    {shortenAddress(bid.bidderAddress)}
+                                                <span
+                                                    className={getBidderDisplayClass(bid.bidderAddress)}
+                                                    title={bnsNames[bid.bidderAddress] ? `${bnsNames[bid.bidderAddress]} (${bid.bidderAddress})` : bid.bidderAddress}
+                                                >
+                                                    {getBidderDisplayName(bid.bidderAddress)}
                                                 </span>
                                                 <Clock className="h-3 w-3 ml-2" />
-                                                <span>{new Date(bid.createdAt).toLocaleDateString()}</span>
+                                                <span
+                                                    className={`cursor-help ${timeInfo.isVeryRecent
+                                                        ? 'text-green-600 dark:text-green-400 font-medium animate-pulse'
+                                                        : timeInfo.isRecent
+                                                            ? 'text-blue-600 dark:text-blue-400'
+                                                            : 'text-muted-foreground'
+                                                        }`}
+                                                    title={timeInfo.absolute}
+                                                >
+                                                    {timeInfo.isVeryRecent && "🟢 "}
+                                                    {timeInfo.relative}
+                                                </span>
                                             </div>
 
                                             {/* Bid Message */}

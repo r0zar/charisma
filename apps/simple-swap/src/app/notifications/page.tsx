@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/contexts/wallet-context';
-import { UserNotificationSettings, OrderExecutedPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
+import { UserNotificationSettings, OrderExecutedPreferences, BidEventPreferences, OfferEventPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
 import { signMessage, type SignedMessage } from 'blaze-sdk';
 
 // Helper to get default channel preference to avoid repetition
@@ -44,16 +44,22 @@ async function saveNotificationSettingsApi(
     return response.json();
 }
 
-interface OrderExecutedChannelUIToggleState {
-    telegram: boolean;
-    // discord: boolean;
-    // sms: boolean;
+interface NotificationUIToggleState {
+    orderExecuted: boolean;
+    bidReceived: boolean;
+    bidAccepted: boolean;
+    bidCancelled: boolean;
+    offerFilled: boolean;
+    offerCancelled: boolean;
 }
 
-interface OrderExecutedChannelRecipientIDs {
-    telegram?: string;
-    // discord?: string;
-    // sms?: string;
+interface NotificationRecipientIDs {
+    orderExecuted?: string;
+    bidReceived?: string;
+    bidAccepted?: string;
+    bidCancelled?: string;
+    offerFilled?: string;
+    offerCancelled?: string;
 }
 
 export default function NotificationSettingsPage() {
@@ -61,14 +67,18 @@ export default function NotificationSettingsPage() {
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingToggles, setPendingToggles] = useState<Set<keyof NotificationUIToggleState>>(new Set());
     const [error, setError] = useState<string | null>(null);
 
-    const [uiToggleState, setUiToggleState] = useState<OrderExecutedChannelUIToggleState>({
-        telegram: false,
-        // discord: false,
-        // sms: false,
+    const [uiToggleState, setUiToggleState] = useState<NotificationUIToggleState>({
+        orderExecuted: false,
+        bidReceived: false,
+        bidAccepted: false,
+        bidCancelled: false,
+        offerFilled: false,
+        offerCancelled: false,
     });
-    const [recipientIds, setRecipientIds] = useState<OrderExecutedChannelRecipientIDs>({});
+    const [recipientIds, setRecipientIds] = useState<NotificationRecipientIDs>({});
 
     const loadSettings = useCallback(async () => {
         if (connected && userPrincipal) {
@@ -76,16 +86,23 @@ export default function NotificationSettingsPage() {
             setError(null);
             try {
                 const fetchedSettings = await fetchNotificationSettingsApi(userPrincipal);
-                const prefs = fetchedSettings.orderExecuted || { telegram: getDefaultChannelPref(), discord: getDefaultChannelPref(), sms: getDefaultChannelPref() };
+
                 setUiToggleState({
-                    telegram: prefs.telegram?.enabled || false,
-                    // discord: prefs.discord?.enabled || false,
-                    // sms: prefs.sms?.enabled || false,
+                    orderExecuted: fetchedSettings.orderExecuted?.telegram?.enabled || false,
+                    bidReceived: fetchedSettings.bidReceived?.telegram?.enabled || false,
+                    bidAccepted: fetchedSettings.bidAccepted?.telegram?.enabled || false,
+                    bidCancelled: fetchedSettings.bidCancelled?.telegram?.enabled || false,
+                    offerFilled: fetchedSettings.offerFilled?.telegram?.enabled || false,
+                    offerCancelled: fetchedSettings.offerCancelled?.telegram?.enabled || false,
                 });
+
                 setRecipientIds({
-                    telegram: prefs.telegram?.recipientId,
-                    // discord: prefs.discord?.recipientId,
-                    // sms: prefs.sms?.recipientId,
+                    orderExecuted: fetchedSettings.orderExecuted?.telegram?.recipientId,
+                    bidReceived: fetchedSettings.bidReceived?.telegram?.recipientId,
+                    bidAccepted: fetchedSettings.bidAccepted?.telegram?.recipientId,
+                    bidCancelled: fetchedSettings.bidCancelled?.telegram?.recipientId,
+                    offerFilled: fetchedSettings.offerFilled?.telegram?.recipientId,
+                    offerCancelled: fetchedSettings.offerCancelled?.telegram?.recipientId,
                 });
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -100,23 +117,17 @@ export default function NotificationSettingsPage() {
         loadSettings();
     }, [loadSettings]);
 
-    const buildSettingsPayload = (): Partial<UserNotificationSettings> => {
-        return {
-            orderExecuted: {
-                telegram: {
-                    enabled: uiToggleState.telegram,
-                    recipientId: uiToggleState.telegram ? (recipientIds.telegram || '') : '',
-                },
-                // discord: {
-                //     enabled: uiToggleState.discord,
-                //     recipientId: uiToggleState.discord ? (recipientIds.discord || '') : '',
-                // },
-                // sms: {
-                //     enabled: uiToggleState.sms,
-                //     recipientId: uiToggleState.sms ? (recipientIds.sms || '') : '',
-                // },
+    const buildSettingsPayload = (notificationType: keyof NotificationUIToggleState): Partial<UserNotificationSettings> => {
+        const payload: Partial<UserNotificationSettings> = {};
+
+        payload[notificationType] = {
+            telegram: {
+                enabled: uiToggleState[notificationType],
+                recipientId: uiToggleState[notificationType] ? (recipientIds[notificationType] || '') : '',
             },
         };
+
+        return payload;
     };
 
     const saveSettings = async (settingsToSave: Partial<UserNotificationSettings>) => {
@@ -131,13 +142,18 @@ export default function NotificationSettingsPage() {
                 signFunction: (message: string) => signMessage(message),
             };
             const saved = await saveNotificationSettingsApi(settingsToSave, signerDetails);
-            if (saved.orderExecuted) {
-                setRecipientIds({
-                    telegram: saved.orderExecuted.telegram?.recipientId || '',
-                    // discord: saved.orderExecuted.discord?.recipientId || '',
-                    // sms: saved.orderExecuted.sms?.recipientId || '',
-                });
-            }
+
+            // Update recipient IDs from saved settings
+            Object.keys(saved).forEach(key => {
+                const notifKey = key as keyof UserNotificationSettings;
+                if (saved[notifKey] && typeof saved[notifKey] === 'object' && 'telegram' in saved[notifKey]!) {
+                    setRecipientIds(prev => ({
+                        ...prev,
+                        [notifKey]: (saved[notifKey] as any).telegram?.recipientId || '',
+                    }));
+                }
+            });
+
             console.log('Settings saved successfully.');
             return true;
         } catch (err) {
@@ -149,46 +165,109 @@ export default function NotificationSettingsPage() {
         }
     };
 
-    const handleChannelToggle = async (channelKey: keyof OrderExecutedChannelUIToggleState) => {
-        const newUiState = { ...uiToggleState, [channelKey]: !uiToggleState[channelKey] };
-        setUiToggleState(newUiState);
+    const handleNotificationToggle = async (notificationType: keyof NotificationUIToggleState) => {
+        // Immediately update UI for responsive feedback
+        const newState = !uiToggleState[notificationType];
+        setUiToggleState(prev => ({ ...prev, [notificationType]: newState }));
 
-        const settingsToSave = {
-            orderExecuted: {
-                telegram: {
-                    enabled: newUiState.telegram,
-                    recipientId: newUiState.telegram ? (recipientIds.telegram || '') : '',
-                },
-                // discord: {
-                //     enabled: newUiState.discord,
-                //     recipientId: newUiState.discord ? (recipientIds.discord || '') : '',
-                // },
-                // sms: {
-                //     enabled: newUiState.sms,
-                //     recipientId: newUiState.sms ? (recipientIds.sms || '') : '',
-                // },
-            },
-        };
+        // Mark this toggle as pending
+        setPendingToggles(prev => new Set(prev).add(notificationType));
 
-        const success = await saveSettings(settingsToSave);
-        if (!success) {
-            setUiToggleState(prev => ({ ...prev, [channelKey]: !prev[channelKey] }));
+        // Add a small delay to let the user see the visual change
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        try {
+            const settingsToSave = {
+                [notificationType]: {
+                    telegram: {
+                        enabled: newState,
+                        recipientId: newState ? (recipientIds[notificationType] || '') : '',
+                    },
+                }
+            };
+
+            const success = await saveSettings(settingsToSave);
+
+            if (!success) {
+                // Revert the toggle state if save failed
+                setUiToggleState(prev => ({ ...prev, [notificationType]: !newState }));
+            }
+        } catch (err) {
+            // Revert the toggle state on error
+            setUiToggleState(prev => ({ ...prev, [notificationType]: !newState }));
+            console.error('Toggle save failed:', err);
+        } finally {
+            // Remove from pending set
+            setPendingToggles(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(notificationType);
+                return newSet;
+            });
         }
     };
 
-    const handleRecipientIdChange = (channelKey: keyof OrderExecutedChannelRecipientIDs, value: string) => {
-        setRecipientIds(prev => ({ ...prev, [channelKey]: value }));
+    const handleRecipientIdChange = (notificationType: keyof NotificationRecipientIDs, value: string) => {
+        setRecipientIds(prev => ({ ...prev, [notificationType]: value }));
     };
 
-    const handleRecipientIdSave = async (channelKey: keyof OrderExecutedChannelRecipientIDs) => {
-        if (uiToggleState[channelKey]) {
-            console.log(`Saving recipient ID for ${channelKey}: ${recipientIds[channelKey]}`);
-            const settingsToSave = buildSettingsPayload();
+    const handleRecipientIdSave = async (notificationType: keyof NotificationRecipientIDs) => {
+        if (uiToggleState[notificationType]) {
+            console.log(`Saving recipient ID for ${notificationType}: ${recipientIds[notificationType]}`);
+            const settingsToSave = buildSettingsPayload(notificationType);
             await saveSettings(settingsToSave);
         } else {
-            console.log(`Recipient ID for ${channelKey} not saved as channel is disabled.`);
+            console.log(`Recipient ID for ${notificationType} not saved as notification is disabled.`);
         }
     };
+
+    // Notification type configurations
+    const notificationTypes = [
+        {
+            category: "Trade Execution",
+            notifications: [
+                {
+                    key: 'orderExecuted' as keyof NotificationUIToggleState,
+                    title: "Order Executed",
+                    description: "Get notified when your trade order is successfully executed"
+                }
+            ]
+        },
+        {
+            category: "Bid Events",
+            notifications: [
+                {
+                    key: 'bidReceived' as keyof NotificationUIToggleState,
+                    title: "Bid Received",
+                    description: "Get notified when someone places a bid on your offer"
+                },
+                {
+                    key: 'bidAccepted' as keyof NotificationUIToggleState,
+                    title: "Bid Accepted",
+                    description: "Get notified when your bid gets accepted by an offer creator"
+                },
+                {
+                    key: 'bidCancelled' as keyof NotificationUIToggleState,
+                    title: "Bid Cancelled",
+                    description: "Get notified when a bid on your offer gets cancelled"
+                }
+            ]
+        },
+        {
+            category: "Offer Events",
+            notifications: [
+                {
+                    key: 'offerFilled' as keyof NotificationUIToggleState,
+                    title: "Offer Filled",
+                    description: "Get notified when an offer you're watching gets filled"
+                },
+                {
+                    key: 'offerCancelled' as keyof NotificationUIToggleState,
+                    title: "Offer Cancelled",
+                    description: "Get notified when an offer you're watching gets cancelled"
+                }
+            ]
+        }
+    ];
 
     if (!connected) {
         return (
@@ -213,61 +292,88 @@ export default function NotificationSettingsPage() {
                 </div>
             )}
 
-            <div className="bg-card shadow-md rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Order Executed Notifications</h2>
-                <p className="text-sm text-gray-500 mb-4">
-                    Receive a notification when your trade order is successfully executed via your preferred channels.
-                </p>
+            <div className="space-y-6">
+                {notificationTypes.map(({ category, notifications }) => (
+                    <div key={category} className="bg-card shadow-md rounded-lg p-6">
+                        <h2 className="text-xl font-semibold mb-4">{category}</h2>
 
-                {Object.keys(uiToggleState).map((channel) => {
-                    const channelTyped = channel as keyof OrderExecutedChannelUIToggleState;
-                    const recipientIdKey = channelTyped as keyof OrderExecutedChannelRecipientIDs;
-                    return (
-                        <div key={channelTyped} className="py-3 border-b last:border-b-0">
-                            <div className="flex items-center justify-between">
-                                <span className="text-md capitalize">{channelTyped}</span>
-                                <label htmlFor={`${channelTyped}Toggle`} className="flex items-center cursor-pointer">
-                                    <div className="relative">
-                                        <input
-                                            type="checkbox"
-                                            id={`${channelTyped}Toggle`}
-                                            className="sr-only"
-                                            checked={uiToggleState[channelTyped]}
-                                            onChange={() => handleChannelToggle(channelTyped)}
-                                            disabled={!userPrincipal || isLoading || isSaving}
-                                        />
-                                        <div className={`block w-12 h-7 rounded-full transition-colors ${uiToggleState[channelTyped] ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                                        <div
-                                            className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${uiToggleState[channelTyped] ? 'transform translate-x-5' : ''}`}
-                                        ></div>
+                        {notifications.map(({ key, title, description }) => {
+                            const isPending = pendingToggles.has(key);
+                            const isDisabled = !userPrincipal || isLoading || isPending;
+
+                            return (
+                                <div key={key} className="py-3 border-b last:border-b-0">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                            <h3 className="text-md font-medium">{title}</h3>
+                                            <p className="text-sm text-gray-500 mt-1">{description}</p>
+                                            {isPending && (
+                                                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                                    <span className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full"></span>
+                                                    Saving...
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center ml-4">
+                                            <div className="relative">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`${key}Toggle`}
+                                                    className="sr-only"
+                                                    checked={uiToggleState[key]}
+                                                    onChange={() => handleNotificationToggle(key)}
+                                                    disabled={isDisabled}
+                                                />
+                                                <div
+                                                    className={`block w-12 h-7 rounded-full transition-colors cursor-pointer ${isDisabled
+                                                            ? 'bg-gray-200 cursor-not-allowed'
+                                                            : uiToggleState[key]
+                                                                ? 'bg-blue-600'
+                                                                : 'bg-gray-300'
+                                                        }`}
+                                                    onClick={() => !isDisabled && handleNotificationToggle(key)}
+                                                ></div>
+                                                <div
+                                                    className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform pointer-events-none ${uiToggleState[key] ? 'transform translate-x-5' : ''
+                                                        } ${isPending ? 'animate-pulse' : ''}`}
+                                                ></div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </label>
-                            </div>
-                            <div className="mt-3 flex items-center">
-                                <input
-                                    type="text"
-                                    placeholder={channelTyped === 'telegram' ? "Enter numerical Telegram Chat ID" : `Enter ${channelTyped} ID / Number`}
-                                    value={recipientIds[recipientIdKey] || ''}
-                                    onChange={(e) => handleRecipientIdChange(recipientIdKey, e.target.value)}
-                                    onBlur={() => handleRecipientIdSave(recipientIdKey)}
-                                    className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                    disabled={isSaving || !userPrincipal}
-                                />
-                            </div>
-                            {channelTyped === 'telegram' && (
-                                <div className="mt-2 text-xs text-gray-500 space-y-1">
-                                    <p>
-                                        To get your <strong>numerical Telegram Chat ID</strong>:
-                                        Search for <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@userinfobot</a> on Telegram and start a chat with it. It will reply with your ID.
-                                    </p>
-                                    <p>
-                                        <strong>Important:</strong> You also need to start a chat with our notification bot, <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@BuiltOnBitcoin_bot</a>, so it has permission to send you messages.
-                                    </p>
+                                    <div className="flex items-center">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter numerical Telegram Chat ID"
+                                            value={recipientIds[key] || ''}
+                                            onChange={(e) => handleRecipientIdChange(key, e.target.value)}
+                                            onBlur={() => handleRecipientIdSave(key)}
+                                            className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            disabled={isSaving || !userPrincipal}
+                                        />
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    );
-                })}
+                            );
+                        })}
+                    </div>
+                ))}
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Setup Instructions</h3>
+                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-2">
+                        <p>
+                            <strong>Step 1:</strong> Get your numerical Telegram Chat ID by messaging{' '}
+                            <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@userinfobot</a>
+                        </p>
+                        <p>
+                            <strong>Step 2:</strong> Start a chat with our notification bot{' '}
+                            <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@BuiltOnBitcoin_bot</a>{' '}
+                            so it can send you messages
+                        </p>
+                        <p>
+                            <strong>Step 3:</strong> Enter your Chat ID above and enable the notifications you want to receive
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

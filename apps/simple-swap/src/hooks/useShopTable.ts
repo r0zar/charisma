@@ -100,8 +100,23 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
     // Filtering and sorting logic - Fixed for new type system
     const filteredAndSortedItems = useMemo(() => {
         let filtered = items.filter(item => {
-            const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            // Basic search on title and description
+            const matchesBasicSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+            // BNS name search for offers
+            let matchesBnsSearch = false;
+            if (isOfferItem(item) && item.offerCreatorAddress) {
+                const creatorBnsName = bnsNames[item.offerCreatorAddress];
+                if (creatorBnsName) {
+                    matchesBnsSearch = creatorBnsName.toLowerCase().includes(searchTerm.toLowerCase());
+                }
+                // Also search by wallet address
+                matchesBnsSearch = matchesBnsSearch ||
+                    item.offerCreatorAddress.toLowerCase().includes(searchTerm.toLowerCase());
+            }
+
+            const matchesSearch = matchesBasicSearch || matchesBnsSearch;
             const matchesCategory = categoryFilter === 'all' || item.type === categoryFilter;
             return matchesSearch && matchesCategory;
         });
@@ -156,7 +171,7 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
         });
 
         return filtered;
-    }, [items, searchTerm, categoryFilter, sortField, sortDirection]);
+    }, [items, searchTerm, categoryFilter, sortField, sortDirection, bnsNames]);
 
     // Validation function for bid
     const isValidBid = useCallback(() => {

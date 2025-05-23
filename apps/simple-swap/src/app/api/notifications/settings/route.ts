@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { UserNotificationSettings, OrderExecutedPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
+import { UserNotificationSettings, OrderExecutedPreferences, BidEventPreferences, OfferEventPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
 import { verifySignatureAndGetSigner, type SignatureVerificationOptions } from 'blaze-sdk';
 import { STACKS_MAINNET } from '@stacks/network';
 
@@ -41,6 +41,16 @@ const defaultOrderExecutedPrefs: OrderExecutedPreferences = {
     discord: { ...defaultChannelPref },
     sms: { ...defaultChannelPref },
 };
+const defaultBidEventPrefs: BidEventPreferences = {
+    telegram: { ...defaultChannelPref },
+    discord: { ...defaultChannelPref },
+    sms: { ...defaultChannelPref },
+};
+const defaultOfferEventPrefs: OfferEventPreferences = {
+    telegram: { ...defaultChannelPref },
+    discord: { ...defaultChannelPref },
+    sms: { ...defaultChannelPref },
+};
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -58,19 +68,60 @@ export async function GET(request: NextRequest) {
         let settings = await kv.get<UserNotificationSettings>(settingsKey);
 
         if (!settings) {
-            // Return default settings if none found, ensuring all channels are defined
-            settings = { orderExecuted: { ...defaultOrderExecutedPrefs } };
-        } else if (!settings.orderExecuted) {
-            settings.orderExecuted = { ...defaultOrderExecutedPrefs };
-        } else {
-            // Ensure all channel preferences exist with defaults if not set
-            settings.orderExecuted = {
-                ...defaultOrderExecutedPrefs,
-                ...settings.orderExecuted,
-                telegram: settings.orderExecuted.telegram ? { ...defaultChannelPref, ...settings.orderExecuted.telegram } : { ...defaultChannelPref },
-                discord: settings.orderExecuted.discord ? { ...defaultChannelPref, ...settings.orderExecuted.discord } : { ...defaultChannelPref },
-                sms: settings.orderExecuted.sms ? { ...defaultChannelPref, ...settings.orderExecuted.sms } : { ...defaultChannelPref },
+            // Return default settings if none found, ensuring all notification types are defined
+            settings = {
+                orderExecuted: { ...defaultOrderExecutedPrefs },
+                bidReceived: { ...defaultBidEventPrefs },
+                bidAccepted: { ...defaultBidEventPrefs },
+                bidCancelled: { ...defaultBidEventPrefs },
+                offerFilled: { ...defaultOfferEventPrefs },
+                offerCancelled: { ...defaultOfferEventPrefs },
             };
+        } else {
+            // Ensure all notification types exist with defaults if not set
+            if (!settings.orderExecuted) {
+                settings.orderExecuted = { ...defaultOrderExecutedPrefs };
+            } else {
+                settings.orderExecuted = {
+                    ...defaultOrderExecutedPrefs,
+                    ...settings.orderExecuted,
+                    telegram: settings.orderExecuted.telegram ? { ...defaultChannelPref, ...settings.orderExecuted.telegram } : { ...defaultChannelPref },
+                    discord: settings.orderExecuted.discord ? { ...defaultChannelPref, ...settings.orderExecuted.discord } : { ...defaultChannelPref },
+                    sms: settings.orderExecuted.sms ? { ...defaultChannelPref, ...settings.orderExecuted.sms } : { ...defaultChannelPref },
+                };
+            }
+
+            // Initialize bid event preferences
+            ['bidReceived', 'bidAccepted', 'bidCancelled'].forEach(eventType => {
+                const key = eventType as keyof Pick<UserNotificationSettings, 'bidReceived' | 'bidAccepted' | 'bidCancelled'>;
+                if (!settings![key]) {
+                    settings![key] = { ...defaultBidEventPrefs };
+                } else {
+                    settings![key] = {
+                        ...defaultBidEventPrefs,
+                        ...settings![key],
+                        telegram: settings![key]!.telegram ? { ...defaultChannelPref, ...settings![key]!.telegram } : { ...defaultChannelPref },
+                        discord: settings![key]!.discord ? { ...defaultChannelPref, ...settings![key]!.discord } : { ...defaultChannelPref },
+                        sms: settings![key]!.sms ? { ...defaultChannelPref, ...settings![key]!.sms } : { ...defaultChannelPref },
+                    };
+                }
+            });
+
+            // Initialize offer event preferences
+            ['offerFilled', 'offerCancelled'].forEach(eventType => {
+                const key = eventType as keyof Pick<UserNotificationSettings, 'offerFilled' | 'offerCancelled'>;
+                if (!settings![key]) {
+                    settings![key] = { ...defaultOfferEventPrefs };
+                } else {
+                    settings![key] = {
+                        ...defaultOfferEventPrefs,
+                        ...settings![key],
+                        telegram: settings![key]!.telegram ? { ...defaultChannelPref, ...settings![key]!.telegram } : { ...defaultChannelPref },
+                        discord: settings![key]!.discord ? { ...defaultChannelPref, ...settings![key]!.discord } : { ...defaultChannelPref },
+                        sms: settings![key]!.sms ? { ...defaultChannelPref, ...settings![key]!.sms } : { ...defaultChannelPref },
+                    };
+                }
+            });
         }
         return NextResponse.json(settings);
     } catch (error) {
@@ -97,10 +148,21 @@ export async function POST(request: NextRequest) {
         const settingsKey = getKvKey(userPrincipal);
 
         let currentSettings = await kv.get<UserNotificationSettings>(settingsKey);
-        if (!currentSettings || !currentSettings.orderExecuted) {
-            currentSettings = { orderExecuted: { ...defaultOrderExecutedPrefs } };
+        if (!currentSettings) {
+            currentSettings = {
+                orderExecuted: { ...defaultOrderExecutedPrefs },
+                bidReceived: { ...defaultBidEventPrefs },
+                bidAccepted: { ...defaultBidEventPrefs },
+                bidCancelled: { ...defaultBidEventPrefs },
+                offerFilled: { ...defaultOfferEventPrefs },
+                offerCancelled: { ...defaultOfferEventPrefs },
+            };
         }
-        // Ensure all parts of orderExecuted are initialized if they don't exist
+
+        // Ensure all parts are initialized if they don't exist
+        if (!currentSettings.orderExecuted) {
+            currentSettings.orderExecuted = { ...defaultOrderExecutedPrefs };
+        }
         currentSettings.orderExecuted = {
             ...defaultOrderExecutedPrefs,
             ...currentSettings.orderExecuted,
@@ -108,6 +170,38 @@ export async function POST(request: NextRequest) {
             discord: currentSettings.orderExecuted?.discord ? { ...defaultChannelPref, ...currentSettings.orderExecuted.discord } : { ...defaultChannelPref },
             sms: currentSettings.orderExecuted?.sms ? { ...defaultChannelPref, ...currentSettings.orderExecuted.sms } : { ...defaultChannelPref },
         };
+
+        // Initialize bid event preferences if they don't exist
+        ['bidReceived', 'bidAccepted', 'bidCancelled'].forEach(eventType => {
+            const key = eventType as keyof Pick<UserNotificationSettings, 'bidReceived' | 'bidAccepted' | 'bidCancelled'>;
+            if (!currentSettings![key]) {
+                currentSettings![key] = { ...defaultBidEventPrefs };
+            } else {
+                currentSettings![key] = {
+                    ...defaultBidEventPrefs,
+                    ...currentSettings![key],
+                    telegram: currentSettings![key]!.telegram ? { ...defaultChannelPref, ...currentSettings![key]!.telegram } : { ...defaultChannelPref },
+                    discord: currentSettings![key]!.discord ? { ...defaultChannelPref, ...currentSettings![key]!.discord } : { ...defaultChannelPref },
+                    sms: currentSettings![key]!.sms ? { ...defaultChannelPref, ...currentSettings![key]!.sms } : { ...defaultChannelPref },
+                };
+            }
+        });
+
+        // Initialize offer event preferences if they don't exist
+        ['offerFilled', 'offerCancelled'].forEach(eventType => {
+            const key = eventType as keyof Pick<UserNotificationSettings, 'offerFilled' | 'offerCancelled'>;
+            if (!currentSettings![key]) {
+                currentSettings![key] = { ...defaultOfferEventPrefs };
+            } else {
+                currentSettings![key] = {
+                    ...defaultOfferEventPrefs,
+                    ...currentSettings![key],
+                    telegram: currentSettings![key]!.telegram ? { ...defaultChannelPref, ...currentSettings![key]!.telegram } : { ...defaultChannelPref },
+                    discord: currentSettings![key]!.discord ? { ...defaultChannelPref, ...currentSettings![key]!.discord } : { ...defaultChannelPref },
+                    sms: currentSettings![key]!.sms ? { ...defaultChannelPref, ...currentSettings![key]!.sms } : { ...defaultChannelPref },
+                };
+            }
+        });
 
         const newSettings: UserNotificationSettings = JSON.parse(JSON.stringify(currentSettings)); // Deep clone
 
@@ -123,8 +217,41 @@ export async function POST(request: NextRequest) {
             if (orderPrefs.sms !== undefined) {
                 newSettings.orderExecuted!.sms = { ...newSettings.orderExecuted!.sms, ...orderPrefs.sms };
             }
-            // Add validation for recipientId formats if necessary
         }
+
+        // Update bid event settings if provided in the body
+        ['bidReceived', 'bidAccepted', 'bidCancelled'].forEach(eventType => {
+            const key = eventType as keyof Pick<UserNotificationSettings, 'bidReceived' | 'bidAccepted' | 'bidCancelled'>;
+            if (body[key]) {
+                const eventPrefs = body[key]!;
+                if (eventPrefs.telegram !== undefined) {
+                    newSettings[key]!.telegram = { ...newSettings[key]!.telegram, ...eventPrefs.telegram };
+                }
+                if (eventPrefs.discord !== undefined) {
+                    newSettings[key]!.discord = { ...newSettings[key]!.discord, ...eventPrefs.discord };
+                }
+                if (eventPrefs.sms !== undefined) {
+                    newSettings[key]!.sms = { ...newSettings[key]!.sms, ...eventPrefs.sms };
+                }
+            }
+        });
+
+        // Update offer event settings if provided in the body
+        ['offerFilled', 'offerCancelled'].forEach(eventType => {
+            const key = eventType as keyof Pick<UserNotificationSettings, 'offerFilled' | 'offerCancelled'>;
+            if (body[key]) {
+                const eventPrefs = body[key]!;
+                if (eventPrefs.telegram !== undefined) {
+                    newSettings[key]!.telegram = { ...newSettings[key]!.telegram, ...eventPrefs.telegram };
+                }
+                if (eventPrefs.discord !== undefined) {
+                    newSettings[key]!.discord = { ...newSettings[key]!.discord, ...eventPrefs.discord };
+                }
+                if (eventPrefs.sms !== undefined) {
+                    newSettings[key]!.sms = { ...newSettings[key]!.sms, ...eventPrefs.sms };
+                }
+            }
+        });
 
         await kv.set(settingsKey, newSettings);
         return NextResponse.json(newSettings);

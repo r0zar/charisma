@@ -28,12 +28,57 @@ const formatTokenAmount = (atomicAmount: string, tokenInfo: TokenDef | undefined
     }) + ` ${tokenInfo.symbol}`;
 };
 
-const getTimeAgo = (timestamp: number) => {
+// Enhanced time formatting helper
+const formatTimeDisplay = (timestamp: number) => {
     const now = new Date();
     const then = new Date(timestamp);
     const diff = now.getTime() - then.getTime();
-    const diffMinutes = Math.floor(diff / (1000 * 60));
-    return `${diffMinutes} minutes ago`;
+
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+
+    // Show relative time for recent offers
+    if (seconds < 60) {
+        return {
+            relative: "Just now",
+            absolute: then.toLocaleString(),
+            isVeryRecent: true
+        };
+    } else if (minutes < 60) {
+        return {
+            relative: `${minutes}m ago`,
+            absolute: then.toLocaleString(),
+            isRecent: minutes < 30
+        };
+    } else if (hours < 24) {
+        return {
+            relative: `${hours}h ago`,
+            absolute: then.toLocaleString(),
+            isRecent: hours < 6
+        };
+    } else if (days < 7) {
+        return {
+            relative: `${days}d ago`,
+            absolute: then.toLocaleString(),
+            isRecent: false
+        };
+    } else if (weeks < 4) {
+        return {
+            relative: `${weeks}w ago`,
+            absolute: then.toLocaleString(),
+            isRecent: false
+        };
+    } else {
+        // For older offers, show the date
+        return {
+            relative: then.toLocaleDateString(),
+            absolute: then.toLocaleString(),
+            isRecent: false
+        };
+    }
 };
 
 interface OfferDetailsProps {
@@ -44,6 +89,9 @@ interface OfferDetailsProps {
 
 export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMetadata }: OfferDetailsProps) {
     const { address } = useWallet();
+
+    // Get time display info once
+    const timeInfo = formatTimeDisplay(offer.createdAt);
 
     const getBadgeVariant = (status: Offer["status"]) => {
         switch (status) {
@@ -80,6 +128,8 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
             name: tokenName,
             symbol: tokenName.toUpperCase(),
             logo: '',
+            image: '',
+            identifier: tokenName.toLowerCase(),
             decimals: 6,
         };
     };
@@ -92,8 +142,17 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
                     <CardDescription>
                         Created by <span className="font-mono">{shortenAddress(offer.offerCreatorAddress)}</span>
                         {" · "}
-                        <span title={new Date(offer.createdAt).toLocaleString()}>
-                            {getTimeAgo(offer.createdAt)}
+                        <span
+                            className={`cursor-help ${timeInfo.isVeryRecent
+                                ? 'text-green-600 dark:text-green-400 font-medium'
+                                : timeInfo.isRecent
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-muted-foreground'
+                                }`}
+                            title={timeInfo.absolute}
+                        >
+                            {timeInfo.isVeryRecent && "🟢 "}
+                            {timeInfo.relative}
                         </span>
                     </CardDescription>
                 </div>

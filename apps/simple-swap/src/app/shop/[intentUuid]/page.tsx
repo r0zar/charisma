@@ -34,6 +34,9 @@ import {
 import Link from "next/link";
 import { getTokenMetadataCached } from "@repo/tokens";
 
+// Client component for creator info with BNS support
+import { CreatorInfo } from "./CreatorInfo";
+
 interface PageProps {
     params: { intentUuid: string };
 }
@@ -208,17 +211,7 @@ export default async function OfferPage({ params }: PageProps) {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
-                                                <Users className="h-5 w-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-sm">
-                                                    {offer.offerCreatorAddress.slice(0, 8)}...{offer.offerCreatorAddress.slice(-4)}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">Creator</div>
-                                            </div>
-                                        </div>
+                                        <CreatorInfo offer={offer} />
                                     </CardContent>
                                 </Card>
                                 {/* Bid Form or Status */}
