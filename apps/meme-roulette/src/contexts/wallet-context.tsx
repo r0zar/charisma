@@ -6,7 +6,7 @@ import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
 import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID, broadcastMultihopTransaction, getUserTokenBalance } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
-import { fetchQuote, Router, loadVaults, buildSwapTransaction, Quote } from 'dexterity-sdk';
+import { fetchQuote, Router, loadVaults, buildSwapTransaction, Quote, Route } from 'dexterity-sdk';
 import { broadcastTransaction, makeContractCall } from '@stacks/transactions';
 
 // Default Charisma token contract (mainnet) – override in env if necessary
@@ -33,7 +33,7 @@ interface WalletContextType {
     disconnectWallet: () => void;
     placeBet: (amount: number, tokenId: string) => Promise<{ success: boolean; uuid?: string; error?: string }>;
     getQuote: (from: string, to: string, amount: number) => Promise<{ success: boolean; quote?: any; error?: string }>;
-    swapTokens: (from: string, to: string, amount: string) => Promise<any>;
+    swapTokens: (route: Route) => Promise<any>;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -67,12 +67,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [stxBalanceLoading, setStxBalanceLoading] = useState(false);
 
     const quoteRef = useRef<any>(null);
-    const routerRef = useRef<Router | null>(null);
-    const router = routerRef.current || new Router();
+    const routerRef = useRef<Router>(new Router({
+        maxHops: 4,
+        defaultSlippage: 0.05,
+        routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',
+    }));
+
+    const router = routerRef.current;
 
     useEffect(() => {
         loadVaults(router);
-    }, [router]);
+    }, []);
 
     // Check for existing wallet connection
     useEffect(() => {
@@ -256,6 +261,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         try {
             const response = await fetchQuote(from, to, amount);
             quoteRef.current = response as any;
+            console.log('getQuote response:', response);
             return { success: true, quote: response };
         } catch (error: any) {
             console.error('getQuote error:', error);
@@ -263,14 +269,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const swapTokens = async (from: string, to: string, amount: string) => {
+    const swapTokens = async (route: Route) => {
         try {
-            if (!quoteRef.current) {
-                throw new Error('No quote available for swap');
-            }
-
-            // buildSwapTransaction expects the entire quote object (Route), not quote.route
-            const txCfg = await buildSwapTransaction(router, quoteRef.current, address);
+            console.log('swapTokens route:', route);
+            const txCfg = await buildSwapTransaction(router, route, address);
             const response = await request('stx_callContract', txCfg);
             return response;
         } catch (error: any) {

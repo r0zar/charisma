@@ -17,26 +17,13 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useWallet } from '@/contexts/wallet-context';
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
+import { Route } from 'dexterity-sdk';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { VariantProps } from 'class-variance-authority';
 import { Coins, RefreshCw, Repeat } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-
-// Interface for quote response based on dexterity-sdk documentation
-interface QuoteResponse {
-    amountIn: string | number;
-    amountOut: string | number;
-    expectedPrice?: string | number;
-    minimumReceived?: string | number;
-    route?: {
-        hops: Array<{
-            vault: string;
-            opcode: number;
-        }>;
-    };
-}
 
 // --- Constants ---
 const STX_DECIMALS = 6;
@@ -58,7 +45,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 // --- State Types ---
 interface QuoteFetchState {
-    data: QuoteResponse | null;
+    data: any | null;
     loading: boolean;
     error: string | null;
 }
@@ -162,14 +149,10 @@ export function SwapStxToChaButton({
                     setQuoteState((prev) => ({ ...prev, error: "Amount too low", loading: false }));
                     return;
                 }
-
-                // Assuming getQuote from useWallet returns:
-                // - { success: true, quote: QuoteResponseData } for success
-                // - { success: false, error: string } for failure
                 const response = await getQuote('.stx', CHARISMA_SUBNET_CONTRACT, amountInMicroStx);
 
                 if (response.success && response.quote) {
-                    setQuoteState({ data: response.quote as QuoteResponse, loading: false, error: null });
+                    setQuoteState({ data: response.quote, loading: false, error: null });
                 } else {
                     setQuoteState({ data: null, loading: false, error: response.error || 'Failed to get quote' });
                 }
@@ -209,8 +192,7 @@ export function SwapStxToChaButton({
         setLastTxId(null); // Reset last TxId
 
         try {
-            // Call swapTokens with the required parameters
-            const result = await swapTokens('.stx', CHARISMA_SUBNET_CONTRACT, values.stxAmount);
+            const result = await swapTokens(quoteState.data);
 
             // Handle successful transaction
             if (result && typeof result === 'object' && 'txid' in result && result.txid) {
@@ -325,11 +307,6 @@ export function SwapStxToChaButton({
                             ) : quoteState.data ? (
                                 <>
                                     ~ {formatStxAmount(String(quoteState.data.amountOut))} CHA
-                                    {quoteState.data.minimumReceived !== undefined && (
-                                        <span className="text-xs text-muted-foreground ml-2">
-                                            (Min: {formatStxAmount(String(quoteState.data.minimumReceived))})
-                                        </span>
-                                    )}
                                 </>
                             ) : (
                                 <span className="text-muted-foreground">Enter STX amount</span>

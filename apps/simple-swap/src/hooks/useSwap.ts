@@ -61,7 +61,7 @@ export function useSwap({ initialTokens = [] }: UseSwapOptions = {}) {
     const balanceCacheRef = useRef<BalanceCache>({});
 
     const router = useRef<Router>(new Router({
-        maxHops: 3,
+        maxHops: 4,
         defaultSlippage: 0.05,
         routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',
     }));
