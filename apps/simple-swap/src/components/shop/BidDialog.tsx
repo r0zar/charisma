@@ -238,9 +238,7 @@ const BidDialog: React.FC<BidDialogProps> = ({
                                 <Label htmlFor="bidAmount">Bid Amount</Label>
                                 <Input
                                     id="bidAmount"
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
+                                    type="number"
                                     placeholder="Enter amount"
                                     value={bidAmount}
                                     onChange={(e) => setBidAmount(e.target.value)}
