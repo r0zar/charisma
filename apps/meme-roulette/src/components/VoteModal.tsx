@@ -15,17 +15,18 @@ import { toast } from '@/components/ui/sonner';
 import { Badge } from "@/components/ui/badge";
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
 import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
+import { useTokenPrices } from '@/hooks/useTokenPrices';
 
 // CHA Token constants
 const CHA_DECIMALS = 6;
 const CHA_SYMBOL = 'CHA';
 
-// Preset voting amounts (in CHA)
-const QUICK_AMOUNTS = [
-    { amount: 10, label: '$5', description: 'Small bet' },
-    { amount: 25, label: '$12', description: 'Popular choice' },
-    { amount: 50, label: '$25', description: 'Go big!' },
-    { amount: 100, label: '$50', description: 'All in!' }
+// Base CHA amounts for voting presets
+const QUICK_CHA_AMOUNTS = [
+    { amount: 10, description: 'Small bet' },
+    { amount: 25, description: 'Popular choice' },
+    { amount: 50, description: 'Go big!' },
+    { amount: 100, description: 'All in!' }
 ];
 
 interface VoteModalProps {
@@ -56,11 +57,26 @@ const formatBalance = (balance: string, decimals: number = CHA_DECIMALS) => {
 const VoteModal = ({ isOpen, onClose, tokens }: VoteModalProps) => {
     const { subnetBalance, subnetBalanceLoading, mainnetBalance, balanceLoading, placeBet } = useWallet();
     const { state } = useSpin();
+    const { chaPrice, isLoading: pricesLoading } = useTokenPrices();
     const [selectedToken, setSelectedToken] = useState<Token | null>(null);
     const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [showAllTokens, setShowAllTokens] = useState(false);
     const [shuffledOtherTokens, setShuffledOtherTokens] = useState<typeof popularTokens>([]);
+
+    // Create dynamic quick amounts with real USD values
+    const QUICK_AMOUNTS = useMemo(() => {
+        return QUICK_CHA_AMOUNTS.map(base => {
+            const usdValue = chaPrice ? base.amount * chaPrice : null;
+            const usdLabel = pricesLoading ? 'Loading...' : usdValue ? `$${usdValue.toFixed(2)}` : '~$?';
+
+            return {
+                ...base,
+                label: usdLabel,
+                usdValue
+            };
+        });
+    }, [chaPrice, pricesLoading]);
 
     // Helper function to shuffle array
     const shuffleArray = <T,>(array: T[]): T[] => {
