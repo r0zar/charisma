@@ -258,7 +258,7 @@ const BidDialog: React.FC<BidDialogProps> = ({
                         </div>
                         <div className="space-y-2">
                             {offerItem.offerAssets.map((asset, index) => (
-                                <div key={index} className="flex items-center justify-between p-2 bg-background rounded border">
+                                <div key={index} className="flex items-center justify-between p-2 bg-background rounded border px-4">
                                     <div className="flex items-center gap-2">
                                         {asset.tokenData?.image ? (
                                             <Image

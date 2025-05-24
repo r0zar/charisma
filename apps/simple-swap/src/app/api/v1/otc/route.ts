@@ -3,6 +3,7 @@ import { z } from "zod";
 import { offerCreateSchema, Offer } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
 import { recoverSigner } from "blaze-sdk";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: NextRequest) {
     try {
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest) {
         };
 
         await saveOffer(offerToSave);
+
+        // Invalidate the shop page cache so new offers appear immediately
+        revalidatePath('/shop');
 
         return NextResponse.json({ success: true, offer: offerToSave }, { status: 201 });
     } catch (err: any) {

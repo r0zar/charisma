@@ -32,6 +32,10 @@ export const metadata: Metadata = {
     },
 };
 
+// Force dynamic rendering and add revalidation
+export const dynamic = 'force-dynamic';
+export const revalidate = 30; // Revalidate every 30 seconds
+
 // Server component to fetch data
 export default async function ShopPageRoute() {
     // Use the centralized service to get all shop items
