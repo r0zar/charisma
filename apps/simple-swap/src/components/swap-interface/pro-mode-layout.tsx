@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { X, TrendingUp, ArrowUpDown, Eye, Edit, Trash2, Zap, Calendar, Repeat, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -14,6 +14,8 @@ import type { LimitOrder } from '../../lib/orders/types';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import { signedFetch } from 'blaze-sdk';
 import { toast } from 'sonner';
+import { request } from '@stacks/connect';
+import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
 
 // Enriched order type with token metadata
 interface DisplayOrder extends LimitOrder {
@@ -23,7 +25,7 @@ interface DisplayOrder extends LimitOrder {
     baseAssetMeta?: TokenCacheData | null;
 }
 
-type OrderType = 'single' | 'dca';
+type OrderType = 'single' | 'dca' | 'sandwich';
 
 export default function ProModeLayout() {
     const {
@@ -76,8 +78,17 @@ export default function ProModeLayout() {
     const [dcaDuration, setDcaDuration] = useState('30');
     const [dcaStartDate, setDcaStartDate] = useState('');
 
+    // Sandwich-specific state
+    const [sandwichBuyPrice, setSandwichBuyPrice] = useState('');
+    const [sandwichSellPrice, setSandwichSellPrice] = useState('');
+    const [sandwichSpread, setSandwichSpread] = useState('5'); // Default 5% spread
+    const [sandwichUsdAmount, setSandwichUsdAmount] = useState(''); // USD amount for sandwich orders
+
+    // Loading states
+    const [isCreatingSandwichOrder, setIsCreatingSandwichOrder] = useState(false);
+
     // Fetch real user orders
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         if (!connected || !address) {
             setDisplayOrders([]);
             return;
@@ -92,6 +103,7 @@ export default function ProModeLayout() {
 
             if (res.ok) {
                 const rawOrders = j.data as LimitOrder[];
+                console.log(`Fetched ${rawOrders.length} raw orders:`, rawOrders.map(o => ({ uuid: o.uuid.slice(0, 8), status: o.status, inputToken: o.inputToken, outputToken: o.outputToken })));
                 if (rawOrders.length === 0) {
                     setDisplayOrders([]);
                     return;
@@ -146,6 +158,7 @@ export default function ProModeLayout() {
                 setDisplayOrders(enrichedOrders.sort((a, b) =>
                     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 ));
+                console.log(`Set ${enrichedOrders.length} enriched orders in state:`, enrichedOrders.map(o => ({ uuid: o.uuid.slice(0, 8), status: o.status, inputSymbol: o.inputTokenMeta.symbol, outputSymbol: o.outputTokenMeta.symbol })));
             } else {
                 throw new Error(j.error || "Failed to load orders");
             }
@@ -156,7 +169,7 @@ export default function ProModeLayout() {
         } finally {
             setIsLoadingOrders(false);
         }
-    };
+    }, [connected, address]);
 
     // Fetch orders when component mounts or wallet changes
     useEffect(() => {
@@ -306,7 +319,7 @@ export default function ProModeLayout() {
         else if (selectedToToken && !tradingPairQuote) {
             setTradingPairQuote(selectedToToken);
         }
-    }, [conditionToken, baseToken, selectedToToken, tradingPairBase, tradingPairQuote]);
+    }, [conditionToken, baseToken, selectedToToken]);
 
     const handleAmountChange = (value: string) => {
         if (/^\d*\.?\d*$/.test(value) || value === '') {
@@ -335,6 +348,241 @@ export default function ProModeLayout() {
     const handleCreateDcaOrder = () => {
         // TODO: Implement DCA order creation
         toast.info("DCA order creation coming soon!");
+    };
+
+    const handleSandwichBuyPriceChange = (value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setSandwichBuyPrice(value);
+        }
+    };
+
+    const handleSandwichSellPriceChange = (value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setSandwichSellPrice(value);
+        }
+    };
+
+    const handleSandwichSpreadChange = (value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setSandwichSpread(value);
+        }
+    };
+
+    const handleSandwichUsdAmountChange = (value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setSandwichUsdAmount(value);
+        }
+    };
+
+    // Helper function to create a single order
+    const createSingleOrder = async (orderData: {
+        inputToken: string;
+        outputToken: string;
+        amountIn: number;
+        targetPrice: string;
+        direction: 'lt' | 'gt';
+        conditionToken: string;
+        baseAsset: string;
+    }) => {
+        if (!address) throw new Error('Connect wallet');
+
+        console.log('Creating order with data:', orderData);
+
+        const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
+
+        try {
+            // Create signature for the order
+            const domain = tupleCV({
+                name: stringAsciiCV('BLAZE_PROTOCOL'),
+                version: stringAsciiCV('v1.0'),
+                'chain-id': uintCV(1),
+            });
+
+            const message = tupleCV({
+                contract: principalCV(orderData.inputToken),
+                intent: stringAsciiCV('TRANSFER_TOKENS'),
+                opcode: noneCV(),
+                amount: optionalCVOf(uintCV(BigInt(orderData.amountIn))),
+                target: optionalCVOf(principalCV('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9')),
+                uuid: stringAsciiCV(uuid),
+            });
+
+            console.log('Requesting signature for order...');
+            // @ts-ignore – upstream types don't include method yet
+            const res = await request('stx_signStructuredMessage', { domain, message });
+            if (!res?.signature) throw new Error('User cancelled the signature');
+
+            console.log('Signature obtained, creating order payload...');
+            const payload = {
+                owner: address,
+                inputToken: orderData.inputToken,
+                outputToken: orderData.outputToken,
+                amountIn: orderData.amountIn.toString(),
+                targetPrice: orderData.targetPrice,
+                direction: orderData.direction,
+                conditionToken: orderData.conditionToken,
+                baseAsset: orderData.baseAsset,
+                recipient: address,
+                signature: res.signature,
+                uuid,
+            };
+
+            console.log('Sending order to API:', payload);
+            const response = await fetch('/api/v1/orders/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            console.log('API response status:', response.status, response.statusText);
+
+            if (!response.ok) {
+                const j = await response.json().catch(() => ({ error: 'unknown' }));
+                console.error('API error response:', j);
+                throw new Error(j.error || `Order create failed: ${response.status} ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Order created successfully:', result);
+            return result;
+
+        } catch (error) {
+            console.error('Order creation error:', error);
+            // Re-throw with more context
+            if (error instanceof Error) {
+                if (error.message.includes('Failed to fetch')) {
+                    throw new Error('Network error: Unable to connect to the API. Please check your internet connection and try again.');
+                } else if (error.message.includes('cancelled')) {
+                    throw new Error('User cancelled the signature');
+                } else {
+                    throw error;
+                }
+            }
+            throw new Error('Unknown error occurred during order creation');
+        }
+    };
+
+    const handleCreateSandwichOrder = async () => {
+        if (!selectedFromToken || !selectedToToken || !sandwichUsdAmount || !sandwichBuyPrice || !sandwichSellPrice) {
+            toast.error("Please fill in all required fields for sandwich order");
+            return;
+        }
+
+        setIsCreatingSandwichOrder(true);
+        try {
+            const usdAmount = parseFloat(sandwichUsdAmount);
+            const buyPrice = parseFloat(sandwichBuyPrice);
+            const sellPrice = parseFloat(sandwichSellPrice);
+
+            if (isNaN(usdAmount) || isNaN(buyPrice) || isNaN(sellPrice)) {
+                toast.error("Invalid price or amount values");
+                setIsCreatingSandwichOrder(false);
+                return;
+            }
+
+            // Calculate token amounts based on USD value and prices
+            // For buy order: We want to spend USD amount worth of base token (CHA) to buy target token (LEO)
+            // Amount of CHA to spend = USD amount / CHA price
+            const chaPrice = getUsdPrice(selectedFromToken.contractId) || 1; // Get CHA price in USD
+            const buyAmountInCha = usdAmount / chaPrice; // Amount of CHA to spend
+
+            // For sell order: We want to sell USD amount worth of target token (LEO)
+            // Amount of LEO to sell = USD amount / LEO price  
+            const leoPrice = getUsdPrice(selectedToToken.contractId) || buyPrice; // Use LEO price or fallback to buy price
+            const sellAmountInLeo = usdAmount / leoPrice; // Amount of LEO to sell
+
+            console.log('Sandwich order calculations:', {
+                usdAmount,
+                chaPrice,
+                leoPrice,
+                buyAmountInCha,
+                sellAmountInLeo,
+                buyAmountInUnits: Math.floor(buyAmountInCha * (10 ** selectedFromToken.decimals!)),
+                sellAmountInUnits: Math.floor(sellAmountInLeo * (10 ** selectedToToken.decimals!))
+            });
+
+            // Create buy low order (buy selectedToToken when price <= sandwichBuyPrice)
+            const buyOrderData = {
+                inputToken: selectedFromToken.contractId, // Paying with base token (e.g., CHA)
+                outputToken: selectedToToken.contractId, // Buying target token (e.g., LEO)
+                amountIn: Math.floor(buyAmountInCha * (10 ** selectedFromToken.decimals!)), // Amount of CHA to spend
+                targetPrice: sandwichBuyPrice,
+                direction: 'lt' as const, // Buy when price is less than or equal to buy price
+                conditionToken: selectedToToken.contractId,
+                baseAsset: selectedFromToken.contractId,
+            };
+
+            // Create sell high order (sell selectedToToken when price >= sandwichSellPrice)
+            const sellOrderData = {
+                inputToken: selectedToToken.contractId, // Selling target token (e.g., LEO)
+                outputToken: selectedFromToken.contractId, // Receiving base token (e.g., CHA)
+                amountIn: Math.floor(sellAmountInLeo * (10 ** selectedToToken.decimals!)), // Amount of LEO to sell
+                targetPrice: sandwichSellPrice,
+                direction: 'gt' as const, // Sell when price is greater than or equal to sell price
+                conditionToken: selectedToToken.contractId,
+                baseAsset: selectedFromToken.contractId,
+            };
+
+            // Create both orders simultaneously
+            toast.info("Creating sandwich orders...");
+
+            // Create buy order first
+            console.log('Creating buy order:', buyOrderData);
+            const buyResponse = await createSingleOrder(buyOrderData);
+            console.log('Buy order created successfully');
+
+            // Create sell order second
+            console.log('Creating sell order:', sellOrderData);
+            const sellResponse = await createSingleOrder(sellOrderData);
+            console.log('Sell order created successfully');
+
+            // Both orders created successfully
+            const buyOrderId = buyResponse?.data?.uuid || buyResponse?.uuid || 'unknown';
+            const sellOrderId = sellResponse?.data?.uuid || sellResponse?.uuid || 'unknown';
+            toast.success(`Sandwich orders created successfully! Buy order: ${buyOrderId}, Sell order: ${sellOrderId}`);
+
+            // Clear form
+            setSandwichUsdAmount('');
+            setSandwichBuyPrice('');
+            setSandwichSellPrice('');
+
+            // Refresh orders list with a small delay to ensure API has processed the orders
+            console.log('Refreshing orders list...');
+            setTimeout(async () => {
+                await fetchOrders();
+                console.log('Orders list refreshed');
+            }, 1000); // 1 second delay
+
+        } catch (error) {
+            console.error('Sandwich order creation failed:', error);
+            const errorMessage = (error as Error).message;
+            if (errorMessage.includes('cancelled')) {
+                toast.error("Order creation cancelled by user");
+            } else {
+                toast.error(`Failed to create sandwich order: ${errorMessage}`);
+            }
+        } finally {
+            setIsCreatingSandwichOrder(false);
+        }
+    };
+
+    const calculateSandwichPrices = () => {
+        if (!selectedToToken || !sandwichSpread) return;
+
+        const currentPrice = getUsdPrice(selectedToToken.contractId);
+        if (!currentPrice) {
+            toast.error("Unable to get current price for auto-calculation");
+            return;
+        }
+
+        const spreadPercent = parseFloat(sandwichSpread) / 100;
+        const buyPrice = currentPrice * (1 - spreadPercent);
+        const sellPrice = currentPrice * (1 + spreadPercent);
+
+        setSandwichBuyPrice(buyPrice.toFixed(8));
+        setSandwichSellPrice(sellPrice.toFixed(8));
+
+        toast.success(`Auto-calculated prices: Buy at ${buyPrice.toFixed(6)}, Sell at ${sellPrice.toFixed(6)}`);
     };
 
     const toggleOrderExpansion = (orderId: string) => {
@@ -473,11 +721,28 @@ export default function ProModeLayout() {
             (orderInput === pairBase && (orderCondition === pairQuote || orderBase === pairQuote)) ||
             (orderInput === pairQuote && (orderCondition === pairBase || orderBase === pairBase));
 
-        return conditionBaseMatch || inputOutputMatch || mixedMatch;
+        const belongs = conditionBaseMatch || inputOutputMatch || mixedMatch;
+
+        // Debug logging for sandwich orders
+        if (order.inputTokenMeta.symbol && order.outputTokenMeta.symbol) {
+            console.log(`Order ${order.uuid.slice(0, 8)} (${order.inputTokenMeta.symbol}→${order.outputTokenMeta.symbol}) belongs to pair ${tradingPairBase?.symbol}/${tradingPairQuote?.symbol}:`, belongs, {
+                conditionBaseMatch,
+                inputOutputMatch,
+                mixedMatch,
+                orderTokens: { condition: order.conditionTokenMeta.symbol, base: order.baseAssetMeta?.symbol || 'USD', input: order.inputTokenMeta.symbol, output: order.outputTokenMeta.symbol },
+                pairTokens: { base: tradingPairBase?.symbol, quote: tradingPairQuote?.symbol }
+            });
+        }
+
+        return belongs;
     };
 
     // Filter orders by trading pair and status
     const pairFilteredOrders = filteredOrders.filter(orderBelongsToTradingPair);
+
+    // Debug: Log final filtered orders
+    console.log(`Final filtered orders for display: ${pairFilteredOrders.length}/${filteredOrders.length} (${showAllOrders ? 'all' : 'open only'})`,
+        pairFilteredOrders.map(o => ({ uuid: o.uuid.slice(0, 8), status: o.status, tokens: `${o.inputTokenMeta.symbol}→${o.outputTokenMeta.symbol}` })));
 
     const renderOrderControls = () => {
         return (
@@ -486,11 +751,11 @@ export default function ProModeLayout() {
                 <div className="w-80 flex-shrink-0">
                     <div className="bg-background/60 border border-border/60 rounded-lg p-4">
                         <div className="flex items-center space-x-2 mb-3">
-                            <div className={`p-2 rounded-lg ${selectedOrderType === 'single' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                {selectedOrderType === 'single' ? <Zap className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+                            <div className={`p-2 rounded-lg ${selectedOrderType === 'single' ? 'bg-green-100 text-green-700' : selectedOrderType === 'dca' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {selectedOrderType === 'single' ? <Zap className="w-4 h-4" /> : selectedOrderType === 'dca' ? <Repeat className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </div>
                             <h4 className="font-semibold text-foreground">
-                                {selectedOrderType === 'single' ? 'Limit Order' : 'DCA Strategy'}
+                                {selectedOrderType === 'single' ? 'Limit Order' : selectedOrderType === 'dca' ? 'DCA Strategy' : 'Sandwich Order'}
                             </h4>
                         </div>
 
@@ -504,13 +769,22 @@ export default function ProModeLayout() {
                                     </p>
                                 </div>
                             </div>
-                        ) : (
+                        ) : selectedOrderType === 'dca' ? (
                             <div className="space-y-3 text-sm">
                                 <div>
                                     <h5 className="font-medium text-foreground mb-1">How it works:</h5>
                                     <p className="text-muted-foreground text-xs leading-relaxed">
                                         Dollar-Cost Averaging spreads your purchase over time with regular, smaller buys.
                                         This reduces the impact of price volatility and averages out your entry price.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3 text-sm">
+                                <div>
+                                    <h5 className="font-medium text-foreground mb-1">How it works:</h5>
+                                    <p className="text-muted-foreground text-xs leading-relaxed">
+                                        A sandwich order creates two orders simultaneously: a "buy low" order that triggers when the price drops to your target, and a "sell high" order that triggers when the price rises to your target. This strategy helps capture profits from price volatility.
                                     </p>
                                 </div>
                             </div>
@@ -609,7 +883,7 @@ export default function ProModeLayout() {
                                 </Button>
                             </div>
                         </>
-                    ) : (
+                    ) : selectedOrderType === 'dca' ? (
                         <>
                             {/* Token Selection Row */}
                             <div className="grid grid-cols-3 gap-6 max-w-4xl">
@@ -739,6 +1013,230 @@ export default function ProModeLayout() {
                                 </div>
                             </div>
                         </>
+                    ) : (
+                        <div className="flex gap-6">
+                            {/* Center - Order Controls */}
+                            <div className="flex-1">
+                                {/* USD Amount and Trading Pair Row */}
+                                <div className="grid grid-cols-3 gap-6 max-w-4xl">
+                                    {/* USD Amount */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-muted-foreground font-medium">USD Amount</label>
+                                        <input
+                                            type="text"
+                                            value={sandwichUsdAmount}
+                                            onChange={(e) => handleSandwichUsdAmountChange(e.target.value)}
+                                            placeholder="100.00"
+                                            className="w-full h-12 px-4 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                        <div className="text-xs text-muted-foreground">
+                                            Total value for both orders
+                                        </div>
+                                    </div>
+
+                                    {/* Base Token (Quote Currency) */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-muted-foreground font-medium">Base Token</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowFromTokenSelector(true)}
+                                            className="w-full h-12 px-4 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-between hover:bg-background/80 transition-colors"
+                                        >
+                                            {selectedFromToken ? (
+                                                <div className="flex items-center space-x-3">
+                                                    <TokenLogo token={selectedFromToken} size="md" />
+                                                    <span className="font-medium">{selectedFromToken.symbol}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-muted-foreground">Select base token</span>
+                                            )}
+                                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                        </button>
+                                        <div className="text-xs text-muted-foreground">
+                                            Balance: {fromTokenBalance}
+                                        </div>
+                                    </div>
+
+                                    {/* Target Token */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-muted-foreground font-medium">Target Token</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowToTokenSelector(true)}
+                                            className="w-full h-12 px-4 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-between hover:bg-background/80 transition-colors"
+                                        >
+                                            {selectedToToken ? (
+                                                <div className="flex items-center space-x-3">
+                                                    <TokenLogo token={selectedToToken} size="md" />
+                                                    <span className="font-medium">{selectedToToken.symbol}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-muted-foreground">Select target token</span>
+                                            )}
+                                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                        </button>
+                                        <div className="text-xs text-muted-foreground">
+                                            Balance: {toTokenBalance}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Sandwich Settings Row */}
+                                <div className="grid grid-cols-5 gap-4 max-w-4xl mt-4">
+                                    {/* Buy Low Price */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground font-medium">Buy Low Price</label>
+                                        <input
+                                            type="text"
+                                            value={sandwichBuyPrice}
+                                            onChange={(e) => handleSandwichBuyPriceChange(e.target.value)}
+                                            placeholder="0.00"
+                                            className="w-full h-10 px-3 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                    </div>
+
+                                    {/* Sell High Price */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground font-medium">Sell High Price</label>
+                                        <input
+                                            type="text"
+                                            value={sandwichSellPrice}
+                                            onChange={(e) => handleSandwichSellPriceChange(e.target.value)}
+                                            placeholder="0.00"
+                                            className="w-full h-10 px-3 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                    </div>
+
+                                    {/* Spread Percentage */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground font-medium">Spread %</label>
+                                        <input
+                                            type="text"
+                                            value={sandwichSpread}
+                                            onChange={(e) => handleSandwichSpreadChange(e.target.value)}
+                                            placeholder="5"
+                                            className="w-full h-10 px-3 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                        />
+                                    </div>
+
+                                    {/* Auto Calculate */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground font-medium">Auto Calc</label>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={calculateSandwichPrices}
+                                            disabled={!selectedToToken || !sandwichSpread}
+                                            className="w-full h-10 text-xs"
+                                            title="Auto-calculate buy/sell prices based on current market price and spread"
+                                        >
+                                            Auto
+                                        </Button>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground font-medium">Actions</label>
+                                        <Button
+                                            onClick={handleCreateSandwichOrder}
+                                            disabled={isCreatingSandwichOrder || !selectedFromToken || !selectedToToken || !sandwichUsdAmount || !sandwichBuyPrice || !sandwichSellPrice}
+                                            className="w-full h-10 text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-medium"
+                                        >
+                                            {isCreatingSandwichOrder ? 'Creating...' : 'Create'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Side - Calculated Token Amounts */}
+                            <div className="w-80 flex-shrink-0">
+                                {sandwichUsdAmount && sandwichBuyPrice && sandwichSellPrice && selectedFromToken && selectedToToken ? (
+                                    <div className="bg-background/60 border border-border/60 rounded-lg p-4">
+                                        <div className="flex items-center space-x-2 mb-3">
+                                            <div className="p-2 rounded-lg bg-yellow-100 text-yellow-700">
+                                                <Eye className="w-4 h-4" />
+                                            </div>
+                                            <h4 className="font-semibold text-foreground">Calculated Amounts</h4>
+                                        </div>
+
+                                        <div className="space-y-3 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-green-600 font-medium">Buy Order:</span>
+                                                <span className="font-mono text-foreground">
+                                                    {(() => {
+                                                        const usdAmount = parseFloat(sandwichUsdAmount);
+                                                        const buyPrice = parseFloat(sandwichBuyPrice);
+                                                        if (!isNaN(usdAmount) && !isNaN(buyPrice) && buyPrice > 0) {
+                                                            const tokenAmount = usdAmount / buyPrice;
+                                                            return `${tokenAmount.toFixed(6)} ${selectedToToken.symbol}`;
+                                                        }
+                                                        return '0.000000';
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-red-600 font-medium">Sell Order:</span>
+                                                <span className="font-mono text-foreground">
+                                                    {(() => {
+                                                        const usdAmount = parseFloat(sandwichUsdAmount);
+                                                        const sellPrice = parseFloat(sandwichSellPrice);
+                                                        if (!isNaN(usdAmount) && !isNaN(sellPrice) && sellPrice > 0) {
+                                                            const tokenAmount = usdAmount / sellPrice;
+                                                            return `${tokenAmount.toFixed(6)} ${selectedToToken.symbol}`;
+                                                        }
+                                                        return '0.000000';
+                                                    })()}
+                                                </span>
+                                            </div>
+
+                                            {/* Profit Estimate */}
+                                            <div className="border-t border-border/30 pt-3 mt-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-blue-600 font-medium">Estimated Profit:</span>
+                                                    <span className="font-mono text-foreground">
+                                                        {(() => {
+                                                            const usdAmount = parseFloat(sandwichUsdAmount);
+                                                            const buyPrice = parseFloat(sandwichBuyPrice);
+                                                            const sellPrice = parseFloat(sandwichSellPrice);
+
+                                                            if (!isNaN(usdAmount) && !isNaN(buyPrice) && !isNaN(sellPrice) && buyPrice > 0 && sellPrice > 0) {
+                                                                // Calculate tokens bought and sold
+                                                                const tokensBought = usdAmount / buyPrice;
+                                                                const tokensValue = tokensBought * sellPrice;
+                                                                const profit = tokensValue - usdAmount;
+                                                                const profitPercentage = (profit / usdAmount) * 100;
+
+                                                                const profitColor = profit >= 0 ? 'text-green-600' : 'text-red-600';
+                                                                const sign = profit >= 0 ? '+' : '';
+
+                                                                return (
+                                                                    <span className={profitColor}>
+                                                                        {sign}${profit.toFixed(2)} ({sign}{profitPercentage.toFixed(2)}%)
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return '$0.00 (0.00%)';
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-background/60 border border-border/60 rounded-lg p-4">
+                                        <div className="flex items-center space-x-2 mb-3">
+                                            <div className="p-2 rounded-lg bg-muted">
+                                                <Eye className="w-4 h-4" />
+                                            </div>
+                                            <h4 className="font-semibold text-foreground">Calculated Amounts</h4>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            Enter USD amount and prices to see calculated token amounts
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
@@ -854,6 +1352,30 @@ export default function ProModeLayout() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Sandwich Order Option */}
+                    <Card
+                        className={`p-4 cursor-pointer transition-all hover:bg-background/80 ${selectedOrderType === 'sandwich' ? 'ring-2 ring-primary bg-primary/5' : ''
+                            }`}
+                        onClick={() => setSelectedOrderType('sandwich')}
+                    >
+                        <div className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-lg ${selectedOrderType === 'sandwich' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                }`}>
+                                <Eye className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-medium text-sm">Sandwich Orders</h3>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Buy and sell the same asset twice within a short period
+                                </p>
+                                <div className="flex items-center space-x-2 mt-2">
+                                    <Badge variant="outline" className="text-xs">Arbitrage</Badge>
+                                    <Badge variant="outline" className="text-xs">Hedging</Badge>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
                 </div>
 
                 {/* Order Type Info */}
@@ -868,13 +1390,22 @@ export default function ProModeLayout() {
                                     <li>• Immediate or conditional</li>
                                 </ul>
                             </>
-                        ) : (
+                        ) : selectedOrderType === 'dca' ? (
                             <>
                                 <div className="font-medium mb-1">DCA Order Features:</div>
                                 <ul className="space-y-1">
                                     <li>• Recurring purchases</li>
                                     <li>• Time-based execution</li>
                                     <li>• Risk averaging</li>
+                                </ul>
+                            </>
+                        ) : (
+                            <>
+                                <div className="font-medium mb-1">Sandwich Order Features:</div>
+                                <ul className="space-y-1">
+                                    <li>• Buy and sell the same asset twice</li>
+                                    <li>• Used for arbitrage or hedging</li>
+                                    <li>• Short duration between trades</li>
                                 </ul>
                             </>
                         )}
@@ -991,7 +1522,7 @@ export default function ProModeLayout() {
                     </div>
 
                     {/* Chart Content */}
-                    <div className="flex-1 p-4 flex flex-col">
+                    <div className="flex-1 p-4 flex flex-col min-h-0">
                         {tradingPairBase && tradingPairQuote ? (
                             <ProModeChart
                                 token={tradingPairQuote}
@@ -1001,6 +1532,12 @@ export default function ProModeLayout() {
                                 userOrders={pairFilteredOrders}
                                 highlightedOrderId={highlightedOrderId}
                                 conditionDir={conditionDir}
+                                isSandwichMode={selectedOrderType === 'sandwich'}
+                                sandwichBuyPrice={sandwichBuyPrice}
+                                sandwichSellPrice={sandwichSellPrice}
+                                onSandwichBuyPriceChange={setSandwichBuyPrice}
+                                onSandwichSellPriceChange={setSandwichSellPrice}
+                                sandwichSpread={sandwichSpread}
                             />
                         ) : (
                             <div className="h-full flex items-center justify-center">
@@ -1017,7 +1554,7 @@ export default function ProModeLayout() {
                 </div>
 
                 {/* Order Placement Section - Between Sidebars */}
-                <div className="border-t border-border/40 bg-card/50 backdrop-blur-sm p-4">
+                <div className="border-t border-border/40 bg-card/50 backdrop-blur-sm p-4 flex-shrink-0">
                     {renderOrderControls()}
                 </div>
             </div>
