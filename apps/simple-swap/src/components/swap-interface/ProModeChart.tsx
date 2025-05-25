@@ -914,44 +914,105 @@ export default function ProModeChart({
         const maxPrice = Math.max(...prices);
         const priceRange = maxPrice - minPrice;
 
-        // Calculate appropriate grid interval using even 10s division
-        let gridInterval: number;
-        if (priceRange < 0.0001) {
-            gridInterval = 0.000001; // 10^-6 for tiny ranges
-        } else if (priceRange < 0.001) {
-            gridInterval = 0.00001; // 10^-5 for small ranges
-        } else if (priceRange < 0.01) {
-            gridInterval = 0.0001; // 10^-4 for medium ranges
-        } else if (priceRange < 0.1) {
-            gridInterval = 0.001; // 10^-3 for larger ranges
-        } else {
-            gridInterval = 0.01; // 10^-2 for very large ranges
-        }
+        // Dynamic precision calculation based on price range and magnitude
+        const calculateOptimalGridInterval = (range: number, min: number, max: number): number => {
+            // Calculate the order of magnitude for the range
+            const rangeOrderOfMagnitude = Math.floor(Math.log10(range));
 
-        // Create grid lines
+            // Calculate the order of magnitude for the average price
+            const avgPrice = (min + max) / 2;
+            const avgOrderOfMagnitude = Math.floor(Math.log10(Math.abs(avgPrice)));
+
+            // Use the smaller order of magnitude to ensure good granularity
+            const baseOrderOfMagnitude = Math.min(rangeOrderOfMagnitude, avgOrderOfMagnitude);
+
+            // Start with a base interval
+            let baseInterval = Math.pow(10, baseOrderOfMagnitude);
+
+            // Adjust the interval to get a reasonable number of grid lines (10-50 lines)
+            const targetGridLines = 20;
+            let interval = baseInterval;
+            let estimatedLines = range / interval;
+
+            // Fine-tune the interval
+            if (estimatedLines > 50) {
+                // Too many lines, make interval larger
+                if (estimatedLines > 100) {
+                    interval = baseInterval * 5;
+                } else {
+                    interval = baseInterval * 2;
+                }
+            } else if (estimatedLines < 10) {
+                // Too few lines, make interval smaller
+                if (estimatedLines < 5) {
+                    interval = baseInterval / 5;
+                } else {
+                    interval = baseInterval / 2;
+                }
+            }
+
+            // Ensure minimum precision for very small numbers
+            if (interval < 1e-12) {
+                interval = 1e-12;
+            }
+
+            return interval;
+        };
+
+        const gridInterval = calculateOptimalGridInterval(priceRange, minPrice, maxPrice);
+
+        // Calculate start and end prices aligned to grid
         const startPrice = Math.floor(minPrice / gridInterval) * gridInterval;
         const endPrice = Math.ceil(maxPrice / gridInterval) * gridInterval;
 
-        for (let price = startPrice; price <= endPrice; price += gridInterval) {
-            if (price >= minPrice && price <= maxPrice) {
-                const gridLine = seriesRef.current!.createPriceLine({
-                    price: price,
-                    color: "rgba(156, 163, 175, 0.3)", // Subtle grid color
-                    lineWidth: 1,
-                    lineStyle: LineStyle.Solid,
-                    axisLabelVisible: true,
-                    title: '',
-                });
+        // Determine appropriate decimal places for labels
+        const getDecimalPlaces = (interval: number): number => {
+            if (interval >= 1) return 2;
+            if (interval >= 0.1) return 3;
+            if (interval >= 0.01) return 4;
+            if (interval >= 0.001) return 5;
+            if (interval >= 0.0001) return 6;
+            if (interval >= 0.00001) return 7;
+            if (interval >= 0.000001) return 8;
+            if (interval >= 0.0000001) return 9;
+            if (interval >= 0.00000001) return 10;
+            return 12; // Maximum precision
+        };
 
-                // Store grid lines for cleanup
-                if (!(window as any).manualGridLines) {
-                    (window as any).manualGridLines = [];
+        const decimalPlaces = getDecimalPlaces(gridInterval);
+
+        // Create grid lines
+        let lineCount = 0;
+        const maxLines = 100; // Safety limit
+
+        for (let price = startPrice; price <= endPrice && lineCount < maxLines; price += gridInterval) {
+            // Round to avoid floating point precision issues
+            price = Math.round(price / gridInterval) * gridInterval;
+
+            if (price >= minPrice && price <= maxPrice) {
+                try {
+                    const gridLine = seriesRef.current!.createPriceLine({
+                        price: price,
+                        color: "rgba(156, 163, 175, 0.3)", // Subtle grid color
+                        lineWidth: 1,
+                        lineStyle: LineStyle.Solid,
+                        axisLabelVisible: true,
+                        title: '',
+                    });
+
+                    // Store grid lines for cleanup
+                    if (!(window as any).manualGridLines) {
+                        (window as any).manualGridLines = [];
+                    }
+                    (window as any).manualGridLines.push(gridLine);
+                    lineCount++;
+                } catch (e) {
+                    console.warn('Failed to create grid line at price:', price, e);
                 }
-                (window as any).manualGridLines.push(gridLine);
             }
         }
 
-        console.log(`Added manual grid lines from ${startPrice.toFixed(8)} to ${endPrice.toFixed(8)} with interval ${gridInterval}`);
+        console.log(`Added ${lineCount} manual grid lines from ${startPrice.toFixed(decimalPlaces)} to ${endPrice.toFixed(decimalPlaces)} with interval ${gridInterval.toFixed(decimalPlaces)} (range: ${priceRange.toFixed(decimalPlaces)})`);
     }, [data]);
 
     // Sandwich mode helper functions
