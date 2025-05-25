@@ -2,41 +2,25 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { Route } from 'dexterity-sdk';
-import { TokenCacheData } from '@repo/tokens';
+import { useSwapContext } from '../../contexts/swap-context';
 
-interface Vault {
-    contractId: string;
-    contractName: string;
-    name: string;
-    symbol: string;
-}
-
-interface SwapButtonProps {
-    quote: Route | null;
-    isLoadingQuote: boolean;
-    swapping: boolean;
-    handleSwap: () => void;
-    selectedFromToken: TokenCacheData | null;
-    selectedToToken: TokenCacheData | null;
-    displayAmount: string;
-}
-
-export default function SwapButton({
-    quote,
-    isLoadingQuote,
-    swapping,
-    handleSwap,
-    selectedFromToken,
-    selectedToToken,
-    displayAmount
-}: SwapButtonProps) {
+export default function SwapButton() {
+    // Get swap state from context
+    const {
+        quote,
+        isLoadingQuote,
+        selectedFromToken,
+        selectedToToken,
+        displayAmount,
+        handleSwap,
+        swapping,
+    } = useSwapContext();
 
     const isDisabled = !quote || isLoadingQuote || swapping;
     const showShimmer = !isLoadingQuote && !swapping && quote && selectedFromToken && selectedToToken && displayAmount && displayAmount !== "0";
 
     // Determine if this is a subnet shift operation
-    const isSubnetShift = quote?.hops.some(hop =>
+    const isSubnetShift = quote?.hops.some((hop: any) =>
         hop.vault.type === 'SUBLINK'
     );
 

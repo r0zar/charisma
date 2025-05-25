@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { type Token } from "../lib/_swap-client";
 import TokenLogo from "./TokenLogo";
+import { TokenCacheData } from "@repo/tokens";
 
 interface TokenDropdownProps {
-    tokens: Token[];
-    selected?: Token | null;
-    onSelect: (t: Token) => void;
+    tokens: TokenCacheData[];
+    selected?: TokenCacheData | null;
+    onSelect: (t: TokenCacheData) => void;
     label?: string;
+    suppressFlame?: boolean;
 }
 
 export default function TokenDropdown({
@@ -15,6 +16,7 @@ export default function TokenDropdown({
     selected,
     onSelect,
     label,
+    suppressFlame = false,
 }: TokenDropdownProps) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -132,7 +134,7 @@ export default function TokenDropdown({
                                         : ""
                                         }`}
                                 >
-                                    <TokenLogo token={token} size="sm" />
+                                    <TokenLogo token={token} size="sm" suppressFlame={suppressFlame} />
                                     <div>
                                         <div className="font-medium">{token.symbol}</div>
                                         <div className="text-xs text-dark-500">{token.name}</div>
@@ -161,7 +163,7 @@ export default function TokenDropdown({
             >
                 {selected ? (
                     <div className="flex items-center space-x-2">
-                        <TokenLogo token={selected} size="sm" />
+                        <TokenLogo token={selected} size="sm" suppressFlame={suppressFlame} />
                         <span className="font-medium">{selected.symbol}</span>
                     </div>
                 ) : (

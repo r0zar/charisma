@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { TokenSummary } from '@/app/token-actions';
-import CompareTokenSelector from './compare-token-selector';
+import CompareTokenSelector from '../compare-token-selector';
 import TokenChartWrapper from './token-chart-wrapper';
-import { useDominantColor } from './utils/useDominantColor';
+import { useDominantColor } from '../utils/useDominantColor';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 interface Props {

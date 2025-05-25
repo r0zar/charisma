@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, Sparkles, RefreshCw, Shield, Coins, Layers, Wallet } from 'lucide-react';
 import { listTokens, getQuote } from "./actions";
-import { Header } from "../components/header";
+import { Header } from "../components/layout/header";
 import Link from 'next/link';
 import CharismaQuote from "../components/charisma-quote";
 

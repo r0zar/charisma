@@ -1,4 +1,4 @@
-import { Header } from "@/components/header";
+import { Header } from "@/components/layout/header";
 import OfferForm from "@/components/otc/OfferForm";
 import { ShopService } from "@/lib/shop/shop-service";
 

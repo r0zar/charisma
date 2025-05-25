@@ -1,14 +1,14 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTokenDetail, listTokenSummaries } from '../../token-actions';
-import { Header } from '@/components/header';
+import { Header } from '@/components/layout/header';
 import dynamic from 'next/dynamic';
 
 interface PageProps {
     params: { contractId: string };
 }
 
-const TokenDetailClient = dynamic(() => import('@/components/token-detail-client'), { ssr: true });
+const TokenDetailClient = dynamic(() => import('@/components/tokens/token-detail-client'), { ssr: true });
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { contractId } = await params;

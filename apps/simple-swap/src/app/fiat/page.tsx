@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getAllIntents } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { manuallyProcessBlazeIntentAction } from "@/app/actions";
-import { Header } from "@/components/header";
+import { Header } from "@/components/layout/header";
 import TokenPurchaseForm from "@/components/payments/token-purchase-form";
 import { IntentGrid } from "@/components/payments/IntentGrid";
 import { isDevelopment } from "@/lib/utils";

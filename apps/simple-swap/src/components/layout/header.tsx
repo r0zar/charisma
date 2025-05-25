@@ -2,9 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { WalletButton } from "./wallet-button";
+import { WalletButton } from "../wallet-button";
 import { Coins, Menu, X } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 export function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);

@@ -1,76 +1,100 @@
 "use client";
 
 import React from 'react';
-import { Twitter } from 'lucide-react';
+import { Share2, Repeat, TrendingUp, Monitor } from 'lucide-react';
+import { Button } from '../ui/button';
+import { useSwapContext } from '../../contexts/swap-context';
 
-interface ToggleProps {
-    mode: 'swap' | 'order';
-    onChange: (m: 'swap' | 'order') => void;
-}
+export default function SwapHeader() {
+    const {
+        mode,
+        setMode,
+        securityLevel,
+        handleShare,
+        selectedFromToken,
+        hasBothVersions,
+        isProMode,
+        setIsProMode
+    } = useSwapContext();
 
-function ModeToggle({ mode, onChange }: ToggleProps) {
-    const orderDisabled = false;
+    // Check if order mode should be disabled based on from token subnet compatibility
+    const isOrderModeDisabled = !hasBothVersions(selectedFromToken);
+
     return (
-        <div className="flex items-center border border-border/40 rounded-md overflow-hidden text-xs select-none">
-            {(['swap', 'order'] as const).map((m) => {
-                const isDisabled = orderDisabled && m === 'order';
-                const isActive = mode === m;
-                return (
+        <div className="flex items-center justify-between p-4 border-b border-border/40 bg-gradient-to-r from-primary/5 to-secondary/5">
+            <div className="flex items-center space-x-3">
+                <div className="flex items-center bg-background/80 rounded-lg p-1 shadow-sm border border-border/30">
                     <button
-                        key={m}
-                        className={`cursor-pointer relative px-2.5 py-1 transition-colors ${isActive ? 'bg-primary text-primary-foreground' : 'bg-transparent'} ${isDisabled ? 'cursor-not-allowed text-muted-foreground/60 hover:bg-transparent' : 'hover:bg-muted'}`}
-                        onClick={() => {
-                            if (isDisabled) return;
-                            onChange(m);
-                        }}
+                        onClick={() => setMode('swap')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${mode === 'swap'
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
                     >
-                        {m === 'swap' ? 'Swap' : 'Order'}
+                        <TrendingUp className="w-4 h-4 mr-1.5 inline" />
+                        Swap
                     </button>
-                );
-            })}
-        </div>
-    );
-}
+                    <button
+                        onClick={() => !isOrderModeDisabled && setMode('order')}
+                        disabled={isOrderModeDisabled}
+                        title={isOrderModeDisabled
+                            ? "Order mode requires a token with subnet support. Please select a different token."
+                            : "Switch to order mode for triggered swaps"
+                        }
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${isOrderModeDisabled
+                            ? 'text-muted-foreground/50 cursor-not-allowed opacity-50'
+                            : mode === 'order'
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
+                    >
+                        <Repeat className="w-4 h-4 mr-1.5 inline" />
+                        Order
+                    </button>
+                </div>
 
-interface SwapHeaderProps {
-    securityLevel: 'high' | 'medium' | 'low' | null;
-    userAddress: string | null;
-    mode: 'swap' | 'order';
-    onModeChange: (m: 'swap' | 'order') => void;
-    onShare: () => void;
-}
-
-export default function SwapHeader({
-    securityLevel,
-    mode,
-    onModeChange,
-    onShare
-}: SwapHeaderProps) {
-    return (
-        <div className="border-b border-border/30 p-5 flex justify-between items-center bg-gradient-to-r from-card to-card/90">
-            <div className="flex items-center flex-wrap gap-3">
-                <h2 className="text-lg font-semibold text-foreground">Secure Token Swap</h2>
-
-                {/* Security level indicator */}
+                {/* Security indicator */}
                 {securityLevel && (
-                    <div className="flex items-center bg-background/40 px-2 py-0.5 rounded-full">
+                    <div className="flex items-center text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded-md border border-border/30">
                         <span className={`h-2 w-2 rounded-full mr-1.5 ${securityLevel === 'high' ? 'bg-green-500' :
                             securityLevel === 'medium' ? 'bg-blue-500' : 'bg-purple-500'
                             }`}></span>
-                        <span className="text-xs">Routing optimizer</span>
+                        {securityLevel === 'high' ? 'Direct route' :
+                            securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing'}
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-                <ModeToggle mode={mode} onChange={onModeChange} />
-                <button
-                    onClick={onShare}
-                    title="Share this swap"
-                    className="cursor-pointer ml-2 p-2 hover:bg-muted rounded-full transition-colors"
+            <div className="flex items-center space-x-2">
+                {/* Pro Mode Button - only enabled in order mode */}
+                <Button
+                    variant={isProMode ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsProMode(!isProMode)}
+                    disabled={mode !== 'order'}
+                    title={mode !== 'order'
+                        ? "Pro mode is only available in Order mode"
+                        : isProMode
+                            ? "Exit Pro mode"
+                            : "Enter Pro mode for full-screen orderbook experience"
+                    }
+                    className={`${mode !== 'order'
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'text-muted-foreground hover:text-foreground'
+                        } ${isProMode ? 'bg-primary text-primary-foreground' : ''}`}
                 >
-                    <Twitter className="h-4 w-4 text-primary" />
-                </button>
+                    <Monitor className="w-4 h-4" />
+                    {isProMode && <span className="ml-1 text-xs">Pro</span>}
+                </Button>
+
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleShare}
+                    className="text-muted-foreground hover:text-foreground"
+                >
+                    <Share2 className="w-4 h-4" />
+                </Button>
             </div>
         </div>
     );

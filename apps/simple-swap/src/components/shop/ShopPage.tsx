@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useWallet } from '@/contexts/wallet-context';
-import { Header } from '@/components/header';
+import { Header } from '@/components/layout/header';
 import ShopItem from '@/components/shop/ShopItem';
 import ShopFilters from '@/components/shop/ShopFilters';
 import { Package, AlertCircle, Plus, TrendingUp, Users, Clock } from 'lucide-react';

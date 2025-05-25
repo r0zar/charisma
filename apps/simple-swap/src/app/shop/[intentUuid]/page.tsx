@@ -8,7 +8,7 @@ import { getOffer } from "@/lib/otc/kv";
 import { OfferDetailContent } from "@/components/otc/OfferDetailContent";
 import SocialShare from "@/components/otc/SocialShare";
 import { WalletProvider } from "@/contexts/wallet-context";
-import { Header } from "@/components/header";
+import { Header } from "@/components/layout/header";
 import { Offer as SchemaOffer } from "@/lib/otc/schema";
 import { CancelOffer } from "@/components/otc/CancelOffer";
 import { ShopService } from "@/lib/shop/shop-service";

@@ -1294,7 +1294,7 @@ Count: ${signatures.length}
                             <Input
                                 id="private-key"
                                 type="password"
-                                placeholder={isSeedPhrase ? "Enter your seed phrase (12-24 words)" : "Enter your private key"}
+                                placeholder={"Enter your private key or seed phrase (12-24 words)"}
                                 value={privateKey}
                                 onChange={handlePrivateKeyChange}
                                 onBlur={() => validatePrivateKey()}

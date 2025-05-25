@@ -4,15 +4,15 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useWallet } from "@/contexts/wallet-context";
 import type { LimitOrder } from "@/lib/orders/types";
 import { cn } from "@/lib/utils";
-import { Button } from "./ui/button";
-import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import TokenLogo from "./TokenLogo";
+import { Button } from "../ui/button";
+import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import TokenLogo from "../TokenLogo";
 import { ClipboardList, Copy, Check, Zap, Trash2 } from "lucide-react";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { toast } from "sonner";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../ui/tooltip";
 import { signedFetch } from "blaze-sdk";
 
 interface BadgeProps {

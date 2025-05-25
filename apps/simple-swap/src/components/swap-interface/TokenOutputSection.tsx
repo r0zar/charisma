@@ -1,57 +1,108 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { Token } from '../../lib/_swap-client';
 import TokenDropdown from '../TokenDropdown';
 import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
+import { TokenCacheData } from '@repo/tokens';
+import { useSwapContext } from '../../contexts/swap-context';
 
-interface TokenOutputSectionProps {
-    label: string;
-    selectedToken: Token | null;
-    displayedToken: Token | null; // The token to show as selected in the dropdown (usually mainnet)
-    outputAmount: string; // Formatted quote amount
-    minimumReceived: string; // Formatted quote min received
-    balance: string;
-    displayTokens: Token[]; // Filtered list for the dropdown
-    onSelectToken: (token: Token) => void; // Callback when base token is selected
-    hasBothVersions: boolean;
-    isSubnetSelected: boolean;
-    onToggleSubnet: () => void;
-    isLoadingQuote: boolean;
-    isLoadingPrice: boolean;
-    tokenValueUsd: string | null; // Formatted USD value
-    formatUsd: (value: number | null) => string | null; // USD formatting function
-    quoteHops: number | null;
-    priceImpactDisplay: React.ReactNode; // Pass the price impact display as a node
-}
-
-export default function TokenOutputSection({
-    label,
-    selectedToken,
-    displayedToken,
-    outputAmount,
-    minimumReceived,
-    balance,
-    displayTokens,
-    onSelectToken,
-    hasBothVersions,
-    isSubnetSelected,
-    onToggleSubnet,
-    isLoadingQuote,
-    isLoadingPrice,
-    tokenValueUsd,
-    formatUsd,
-    quoteHops,
-    priceImpactDisplay
-}: TokenOutputSectionProps) {
+export default function TokenOutputSection() {
     const [showChart, setShowChart] = useState(false);
+
+    // Get all needed state from context
+    const {
+        mode,
+        selectedToToken,
+        quote,
+        toTokenBalance,
+        isLoadingQuote,
+        isLoadingPrices,
+        toTokenValueUsd,
+        formatTokenAmount,
+        displayTokens,
+        displayedToToken,
+        hasBothVersions,
+        useSubnetTo,
+        setUseSubnetTo,
+        setSelectedToToken,
+        baseSelectedToToken,
+        setBaseSelectedToToken,
+        tokenCounterparts,
+        totalPriceImpact,
+        toLabel,
+    } = useSwapContext();
+
+    // Determine props based on mode and state
+    const label = toLabel;
+    // Create a virtual display token that shows subnet type when useSubnetTo is true
+    const displayedToken = displayedToToken ? {
+        ...displayedToToken,
+        type: useSubnetTo ? 'SUBNET' as const : displayedToToken.type
+    } : null;
+    const tokensToShow = displayTokens;
+    const isSubnetSelected = useSubnetTo;
+    const hasBothVersionsForToken = hasBothVersions(selectedToToken);
+
+    // Helper to format USD currency
+    const formatUsd = (value: number | null) => {
+        if (value === null || isNaN(value)) return null;
+        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const tokenValueUsd = formatUsd(toTokenValueUsd);
+    const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
+    const quoteHops = quote ? quote.path.length - 1 : null;
+
+    const handleSelectToken = (t: TokenCacheData) => {
+        console.log("Selected TO token:", t.symbol);
+        if (mode === 'order') {
+            // In order mode, we can select any token (mainnet or subnet)
+            setSelectedToToken(t);
+        } else {
+            // In swap mode, directly set the selected token
+            setSelectedToToken(t);
+            setBaseSelectedToToken(t);
+            setUseSubnetTo(t.type === 'SUBNET');
+        }
+    };
+
+    const handleToggleSubnet = () => {
+        if (selectedToToken) {
+            // Toggle between mainnet and subnet versions
+            const baseId = selectedToToken.type === 'SUBNET'
+                ? selectedToToken.base!
+                : selectedToToken.contractId;
+            const counterparts = tokenCounterparts.get(baseId);
+
+            if (counterparts) {
+                const targetToken = useSubnetTo ? counterparts.mainnet : counterparts.subnet;
+                if (targetToken) {
+                    setSelectedToToken(targetToken);
+                    setBaseSelectedToToken(targetToken);
+                    setUseSubnetTo(!useSubnetTo);
+                }
+            }
+        }
+    };
+
+    // Price impact display component
+    const priceImpactDisplay = totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && !isLoadingQuote ? (
+        <div className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${totalPriceImpact.priceImpact > 0
+            ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
+            : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
+            }`}>
+            {totalPriceImpact.priceImpact > 0 ? '+' : ''}
+            {totalPriceImpact.priceImpact.toFixed(2)}% impact
+        </div>
+    ) : null;
+
     return (
         <div className="bg-muted/20 rounded-2xl p-4 sm:p-5 mb-5 backdrop-blur-sm border border-muted/40 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0 mb-2">
                 <div className="flex items-center gap-1">
                     <label className="text-sm text-foreground/80 font-medium">{label}</label>
-                    {selectedToken && (
+                    {selectedToToken && (
                         <button
                             type="button"
                             onClick={() => setShowChart(!showChart)}
@@ -63,14 +114,18 @@ export default function TokenOutputSection({
                     )}
                 </div>
 
-                {selectedToken && (
+                {selectedToToken && (
                     <div className="text-xs text-muted-foreground flex items-center gap-1 bg-background/40 px-2 py-0.5 rounded-full self-start">
-                        Balance: <span className="font-semibold text-foreground">{balance}</span> {selectedToken.symbol}
-                        {hasBothVersions && (
+                        Balance: <span className="font-semibold text-foreground">{toTokenBalance}</span> {selectedToToken.symbol}
+                        {hasBothVersionsForToken && (
                             <button
-                                onClick={onToggleSubnet}
-                                className={`cursor-pointer ml-1 p-0.5 rounded-full hover:bg-muted transition-colors ${isSubnetSelected ? 'text-red-500' : 'text-muted-foreground/50'}`}
-                                title={isSubnetSelected ? "Using Subnet Token" : "Using Mainnet Token"}
+                                onClick={handleToggleSubnet}
+                                className={`ml-1 p-0.5 rounded-full transition-colors ${useSubnetTo ? 'text-red-500' : 'text-muted-foreground/50'}`}
+                                title={
+                                    useSubnetTo
+                                        ? "Using Subnet Token - Click to use Mainnet"
+                                        : "Using Mainnet Token - Click to use Subnet"
+                                }
                             >
                                 <Flame size={14} />
                             </button>
@@ -107,9 +162,9 @@ export default function TokenOutputSection({
 
                 <div className="min-w-[120px] sm:min-w-[140px] shrink-0">
                     <TokenDropdown
-                        tokens={displayTokens}
-                        selected={displayedToken} // Use the base token for highlighting dropdown
-                        onSelect={onSelectToken} // Call parent handler for selection
+                        tokens={tokensToShow}
+                        selected={displayedToken}
+                        onSelect={handleSelectToken}
                         label=""
                     />
                 </div>
@@ -117,7 +172,7 @@ export default function TokenOutputSection({
             <div className="text-xs mt-1.5 h-4 flex items-center justify-between">
                 <div className="text-muted-foreground">
                     {isLoadingQuote ? null : // Don't show loading if quote is loading
-                        isLoadingPrice ? (
+                        isLoadingPrices ? (
                             <div className="flex items-center space-x-1">
                                 <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
                                 <span className="animate-pulse">Loading price...</span>
@@ -130,9 +185,9 @@ export default function TokenOutputSection({
             </div>
 
             {/* collapsible chart */}
-            {showChart && selectedToken && (
+            {showChart && selectedToToken && (
                 <div className="mt-4">
-                    <ConditionTokenChartWrapper token={selectedToken} targetPrice="" onTargetPriceChange={() => { }} />
+                    <ConditionTokenChartWrapper token={selectedToToken} targetPrice="" onTargetPriceChange={() => { }} />
                 </div>
             )}
         </div>

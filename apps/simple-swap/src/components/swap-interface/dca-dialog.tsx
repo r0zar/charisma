@@ -1,27 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { Button } from './ui/button';
-import TokenLogo from './TokenLogo';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Button } from '../ui/button';
+import TokenLogo from '../TokenLogo';
 import { Loader2, Check, X as XIcon } from 'lucide-react';
-import type { Token } from '../lib/_swap-client';
+import { TokenCacheData } from '@repo/tokens';
 import { useRouter } from 'next/navigation';
+import { useSwapContext } from '../../contexts/swap-context';
 
-interface DcaDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    defaultAmount: string;
-    fromToken: Token | null;
-    toToken: Token | null;
-    conditionToken: Token | null;
-    baseToken: Token | null;
-    targetPrice: string;
-    direction: 'lt' | 'gt';
-    createOrder: (params: { amountDisplay: string; validFrom: string; validTo: string }) => Promise<void>;
-}
-
-export const DcaDialog: React.FC<DcaDialogProps> = ({ open, onOpenChange, defaultAmount, fromToken, toToken, conditionToken, baseToken, targetPrice, direction, createOrder }) => {
+export const DcaDialog: React.FC = () => {
     const EASY_PRESET = { slices: 4, intervalHours: 24 } as const;
     const router = useRouter();
+
+    // Get all needed state from context
+    const {
+        dcaDialogOpen,
+        setDcaDialogOpen,
+        displayAmount,
+        selectedFromToken,
+        selectedToToken,
+        conditionToken,
+        baseToken,
+        targetPrice,
+        conditionDir,
+        createSingleOrder,
+    } = useSwapContext();
+
+    // Use context values
+    const open = dcaDialogOpen;
+    const onOpenChange = setDcaDialogOpen;
+    const defaultAmount = displayAmount;
+    const fromToken = selectedFromToken;
+    const toToken = selectedToToken;
+    const direction = conditionDir;
+    const createOrder = createSingleOrder;
 
     const [intervalOption, setIntervalOption] = useState<'hourly' | 'daily' | 'weekly' | 'custom'>('daily');
     const [slices, setSlices] = useState<number>(12);

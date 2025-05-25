@@ -3,50 +3,33 @@
 import React, { useState } from 'react';
 import TokenLogo from '../TokenLogo';
 import Image from 'next/image';
-import { KraxelPriceData } from '@repo/tokens';
-import { Hop, Route } from 'dexterity-sdk';
+import { useSwapContext } from '../../contexts/swap-context';
+import { Hop } from 'dexterity-sdk';
 import { TokenCacheData } from '@repo/tokens';
 
-interface SwapDetailsProps {
-    quote: Route | null;
-    selectedToToken: TokenCacheData | null;
-    microAmount: string;
-    tokenPrices: KraxelPriceData;
-    totalPriceImpact: {
-        inputValueUsd: number;
-        outputValueUsd: number;
-        priceImpact: number | null;
-    } | null;
-    priceImpacts: {
-        impact: number | null;
-        fromValueUsd: number | null;
-        toValueUsd: number | null;
-    }[];
-    isLoadingPrices: boolean;
-    isLoadingQuote: boolean;
-    securityLevel: 'high' | 'medium' | 'low' | null;
-    formatTokenAmount: (amount: number, decimals: number) => string;
-    formatUsd: (value: number | null) => string | null;
-}
-
-export default function SwapDetails({
-    quote,
-    selectedToToken,
-    microAmount,
-    tokenPrices,
-    totalPriceImpact,
-    priceImpacts,
-    isLoadingPrices,
-    isLoadingQuote,
-    securityLevel,
-    formatTokenAmount,
-    formatUsd
-}: SwapDetailsProps) {
+export default function SwapDetails() {
     const [showDetails, setShowDetails] = useState(false);
     const [showRouteDetails, setShowRouteDetails] = useState(true);
 
+    // Get swap state from context
+    const {
+        quote,
+        selectedToToken,
+        microAmount,
+        tokenPrices,
+        isLoadingPrices,
+        isLoadingQuote,
+        formatTokenAmount,
+        totalPriceImpact,
+        priceImpacts,
+        securityLevel,
+        formatUsd,
+    } = useSwapContext();
+
+    if (!quote || isLoadingQuote) return null;
+
     // Determine if this is a subnet shift operation by checking for SUBLINK vault type
-    const isSubnetShift = quote?.hops.some(hop => hop.vault.type === 'SUBLINK');
+    const isSubnetShift = quote?.hops.some((hop: Hop) => hop.vault.type === 'SUBLINK');
 
     // Detect if both from and to tokens are subnet tokens using type property
     const isFromSubnet = quote?.path[0]?.type === 'SUBNET';

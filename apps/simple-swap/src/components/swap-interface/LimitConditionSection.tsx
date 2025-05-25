@@ -1,41 +1,35 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { Token } from '../../lib/_swap-client';
 import TokenDropdown from '../TokenDropdown';
 import { AlarmClockCheck, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
+import { TokenCacheData } from '@repo/tokens';
+import { useSwapContext } from '../../contexts/swap-context';
 
-interface Props {
-    displayTokens: Token[];
-    selectedToken: Token | null;
-    onSelectToken: (t: Token) => void;
-    baseToken: Token | null; // null means USD
-    onSelectBaseToken: (t: Token | null) => void;
-    targetPrice: string;
-    onTargetChange: (v: string) => void;
-    direction: 'lt' | 'gt';
-    onDirectionChange: (d: 'lt' | 'gt') => void;
-    onBump: (percent: number) => void; // negative for decrease
-}
-
-export default function LimitConditionSection({
-    displayTokens,
-    selectedToken,
-    baseToken,
-    onSelectBaseToken,
-    onSelectToken,
-    targetPrice,
-    onTargetChange,
-    direction,
-    onDirectionChange,
-    onBump,
-}: Props) {
+export default function LimitConditionSection() {
     const [showChart, setShowChart] = useState(true);
     const SUSDT_ID = 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
 
+    // Get all needed state from context
+    const {
+        displayTokens,
+        conditionToken,
+        setConditionToken,
+        baseToken,
+        setBaseToken,
+        targetPrice,
+        setTargetPrice,
+        conditionDir,
+        setConditionDir,
+        handleBumpPrice,
+        displayedToToken,
+    } = useSwapContext();
+
+    const selectedToken = conditionToken || displayedToToken;
+
     const handleReset = () => {
-        onTargetChange('');
+        setTargetPrice('');
     };
 
     return (
@@ -62,8 +56,11 @@ export default function LimitConditionSection({
                         <TokenDropdown
                             tokens={displayTokens}
                             selected={selectedToken}
-                            onSelect={onSelectToken}
+                            onSelect={(t) => {
+                                setConditionToken(t);
+                            }}
                             label=""
+                            suppressFlame={true}
                         />
                     </div>
 
@@ -75,8 +72,8 @@ export default function LimitConditionSection({
                         ].map(({ key, label }) => (
                             <button
                                 key={key}
-                                className={`px-2.5 py-1 whitespace-nowrap transition-colors ${direction === key ? 'bg-primary text-primary-foreground' : 'bg-transparent hover:bg-muted'}`}
-                                onClick={() => onDirectionChange(key as 'lt' | 'gt')}
+                                className={`px-2.5 py-1 whitespace-nowrap transition-colors ${conditionDir === key ? 'bg-primary text-primary-foreground' : 'bg-transparent hover:bg-muted'}`}
+                                onClick={() => setConditionDir(key as 'lt' | 'gt')}
                             >
                                 {label}
                             </button>
@@ -90,7 +87,7 @@ export default function LimitConditionSection({
                             onChange={(e) => {
                                 const v = e.target.value;
                                 if (/^[0-9]*\.?[0-9]*$/.test(v) || v === '') {
-                                    onTargetChange(v);
+                                    setTargetPrice(v);
                                 }
                             }}
                             placeholder="0.00"
@@ -98,8 +95,8 @@ export default function LimitConditionSection({
                         />
 
                         <div className="flex flex-row gap-0.5 shrink-0">
-                            <button onClick={() => onBump(0.01)} className="cursor-pointer hover:bg-muted-foreground/10 text-xs px-1.5 py-0.5 bg-muted-foreground/5 rounded">+</button>
-                            <button onClick={() => onBump(-0.01)} className="cursor-pointer hover:bg-muted-foreground/10 text-xs px-1.5 py-0.5 bg-muted-foreground/5 rounded">-</button>
+                            <button onClick={() => handleBumpPrice(0.01)} className="cursor-pointer hover:bg-muted-foreground/10 text-xs px-1.5 py-0.5 bg-muted-foreground/5 rounded">+</button>
+                            <button onClick={() => handleBumpPrice(-0.01)} className="cursor-pointer hover:bg-muted-foreground/10 text-xs px-1.5 py-0.5 bg-muted-foreground/5 rounded">-</button>
                         </div>
                     </div>
 
@@ -107,7 +104,7 @@ export default function LimitConditionSection({
                     <div className="w-full sm:w-32 shrink-0">
                         {(() => {
                             // Build options with synthetic USD first then tokens
-                            const options: Token[] = [...displayTokens];
+                            const options: TokenCacheData[] = [...displayTokens];
 
                             // Determine currently selected object
                             const selected = baseToken ?? options.find(o => o.contractId === SUSDT_ID) ?? null;
@@ -117,8 +114,8 @@ export default function LimitConditionSection({
                                     tokens={options}
                                     selected={selected}
                                     onSelect={(t) => {
-                                        if (t.contractId === 'USD') onSelectBaseToken(null);
-                                        else onSelectBaseToken(t.contractId === SUSDT_ID ? null : t);
+                                        if (t.contractId === 'USD') setBaseToken(null);
+                                        else setBaseToken(t.contractId === SUSDT_ID ? null : t);
                                     }}
                                 />
                             );
@@ -134,7 +131,7 @@ export default function LimitConditionSection({
                             token={selectedToken}
                             baseToken={baseToken}
                             targetPrice={targetPrice}
-                            onTargetPriceChange={onTargetChange}
+                            onTargetPriceChange={setTargetPrice}
                         />
                     </div>
                 )}
