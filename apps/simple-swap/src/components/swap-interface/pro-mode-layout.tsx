@@ -1153,9 +1153,6 @@ export default function ProModeLayout() {
                                 {sandwichUsdAmount && sandwichBuyPrice && sandwichSellPrice && selectedFromToken && selectedToToken ? (
                                     <div className="bg-background/60 border border-border/60 rounded-lg p-4">
                                         <div className="flex items-center space-x-2 mb-3">
-                                            <div className="p-2 rounded-lg bg-yellow-100 text-yellow-700">
-                                                <Eye className="w-4 h-4" />
-                                            </div>
                                             <h4 className="font-semibold text-foreground">Calculated Amounts</h4>
                                         </div>
 
@@ -1225,9 +1222,6 @@ export default function ProModeLayout() {
                                 ) : (
                                     <div className="bg-background/60 border border-border/60 rounded-lg p-4">
                                         <div className="flex items-center space-x-2 mb-3">
-                                            <div className="p-2 rounded-lg bg-muted">
-                                                <Eye className="w-4 h-4" />
-                                            </div>
                                             <h4 className="font-semibold text-foreground">Calculated Amounts</h4>
                                         </div>
                                         <div className="text-xs text-muted-foreground">

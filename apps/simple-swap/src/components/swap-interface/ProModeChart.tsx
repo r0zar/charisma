@@ -245,12 +245,12 @@ export default function ProModeChart({
                 leftPriceScale: {
                     visible: false,
                     borderVisible: false,
-                    scaleMargins: { top: 0.1, bottom: 0.1 },
+                    scaleMargins: { top: 0.2, bottom: 0.2 },
                 },
                 rightPriceScale: {
                     visible: true,
                     borderVisible: true,
-                    scaleMargins: { top: 0.1, bottom: 0.1 },
+                    scaleMargins: { top: 0.2, bottom: 0.2 },
                     autoScale: true,
                     mode: 0, // Normal mode instead of logarithmic for better grid lines
                     invertScale: false,
@@ -829,7 +829,7 @@ export default function ProModeChart({
 
             const price = parseFloat(targetPrice);
             console.log(`Target price check: raw="${targetPrice}", parsed=${price}, valid=${!isNaN(price) && price > 0 && targetPrice.trim() !== '' && targetPrice !== '0'}`);
-            if (!isNaN(price) && price > 0.001 && targetPrice.trim() !== '' && targetPrice !== '0' && targetPrice.length > 1) {
+            if (!isNaN(price) && price > 0 && targetPrice.trim() !== '' && targetPrice !== '0') {
                 // Create the target price line
                 priceLineRef.current = seriesRef.current.createPriceLine({
                     price,
@@ -914,7 +914,18 @@ export default function ProModeChart({
         const maxPrice = Math.max(...prices);
         const priceRange = maxPrice - minPrice;
 
-        // Dynamic precision calculation based on price range and magnitude
+        // Calculate padding to extend grid lines beyond data range
+        // With 20% scale margins, we need to extend the range by approximately 25% on each side
+        // to fill the padded area (20% margin = 25% of visible range)
+        const paddingPercent = 0.25; // 25% extension on each side
+        const paddingAmount = priceRange * paddingPercent;
+
+        // Extended range for grid line calculation
+        const extendedMinPrice = minPrice - paddingAmount;
+        const extendedMaxPrice = maxPrice + paddingAmount;
+        const extendedRange = extendedMaxPrice - extendedMinPrice;
+
+        // Dynamic precision calculation based on extended price range and magnitude
         const calculateOptimalGridInterval = (range: number, min: number, max: number): number => {
             // Calculate the order of magnitude for the range
             const rangeOrderOfMagnitude = Math.floor(Math.log10(range));
@@ -929,8 +940,9 @@ export default function ProModeChart({
             // Start with a base interval
             let baseInterval = Math.pow(10, baseOrderOfMagnitude);
 
-            // Adjust the interval to get a reasonable number of grid lines (10-50 lines)
-            const targetGridLines = 20;
+            // Adjust the interval to get a reasonable number of grid lines (15-40 lines)
+            // Reduced target since we're covering a larger range now
+            const targetGridLines = 25;
             let interval = baseInterval;
             let estimatedLines = range / interval;
 
@@ -942,9 +954,9 @@ export default function ProModeChart({
                 } else {
                     interval = baseInterval * 2;
                 }
-            } else if (estimatedLines < 10) {
+            } else if (estimatedLines < 15) {
                 // Too few lines, make interval smaller
-                if (estimatedLines < 5) {
+                if (estimatedLines < 8) {
                     interval = baseInterval / 5;
                 } else {
                     interval = baseInterval / 2;
@@ -959,11 +971,11 @@ export default function ProModeChart({
             return interval;
         };
 
-        const gridInterval = calculateOptimalGridInterval(priceRange, minPrice, maxPrice);
+        const gridInterval = calculateOptimalGridInterval(extendedRange, extendedMinPrice, extendedMaxPrice);
 
-        // Calculate start and end prices aligned to grid
-        const startPrice = Math.floor(minPrice / gridInterval) * gridInterval;
-        const endPrice = Math.ceil(maxPrice / gridInterval) * gridInterval;
+        // Calculate start and end prices aligned to grid, using extended range
+        const startPrice = Math.floor(extendedMinPrice / gridInterval) * gridInterval;
+        const endPrice = Math.ceil(extendedMaxPrice / gridInterval) * gridInterval;
 
         // Determine appropriate decimal places for labels
         const getDecimalPlaces = (interval: number): number => {
@@ -981,38 +993,38 @@ export default function ProModeChart({
 
         const decimalPlaces = getDecimalPlaces(gridInterval);
 
-        // Create grid lines
+        // Create grid lines across the extended range
         let lineCount = 0;
-        const maxLines = 100; // Safety limit
+        const maxLines = 150; // Increased limit since we're covering more range
 
         for (let price = startPrice; price <= endPrice && lineCount < maxLines; price += gridInterval) {
             // Round to avoid floating point precision issues
             price = Math.round(price / gridInterval) * gridInterval;
 
-            if (price >= minPrice && price <= maxPrice) {
-                try {
-                    const gridLine = seriesRef.current!.createPriceLine({
-                        price: price,
-                        color: "rgba(156, 163, 175, 0.3)", // Subtle grid color
-                        lineWidth: 1,
-                        lineStyle: LineStyle.Solid,
-                        axisLabelVisible: true,
-                        title: '',
-                    });
+            // Create grid lines across the entire extended range, not just within data bounds
+            // This ensures grid lines appear in the padded areas
+            try {
+                const gridLine = seriesRef.current!.createPriceLine({
+                    price: price,
+                    color: "rgba(156, 163, 175, 0.3)", // Subtle grid color
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: '',
+                });
 
-                    // Store grid lines for cleanup
-                    if (!(window as any).manualGridLines) {
-                        (window as any).manualGridLines = [];
-                    }
-                    (window as any).manualGridLines.push(gridLine);
-                    lineCount++;
-                } catch (e) {
-                    console.warn('Failed to create grid line at price:', price, e);
+                // Store grid lines for cleanup
+                if (!(window as any).manualGridLines) {
+                    (window as any).manualGridLines = [];
                 }
+                (window as any).manualGridLines.push(gridLine);
+                lineCount++;
+            } catch (e) {
+                console.warn('Failed to create grid line at price:', price, e);
             }
         }
 
-        console.log(`Added ${lineCount} manual grid lines from ${startPrice.toFixed(decimalPlaces)} to ${endPrice.toFixed(decimalPlaces)} with interval ${gridInterval.toFixed(decimalPlaces)} (range: ${priceRange.toFixed(decimalPlaces)})`);
+        console.log(`Added ${lineCount} manual grid lines from ${startPrice.toFixed(decimalPlaces)} to ${endPrice.toFixed(decimalPlaces)} with interval ${gridInterval.toFixed(decimalPlaces)} (data range: ${minPrice.toFixed(decimalPlaces)} - ${maxPrice.toFixed(decimalPlaces)}, extended range: ${extendedRange.toFixed(decimalPlaces)})`);
     }, [data]);
 
     // Sandwich mode helper functions
