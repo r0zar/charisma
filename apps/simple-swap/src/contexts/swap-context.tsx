@@ -62,6 +62,7 @@ interface SwapContextType {
     securityLevel: 'high' | 'medium' | 'low';
     formatUsd: (value: number | null) => string | null;
     getUsdPrice: (contractId: string) => number | undefined;
+    fetchHistoricalPrices: (contractIds: string[]) => Promise<void>;
     urlParams: Record<string, string | undefined>;
     // UI Helper Logic
     displayedFromToken: TokenCacheData | null;

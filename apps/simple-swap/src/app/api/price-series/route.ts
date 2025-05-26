@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
 
-    const from = fromParam ? Number(fromParam) : now - 1000 * 60 * 60 * 24 * 7; // default 7 days
+    const from = fromParam ? Number(fromParam) : now - 1000 * 60 * 60 * 24 * 30; // default 30 days
     const to = toParam ? Number(toParam) : now;
 
     const raw = await getPricesInRange(contractId, from, to);

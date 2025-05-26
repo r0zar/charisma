@@ -793,10 +793,91 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }, []);
 
+    // Enhanced getUsdPrice with historical fallback
+    const [historicalPrices, setHistoricalPrices] = useState<Map<string, number>>(new Map());
+
     const getUsdPrice = useCallback((contractId: string): number | undefined => {
         if (!tokenPrices) return undefined;
-        return contractId === '.stx' ? tokenPrices['stx'] : tokenPrices[contractId];
-    }, [tokenPrices]);
+
+        // Handle STX special case
+        if (contractId === '.stx') return tokenPrices['stx'];
+
+        // Try to get direct price first
+        let price = tokenPrices[contractId];
+        if (price !== undefined) return price;
+
+        // If no direct price, check if this is a subnet token and try base token price
+        const token = selectedTokens.find(t => t.contractId === contractId);
+        if (token && token.type === 'SUBNET' && token.base) {
+            price = tokenPrices[token.base];
+            if (price !== undefined) return price;
+        }
+
+        // If still no current price, try historical price from cache
+        const historicalPrice = historicalPrices.get(contractId);
+        if (historicalPrice !== undefined) return historicalPrice;
+
+        // If it's a subnet token and no historical price, try base token historical price
+        if (token && token.type === 'SUBNET' && token.base) {
+            const baseHistoricalPrice = historicalPrices.get(token.base);
+            if (baseHistoricalPrice !== undefined) return baseHistoricalPrice;
+        }
+
+        return undefined;
+    }, [tokenPrices, selectedTokens, historicalPrices]);
+
+    // Function to fetch and cache historical prices for tokens without current prices
+    const fetchHistoricalPrices = useCallback(async (contractIds: string[]) => {
+        const newHistoricalPrices = new Map(historicalPrices);
+        let hasUpdates = false;
+
+        for (const contractId of contractIds) {
+            // Skip if we already have a cached historical price
+            if (historicalPrices.has(contractId)) continue;
+
+            try {
+                const response = await fetch(`/api/price-latest?contractId=${encodeURIComponent(contractId)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.price !== undefined) {
+                        newHistoricalPrices.set(contractId, data.price);
+                        hasUpdates = true;
+                    }
+                }
+            } catch (error) {
+                console.warn(`Failed to fetch historical price for ${contractId}:`, error);
+            }
+        }
+
+        if (hasUpdates) {
+            setHistoricalPrices(newHistoricalPrices);
+        }
+    }, [historicalPrices]);
+
+    // Effect to fetch historical prices for tokens without current prices
+    useEffect(() => {
+        if (!selectedTokens.length || !tokenPrices) return;
+
+        // Find tokens that don't have current prices and don't have cached historical prices
+        const tokensWithoutPrices = selectedTokens
+            .filter(token => {
+                // Check if we have a current price
+                const hasCurrentPrice = tokenPrices[token.contractId] !== undefined ||
+                    (token.contractId === '.stx' && tokenPrices['stx'] !== undefined) ||
+                    (token.type === 'SUBNET' && token.base && tokenPrices[token.base] !== undefined);
+
+                // Check if we have a cached historical price
+                const hasHistoricalPrice = historicalPrices.has(token.contractId) ||
+                    (token.type === 'SUBNET' && token.base && historicalPrices.has(token.base));
+
+                return !hasCurrentPrice && !hasHistoricalPrice;
+            })
+            .map(token => token.contractId);
+
+        if (tokensWithoutPrices.length > 0) {
+            fetchHistoricalPrices(tokensWithoutPrices);
+        }
+    }, [selectedTokens, tokenPrices, historicalPrices, fetchHistoricalPrices]);
 
     // ---------------------- UI Helper Logic ----------------------
     // Determine which tokens are currently displayed in dropdowns (could be base or subnet)
@@ -952,21 +1033,29 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
 
     // Enhanced balance fetching for all user tokens
     const fetchAllUserBalances = useCallback(async (): Promise<Map<string, number>> => {
-        if (!userAddress || !selectedTokens.length) return new Map();
+        if (!userAddress) return new Map();
+
+        // Combine all available tokens (both mainnet and subnet) for balance fetching
+        const allAvailableTokens = [...displayTokens, ...subnetDisplayTokens];
+        if (!allAvailableTokens.length) return new Map();
 
         setIsCheckingBalances(true);
         const balanceMap = new Map<string, number>();
 
         try {
             // Fetch balances for all tokens in parallel
-            const balancePromises = selectedTokens.map(async (token) => {
+            const balancePromises = allAvailableTokens.map(async (token) => {
                 try {
-                    const balance = await getTokenBalanceWithCache(
-                        token.contractId,
-                        userAddress,
-                        token.decimals!
-                    );
-                    const numericBalance = parseFloat(balance);
+                    // Get raw balance directly instead of formatted string
+                    let rawBalance = 0;
+                    if (token.contractId === ".stx") {
+                        rawBalance = await getStxBalance(userAddress);
+                    } else {
+                        rawBalance = await getTokenBalance(token.contractId, userAddress);
+                    }
+
+                    // Convert to human-readable format
+                    const numericBalance = rawBalance / Math.pow(10, token.decimals || 6);
                     return { contractId: token.contractId, balance: numericBalance };
                 } catch (err) {
                     console.error(`Failed to fetch balance for ${token.contractId}:`, err);
@@ -987,7 +1076,7 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         }
 
         return balanceMap;
-    }, [userAddress, selectedTokens, getTokenBalanceWithCache]);
+    }, [userAddress, displayTokens, subnetDisplayTokens]);
 
     // Fast balance check that shows dialog immediately, then loads swap options progressively
     const checkBalanceForOrderFast = useCallback(async (
@@ -1017,14 +1106,30 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         const balancePromises = [];
         if (subnetToken) {
             balancePromises.push(
-                getTokenBalanceWithCache(subnetToken.contractId, userAddress, subnetToken.decimals!)
-                    .then(balance => ({ token: subnetToken, balance: parseFloat(balance) }))
+                (async () => {
+                    let rawBalance = 0;
+                    if (subnetToken.contractId === ".stx") {
+                        rawBalance = await getStxBalance(userAddress);
+                    } else {
+                        rawBalance = await getTokenBalance(subnetToken.contractId, userAddress);
+                    }
+                    const numericBalance = rawBalance / Math.pow(10, subnetToken.decimals || 6);
+                    return { token: subnetToken, balance: numericBalance };
+                })()
             );
         }
         if (mainnetToken && mainnetToken.contractId !== subnetToken?.contractId) {
             balancePromises.push(
-                getTokenBalanceWithCache(mainnetToken.contractId, userAddress, mainnetToken.decimals!)
-                    .then(balance => ({ token: mainnetToken, balance: parseFloat(balance) }))
+                (async () => {
+                    let rawBalance = 0;
+                    if (mainnetToken.contractId === ".stx") {
+                        rawBalance = await getStxBalance(userAddress);
+                    } else {
+                        rawBalance = await getTokenBalance(mainnetToken.contractId, userAddress);
+                    }
+                    const numericBalance = rawBalance / Math.pow(10, mainnetToken.decimals || 6);
+                    return { token: mainnetToken, balance: numericBalance };
+                })()
             );
         }
 
@@ -1082,7 +1187,7 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         }, 0);
 
         return initialResult;
-    }, [userAddress, tokenCounterparts, getTokenBalanceWithCache]);
+    }, [userAddress, tokenCounterparts]);
 
     // Separate function to find swap options (can be called asynchronously)
     const findSwapOptions = useCallback(async (
@@ -1124,7 +1229,9 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         const quotePromises = topBalances.map(async ([contractId, userBalance]) => {
             if (contractId === token.contractId) return null;
 
-            const sourceToken = selectedTokens.find(t => t.contractId === contractId);
+            // Look for the token in all available tokens (both mainnet and subnet)
+            const allAvailableTokens = [...displayTokens, ...subnetDisplayTokens];
+            const sourceToken = allAvailableTokens.find(t => t.contractId === contractId);
             if (!sourceToken) return null;
 
             // Skip if it's the same token (mainnet vs subnet)
@@ -1193,7 +1300,7 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         });
 
         return swapOptions.slice(0, 3);
-    }, [tokenCounterparts, selectedTokens, fetchAllUserBalances, getQuote, convertToMicroUnits, formatTokenAmount]);
+    }, [tokenCounterparts, displayTokens, subnetDisplayTokens, fetchAllUserBalances, getQuote, convertToMicroUnits, formatTokenAmount]);
 
     // Enhanced order creation with fast balance checking
     const handleCreateLimitOrderWithBalanceCheck = useCallback(async () => {
@@ -1441,6 +1548,14 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         }
     }, []);
 
+    // Fetch all balances when tokens are loaded and user is connected
+    useEffect(() => {
+        if (!userAddress || !displayTokens.length || !subnetDisplayTokens.length) return;
+
+        // Automatically fetch all balances when tokens are loaded
+        fetchAllUserBalances();
+    }, [userAddress, displayTokens.length, subnetDisplayTokens.length, fetchAllUserBalances]);
+
     // Proactive balance checking when amount changes
     useEffect(() => {
         if (!selectedFromToken || !displayAmount || mode !== 'order') return;
@@ -1549,6 +1664,7 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         // helper functions
         formatUsd,
         getUsdPrice,
+        fetchHistoricalPrices,
 
         // URL parameters
         urlParams,
@@ -1663,10 +1779,25 @@ async function signTriggeredSwap({
  * Utility functions for working with token amounts
  */
 function formatTokenAmount(amount: number, decimals: number): string {
-    return (amount / Math.pow(10, decimals)).toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-    });
+    const balance = amount / Math.pow(10, decimals);
+
+    if (balance === 0) return '0';
+    if (balance < 0.001) {
+        return balance.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: Math.min(decimals, 10)
+        });
+    } else if (balance < 1) {
+        return balance.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: Math.min(decimals, 6)
+        });
+    } else {
+        return balance.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: Math.min(decimals, 4)
+        });
+    }
 }
 
 /**

@@ -2,8 +2,8 @@ import { kv } from '@vercel/kv';
 
 const PREFIX = 'price:token';
 
-// how long (ms) to retain snapshots, default 7 days
-const RETENTION_MS = Number(process.env.PRICE_RETENTION_MS ?? 1000 * 60 * 60 * 24 * 7);
+// how long (ms) to retain snapshots, default 30 days (1 month)
+const RETENTION_MS = Number(process.env.PRICE_RETENTION_MS ?? 1000 * 60 * 60 * 24 * 30);
 
 // only persist if price deviates more than this fraction (e.g. 0.002 = 0.2%) from last stored price
 const EPSILON = Number(process.env.PRICE_EPSILON ?? 0.0001);

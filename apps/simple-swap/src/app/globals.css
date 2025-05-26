@@ -126,6 +126,57 @@
   .token-select {
     @apply flex items-center gap-2 px-3 py-2 rounded-xl bg-muted hover:bg-muted/80 cursor-pointer transition-colors;
   }
+
+  /* Custom datepicker styling */
+  input[type="datetime-local"] {
+    @apply relative;
+  }
+
+  /* Style the calendar picker indicator */
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-70 hover:opacity-100 transition-opacity;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3e%3cpath fill-rule='evenodd' d='M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z' clip-rule='evenodd'/%3e%3c/svg%3e");
+    background-size: 1.2em 1.2em;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 1.2em;
+    height: 1.2em;
+  }
+
+  /* Dark mode calendar picker indicator */
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+
+  /* Style the inner date/time input */
+  input[type="datetime-local"]::-webkit-datetime-edit {
+    @apply text-foreground;
+  }
+
+  input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    @apply text-foreground;
+  }
+
+  input[type="datetime-local"]::-webkit-datetime-edit-text {
+    @apply text-muted-foreground;
+  }
+
+  input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+  input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+  input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+  input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+  input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+    @apply text-foreground;
+  }
+
+  /* Focus states */
+  input[type="datetime-local"]:focus::-webkit-datetime-edit-month-field:focus,
+  input[type="datetime-local"]:focus::-webkit-datetime-edit-day-field:focus,
+  input[type="datetime-local"]:focus::-webkit-datetime-edit-year-field:focus,
+  input[type="datetime-local"]:focus::-webkit-datetime-edit-hour-field:focus,
+  input[type="datetime-local"]:focus::-webkit-datetime-edit-minute-field:focus {
+    @apply bg-primary/20 text-foreground rounded;
+  }
 }
 
 /* UTILITIES LAYER -------------------------------------------- */

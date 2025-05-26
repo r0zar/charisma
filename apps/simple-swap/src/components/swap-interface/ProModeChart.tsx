@@ -27,6 +27,7 @@ import {
     type IPriceLine,
     LineStyle,
 } from "lightweight-charts";
+import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
 
 // Enriched order type with token metadata
 interface DisplayOrder extends LimitOrder {
@@ -65,6 +66,8 @@ interface ProModeChartProps {
     onSandwichBuyPriceChange?: (price: string) => void;
     onSandwichSellPriceChange?: (price: string) => void;
     sandwichSpread?: string;
+    // Current price callback
+    onCurrentPriceChange?: (price: number | null) => void;
 }
 
 export default function ProModeChart({
@@ -80,7 +83,8 @@ export default function ProModeChart({
     sandwichSellPrice,
     onSandwichBuyPriceChange,
     onSandwichSellPriceChange,
-    sandwichSpread
+    sandwichSpread,
+    onCurrentPriceChange
 }: ProModeChartProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -99,17 +103,7 @@ export default function ProModeChart({
 
     // Sandwich mode state
     const [mousePrice, setMousePrice] = useState<number | null>(null);
-    const [sandwichPreviewLines, setSandwichPreviewLines] = useState<{
-        buyLine: IPriceLine | null;
-        sellLine: IPriceLine | null;
-    }>({ buyLine: null, sellLine: null });
     const [sandwichConfirmedLines, setSandwichConfirmedLines] = useState<{
-        buyLine: IPriceLine | null;
-        sellLine: IPriceLine | null;
-    }>({ buyLine: null, sellLine: null });
-
-    // Add refs to track preview lines more reliably
-    const previewLinesRef = useRef<{
         buyLine: IPriceLine | null;
         sellLine: IPriceLine | null;
     }>({ buyLine: null, sellLine: null });
@@ -119,6 +113,14 @@ export default function ProModeChart({
         buyLine: IPriceLine | null;
         sellLine: IPriceLine | null;
     }>({ buyLine: null, sellLine: null });
+
+    // Ref to store current spread value without causing re-renders
+    const currentSpreadRef = useRef<string>(sandwichSpread || '5');
+
+    // Keep spread ref updated without causing re-renders
+    useEffect(() => {
+        currentSpreadRef.current = sandwichSpread || '5';
+    }, [sandwichSpread]);
 
     // Calculate price change
     useEffect(() => {
@@ -130,8 +132,13 @@ export default function ProModeChart({
 
             setCurrentPrice(latest);
             setPriceChange({ value: change, percentage });
+
+            // Notify parent component of current price change
+            if (onCurrentPriceChange) {
+                onCurrentPriceChange(latest);
+            }
         }
-    }, [data]);
+    }, [data, onCurrentPriceChange]);
 
     // Fetch chart data
     const loadChart = useCallback(async () => {
@@ -221,6 +228,37 @@ export default function ProModeChart({
                         else {
                             return price.toFixed(2);
                         }
+                    },
+                    timeFormatter: (time: number) => {
+                        // Convert Unix timestamp to local time
+                        const date = new Date(time * 1000);
+
+                        // Format based on time range for better readability
+                        const now = new Date();
+                        const diffDays = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+
+                        if (diffDays < 1) {
+                            // Less than 1 day: show time only (e.g., "14:30")
+                            return date.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                        } else if (diffDays < 7) {
+                            // Less than 1 week: show day and time (e.g., "Mon 14:30")
+                            return date.toLocaleDateString([], {
+                                weekday: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                        } else {
+                            // More than 1 week: show date (e.g., "Dec 25")
+                            return date.toLocaleDateString([], {
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                        }
                     }
                 },
                 grid: {
@@ -241,6 +279,13 @@ export default function ProModeChart({
                     borderVisible: false,
                     rightOffset: 12,
                     barSpacing: 3,
+                    minBarSpacing: 0.001,
+                    fixLeftEdge: false,
+                    fixRightEdge: false,
+                    lockVisibleTimeRangeOnResize: false,
+                    rightBarStaysOnScroll: false,
+                    shiftVisibleRangeOnNewBar: false,
+                    minimumHeight: 0,
                 },
                 leftPriceScale: {
                     visible: false,
@@ -303,8 +348,23 @@ export default function ProModeChart({
 
             seriesRef.current.setData(data);
 
-            // Debug: Log data to understand the price range
-            console.log('Chart data:', data.slice(0, 5), '...', data.slice(-5));
+            // Debug: Log data to understand the time range
+            console.log('Chart data loaded:', {
+                totalPoints: data.length,
+                firstPoint: data[0] ? {
+                    time: data[0].time,
+                    date: new Date(Number(data[0].time) * 1000).toISOString(),
+                    value: data[0].value
+                } : null,
+                lastPoint: data[data.length - 1] ? {
+                    time: data[data.length - 1].time,
+                    date: new Date(Number(data[data.length - 1].time) * 1000).toISOString(),
+                    value: data[data.length - 1].value
+                } : null,
+                timeRangeHours: data.length > 0 ? (Number(data[data.length - 1].time) - Number(data[0].time)) / 3600 : 0,
+                timeRangeDays: data.length > 0 ? (Number(data[data.length - 1].time) - Number(data[0].time)) / (3600 * 24) : 0
+            });
+
             if (data.length > 0) {
                 const prices = data.map(d => d.value);
                 const minPrice = Math.min(...prices);
@@ -381,8 +441,8 @@ export default function ProModeChart({
                         // In sandwich mode, set both buy and sell prices based on current mouse position
                         const priceStr = price.toPrecision(9);
                         if (onSandwichBuyPriceChange && onSandwichSellPriceChange) {
-                            // Calculate buy and sell prices using dynamic spread
-                            const spreadPercent = parseFloat(sandwichSpread || '5') / 100; // Default to 5% if not provided
+                            // Calculate buy and sell prices using dynamic spread from ref
+                            const spreadPercent = parseFloat(currentSpreadRef.current) / 100; // Use ref value
                             const buyPrice = price * (1 - spreadPercent);
                             const sellPrice = price * (1 + spreadPercent);
                             onSandwichBuyPriceChange(buyPrice.toPrecision(9));
@@ -398,18 +458,15 @@ export default function ProModeChart({
                 }
             };
 
-            // Handle mouse move for sandwich preview
+            // Handle mouse move - no longer creates sandwich preview lines (handled by overlay)
             const handleMouseMove = (param: any) => {
+                // Only track mouse price for potential future use, overlay handles visual feedback
                 if (!isSandwichMode || !seriesRef.current) {
-                    // Clear preview lines if not in sandwich mode or no valid point
-                    clearSandwichPreviewLines();
                     setMousePrice(null);
                     return;
                 }
 
                 if (!param.point) {
-                    // Mouse left the chart area - clear preview lines
-                    clearSandwichPreviewLines();
                     setMousePrice(null);
                     return;
                 }
@@ -417,9 +474,7 @@ export default function ProModeChart({
                 const price = seriesRef.current.coordinateToPrice(param.point.y);
                 if (price && !isNaN(price)) {
                     setMousePrice(price);
-                    updateSandwichPreviewLines(price);
                 } else {
-                    clearSandwichPreviewLines();
                     setMousePrice(null);
                 }
             };
@@ -427,12 +482,9 @@ export default function ProModeChart({
             chartRef.current.subscribeClick(handleClick);
             chartRef.current.subscribeCrosshairMove(handleMouseMove);
 
-            // Add mouse leave handler to clear preview lines
+            // Add mouse leave handler
             const handleMouseLeave = () => {
-                if (isSandwichMode) {
-                    clearSandwichPreviewLines();
-                    setMousePrice(null);
-                }
+                setMousePrice(null);
             };
 
             // Add mouse leave event to the container
@@ -440,9 +492,16 @@ export default function ProModeChart({
                 containerRef.current.addEventListener('mouseleave', handleMouseLeave);
             }
 
+
+
             // Add manual grid lines after chart is ready
             setTimeout(() => {
                 addManualGridLines();
+
+                // Fit content to show all data initially with some padding
+                if (chartRef.current) {
+                    chartRef.current.timeScale().fitContent();
+                }
             }, 200);
 
             // Handle resize
@@ -456,10 +515,30 @@ export default function ProModeChart({
                 }
             };
 
+            // Listen for window resize
             window.addEventListener("resize", handleResize);
+
+            // Also listen for container size changes using ResizeObserver
+            let resizeObserver: ResizeObserver | null = null;
+            if (containerRef.current && 'ResizeObserver' in window) {
+                resizeObserver = new ResizeObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.target === containerRef.current) {
+                            // Debounce the resize to avoid too many updates
+                            setTimeout(handleResize, 10);
+                            break;
+                        }
+                    }
+                });
+                resizeObserver.observe(containerRef.current);
+            }
 
             return () => {
                 window.removeEventListener("resize", handleResize);
+                // Disconnect ResizeObserver
+                if (resizeObserver) {
+                    resizeObserver.disconnect();
+                }
                 // Remove mouse leave event listener
                 if (containerRef.current) {
                     containerRef.current.removeEventListener('mouseleave', handleMouseLeave);
@@ -480,9 +559,7 @@ export default function ProModeChart({
                         (window as any).manualGridLines = [];
                     }
                     // Clean up sandwich lines
-                    previewLinesRef.current = { buyLine: null, sellLine: null };
                     confirmedLinesRef.current = { buyLine: null, sellLine: null };
-                    setSandwichPreviewLines({ buyLine: null, sellLine: null });
                     setSandwichConfirmedLines({ buyLine: null, sellLine: null });
                 }
             };
@@ -490,7 +567,7 @@ export default function ProModeChart({
         } catch (error) {
             console.error("Chart initialization failed:", error);
         }
-    }, [data, crosshairMode, onTargetPriceChange, isSandwichMode, onSandwichBuyPriceChange, onSandwichSellPriceChange, sandwichSpread]);
+    }, [data, crosshairMode, onTargetPriceChange, isSandwichMode, onSandwichBuyPriceChange, onSandwichSellPriceChange]);
 
     // Separate effect to ensure manual grid lines persist
     useEffect(() => {
@@ -725,8 +802,6 @@ export default function ProModeChart({
                                 (window as any).orderFadeLines = [];
                             }
 
-                            console.log(`Creating fade lines for order ${order.uuid.slice(0, 8)} at price ${price}, chart range: ${minChartPrice.toFixed(8)} - ${maxChartPrice.toFixed(8)}`);
-
                             if (order.direction === 'gt') {
                                 // For buy orders (≥): create fading lines ABOVE the order price
                                 for (let i = 1; i <= numFadeLines; i++) {
@@ -747,7 +822,6 @@ export default function ProModeChart({
 
                                         orderLinesRef.current.push(fadeLine);
                                         (window as any).orderFadeLines.push(fadeLine);
-                                        console.log(`  Created GT fade line ${i} at price ${linePrice.toFixed(8)} with opacity ${(opacity * 0.6).toFixed(2)}`);
                                     } else {
                                         console.log(`  Skipped GT fade line ${i} at price ${linePrice.toFixed(8)} (outside chart bounds)`);
                                     }
@@ -772,19 +846,12 @@ export default function ProModeChart({
 
                                         orderLinesRef.current.push(fadeLine);
                                         (window as any).orderFadeLines.push(fadeLine);
-                                        console.log(`  Created LT fade line ${i} at price ${linePrice.toFixed(8)} with opacity ${(opacity * 0.6).toFixed(2)}`);
                                     } else {
                                         console.log(`  Skipped LT fade line ${i} at price ${linePrice.toFixed(8)} (outside chart bounds)`);
                                     }
                                 }
                             }
-
-                            console.log(`Created ${order.direction} order fade zone for order: ${order.uuid.slice(0, 8)} - ${numFadeLines} fading lines ${order.direction === 'gt' ? 'above' : 'below'} ${price}`);
                         });
-
-                        console.log(`✅ Order line created at price ${price} with color ${isPredominantlyBuy ? 'green' : 'red'}`);
-
-                        console.log(`Order line created successfully for ${isPredominantlyBuy ? 'buy' : 'sell'} orders`);
                     }
                 }
             } catch (error) {
@@ -1028,101 +1095,6 @@ export default function ProModeChart({
     }, [data]);
 
     // Sandwich mode helper functions
-    const updateSandwichPreviewLines = useCallback((centerPrice: number) => {
-        if (!seriesRef.current || !isSandwichMode) return;
-
-        // Always clear existing preview lines first using refs
-        if (previewLinesRef.current.buyLine) {
-            try {
-                seriesRef.current.removePriceLine(previewLinesRef.current.buyLine);
-            } catch (e) {
-                // Ignore errors when removing lines
-            }
-            previewLinesRef.current.buyLine = null;
-        }
-        if (previewLinesRef.current.sellLine) {
-            try {
-                seriesRef.current.removePriceLine(previewLinesRef.current.sellLine);
-            } catch (e) {
-                // Ignore errors when removing lines
-            }
-            previewLinesRef.current.sellLine = null;
-        }
-
-        // Calculate buy and sell prices using dynamic spread
-        const spreadPercent = parseFloat(sandwichSpread || '5') / 100; // Default to 5% if not provided
-        const buyPrice = centerPrice * (1 - spreadPercent);
-        const sellPrice = centerPrice * (1 + spreadPercent);
-
-        // Create new preview lines (semi-transparent)
-        try {
-            const buyLine = seriesRef.current.createPriceLine({
-                price: buyPrice,
-                color: "rgba(34, 197, 94, 0.4)", // Semi-transparent green
-                lineWidth: 2,
-                lineStyle: LineStyle.Dashed,
-                axisLabelVisible: true,
-                title: `Buy: ${buyPrice.toFixed(6)}`,
-            });
-
-            const sellLine = seriesRef.current.createPriceLine({
-                price: sellPrice,
-                color: "rgba(239, 68, 68, 0.4)", // Semi-transparent red
-                lineWidth: 2,
-                lineStyle: LineStyle.Dashed,
-                axisLabelVisible: true,
-                title: `Sell: ${sellPrice.toFixed(6)}`,
-            });
-
-            // Update both refs and state
-            previewLinesRef.current = { buyLine, sellLine };
-            setSandwichPreviewLines({ buyLine, sellLine });
-        } catch (e) {
-            console.warn('Failed to create sandwich preview lines:', e);
-        }
-    }, [isSandwichMode, sandwichSpread]);
-
-    const clearSandwichPreviewLines = useCallback(() => {
-        if (!seriesRef.current) return;
-
-        // Remove lines using refs for reliable tracking
-        if (previewLinesRef.current.buyLine) {
-            try {
-                seriesRef.current.removePriceLine(previewLinesRef.current.buyLine);
-            } catch (e) {
-                // Ignore errors when removing lines
-            }
-            previewLinesRef.current.buyLine = null;
-        }
-        if (previewLinesRef.current.sellLine) {
-            try {
-                seriesRef.current.removePriceLine(previewLinesRef.current.sellLine);
-            } catch (e) {
-                // Ignore errors when removing lines
-            }
-            previewLinesRef.current.sellLine = null;
-        }
-
-        // Also clear state-based lines as backup
-        if (sandwichPreviewLines.buyLine) {
-            try {
-                seriesRef.current.removePriceLine(sandwichPreviewLines.buyLine);
-            } catch (e) {
-                // Ignore errors when removing lines
-            }
-        }
-        if (sandwichPreviewLines.sellLine) {
-            try {
-                seriesRef.current.removePriceLine(sandwichPreviewLines.sellLine);
-            } catch (e) {
-                // Ignore errors when removing lines
-            }
-        }
-
-        // Clear state
-        setSandwichPreviewLines({ buyLine: null, sellLine: null });
-    }, []);
-
     const createSandwichConfirmedLines = useCallback((buyPrice: number, sellPrice: number) => {
         if (!seriesRef.current) return;
 
@@ -1160,9 +1132,6 @@ export default function ProModeChart({
             }
         }
 
-        // Clear preview lines using helper function
-        clearSandwichPreviewLines();
-
         // Create confirmed lines (full opacity)
         try {
             const buyLine = seriesRef.current.createPriceLine({
@@ -1189,20 +1158,12 @@ export default function ProModeChart({
         } catch (e) {
             console.warn('Failed to create sandwich confirmed lines:', e);
         }
-    }, [clearSandwichPreviewLines]);
+    }, []);
 
     // Effect to handle sandwich mode changes
     useEffect(() => {
         if (!isSandwichMode && seriesRef.current) {
             // Clean up sandwich lines when exiting sandwich mode
-            if (previewLinesRef.current.buyLine) {
-                seriesRef.current.removePriceLine(previewLinesRef.current.buyLine);
-                previewLinesRef.current.buyLine = null;
-            }
-            if (previewLinesRef.current.sellLine) {
-                seriesRef.current.removePriceLine(previewLinesRef.current.sellLine);
-                previewLinesRef.current.sellLine = null;
-            }
             if (confirmedLinesRef.current.buyLine) {
                 seriesRef.current.removePriceLine(confirmedLinesRef.current.buyLine);
                 confirmedLinesRef.current.buyLine = null;
@@ -1212,19 +1173,12 @@ export default function ProModeChart({
                 confirmedLinesRef.current.sellLine = null;
             }
             // Also clean up state-based lines as backup
-            if (sandwichPreviewLines.buyLine) {
-                seriesRef.current.removePriceLine(sandwichPreviewLines.buyLine);
-            }
-            if (sandwichPreviewLines.sellLine) {
-                seriesRef.current.removePriceLine(sandwichPreviewLines.sellLine);
-            }
             if (sandwichConfirmedLines.buyLine) {
                 seriesRef.current.removePriceLine(sandwichConfirmedLines.buyLine);
             }
             if (sandwichConfirmedLines.sellLine) {
                 seriesRef.current.removePriceLine(sandwichConfirmedLines.sellLine);
             }
-            setSandwichPreviewLines({ buyLine: null, sellLine: null });
             setSandwichConfirmedLines({ buyLine: null, sellLine: null });
         }
     }, [isSandwichMode]);
@@ -1271,9 +1225,20 @@ export default function ProModeChart({
     }
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col relative">
             {/* Chart Container */}
             <div ref={containerRef} className="flex-1 min-h-0" />
+            {/* Sandwich Preview Overlay */}
+            <SandwichPreviewOverlay
+                chartContainerRef={containerRef}
+                currentPrice={currentPrice || undefined}
+                priceRange={data && data.length > 0 ? {
+                    min: Math.min(...data.map(d => d.value)),
+                    max: Math.max(...data.map(d => d.value))
+                } : undefined}
+                chartRef={chartRef}
+                seriesRef={seriesRef}
+            />
         </div>
     );
 }
