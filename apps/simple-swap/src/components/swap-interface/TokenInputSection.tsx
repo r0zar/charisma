@@ -31,6 +31,7 @@ export default function TokenInputSection() {
         baseSelectedFromToken,
         setBaseSelectedFromToken,
         tokenCounterparts,
+        allTokenBalances,
     } = useSwapContext();
 
     // Determine which tokens to show and other props based on mode
@@ -83,10 +84,14 @@ export default function TokenInputSection() {
     };
 
     const handleSetMax = () => {
-        setDisplayAmount(fromTokenBalance);
-        if (selectedFromToken) {
-            setMicroAmount(convertToMicroUnits(fromTokenBalance, selectedFromToken.decimals!));
-        }
+        if (!selectedFromToken) return;
+
+        // Get raw balance from the allTokenBalances map instead of formatted string
+        const rawBalance = allTokenBalances.get(selectedFromToken.contractId) || 0;
+        const rawBalanceString = rawBalance.toString();
+
+        setDisplayAmount(rawBalanceString);
+        setMicroAmount(convertToMicroUnits(rawBalanceString, selectedFromToken.decimals!));
     };
 
     return (
