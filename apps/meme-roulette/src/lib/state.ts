@@ -282,10 +282,26 @@ export async function resetKVForNextSpin() {
     if (winningTokenId && winningTokenId !== 'none') {
         console.log(`Round completed with winner: ${winningTokenId}`);
 
-        // Call leaderboard integration without earnings calculation
-        // Real earnings will be calculated after actual swaps complete in /api/multihop/process
+        // Get all user votes to identify winners
+        const allUserVotes = await getAllUserVotes();
+        const winnerRewards: Record<string, number> = {};
+
+        // Identify users who voted for the winning token
+        Object.entries(allUserVotes).forEach(([userId, votes]) => {
+            // Check if this user voted for the winning token
+            const winningVotes = votes.filter(vote => vote.tokenId === winningTokenId);
+            if (winningVotes.length > 0) {
+                // For now, set placeholder earnings (real earnings calculated later in /api/multihop/process)
+                const totalWinningVoteAmount = winningVotes.reduce((sum, vote) => sum + vote.voteAmountCHA, 0);
+                winnerRewards[userId] = totalWinningVoteAmount; // Use vote amount as placeholder
+            }
+        });
+
+        console.log(`Identified ${Object.keys(winnerRewards).length} winners for token ${winningTokenId}`);
+
+        // Call leaderboard integration with identified winners
         const { completeRoundWithLeaderboard } = await import('./leaderboard-integration');
-        await completeRoundWithLeaderboard(winningTokenId);
+        await completeRoundWithLeaderboard(winningTokenId, winnerRewards);
     }
 
     await kv.multi()
