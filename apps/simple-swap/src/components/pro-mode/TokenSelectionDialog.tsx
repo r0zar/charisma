@@ -27,6 +27,7 @@ export default function TokenSelectionDialog({
     const [loadingBalances, setLoadingBalances] = useState<Set<string>>(new Set());
 
     const {
+        selectedOrderType,
         setTradingPairBase,
         setTradingPairQuote,
         tradingPairBase,
@@ -57,9 +58,13 @@ export default function TokenSelectionDialog({
         if (selectionType === 'from') {
             return subnetDisplayTokens || [];
         }
+        // For 'to' token selection in sandwich mode, also only show subnet tokens
+        if (selectionType === 'to' && selectedOrderType === 'sandwich') {
+            return subnetDisplayTokens || [];
+        }
         // For all other selections, show all tokens
         return displayTokens || [];
-    }, [selectionType, subnetDisplayTokens, displayTokens]);
+    }, [selectionType, selectedOrderType, subnetDisplayTokens, displayTokens]);
 
     // Filter tokens based on search query
     const filteredTokens = useMemo(() => {
@@ -313,8 +318,8 @@ export default function TokenSelectionDialog({
         const displayToken = pair.mainnet || pair.subnet;
         if (!displayToken) return null;
 
-        // Check if mainnet token should be disabled for 'from' selection
-        const isMainnetDisabled = selectionType === 'from' && pair.mainnet;
+        // Check if mainnet token should be disabled for 'from' selection or 'to' selection in sandwich mode
+        const isMainnetDisabled = (selectionType === 'from' || (selectionType === 'to' && selectedOrderType === 'sandwich')) && pair.mainnet;
 
         const getTokenData = (token: TokenCacheData | null) => {
             if (!token) return null;
@@ -535,7 +540,10 @@ export default function TokenSelectionDialog({
                         {selectionType === 'from' && (
                             <span>Only subnet tokens are available for the input token. Mainnet tokens are disabled for limit and DCA orders.</span>
                         )}
-                        {selectionType !== 'from' && (
+                        {selectionType === 'to' && selectedOrderType === 'sandwich' && (
+                            <span>Only subnet tokens are available for Token B in sandwich strategies. Both tokens must be subnet tokens for sandwich orders.</span>
+                        )}
+                        {selectionType !== 'from' && !(selectionType === 'to' && selectedOrderType === 'sandwich') && (
                             <span>Showing {tokenPairs.length} token groups of {availableTokens.length} total tokens</span>
                         )}
                     </div>

@@ -19,12 +19,12 @@ export default function OrderControls() {
                                 selectedOrderType === 'dca' ? 'bg-blue-100 text-blue-700' :
                                     'bg-yellow-100 text-yellow-700'
                                 }`}>
-                                {selectedOrderType === 'single' ? '⚡' : selectedOrderType === 'dca' ? '🔄' : '👁️'}
+                                {selectedOrderType === 'single' ? '⚡' : selectedOrderType === 'dca' ? '🔄' : '🥪'}
                             </div>
                             <h4 className="font-semibold text-foreground">
                                 {selectedOrderType === 'single' ? 'Limit Order' :
                                     selectedOrderType === 'dca' ? 'DCA Strategy' :
-                                        'Sandwich Order'}
+                                        'Sandwich Strategy'}
                             </h4>
                         </div>
 
@@ -53,7 +53,7 @@ export default function OrderControls() {
                                 <div>
                                     <h5 className="font-medium text-foreground mb-1">How it works:</h5>
                                     <p className="text-muted-foreground text-xs leading-relaxed">
-                                        A sandwich order creates two orders simultaneously: a "buy low" order that triggers when the price drops to your target, and a "sell high" order that triggers when the price rises to your target. This strategy helps capture profits from price volatility.
+                                        A sandwich strategy creates two conditional swaps: an A→B swap that triggers at a low price, and a B→A swap that triggers at a high price. This strategy helps capture profits from price volatility between the two tokens.
                                     </p>
                                 </div>
                             </div>

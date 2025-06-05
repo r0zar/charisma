@@ -904,7 +904,7 @@ export default function ProModeChart({
                     lineWidth: 2, // Thinner line
                     lineStyle: LineStyle.Solid,
                     axisLabelVisible: true,
-                    title: `Target: ${conditionDir === 'gt' ? '≥' : '≤'} ${price.toFixed(6)}`,
+                    title: `Target: ${conditionDir === 'gt' ? '≥' : '≤'}`,
                 });
 
                 // Create target price area zone based on condition direction
@@ -1136,20 +1136,20 @@ export default function ProModeChart({
         try {
             const buyLine = seriesRef.current.createPriceLine({
                 price: buyPrice,
-                color: "#22c55e", // Full opacity green
+                color: "#3b82f6", // Blue for A→B
                 lineWidth: 3,
                 lineStyle: LineStyle.Solid,
                 axisLabelVisible: true,
-                title: `🟢 Buy Low: ${buyPrice.toFixed(6)}`,
+                title: `🔵 A→B Trigger`,
             });
 
             const sellLine = seriesRef.current.createPriceLine({
                 price: sellPrice,
-                color: "#ef4444", // Full opacity red
+                color: "#f97316", // Orange for B→A
                 lineWidth: 3,
                 lineStyle: LineStyle.Solid,
                 axisLabelVisible: true,
-                title: `🔴 Sell High: ${sellPrice.toFixed(6)}`,
+                title: `🟠 B→A Trigger`,
             });
 
             // Update both refs and state

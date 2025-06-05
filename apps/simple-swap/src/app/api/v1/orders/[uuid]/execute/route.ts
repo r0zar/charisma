@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getOrder, fillOrder } from '@/lib/orders/store';
 import { verifySignedRequest } from 'blaze-sdk';
 import { executeTrade } from '@/lib/orders/executor';
+import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 
 const ORDERS_API_KEY = process.env.ORDERS_API_KEY || process.env.METADATA_API_KEY; // fallback
 
@@ -34,6 +35,12 @@ export async function POST(req: NextRequest, { params }: { params: { uuid: strin
         /* ────────────── Execute ────────────── */
         const txid = await executeTrade(order);
         await fillOrder(order.uuid, txid);
+
+        // Send notification (fire-and-forget style, errors handled within the function)
+        sendOrderExecutedNotification(order, txid).catch(err => {
+            console.error('Failed to dispatch order execution notification:', { orderUuid: order.uuid, error: err });
+        });
+
         return NextResponse.json({ status: 'success', txid });
     } catch (err) {
         console.error('Execute order error', err);

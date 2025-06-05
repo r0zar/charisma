@@ -186,6 +186,17 @@ export default function OrdersPanel() {
     };
 
     const cancelOrder = async (uuid: string) => {
+        const orderToCancel = displayOrders.find(o => o.uuid === uuid);
+        if (!orderToCancel) return;
+
+        // Optimistic update - mark as cancelled immediately
+        const originalStatus = orderToCancel.status;
+        setDisplayOrders(prevOrders =>
+            prevOrders.map(order =>
+                order.uuid === uuid ? { ...order, status: 'cancelled' } : order
+            )
+        );
+
         try {
             const res = await signedFetch(`/api/v1/orders/${uuid}/cancel`, { method: "PATCH", message: uuid });
             if (!res.ok) {
@@ -193,8 +204,13 @@ export default function OrdersPanel() {
                 throw new Error(j.error || "Cancel failed");
             }
             toast.success("Order cancelled successfully.");
-            await fetchOrders();
         } catch (err) {
+            // Revert optimistic update on error
+            setDisplayOrders(prevOrders =>
+                prevOrders.map(order =>
+                    order.uuid === uuid ? { ...order, status: originalStatus } : order
+                )
+            );
             toast.error((err as Error).message || "Failed to cancel order.");
         } finally {
             setConfirmUuid(null);
@@ -202,14 +218,37 @@ export default function OrdersPanel() {
     };
 
     const executeNow = async (uuid: string) => {
+        const orderToExecute = displayOrders.find(o => o.uuid === uuid);
+        if (!orderToExecute) return;
+
+        // Optimistic update - mark as filled immediately
+        const originalStatus = orderToExecute.status;
+        setDisplayOrders(prevOrders =>
+            prevOrders.map(order =>
+                order.uuid === uuid ? { ...order, status: 'filled' } : order
+            )
+        );
+
         toast.info("Submitting order for execution...", { duration: 5000 });
         try {
             const res = await signedFetch(`/api/v1/orders/${uuid}/execute`, { method: 'POST', message: uuid });
             const j = await res.json();
             if (!res.ok) throw new Error(j.error || 'Execution failed');
+
+            // Update with transaction ID if successful
+            setDisplayOrders(prevOrders =>
+                prevOrders.map(order =>
+                    order.uuid === uuid ? { ...order, status: 'filled', txid: j.txid } : order
+                )
+            );
             toast.success(`Execution submitted: ${j.txid.substring(0, 10)}...`);
-            await fetchOrders();
         } catch (err) {
+            // Revert optimistic update on error
+            setDisplayOrders(prevOrders =>
+                prevOrders.map(order =>
+                    order.uuid === uuid ? { ...order, status: originalStatus } : order
+                )
+            );
             toast.error((err as Error).message || "Failed to execute order.");
         }
     };
@@ -267,9 +306,7 @@ export default function OrdersPanel() {
                                         <th className="px-4 py-2">When</th>
                                         <th className="px-4 py-2">Swap</th>
                                         <th className="px-4 py-2 text-right">Amount</th>
-                                        <th className="px-4 py-2">If Price Ratio</th>
-                                        <th className="px-4 py-2 text-right">Is</th>
-                                        <th className="px-2 py-2">Than</th>
+                                        <th className="px-4 py-2">Price Condition</th>
                                         <th className="px-4 py-2">Status</th>
                                         <th className="px-2 py-2"></th>
                                     </tr>
@@ -294,13 +331,7 @@ export default function OrdersPanel() {
                                                 <div className="h-5 w-14 bg-muted rounded ml-auto"></div>
                                             </td>
                                             <td className="px-4 py-2">
-                                                <div className="h-5 w-20 rounded-full bg-muted"></div>
-                                            </td>
-                                            <td className="px-4 py-2 text-right">
-                                                <div className="h-5 w-12 bg-muted rounded ml-auto"></div>
-                                            </td>
-                                            <td className="px-2 py-2">
-                                                <div className="h-4 w-8 bg-muted rounded"></div>
+                                                <div className="h-5 w-32 rounded bg-muted"></div>
                                             </td>
                                             <td className="px-4 py-2">
                                                 <div className="h-5 w-16 rounded-full bg-muted"></div>
@@ -336,9 +367,7 @@ export default function OrdersPanel() {
                                         <th className="px-4 py-2">When</th>
                                         <th className="px-4 py-2">Swap</th>
                                         <th className="px-4 py-2 text-center">Amount</th>
-                                        <th className="px-4 py-2">If Price Ratio</th>
-                                        <th className="px-4 py-2 text-center">Is</th>
-                                        <th className="px-2 py-2 text-center">Than</th>
+                                        <th className="px-4 py-2">Price Condition</th>
                                         <th className="px-4 py-2">Status</th>
                                         <th className="px-2 py-2"></th>
                                     </tr>
@@ -390,24 +419,26 @@ export default function OrdersPanel() {
                                                 </td>
                                                 <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}</td>
                                                 <td className="px-4 py-2">
-                                                    <span className="flex items-center gap-1">
+                                                    <span className="font-mono flex items-center gap-1">
+                                                        <span>1</span>
                                                         <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
-                                                        {o.conditionTokenMeta.symbol}
-                                                        <span className="mx-1 text-muted-foreground">/</span>
-                                                        {o.baseAsset === 'USD' || !o.baseAsset ? 'USD' : (
+                                                        <span>{o.conditionTokenMeta.symbol}</span>
+                                                        <span className="mx-1 font-mono text-lg">{o.direction === 'lt' ? '≤' : '≥'}</span>
+                                                        <span>{Number(o.targetPrice).toLocaleString()}</span>
+                                                        {o.baseAsset === 'USD' || !o.baseAsset ? (
+                                                            <span>USD</span>
+                                                        ) : (
                                                             o.baseAssetMeta ? (
-                                                                <span className="flex items-center gap-1">
+                                                                <>
                                                                     <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
-                                                                    {o.baseAssetMeta.symbol}
-                                                                </span>
+                                                                    <span>{o.baseAssetMeta.symbol}</span>
+                                                                </>
                                                             ) : (
                                                                 <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
                                                             )
                                                         )}
                                                     </span>
                                                 </td>
-                                                <td className="px-2 py-2 font-mono text-lg text-center mx-2">{o.direction === 'lt' ? '≤' : '≥'}</td>
-                                                <td className="px-4 py-2 text-center">{Number(o.targetPrice).toLocaleString()}</td>
                                                 <td className="px-4 py-2"><StatusBadge status={o.status} /></td>
                                                 <td className="px-2 py-2">
                                                     {o.status === "open" && (
@@ -453,7 +484,7 @@ export default function OrdersPanel() {
                                             </tr>
                                             {expandedRow === o.uuid && (
                                                 <tr className="bg-muted/10 animate-[slideDown_0.2s_ease-out]">
-                                                    <td colSpan={8} className="p-4">
+                                                    <td colSpan={6} className="p-4">
                                                         <div className="text-sm">
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                 <div className="space-y-3">

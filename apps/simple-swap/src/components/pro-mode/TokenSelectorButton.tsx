@@ -11,13 +11,15 @@ interface TokenSelectorButtonProps {
     placeholder?: string;
     className?: string;
     size?: 'sm' | 'md' | 'lg';
+    disabled?: boolean;
 }
 
 export default function TokenSelectorButton({
     selectionType,
     placeholder = 'Select Token',
     className = '',
-    size = 'md'
+    size = 'md',
+    disabled = false
 }: TokenSelectorButtonProps) {
     const {
         openTokenSelection,
@@ -65,7 +67,9 @@ export default function TokenSelectorButton({
     const currentToken = getCurrentToken();
 
     const handleClick = () => {
-        openTokenSelection(selectionType, getDialogTitle());
+        if (!disabled) {
+            openTokenSelection(selectionType, getDialogTitle());
+        }
     };
 
     // Size variants
@@ -81,6 +85,7 @@ export default function TokenSelectorButton({
         <Button
             variant="outline"
             onClick={handleClick}
+            disabled={disabled}
             className={`justify-between ${sizeClasses[size]} ${className}`}
         >
             <div className="flex items-center space-x-2">

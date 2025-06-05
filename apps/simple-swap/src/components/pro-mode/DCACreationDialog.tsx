@@ -16,7 +16,7 @@ export default function DCACreationDialog() {
     const {
         dcaCreationState,
         setDcaCreationState,
-        fetchOrders,
+        addNewOrder,
         setDcaAmount,
         setDcaFrequency,
         setDcaDuration,
@@ -131,6 +131,22 @@ export default function DCACreationDialog() {
                 throw new Error(errorData.error || 'Order creation failed');
             }
 
+            // Get the created order data from response
+            const responseData = await response.json();
+            const createdOrder = responseData.data || responseData;
+
+            // Create DisplayOrder with token metadata for the sidebar
+            const displayOrder = {
+                ...createdOrder,
+                inputTokenMeta: selectedFromToken,
+                outputTokenMeta: selectedToToken,
+                conditionTokenMeta: selectedToToken,
+                baseAssetMeta: baseToken,
+            };
+
+            // Add to main order list
+            addNewOrder(displayOrder);
+
             // Mark order as successful
             setDcaCreationState(prev => ({
                 ...prev,
@@ -152,7 +168,7 @@ export default function DCACreationDialog() {
                 errors: [...prev.errors, `Order ${orderIndex + 1}: ${(error as Error).message}`]
             }));
         }
-    }, [orders, signOrder, createOrderPayload, setDcaCreationState, selectedFromToken]);
+    }, [orders, signOrder, createOrderPayload, setDcaCreationState, selectedFromToken, selectedToToken, baseToken, addNewOrder]);
 
     // Start the signing process
     const startSigning = useCallback(async () => {
@@ -186,13 +202,12 @@ export default function DCACreationDialog() {
             isOpen: false
         }));
 
-        // If successful, clear form and refresh orders
+        // If successful, clear form - individual orders are added via processOrder during creation
         if (successCount > 0) {
             setDcaAmount('');
             setDcaFrequency('daily');
             setDcaDuration('30');
             setDcaStartDate('');
-            fetchOrders();
 
             if (successCount === orders.length) {
                 toast.success('DCA strategy created successfully!');
@@ -216,7 +231,7 @@ export default function DCACreationDialog() {
                 successCount: 0
             });
         }, 300);
-    }, [successCount, orders.length, setDcaCreationState, setDcaAmount, setDcaFrequency, setDcaDuration, setDcaStartDate, fetchOrders]);
+    }, [successCount, orders.length, setDcaCreationState, setDcaAmount, setDcaFrequency, setDcaDuration, setDcaStartDate]);
 
     // Calculate progress
     const progress = orders.length > 0 ? (successCount / orders.length) * 100 : 0;

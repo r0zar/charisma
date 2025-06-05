@@ -39,7 +39,7 @@ export default function SingleOrderCreationDialog() {
     const {
         singleOrderCreationState,
         setSingleOrderCreationState,
-        fetchOrders,
+        addNewOrder,
         setDisplayAmount,
         setTargetPrice,
         currentPrice
@@ -146,10 +146,18 @@ export default function SingleOrderCreationDialog() {
                 throw new Error(errorData.error || 'Order creation failed');
             }
 
-            // Mark order as successful
+            // Get the created order data from response
+            const responseData = await response.json();
+            const createdOrder = responseData.data || responseData;
+
+            // Mark order as successful and store the created order details
             setSingleOrderCreationState(prev => ({
                 ...prev,
-                order: prev.order ? { ...prev.order, status: 'success' } : null
+                order: prev.order ? {
+                    ...prev.order,
+                    status: 'success',
+                    uuid: createdOrder.uuid || prev.order.uuid
+                } : null
             }));
 
         } catch (error) {
@@ -181,18 +189,50 @@ export default function SingleOrderCreationDialog() {
     }, [processOrder, setSingleOrderCreationState]);
 
     // Close dialog and cleanup
-    const closeDialog = useCallback(() => {
+    const closeDialog = useCallback(async () => {
         setSingleOrderCreationState(prev => ({
             ...prev,
             isOpen: false
         }));
 
-        // If successful, clear form and refresh orders
-        if (order?.status === 'success') {
-            setDisplayAmount('');
-            setTargetPrice('');
-            fetchOrders();
-            toast.success('Limit order created successfully!');
+        // If successful, clear form and add the new order to the list
+        if (order?.status === 'success' && order.uuid && selectedFromToken && selectedToToken && baseToken && address) {
+            try {
+                // Create the new order object with enriched metadata
+                const newOrder: any = {
+                    uuid: order.uuid,
+                    owner: address,
+                    inputToken: selectedFromToken.contractId,
+                    outputToken: selectedToToken.contractId,
+                    amountIn: Math.floor(parseFloat(order.amount) * (10 ** (selectedFromToken.decimals || 6))).toString(),
+                    targetPrice: order.targetPrice,
+                    direction: order.conditionDir,
+                    conditionToken: selectedToToken.contractId,
+                    baseAsset: baseToken.contractId,
+                    status: 'open' as const,
+                    createdAt: new Date().toISOString(),
+                    recipient: address,
+                    validFrom: null,
+                    validTo: null,
+                    txid: null,
+                    signature: order.signature,
+                    // Add enriched token metadata
+                    inputTokenMeta: selectedFromToken,
+                    outputTokenMeta: selectedToToken,
+                    conditionTokenMeta: selectedToToken,
+                    baseAssetMeta: baseToken,
+                };
+
+                // Add the new order to the list
+                addNewOrder(newOrder);
+                setDisplayAmount('');
+                setTargetPrice('');
+                toast.success('Limit order created successfully!');
+            } catch (error) {
+                console.error('Failed to add new order to list:', error);
+                // Fallback to showing success message only
+                toast.success('Limit order created successfully!');
+            }
         }
 
         // Reset state after a delay
@@ -204,7 +244,7 @@ export default function SingleOrderCreationDialog() {
                 errors: []
             });
         }, 300);
-    }, [order?.status, setSingleOrderCreationState, setDisplayAmount, setTargetPrice, fetchOrders]);
+    }, [order?.status, order?.uuid, order?.amount, order?.targetPrice, order?.conditionDir, order?.signature, setSingleOrderCreationState, setDisplayAmount, setTargetPrice, addNewOrder, selectedFromToken, selectedToToken, baseToken, address]);
 
     // Check if order will execute immediately
     const willExecuteImmediately = () => {
@@ -297,7 +337,7 @@ export default function SingleOrderCreationDialog() {
                                             </h4>
                                             <p className="text-sm text-yellow-700 dark:text-yellow-300">
                                                 Your target price condition is already met! This order will execute immediately upon creation.
-                                                Current rate: 1 {selectedFromToken.symbol} = {currentPrice?.toFixed(6)} {selectedToToken.symbol}, Target: {order?.conditionDir === 'gt' ? '>' : '<'} {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}
+                                                Current rate: 1 {selectedFromToken.symbol} = {currentPrice?.toFixed(6)} {selectedToToken.symbol}, Target: {order?.conditionDir === 'gt' ? '≥' : '≤'} {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}
                                             </p>
                                         </div>
                                     </div>
@@ -352,7 +392,7 @@ export default function SingleOrderCreationDialog() {
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">Target Rate:</span>
                                         <span className="font-mono font-medium">
-                                            1 {selectedFromToken.symbol} {order?.conditionDir === 'gt' ? '>' : '<'} {parseFloat(order?.targetPrice || '0').toLocaleString(undefined, {
+                                            1 {selectedFromToken.symbol} {order?.conditionDir === 'gt' ? '≥' : '≤'} {parseFloat(order?.targetPrice || '0').toLocaleString(undefined, {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 8
                                             })} {selectedToToken.symbol}

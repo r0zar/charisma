@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Zap, Repeat, Eye } from 'lucide-react';
+import { Zap, Repeat, Layers } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useProModeContext } from '../../contexts/pro-mode-context';
@@ -74,7 +74,7 @@ export default function OrderTypeSelector() {
                     <div className="flex items-start space-x-3">
                         <div className={`p-2 rounded-lg ${selectedOrderType === 'sandwich' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                             }`}>
-                            <Eye className="w-4 h-4" />
+                            <Layers className="w-4 h-4" />
                         </div>
                         <div className="flex-1">
                             <h3 className="font-medium text-sm">Sandwich Orders</h3>

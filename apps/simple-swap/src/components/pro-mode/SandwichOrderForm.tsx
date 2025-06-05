@@ -137,7 +137,7 @@ export default function SandwichOrderForm() {
     }, [selectedOrderType]); // Removed sandwichSpread and setSandwichSpread from dependencies
 
     return (
-        <div ref={containerRef} className="grid grid-cols-3 gap-3 max-w-4xl">
+        <div ref={containerRef} className="grid grid-cols-4 gap-3 max-w-4xl">
             {/* USD Amount */}
             <div className="space-y-1">
                 <label className="text-sm text-muted-foreground font-medium">USD Amount</label>
@@ -149,46 +149,16 @@ export default function SandwichOrderForm() {
                     className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                 />
                 <div className="text-xs text-muted-foreground">
-                    Total USD value for both buy and sell orders
+                    Total USD value for both swap orders
                 </div>
             </div>
 
-            {/* Buy Price */}
+            {/* Token A */}
             <div className="space-y-1">
-                <label className="text-sm text-muted-foreground font-medium">Buy Price (USD)</label>
-                <input
-                    type="text"
-                    value={sandwichBuyPrice}
-                    onChange={(e) => setSandwichBuyPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
-                />
-                <div className="text-xs text-muted-foreground">
-                    Price to trigger buy order
-                </div>
-            </div>
-
-            {/* Sell Price */}
-            <div className="space-y-1">
-                <label className="text-sm text-muted-foreground font-medium">Sell Price (USD)</label>
-                <input
-                    type="text"
-                    value={sandwichSellPrice}
-                    onChange={(e) => setSandwichSellPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
-                />
-                <div className="text-xs text-muted-foreground">
-                    Price to trigger sell order
-                </div>
-            </div>
-
-            {/* From Token */}
-            <div className="space-y-1">
-                <label className="text-sm text-muted-foreground font-medium">From</label>
+                <label className="text-sm text-muted-foreground font-medium">Token A</label>
                 <TokenSelectorButton
                     selectionType="from"
-                    placeholder="Select input token"
+                    placeholder="Select token A"
                     className="w-full"
                 />
                 {selectedFromToken && (() => {
@@ -206,12 +176,12 @@ export default function SandwichOrderForm() {
                 })()}
             </div>
 
-            {/* To Token */}
+            {/* Token B */}
             <div className="space-y-1">
-                <label className="text-sm text-muted-foreground font-medium">To</label>
+                <label className="text-sm text-muted-foreground font-medium">Token B</label>
                 <TokenSelectorButton
                     selectionType="to"
-                    placeholder="Select output token"
+                    placeholder="Select token B"
                     className="w-full"
                 />
                 {selectedToToken && (() => {
@@ -251,20 +221,18 @@ export default function SandwichOrderForm() {
                     className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                 />
                 <div className="text-xs text-muted-foreground">
-                    Percentage spread between buy and sell prices
+                    Percentage spread between trigger prices
                 </div>
             </div>
 
-
-
             {/* Submit Button - spans all columns */}
-            <div className="col-span-3 pt-4">
+            <div className="col-span-4 pt-4">
                 <Button
                     onClick={handleCreateSandwichOrderWithSync}
                     disabled={!sandwichUsdAmount || !sandwichBuyPrice || !sandwichSellPrice || !selectedFromToken || !selectedToToken || isSubmitting}
                     className="w-full h-12 text-base font-medium"
                 >
-                    {isSubmitting ? 'Creating Sandwich Order...' : 'Create Sandwich Order'}
+                    {isSubmitting ? 'Creating Sandwich Strategy...' : 'Create Sandwich Strategy'}
                 </Button>
             </div>
 

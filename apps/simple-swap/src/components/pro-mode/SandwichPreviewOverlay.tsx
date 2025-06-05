@@ -267,45 +267,45 @@ export default function SandwichPreviewOverlay({
         >
             {mouseY !== null && (
                 <>
-                    {/* Buy Price Line */}
+                    {/* Low Price Trigger Line (A→B) */}
                     <div
-                        className="absolute w-full border-t-2 border-green-500 opacity-70"
+                        className="absolute w-full border-t-2 border-blue-500 opacity-70"
                         style={{
                             top: `${buyLineY}px`,
                             left: 0,
                         }}
                     >
                         <div
-                            className="absolute -top-6 bg-green-500 text-white text-xs px-2 py-1 rounded"
+                            className="absolute -top-6 bg-blue-500 text-white text-xs px-2 py-1 rounded"
                             style={{
                                 left: mouseX !== null ? `${Math.max(0, Math.min(mouseX - 50, overlayDimensions.width - 100))}px` : '8px'
                             }}
                         >
-                            Buy: ${calculatedBuyPrice.toFixed(6)}
+                            A→B (sell): 1 {selectedFromToken?.symbol} ≥ {calculatedBuyPrice.toFixed(6)} {selectedToToken?.symbol}
                         </div>
                     </div>
 
-                    {/* Sell Price Line */}
+                    {/* High Price Trigger Line (B→A) */}
                     <div
-                        className="absolute w-full border-t-2 border-red-500 opacity-70"
+                        className="absolute w-full border-t-2 border-orange-500 opacity-70"
                         style={{
                             top: `${sellLineY}px`,
                             left: 0,
                         }}
                     >
                         <div
-                            className="absolute -top-6 bg-red-500 text-white text-xs px-2 py-1 rounded"
+                            className="absolute -top-6 bg-orange-500 text-white text-xs px-2 py-1 rounded"
                             style={{
                                 left: mouseX !== null ? `${Math.max(0, Math.min(mouseX - 50, overlayDimensions.width - 100))}px` : '8px'
                             }}
                         >
-                            Sell: ${calculatedSellPrice.toFixed(6)}
+                            B→A (buy): 1 {selectedFromToken?.symbol} ≤ {calculatedSellPrice.toFixed(6)} {selectedToToken?.symbol}
                         </div>
                     </div>
 
                     {/* Spread Zone */}
                     <div
-                        className="absolute w-full bg-blue-500 opacity-10"
+                        className="absolute w-full bg-purple-500 opacity-10"
                         style={{
                             top: `${Math.min(buyLineY, sellLineY)}px`,
                             height: `${Math.abs(sellLineY - buyLineY)}px`,

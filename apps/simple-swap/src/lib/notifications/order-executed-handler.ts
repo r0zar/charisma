@@ -3,31 +3,64 @@ import { NotifierClient } from '@charisma/notifier';
 import type { UserNotificationSettings } from '@/types/notification-settings';
 import { LimitOrder } from '@/lib/orders/types'; // Assuming this path is correct for LimitOrder
 import type { Notification, NotificationChannel } from '@charisma/notifier';
+import { getTokenMetadataCached } from '@repo/tokens';
 
-// Placeholder for a function that might get more user-friendly token names/decimals
-// For now, we'll use the contract IDs or simple placeholders.
-// You might want to create a mapping or fetch details if needed.
-function formatTokenAmount(contractId: string, amount: string): string {
-    // Basic formatting, assuming 6 decimals for STX-like tokens if not specified
-    // This should be improved with actual token metadata
-    const M_STX_DECIMALS = 1_000_000;
-    const numericAmount = BigInt(amount);
-    let formattedAmount = (Number(numericAmount) / M_STX_DECIMALS).toFixed(6);
+// Format token amount using proper decimals from token metadata
+async function formatTokenAmount(contractId: string, amount: string): Promise<string> {
+    try {
+        // Get token metadata to access proper decimals and symbol
+        const tokenMeta = await getTokenMetadataCached(contractId);
+        const decimals = tokenMeta.decimals || 6; // Default to 6 if not specified
+        const symbol = tokenMeta.symbol || getSimpleTokenName(contractId);
 
-    // Try to get a simpler name
-    let tokenName = contractId.split('.').pop()?.split('-token')[0]?.toUpperCase() || contractId;
-    if (tokenName.startsWith('token-')) tokenName = tokenName.substring(6);
+        const numericAmount = BigInt(amount);
+        let formattedAmount = (Number(numericAmount) / Math.pow(10, decimals)).toFixed(decimals);
 
+        // Remove trailing zeros after decimal point
+        formattedAmount = formattedAmount.replace(/(\\.\\d*?[1-9])0+$|(\\.\\d*?)0+$/, '$1$2');
+        if (formattedAmount.endsWith('.')) formattedAmount = formattedAmount.slice(0, -1);
 
-    // Remove trailing zeros after decimal point
-    formattedAmount = formattedAmount.replace(/(\\.\\d*?[1-9])0+$|(\\.\\d*?)0+$/, '$1$2');
-    if (formattedAmount.endsWith('.')) formattedAmount = formattedAmount.slice(0, -1);
+        return `${formattedAmount} ${symbol}`;
+    } catch (error) {
+        console.error(`Failed to get token metadata for ${contractId}:`, error);
 
-    return `${formattedAmount} ${tokenName}`;
+        // Fallback to 6 decimals if metadata fetch fails
+        const numericAmount = BigInt(amount);
+        let formattedAmount = (Number(numericAmount) / 1_000_000).toFixed(6);
+
+        const tokenName = getSimpleTokenName(contractId);
+
+        // Remove trailing zeros after decimal point
+        formattedAmount = formattedAmount.replace(/(\\.\\d*?[1-9])0+$|(\\.\\d*?)0+$/, '$1$2');
+        if (formattedAmount.endsWith('.')) formattedAmount = formattedAmount.slice(0, -1);
+
+        return `${formattedAmount} ${tokenName}`;
+    }
 }
 
 function getSimpleTokenName(contractId: string): string {
-    return contractId.split('.').pop()?.split('-token')[0]?.toUpperCase() || contractId;
+    const contractName = contractId.split('.').pop();
+    if (!contractName) return contractId;
+
+    // Remove common token prefixes/suffixes
+    let tokenName = contractName
+        .replace(/^token-/, '')
+        .replace(/-token$/, '')
+        .replace(/^t/, '') // Remove single 't' prefix
+        .toUpperCase();
+
+    return tokenName || contractId;
+}
+
+// Get token symbol using metadata, with fallback to simple name
+async function getTokenSymbol(contractId: string): Promise<string> {
+    try {
+        const tokenMeta = await getTokenMetadataCached(contractId);
+        return tokenMeta.symbol || getSimpleTokenName(contractId);
+    } catch (error) {
+        console.error(`Failed to get token symbol for ${contractId}:`, error);
+        return getSimpleTokenName(contractId);
+    }
 }
 
 
@@ -74,8 +107,8 @@ export async function sendOrderExecutedNotification(
             process.env.TWILIO_PHONE_NUMBER
         );
 
-        const amountInFormatted = formatTokenAmount(inputToken, amountIn);
-        const outputTokenName = getSimpleTokenName(outputToken);
+        const amountInFormatted = await formatTokenAmount(inputToken, amountIn);
+        const outputTokenName = await getTokenSymbol(outputToken);
 
         const message = `Order Executed!\n\nYour order (${uuid.substring(0, 8)}...) to swap ${amountInFormatted} for ${outputTokenName} has been successfully processed.\n\nTransaction ID: ${txid}\n(View on explorer: https://explorer.hiro.so/txid/${txid}?chain=mainnet)`; // Assuming mainnet for explorer link
 

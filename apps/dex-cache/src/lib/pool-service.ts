@@ -94,34 +94,35 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
     console.log(`[PoolService] Attempting to refresh reserves for ${contractId} if older than 30s or invalid...`);
 
     // 1. Primary attempt: get-reserves-quote
-    try {
-        const reservesResult = await callReadOnlyFunction(
-            contractAddress, contractName,
-            'get-reserves-quote',
-            []
-        );
+    if (cachedVault.type === 'POOL') {
+        try {
+            const reservesResult = await callReadOnlyFunction(
+                contractAddress, contractName,
+                'get-reserves-quote',
+                []
+            );
 
-        // Using dx/dy as fallback if reserve-a/reserve-b not present
-        const dxValue = reservesResult?.dx?.value;
-        const dyValue = reservesResult?.dy?.value;
+            // Using dx/dy as fallback if reserve-a/reserve-b not present
+            const dxValue = reservesResult?.dx?.value;
+            const dyValue = reservesResult?.dy?.value;
 
-        const liveReservesA = dxValue !== null ? Number(dxValue) : (dyValue !== undefined ? Number(dyValue) : null);
-        const liveReservesB = dyValue !== null ? Number(dyValue) : (dxValue !== undefined ? Number(dxValue) : null);
+            const liveReservesA = dxValue !== null ? Number(dxValue) : (dyValue !== undefined ? Number(dyValue) : null);
+            const liveReservesB = dyValue !== null ? Number(dyValue) : (dxValue !== undefined ? Number(dxValue) : null);
 
-
-        if (liveReservesA !== null && liveReservesB !== null && !isNaN(liveReservesA) && !isNaN(liveReservesB) && liveReservesA > 0 && liveReservesB > 0) {
-            cachedVault.reservesA = liveReservesA;
-            cachedVault.reservesB = liveReservesB;
-            cachedVault.reservesLastUpdatedAt = now;
-            reservesUpdated = true;
-        } else {
-            console.warn(`Invalid or incomplete reserves structure from get-reserves-quote for ${contractId}:`, reservesResult);
-            // Set error to indicate primary method failed structurally, even if no exception was thrown
-            primaryError = new Error("Invalid structure from get-reserves-quote");
+            if (liveReservesA !== null && liveReservesB !== null && !isNaN(liveReservesA) && !isNaN(liveReservesB) && liveReservesA > 0 && liveReservesB > 0) {
+                cachedVault.reservesA = liveReservesA;
+                cachedVault.reservesB = liveReservesB;
+                cachedVault.reservesLastUpdatedAt = now;
+                reservesUpdated = true;
+            } else {
+                console.warn(`Invalid or incomplete reserves structure from get-reserves-quote for ${contractId}:`, reservesResult);
+                // Set error to indicate primary method failed structurally, even if no exception was thrown
+                primaryError = new Error("Invalid structure from get-reserves-quote");
+            }
+        } catch (error) {
+            primaryError = error instanceof Error ? error : new Error(String(error));
+            console.warn(`Primary reserve fetch (get-reserves-quote) failed for ${contractId}:`, primaryError.message);
         }
-    } catch (error) {
-        primaryError = error instanceof Error ? error : new Error(String(error));
-        console.warn(`Primary reserve fetch (get-reserves-quote) failed for ${contractId}:`, primaryError.message);
     }
 
     // 2. Backup attempt: get-balance or STX balance (only if primary failed)
@@ -269,12 +270,7 @@ export const getVaultData = async (contractId: string): Promise<Vault | null> =>
         }
 
         if ((cachedVault.type === 'POOL' || cachedVault.type === 'SUBLINK') && cachedVault.tokenA && cachedVault.tokenB) {
-            const vaultWithFreshReserves = await fetchAndUpdateReserves(cachedVault);
-
-            saveVaultData(vaultWithFreshReserves).catch(saveErr => {
-                console.error(`[PoolService] Failed async save after reserve refresh for ${contractId}:`, saveErr);
-            });
-            return vaultWithFreshReserves;
+            return await fetchAndUpdateReserves(cachedVault);
         } else {
             console.log(`[PoolService] Returning vault ${contractId} without reserve refresh (type: ${cachedVault.type}, tokens missing or not applicable).`);
             return cachedVault;
@@ -341,7 +337,7 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
         }
 
         try {
-            await kv.set(cacheKey, JSON.stringify(vaultToSave));
+            await kv.set(cacheKey, vaultToSave);
         } catch (setError) {
             console.error('Error during KV.set operation:', setError);
             throw new Error(`KV.set failed: ${setError instanceof Error ? setError.message : 'Unknown error'}`);

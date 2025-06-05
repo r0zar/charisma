@@ -108,6 +108,8 @@ interface ProModeContextType {
     setTradingPairBase: (token: TokenCacheData | null) => void;
     tradingPairQuote: TokenCacheData | null;
     setTradingPairQuote: (token: TokenCacheData | null) => void;
+    lockTradingPairToSwapTokens: boolean;
+    setLockTradingPairToSwapTokens: (lock: boolean) => void;
 
     // Order Form State
     displayAmount: string;
@@ -172,11 +174,25 @@ interface ProModeContextType {
     handleCreateDcaOrder: () => Promise<void>;
     handleCreateSandwichOrder: () => Promise<void>;
     handleSubmitOrder: () => Promise<void>;
-    handleOrderAction: (orderId: string, action: 'cancel') => Promise<void>;
+    handleOrderAction: (orderId: string, action: 'cancel' | 'execute') => Promise<void>;
+    confirmCancelOrder: (orderId: string) => void;
+    cancelOrderAction: (orderId: string) => void;
+    executeOrderAction: (orderId: string) => void;
     toggleOrderExpansion: (orderId: string) => void;
     clearHighlightedOrder: () => void;
     fetchOrders: () => Promise<void>;
 
+    // Individual Order Management
+    updateOrderById: (orderId: string, updates: Partial<DisplayOrder>) => void;
+    updateOrderStatus: (orderId: string, status: LimitOrder['status'], txid?: string) => void;
+    addNewOrder: (order: DisplayOrder) => void;
+    removeOrderById: (orderId: string) => void;
+
+    // Order Action State
+    cancelingOrders: Set<string>;
+    executingOrders: Set<string>;
+    confirmCancelOrderId: string | null;
+    setConfirmCancelOrderId: (id: string | null) => void;
 
     // Utility Functions
     formatTokenAmount: (amount: string | number, decimals: number) => string;
@@ -251,8 +267,12 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
 
     // Trading pair state for pro mode
+    // Note: tradingPairBase maps to API's conditionToken (token being watched)
+    // tradingPairQuote maps to API's baseAsset (token used for price denomination)
+    // Display format: "1 tradingPairBase = X tradingPairQuote"
     const [tradingPairBase, setTradingPairBase] = useState<TokenCacheData | null>(null);
     const [tradingPairQuote, setTradingPairQuote] = useState<TokenCacheData | null>(null);
+    const [lockTradingPairToSwapTokens, setLockTradingPairToSwapTokens] = useState(true);
 
     // Token selection dialog state
     const [tokenSelectionState, setTokenSelectionState] = useState<TokenSelectionState>({
@@ -631,13 +651,50 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         }
     }, []);
 
+    // Order Action State
+    const [cancelingOrders, setCancelingOrders] = useState<Set<string>>(new Set());
+    const [executingOrders, setExecutingOrders] = useState<Set<string>>(new Set());
+    const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
+
+    // Individual Order Management Functions
+    const updateOrderById = useCallback((orderId: string, updates: Partial<DisplayOrder>) => {
+        setDisplayOrders(prevOrders =>
+            prevOrders.map(order =>
+                order.uuid === orderId ? { ...order, ...updates } : order
+            )
+        );
+    }, []);
+
+    const updateOrderStatus = useCallback((orderId: string, status: LimitOrder['status'], txid?: string) => {
+        setDisplayOrders(prevOrders =>
+            prevOrders.map(order =>
+                order.uuid === orderId ? { ...order, status, txid } : order
+            )
+        );
+    }, []);
+
+    const addNewOrder = useCallback((order: DisplayOrder) => {
+        setDisplayOrders(prevOrders => [...prevOrders, order]);
+    }, []);
+
+    const removeOrderById = useCallback((orderId: string) => {
+        setDisplayOrders(prevOrders => prevOrders.filter(order => order.uuid !== orderId));
+    }, []);
+
     // Action Handlers
-    const handleOrderAction = useCallback(async (orderId: string, action: 'cancel') => {
+    const handleOrderAction = useCallback(async (orderId: string, action: 'cancel' | 'execute') => {
         const order = displayOrders.find(o => o.uuid === orderId);
         if (!order) return;
 
         switch (action) {
             case 'cancel':
+                // Set loading state
+                setCancelingOrders(prev => new Set(prev).add(orderId));
+
+                // Optimistic update - mark as cancelled immediately
+                const originalStatus = order.status;
+                updateOrderStatus(orderId, 'cancelled');
+
                 try {
                     const res = await signedFetch(`/api/v1/orders/${orderId}/cancel`, {
                         method: "PATCH",
@@ -648,13 +705,71 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                         throw new Error(j.error || "Cancel failed");
                     }
                     toast.success("Order cancelled successfully.");
-                    await fetchOrders(); // Refresh orders
                 } catch (err) {
+                    // Revert optimistic update on error
+                    updateOrderStatus(orderId, originalStatus);
                     toast.error((err as Error).message || "Failed to cancel order.");
+                } finally {
+                    // Clear loading state
+                    setCancelingOrders(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(orderId);
+                        return newSet;
+                    });
+                    // Close confirmation dialog
+                    setConfirmCancelOrderId(null);
+                }
+                break;
+
+            case 'execute':
+                // Set loading state
+                setExecutingOrders(prev => new Set(prev).add(orderId));
+
+                // Optimistic update - mark as filled immediately
+                const originalStatusForExecute = order.status;
+                updateOrderStatus(orderId, 'filled');
+
+                toast.info("Submitting order for execution...", { duration: 5000 });
+
+                try {
+                    const res = await signedFetch(`/api/v1/orders/${orderId}/execute`, {
+                        method: 'POST',
+                        message: orderId
+                    });
+                    const j = await res.json();
+                    if (!res.ok) throw new Error(j.error || 'Execution failed');
+
+                    // Update with transaction ID if successful
+                    updateOrderStatus(orderId, 'filled', j.txid);
+                    toast.success(`Execution submitted: ${j.txid.substring(0, 10)}...`);
+                } catch (err) {
+                    // Revert optimistic update on error
+                    updateOrderStatus(orderId, originalStatusForExecute);
+                    toast.error((err as Error).message || "Failed to execute order.");
+                } finally {
+                    // Clear loading state
+                    setExecutingOrders(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(orderId);
+                        return newSet;
+                    });
                 }
                 break;
         }
-    }, [displayOrders, fetchOrders]);
+    }, [displayOrders, updateOrderStatus, setCancelingOrders, setExecutingOrders, setConfirmCancelOrderId]);
+
+    const confirmCancelOrder = useCallback((orderId: string) => {
+        setConfirmCancelOrderId(orderId);
+    }, []);
+
+    const cancelOrderAction = useCallback((orderId: string) => {
+        setConfirmCancelOrderId(null);
+        handleOrderAction(orderId, 'cancel');
+    }, [handleOrderAction]);
+
+    const executeOrderAction = useCallback((orderId: string) => {
+        handleOrderAction(orderId, 'execute');
+    }, [handleOrderAction]);
 
     const toggleOrderExpansion = useCallback((orderId: string) => {
         if (expandedOrderId === orderId) {
@@ -688,8 +803,6 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
             isOpen: false
         }));
     }, []);
-
-
 
     // Enhanced handlers that sync with swap context
     const handleSwitchTokensEnhanced = useCallback(() => {
@@ -819,8 +932,8 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
             return;
         }
 
-        if (buyPrice >= sellPrice) {
-            toast.error('Buy price must be lower than sell price');
+        if (sellPrice <= buyPrice) {
+            toast.error('Sell price must be higher than buy price');
             return;
         }
 
@@ -868,13 +981,13 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
             orders: [
                 {
                     type: 'buy',
-                    price: sandwichBuyPrice,
+                    price: sandwichSellPrice, // A→B (sell) uses high price
                     amount: buyAmountMicro,
                     status: 'pending'
                 },
                 {
                     type: 'sell',
-                    price: sandwichSellPrice,
+                    price: sandwichBuyPrice, // B→A (buy) uses low price
                     amount: sellAmountMicro,
                     status: 'pending'
                 }
@@ -923,6 +1036,8 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         setTradingPairBase,
         tradingPairQuote,
         setTradingPairQuote,
+        lockTradingPairToSwapTokens,
+        setLockTradingPairToSwapTokens,
 
         // Order Form State
         displayAmount,
@@ -988,10 +1103,24 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         handleCreateSandwichOrder,
         handleSubmitOrder,
         handleOrderAction,
+        confirmCancelOrder,
+        cancelOrderAction,
+        executeOrderAction,
         toggleOrderExpansion,
         clearHighlightedOrder,
         fetchOrders,
 
+        // Individual Order Management
+        updateOrderById,
+        updateOrderStatus,
+        addNewOrder,
+        removeOrderById,
+
+        // Order Action State
+        cancelingOrders,
+        executingOrders,
+        confirmCancelOrderId,
+        setConfirmCancelOrderId,
 
         // Utility Functions
         formatTokenAmount,

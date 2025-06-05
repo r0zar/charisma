@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Trash2, ChevronDown, ChevronRight, ArrowRight } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronRight, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useSwapContext } from '../../contexts/swap-context';
 import TokenLogo from '../TokenLogo';
@@ -22,6 +23,13 @@ export default function OrdersSidebar() {
         isLoadingOrders,
         ordersError,
         handleOrderAction,
+        confirmCancelOrder,
+        cancelOrderAction,
+        executeOrderAction,
+        cancelingOrders,
+        executingOrders,
+        confirmCancelOrderId,
+        setConfirmCancelOrderId,
         toggleOrderExpansion,
         formatTokenAmount,
         formatCompactNumber,
@@ -98,11 +106,6 @@ export default function OrdersSidebar() {
                             {order.status}
                         </Badge>
 
-                        {/* Symbol/Symbol with condition */}
-                        <span className="font-mono text-xs">
-                            {order.inputTokenMeta.symbol}/{order.outputTokenMeta.symbol} {order.direction === 'gt' ? '≥' : '≤'} {formatDynamicPrice(order.targetPrice || '0')}
-                        </span>
-
                         {/* Amount */}
                         <span className="font-mono text-xs">
                             {formatDynamicAmount(order.amountIn || '0', order.inputTokenMeta.decimals || 6)}
@@ -146,9 +149,9 @@ export default function OrdersSidebar() {
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Target:</span>
+                            <span className="text-muted-foreground">Price Trigger:</span>
                             <span className="font-mono">
-                                {order.direction === 'gt' ? '≥' : '≤'} {formatCompactPrice(order.targetPrice)}
+                                1 {order.conditionTokenMeta.symbol} {order.direction === 'gt' ? '≥' : '≤'} {formatCompactPrice(order.targetPrice)} {order.baseAssetMeta?.symbol || 'USD'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -173,17 +176,64 @@ export default function OrdersSidebar() {
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                disabled={cancelingOrders.has(order.uuid)}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleOrderAction(order.uuid, 'cancel');
+                                    confirmCancelOrder(order.uuid);
                                 }}
-                                className="h-8 px-3 text-xs text-destructive hover:text-destructive"
+                                className="h-8 px-3 text-xs text-destructive hover:text-destructive disabled:opacity-50"
                             >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Cancel
+                                {cancelingOrders.has(order.uuid) ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                        Canceling...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        Cancel
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </div>
+                )}
+
+                {/* Cancel confirmation dialog */}
+                {confirmCancelOrderId && (
+                    <Dialog open onOpenChange={(open) => { if (!open) setConfirmCancelOrderId(null); }}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Cancel Order</DialogTitle>
+                                <DialogDescription>
+                                    Are you sure you want to cancel this order? This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter className="flex justify-end gap-2 pt-4">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setConfirmCancelOrderId(null)}
+                                    disabled={cancelingOrders.has(confirmCancelOrderId)}
+                                >
+                                    Keep Order
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => cancelOrderAction(confirmCancelOrderId)}
+                                    disabled={cancelingOrders.has(confirmCancelOrderId)}
+                                >
+                                    {cancelingOrders.has(confirmCancelOrderId) ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Canceling...
+                                        </>
+                                    ) : (
+                                        'Cancel Order'
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 )}
             </div>
         );
