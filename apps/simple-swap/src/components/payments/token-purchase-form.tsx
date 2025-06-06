@@ -57,7 +57,9 @@ export default function TokenPurchaseForm() {
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
         if (subnetDisplayTokens && subnetDisplayTokens.length > 0 && !selectedToToken) {
-            setSelectedToToken(subnetDisplayTokens[0]);
+            const CHA_CONTRACT_ID = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1';
+            const chaToken = subnetDisplayTokens.find(t => t.contractId === CHA_CONTRACT_ID);
+            setSelectedToToken(chaToken || subnetDisplayTokens[0]);
         }
     }, [subnetDisplayTokens, setSelectedToToken, selectedToToken]);
 
@@ -169,7 +171,7 @@ export default function TokenPurchaseForm() {
                 selectedTokenContractId: selectedToToken.contractId,
                 selectedTokenSymbol: selectedToToken.symbol,
                 selectedTokenName: selectedToToken.name,
-                selectedTokenDecimals: selectedToToken.decimals.toString(),
+                selectedTokenDecimals: selectedToToken.decimals?.toString(),
                 usdAmount: usdAmount,
                 calculatedTokenAmount: dexterityQuote.amountOutMicro.toString(), // Use server quote micro amount
                 fiatCurrency: "USD",
@@ -195,7 +197,11 @@ export default function TokenPurchaseForm() {
             } catch { }
 
             if (!res.ok) {
-                toast.error(data?.message || "Something went wrong with checkout initialization.");
+                if (res.status === 409) {
+                    toast.error("Token price changed by more than 1%. Please refresh and try again.");
+                } else {
+                    toast.error(data?.message || "Something went wrong with checkout initialization.");
+                }
                 setIsLoading(false); // Ensure loading is reset on failure
                 return;
             }
@@ -348,7 +354,7 @@ export default function TokenPurchaseForm() {
                     tokenSymbol={selectedToToken.symbol}
                     userAddress={userAddress}
                     tokenContract={selectedToToken.contractId}
-                    tokenDecimals={selectedToToken.decimals}
+                    tokenDecimals={selectedToToken.decimals!}
                 />
             )}
         </div>
