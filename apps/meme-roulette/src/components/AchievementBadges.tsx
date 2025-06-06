@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Trophy, Search, Crown, Star, Flame, Users, Gift, Zap, Clock, Lock, X, Calendar, Circle, Hexagon, Diamond, Sparkles } from 'lucide-react';
 import { useAchievements, useUserAchievements } from '@/hooks/useLeaderboard';
 import type { AchievementDefinition, UserAchievement } from '@/hooks/useLeaderboard';
-import { useSpin } from '@/contexts/SpinContext';
+import { useWallet } from '@/contexts/wallet-context';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 
 const AchievementBadges = () => {
@@ -19,11 +19,10 @@ const AchievementBadges = () => {
     const [selectedAchievement, setSelectedAchievement] = useState<AchievementDefinition | null>(null);
     const [hoveredAchievement, setHoveredAchievement] = useState<string | null>(null);
 
-    const { state: { feedData } } = useSpin();
-    const currentUserId = feedData?.currentUserBets?.[0]?.userId;
+    const { address: walletAddress, connected } = useWallet();
 
     const { data: achievementsData, isLoading: achievementsLoading } = useAchievements();
-    const { data: userAchievementsData, isLoading: userAchievementsLoading } = useUserAchievements(currentUserId || null);
+    const { data: userAchievementsData, isLoading: userAchievementsLoading } = useUserAchievements(connected ? walletAddress : null);
 
     // Filter and search achievements
     const filteredAchievements = useMemo(() => {
