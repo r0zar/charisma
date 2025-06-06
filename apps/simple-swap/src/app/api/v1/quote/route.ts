@@ -3,8 +3,9 @@ import { getQuote } from '../../../actions';
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': '*, X-Requested-With, Content-Type, Authorization',
+    'Content-Type': 'application/json',
 };
 
 export async function OPTIONS(request: NextRequest) {
@@ -45,7 +46,6 @@ export async function GET(request: NextRequest) {
                 {
                     status: 200,
                     headers: {
-                        'Content-Type': 'application/json',
                         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59',
                         ...CORS_HEADERS,
                     }
