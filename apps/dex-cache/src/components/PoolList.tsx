@@ -6,7 +6,7 @@ import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, Ban } from 'lucide-react';
+import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, Ban, ArrowUp, ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
 import Image from 'next/image';
@@ -108,6 +108,8 @@ export default function PoolList({ vaults }: Props) {
     const [blacklisting, setBlacklisting] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(null);
+    const [sortBy, setSortBy] = useState<'fee' | 'tvl' | null>(null);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const isDev = process.env.NODE_ENV === 'development';
 
     useEffect(() => {
@@ -147,6 +149,42 @@ export default function PoolList({ vaults }: Props) {
         setExpandedVault(expandedVault === id ? null : id);
     };
 
+    // Compute TVL for each vault
+    const getTvl = (v: Vault) => {
+        const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA?.decimals || 0, v.tokenA?.contractId as `${string}.${string}`, prices);
+        const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB?.decimals || 0, v.tokenB?.contractId as `${string}.${string}`, prices);
+        let totalUsdValue = 0;
+        if (usdValueA !== null) totalUsdValue += usdValueA;
+        if (usdValueB !== null) totalUsdValue += usdValueB;
+        return (usdValueA === null && usdValueB === null) ? null : totalUsdValue;
+    };
+
+    // Sort vaults based on selected column
+    const sortedVaults = React.useMemo(() => {
+        if (!sortBy) return vaults;
+        const sorted = [...vaults];
+        if (sortBy === 'fee') {
+            sorted.sort((a, b) => sortDir === 'asc' ? a.fee - b.fee : b.fee - a.fee);
+        } else if (sortBy === 'tvl') {
+            sorted.sort((a, b) => {
+                const tvlA = getTvl(a) ?? 0;
+                const tvlB = getTvl(b) ?? 0;
+                return sortDir === 'asc' ? tvlA - tvlB : tvlB - tvlA;
+            });
+        }
+        return sorted;
+    }, [vaults, sortBy, sortDir, prices]);
+
+    // Handle sort toggling
+    const handleSort = (col: 'fee' | 'tvl') => {
+        if (sortBy === col) {
+            setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(col);
+            setSortDir('desc');
+        }
+    };
+
     if (vaults.length === 0) return (
         <Card className="mt-6">
             <CardContent className="pt-6">
@@ -178,14 +216,20 @@ export default function PoolList({ vaults }: Props) {
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Contract</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Fee</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Liquidity</th>
+                                <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('fee')}>
+                                    Fee
+                                    {sortBy === 'fee' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
+                                </th>
+                                <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('tvl')}>
+                                    Liquidity
+                                    {sortBy === 'tvl' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
+                                </th>
                                 <th className="p-4 font-semibold text-muted-foreground">Status</th>
                                 <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {vaults.map(v => {
+                            {sortedVaults.map(v => {
                                 const isRefreshing = refreshing === v.contractId;
                                 const isRemoving = removing === v.contractId;
                                 const isBlacklisting = blacklisting === v.contractId;
