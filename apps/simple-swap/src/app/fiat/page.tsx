@@ -190,7 +190,7 @@ export default function TokenPurchaseDashboard() {
                             </div>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            © 2025 Charisma Subnet. All rights reserved.
+                            © 2025 Charisma. All rights reserved.
                         </div>
                     </div>
                 </div>
