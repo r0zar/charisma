@@ -104,6 +104,14 @@ export async function completeRoundWithLeaderboard(
         // Set winning token in existing system
         await setKVWinningToken(winningTokenId);
 
+        // --- Update round metadata with winner ---
+        const roundMetaKey = `round:${currentRoundId}:meta`;
+        const roundMetaObj = await kv.get(roundMetaKey);
+        if (roundMetaObj) {
+            (roundMetaObj as any).winningTokenId = winningTokenId;
+            await kv.set(roundMetaKey, roundMetaObj);
+        }
+
         // Process all participants for round completion stats
         if (winnerRewards) {
             const updatePromises = Object.entries(winnerRewards).map(([userId, earnings]) =>
