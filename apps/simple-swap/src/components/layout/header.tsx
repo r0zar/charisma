@@ -5,9 +5,11 @@ import Link from "next/link";
 import { WalletButton } from "../wallet-button";
 import { Coins, Menu, X, Settings } from "lucide-react";
 import { Button } from "../ui/button";
+import { useWallet } from "@/contexts/wallet-context";
 
 export function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+    const { connected } = useWallet();
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -47,11 +49,13 @@ export function Header() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Link href="/notifications" aria-label="Notification Settings">
-                        <Button variant="ghost" size="icon">
-                            <Settings className="h-4 w-4" />
-                        </Button>
-                    </Link>
+                    {connected && (
+                        <Link href="/notifications" aria-label="Notification Settings" className="hidden md:inline-flex">
+                            <Button variant="ghost" size="icon">
+                                <Settings className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                    )}
                     <WalletButton />
                     <Button
                         variant="ghost"
@@ -82,6 +86,11 @@ export function Header() {
                         <Link href="/shop" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
                             Marketplace
                         </Link>
+                        {connected && (
+                            <Link href="/notifications" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
+                                Settings
+                            </Link>
+                        )}
                     </nav>
                 </div>
             )}

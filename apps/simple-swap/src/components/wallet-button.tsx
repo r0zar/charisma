@@ -16,12 +16,12 @@ export function WalletButton({ className }: WalletButtonProps) {
                 <button
                     onClick={connectWallet}
                     disabled={isConnecting}
-                    className="cursor-pointer h-9 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    className="cursor-pointer w-fit h-9 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center min-w-[140px]"
                 >
                     {isConnecting ? (
                         <>
-                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
-                            Connecting...
+                            <span className="mr-2 flex items-center justify-center"><span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></span></span>
+                            <span className="truncate">Connecting...</span>
                         </>
                     ) : (
                         "Connect Wallet"
