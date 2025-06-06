@@ -4,7 +4,8 @@ import {
     ReferralCode,
     ReferralStats,
     ReferralCommission,
-    ReferralConfig
+    ReferralConfig,
+    ReferralClick
 } from '@/types/spin';
 import { checkReferralAchievements } from './leaderboard-kv';
 
@@ -175,6 +176,14 @@ export async function useReferralCode(code: string, refereeId: string): Promise<
         referralCode.totalUses++;
         await kv.set(`referral_code:${code}`, referralCode);
 
+        // Mark any recent clicks for this code as converted
+        try {
+            await markClickAsConverted(code, Date.now());
+        } catch (clickError) {
+            console.error('Failed to mark click as converted:', clickError);
+            // Don't throw here - referral was still successful
+        }
+
         // Check and award referral achievements to the referrer
         try {
             const referrerStats = await getReferralStats(referralCode.userId);
@@ -193,6 +202,67 @@ export async function useReferralCode(code: string, refereeId: string): Promise<
 }
 
 /**
+ * Track a referral click
+ */
+export async function trackReferralClick(
+    referralCode: string,
+    ipHash?: string,
+    userAgent?: string
+): Promise<ReferralClick> {
+    try {
+        const clickId = `${referralCode}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+        const click: ReferralClick = {
+            id: clickId,
+            referralCode,
+            clickedAt: Date.now(),
+            ipHash,
+            userAgent,
+            converted: false
+        };
+
+        // Save the click
+        await kv.set(`referral_click:${clickId}`, click);
+
+        // Add to referral code's clicks list
+        const codeClicks = await kv.get(`referral_code:${referralCode}:clicks`) || [];
+        (codeClicks as string[]).push(clickId);
+        await kv.set(`referral_code:${referralCode}:clicks`, codeClicks);
+
+        console.log(`📊 Tracked referral click for code: ${referralCode}`);
+        return click;
+    } catch (error) {
+        console.error('Failed to track referral click:', error);
+        throw error;
+    }
+}
+
+/**
+ * Mark a referral click as converted
+ */
+export async function markClickAsConverted(referralCode: string, convertedAt: number): Promise<void> {
+    try {
+        // Find the most recent click for this code that hasn't been converted yet
+        const codeClicks = await kv.get(`referral_code:${referralCode}:clicks`) || [];
+
+        for (const clickId of (codeClicks as string[]).reverse()) { // Check most recent first
+            const click = await kv.get(`referral_click:${clickId}`) as ReferralClick;
+            if (click && !click.converted) {
+                // Mark this click as converted
+                click.converted = true;
+                click.convertedAt = convertedAt;
+                await kv.set(`referral_click:${clickId}`, click);
+                console.log(`✅ Marked click ${clickId} as converted for code: ${referralCode}`);
+                break;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to mark click as converted:', error);
+        // Don't throw - this is not critical
+    }
+}
+
+/**
  * Get referral statistics for a user
  */
 export async function getReferralStats(userId: string): Promise<ReferralStats> {
@@ -200,10 +270,25 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
         // Get user's referral codes
         const userCodes = await kv.get(`user:${userId}:referral_codes`) || [];
         const referralCodes: ReferralCode[] = [];
+        let totalClicks = 0;
+        let totalConversions = 0;
+
         for (const code of userCodes as string[]) {
             const referralCode = await getReferralCode(code);
             if (referralCode) {
                 referralCodes.push(referralCode);
+
+                // Count clicks for this code
+                const codeClicks = await kv.get(`referral_code:${code}:clicks`) || [];
+                totalClicks += (codeClicks as string[]).length;
+
+                // Count conversions for this code
+                for (const clickId of codeClicks as string[]) {
+                    const click = await kv.get(`referral_click:${clickId}`) as ReferralClick;
+                    if (click && click.converted) {
+                        totalConversions++;
+                    }
+                }
             }
         }
 
@@ -234,11 +319,16 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
             }
         }
 
+        // Calculate conversion rate
+        const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
+
         return {
             userId,
             totalReferrals: referrals.length,
             activeReferrals,
             totalCommissions,
+            totalClicks,
+            conversionRate,
             referralCodes,
             referrals,
             referredBy

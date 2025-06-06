@@ -116,6 +116,19 @@ export interface ReferralCode {
 }
 
 /**
+ * Referral click tracking
+ */
+export interface ReferralClick {
+    id: string; // Unique click ID
+    referralCode: string; // The referral code that was clicked
+    clickedAt: number; // Timestamp when the link was clicked
+    ipHash?: string; // Hashed IP for duplicate detection (optional)
+    userAgent?: string; // User agent for analytics (optional)
+    converted: boolean; // Whether this click led to a successful referral
+    convertedAt?: number; // When the conversion happened (if applicable)
+}
+
+/**
  * Referral statistics for a user
  */
 export interface ReferralStats {
@@ -123,9 +136,12 @@ export interface ReferralStats {
     totalReferrals: number; // Number of people referred
     activeReferrals: number; // Number of active referrals
     totalCommissions: number; // Total CHA earned from referrals
+    totalClicks: number; // Total clicks on referral links
+    conversionRate: number; // Percentage of clicks that converted to referrals (0-100)
     referralCodes: ReferralCode[]; // All referral codes owned by user
     referrals: Referral[]; // All referrals made by user
     referredBy?: Referral; // If this user was referred by someone
+    clickHistory?: ReferralClick[]; // Recent click history (optional)
 }
 
 /**

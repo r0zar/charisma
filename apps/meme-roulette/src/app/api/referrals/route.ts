@@ -3,7 +3,8 @@ import {
     getReferralStats,
     createReferralCode,
     useReferralCode,
-    getReferralConfig
+    getReferralConfig,
+    trackReferralClick
 } from '@/lib/referrals-kv';
 
 // Public referral API endpoints
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
 
             case 'use_code':
                 return await handleUseCode(userId, params);
+
+            case 'track_click':
+                return await handleTrackClick(params);
 
             default:
                 return NextResponse.json(
@@ -192,6 +196,42 @@ async function handleUseCode(userId: string, params: { code: string }) {
             {
                 success: false,
                 error: error instanceof Error ? error.message : 'Failed to use referral code'
+            },
+            { status: 400 }
+        );
+    }
+}
+
+/**
+ * Track a referral click
+ */
+async function handleTrackClick(params: { code: string; userAgent?: string }) {
+    try {
+        const { code, userAgent } = params;
+
+        if (!code) {
+            return NextResponse.json(
+                { success: false, error: 'Referral code is required' },
+                { status: 400 }
+            );
+        }
+
+        // Simple IP hash for basic analytics (not perfect but helps with duplicate detection)
+        const ipHash = 'anon'; // We could implement IP hashing here if needed
+
+        const click = await trackReferralClick(code, ipHash, userAgent);
+
+        return NextResponse.json({
+            success: true,
+            data: click,
+            message: 'Click tracked successfully'
+        });
+    } catch (error) {
+        console.error('Failed to track referral click:', error);
+        return NextResponse.json(
+            {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to track click'
             },
             { status: 400 }
         );

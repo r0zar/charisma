@@ -25,6 +25,9 @@ export function useReferralRedemption() {
                 localStorage.setItem(PENDING_REFERRAL_KEY, referralCode.trim());
                 console.log(`🎯 Referral code detected: ${referralCode.trim()}`);
 
+                // Track the referral click
+                trackReferralClick(referralCode.trim());
+
                 if (!connected) {
                     toast.info('Referral code saved! Connect your wallet to claim it.', {
                         duration: 5000
@@ -33,6 +36,31 @@ export function useReferralRedemption() {
             }
         }
     }, [searchParams, connected]);
+
+    // Function to track referral clicks
+    const trackReferralClick = async (code: string) => {
+        try {
+            // Get basic browser info for analytics (anonymized)
+            const userAgent = navigator.userAgent;
+
+            await fetch('/api/referrals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'track_click',
+                    code,
+                    userAgent
+                })
+            });
+
+            console.log(`📊 Tracked click for referral code: ${code}`);
+        } catch (error) {
+            console.error('Failed to track referral click:', error);
+            // Don't show error to user - this is analytics only
+        }
+    };
 
     // Automatically redeem referral code when wallet connects
     const redeemPendingReferral = useCallback(async () => {

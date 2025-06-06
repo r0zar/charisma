@@ -13,16 +13,26 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import {
     getReferralConfig,
-    getReferralSystemStats
+    getReferralSystemStats,
+    getAllReferrals,
+    getReferralStats
 } from '@/lib/admin-api';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface SystemStats {
     totalReferrals: number;
     activeReferrals: number;
-    totalCommissions: number;
     totalReferralCodes: number;
     activeReferralCodes: number;
     topReferrers: Array<{ userId: string; referrals: number; commissions: number }>;
+}
+
+interface FunnelUser {
+    userId: string;
+    totalClicks: number;
+    totalReferrals: number;
+    conversionRate: number;
 }
 
 export function ReferralAdminPanel() {
@@ -30,15 +40,18 @@ export function ReferralAdminPanel() {
     const [systemStats, setSystemStats] = useState<SystemStats | null>({
         totalReferrals: 0,
         activeReferrals: 0,
-        totalCommissions: 0,
         totalReferralCodes: 0,
         activeReferralCodes: 0,
         topReferrers: []
     });
     const [cronStatus, setCronStatus] = useState<any>(null);
+    const [funnelData, setFunnelData] = useState<FunnelUser[]>([]);
+    const [funnelLoading, setFunnelLoading] = useState(false);
+    const [funnelSearch, setFunnelSearch] = useState('');
 
     useEffect(() => {
         loadData();
+        loadFunnelData();
         // Check cron status every 30 seconds
         const interval = setInterval(loadCronStatus, 30000);
         return () => clearInterval(interval);
@@ -51,7 +64,6 @@ export function ReferralAdminPanel() {
             setSystemStats({
                 totalReferrals: 0,
                 activeReferrals: 0,
-                totalCommissions: 0,
                 totalReferralCodes: 0,
                 activeReferralCodes: 0,
                 topReferrers: []
@@ -74,6 +86,45 @@ export function ReferralAdminPanel() {
             }
         } catch (error) {
             console.error('Failed to load cron status:', error);
+        }
+    };
+
+    const loadFunnelData = async () => {
+        setFunnelLoading(true);
+        try {
+            // Get all referrals to find all referrers
+            const allReferralsRes = await getAllReferrals(10000, 0);
+            const allReferrals = allReferralsRes?.data || [];
+            // Get all unique referrerIds
+            const userIds = Array.from(
+                new Set(
+                    allReferrals
+                        .filter((r: any) => typeof r.referrerId === 'string')
+                        .map((r: any) => r.referrerId)
+                )
+            );
+            // Fetch stats for each user
+            const statsList: FunnelUser[] = [];
+            for (const userIdRaw of userIds) {
+                const userId = typeof userIdRaw === 'string' ? userIdRaw : String(userIdRaw);
+                try {
+                    const statsRes = await getReferralStats(userId);
+                    const stats = statsRes?.data || statsRes;
+                    statsList.push({
+                        userId,
+                        totalClicks: stats.totalClicks || 0,
+                        totalReferrals: stats.totalReferrals || 0,
+                        conversionRate: stats.conversionRate || 0,
+                    });
+                } catch (e) {
+                    // Ignore errors for individual users
+                }
+            }
+            setFunnelData(statsList.sort((a, b) => b.totalReferrals - a.totalReferrals));
+        } catch (e) {
+            toast.error('Failed to load referral funnel data');
+        } finally {
+            setFunnelLoading(false);
         }
     };
 
@@ -104,10 +155,6 @@ export function ReferralAdminPanel() {
                             <div className="p-4 border rounded-lg">
                                 <div className="text-2xl font-bold">{systemStats.activeReferrals}</div>
                                 <div className="text-sm text-muted-foreground">Active Referrals</div>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <div className="text-2xl font-bold">{systemStats.totalCommissions.toFixed(2)}</div>
-                                <div className="text-sm text-muted-foreground">Total Commissions (CHA)</div>
                             </div>
                             <div className="p-4 border rounded-lg">
                                 <div className="text-2xl font-bold">{systemStats.totalReferralCodes}</div>
@@ -155,6 +202,56 @@ export function ReferralAdminPanel() {
                         Refresh Data
                     </Button>
                 </CardFooter>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Referral Funnel</CardTitle>
+                    <CardDescription>
+                        Per-user breakdown: how many clicks, credited referrals, and conversion rate for each referrer.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="mb-4 flex items-center gap-2">
+                        <Input
+                            placeholder="Search by user ID..."
+                            value={funnelSearch}
+                            onChange={e => setFunnelSearch(e.target.value)}
+                            className="max-w-xs"
+                        />
+                        <Button onClick={loadFunnelData} disabled={funnelLoading} size="sm">
+                            Refresh
+                        </Button>
+                    </div>
+                    {funnelLoading ? (
+                        <div className="text-center text-muted-foreground py-8">Loading funnel data...</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>User</TableHead>
+                                        <TableHead className="text-right">Total Clicks</TableHead>
+                                        <TableHead className="text-right">Total Referrals</TableHead>
+                                        <TableHead className="text-right">Conversion Rate</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {funnelData.filter(u => !funnelSearch || String(u.userId).includes(String(funnelSearch))).map(user => (
+                                        <TableRow key={user.userId}>
+                                            <TableCell className="font-mono text-xs">{user.userId}</TableCell>
+                                            <TableCell className="text-right">{user.totalClicks}</TableCell>
+                                            <TableCell className="text-right">{user.totalReferrals}</TableCell>
+                                            <TableCell className="text-right">{user.conversionRate.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                            {funnelData.length === 0 && (
+                                <div className="text-center text-muted-foreground py-8">No referral funnel data found.</div>
+                            )}
+                        </div>
+                    )}
+                </CardContent>
             </Card>
         </div>
     );

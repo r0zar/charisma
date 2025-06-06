@@ -31,6 +31,8 @@ interface ReferralStats {
     totalReferrals: number;
     activeReferrals: number;
     totalCommissions: number;
+    totalClicks: number;
+    conversionRate: number;
     referralCodes: ReferralCode[];
     referrals: any[];
     referredBy?: any;
@@ -63,6 +65,8 @@ export function ReferralDashboard() {
                 totalReferrals: 0,
                 activeReferrals: 0,
                 totalCommissions: 0,
+                totalClicks: 0,
+                conversionRate: 0,
                 referralCodes: [],
                 referrals: []
             });
@@ -74,6 +78,8 @@ export function ReferralDashboard() {
                 totalReferrals: 0,
                 activeReferrals: 0,
                 totalCommissions: 0,
+                totalClicks: 0,
+                conversionRate: 0,
                 referralCodes: [],
                 referrals: []
             });
@@ -234,7 +240,7 @@ export function ReferralDashboard() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                         <div className="p-4 border rounded-lg text-center">
                             <div className="text-2xl font-bold text-blue-600">
                                 {stats?.totalReferrals || 0}
@@ -246,6 +252,18 @@ export function ReferralDashboard() {
                                 {stats?.activeReferrals || 0}
                             </div>
                             <div className="text-sm text-muted-foreground">Active Referrals</div>
+                        </div>
+                        <div className="p-4 border rounded-lg text-center">
+                            <div className="text-2xl font-bold text-orange-600">
+                                {stats?.totalClicks || 0}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Link Clicks</div>
+                        </div>
+                        <div className="p-4 border rounded-lg text-center">
+                            <div className="text-2xl font-bold text-emerald-600">
+                                {stats?.conversionRate ? `${stats.conversionRate.toFixed(1)}%` : '0%'}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Conversion Rate</div>
                         </div>
                         <div className="p-4 border rounded-lg text-center">
                             <div className="text-2xl font-bold text-purple-600">
