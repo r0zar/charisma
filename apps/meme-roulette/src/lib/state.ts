@@ -436,6 +436,10 @@ export async function resetKVForNextSpin() {
         await completeRoundWithLeaderboard(winningTokenId, winnerRewards);
     }
 
+    // --- Set new round ID for next round ---
+    const newRoundId = `round_${Date.now()}`;
+    await kv.set('global:current_round', newRoundId);
+
     await kv.multi()
         .set(KV_SPIN_SCHEDULED_AT, nextSpinTime)
         .set(KV_WINNING_TOKEN_ID, null)

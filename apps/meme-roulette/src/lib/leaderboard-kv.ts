@@ -57,6 +57,7 @@ export interface UserStats {
     maxStreak: number; // Maximum consecutive rounds participated
     achievements: string[]; // Array of achievement IDs
     updatedAt: number; // Last stats update timestamp
+    lastParticipatedRound?: string; // Track last round participated for streaks
 }
 
 export interface RoundParticipation {
@@ -232,9 +233,19 @@ export async function updateUserStatsAfterRound(
             stats.totalEarnings += earnings;
         }
 
-        // Update streak logic would go here
-        // For now, we'll increment current streak if user participated
-        stats.currentStreak += 1;
+        // --- Streak logic: only increment if previous round was consecutive ---
+        // Extract round number from roundId (assumes format 'round_<number>')
+        const currentRoundNum = parseInt(roundId.replace('round_', ''));
+        let prevRoundNum = null;
+        if (stats.lastParticipatedRound && stats.lastParticipatedRound.startsWith('round_')) {
+            prevRoundNum = parseInt(stats.lastParticipatedRound.replace('round_', ''));
+        }
+        if (prevRoundNum !== null && currentRoundNum === prevRoundNum + 1) {
+            stats.currentStreak += 1;
+        } else {
+            stats.currentStreak = 1;
+        }
+        stats.lastParticipatedRound = roundId;
         stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
 
         stats.updatedAt = Date.now();
