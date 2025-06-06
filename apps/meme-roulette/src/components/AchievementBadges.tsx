@@ -9,6 +9,7 @@ import { Trophy, Search, Crown, Star, Flame, Users, Gift, Zap, Clock, Lock, X, C
 import { useAchievements, useUserAchievements } from '@/hooks/useLeaderboard';
 import type { AchievementDefinition, UserAchievement } from '@/hooks/useLeaderboard';
 import { useSpin } from '@/contexts/SpinContext';
+import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 
 const AchievementBadges = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -349,14 +350,22 @@ const AchievementBadges = () => {
                             )}
 
                             {isUnlocked(selectedAchievement.id) ? (
-                                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 text-green-400 font-medium mb-1">
-                                        <Trophy className="h-4 w-4" />
-                                        Achievement Unlocked!
+                                <div className="space-y-3">
+                                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                                        <div className="flex items-center gap-2 text-green-400 font-medium mb-1">
+                                            <Trophy className="h-4 w-4" />
+                                            Achievement Unlocked!
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            Unlocked on {getUnlockedDate(selectedAchievement.id)}
+                                        </div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
-                                        Unlocked on {getUnlockedDate(selectedAchievement.id)}
-                                    </div>
+                                    <TwitterShareButton
+                                        message={`Just unlocked the "${selectedAchievement.name}" achievement in Meme Roulette! ${selectedAchievement.icon} ${selectedAchievement.description}`}
+                                        variant="default"
+                                        size="default"
+                                        className="w-full"
+                                    />
                                 </div>
                             ) : (
                                 <div className="bg-muted/10 border border-border/20 rounded-lg p-3">

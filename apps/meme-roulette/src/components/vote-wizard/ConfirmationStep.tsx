@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Token } from '@/types/spin';
 import { useWallet } from '@/contexts/wallet-context';
-import { ChevronLeft, CheckCircle } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Trophy } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from '@/components/ui/sonner';
+import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 
 // CHA Token constants
 const CHA_DECIMALS = 6;
@@ -45,6 +46,7 @@ export const ConfirmationStep = ({
 }: ConfirmationStepProps) => {
     const { subnetBalance, placeBet } = useWallet();
     const [isLoading, setIsLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const handleVote = async () => {
         const amountInAtomicCHA = BigInt(Math.round(selectedAmount * (10 ** CHA_DECIMALS)));
@@ -66,7 +68,12 @@ export const ConfirmationStep = ({
             }
 
             toast.success(`🎉 Voted ${selectedAmount} CHA for ${selectedToken.symbol}!`);
-            onSuccess();
+            setShowSuccess(true);
+
+            // Auto close after 3 seconds
+            setTimeout(() => {
+                onSuccess();
+            }, 3000);
         } catch (error: any) {
             console.error("Vote failed:", error);
             const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
@@ -75,6 +82,42 @@ export const ConfirmationStep = ({
             setIsLoading(false);
         }
     };
+
+    if (showSuccess) {
+        return (
+            <div className="px-4 sm:px-6 pb-6 space-y-4 sm:space-y-6">
+                <div className="space-y-3 sm:space-y-4 text-center">
+                    <div className="flex justify-center">
+                        <div className="bg-green-500/20 border border-green-500/30 rounded-full p-4 mb-4">
+                            <Trophy className="h-8 w-8 text-green-500" />
+                        </div>
+                    </div>
+                    <h3 className="font-semibold text-lg sm:text-xl text-green-600">
+                        Vote Placed Successfully! 🎉
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        You voted {selectedAmount} CHA for {selectedToken.symbol}. Good luck in this round!
+                    </p>
+
+                    <div className="mt-6 space-y-3">
+                        <TwitterShareButton
+                            message={`Just voted ${selectedAmount} CHA for ${selectedToken.symbol} in Meme Roulette! 🎰 The spin is about to happen...`}
+                            variant="default"
+                            size="default"
+                            className="w-full"
+                        />
+                        <Button
+                            onClick={onSuccess}
+                            variant="outline"
+                            className="w-full"
+                        >
+                            Close
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="px-4 sm:px-6 pb-6 space-y-4 sm:space-y-6">

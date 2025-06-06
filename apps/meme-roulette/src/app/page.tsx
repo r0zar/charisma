@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { InstructionsButton } from '@/components/InstructionsButton';
 import { useWallet } from '@/contexts/wallet-context';
+import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 
 // Define CHA decimals (ideally, get this from token data if CHA is in pageTokens)
 const CHA_DECIMALS = 6;
@@ -222,10 +223,21 @@ export default function HubPage() {
 
     return (
       <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
-        <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
-          <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-          My Votes
-        </h2>
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2">
+            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            My Votes
+          </h2>
+          {myBets && myBets.length > 0 && (
+            <TwitterShareButton
+              message={`Currently have ${myBets.length} vote${myBets.length > 1 ? 's' : ''} in this Meme Roulette round! 🎰 Waiting for the spin...`}
+              size="sm"
+              variant="ghost"
+              className="opacity-60 hover:opacity-100"
+              showIcon={false}
+            />
+          )}
+        </div>
         <ScrollArea className="h-[220px] sm:h-[280px] lg:h-[320px] pr-3 -mr-3">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
             {sortedBets.map((vote: Vote) => {

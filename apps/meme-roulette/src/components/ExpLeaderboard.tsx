@@ -19,6 +19,7 @@ import { useLeaderboard } from '@/hooks/useLeaderboard';
 import TokenAmountDisplay from '@/components/TokenAmountDisplay';
 import HistoricSpinResults from '@/components/HistoricSpinResults';
 import AchievementBadges from '@/components/AchievementBadges';
+import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 import type { Vote } from '@/types/spin';
 
 // CHA decimals constant
@@ -251,6 +252,20 @@ const LeaderboardComponent = () => {
                                   {entry.stats.achievements.length} achievements
                                 </div>
                               </div>
+                              {isCurrentUser && entry.rank <= 10 && (
+                                <TwitterShareButton
+                                  message={entry.rank === 1
+                                    ? `🏆 I'm #1 on the Meme Roulette leaderboard! ${(entry.score / 1000000).toLocaleString()} CHA committed across ${entry.stats.totalVotes} votes.`
+                                    : entry.rank <= 3
+                                      ? `🥉 I'm in the top 3 on the Meme Roulette leaderboard! Ranked #${entry.rank} with ${(entry.score / 1000000).toLocaleString()} CHA committed.`
+                                      : `📈 I'm ranked #${entry.rank} on the Meme Roulette leaderboard! ${(entry.score / 1000000).toLocaleString()} CHA committed across ${entry.stats.totalVotes} votes.`
+                                  }
+                                  size="sm"
+                                  variant="ghost"
+                                  className="opacity-70 hover:opacity-100"
+                                  showIcon={false}
+                                />
+                              )}
                             </div>
                           </TableCell>
 
