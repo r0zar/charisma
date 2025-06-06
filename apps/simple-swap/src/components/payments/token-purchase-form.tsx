@@ -6,6 +6,7 @@ import TokenDropdown from "@/components/TokenDropdown";
 import { fetchTokenBalance } from "blaze-sdk";
 import { toast } from "sonner";
 import { fetchQuote } from "dexterity-sdk";
+import { useWallet } from "@/contexts/wallet-context";
 
 // A simple debounce hook (if not already available globally)
 function useDebounce<T>(value: T, delay: number): T {
@@ -50,6 +51,8 @@ export default function TokenPurchaseForm() {
         setSelectedToToken,
         userAddress,
     } = useSwap();
+
+    const { prices } = useWallet();
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
@@ -119,14 +122,37 @@ export default function TokenPurchaseForm() {
         fetchReserve();
     }, [selectedToToken]);
 
+    const decimals = selectedToToken?.decimals ?? 6;
     // Calculate tokenAmount and formattedTokenAmount based on serverQuote
     const tokenAmountMicro = dexterityQuote?.amountOutMicro || 0n;
 
     const exceedsReserve = reserveBalance !== null && tokenAmountMicro > reserveBalance;
 
     const formattedTokenAmount = selectedToToken && tokenAmountMicro
-        ? (Number(tokenAmountMicro) / (10 ** selectedToToken.decimals)).toFixed(selectedToToken.decimals) // Ensure decimals is not 0 to avoid NaN
+        ? (Number(tokenAmountMicro) / (10 ** decimals)).toFixed(decimals) // Ensure decimals is not 0 to avoid NaN
         : "0";
+
+    // Helper: get token price in USD
+    const getTokenUsdPrice = (token: typeof selectedToToken) => {
+        if (!token) return 0;
+        // Try direct contractId
+        if (prices[token.contractId]) return Number(prices[token.contractId]);
+        // Try base if subnet
+        if (token.type === 'SUBNET' && token.base && prices[token.base]) return Number(prices[token.base]);
+        return 0;
+    };
+
+    // Helper: format USD
+    const formatUsd = (value: number) => {
+        if (!value || isNaN(value)) return "$0.00";
+        if (value >= 1) return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `$${value.toFixed(6)}`;
+    };
+
+    // Calculate reserve in tokens and USD
+    const reserveTokens = reserveBalance !== null && selectedToToken ? Number(reserveBalance) / (10 ** decimals) : 0;
+    const reserveUsd = reserveTokens * getTokenUsdPrice(selectedToToken);
+    const reserveUsd90 = reserveUsd * 0.9;
 
     const handleCheckout = async () => {
         if (!selectedToToken || !userAddress || !usdAmount || !dexterityQuote?.amountOutMicro || dexterityQuote.amountOutMicro <= 0n) {
@@ -202,8 +228,19 @@ export default function TokenPurchaseForm() {
                     </div>
                 )}
                 {exceedsReserve && (
-                    <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm">
-                        Not enough tokens in reserve to fulfill this purchase. Potential amount: {formattedTokenAmount} {selectedToToken?.symbol}
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm space-y-1">
+                        <div>Not enough tokens in reserve to fulfill this purchase.</div>
+                        {selectedToToken && (
+                            <div>
+                                <span className="font-medium">Reserve:</span> {reserveTokens.toLocaleString(undefined, { maximumFractionDigits: decimals })} {selectedToToken.symbol}
+                            </div>
+                        )}
+                        {reserveUsd > 0 && (
+                            <div>
+                                <span className="font-medium">Available to purchase:</span> {formatUsd(reserveUsd90)}
+                            </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">Try a lower amount within this limit.</div>
                     </div>
                 )}
 
@@ -271,7 +308,7 @@ export default function TokenPurchaseForm() {
                                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                                     <span>Exchange rate (approx.):</span>
                                     {parseFloat(usdAmount) > 0 && (
-                                        <span>1 USD = {(Number(dexterityQuote.amountOutMicro) / (10 ** selectedToToken.decimals) / parseFloat(usdAmount)).toFixed(6)} {selectedToToken.symbol}</span>
+                                        <span>1 USD = {(Number(dexterityQuote.amountOutMicro) / (10 ** decimals) / parseFloat(usdAmount)).toFixed(6)} {selectedToToken.symbol}</span>
                                     )}
                                 </div>
                             </>
