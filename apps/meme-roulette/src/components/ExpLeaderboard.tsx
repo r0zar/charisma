@@ -87,18 +87,21 @@ const LeaderboardComponent = () => {
       {/* Tabs */}
       <Tabs defaultValue="leaderboard" className="w-full">
         <div className="bg-background/40 md:glass-card px-4 py-4 md:p-6 border-b border-border/20 md:border md:rounded-xl">
-          <TabsList className="grid w-full grid-cols-3 bg-muted/20">
-            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsList className="flex w-full flex-nowrap overflow-x-auto bg-muted/20 gap-1 no-scrollbar">
+            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[140px] sm:min-w-[160px] px-3 py-2 sm:text-base text-sm">
               <Trophy className="h-4 w-4 mr-2" />
-              Leaderboard
+              <span className="hidden xs:inline">Leaderboard</span>
+              <span className="inline xs:hidden">Leaders</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[140px] sm:min-w-[160px] px-3 py-2 sm:text-base text-sm">
               <History className="h-4 w-4 mr-2" />
-              Historic Results
+              <span className="hidden xs:inline">Historic Results</span>
+              <span className="inline xs:hidden">History</span>
             </TabsTrigger>
-            <TabsTrigger value="achievements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="achievements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[140px] sm:min-w-[160px] px-3 py-2 sm:text-base text-sm">
               <Sparkles className="h-4 w-4 mr-2" />
-              Achievement Badges
+              <span className="hidden xs:inline">Achievement Badges</span>
+              <span className="inline xs:hidden">Badges</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -143,14 +146,14 @@ const LeaderboardComponent = () => {
                 </div>
 
                 <Tabs defaultValue="total_cha" className="w-full md:w-auto" onValueChange={(value) => setSortType(value as typeof sortType)}>
-                  <TabsList className="bg-muted/20">
-                    <TabsTrigger value="total_cha" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TabsList className="flex w-full flex-nowrap overflow-x-auto bg-muted/20 gap-1 no-scrollbar">
+                    <TabsTrigger value="total_cha" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px] px-3 py-2 sm:text-base text-sm">
                       <HandCoins className="h-4 w-4 mr-1" /> Total CHA
                     </TabsTrigger>
-                    <TabsTrigger value="total_votes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="total_votes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px] px-3 py-2 sm:text-base text-sm">
                       <TrendingUp className="h-4 w-4 mr-1" /> Votes
                     </TabsTrigger>
-                    <TabsTrigger value="current_round" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="current_round" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[120px] px-3 py-2 sm:text-base text-sm">
                       <Clock className="h-4 w-4 mr-1" /> This Round
                     </TabsTrigger>
                   </TabsList>
