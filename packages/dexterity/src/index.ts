@@ -586,11 +586,24 @@ export const fetchQuote = async (
   amount: number,
   dexApiUrl: string = DEFAULT_DEX_API_URL,
 ) => {
-  const res: any = await fetch(`${dexApiUrl}/quote?tokenIn=${from}&tokenOut=${to}&amount=${amount}`);
-  if (!res.ok) {
-    const errBody = await res.json()
-    throw new Error(errBody?.error ?? `dex-api request failed (${res.status})`);
+  let attempts = 0;
+  let lastError: any = null;
+  while (attempts < 5) {
+    try {
+      const res: any = await fetch(`${dexApiUrl}/quote?tokenIn=${from}&tokenOut=${to}&amount=${amount}`);
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => undefined);
+        throw new Error(errBody?.error ?? `dex-api request failed (${res.status})`);
+      }
+      const json = await res.json();
+      return json.data as Route;
+    } catch (err) {
+      lastError = err;
+      attempts++;
+      if (attempts < 5) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   }
-  const json = await res.json();
-  return json.data as Route;
+  throw lastError || new Error('Failed to fetch quote after 5 attempts');
 };
