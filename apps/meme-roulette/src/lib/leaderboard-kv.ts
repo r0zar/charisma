@@ -371,6 +371,7 @@ export interface LeaderboardEntry {
     score: number;
     rank: number;
     stats: UserStats;
+    referralCount?: number; // Add referral count
 }
 
 /**
@@ -406,13 +407,21 @@ export async function getLeaderboard(
         const userIds = entries.filter((_: any, index: number) => index % 2 === 0) as string[];
         const scores = entries.filter((_: any, index: number) => index % 2 === 1) as number[];
 
-        // Get user stats and display names in parallel
-        const [userStatsArray, displayNames] = await Promise.all([
+        // Get user stats, display names, and referral counts in parallel
+        const [userStatsArray, displayNames, referralStatsArray] = await Promise.all([
             Promise.all(userIds.map(userId => getUserStats(userId))),
-            getDisplayNamesForUsers(userIds)
+            getDisplayNamesForUsers(userIds),
+            Promise.all(userIds.map(async userId => {
+                try {
+                    const stats = await import('./referrals-kv').then(mod => mod.getReferralStats(userId));
+                    return stats?.totalReferrals || 0;
+                } catch {
+                    return 0;
+                }
+            }))
         ]);
 
-        // Build leaderboard entries with BNS names
+        // Build leaderboard entries with BNS names and referral counts
         const leaderboardEntries: LeaderboardEntry[] = userIds.map((userId, index) => ({
             userId,
             displayName: displayNames[userId] || userStatsArray[index].displayName,
@@ -421,7 +430,8 @@ export async function getLeaderboard(
             stats: {
                 ...userStatsArray[index],
                 displayName: displayNames[userId] || userStatsArray[index].displayName
-            }
+            },
+            referralCount: referralStatsArray[index] || 0
         }));
 
         return leaderboardEntries;

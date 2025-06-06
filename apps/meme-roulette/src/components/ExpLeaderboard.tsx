@@ -171,6 +171,7 @@ const LeaderboardComponent = () => {
                       <TableHead className="text-right font-display hidden md:table-cell">Avg. Vote</TableHead>
                       <TableHead className="text-right font-display hidden lg:table-cell">Biggest Vote</TableHead>
                       <TableHead className="text-right font-display hidden xl:table-cell">Win Rate</TableHead>
+                      <TableHead className="text-right font-display hidden md:table-cell">Referrals</TableHead>
                       <TableHead className="font-display hidden sm:table-cell">Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -204,6 +205,9 @@ const LeaderboardComponent = () => {
                             <div className="w-16 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
                           </TableCell>
                           <TableCell className="text-right hidden xl:table-cell">
+                            <div className="w-12 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-purple-500 hidden md:table-cell">
                             <div className="w-12 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
@@ -311,6 +315,10 @@ const LeaderboardComponent = () => {
 
                           <TableCell className="text-right font-mono text-amber-400 hidden xl:table-cell">
                             {winRate.toFixed(1)}%
+                          </TableCell>
+
+                          <TableCell className="text-right font-mono text-purple-500 hidden md:table-cell">
+                            {typeof entry.referralCount === 'number' ? entry.referralCount : 0}
                           </TableCell>
 
                           <TableCell className="hidden sm:table-cell">
