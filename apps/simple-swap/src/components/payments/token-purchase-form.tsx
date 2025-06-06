@@ -328,16 +328,12 @@ export default function TokenPurchaseForm() {
                                         )}
                                         <button
                                             type="button"
-                                            className="ml-2 p-1 rounded hover:bg-muted transition-colors"
+                                            className="ml-2 p-1 rounded cursor-pointer hover:bg-accent transition-colors"
                                             onClick={handleRefreshPrices}
                                             aria-label="Refresh prices"
                                             disabled={isLoadingPrices}
                                         >
-                                            {isLoadingPrices ? (
-                                                <span className="animate-spin"><RefreshCw className="h-4 w-4" /></span>
-                                            ) : (
-                                                <RefreshCw className="h-4 w-4" />
-                                            )}
+                                            <RefreshCw className={"h-4 w-4 transition-transform " + (isLoadingPrices ? "animate-spin" : "")} />
                                         </button>
                                     </div>
                                 </div>
