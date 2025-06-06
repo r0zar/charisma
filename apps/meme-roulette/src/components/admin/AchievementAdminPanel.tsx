@@ -264,77 +264,87 @@ export const AchievementAdminPanel = () => {
 
             {/* Statistics Overview */}
             {statistics && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                    <Card>
-                        <CardContent className="p-3 md:p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="transition-all duration-200 hover:shadow-md border-border/50">
+                        <CardContent className="p-6">
                             <div className="flex items-center justify-between">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs md:text-sm text-muted-foreground">Total Achievements</p>
-                                    <p className="text-lg md:text-2xl font-bold">{statistics.totalAchievements}</p>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium text-muted-foreground">Total Achievements</p>
+                                    <p className="text-3xl font-bold text-foreground">{statistics.totalAchievements}</p>
                                 </div>
-                                <Award className="h-6 w-6 md:h-8 md:w-8 text-primary flex-shrink-0" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                                    <Award className="h-6 w-6 text-primary" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="p-3 md:p-4">
+                    <Card className="transition-all duration-200 hover:shadow-md border-border/50">
+                        <CardContent className="p-6">
                             <div className="flex items-center justify-between">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs md:text-sm text-muted-foreground">Users w/ Achievements</p>
-                                    <p className="text-lg md:text-2xl font-bold">{statistics.usersWithAchievements}</p>
+                                <div className="space-y-1">
+                                    <p className="text-sm font-medium text-muted-foreground">Active Users</p>
+                                    <p className="text-3xl font-bold text-foreground">{statistics.usersWithAchievements}</p>
                                 </div>
-                                <Users className="h-6 w-6 md:h-8 md:w-8 text-primary flex-shrink-0" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
+                                    <Users className="h-6 w-6 text-blue-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="p-3 md:p-4">
+                    <Card className="transition-all duration-200 hover:shadow-md border-border/50">
+                        <CardContent className="p-6">
                             <div className="flex items-center justify-between">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs md:text-sm text-muted-foreground">By Rarity</p>
-                                    <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="space-y-2 min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-muted-foreground">Distribution</p>
+                                    <div className="flex flex-wrap gap-1">
                                         {Object.entries(statistics.achievementsByRarity).map(([rarity, count]) => (
-                                            <Badge key={rarity} variant="outline" className={`text-xs ${getRarityColor(rarity)}`}>
-                                                <span className="hidden sm:inline">{rarity}: </span>{count}
+                                            <Badge
+                                                key={rarity}
+                                                variant="outline"
+                                                className={`text-xs font-medium ${getRarityColor(rarity)}`}
+                                            >
+                                                {rarity}: {count}
                                             </Badge>
                                         ))}
                                     </div>
                                 </div>
-                                <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-primary flex-shrink-0" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10 ml-3">
+                                    <BarChart3 className="h-6 w-6 text-purple-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent className="p-3 md:p-4">
+                    <Card className="transition-all duration-200 hover:shadow-md border-border/50">
+                        <CardContent className="p-6">
                             <div className="flex items-center justify-between">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs md:text-sm text-muted-foreground">System Status</p>
-                                    <div className="flex items-center gap-1 mt-1">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-medium text-muted-foreground">System Health</p>
+                                    <div className="flex items-center gap-2">
                                         {validationResults?.isHealthy !== undefined ? (
                                             validationResults.isHealthy ? (
-                                                <Badge variant="outline" className="text-green-400 border-green-500/30 bg-green-500/20 text-xs">
+                                                <Badge variant="outline" className="text-green-600 border-green-500/30 bg-green-500/10 text-sm font-medium">
                                                     <CheckCircle className="h-3 w-3 mr-1" />
-                                                    <span className="hidden sm:inline">Healthy</span>
-                                                    <span className="sm:hidden">OK</span>
+                                                    Healthy
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline" className="text-yellow-400 border-yellow-500/30 bg-yellow-500/20 text-xs">
+                                                <Badge variant="outline" className="text-yellow-600 border-yellow-500/30 bg-yellow-500/10 text-sm font-medium">
                                                     <AlertTriangle className="h-3 w-3 mr-1" />
-                                                    <span className="hidden sm:inline">Issues</span>
-                                                    <span className="sm:hidden">!</span>
+                                                    Issues
                                                 </Badge>
                                             )
                                         ) : (
-                                            <Badge variant="outline" className="text-muted-foreground text-xs">
+                                            <Badge variant="outline" className="text-muted-foreground text-sm font-medium">
                                                 Unknown
                                             </Badge>
                                         )}
                                     </div>
                                 </div>
-                                <Settings className="h-6 w-6 md:h-8 md:w-8 text-primary flex-shrink-0" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-500/10">
+                                    <Settings className="h-6 w-6 text-gray-500" />
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

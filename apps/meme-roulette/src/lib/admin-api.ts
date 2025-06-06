@@ -155,4 +155,155 @@ export async function validateUserBalances() {
         console.error('Error validating balances:', error);
         return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
+}
+
+// Referral Admin API functions
+export async function getReferralStats(userId: string) {
+    try {
+        const res = await fetch('/api/admin/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_stats', userId })
+        });
+        if (!res.ok) throw new Error('Failed to get referral stats');
+        return res.json();
+    } catch (error) {
+        console.error('Error getting referral stats:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getReferralConfig() {
+    try {
+        const res = await fetch('/api/admin/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_config' })
+        });
+        if (!res.ok) throw new Error('Failed to get referral config');
+        return res.json();
+    } catch (error) {
+        console.error('Error getting referral config:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function updateReferralConfig(config: any) {
+    try {
+        const res = await signedFetch('/api/admin/referrals', {
+            method: 'POST',
+            message: 'Update referral config',
+            body: JSON.stringify({ action: 'update_config', ...config })
+        });
+        if (!res.ok) throw new Error('Failed to update referral config');
+        return res.json();
+    } catch (error) {
+        console.error('Error updating referral config:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getAllReferrals(limit?: number, offset?: number) {
+    try {
+        const res = await fetch('/api/admin/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_all_referrals', limit, offset })
+        });
+        if (!res.ok) throw new Error('Failed to get all referrals');
+        return res.json();
+    } catch (error) {
+        console.error('Error getting all referrals:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function deactivateReferral(referralId: string, reason?: string) {
+    try {
+        const res = await signedFetch('/api/admin/referrals', {
+            method: 'POST',
+            message: 'Deactivate referral',
+            body: JSON.stringify({ action: 'deactivate_referral', referralId, reason })
+        });
+        if (!res.ok) throw new Error('Failed to deactivate referral');
+        return res.json();
+    } catch (error) {
+        console.error('Error deactivating referral:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function createReferralCode(userId: string, code?: string, maxUses?: number, expiresAt?: number) {
+    try {
+        const res = await signedFetch('/api/admin/referrals', {
+            method: 'POST',
+            message: 'Create referral code',
+            body: JSON.stringify({ action: 'create_referral_code', userId, code, maxUses, expiresAt })
+        });
+        if (!res.ok) throw new Error('Failed to create referral code');
+        return res.json();
+    } catch (error) {
+        console.error('Error creating referral code:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function deactivateReferralCode(code: string, reason?: string) {
+    try {
+        const res = await signedFetch('/api/admin/referrals', {
+            method: 'POST',
+            message: 'Deactivate referral code',
+            body: JSON.stringify({ action: 'deactivate_referral_code', code, reason })
+        });
+        if (!res.ok) throw new Error('Failed to deactivate referral code');
+        return res.json();
+    } catch (error) {
+        console.error('Error deactivating referral code:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getReferralCommissions(userId?: string, limit?: number, offset?: number) {
+    try {
+        const res = await fetch('/api/admin/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_commissions', userId, limit, offset })
+        });
+        if (!res.ok) throw new Error('Failed to get referral commissions');
+        return res.json();
+    } catch (error) {
+        console.error('Error getting referral commissions:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function resetUserReferrals(userId: string) {
+    try {
+        const res = await signedFetch('/api/admin/referrals', {
+            method: 'POST',
+            message: 'Reset user referrals',
+            body: JSON.stringify({ action: 'reset_user_referrals', userId })
+        });
+        if (!res.ok) throw new Error('Failed to reset user referrals');
+        return res.json();
+    } catch (error) {
+        console.error('Error resetting user referrals:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+export async function getReferralSystemStats() {
+    try {
+        const res = await fetch('/api/admin/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_system_stats' })
+        });
+        if (!res.ok) throw new Error('Failed to get referral system stats');
+        return res.json();
+    } catch (error) {
+        console.error('Error getting referral system stats:', error);
+        return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
 } 

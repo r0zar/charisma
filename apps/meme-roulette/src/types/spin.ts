@@ -87,3 +87,68 @@ export interface SpinFeedData {
     validationResults?: ValidationResults; // User validation results for spin
     spinPhase?: 'starting' | 'validating' | 'ready' | 'spinning' | 'complete';
 }
+
+/**
+ * Represents a referral relationship between users
+ */
+export interface Referral {
+    id: string; // Unique referral ID
+    referrerId: string; // User who made the referral
+    refereeId: string; // User who was referred
+    referralCode: string; // The referral code used
+    createdAt: number; // Timestamp when referral was created
+    isActive: boolean; // Whether the referral is still active
+    totalCommissions: number; // Total CHA earned by referrer from this referral
+    refereeLifetimeVotes: number; // Total votes made by the referee
+}
+
+/**
+ * Referral code information
+ */
+export interface ReferralCode {
+    code: string; // The referral code
+    userId: string; // Owner of the referral code
+    isActive: boolean; // Whether the code is active
+    createdAt: number; // When the code was created
+    totalUses: number; // How many times the code has been used
+    maxUses?: number; // Maximum allowed uses (null = unlimited)
+    expiresAt?: number; // Expiration timestamp (null = never expires)
+}
+
+/**
+ * Referral statistics for a user
+ */
+export interface ReferralStats {
+    userId: string;
+    totalReferrals: number; // Number of people referred
+    activeReferrals: number; // Number of active referrals
+    totalCommissions: number; // Total CHA earned from referrals
+    referralCodes: ReferralCode[]; // All referral codes owned by user
+    referrals: Referral[]; // All referrals made by user
+    referredBy?: Referral; // If this user was referred by someone
+}
+
+/**
+ * Commission earned from a referral
+ */
+export interface ReferralCommission {
+    id: string; // Unique commission ID
+    referralId: string; // The referral that generated this commission
+    referrerId: string; // User who earned the commission
+    refereeId: string; // User whose action generated the commission
+    amount: number; // CHA amount earned
+    sourceVoteId: string; // The vote that triggered this commission
+    createdAt: number; // When the commission was earned
+    roundId?: string; // Which round this commission was earned in
+}
+
+/**
+ * Referral system configuration
+ */
+export interface ReferralConfig {
+    commissionRate: number; // Percentage of referee's votes that goes to referrer (0-1)
+    maxCommissionPerVote: number; // Maximum CHA commission per vote
+    isEnabled: boolean; // Whether the referral system is active
+    requireMinimumVotes: number; // Minimum votes referee must make before referrer earns commissions
+    maxReferralsPerUser: number; // Maximum number of people one user can refer
+}

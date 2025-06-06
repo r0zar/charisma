@@ -141,6 +141,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         <Link href="/" className="text-foreground/80 hover:text-primary transition-colors">Home</Link>
                         <Link href="/about" className="text-foreground/80 hover:text-primary transition-colors">About</Link>
                         <Link href="/leaderboard" className="text-foreground/80 hover:text-primary transition-colors">Leaderboard</Link>
+                        <Link href="/referrals" className="text-foreground/80 hover:text-primary transition-colors">Referrals</Link>
                     </nav>
 
                     {/* User Info & Actions Panel */}

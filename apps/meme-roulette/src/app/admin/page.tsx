@@ -33,6 +33,7 @@ import { GameStateVisualization } from '@/components/admin/GameStateVisualizatio
 import { CurrentTokenBetsTable } from '@/components/admin/CurrentTokenBetsTable';
 import { UserVotesTable } from '@/components/admin/UserVotesTable';
 import { AchievementAdminPanel } from '@/components/admin/AchievementAdminPanel';
+import { ReferralAdminPanel } from '@/components/admin/ReferralAdminPanel';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -184,6 +185,7 @@ export default function AdminPage() {
                         <TabsTrigger value="bets" className="text-xs sm:text-sm">Bets</TabsTrigger>
                         <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
                         <TabsTrigger value="achievements" className="text-xs sm:text-sm">Achievements</TabsTrigger>
+                        <TabsTrigger value="referrals" className="text-xs sm:text-sm">Referrals</TabsTrigger>
                         <TabsTrigger value="raw" className="text-xs sm:text-sm">Raw Data</TabsTrigger>
                     </TabsList>
                 </div>
@@ -400,6 +402,10 @@ export default function AdminPage() {
 
                 <TabsContent value="achievements">
                     <AchievementAdminPanel />
+                </TabsContent>
+
+                <TabsContent value="referrals">
+                    <ReferralAdminPanel />
                 </TabsContent>
 
                 <TabsContent value="raw">
