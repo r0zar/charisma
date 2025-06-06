@@ -98,7 +98,7 @@ export async function POST(_req: NextRequest) {
             const quote = await fetchQuote(intent.sourceContract, winningTokenId, intent.betAmount);
             console.log('Quote:', quote);
 
-            if (!quote.route) {
+            if (!quote) {
                 throw new Error(`Failed to find route for swapping ${intent.sourceContract} to ${winningTokenId}`);
             }
 
@@ -109,7 +109,7 @@ export async function POST(_req: NextRequest) {
                 recipient: intent.recipient,
             };
 
-            const txConfig: any = await buildXSwapTransaction(quote.route, swapMeta);
+            const txConfig: any = await buildXSwapTransaction(quote, swapMeta);
 
             txConfig.nonce = nonce++;
             txConfig.postConditionMode = PostConditionMode.Allow;
@@ -121,7 +121,7 @@ export async function POST(_req: NextRequest) {
             console.log('Broadcast Response from SDK:', broadcastResponse);
 
             // Capture expected output amount from quote for earnings calculation
-            const lastHop = quote.route.hops[quote.route.hops.length - 1];
+            const lastHop = quote.hops[quote.hops.length - 1];
             const expectedTokenOutput = Number(lastHop.quote?.amountOut || 0);
 
             results.push({

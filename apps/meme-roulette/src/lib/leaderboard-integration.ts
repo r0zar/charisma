@@ -31,6 +31,7 @@ const ROUND_PARTICIPANTS_KEY = (roundId: string) => `round:${roundId}:participan
 const LEADERBOARD_CURRENT_ROUND = 'leaderboard:current_round';
 const LEADERBOARD_EARNINGS = 'leaderboard:earnings';
 const USER_STATS_KEY = (userId: string) => `user:${userId}:stats`;
+const ROUND_META_KEY = (roundId: string) => `round:${roundId}:meta`;
 
 // ========================================
 // INTEGRATION FUNCTIONS
@@ -121,6 +122,13 @@ export async function completeRoundWithLeaderboard(
             .map(userId => updateUserStatsAfterRound(userId, currentRoundId, false, 0));
 
         await Promise.all(nonWinnerPromises);
+
+        // --- Add round to historic:rounds sorted set ---
+        // Fetch round metadata to get endTime
+        const roundMeta = await kv.get(ROUND_META_KEY(currentRoundId));
+        if (roundMeta && (roundMeta as any).endTime) {
+            await kv.zadd('historic:rounds', { score: (roundMeta as any).endTime, member: currentRoundId });
+        }
 
         // Reset current round leaderboard for next round
         await kv.del(LEADERBOARD_CURRENT_ROUND);

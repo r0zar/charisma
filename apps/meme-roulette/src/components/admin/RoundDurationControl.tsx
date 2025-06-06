@@ -32,6 +32,25 @@ export function RoundDurationControl({ status, onRefresh }: RoundDurationControl
         }
     };
 
+    const handleChangeDuration = async (delta: number) => {
+        const newDuration = Math.max(1, durationMinutes + delta);
+        setDurationMinutes(newDuration);
+        setIsUpdating(true);
+        try {
+            const result = await setRoundDuration(newDuration);
+            if (result.error) {
+                toast.error(`Failed to update duration: ${result.error}`);
+            } else {
+                toast.success(`Round duration set to ${newDuration} minute(s)`);
+                onRefresh();
+            }
+        } catch (error) {
+            toast.error('Failed to update round duration');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     useEffect(() => {
         if (status?.roundDuration) {
             setDurationMinutes(Math.round(status.roundDuration.duration / 60000));
@@ -63,6 +82,12 @@ export function RoundDurationControl({ status, onRefresh }: RoundDurationControl
                     >
                         Update
                     </Button>
+                </div>
+                <div className="flex gap-2 mt-4">
+                    <Button size="sm" variant="outline" disabled={isUpdating} onClick={() => handleChangeDuration(-5)}>-5 min</Button>
+                    <Button size="sm" variant="outline" disabled={isUpdating} onClick={() => handleChangeDuration(-1)}>-1 min</Button>
+                    <Button size="sm" variant="outline" disabled={isUpdating} onClick={() => handleChangeDuration(1)}>+1 min</Button>
+                    <Button size="sm" variant="outline" disabled={isUpdating} onClick={() => handleChangeDuration(5)}>+5 min</Button>
                 </div>
             </CardContent>
         </Card>

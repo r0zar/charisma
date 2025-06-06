@@ -592,5 +592,5 @@ export const fetchQuote = async (
     throw new Error(errBody?.error ?? `dex-api request failed (${res.status})`);
   }
   const json = await res.json();
-  return json.data;
+  return json.data as Route;
 };
