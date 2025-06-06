@@ -440,6 +440,7 @@ export async function resetKVForNextSpin() {
     const newRoundId = `round_${Date.now()}`;
     await kv.set('global:current_round', newRoundId);
 
+    // Now reset/clear token bets and user activity for next round
     await kv.multi()
         .set(KV_SPIN_SCHEDULED_AT, nextSpinTime)
         .set(KV_WINNING_TOKEN_ID, null)
