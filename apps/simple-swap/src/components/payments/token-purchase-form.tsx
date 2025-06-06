@@ -29,7 +29,7 @@ interface ServerQuoteData {
 }
 
 export default function TokenPurchaseForm() {
-    const [usdAmount, setUsdAmount] = useState("5");
+    const [usdAmount, setUsdAmount] = useState("");
     const debouncedUsdAmount = useDebounce(usdAmount, 500); // Debounce USD amount
 
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -55,8 +55,6 @@ export default function TokenPurchaseForm() {
         fetchRawPrices,
         isLoadingPrices,
     } = useSwap();
-
-    const { prices: walletPrices } = useWallet();
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
