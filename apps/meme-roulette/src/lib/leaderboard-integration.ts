@@ -104,11 +104,39 @@ export async function completeRoundWithLeaderboard(
         // Set winning token in existing system
         await setKVWinningToken(winningTokenId);
 
-        // --- Update round metadata with winner ---
+        // --- Update round metadata with winner and stats ---
         const roundMetaKey = `round:${currentRoundId}:meta`;
         const roundMetaObj = await kv.get(roundMetaKey);
         if (roundMetaObj) {
             (roundMetaObj as any).winningTokenId = winningTokenId;
+
+            // Gather all user participation for this round
+            const participantIds = await kv.smembers(ROUND_PARTICIPANTS_KEY(currentRoundId));
+            let totalCHACommitted = 0;
+            let totalVotes = 0;
+            for (const userId of participantIds) {
+                const participation = await kv.get(`${'round:' + currentRoundId + ':user_activity'}:${userId}`);
+                if (participation) {
+                    totalCHACommitted += (participation as any).chaCommitted || 0;
+                    totalVotes += (participation as any).voteCount || 0;
+                }
+            }
+            (roundMetaObj as any).totalCHACommitted = totalCHACommitted;
+            (roundMetaObj as any).totalParticipants = participantIds.length;
+            (roundMetaObj as any).totalVotes = totalVotes;
+
+            // Get top tokens by bet amount
+            const tokenBets = await kv.hgetall('spin:token_bets');
+            if (tokenBets) {
+                // Remove dummy _init field if present
+                delete tokenBets._init;
+                const sortedTokens = Object.entries(tokenBets)
+                    .map(([token, amount]) => ({ token, amount: Number(amount) }))
+                    .sort((a, b) => b.amount - a.amount)
+                    .slice(0, 5);
+                (roundMetaObj as any).topTokens = sortedTokens;
+            }
+
             await kv.set(roundMetaKey, roundMetaObj);
         }
 
