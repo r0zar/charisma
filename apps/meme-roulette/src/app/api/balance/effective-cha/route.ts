@@ -40,12 +40,21 @@ export async function GET(request: NextRequest) {
         // Ensure effective balance doesn't go below zero
         const finalEffectiveBalance = effectiveSpendableBalance < 0n ? 0n : effectiveSpendableBalance;
 
+        // Check if user has insufficient balance for their votes
+        const hasInsufficientBalance = rawSubnetBalance < totalCommittedCHA;
+        const balanceShortfall = hasInsufficientBalance ? totalCommittedCHA - rawSubnetBalance : 0n;
+
         return NextResponse.json({
             success: true,
             data: {
                 rawSubnetBalance: rawSubnetBalance.toString(),
                 totalCommittedCHA: totalCommittedCHA.toString(),
                 effectiveSpendableBalance: finalEffectiveBalance.toString(),
+                hasInsufficientBalance,
+                balanceShortfall: balanceShortfall.toString(),
+                warning: hasInsufficientBalance ?
+                    `User has insufficient balance. Short by ${balanceShortfall.toString()} CHA (atomic units). Votes may be invalidated during spin.`
+                    : null
             }
         });
 

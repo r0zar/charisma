@@ -7,6 +7,8 @@ import {
 import {
     getUserStats,
     getLeaderboard,
+    getAchievementDefinitions,
+    getUserAchievements,
     type LeaderboardEntry
 } from '@/lib/leaderboard-kv';
 
@@ -48,9 +50,21 @@ export async function GET(request: NextRequest) {
             case 'init':
                 return await handleInitialize();
 
+            case 'achievements':
+                return await handleGetAchievements();
+
+            case 'user_achievements':
+                if (!userId) {
+                    return NextResponse.json(
+                        { success: false, error: 'userId is required for user_achievements action' },
+                        { status: 400 }
+                    );
+                }
+                return await handleGetUserAchievements(userId);
+
             default:
                 return NextResponse.json(
-                    { success: false, error: 'Invalid action. Supported actions: leaderboard, user_profile, user_stats, init' },
+                    { success: false, error: 'Invalid action. Supported actions: leaderboard, user_profile, user_stats, achievements, user_achievements, init' },
                     { status: 400 }
                 );
         }
@@ -144,6 +158,46 @@ async function handleInitialize() {
         });
     } catch (error) {
         console.error('Failed to initialize leaderboard system:', error);
+        throw error;
+    }
+}
+
+/**
+ * Handle achievement definitions request
+ */
+async function handleGetAchievements() {
+    try {
+        const achievements = await getAchievementDefinitions();
+
+        return NextResponse.json({
+            success: true,
+            data: {
+                achievements,
+                totalCount: achievements.length
+            }
+        });
+    } catch (error) {
+        console.error('Failed to get achievement definitions:', error);
+        throw error;
+    }
+}
+
+/**
+ * Handle user achievements request
+ */
+async function handleGetUserAchievements(userId: string) {
+    try {
+        const userAchievementData = await getUserAchievements(userId);
+
+        return NextResponse.json({
+            success: true,
+            data: {
+                userId,
+                ...userAchievementData
+            }
+        });
+    } catch (error) {
+        console.error(`Failed to get user achievements for ${userId}:`, error);
         throw error;
     }
 }

@@ -9,7 +9,11 @@ import {
     getFungibleTokenBalance,
     getLpTokenTotalSupply,
     getLiquidityOperationQuote,
-    getContractSourceDetails
+    getContractSourceDetails,
+    addVaultToBlacklist,
+    removeVaultFromBlacklist,
+    getBlacklistedVaultIds,
+    isVaultBlacklisted
 } from "@/lib/pool-service";
 
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
@@ -48,6 +52,106 @@ export async function removeVault(contractId: string): Promise<{ success: boolea
     } catch (error: any) {
         console.error(`Failed removing vault ${contractId}:`, error);
         return { success: false, error: error.message || 'Failed to remove vault' };
+    }
+}
+
+/**
+ * Server Action to add a vault to the blacklist.
+ * This removes it from cache and prevents it from appearing in API responses.
+ * **Only works in development mode.**
+ * @param contractId The vault contract ID to blacklist.
+ */
+export async function blacklistVault(contractId: string) {
+    // Strict check for development environment
+    if (process.env.NODE_ENV !== 'development') {
+        return { success: false, error: 'This action is only available in development mode.' };
+    }
+
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.' };
+    }
+
+    try {
+        console.log(`Attempting to blacklist vault ${contractId} (DEV MODE)...`);
+        const result = await addVaultToBlacklist(contractId);
+
+        if (result.success) {
+            // Revalidate paths to reflect the change
+            revalidatePath('/');
+            revalidatePath('/admin');
+            revalidatePath('/pools');
+        }
+
+        return result;
+    } catch (error: any) {
+        console.error(`Failed to blacklist vault ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to blacklist vault.' };
+    }
+}
+
+/**
+ * Server Action to remove a vault from the blacklist.
+ * **Only works in development mode.**
+ * @param contractId The vault contract ID to unblacklist.
+ */
+export async function unblacklistVault(contractId: string) {
+    // Strict check for development environment
+    if (process.env.NODE_ENV !== 'development') {
+        return { success: false, error: 'This action is only available in development mode.' };
+    }
+
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.' };
+    }
+
+    try {
+        console.log(`Attempting to unblacklist vault ${contractId} (DEV MODE)...`);
+        const result = await removeVaultFromBlacklist(contractId);
+
+        if (result.success) {
+            // Revalidate paths to reflect the change
+            revalidatePath('/');
+            revalidatePath('/admin');
+            revalidatePath('/pools');
+        }
+
+        return result;
+    } catch (error: any) {
+        console.error(`Failed to unblacklist vault ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to unblacklist vault.' };
+    }
+}
+
+/**
+ * Server Action to get all blacklisted vaults.
+ * @returns Array of blacklisted vault contract IDs.
+ */
+export async function getBlacklistedVaults() {
+    try {
+        const blacklistedIds = await getBlacklistedVaultIds();
+        return { success: true, data: blacklistedIds };
+    } catch (error: any) {
+        console.error('Failed to fetch blacklisted vaults:', error);
+        return { success: false, error: error.message || 'Failed to fetch blacklisted vaults.', data: [] };
+    }
+}
+
+/**
+ * Server Action to check if a vault is blacklisted.
+ * @param contractId The vault contract ID to check.
+ * @returns Boolean indicating if vault is blacklisted.
+ */
+export async function checkVaultBlacklisted(contractId: string) {
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.', isBlacklisted: false };
+    }
+
+    try {
+        const blacklisted = await isVaultBlacklisted(contractId);
+        return { success: true, isBlacklisted: blacklisted };
+    } catch (error: any) {
+        console.error(`Failed to check vault blacklist status for ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to check blacklist status.', isBlacklisted: false };
     }
 }
 

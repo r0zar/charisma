@@ -92,7 +92,7 @@ export interface AchievementDefinition {
     id: string;
     name: string;
     description: string;
-    type: 'milestone' | 'streak' | 'special' | 'earnings';
+    type: 'milestone' | 'streak' | 'special' | 'earnings' | 'social';
     threshold?: number;
     icon: string;
     rarity: 'common' | 'rare' | 'epic' | 'legendary';
@@ -553,11 +553,80 @@ export async function initializeAchievements(): Promise<void> {
             type: 'special',
             icon: '📈',
             rarity: 'legendary'
+        },
+
+        // New Theme-Based Achievements
+        {
+            id: 'pioneer_trader',
+            name: 'Meme Pioneer',
+            description: 'One of the first 100 users to join the roulette',
+            type: 'special',
+            icon: '🎪',
+            rarity: 'legendary'
+        },
+        {
+            id: 'viral_spreader',
+            name: 'Hype Spreader',
+            description: 'Bring a friend into the meme madness',
+            type: 'social',
+            icon: '🚀',
+            rarity: 'rare'
+        },
+        {
+            id: 'degen_starter',
+            name: 'Degen Starter',
+            description: 'Vote with at least 50 CHA in a single round',
+            type: 'milestone',
+            threshold: 50 * 10 ** 6, // 50 CHA in atomic units
+            icon: '🎰',
+            rarity: 'common'
         }
     ];
 
     await kv.set(ACHIEVEMENT_DEFINITIONS_KEY, achievements);
     console.log('Achievement definitions initialized');
+}
+
+/**
+ * Check if a user is among the first 100 users (pioneer)
+ */
+async function isPioneerUser(userId: string): Promise<boolean> {
+    try {
+        // Get all user stats to determine pioneer status
+        const allUsers = await getAllUserStats();
+
+        // Sort users by firstActivityTime (earliest first)
+        const sortedUsers = allUsers
+            .filter(user => user.firstActivityTime > 0) // Only users who have actually participated
+            .sort((a, b) => a.firstActivityTime - b.firstActivityTime);
+
+        // Check if this user is in the first 100
+        const userIndex = sortedUsers.findIndex(user => user.userId === userId);
+        return userIndex !== -1 && userIndex < 100;
+    } catch (error) {
+        console.error(`Failed to check pioneer status for ${userId}:`, error);
+        return false;
+    }
+}
+
+/**
+ * Get all user stats (helper function for pioneer check)
+ */
+async function getAllUserStats(): Promise<UserStats[]> {
+    try {
+        // Get all keys matching user stats pattern
+        const keys = await kv.keys('user:*:stats');
+
+        // Fetch all user stats in parallel
+        const userStatsPromises = keys.map(key => kv.get<UserStats>(key));
+        const userStatsResults = await Promise.all(userStatsPromises);
+
+        // Filter out null results and return
+        return userStatsResults.filter((stats): stats is UserStats => stats !== null);
+    } catch (error) {
+        console.error('Failed to get all user stats:', error);
+        return [];
+    }
 }
 
 /**
@@ -590,6 +659,8 @@ export async function checkAndAwardAchievements(userId: string): Promise<UserAch
                         shouldAward = true;
                     } else if (achievement.id.startsWith('whale_') && stats.biggestVote >= (achievement.threshold || 0)) {
                         shouldAward = true;
+                    } else if (achievement.id === 'degen_starter' && stats.biggestVote >= (achievement.threshold || 0)) {
+                        shouldAward = true;
                     }
                     break;
 
@@ -601,7 +672,15 @@ export async function checkAndAwardAchievements(userId: string): Promise<UserAch
 
                 // Special achievements would need additional context
                 case 'special':
-                    // These would be awarded in specific contexts
+                    // Pioneer trader achievement - one of first 100 users
+                    if (achievement.id === 'pioneer_trader') {
+                        shouldAward = await isPioneerUser(userId);
+                    }
+                    break;
+
+                case 'social':
+                    // These would typically be awarded through external systems
+                    // For 'viral_spreader', this would be triggered when referral system detects a successful referral
                     break;
             }
 
@@ -632,6 +711,87 @@ export async function checkAndAwardAchievements(userId: string): Promise<UserAch
     } catch (error) {
         console.error(`Failed to check achievements for ${userId}:`, error);
         return [];
+    }
+}
+
+/**
+ * Get all achievement definitions
+ */
+export async function getAchievementDefinitions(): Promise<AchievementDefinition[]> {
+    try {
+        return await kv.get<AchievementDefinition[]>(ACHIEVEMENT_DEFINITIONS_KEY) || [];
+    } catch (error) {
+        console.error('Failed to get achievement definitions:', error);
+        return [];
+    }
+}
+
+/**
+ * Get user's achievements with definition details
+ */
+export async function getUserAchievements(userId: string): Promise<{
+    achievements: UserAchievement[];
+    definitions: AchievementDefinition[];
+    unlockedCount: number;
+    totalCount: number;
+}> {
+    try {
+        const [userAchievementsResult, allDefinitions] = await Promise.all([
+            kv.get<UserAchievement[]>(USER_ACHIEVEMENTS_KEY(userId)),
+            getAchievementDefinitions()
+        ]);
+
+        const userAchievements = userAchievementsResult || [];
+
+        return {
+            achievements: userAchievements,
+            definitions: allDefinitions,
+            unlockedCount: userAchievements.length,
+            totalCount: allDefinitions.length
+        };
+    } catch (error) {
+        console.error(`Failed to get user achievements for ${userId}:`, error);
+        return {
+            achievements: [],
+            definitions: [],
+            unlockedCount: 0,
+            totalCount: 0
+        };
+    }
+}
+
+/**
+ * Award a specific achievement to a user (for admin/special cases)
+ */
+export async function awardAchievement(userId: string, achievementId: string, roundId?: string): Promise<boolean> {
+    try {
+        const userAchievements = await kv.get<UserAchievement[]>(USER_ACHIEVEMENTS_KEY(userId)) || [];
+
+        // Check if user already has this achievement
+        if (userAchievements.some(ua => ua.achievementId === achievementId)) {
+            console.log(`User ${userId} already has achievement ${achievementId}`);
+            return false;
+        }
+
+        const newAchievement: UserAchievement = {
+            achievementId,
+            unlockedAt: Date.now(),
+            roundId
+        };
+
+        userAchievements.push(newAchievement);
+        await kv.set(USER_ACHIEVEMENTS_KEY(userId), userAchievements);
+
+        // Update user stats
+        const stats = await getUserStats(userId);
+        stats.achievements = userAchievements.map(ua => ua.achievementId);
+        await kv.set(USER_STATS_KEY(userId), stats);
+
+        console.log(`Manually awarded achievement ${achievementId} to user ${userId}`);
+        return true;
+    } catch (error) {
+        console.error(`Failed to award achievement ${achievementId} to ${userId}:`, error);
+        return false;
     }
 }
 
@@ -711,7 +871,7 @@ export async function initializeLeaderboardSystem(): Promise<void> {
 // ========================================
 
 /**
- * Get or fetch BNS name for a user address with caching
+ * Get or fetch BNS name for a user address with enhanced caching
  */
 export async function getBnsNameForUser(userId: string): Promise<string | null> {
     try {
@@ -725,16 +885,24 @@ export async function getBnsNameForUser(userId: string): Promise<string | null> 
         // Fetch from BNS API
         const bnsName = await getPrimaryBnsName(userId, 'stacks');
 
-        // Cache the result (store empty string if no name found)
-        await kv.set(BNS_NAME_CACHE_KEY(userId), bnsName || '', {
-            ex: 3600 // Cache for 1 hour
-        });
+        if (bnsName) {
+            // Cache BNS names for 30 days (BNS names rarely change)
+            await kv.set(BNS_NAME_CACHE_KEY(userId), bnsName, {
+                ex: 30 * 24 * 3600 // 30 days
+            });
+            console.log(`🏷️ Cached BNS name for ${userId}: ${bnsName} (30 days)`);
+        } else {
+            // Cache "no BNS name" for 7 days (shorter in case they register one)
+            await kv.set(BNS_NAME_CACHE_KEY(userId), '', {
+                ex: 7 * 24 * 3600 // 7 days
+            });
+        }
 
         return bnsName;
     } catch (error) {
         console.error(`Failed to get BNS name for ${userId}:`, error);
-        // Cache failure to avoid repeated API calls
-        await kv.set(BNS_NAME_CACHE_KEY(userId), '', { ex: 300 }); // Cache failure for 5 minutes
+        // Cache failure to avoid repeated API calls (much shorter for errors)
+        await kv.set(BNS_NAME_CACHE_KEY(userId), '', { ex: 1800 }); // Cache failure for 30 minutes
         return null;
     }
 }
@@ -753,21 +921,78 @@ export async function getDisplayNameForUser(userId: string): Promise<string> {
 }
 
 /**
- * Batch get display names for multiple users
+ * Batch get display names for multiple users with optimized caching
  */
 export async function getDisplayNamesForUsers(userIds: string[]): Promise<Record<string, string>> {
     try {
-        const displayNamePromises = userIds.map(async (userId) => {
-            const displayName = await getDisplayNameForUser(userId);
-            return { userId, displayName };
-        });
-
-        const results = await Promise.all(displayNamePromises);
         const displayNames: Record<string, string> = {};
+        const uncachedUserIds: string[] = [];
 
-        results.forEach(({ userId, displayName }) => {
-            displayNames[userId] = displayName;
+        // First, check cache for all users in batch
+        const cacheKeys = userIds.map(userId => BNS_NAME_CACHE_KEY(userId));
+        const cachedResults = await kv.mget<string[]>(...cacheKeys);
+
+        // Process cached results and identify uncached users
+        userIds.forEach((userId, index) => {
+            const cachedName = cachedResults[index];
+            if (cachedName !== null) {
+                // Use cached result (empty string means no BNS name)
+                displayNames[userId] = cachedName || truncateAddress(userId);
+            } else {
+                // Need to fetch from API
+                uncachedUserIds.push(userId);
+            }
         });
+
+        console.log(`🚀 BNS Batch: ${userIds.length - uncachedUserIds.length}/${userIds.length} served from cache`);
+
+        // Fetch remaining users from API in parallel (but rate-limited)
+        if (uncachedUserIds.length > 0) {
+            console.log(`🔍 BNS Batch: Fetching ${uncachedUserIds.length} names from API`);
+
+            // Process in smaller batches to avoid overwhelming the BNS API
+            const BATCH_SIZE = 5;
+            const batches = [];
+            for (let i = 0; i < uncachedUserIds.length; i += BATCH_SIZE) {
+                batches.push(uncachedUserIds.slice(i, i + BATCH_SIZE));
+            }
+
+            for (const batch of batches) {
+                const batchPromises = batch.map(async (userId) => {
+                    try {
+                        const bnsName = await getPrimaryBnsName(userId, 'stacks');
+
+                        // Cache the result
+                        if (bnsName) {
+                            await kv.set(BNS_NAME_CACHE_KEY(userId), bnsName, {
+                                ex: 30 * 24 * 3600 // 30 days
+                            });
+                            return { userId, displayName: bnsName };
+                        } else {
+                            await kv.set(BNS_NAME_CACHE_KEY(userId), '', {
+                                ex: 7 * 24 * 3600 // 7 days  
+                            });
+                            return { userId, displayName: truncateAddress(userId) };
+                        }
+                    } catch (error) {
+                        console.error(`Failed to get BNS for ${userId}:`, error);
+                        // Cache failure
+                        await kv.set(BNS_NAME_CACHE_KEY(userId), '', { ex: 1800 });
+                        return { userId, displayName: truncateAddress(userId) };
+                    }
+                });
+
+                const batchResults = await Promise.all(batchPromises);
+                batchResults.forEach(({ userId, displayName }) => {
+                    displayNames[userId] = displayName;
+                });
+
+                // Small delay between batches to be nice to the API
+                if (batches.length > 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+        }
 
         return displayNames;
     } catch (error) {

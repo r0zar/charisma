@@ -45,6 +45,7 @@ export interface Vault {
 
 // Cache constants
 export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
+export const VAULT_BLACKLIST_KEY = "vault-blacklist:dex"; // Blacklist key for vaults
 const RESERVE_CACHE_DURATION_MS = 30 * 1000; // 30 seconds
 const MIN_RESERVE_VALUE_TO_BE_VALID = 1; // Minimum value for a reserve to be considered valid
 
@@ -60,6 +61,96 @@ export const getManagedVaultIds = async (): Promise<string[]> => {
     } catch (error) {
         console.error(`Error fetching vault keys from KV with prefix ${VAULT_CACHE_KEY_PREFIX}:`, error);
         return [];
+    }
+};
+
+/**
+ * Fetches the list of blacklisted vault contract IDs from Vercel KV.
+ * @returns A promise resolving to an array of blacklisted contract ID strings.
+ */
+export const getBlacklistedVaultIds = async (): Promise<string[]> => {
+    try {
+        const blacklistedIds = await kv.get<string[]>(VAULT_BLACKLIST_KEY);
+        return Array.isArray(blacklistedIds) ? blacklistedIds : [];
+    } catch (error) {
+        console.error(`Error fetching vault blacklist from KV (${VAULT_BLACKLIST_KEY}):`, error);
+        return [];
+    }
+};
+
+/**
+ * Adds a vault contract ID to the blacklist and removes it from cache.
+ * @param contractId - The vault contract ID to blacklist.
+ * @returns Success status and message.
+ */
+export const addVaultToBlacklist = async (contractId: string): Promise<{ success: boolean; message: string }> => {
+    if (!contractId) {
+        return { success: false, message: 'Contract ID is required' };
+    }
+
+    try {
+        // Get current blacklist
+        const currentBlacklist = await getBlacklistedVaultIds();
+
+        // Add to blacklist if not already present
+        if (!currentBlacklist.includes(contractId)) {
+            const newBlacklist = [...currentBlacklist, contractId];
+            await kv.set(VAULT_BLACKLIST_KEY, newBlacklist);
+            console.log(`Added ${contractId} to vault blacklist`);
+        }
+
+        // Remove cached data
+        const cacheKey = getCacheKey(contractId);
+        await kv.del(cacheKey);
+        console.log(`Removed cached data for vault ${contractId}`);
+
+        return { success: true, message: `Successfully blacklisted vault ${contractId}` };
+    } catch (error) {
+        console.error(`Failed to blacklist vault ${contractId}:`, error);
+        return { success: false, message: `Failed to blacklist vault: ${error}` };
+    }
+};
+
+/**
+ * Removes a vault contract ID from the blacklist.
+ * @param contractId - The vault contract ID to remove from blacklist.
+ * @returns Success status and message.
+ */
+export const removeVaultFromBlacklist = async (contractId: string): Promise<{ success: boolean; message: string }> => {
+    if (!contractId) {
+        return { success: false, message: 'Contract ID is required' };
+    }
+
+    try {
+        const currentBlacklist = await getBlacklistedVaultIds();
+
+        if (!currentBlacklist.includes(contractId)) {
+            return { success: false, message: 'Vault not found in blacklist' };
+        }
+
+        const newBlacklist = currentBlacklist.filter(id => id !== contractId);
+        await kv.set(VAULT_BLACKLIST_KEY, newBlacklist);
+        console.log(`Removed ${contractId} from vault blacklist`);
+
+        return { success: true, message: `Successfully removed ${contractId} from blacklist` };
+    } catch (error) {
+        console.error(`Failed to remove ${contractId} from vault blacklist:`, error);
+        return { success: false, message: `Failed to remove from blacklist: ${error}` };
+    }
+};
+
+/**
+ * Checks if a vault contract ID is blacklisted.
+ * @param contractId - The vault contract ID to check.
+ * @returns True if blacklisted, false otherwise.
+ */
+export const isVaultBlacklisted = async (contractId: string): Promise<boolean> => {
+    try {
+        const blacklistedIds = await getBlacklistedVaultIds();
+        return blacklistedIds.includes(contractId);
+    } catch (error) {
+        console.error(`Error checking vault blacklist status for ${contractId}:`, error);
+        return false; // Default to not blacklisted on error
     }
 };
 
@@ -245,6 +336,13 @@ export const getVaultData = async (contractId: string): Promise<Vault | null> =>
         console.warn(`[PoolService] Invalid contractId format for getVaultData: ${contractId}`);
         return null;
     }
+
+    // Check if vault is blacklisted
+    if (await isVaultBlacklisted(contractId)) {
+        console.log(`Vault ${contractId} is blacklisted, returning null`);
+        return null;
+    }
+
     const cacheKey = getCacheKey(contractId);
 
     try {
@@ -353,14 +451,21 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
 // Get all vault data from KV
 export const getAllVaultData = async ({ protocol, type }: { protocol?: string, type?: string } = {}): Promise<Vault[]> => {
     try {
-        const vaultIds = await getManagedVaultIds();
-        if (!vaultIds.length) {
-            console.log('No managed vaults found');
+        const [vaultIds, blacklistedIds] = await Promise.all([
+            getManagedVaultIds(),
+            getBlacklistedVaultIds()
+        ]);
+
+        // Filter out blacklisted vaults
+        const validVaultIds = vaultIds.filter(id => !blacklistedIds.includes(id));
+
+        if (!validVaultIds.length) {
+            console.log('No valid (non-blacklisted) vaults found');
             return [];
         }
 
-        console.log(`Fetching ${vaultIds.length} vaults from cache`);
-        const vaultPromises = vaultIds.map(id => getVaultData(id));
+        console.log(`Fetching ${validVaultIds.length} vaults from cache (${vaultIds.length - validVaultIds.length} blacklisted)`);
+        const vaultPromises = validVaultIds.map(id => getVaultData(id));
         const results = await Promise.all(vaultPromises);
         const vaults = results.filter((v: Vault | null): v is Vault => v !== null);
 

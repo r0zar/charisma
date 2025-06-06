@@ -3,7 +3,7 @@
 import { useState, startTransition, useRef, useEffect } from 'react';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
-import { removeTokenFromList, refreshTokenData } from '@/app/actions';
+import { removeTokenFromList, refreshTokenData, blacklistToken } from '@/app/actions';
 import { Input } from "@/components/ui/input"; // Use shadcn Input
 import { Button } from "@/components/ui/button"; // Use shadcn Button
 import { Card, CardContent } from "@/components/ui/card"; // Added Card import
@@ -17,7 +17,8 @@ import {
     ExternalLink, // Added ExternalLink
     InspectionPanel,
     Pencil,
-    ClipboardCopy // Added ClipboardCopy
+    ClipboardCopy, // Added ClipboardCopy
+    Ban // Added Ban for blacklist
 } from 'lucide-react'; // Added icons
 import { TokenCacheData } from '@repo/tokens';
 import dynamic from 'next/dynamic';
@@ -89,6 +90,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
     const [isLookingUp, setIsLookingUp] = useState(false);
     const [removingTokenId, setRemovingTokenId] = useState<string | null>(null);
     const [refreshingTokenId, setRefreshingTokenId] = useState<string | null>(null);
+    const [blacklistingTokenId, setBlacklistingTokenId] = useState<string | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchPerformedRef = useRef(false);
 
@@ -190,6 +192,30 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
         });
     };
 
+    const handleBlacklist = async (contractId: string) => {
+        if (!contractId) return;
+
+        setBlacklistingTokenId(contractId);
+        const loadingToastId = toast.loading(`Blacklisting ${truncateContractId(contractId)}...`);
+
+        startTransition(async () => {
+            try {
+                const result = await blacklistToken(contractId);
+                if (result.success) {
+                    toast.success('message' in result ? result.message : `Blacklisted ${truncateContractId(contractId)}.`, { id: loadingToastId });
+                    router.refresh(); // Re-fetch server data after successful blacklist
+                    // optimistically remove the token from the list
+                    setFilteredTokens(filteredTokens.filter(token => token.contractId !== contractId));
+                } else {
+                    toast.error('error' in result ? result.error : 'Failed to blacklist token.', { id: loadingToastId });
+                }
+            } catch (error: any) {
+                toast.error(`Blacklist failed: ${error.message || 'Unknown error'}`, { id: loadingToastId });
+            }
+            setBlacklistingTokenId(null);
+        });
+    };
+
     // Focus search input on page load
     useEffect(() => {
         if (searchInputRef.current) {
@@ -241,7 +267,8 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                         const isExpanded = expandedTokens[token.contractId || ''] || false;
                         const isRemoving = removingTokenId === token.contractId;
                         const isRefreshing = refreshingTokenId === token.contractId;
-                        const isLoading = isRemoving || isRefreshing;
+                        const isBlacklisting = blacklistingTokenId === token.contractId;
+                        const isLoading = isRemoving || isRefreshing || isBlacklisting;
 
                         return (
                             <li key={token.contractId} className={`border rounded-lg overflow-hidden transition-all duration-300 ${isLoading ? 'opacity-70' : ''} ${isExpanded ? 'shadow-md bg-muted/30' : 'bg-card shadow-sm hover:shadow'}`}>
@@ -339,6 +366,19 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                         >
                                             {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                         </Button>
+                                        {isDevelopment && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={(e) => { e.stopPropagation(); handleBlacklist(token.contractId || ''); }}
+                                                disabled={isLoading}
+                                                aria-label={`Blacklist ${token.symbol}`}
+                                                title="Add to Blacklist (Dev Only)"
+                                                className="text-orange-600 hover:bg-orange-600/10 disabled:opacity-50"
+                                            >
+                                                {isBlacklisting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+                                            </Button>
+                                        )}
                                         {isDevelopment && (
                                             <Button
                                                 variant="ghost"

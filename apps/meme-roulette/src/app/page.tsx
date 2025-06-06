@@ -18,6 +18,8 @@ import type { Vote } from '@/types/spin';
 import { listTokens } from 'dexterity-sdk';
 import type { Token as SpinToken } from '@/types/spin';
 import SpinAnimationOverlay from '@/components/SpinAnimationOverlay';
+import SpinValidationDisplay from '@/components/SpinValidationDisplay';
+import SpinReadyDisplay from '@/components/SpinReadyDisplay';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +60,11 @@ export default function HubPage() {
   const { width, height } = useWindowSize();
   const [hasMounted, setHasMounted] = useState(false);
   const [showSpinAnimation, setShowSpinAnimation] = useState(false);
+
+  // Multi-stage spin state
+  const [currentSpinPhase, setCurrentSpinPhase] = useState<'idle' | 'starting' | 'validating' | 'ready' | 'spinning' | 'complete'>('idle');
+  const [validationResults, setValidationResults] = useState<any>(null);
+  const [showReadyDisplay, setShowReadyDisplay] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
@@ -109,14 +116,43 @@ export default function HubPage() {
     return Object.values(tokenBets || {}).reduce((sum, amount) => sum + amount, 0);
   }, [tokenBets]);
 
+  // Handle multi-stage spin phases based on feed data
   useEffect(() => {
-    if (isSpinComplete) {
-      setShowSpinAnimation(true);
-    } else {
+    if (!hasMounted || !feedData) return;
+
+    // Handle different spin phases from feed data
+    if (feedData.type === 'spin_starting') {
+      setCurrentSpinPhase('starting');
       setShowSpinAnimation(false);
       setShowConfetti(false);
+    } else if (feedData.type === 'validation_complete' && feedData.validationResults) {
+      setCurrentSpinPhase('ready');
+      setValidationResults(feedData.validationResults);
+      setShowReadyDisplay(false);
+    } else if (feedData.spinPhase === 'spinning') {
+      setCurrentSpinPhase('spinning');
+    } else if (feedData.winningTokenId && feedData.spinPhase === 'complete') {
+      setCurrentSpinPhase('complete');
+      setShowSpinAnimation(true);
+    } else if (!feedData.winningTokenId) {
+      setCurrentSpinPhase('idle');
+      setShowSpinAnimation(false);
+      setShowConfetti(false);
+      setValidationResults(null);
+      setShowReadyDisplay(false);
     }
-  }, [isSpinComplete]);
+  }, [hasMounted, feedData]);
+
+  // Auto-transition from validation to ready display
+  useEffect(() => {
+    if (currentSpinPhase === 'ready' && validationResults && !showReadyDisplay) {
+      const transitionTimer = setTimeout(() => {
+        setShowReadyDisplay(true);
+      }, 4000);
+
+      return () => clearTimeout(transitionTimer);
+    }
+  }, [currentSpinPhase, validationResults, showReadyDisplay]);
 
   const handleAnimationComplete = () => {
     console.log("Spin animation complete!");
@@ -310,12 +346,63 @@ export default function HubPage() {
     // If the feed is done loading, render the main content
     return (
       <>
-        {isBettingLocked && !showSpinAnimation && <LockOverlay timeLeft={timeLeft} />}
+        {isBettingLocked && currentSpinPhase === 'idle' && <LockOverlay timeLeft={timeLeft} />}
 
-        {showSpinAnimation && feedData?.winningTokenId && (
+        {/* Multi-Stage Spin Displays */}
+        {currentSpinPhase === 'starting' && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+            <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl p-8 max-w-md w-full text-center">
+              <h2 className="text-2xl font-bold font-display mb-4 text-primary">
+                🎰 Spin Starting!
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Validating user balances and preparing for the spin...
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <span className="text-primary font-semibold">Processing...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentSpinPhase === 'ready' && validationResults && !showReadyDisplay && (
+          <SpinValidationDisplay
+            validationResults={validationResults}
+            chaPrice={chaPrice}
+            onContinue={() => setShowReadyDisplay(true)}
+          />
+        )}
+
+        {currentSpinPhase === 'ready' && validationResults && showReadyDisplay && (
+          <SpinReadyDisplay
+            validationResults={validationResults}
+            tokens={pageTokens}
+            chaPrice={chaPrice}
+          />
+        )}
+
+        {currentSpinPhase === 'spinning' && (
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+            <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl p-8 max-w-md w-full text-center">
+              <h2 className="text-2xl font-bold font-display mb-4 text-primary">
+                🎲 Spinning...
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Determining the winner based on validated votes
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="text-primary font-semibold">Selecting Winner...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSpinAnimation && feedData?.winningTokenId && currentSpinPhase === 'complete' && (
           <SpinAnimationOverlay
             winningTokenId={feedData.winningTokenId}
-            tokenBets={tokenBets || {}}
+            tokenBets={validationResults?.validTokenBets || tokenBets || {}}
             tokenList={pageTokens}
             onAnimationComplete={handleAnimationComplete}
             spinScheduledAt={feedData?.endTime || Date.now()}
@@ -333,7 +420,7 @@ export default function HubPage() {
           />
         )}
 
-        <div className={`flex flex-col gap-0 md:gap-6 mb-0 md:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`flex flex-col gap-0 md:gap-6 mb-0 md:mb-8 ${currentSpinPhase !== 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           {/* Combined Status Section - Full width, better balanced layout */}
           <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -427,7 +514,7 @@ export default function HubPage() {
         </div>
 
         {/* Action Section */}
-        {!isSpinComplete && !showSpinAnimation && (
+        {currentSpinPhase === 'idle' && (
           <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl mb-0 md:mb-8">
             <div className="max-w-md mx-auto">
               <Button
@@ -444,7 +531,7 @@ export default function HubPage() {
         )}
 
         {/* Leaderboard Section */}
-        <div className={`bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl md:mb-6 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl md:mb-6 ${currentSpinPhase !== 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 font-display flex items-center gap-2">
             <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Token Leaderboard
@@ -458,7 +545,7 @@ export default function HubPage() {
         </div>
 
         {/* My Votes Section */}
-        <div className={`mb-20 sm:mb-8 ${showSpinAnimation ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`mb-20 sm:mb-8 ${currentSpinPhase !== 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           {renderMyBetsSection()}
         </div>
 

@@ -22,6 +22,30 @@ export interface Vote {
 }
 
 /**
+ * User validation status for multi-stage spin
+ */
+export interface UserValidation {
+    userId: string;
+    hasValidBalance: boolean;
+    totalCommitted: number;
+    currentBalance: string;
+    votes: Vote[];
+    balanceShortfall?: number;
+}
+
+/**
+ * Complete validation results for all users
+ */
+export interface ValidationResults {
+    validUsers: UserValidation[];
+    invalidUsers: UserValidation[];
+    validTokenBets: Record<string, number>;
+    totalValidCHA: number;
+    totalInvalidCHA: number;
+    validationTimestamp: number;
+}
+
+/**
  * Represents data for a new vote notification
  */
 export interface NewVoteData {
@@ -44,7 +68,7 @@ export interface TokenSpinInfo {
 
 // Data structure for the Server-Sent Events feed
 export interface SpinFeedData {
-    type: 'update' | 'initial' | 'spin_result' | 'error' | 'new_vote';
+    type: 'update' | 'initial' | 'spin_result' | 'error' | 'new_vote' | 'spin_starting' | 'validation_complete';
     message?: string;
     lastUpdated: number; // Timestamp of the last data update
     initialTokens?: Token[]; // Optional: Sent only on the first connection message
@@ -59,4 +83,7 @@ export interface SpinFeedData {
     newVote?: NewVoteData; // Data for a new vote notification (only present when type is 'new_vote')
     athTotalAmount?: number; // All-Time High total CHA amount from any single round
     previousRoundAmount?: number; // Total CHA amount from the previous completed round
+    // Multi-stage spin data
+    validationResults?: ValidationResults; // User validation results for spin
+    spinPhase?: 'starting' | 'validating' | 'ready' | 'spinning' | 'complete';
 }

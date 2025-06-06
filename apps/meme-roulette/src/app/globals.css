@@ -405,14 +405,7 @@
     }
   }
 
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%) skewX(-15deg);
-    }
-    100% {
-      transform: translateX(300%) skewX(-15deg);
-    }
-  }
+
 
   @keyframes progress {
     0% {
@@ -446,16 +439,7 @@
     100% { transform: translateX(-2500%); }
   }
 
-  @keyframes pulse-glow {
-    0% { 
-      box-shadow: 0 0 5px rgba(var(--color-primary), 0.5);
-      border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
-    }
-    100% { 
-      box-shadow: 0 0 15px rgba(var(--color-primary), 0.8);
-      border-color: var(--color-primary);
-    }
-  }
+
 
   .animate-appear {
     animation: appear 0.3s ease-out forwards;
@@ -517,9 +501,7 @@
     100% { transform: translateX(0); }
 }
 
-.animate-pulse-glow {
-    animation: pulse-glow 1.5s infinite alternate ease-in-out;
-}
+
 
 .animate-pulse-slow {
     animation: pulse-slow 1s infinite alternate;
@@ -550,6 +532,134 @@
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     perspective: 1000px;
+}
+
+
+
+
+
+/* Achievement Badge Hover - Isolated from React re-renders */
+.achievement-badge {
+  contain: layout style;
+  transition: transform 200ms ease-out;
+  will-change: transform;
+}
+
+.achievement-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Achievement Rarity Effects - Shine */
+.legendary-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.legendary-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 0, 0.2) 50%,
+    transparent 100%
+  );
+  animation: legendary-shine 2.5s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+.epic-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.epic-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(147, 51, 234, 0.15) 50%,
+    transparent 100%
+  );
+  animation: epic-shine 3s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+.rare-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.rare-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.12) 50%,
+    transparent 100%
+  );
+  animation: rare-shine 2.8s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+/* Keyframes */
+@keyframes legendary-shine {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  50% {
+    left: 100%;
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes epic-shine {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  50% {
+    left: 100%;
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes rare-shine {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  50% {
+    left: 100%;
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
 }
 
 /* RESPONSIVE CONTAINER */

@@ -193,6 +193,138 @@ export async function getAllUserVotes(): Promise<Record<string, Vote[]>> {
     }
 }
 
+// Validate user balances before spin to ensure they can fulfill their votes
+export async function validateUserBalancesBeforeSpin(): Promise<{
+    validVotes: Record<string, Vote[]>;
+    invalidVotes: Record<string, Vote[]>;
+    partialVotes: Record<string, { valid: Vote[], invalid: Vote[] }>;
+    validTokenBets: Record<string, number>;
+}> {
+    try {
+        const { getUserTokenBalance } = await import('blaze-sdk');
+        const CHARISMA_SUBNET_CONTRACT_ID =
+            process.env.NEXT_PUBLIC_CHARISMA_CONTRACT_ID ||
+            'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1';
+
+        const allUserVotes = await getAllUserVotes();
+        const validVotes: Record<string, Vote[]> = {};
+        const invalidVotes: Record<string, Vote[]> = {};
+        const partialVotes: Record<string, { valid: Vote[], invalid: Vote[] }> = {};
+        const validTokenBets: Record<string, number> = {};
+
+        console.log('🔍 Validating user balances before spin (complete votes only)...');
+
+        for (const [userId, votes] of Object.entries(allUserVotes)) {
+            if (!votes || votes.length === 0) continue;
+
+            try {
+                // Get user's current token balance
+                const balanceData = await getUserTokenBalance(CHARISMA_SUBNET_CONTRACT_ID, userId);
+                const currentBalance = BigInt(balanceData.preconfirmationBalance || '0');
+
+                // Sort votes by time (FIFO - first votes get priority)
+                const sortedVotes = [...votes].sort((a, b) => a.voteTime - b.voteTime);
+
+                // Calculate total CHA committed by this user
+                const totalCommitted = votes.reduce((sum, vote) => sum + vote.voteAmountCHA, 0);
+
+                console.log(`User ${userId}: Balance ${currentBalance.toString()}, Committed ${totalCommitted}`);
+
+                if (currentBalance >= BigInt(totalCommitted)) {
+                    // User has sufficient balance - keep all their votes
+                    validVotes[userId] = votes;
+
+                    // Add to valid token bets
+                    votes.forEach(vote => {
+                        if (!validTokenBets[vote.tokenId]) {
+                            validTokenBets[vote.tokenId] = 0;
+                        }
+                        validTokenBets[vote.tokenId] += vote.voteAmountCHA;
+                    });
+
+                    console.log(`✅ User ${userId}: All ${votes.length} votes valid (sufficient balance)`);
+                } else if (currentBalance > 0) {
+                    // User has partial balance - accept complete votes up to balance limit
+                    const userValidVotes: Vote[] = [];
+                    const userInvalidVotes: Vote[] = [];
+                    let remainingBalance = Number(currentBalance);
+
+                    for (const vote of sortedVotes) {
+                        if (remainingBalance >= vote.voteAmountCHA) {
+                            // This complete vote can be covered
+                            userValidVotes.push(vote);
+                            remainingBalance -= vote.voteAmountCHA;
+
+                            // Add to valid token bets
+                            if (!validTokenBets[vote.tokenId]) {
+                                validTokenBets[vote.tokenId] = 0;
+                            }
+                            validTokenBets[vote.tokenId] += vote.voteAmountCHA;
+                        } else {
+                            // This complete vote cannot be covered - reject it entirely
+                            userInvalidVotes.push(vote);
+                        }
+                    }
+
+                    if (userValidVotes.length > 0) {
+                        if (userInvalidVotes.length > 0) {
+                            // Store partial validation results (some votes accepted, some rejected)
+                            partialVotes[userId] = {
+                                valid: userValidVotes,
+                                invalid: userInvalidVotes
+                            };
+
+                            const validAmount = userValidVotes.reduce((sum, vote) => sum + vote.voteAmountCHA, 0);
+                            const invalidAmount = userInvalidVotes.reduce((sum, vote) => sum + vote.voteAmountCHA, 0);
+
+                            console.log(`⚖️ User ${userId}: ${userValidVotes.length} votes accepted (${validAmount} CHA), ${userInvalidVotes.length} votes rejected (${invalidAmount} CHA)`);
+                        } else {
+                            // All votes are valid (this shouldn't happen given the condition above, but just in case)
+                            validVotes[userId] = userValidVotes;
+                            console.log(`✅ User ${userId}: All ${userValidVotes.length} votes valid`);
+                        }
+                    } else {
+                        // No votes can be covered - reject all
+                        invalidVotes[userId] = votes;
+                        console.log(`❌ User ${userId}: No votes can be covered (balance too low for any single vote)`);
+                    }
+                } else {
+                    // User has zero balance - invalidate all their votes
+                    invalidVotes[userId] = votes;
+                    console.log(`❌ User ${userId}: Zero balance, rejecting all ${votes.length} votes`);
+                }
+            } catch (error) {
+                console.error(`❌ Error checking balance for user ${userId}:`, error);
+                // On error, invalidate votes to be safe
+                invalidVotes[userId] = votes;
+            }
+        }
+
+        const validUserCount = Object.keys(validVotes).length;
+        const invalidUserCount = Object.keys(invalidVotes).length;
+        const partialUserCount = Object.keys(partialVotes).length;
+        const validTokenCount = Object.keys(validTokenBets).length;
+
+        console.log(`🎯 Balance validation complete:`);
+        console.log(`   Fully valid users: ${validUserCount}`);
+        console.log(`   Partially valid users: ${partialUserCount}`);
+        console.log(`   Invalid users: ${invalidUserCount}`);
+        console.log(`   Valid tokens with bets: ${validTokenCount}`);
+
+        return { validVotes, invalidVotes, partialVotes, validTokenBets };
+    } catch (error) {
+        console.error('Failed to validate user balances:', error);
+        // On validation error, return all votes as invalid to be safe
+        const allUserVotes = await getAllUserVotes();
+        return {
+            validVotes: {},
+            invalidVotes: allUserVotes,
+            partialVotes: {},
+            validTokenBets: {}
+        };
+    }
+}
+
 // --- State Accessor/Modifier Functions (Async) ---
 
 // Gets the last token fetch time (kept for reference)
@@ -363,4 +495,67 @@ export async function buildKVDataPacket(): Promise<Omit<SpinFeedData, 'initialTo
         athTotalAmount: athTotalAmount, // Include ATH total amount
         previousRoundAmount: previousRoundAmount // Include previous round amount
     };
+}
+
+// Clean invalid intents from multihop queue based on balance validation
+export async function cleanInvalidIntentsFromQueue(invalidVotes: Record<string, Vote[]>): Promise<{
+    totalIntents: number;
+    removedIntents: number;
+    remainingIntents: number;
+}> {
+    try {
+        const { kv } = await import('@vercel/kv');
+        const TX_QUEUE_KEY = 'meme-roulette-tx-queue';
+
+        // Get all intents from queue
+        const allIntents = await kv.lrange(TX_QUEUE_KEY, 0, -1);
+        const totalIntents = allIntents.length;
+
+        if (totalIntents === 0) {
+            console.log('🧹 No intents in queue to clean');
+            return { totalIntents: 0, removedIntents: 0, remainingIntents: 0 };
+        }
+
+        // Create set of invalid user addresses for fast lookup
+        const invalidUserIds = new Set(Object.keys(invalidVotes));
+
+        // Filter out intents from users with insufficient balances
+        const validIntents = allIntents.filter((intent: any) => {
+            const intentObj = typeof intent === 'string' ? JSON.parse(intent) : intent;
+            const isValid = !invalidUserIds.has(intentObj.recipient);
+
+            if (!isValid) {
+                console.log(`🗑️ Removing intent from user ${intentObj.recipient} due to insufficient balance`);
+            }
+
+            return isValid;
+        });
+
+        const removedIntents = totalIntents - validIntents.length;
+
+        if (removedIntents > 0) {
+            // Clear the queue and re-add only valid intents
+            await kv.del(TX_QUEUE_KEY);
+
+            if (validIntents.length > 0) {
+                // Add valid intents back to queue in reverse order to maintain FIFO
+                for (let i = validIntents.length - 1; i >= 0; i--) {
+                    await kv.lpush(TX_QUEUE_KEY, validIntents[i]);
+                }
+            }
+
+            console.log(`🧹 Cleaned queue: removed ${removedIntents} invalid intents, kept ${validIntents.length} valid intents`);
+        } else {
+            console.log(`✅ Queue clean: all ${totalIntents} intents are valid`);
+        }
+
+        return {
+            totalIntents,
+            removedIntents,
+            remainingIntents: validIntents.length
+        };
+    } catch (error) {
+        console.error('Failed to clean invalid intents from queue:', error);
+        return { totalIntents: 0, removedIntents: 0, remainingIntents: 0 };
+    }
 } 

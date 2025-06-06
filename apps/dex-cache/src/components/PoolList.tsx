@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { removeVault, refreshVaultData } from '@/app/actions';
+import { removeVault, refreshVaultData, blacklistVault } from '@/app/actions';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers } from 'lucide-react';
+import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, Ban } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
 import Image from 'next/image';
@@ -105,6 +105,7 @@ interface Props {
 export default function PoolList({ vaults }: Props) {
     const [refreshing, setRefreshing] = useState<string | null>(null);
     const [removing, setRemoving] = useState<string | null>(null);
+    const [blacklisting, setBlacklisting] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(null);
     const isDev = process.env.NODE_ENV === 'development';
@@ -133,6 +134,13 @@ export default function PoolList({ vaults }: Props) {
         await removeVault(id);
         window.location.reload();
         setRemoving(null);
+    };
+
+    const handleBlacklist = async (id: string) => {
+        setBlacklisting(id);
+        await blacklistVault(id);
+        window.location.reload();
+        setBlacklisting(null);
     };
 
     const toggleExpand = (id: string) => {
@@ -180,7 +188,9 @@ export default function PoolList({ vaults }: Props) {
                             {vaults.map(v => {
                                 const isRefreshing = refreshing === v.contractId;
                                 const isRemoving = removing === v.contractId;
+                                const isBlacklisting = blacklisting === v.contractId;
                                 const isExpanded = expandedVault === v.contractId;
+                                const isLoading = isRefreshing || isRemoving || isBlacklisting;
 
                                 const formattedReservesA = formatTokenAmount(v.reservesA || 0, v.tokenA?.decimals || 0);
                                 const formattedReservesB = formatTokenAmount(v.reservesB || 0, v.tokenB?.decimals || 0);
@@ -287,7 +297,7 @@ export default function PoolList({ vaults }: Props) {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={(e) => { e.stopPropagation(); handleRefresh(v.contractId); }}
-                                                    disabled={isRefreshing || isRemoving}
+                                                    disabled={isLoading}
                                                     title="Refresh Vault Data"
                                                 >
                                                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -296,8 +306,20 @@ export default function PoolList({ vaults }: Props) {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
+                                                        onClick={(e) => { e.stopPropagation(); handleBlacklist(v.contractId); }}
+                                                        disabled={isLoading}
+                                                        title="Add to Blacklist (Dev Only)"
+                                                        className="text-orange-600 hover:text-orange-600 hover:bg-orange-600/10"
+                                                    >
+                                                        <Ban className={`w-4 h-4 ${isBlacklisting ? 'animate-spin' : ''}`} />
+                                                    </Button>
+                                                )}
+                                                {isDev && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={(e) => { e.stopPropagation(); handleRemove(v.contractId); }}
-                                                        disabled={isRemoving || isRefreshing}
+                                                        disabled={isLoading}
                                                         title="Remove Vault (Dev Only)"
                                                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     >

@@ -2,7 +2,7 @@
 
 import { kv } from "@vercel/kv";
 import { revalidatePath } from 'next/cache';
-import { addContractIdToManagedList, getTokenData } from "@/lib/tokenService";
+import { addContractIdToManagedList, getTokenData, addToBlacklist, removeFromBlacklist, getBlacklistedTokenIds, isBlacklisted } from "@/lib/tokenService";
 import { Cryptonomicon } from "../lib/cryptonomicon";
 import { getCacheKey } from "@/lib/tokenService";
 
@@ -61,6 +61,106 @@ export async function removeTokenFromList(contractId: string) {
 }
 
 /**
+ * Server Action to add a token to the blacklist.
+ * This removes it from the managed list and prevents re-indexing.
+ * **Only works in development mode.**
+ * @param contractId The contract ID to blacklist.
+ */
+export async function blacklistToken(contractId: string) {
+    // Strict check for development environment
+    if (process.env.NODE_ENV !== 'development') {
+        return { success: false, error: 'This action is only available in development mode.' };
+    }
+
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.' };
+    }
+
+    try {
+        console.log(`Attempting to blacklist ${contractId} (DEV MODE)...`);
+        const result = await addToBlacklist(contractId);
+
+        if (result.success) {
+            // Revalidate paths to reflect the change
+            revalidatePath('/');
+            revalidatePath('/admin');
+            revalidatePath('/tokens');
+        }
+
+        return result;
+    } catch (error: any) {
+        console.error(`Failed to blacklist ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to blacklist token.' };
+    }
+}
+
+/**
+ * Server Action to remove a token from the blacklist.
+ * **Only works in development mode.**
+ * @param contractId The contract ID to unblacklist.
+ */
+export async function unblacklistToken(contractId: string) {
+    // Strict check for development environment
+    if (process.env.NODE_ENV !== 'development') {
+        return { success: false, error: 'This action is only available in development mode.' };
+    }
+
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.' };
+    }
+
+    try {
+        console.log(`Attempting to unblacklist ${contractId} (DEV MODE)...`);
+        const result = await removeFromBlacklist(contractId);
+
+        if (result.success) {
+            // Revalidate paths to reflect the change
+            revalidatePath('/');
+            revalidatePath('/admin');
+            revalidatePath('/tokens');
+        }
+
+        return result;
+    } catch (error: any) {
+        console.error(`Failed to unblacklist ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to unblacklist token.' };
+    }
+}
+
+/**
+ * Server Action to get all blacklisted tokens.
+ * @returns Array of blacklisted contract IDs.
+ */
+export async function getBlacklistedTokens() {
+    try {
+        const blacklistedIds = await getBlacklistedTokenIds();
+        return { success: true, data: blacklistedIds };
+    } catch (error: any) {
+        console.error('Failed to fetch blacklisted tokens:', error);
+        return { success: false, error: error.message || 'Failed to fetch blacklisted tokens.', data: [] };
+    }
+}
+
+/**
+ * Server Action to check if a token is blacklisted.
+ * @param contractId The contract ID to check.
+ * @returns Boolean indicating if token is blacklisted.
+ */
+export async function checkTokenBlacklisted(contractId: string) {
+    if (!contractId) {
+        return { success: false, error: 'Contract ID is required.', isBlacklisted: false };
+    }
+
+    try {
+        const blacklisted = await isBlacklisted(contractId);
+        return { success: true, isBlacklisted: blacklisted };
+    } catch (error: any) {
+        console.error(`Failed to check blacklist status for ${contractId}:`, error);
+        return { success: false, error: error.message || 'Failed to check blacklist status.', isBlacklisted: false };
+    }
+}
+
+/**
  * Server Action to add a token contract ID to the managed list in KV.
  * **Only works in development mode.**
  * @param contractId The contract ID to add.
@@ -78,6 +178,12 @@ export async function refreshTokenData(contractId: string) {
     if (!contractId) {
         return { success: false, error: 'Contract ID is required.' };
     }
+
+    // Check if token is blacklisted before refreshing
+    if (await isBlacklisted(contractId)) {
+        return { success: false, error: 'Cannot refresh blacklisted token. Remove from blacklist first.' };
+    }
+
     console.log(`Attempting to force refresh data for ${contractId}...`);
     try {
         // Call getTokenData with forceRefresh set to true
@@ -115,6 +221,7 @@ interface InspectionResult {
     cachedData?: any | null; // Current data in cache
     fetchError?: string | null; // Error during the direct fetch
     cacheError?: string | null; // Error fetching cached data
+    isBlacklisted?: boolean; // Whether token is blacklisted
 }
 
 /**
@@ -125,8 +232,13 @@ export async function inspectTokenData(contractId: string): Promise<InspectionRe
         return { contractId, fetchError: 'Invalid contract ID format.' };
     }
 
-    // Attempt to add the token to the list when it's inspected
-    await addTokenToList(contractId);
+    // Check if token is blacklisted
+    const blacklisted = await isBlacklisted(contractId);
+
+    if (!blacklisted) {
+        // Attempt to add the token to the list when it's inspected (only if not blacklisted)
+        await addTokenToList(contractId);
+    }
 
     const cacheKey = getCacheKey(contractId);
     let rawMetadata: any | null = null;
@@ -134,7 +246,7 @@ export async function inspectTokenData(contractId: string): Promise<InspectionRe
     let fetchError: string | null = null;
     let cacheError: string | null = null;
 
-    console.log(`[Inspect] Inspecting token: ${contractId}`);
+    console.log(`[Inspect] Inspecting token: ${contractId} (blacklisted: ${blacklisted})`);
 
     // Attempt to fetch raw data directly
     try {
@@ -162,6 +274,7 @@ export async function inspectTokenData(contractId: string): Promise<InspectionRe
         cachedData,
         fetchError,
         cacheError,
+        isBlacklisted: blacklisted,
     };
 }
 
@@ -172,6 +285,12 @@ export async function forceRefreshToken(contractId: string): Promise<{ success: 
     if (!contractId || !contractId.includes('.')) {
         return { success: false, error: 'Invalid contract ID format.' };
     }
+
+    // Check if token is blacklisted before refreshing
+    if (await isBlacklisted(contractId)) {
+        return { success: false, error: 'Cannot refresh blacklisted token. Remove from blacklist first.' };
+    }
+
     console.log(`[Inspect] Forcing refresh for token: ${contractId}`);
     try {
         // Use the existing getTokenData function from the service with forceRefresh=true
@@ -200,6 +319,11 @@ export async function updateCachedTokenData(contractId: string, newData: any): P
 
     if (newData === undefined || newData === null) {
         return { success: false, error: 'Invalid data provided for update.' };
+    }
+
+    // Check if token is blacklisted before updating
+    if (await isBlacklisted(contractId)) {
+        return { success: false, error: 'Cannot update blacklisted token. Remove from blacklist first.' };
     }
 
     const cacheKey = getCacheKey(contractId);
