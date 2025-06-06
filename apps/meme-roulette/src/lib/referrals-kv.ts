@@ -6,6 +6,7 @@ import {
     ReferralCommission,
     ReferralConfig
 } from '@/types/spin';
+import { checkReferralAchievements } from './leaderboard-kv';
 
 /**
  * Default referral configuration
@@ -173,6 +174,16 @@ export async function useReferralCode(code: string, refereeId: string): Promise<
         // Update referral code usage
         referralCode.totalUses++;
         await kv.set(`referral_code:${code}`, referralCode);
+
+        // Check and award referral achievements to the referrer
+        try {
+            const referrerStats = await getReferralStats(referralCode.userId);
+            await checkReferralAchievements(referralCode.userId, referrerStats.totalReferrals);
+            console.log(`✅ Checked referral achievements for user ${referralCode.userId.substring(0, 10)}... (${referrerStats.totalReferrals} total referrals)`);
+        } catch (achievementError) {
+            console.error('Failed to check referral achievements:', achievementError);
+            // Don't throw here - referral was still successful
+        }
 
         return referral;
     } catch (error) {

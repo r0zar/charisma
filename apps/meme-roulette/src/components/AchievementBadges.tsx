@@ -361,7 +361,10 @@ const AchievementBadges = () => {
                                         </div>
                                     </div>
                                     <TwitterShareButton
-                                        message={`Just unlocked the "${selectedAchievement.name}" achievement in Meme Roulette! ${selectedAchievement.icon} ${selectedAchievement.description}`}
+                                        message={selectedAchievement.type === 'social'
+                                            ? `Just unlocked "${selectedAchievement.name}" in Meme Roulette! ${selectedAchievement.icon} Growing the community one referral at a time...`
+                                            : `Just unlocked the "${selectedAchievement.name}" achievement in Meme Roulette! ${selectedAchievement.icon} ${selectedAchievement.description}`
+                                        }
                                         variant="default"
                                         size="default"
                                         className="w-full"

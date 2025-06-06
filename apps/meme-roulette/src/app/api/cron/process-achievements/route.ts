@@ -3,8 +3,10 @@ import { kv } from '@vercel/kv';
 import {
     checkAndAwardAchievements,
     getUserStats,
-    getAchievementDefinitions
+    getAchievementDefinitions,
+    checkReferralAchievements
 } from '@/lib/leaderboard-kv';
+import { getReferralStats } from '@/lib/referrals-kv';
 
 // Cron job to automatically process achievements every 10 minutes
 export async function GET(request: NextRequest) {
@@ -55,12 +57,28 @@ export async function GET(request: NextRequest) {
 
             await Promise.all(batch.map(async (userId) => {
                 try {
+                    // Check general achievements
                     const newAchievements = await checkAndAwardAchievements(userId);
                     results.totalAwardsGiven += newAchievements.length;
+
+                    // Check referral achievements
+                    try {
+                        const referralStats = await getReferralStats(userId);
+                        const newReferralAchievements = await checkReferralAchievements(userId, referralStats.totalReferrals);
+                        results.totalAwardsGiven += newReferralAchievements.length;
+
+                        if (newReferralAchievements.length > 0) {
+                            console.log(`[CRON] Awarded ${newReferralAchievements.length} referral achievements to user ${userId.substring(0, 10)}... (${referralStats.totalReferrals} referrals)`);
+                        }
+                    } catch (referralError) {
+                        // Don't fail the whole process if referral checking fails
+                        console.error(`[CRON] Error checking referral achievements for ${userId}:`, referralError);
+                    }
+
                     results.processedUsers++;
 
                     if (newAchievements.length > 0) {
-                        console.log(`[CRON] Awarded ${newAchievements.length} achievements to user ${userId.substring(0, 10)}...`);
+                        console.log(`[CRON] Awarded ${newAchievements.length} general achievements to user ${userId.substring(0, 10)}...`);
                     }
                 } catch (error) {
                     console.error(`[CRON] Error processing user ${userId}:`, error);

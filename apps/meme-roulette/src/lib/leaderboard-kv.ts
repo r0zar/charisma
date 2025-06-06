@@ -564,13 +564,96 @@ export async function initializeAchievements(): Promise<void> {
             icon: '🎪',
             rarity: 'legendary'
         },
+        // Referral Achievements - Progressive Tiers
         {
-            id: 'viral_spreader',
-            name: 'Hype Spreader',
-            description: 'Bring a friend into the meme madness',
+            id: 'first_referral',
+            name: 'Viral Spreader',
+            description: 'Bring your first friend into the meme madness',
             type: 'social',
+            threshold: 1,
             icon: '🚀',
+            rarity: 'common'
+        },
+        {
+            id: 'referral_3',
+            name: 'Social Butterfly',
+            description: 'Refer 3 friends to Meme Roulette',
+            type: 'social',
+            threshold: 3,
+            icon: '🦋',
+            rarity: 'common'
+        },
+        {
+            id: 'referral_5',
+            name: 'Network Builder',
+            description: 'Refer 5 friends to the roulette',
+            type: 'social',
+            threshold: 5,
+            icon: '🌐',
             rarity: 'rare'
+        },
+        {
+            id: 'referral_10',
+            name: 'Squad Leader',
+            description: 'Build a squad of 10 referred players',
+            type: 'social',
+            threshold: 10,
+            icon: '🎖️',
+            rarity: 'rare'
+        },
+        {
+            id: 'referral_25',
+            name: 'Influence Broker',
+            description: 'Refer 25 players to join the chaos',
+            type: 'social',
+            threshold: 25,
+            icon: '📢',
+            rarity: 'epic'
+        },
+        {
+            id: 'referral_50',
+            name: 'Community Builder',
+            description: 'Bring 50 new players into the game',
+            type: 'social',
+            threshold: 50,
+            icon: '🏗️',
+            rarity: 'epic'
+        },
+        {
+            id: 'referral_100',
+            name: 'Meme Ambassador',
+            description: 'Achieve 100 successful referrals',
+            type: 'social',
+            threshold: 100,
+            icon: '🎩',
+            rarity: 'legendary'
+        },
+        {
+            id: 'referral_250',
+            name: 'Growth Catalyst',
+            description: 'Ignite growth with 250 referrals',
+            type: 'social',
+            threshold: 250,
+            icon: '⚡',
+            rarity: 'legendary'
+        },
+        {
+            id: 'referral_500',
+            name: 'Ecosystem Pioneer',
+            description: 'Lead the ecosystem with 500 referrals',
+            type: 'social',
+            threshold: 500,
+            icon: '🌟',
+            rarity: 'legendary'
+        },
+        {
+            id: 'referral_1000',
+            name: 'Legendary Recruiter',
+            description: 'The ultimate achievement: 1000 referrals',
+            type: 'social',
+            threshold: 1000,
+            icon: '👑',
+            rarity: 'legendary'
         },
         {
             id: 'degen_starter',
@@ -679,8 +762,8 @@ export async function checkAndAwardAchievements(userId: string): Promise<UserAch
                     break;
 
                 case 'social':
-                    // These would typically be awarded through external systems
-                    // For 'viral_spreader', this would be triggered when referral system detects a successful referral
+                    // Referral achievements are handled separately via checkReferralAchievements
+                    // This is called when someone uses the user's referral code
                     break;
             }
 
@@ -792,6 +875,62 @@ export async function awardAchievement(userId: string, achievementId: string, ro
     } catch (error) {
         console.error(`Failed to award achievement ${achievementId} to ${userId}:`, error);
         return false;
+    }
+}
+
+/**
+ * Check and award referral achievements for a user based on their referral count
+ */
+export async function checkReferralAchievements(userId: string, totalReferrals: number): Promise<UserAchievement[]> {
+    try {
+        const achievements = await kv.get<AchievementDefinition[]>(ACHIEVEMENT_DEFINITIONS_KEY) || [];
+        const userAchievements = await kv.get<UserAchievement[]>(USER_ACHIEVEMENTS_KEY(userId)) || [];
+
+        const newAchievements: UserAchievement[] = [];
+        const now = Date.now();
+
+        // Get all referral achievements
+        const referralAchievements = achievements.filter(a =>
+            a.type === 'social' && a.id.startsWith('referral') || a.id === 'first_referral'
+        );
+
+        for (const achievement of referralAchievements) {
+            // Skip if user already has this achievement
+            if (userAchievements.some(ua => ua.achievementId === achievement.id)) {
+                continue;
+            }
+
+            // Check if user has reached the threshold
+            if (totalReferrals >= (achievement.threshold || 1)) {
+                const newAchievement: UserAchievement = {
+                    achievementId: achievement.id,
+                    unlockedAt: now,
+                    value: totalReferrals
+                };
+
+                newAchievements.push(newAchievement);
+                userAchievements.push(newAchievement);
+
+                console.log(`🏆 Awarded referral achievement "${achievement.name}" to user ${userId.substring(0, 10)}... (${totalReferrals} referrals)`);
+            }
+        }
+
+        if (newAchievements.length > 0) {
+            // Update user's achievements
+            await kv.set(USER_ACHIEVEMENTS_KEY(userId), userAchievements);
+
+            // Update user stats with new achievement count
+            const stats = await getUserStats(userId);
+            stats.achievements = userAchievements.map(ua => ua.achievementId);
+            await kv.set(USER_STATS_KEY(userId), stats);
+
+            console.log(`Awarded ${newAchievements.length} new referral achievements to user ${userId}`);
+        }
+
+        return newAchievements;
+    } catch (error) {
+        console.error(`Failed to check referral achievements for ${userId}:`, error);
+        return [];
     }
 }
 
