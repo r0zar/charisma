@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Rocket, LogOut, Menu } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
+import { PendingReferralIndicator } from '@/components/ui/PendingReferralIndicator';
 import { listTokens } from 'dexterity-sdk'; // Import server action
 import type { Token as SpinToken } from '@/types/spin'; // Import the type expected by VoteModal
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
@@ -243,6 +244,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             />
 
             <FirstVisitPopup />
+
+            {/* Referral code indicator */}
+            <PendingReferralIndicator />
 
             {/* Apply CSS variable for mobile nav height */}
             <style jsx global>{`

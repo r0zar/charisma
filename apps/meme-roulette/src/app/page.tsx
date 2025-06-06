@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { InstructionsButton } from '@/components/InstructionsButton';
 import { useWallet } from '@/contexts/wallet-context';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
+import { useReferralRedemption } from '@/hooks/useReferralRedemption';
 
 // Define CHA decimals (ideally, get this from token data if CHA is in pageTokens)
 const CHA_DECIMALS = 6;
@@ -52,6 +53,9 @@ export default function HubPage() {
 
   // Add token price hook
   const { chaPrice, isLoading: isPriceLoading } = useTokenPrices();
+
+  // Handle referral code redemption flow
+  useReferralRedemption();
 
   const [pageTokens, setPageTokens] = useState<SpinToken[]>([]);
   const [loadingPageTokens, setLoadingPageTokens] = useState(true);
