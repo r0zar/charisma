@@ -13,6 +13,29 @@ interface Props {
     tokens?: TokenSummary[];
 }
 
+// Token Image component with error handling
+function TokenImage({ token, size = 56 }: { token: TokenSummary; size?: number }) {
+    const [imageError, setImageError] = useState(false);
+
+    if (!token.image || imageError) {
+        return (
+            <span className="text-lg font-bold text-primary/80">
+                {token.symbol.charAt(0)}
+            </span>
+        );
+    }
+
+    return (
+        <Image
+            src={token.image}
+            alt={token.symbol}
+            width={size}
+            height={size}
+            onError={() => setImageError(true)}
+        />
+    );
+}
+
 export default function TokenDetailClient({ detail, tokens: initialTokens }: Props) {
     const [tokens, setTokens] = useState<TokenSummary[]>(initialTokens ?? []);
     const [compareId, setCompareId] = useState<string | null>(null);
@@ -95,13 +118,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                 {/* token info */}
                 <div className="flex items-center gap-4">
                     <div className="h-14 w-14 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden">
-                        {detail.image ? (
-                            <Image src={detail.image} alt={detail.symbol} width={56} height={56} />
-                        ) : (
-                            <span className="text-lg font-bold text-primary/80">
-                                {detail.symbol.charAt(0)}
-                            </span>
-                        )}
+                        <TokenImage token={detail} size={56} />
                     </div>
                     <div>
                         <h1 className="text-2xl font-semibold leading-tight">{detail.name}</h1>
