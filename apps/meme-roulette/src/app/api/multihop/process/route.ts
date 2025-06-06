@@ -36,17 +36,21 @@ const updateLeaderboardEarnings = async (swapResults: Array<{
     originalCHAAmount: number;
     actualTokensReceived: number;
     winningTokenId: string;
+    chaDecimals: number;
+    winningTokenDecimals: number;
 }>) => {
     try {
         const { calculateEarningsUSD } = await import('@/lib/token-prices');
         const { updateUserStatsWithRealEarnings } = await import('@/lib/leaderboard-integration');
 
         for (const result of swapResults) {
-            // Calculate real earnings using actual market prices
+            // Calculate real earnings using actual market prices and decimals
             const earnings = await calculateEarningsUSD(
                 result.originalCHAAmount,
                 result.actualTokensReceived,
-                result.winningTokenId
+                result.winningTokenId,
+                result.chaDecimals,
+                result.winningTokenDecimals
             );
 
             console.log(`User ${result.userId}: ${result.originalCHAAmount} CHA → ${result.actualTokensReceived} tokens`);
@@ -84,6 +88,8 @@ export async function POST(_req: NextRequest) {
         originalCHAAmount: number;
         actualTokensReceived: number;
         winningTokenId: string;
+        chaDecimals: number;
+        winningTokenDecimals: number;
     }> = [];
 
     let raw: any;
@@ -123,6 +129,9 @@ export async function POST(_req: NextRequest) {
             // Capture expected output amount from quote for earnings calculation
             const lastHop = quote.hops[quote.hops.length - 1];
             const expectedTokenOutput = Number(lastHop.quote?.amountOut || 0);
+            // Get decimals from the first and last token in the path
+            const chaDecimals = quote.path[0]?.decimals ?? 6;
+            const winningTokenDecimals = quote.path[quote.path.length - 1]?.decimals ?? 6;
 
             results.push({
                 uuid: intent.uuid,
@@ -139,6 +148,8 @@ export async function POST(_req: NextRequest) {
                 originalCHAAmount: Number(intent.betAmount),
                 actualTokensReceived: expectedTokenOutput, // Using quote estimate - in production, you'd verify from tx events
                 winningTokenId: winningTokenId,
+                chaDecimals,
+                winningTokenDecimals,
             });
 
         } catch (err: any) {

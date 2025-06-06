@@ -95,7 +95,9 @@ export async function getTokenPrice(contractId: string): Promise<number> {
 export async function calculateEarningsUSD(
     originalCHAAmount: number,
     tokensReceived: number,
-    winningTokenId: string
+    winningTokenId: string,
+    chaDecimals: number,
+    winningTokenDecimals: number
 ): Promise<{
     originalValueUSD: number;
     currentValueUSD: number;
@@ -105,8 +107,12 @@ export async function calculateEarningsUSD(
     const chaPrice = await getCHAPrice();
     const tokenPrice = await getTokenPrice(winningTokenId);
 
-    const originalValueUSD = originalCHAAmount * chaPrice;
-    const currentValueUSD = tokensReceived * tokenPrice;
+    // Normalize by decimals
+    const normalizedCHA = originalCHAAmount / Math.pow(10, chaDecimals);
+    const normalizedTokens = tokensReceived / Math.pow(10, winningTokenDecimals);
+
+    const originalValueUSD = normalizedCHA * chaPrice;
+    const currentValueUSD = normalizedTokens * tokenPrice;
     const earningsUSD = currentValueUSD - originalValueUSD;
     const earningsCHA = earningsUSD / chaPrice;
 
