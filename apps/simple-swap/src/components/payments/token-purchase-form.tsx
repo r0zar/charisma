@@ -205,7 +205,7 @@ export default function TokenPurchaseForm() {
 
             if (!res.ok) {
                 if (res.status === 409) {
-                    toast.error("Token price changed by more than 2%. Please refresh and try again.");
+                    toast.error("Token price changed by more than 10%. Please refresh and try again.");
                 } else {
                     toast.error(data?.message || "Something went wrong with checkout initialization.");
                 }

@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
             tokenBase: token?.base,
             tokenSymbol: token?.symbol
         });
-        if (diff > 0.02) {
-            return new Response("Token price changed by more than 2%. Please refresh and try again.", { status: 409 });
+        if (diff > 0.1) {
+            return new Response("Token price changed by more than 10%. Please refresh and try again.", { status: 409 });
         }
     } catch (err) {
         return new Response("Failed to fetch token price", { status: 500 });
