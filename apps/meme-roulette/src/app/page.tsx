@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSpin } from '@/contexts/SpinContext';
 import VoteModal from '@/components/VoteModal';
 import { LeaderboardTable } from '@/components/LeaderboardTable';
@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { InstructionsButton } from '@/components/InstructionsButton';
 import { useWallet } from '@/contexts/wallet-context';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
-import { useReferralRedemption } from '@/hooks/useReferralRedemption';
+import ReferralRedemptionClient from '@/components/ReferralRedemptionClient';
 
 // Define CHA decimals (ideally, get this from token data if CHA is in pageTokens)
 const CHA_DECIMALS = 6;
@@ -53,9 +53,6 @@ export default function HubPage() {
 
   // Add token price hook
   const { chaPrice, isLoading: isPriceLoading } = useTokenPrices();
-
-  // Handle referral code redemption flow
-  useReferralRedemption();
 
   const [pageTokens, setPageTokens] = useState<SpinToken[]>([]);
   const [loadingPageTokens, setLoadingPageTokens] = useState(true);
@@ -362,6 +359,9 @@ export default function HubPage() {
     // If the feed is done loading, render the main content
     return (
       <>
+        <Suspense fallback={null}>
+          <ReferralRedemptionClient />
+        </Suspense>
         {isBettingLocked && currentSpinPhase === 'idle' && <LockOverlay timeLeft={timeLeft} />}
 
         {/* Multi-Stage Spin Displays */}
