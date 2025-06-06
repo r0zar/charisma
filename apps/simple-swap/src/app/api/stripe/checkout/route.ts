@@ -30,8 +30,20 @@ export async function POST(req: NextRequest) {
         const decimals = token?.decimals!;
         const quotedPrice = (amount / 100) * (10 ** decimals) / tokenAmount;
         const diff = Math.abs(currentPrice - quotedPrice) / quotedPrice;
-        if (diff > 0.01) {
-            return new Response("Token price changed by more than 1%. Please refresh and try again.", { status: 409 });
+        console.log({
+            amount,
+            tokenAmount,
+            decimals,
+            quotedPrice,
+            currentPrice,
+            diff,
+            priceKey,
+            tokenType,
+            tokenBase: token?.base,
+            tokenSymbol: token?.symbol
+        });
+        if (diff > 0.02) {
+            return new Response("Token price changed by more than 2%. Please refresh and try again.", { status: 409 });
         }
     } catch (err) {
         return new Response("Failed to fetch token price", { status: 500 });

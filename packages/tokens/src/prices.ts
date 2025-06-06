@@ -1,5 +1,7 @@
 // import { listTokens, SIP10 } from './token-cache-client'; // Remove this import
 
+import { listTokens } from "./token-cache-client";
+
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
 
 // Restore manual subnet contract mappings
@@ -70,7 +72,7 @@ export function processTokenPrices(
                 if (baseTokenPrice !== undefined) {
                     processedPrices[token.contractId] = baseTokenPrice;
                 } else {
-                    // console.warn(`Price for base token '${token.base}' (for subnet '${token.contractId}') not found.`);
+                    console.warn(`Price for base token '${token.base}' (for subnet '${token.contractId}') not found.`);
                 }
             }
         });
@@ -96,14 +98,7 @@ export async function listPrices(): Promise<KraxelPriceData> {
         const data = await response.json() as KraxelPriceData;
 
         // Use the new processTokenPrices function with manual mappings
-        const manualTokenMappings: TokenWithSubnetInfo[] = [
-            { contractId: CHARISMA_SUBNET_CONTRACT, type: 'SUBNET', base: CHARISMA_TOKEN_CONTRACT },
-            { contractId: WELSH_SUBNET_CONTRACT, type: 'SUBNET', base: WELSHCORGICOIN_CONTRACT },
-            { contractId: SBTC_SUBNET_CONTRACT, type: 'SUBNET', base: SBTC_TOKEN_CONTRACT },
-            { contractId: SUSDC_SUBNET_CONTRACT, type: 'SUBNET', base: SUSDC_TOKEN_CONTRACT },
-            { contractId: PEPE_SUBNET_CONTRACT, type: 'SUBNET', base: PEPE_TOKEN_CONTRACT },
-            { contractId: MALI_SUBNET_CONTRACT, type: 'SUBNET', base: MALI_TOKEN_CONTRACT },
-        ];
+        const manualTokenMappings = await listTokens();
 
         return processTokenPrices(data, manualTokenMappings);
     };

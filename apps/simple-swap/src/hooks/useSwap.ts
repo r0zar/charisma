@@ -207,24 +207,25 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         };
     }, [searchParams]);
 
-    // ---------------------- Effects ----------------------
+    // Fetch token prices (can be called externally)
+    const fetchRawPrices = useCallback(async () => {
+        setIsLoadingPrices(true);
+        setPriceError(null);
+        try {
+            const prices = await listPrices();
+            setTokenPrices(prices);
+        } catch (err) {
+            console.error("Failed to fetch token prices:", err);
+            setPriceError("Could not load token prices.");
+        } finally {
+            setIsLoadingPrices(false);
+        }
+    }, []);
+
     // Fetch token prices on mount
     useEffect(() => {
-        async function fetchRawPrices() {
-            setIsLoadingPrices(true);
-            setPriceError(null);
-            try {
-                const prices = await listPrices();
-                setTokenPrices(prices);
-            } catch (err) {
-                console.error("Failed to fetch token prices:", err);
-                setPriceError("Could not load token prices.");
-            } finally {
-                setIsLoadingPrices(false);
-            }
-        }
         fetchRawPrices();
-    }, []);
+    }, [fetchRawPrices]);
 
     // Token loading logic (server‑prefetched vs. client fetch)
     useEffect(() => {
@@ -1611,6 +1612,8 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         toTokenBalance,
         userAddress,
         tokenPrices,
+        isLoadingPrices,
+        fetchRawPrices,
 
         // mode
         mode,
@@ -1627,7 +1630,6 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         isLoadingTokens,
         isLoadingRouteInfo,
         isLoadingQuote,
-        isLoadingPrices,
         priceError,
 
         // helpers from swapClient

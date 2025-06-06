@@ -7,6 +7,7 @@ import { fetchTokenBalance } from "blaze-sdk";
 import { toast } from "sonner";
 import { fetchQuote } from "dexterity-sdk";
 import { useWallet } from "@/contexts/wallet-context";
+import { RefreshCw } from "lucide-react";
 
 // A simple debounce hook (if not already available globally)
 function useDebounce<T>(value: T, delay: number): T {
@@ -50,9 +51,12 @@ export default function TokenPurchaseForm() {
         selectedToToken,
         setSelectedToToken,
         userAddress,
+        tokenPrices,
+        fetchRawPrices,
+        isLoadingPrices,
     } = useSwap();
 
-    const { prices } = useWallet();
+    const { prices: walletPrices } = useWallet();
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
@@ -80,7 +84,7 @@ export default function TokenPurchaseForm() {
                 const amountToQuote = parseFloat(debouncedUsdAmount);
 
                 const quoteResult = await fetchQuote(
-                    "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1",
+                    "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1",
                     selectedToToken.contractId,
                     amountToQuote * 10 ** 8
                 );
@@ -138,9 +142,9 @@ export default function TokenPurchaseForm() {
     const getTokenUsdPrice = (token: typeof selectedToToken) => {
         if (!token) return 0;
         // Try direct contractId
-        if (prices[token.contractId]) return Number(prices[token.contractId]);
+        if (tokenPrices[token.contractId]) return Number(tokenPrices[token.contractId]);
         // Try base if subnet
-        if (token.type === 'SUBNET' && token.base && prices[token.base]) return Number(prices[token.base]);
+        if (token.type === 'SUBNET' && token.base && tokenPrices[token.base]) return Number(tokenPrices[token.base]);
         return 0;
     };
 
@@ -155,6 +159,11 @@ export default function TokenPurchaseForm() {
     const reserveTokens = reserveBalance !== null && selectedToToken ? Number(reserveBalance) / (10 ** decimals) : 0;
     const reserveUsd = reserveTokens * getTokenUsdPrice(selectedToToken);
     const reserveUsd90 = reserveUsd * 0.9;
+
+    // Handler to refresh prices
+    const handleRefreshPrices = async () => {
+        if (fetchRawPrices) await fetchRawPrices();
+    };
 
     const handleCheckout = async () => {
         if (!selectedToToken || !userAddress || !usdAmount || !dexterityQuote?.amountOutMicro || dexterityQuote.amountOutMicro <= 0n) {
@@ -198,7 +207,7 @@ export default function TokenPurchaseForm() {
 
             if (!res.ok) {
                 if (res.status === 409) {
-                    toast.error("Token price changed by more than 1%. Please refresh and try again.");
+                    toast.error("Token price changed by more than 2%. Please refresh and try again.");
                 } else {
                     toast.error(data?.message || "Something went wrong with checkout initialization.");
                 }
@@ -311,11 +320,26 @@ export default function TokenPurchaseForm() {
                                         {formattedTokenAmount} {selectedToToken.symbol}
                                     </span>
                                 </div>
-                                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                <div className="flex justify-between text-xs text-muted-foreground mt-1 items-center">
                                     <span>Exchange rate (approx.):</span>
-                                    {parseFloat(usdAmount) > 0 && (
-                                        <span>1 USD = {(Number(dexterityQuote.amountOutMicro) / (10 ** decimals) / parseFloat(usdAmount)).toFixed(6)} {selectedToToken.symbol}</span>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {parseFloat(usdAmount) > 0 && (
+                                            <span>1 USD = {(Number(dexterityQuote.amountOutMicro) / (10 ** decimals) / parseFloat(usdAmount)).toFixed(6)} {selectedToToken.symbol}</span>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className="ml-2 p-1 rounded hover:bg-muted transition-colors"
+                                            onClick={handleRefreshPrices}
+                                            aria-label="Refresh prices"
+                                            disabled={isLoadingPrices}
+                                        >
+                                            {isLoadingPrices ? (
+                                                <span className="animate-spin"><RefreshCw className="h-4 w-4" /></span>
+                                            ) : (
+                                                <RefreshCw className="h-4 w-4" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </>
                         )}
