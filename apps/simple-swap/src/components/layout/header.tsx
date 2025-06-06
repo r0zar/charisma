@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "../wallet-button";
-import { Coins, Menu, X } from "lucide-react";
+import { Coins, Menu, X, Settings } from "lucide-react";
 import { Button } from "../ui/button";
 
 export function Header() {
@@ -46,12 +46,17 @@ export function Header() {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <Link href="/notifications" aria-label="Notification Settings">
+                        <Button variant="ghost" size="icon">
+                            <Settings className="h-4 w-4" />
+                        </Button>
+                    </Link>
                     <WalletButton />
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="md:hidden"
+                        className="md:hidden cursor-pointer"
                         onClick={toggleMobileMenu}
                         aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
                     >

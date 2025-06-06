@@ -16,7 +16,7 @@ export function WalletButton({ className }: WalletButtonProps) {
                 <button
                     onClick={connectWallet}
                     disabled={isConnecting}
-                    className="h-9 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    className="cursor-pointer h-9 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                     {isConnecting ? (
                         <>
@@ -30,7 +30,7 @@ export function WalletButton({ className }: WalletButtonProps) {
             ) : (
                 <button
                     onClick={disconnectWallet}
-                    className="h-9 px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 transition-colors"
+                    className="cursor-pointer h-9 px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 transition-colors"
                 >
                     {address
                         ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
