@@ -451,6 +451,9 @@ importers:
 
   apps/launchpad:
     dependencies:
+      '@charisma/notifier':
+        specifier: workspace:*
+        version: link:../../packages/notifier
       '@hookform/resolvers':
         specifier: ^5
         version: 5.0.1(react-hook-form@7.56.1)

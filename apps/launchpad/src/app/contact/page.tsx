@@ -1,16 +1,19 @@
 import ContactPageClient from './ContactPageClient';
 
-export default function ContactPage({
+export default async function ContactPage({
     searchParams,
 }: {
-    searchParams: { service?: string, name?: string };
+    searchParams: Promise<{ service?: string, name?: string }>;
 }) {
+    // Await the searchParams
+    const params = await searchParams;
+
     return (
         <div suppressHydrationWarning>
             <ContactPageClient
-                initialService={searchParams.service || null}
-                initialName={searchParams.name || null}
+                initialService={params.service || null}
+                initialName={params.name || null}
             />
         </div>
     );
-} 
+}
