@@ -298,7 +298,8 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
     // Add fragment support for opening dialog
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            if (window.location.hash.toLowerCase() === '#add-liquidity') {
+            if (window.location.hash.toLowerCase() === '#add-liquidity' ||
+                window.location.hash.toLowerCase() === '#add') {
                 setIsOpen(true);
             }
         }
