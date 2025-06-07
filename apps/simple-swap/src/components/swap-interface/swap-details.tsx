@@ -241,35 +241,24 @@ export default function SwapDetails() {
                                                             {/* For subnet operations, use the vault image like other vaults */}
                                                             <Image className="rounded-md" src={hop.vault.image || ''} alt={vaultName} width={32} height={32} />
                                                         </div>
-                                                        <div className="ml-2 sm:ml-2.5">
+                                                        <div className="ml-2 sm:ml-2.5 flex items-center w-full">
                                                             <div className="font-medium text-sm sm:text-base">
                                                                 {vaultName}
                                                             </div>
-                                                            <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-x-2">
-                                                                {isSubnetShiftHop ? (
-                                                                    <span className="text-purple-600 dark:text-purple-400 whitespace-nowrap">
-                                                                        No fees to {shiftDirection === 'to-subnet' ? 'deposit' : 'withdraw'}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-primary whitespace-nowrap">
-                                                                        {formattedFee} % fee to LP providers
-                                                                    </span>
-                                                                )}
-                                                                {/* Price impact badge */}
-                                                                {priceImpact && priceImpact.impact !== null && Math.abs(priceImpact.impact) > 0 && (
-                                                                    <span className={`px-1.5 py-0.5 rounded-sm ${Math.abs(priceImpact.impact) < 5
-                                                                        ? 'text-muted-foreground bg-muted/20'
-                                                                        : priceImpact.impact > 5
-                                                                            ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
-                                                                            : priceImpact.impact < -5
-                                                                                ? 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
-                                                                                : ''
-                                                                        }`}>
-                                                                        {priceImpact.impact > 0 ? '+' : ''}
-                                                                        {priceImpact.impact.toFixed(2)}% impact
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                            <div className="flex-1" />
+                                                            {/* Add Liquidity button for non-subnet hops */}
+                                                            {!isSubnetShiftHop && hop.vault.tokenA && hop.vault.tokenB && (
+                                                                <a
+                                                                    href={`https://invest.charisma.rocks/pools?tokenA=${encodeURIComponent(hop.vault.tokenA.contractId)}&tokenB=${encodeURIComponent(hop.vault.tokenB.contractId)}#add`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-xs px-2 py-1 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 ml-2"
+                                                                    title="Add liquidity to this pool"
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" /></svg>
+                                                                    Add Liquidity
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     </div>
 
