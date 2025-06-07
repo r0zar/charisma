@@ -9,6 +9,29 @@ import { TokenCacheData } from '@repo/tokens';
 import { Info, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
+// Pool image with fallback for LP vaults
+function PoolImageWithFallback({ src, alt }: { src?: string; alt?: string }) {
+    const [imgError, setImgError] = React.useState(false);
+    if (!imgError && src) {
+        return (
+            <Image
+                className="rounded-md"
+                src={src}
+                alt={alt || ''}
+                width={32}
+                height={32}
+                onError={() => setImgError(true)}
+            />
+        );
+    } else {
+        return (
+            <div className="w-8 h-8 flex items-center justify-center bg-muted text-foreground/60 font-bold text-xs uppercase select-none rounded-md">
+                {alt?.substring(0, 2) || '?'}
+            </div>
+        );
+    }
+}
+
 export default function SwapDetails() {
     const [showDetails, setShowDetails] = useState(false);
     const [showRouteDetails, setShowRouteDetails] = useState(true);
@@ -201,7 +224,7 @@ export default function SwapDetails() {
                                     {/* Starting token with USD value */}
                                     <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
                                         <div className="flex items-center mb-2">
-                                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
+                                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center" style={{ overflow: 'visible' }}>
                                                 <TokenLogo token={quote.path[0]} size="lg" />
                                             </div>
                                             <div className="ml-2 sm:ml-2.5">
@@ -247,9 +270,8 @@ export default function SwapDetails() {
                                                     'border-primary/30 border-dashed'
                                                     }`}>
                                                     <div className="flex items-center mb-2">
-                                                        <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center ${isSubnetShiftHop ? 'bg-purple-500/20' : 'bg-primary/20'}`}>
-                                                            {/* For subnet operations, use the vault image like other vaults */}
-                                                            <Image className="rounded-md" src={hop.vault.image || ''} alt={vaultName} width={32} height={32} />
+                                                        <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md flex items-center justify-center ${isSubnetShiftHop ? 'bg-purple-500/20' : 'bg-primary/20'}`}>
+                                                            <PoolImageWithFallback src={hop.vault.image} alt={vaultName} />
                                                         </div>
                                                         <div className="ml-2 sm:ml-2.5 flex items-center w-full">
                                                             <div className="font-medium text-sm sm:text-base">
