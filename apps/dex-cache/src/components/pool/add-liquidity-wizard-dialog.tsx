@@ -12,10 +12,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Search, Wallet, AlertCircle, CheckCircle, Loader2, Sparkle, Sparkles, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { getFungibleTokenBalance, Vault } from '@/lib/pool-service';
+import { getFungibleTokenBalance, Vault, listVaultTokens } from '@/lib/pool-service';
 import { AddLiquidityModal } from '@/components/pool/add-liquidity-modal';
 import { ClientDisplayVault } from '@/components/pool/vault-detail-client';
-import { TokenCacheData } from '@repo/tokens';
+import { listTokens, TokenCacheData } from '@repo/tokens';
+import { getAccountBalances } from '@repo/polyglot';
 
 interface AddLiquidityWizardProps {
     pools: Vault[];
@@ -33,60 +34,47 @@ interface WalletToken {
 }
 
 // Function to fetch user's wallet tokens from the pool tokens
-const fetchUserWalletTokens = async (address: string, pools: Vault[], prices: Record<string, number>): Promise<WalletToken[]> => {
+const fetchUserWalletTokens = async (address: string, pools: Vault[], prices: Record<string, number>, allTokens: TokenCacheData[]): Promise<WalletToken[]> => {
     try {
-        // Get unique tokens from all pools
-        const tokenMap = new Map<string, { symbol: string; name: string; decimals: number; image?: string }>();
-
-        // Add STX token
-        tokenMap.set('.stx', {
-            symbol: 'STX',
-            name: 'Stacks',
-            decimals: 6,
-            image: 'https://cryptologos.cc/logos/stacks-stx-logo.png'
-        });
-
-        // Extract tokens from pools
-        pools.forEach(pool => {
-            if (pool.tokenA) {
-                tokenMap.set(pool.tokenA.contractId, {
-                    symbol: pool.tokenA.symbol,
-                    name: pool.tokenA.name,
-                    decimals: pool.tokenA.decimals,
-                    image: pool.tokenA.image
-                });
-            }
-            if (pool.tokenB) {
-                tokenMap.set(pool.tokenB.contractId, {
-                    symbol: pool.tokenB.symbol,
-                    name: pool.tokenB.name,
-                    decimals: pool.tokenB.decimals,
-                    image: pool.tokenB.image
-                });
-            }
-        });
-
-        // Fetch balances for each token
+        // Fetch all balances at once
+        const balances = await getAccountBalances(address);
+        if (!balances) return [];
         const walletTokens: WalletToken[] = [];
 
-        for (const [contractId, tokenInfo] of tokenMap) {
-            try {
-                const balance = await getFungibleTokenBalance(contractId, address);
+        for (const token of allTokens) {
+            // Construct the key for fungible_tokens: contractId:identifier
+            const key = `${token.contractId}::${token.identifier ?? ''}`;
+            const tokenBalanceObj = balances.fungible_tokens?.[key];
+            const balance = tokenBalanceObj ? parseInt(tokenBalanceObj.balance) : 0;
+            if (balance > 0) {
+                walletTokens.push({
+                    contractId: token.contractId,
+                    symbol: token.symbol ?? '',
+                    name: token.name ?? '',
+                    balance,
+                    decimals: token.decimals ?? 0,
+                    image: token.image ?? '',
+                    price: prices[token.contractId]
+                });
+            }
+        }
 
-                // Only include tokens with balance > 0
-                if (balance > 0) {
+        // Special case for STX
+        if (balances.stx && balances.stx.balance) {
+            const stxToken = allTokens.find(t => t.contractId === '.stx');
+            if (stxToken) {
+                const stxBalance = parseInt(balances.stx.balance);
+                if (stxBalance > 0) {
                     walletTokens.push({
-                        contractId,
-                        symbol: tokenInfo.symbol,
-                        name: tokenInfo.name,
-                        balance,
-                        decimals: tokenInfo.decimals,
-                        image: tokenInfo.image,
-                        price: prices[contractId]
+                        contractId: '.stx',
+                        symbol: stxToken.symbol ?? '',
+                        name: stxToken.name ?? '',
+                        balance: stxBalance,
+                        decimals: stxToken.decimals ?? 6,
+                        image: stxToken.image ?? '',
+                        price: prices['.stx']
                     });
                 }
-            } catch (error) {
-                console.warn(`Failed to fetch balance for ${contractId}:`, error);
             }
         }
 
@@ -96,7 +84,6 @@ const fetchUserWalletTokens = async (address: string, pools: Vault[], prices: Re
             const valueB = (b.balance / Math.pow(10, b.decimals)) * (b.price || 0);
             return valueB - valueA;
         });
-
     } catch (error) {
         console.error('Error fetching wallet tokens:', error);
         return [];
@@ -260,26 +247,31 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
 
     // Load wallet tokens when dialog opens and wallet is connected
     useEffect(() => {
-        if (isOpen && walletState.connected && walletState.address) {
-            setIsLoadingTokens(true);
-            fetchUserWalletTokens(walletState.address, pools, prices)
-                .then((tokens) => {
+        let isMounted = true;
+        async function loadTokens() {
+            if (isOpen && walletState.connected && walletState.address) {
+                setIsLoadingTokens(true);
+                try {
+                    // Fetch whitelist from token cache
+                    const allTokens = await listTokens();
+                    const tokens = await fetchUserWalletTokens(walletState.address, pools, prices, allTokens);
                     // Add prices from props to tokens
                     const tokensWithPrices = tokens.map(token => ({
                         ...token,
                         price: prices[token.contractId]
                     }));
-                    setWalletTokens(tokensWithPrices);
-                })
-                .catch((error) => {
+                    if (isMounted) setWalletTokens(tokensWithPrices);
+                } catch (error) {
                     console.error('Failed to fetch wallet tokens:', error);
                     toast.error('Failed to load wallet tokens');
-                })
-                .finally(() => {
-                    setIsLoadingTokens(false);
-                });
+                } finally {
+                    if (isMounted) setIsLoadingTokens(false);
+                }
+            }
         }
-    }, [isOpen, walletState.connected, walletState.address, prices]);
+        loadTokens();
+        return () => { isMounted = false; };
+    }, [isOpen, walletState.connected, walletState.address, prices, pools]);
 
     // Check for matching pool when both tokens are selected
     useEffect(() => {
@@ -412,7 +404,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                 </div>
 
                                 {/* Pool Status */}
-                                {selectedTokenA && selectedTokenB && matchingPool ? (
+                                {(selectedTokenA && selectedTokenB && matchingPool) ? (
                                     <div className="space-y-4">
                                         <div className="flex items-center text-green-600">
                                             <CheckCircle className="w-5 h-5 mr-2" />
@@ -450,36 +442,58 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                         />
                                     </div>
                                 ) : (
-                                    <Alert>
-                                        <AlertCircle className="h-4 w-4" />
-                                        <AlertDescription>
-                                            No liquidity pool found for {selectedTokenA?.symbol} / {selectedTokenB?.symbol}.
-                                            This token pair is not currently supported.
-                                        </AlertDescription>
-                                        <div className="col-span-full w-full flex flex-col gap-4 pt-4">
-                                            <Alert variant="default" className="flex items-start gap-3 bg-card border-primary/40">
-                                                <Sparkles className="h-5 w-5 mt-0.5 min-w-6 animate-pulse" />
-                                                <div>
-                                                    <div className="font-medium text-primary">Create this pool and collect fees!</div>
-                                                    <div className="text-sm text-muted-foreground">As the first liquidity provider, you'll receive <b>100% of all swap fees</b> until others add liquidity to this pool.</div>
-                                                </div>
-                                            </Alert>
-                                            <Button
-                                                asChild
-                                                variant="secondary"
-                                                className="w-full h-12 text-base font-semibold gap-2"
-                                            >
-                                                <a
-                                                    href={`https://launchpad.charisma.rocks/templates/liquidity-pool?tokenA=${encodeURIComponent(selectedTokenA?.contractId!)}&tokenB=${encodeURIComponent(selectedTokenB?.contractId!)}&fee=1`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                    <>
+                                        {(selectedTokenA && !selectedTokenB) && (
+                                            <div className="text-center text-muted-foreground py-4">
+                                                Select a second token to check for an available liquidity pool.
+                                            </div>
+                                        )}
+                                        {(selectedTokenB && !selectedTokenA) && (
+                                            <div className="text-center text-muted-foreground py-4">
+                                                Select a first token to check for an available liquidity pool.
+                                            </div>
+                                        )}
+                                        {selectedTokenA && selectedTokenB && !matchingPool && (
+                                            <div className="col-span-full w-full flex flex-col gap-4 pt-4">
+                                                <Alert variant="default" className="flex items-start gap-3 bg-card border-primary/40">
+                                                    <Sparkles className="h-5 w-5 mt-0.5 min-w-6 animate-pulse" />
+                                                    <div>
+                                                        <div className="font-medium text-primary">Create this pool and collect fees!</div>
+                                                        <div className="text-sm text-muted-foreground">As the first liquidity provider, you'll receive <b>100% of all swap fees</b> until others add liquidity to this pool.</div>
+                                                    </div>
+                                                </Alert>
+                                                <Button
+                                                    asChild
+                                                    variant="secondary"
+                                                    className="w-full h-12 text-base font-semibold gap-2"
                                                 >
-                                                    <Plus className="w-5 h-5" />
-                                                    Create Pool on Launchpad
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    </Alert>
+                                                    <a
+                                                        href={`https://launchpad.charisma.rocks/templates/liquidity-pool?tokenA=${encodeURIComponent(selectedTokenA.contractId)}&tokenB=${encodeURIComponent(selectedTokenB.contractId)}&fee=1`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <Plus className="w-5 h-5" />
+                                                        Create Pool on Launchpad
+                                                    </a>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full flex gap-2 mt-2"
+                                                    onClick={() => {
+                                                        const url = new URL(window.location.href);
+                                                        url.searchParams.set('tokenA', selectedTokenA.contractId);
+                                                        url.searchParams.set('tokenB', selectedTokenB.contractId);
+                                                        url.hash = '#add';
+                                                        navigator.clipboard.writeText(url.toString());
+                                                        toast.success('Shareable link copied to clipboard!');
+                                                    }}
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                    Invite a friend
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
 
                                 {/* Reset Button */}
@@ -490,24 +504,6 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                         className="w-full"
                                     >
                                         Reset Selection
-                                    </Button>
-                                )}
-
-                                {selectedTokenA && selectedTokenB && (
-                                    <Button
-                                        variant="outline"
-                                        className="w-full flex gap-2 mt-2"
-                                        onClick={() => {
-                                            const url = new URL(window.location.href);
-                                            url.searchParams.set('tokenA', selectedTokenA.contractId);
-                                            url.searchParams.set('tokenB', selectedTokenB.contractId);
-                                            url.hash = '#add';
-                                            navigator.clipboard.writeText(url.toString());
-                                            toast.success('Shareable link copied to clipboard!');
-                                        }}
-                                    >
-                                        <Copy className="w-4 h-4" />
-                                        Invite a friend
                                     </Button>
                                 )}
                             </>
