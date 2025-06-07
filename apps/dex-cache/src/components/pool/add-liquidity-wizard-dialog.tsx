@@ -501,7 +501,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                             const url = new URL(window.location.href);
                                             url.searchParams.set('tokenA', selectedTokenA.contractId);
                                             url.searchParams.set('tokenB', selectedTokenB.contractId);
-                                            url.hash = '#add-liquidity';
+                                            url.hash = '#add';
                                             navigator.clipboard.writeText(url.toString());
                                             toast.success('Shareable link copied to clipboard!');
                                         }}
