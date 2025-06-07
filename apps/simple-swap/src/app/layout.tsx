@@ -2,8 +2,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 import { WalletProvider } from '../contexts/wallet-context';
-import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
@@ -45,7 +45,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <WalletProvider>
           {children}
-          <Toaster richColors theme="dark" position="bottom-right" />
+          <Toaster />
         </WalletProvider>
       </body>
       <Analytics />

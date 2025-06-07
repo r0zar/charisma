@@ -120,7 +120,7 @@ export default function TokenOutputSection() {
                         {hasBothVersionsForToken && (
                             <button
                                 onClick={handleToggleSubnet}
-                                className={`ml-1 p-0.5 rounded-full transition-colors ${useSubnetTo ? 'text-red-500' : 'text-muted-foreground/50'}`}
+                                className={`ml-1 p-0.5 cursor-pointer rounded-full transition-colors ${useSubnetTo ? 'text-red-500' : 'text-muted-foreground/50'}`}
                                 title={
                                     useSubnetTo
                                         ? "Using Subnet Token - Click to use Mainnet"

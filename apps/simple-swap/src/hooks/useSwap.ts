@@ -3,9 +3,11 @@ import { getQuote, getRoutableTokens, getStxBalance, getTokenBalance, listTokens
 import { useWallet } from "../contexts/wallet-context";
 import { listPrices, KraxelPriceData, SIP10, TokenCacheData } from '@repo/tokens';
 import { buildSwapTransaction, loadVaults, Route, Router } from "dexterity-sdk";
+import { signTriggeredSwap } from 'blaze-sdk'
 import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf, bufferCV, Pc } from '@stacks/transactions';
 import { request } from "@stacks/connect";
 import { TransactionResult } from "@stacks/connect/dist/types/methods";
+import { formatTokenAmount, convertToMicroUnits, convertFromMicroUnits, getTokenLogo } from '../lib/swap-utils';
 
 interface UseSwapOptions {
     initialTokens?: TokenCacheData[];
@@ -14,7 +16,6 @@ interface UseSwapOptions {
 
 // Cache validity period in milliseconds (30 minutes)
 const CACHE_EXPIRY = 30 * 60 * 1000;
-const USD_PRECISION = 6;
 
 // LocalStorage keys for token preferences
 const STORAGE_KEYS = {
@@ -123,7 +124,6 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
     const [quote, setQuote] = useState<Route | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoadingQuote, setIsLoadingQuote] = useState(false);
-    const [swapSuccessInfo, setSwapSuccessInfo] = useState<TransactionResult | null>(null);
 
     // Price state
     const [tokenPrices, setTokenPrices] = useState<KraxelPriceData>({});
@@ -153,6 +153,14 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
     // Transaction state
     const [swapping, setSwapping] = useState(false);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+
+    // Order success toast state
+    const [orderSuccessInfo, setOrderSuccessInfo] = useState<any>(null);
+    const clearOrderSuccessInfo = () => setOrderSuccessInfo(null);
+
+    // Swap success toast state
+    const [swapSuccessInfo, setSwapSuccessInfo] = useState<TransactionResult | null>(null);
+    const clearSwapSuccessInfo = () => setSwapSuccessInfo(null);
 
     // Pro mode state
     const [isProMode, setIsProMode] = useState(false);
@@ -482,8 +490,6 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
             }
         }
 
-        // displayTokens: only mainnet tokens
-        // subnetDisplayTokens: only subnet tokens
         const sortedDisplayTokens = mainnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
         const sortedSubnetTokens = subnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
 
@@ -555,7 +561,6 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         setSwapSuccessInfo(null);
         setSwapping(true);
         try {
-
             const txCfg = await buildSwapTransaction(router.current, quote, walletAddress);
             const res = await request('stx_callContract', txCfg);
             console.log("Swap result:", res);
@@ -621,10 +626,9 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         const micro = convertToMicroUnits(opts.amountDisplay, selectedFromToken?.decimals || 6);
 
         const signature = await signTriggeredSwap({
-            subnetTokenContractId: selectedFromToken?.contractId!,
+            subnet: selectedFromToken?.contractId!,
             uuid,
-            amountMicro: BigInt(micro),
-            multihopContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
+            amount: BigInt(micro),
         });
 
         const payload: Record<string, unknown> = {
@@ -654,27 +658,9 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
             const j = await res.json().catch(() => ({ error: 'unknown' }));
             throw new Error(j.error || 'Order create failed');
         }
+        setOrderSuccessInfo({ success: true });
 
         return await res.json();
-    }
-
-    // ---------------------- Limit Order Handlers ----------------------
-    async function handleCreateLimitOrder() {
-        if (!selectedFromToken || !selectedToToken) return;
-        if (!displayAmount || Number(displayAmount) <= 0) return;
-        if (!targetPrice) return;
-
-        try {
-            await createTriggeredSwap({
-                conditionToken: conditionToken || selectedToToken,
-                baseToken,
-                targetPrice,
-                direction: conditionDir,
-                amountDisplay: displayAmount,
-            });
-        } catch (err) {
-            console.error('Error creating triggered swap:', err);
-        }
     }
 
     // Callback for DcaDialog to create a single slice order
@@ -1607,7 +1593,6 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         microAmount,
         quote,
         error,
-        swapSuccessInfo,
         fromTokenBalance,
         toTokenBalance,
         userAddress,
@@ -1735,116 +1720,13 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         saveTokenPreferences,
         loadTokenPreferences,
         clearTokenPreferences,
+
+        // Order success toast state
+        orderSuccessInfo,
+        setOrderSuccessInfo,
+        clearOrderSuccessInfo,
+        swapSuccessInfo,
+        setSwapSuccessInfo,
+        clearSwapSuccessInfo
     };
-}
-
-
-async function signTriggeredSwap({
-    subnetTokenContractId,
-    uuid,
-    amountMicro,
-    multihopContractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
-    intent = 'TRANSFER_TOKENS',
-    domainName = 'BLAZE_PROTOCOL',
-    version = 'v1.0',
-}: {
-    subnetTokenContractId: string;
-    uuid: string;
-    amountMicro: bigint; // already in micro units
-    multihopContractId?: string;
-    intent?: string;
-    domainName?: string;
-    version?: string;
-}): Promise<string> {
-    const domain = tupleCV({
-        name: stringAsciiCV(domainName),
-        version: stringAsciiCV(version),
-        'chain-id': uintCV(1),
-    });
-
-    const message = tupleCV({
-        contract: principalCV(subnetTokenContractId),
-        intent: stringAsciiCV(intent),
-        opcode: noneCV(),
-        amount: optionalCVOf(uintCV(amountMicro)),
-        target: optionalCVOf(principalCV(multihopContractId)),
-        uuid: stringAsciiCV(uuid),
-    });
-
-    // @ts-ignore – upstream types don't include method yet
-    const res = await request('stx_signStructuredMessage', { domain, message });
-    if (!res?.signature) throw new Error('User cancelled the signature');
-    return res.signature as string; // raw 65-byte hex
-}
-
-/**
- * Utility functions for working with token amounts
- */
-function formatTokenAmount(amount: number, decimals: number): string {
-    const balance = amount / Math.pow(10, decimals);
-
-    if (balance === 0) return '0';
-    if (balance < 0.001) {
-        return balance.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: Math.min(decimals, 10)
-        });
-    } else if (balance < 1) {
-        return balance.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: Math.min(decimals, 6)
-        });
-    } else {
-        return balance.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: Math.min(decimals, 4)
-        });
-    }
-}
-
-/**
- * Convert user input to micro units based on token decimals
- */
-function convertToMicroUnits(input: string, decimals: number): string {
-    if (!input || input === '') return '0';
-    try {
-        const floatValue = parseFloat(input);
-        if (isNaN(floatValue)) return '0';
-        return Math.floor(floatValue * Math.pow(10, decimals)).toString();
-    } catch {
-        return '0';
-    }
-}
-
-/**
- * Convert micro units to human readable format for input
- */
-function convertFromMicroUnits(microUnits: string, decimals: number): string {
-    if (!microUnits || microUnits === '0') return '';
-    return (parseFloat(microUnits) / Math.pow(10, decimals)).toLocaleString(undefined, {
-        maximumFractionDigits: decimals,
-        minimumFractionDigits: decimals
-    });
-}
-
-/**
- * Get token logo URL
- */
-function getTokenLogo(token: TokenCacheData): string {
-    if (token.image) {
-        return token.image;
-    }
-
-    const symbol = token.symbol?.toLowerCase() || '';
-
-    if (symbol === "stx") {
-        return "https://assets.coingecko.com/coins/images/2069/standard/Stacks_logo_full.png";
-    } else if (symbol.includes("btc") || symbol.includes("xbtc")) {
-        return "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png";
-    } else if (symbol.includes("usda")) {
-        return "https://assets.coingecko.com/coins/images/17333/standard/usda.png";
-    }
-
-    // Default logo - first 2 characters of symbol
-    return `https://placehold.co/32x32?text=${(token.symbol || "??").slice(0, 2)}`;
 }

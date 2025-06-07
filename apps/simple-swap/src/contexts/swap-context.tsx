@@ -15,7 +15,6 @@ interface SwapContextType {
     microAmount: string;
     quote: any;
     error: string | null;
-    swapSuccessInfo: any;
     fromTokenBalance: string;
     toTokenBalance: string;
     userAddress: string;
@@ -143,6 +142,14 @@ interface SwapContextType {
     saveTokenPreferences: () => void;
     loadTokenPreferences: () => void;
     clearTokenPreferences: () => void;
+
+    // Order success toast state
+    orderSuccessInfo: any;
+    setOrderSuccessInfo: (info: any) => void;
+    clearOrderSuccessInfo: () => void;
+    swapSuccessInfo: any;
+    setSwapSuccessInfo: (info: any) => void;
+    clearSwapSuccessInfo: () => void;
 }
 
 const SwapContext = createContext<SwapContextType | undefined>(undefined);

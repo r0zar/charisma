@@ -16,6 +16,8 @@ const TooltipContent = (({ className, sideOffset = 4, ...props }: any, ref: any)
     <TooltipPrimitive.Content
         ref={ref}
         sideOffset={sideOffset}
+        // Ensure tooltip is rendered in a portal to avoid overflow clipping
+        container={typeof window !== 'undefined' ? document.body : undefined}
         className={cn(
             "z-50 overflow-hidden rounded-lg bg-background border border-border px-3 py-1.5 text-sm text-foreground shadow-lg backdrop-blur-sm",
             // Enhanced entrance animations with smoother timing

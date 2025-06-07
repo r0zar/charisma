@@ -49,7 +49,7 @@ export default function RootLayout({
           <AppShell>
             {children}
           </AppShell>
-          <Toaster position="bottom-right" />
+          <Toaster position='bottom-right' />
         </Providers>
       </body>
       <Analytics />

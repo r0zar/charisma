@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { useSwapContext } from '../../contexts/swap-context';
 import { Hop } from 'dexterity-sdk';
 import { TokenCacheData } from '@repo/tokens';
+import { Info, DollarSign } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 export default function SwapDetails() {
     const [showDetails, setShowDetails] = useState(false);
@@ -56,15 +58,25 @@ export default function SwapDetails() {
     }
 
     // Show high price impact warning if needed
-    const showHighImpactWarning = totalPriceImpact && totalPriceImpact.priceImpact !== null && (totalPriceImpact.priceImpact > 20 || totalPriceImpact.priceImpact < -20);
+    const impactValue = totalPriceImpact && totalPriceImpact.priceImpact !== null ? totalPriceImpact.priceImpact : null;
+    const showHighImpactWarning = impactValue && (impactValue > 20 || impactValue < -20);
 
     return (
         <div className="mb-5 border border-border/40 rounded-xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
             {/* High price impact warning */}
-            {showHighImpactWarning && (
-                <div className="flex items-center bg-yellow-200 dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-200 px-4 py-2 border-b border-yellow-400/5 animate-[appear_0.3s_ease-out]">
-                    <svg className="h-5 w-5 mr-2 text-yellow-600 dark:text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span className="font-mono">Warning: High price impact!</span>
+            {showHighImpactWarning && impactValue !== null && (
+                <div className={`flex items-center px-4 py-2 border-b border-yellow-400/5 animate-[appear_0.3s_ease-out] ${impactValue > 0 ? 'bg-green-200 dark:bg-green-900/40 text-green-900 dark:text-green-200' : 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-200'}`}>
+                    {impactValue > 0 ? (
+                        <DollarSign className="h-5 w-5 mr-2 text-green-600 dark:text-green-300" />
+                    ) : (
+                        <svg className="h-5 w-5 mr-2 text-yellow-600 dark:text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    )}
+                    <span className="font-mono">
+                        {impactValue > 0
+                            ? 'Notice: You are receiving significantly more than expected!'
+                            : 'Warning: You are receiving significantly less than expected!'}
+                    </span>
+                    <PriceImpactWizardDialog />
                 </div>
             )}
             <button
@@ -163,9 +175,7 @@ export default function SwapDetails() {
                                         <div className="flex items-center space-x-0.5">
                                             {quote.path.map((token: TokenCacheData, index: number) => (
                                                 <React.Fragment key={token.contractId || index}>
-                                                    <div className="h-4 w-4 rounded-full bg-background flex items-center justify-center overflow-hidden border border-border/30">
-                                                        <TokenLogo token={token} size="sm" />
-                                                    </div>
+                                                    <TokenLogo token={token} size="sm" />
                                                     {index < quote.path.length - 1 && (
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-muted-foreground/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -264,9 +274,7 @@ export default function SwapDetails() {
 
                                                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-1 sm:justify-between text-xs mt-1 text-muted-foreground">
                                                         <div className="flex items-center whitespace-nowrap">
-                                                            <div className="h-5 w-5 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden mr-1.5">
-                                                                <TokenLogo token={fromToken} size="sm" />
-                                                            </div>
+                                                            <TokenLogo token={fromToken} size="sm" className="mr-1" />
                                                             <span className="font-medium text-foreground/90">{fromToken.symbol}</span>
                                                             <span className="ml-1 text-xs text-muted-foreground">
                                                                 {idx === 0 ? `(${formatTokenAmount(Number(microAmount), fromToken.decimals || 6)})` : `(${formatTokenAmount(Number(hop.quote?.amountIn), fromToken.decimals || 6)})`}
@@ -277,9 +285,7 @@ export default function SwapDetails() {
                                                             )}
                                                         </div>
                                                         <div className="flex items-center whitespace-nowrap">
-                                                            <div className="h-5 w-5 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden mr-1.5">
-                                                                <TokenLogo token={toToken} size="sm" />
-                                                            </div>
+                                                            <TokenLogo token={toToken} size="sm" className="mr-1" />
                                                             <span className="font-medium text-foreground/90">{toToken.symbol}</span>
                                                             <span className="ml-1 text-xs text-muted-foreground">
                                                                 {`(${formatTokenAmount(Number(hop.quote?.amountOut), toToken.decimals || 6)})`}
@@ -428,5 +434,94 @@ export default function SwapDetails() {
                 </div>
             )}
         </div>
+    );
+}
+
+function PriceImpactWizardDialog() {
+    const [step, setStep] = useState(0);
+    const [open, setOpen] = useState(false);
+    const steps = [
+        {
+            title: 'What is Price Impact?',
+            content: (
+                <div className="space-y-3">
+                    <p>Price impact is the difference between the market price of a token and the price you actually receive when swapping. It happens because your trade changes the balance of tokens in the liquidity pool, which affects the price for your transaction.</p>
+                    <p className="text-xs text-muted-foreground">In AMMs (Automated Market Makers), every trade shifts the pool ratio, changing the price for the next trade. The larger your trade relative to the pool, the more the price moves against you. This is a direct result of the pool's math (e.g., constant product formula).</p>
+                </div>
+            ),
+        },
+        {
+            title: 'Why Does Price Impact Matter?',
+            content: (
+                <div className="space-y-3">
+                    <ul className="list-disc pl-5 space-y-1">
+                        <li><b>High price impact</b> means you may get much less (or more) than the expected market rate.</li>
+                        <li>It can make trades more expensive or less profitable, especially for large swaps or illiquid pools.</li>
+                        <li>Sometimes, a high positive price impact can mean you are getting a better deal, but this is rare and should be verified.</li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground">Price impact is different from <b>slippage</b>: slippage includes both price impact and any market movement that happens while your transaction is pending. Always check both before confirming a swap.</p>
+                </div>
+            ),
+        },
+        {
+            title: 'How to Protect Yourself',
+            content: (
+                <div className="space-y-3">
+                    <ul className="list-disc pl-5 space-y-1">
+                        <li>Double-check token amounts and prices before confirming a swap.</li>
+                        <li>Compare with prices on other platforms or block explorers.</li>
+                        <li>Be cautious with large trades or new/illiquid pools.</li>
+                        <li>If unsure, start with a small swap to test the outcome.</li>
+                    </ul>
+                    <div className="bg-muted/40 border border-muted px-3 py-2 rounded text-xs text-foreground">
+                        <b>Charisma Safety:</b> Charisma automatically applies <b>Stacks postconditions</b> on every hop of your trade. These postconditions ensure you receive the expected amount of tokens, and prevent any pool from transferring tokens you did not explicitly approve. This protects you from malicious pools and guarantees your swap is safe and predictable.
+                    </div>
+                    <div className="pt-2 border-t border-border/30 text-xs text-muted-foreground">
+                        <b>Note:</b> Price impact can be caused by pool imbalances, advantageous or disadvantageous trades, or rapidly changing/incorrect pricing data. Please inspect and verify token amounts and prices on external platforms to ensure you are comfortable with this trade.
+                    </div>
+                </div>
+            ),
+        },
+    ];
+    // Reset to first step when dialog closes
+    const handleOpenChange = (isOpen: boolean) => {
+        setOpen(isOpen);
+        if (!isOpen) setStep(0);
+    };
+    return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                <span className="ml-2 cursor-pointer"><Info className="w-4 h-4 text-muted-foreground" /></span>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl text-sm text-muted-foreground space-y-4">
+                <DialogHeader>
+                    <DialogTitle>{steps[step].title}</DialogTitle>
+                </DialogHeader>
+                <div>{steps[step].content}</div>
+                <div className="flex justify-between items-center pt-4">
+                    <button
+                        className="text-xs px-3 py-1 rounded bg-muted text-foreground border border-border disabled:opacity-50 cursor-pointer transition-colors hover:bg-muted/70 focus-visible:ring focus-visible:ring-primary/40"
+                        onClick={() => setStep((s) => Math.max(0, s - 1))}
+                        disabled={step === 0}
+                    >
+                        Back
+                    </button>
+                    <div className="flex-1" />
+                    <button
+                        className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground border border-primary disabled:opacity-50 cursor-pointer transition-colors hover:bg-primary/80 focus-visible:ring focus-visible:ring-primary/40"
+                        onClick={() => {
+                            if (step === steps.length - 1) {
+                                setOpen(false);
+                            } else {
+                                setStep((s) => Math.min(steps.length - 1, s + 1));
+                            }
+                        }}
+                        disabled={step === steps.length - 1 && !open}
+                    >
+                        {step === steps.length - 1 ? 'Done' : 'Next'}
+                    </button>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 } 

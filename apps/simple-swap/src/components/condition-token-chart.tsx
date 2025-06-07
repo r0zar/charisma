@@ -287,13 +287,6 @@ export default function ConditionTokenChart({
                             }
                         }, 0);
                     }
-
-                    console.log('Visible time range:', {
-                        from: new Date(Number(timeRange.from) * 1000).toLocaleString(),
-                        to: new Date(Number(timeRange.to) * 1000).toLocaleString(),
-                        dataStart: new Date(Number(firstTime) * 1000).toLocaleString(),
-                        dataEnd: new Date(Number(lastTime) * 1000).toLocaleString(),
-                    });
                 }
             });
 

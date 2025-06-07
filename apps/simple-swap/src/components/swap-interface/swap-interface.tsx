@@ -11,12 +11,13 @@ import LimitConditionSection from './LimitConditionSection';
 import OrderButton from './order-button';
 import ReverseTokensButton from './reverse-tokens-button';
 import ErrorAlert from './error-alert';
-import SuccessAlert from './success-alert';
 import BalanceCheckDialog from './balance-check-dialog';
 import ProModeLayout from './pro-mode-layout';
 import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@repo/tokens";
 import { SwapProvider, useSwapContext } from "../../contexts/swap-context";
+import { toast } from '@/components/ui/sonner';
+import { CheckCircle } from 'lucide-react';
 
 interface SwapInterfaceProps {
   initialTokens?: TokenCacheData[];
@@ -35,7 +36,56 @@ function SwapInterfaceInner({ urlParams: _unused }: { urlParams?: any }) {
     balanceCheckResult,
     setBalanceCheckResult,
     isProMode,
+    orderSuccessInfo,
+    clearOrderSuccessInfo,
+    swapSuccessInfo,
+    clearSwapSuccessInfo,
   } = useSwapContext();
+
+  React.useEffect(() => {
+    if (orderSuccessInfo) {
+      toast.success(
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="font-semibold text-foreground">Order Created</div>
+            <div className="text-muted-foreground text-sm">
+              You can view and manage your orders on the Orders page.
+            </div>
+            <a
+              href="/orders"
+              className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+            >
+              View Orders
+            </a>
+          </div>
+        </div>,
+        { duration: 7000 }
+      );
+      clearOrderSuccessInfo();
+    }
+    if (swapSuccessInfo && swapSuccessInfo.txid) {
+      toast.success(
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="font-semibold text-foreground">Swap Successful</div>
+            <div className="text-muted-foreground text-sm">
+              Your transaction has been broadcast to the Stacks blockchain.
+            </div>
+            <a
+              href={`https://explorer.stacks.co/txid/${swapSuccessInfo.txid}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+            >
+              View on explorer
+            </a>
+          </div>
+        </div>,
+        { duration: 7000 }
+      );
+      clearSwapSuccessInfo();
+    }
+  }, [orderSuccessInfo, swapSuccessInfo, toast, clearOrderSuccessInfo, clearSwapSuccessInfo]);
 
   // Enhanced loading animation - Use LoadingState component
   if (isInitializing || isLoadingTokens || isLoadingRouteInfo) {
@@ -83,7 +133,6 @@ function SwapInterfaceInner({ urlParams: _unused }: { urlParams?: any }) {
 
         {/* Error and Success Messages */}
         <ErrorAlert />
-        <SuccessAlert />
 
         {/* Enhanced swap button - Use SwapButton component */}
         {mode === 'swap' && <SwapButton />}

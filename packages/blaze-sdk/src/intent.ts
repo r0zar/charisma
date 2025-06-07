@@ -1,8 +1,9 @@
-import { privateKeyToPublic, signStructuredData, TupleCV } from "@stacks/transactions";
+import { optionalCVOf, privateKeyToPublic, signStructuredData, TupleCV } from "@stacks/transactions";
 import { noneCV, principalCV, someCV, stringAsciiCV, tupleCV, uintCV } from "@stacks/transactions";
 import { bufferFromHex } from "@stacks/transactions/dist/cl";
-import { BLAZE_V1_DOMAIN } from "./constants";
+import { BLAZE_V1_DOMAIN, MULTIHOP_CONTRACT_ID } from "./constants";
 import { randomUUID } from "crypto";
+import { request } from "@stacks/connect";
 
 export interface IntentInput {
     contract: string;
@@ -70,4 +71,32 @@ export async function signIntentWithWallet(input: IntentInput): Promise<SignedIn
         signature,
         publicKey
     };
+}
+
+export async function signTriggeredSwap({
+    subnet,
+    uuid,
+    amount,
+    multihopContractId = MULTIHOP_CONTRACT_ID,
+    intent = 'TRANSFER_TOKENS',
+}: {
+    subnet: string;
+    uuid: string;
+    amount: bigint; // already in micro units
+    multihopContractId?: string;
+    intent?: string;
+}): Promise<string> {
+    const message = tupleCV({
+        contract: principalCV(subnet),
+        intent: stringAsciiCV(intent),
+        opcode: noneCV(),
+        amount: optionalCVOf(uintCV(amount)),
+        target: optionalCVOf(principalCV(multihopContractId)),
+        uuid: stringAsciiCV(uuid),
+    });
+
+    // @ts-ignore – upstream types don't include method yet
+    const res = await request('stx_signStructuredMessage', { domain: BLAZE_V1_DOMAIN, message });
+    if (!res?.signature) throw new Error('User cancelled the signature');
+    return res.signature as string; // raw 65-byte hex
 }

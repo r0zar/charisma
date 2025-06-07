@@ -9,7 +9,6 @@ export default async function SwapHomePage() {
   // Prefetch tokens on the server
   const { success, tokens = [] } = await listTokens();
 
-  console.log(tokens);
 
   // Get real-time CHARISMA quote server-side
   let charismaExchangeRate: string | null = null;
