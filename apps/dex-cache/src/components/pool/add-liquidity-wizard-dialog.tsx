@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Search, Wallet, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Plus, Search, Wallet, AlertCircle, CheckCircle, Loader2, Sparkle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { getFungibleTokenBalance, Vault } from '@/lib/pool-service';
@@ -437,9 +437,9 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                         </AlertDescription>
                                         <div className="col-span-full w-full flex flex-col gap-4 pt-4">
                                             <Alert variant="default" className="flex items-start gap-3 bg-card border-primary/40">
-                                                <CheckCircle className="h-5 w-5 text-primary mt-0.5" />
+                                                <Sparkles className="h-5 w-5 mt-0.5 min-w-6 animate-pulse" />
                                                 <div>
-                                                    <div className="font-medium text-primary">Create this pool and earn swap fees!</div>
+                                                    <div className="font-medium text-primary">Create this pool and collect fees!</div>
                                                     <div className="text-sm text-muted-foreground">As the first liquidity provider, you'll receive <b>100% of all swap fees</b> until others add liquidity to this pool.</div>
                                                 </div>
                                             </Alert>
