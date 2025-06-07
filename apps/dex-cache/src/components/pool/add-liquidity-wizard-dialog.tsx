@@ -507,7 +507,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                         }}
                                     >
                                         <Copy className="w-4 h-4" />
-                                        Invite a friend to add liquidity
+                                        Invite a friend
                                     </Button>
                                 )}
                             </>
