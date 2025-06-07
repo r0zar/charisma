@@ -300,7 +300,10 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
         if (typeof window !== 'undefined') {
             if (window.location.hash.toLowerCase() === '#add-liquidity' ||
                 window.location.hash.toLowerCase() === '#add') {
-                setIsOpen(true);
+                //wait 100ms
+                setTimeout(() => {
+                    setIsOpen(true);
+                }, 100);
             }
         }
     }, []);
