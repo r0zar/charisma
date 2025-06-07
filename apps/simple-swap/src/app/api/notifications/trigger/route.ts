@@ -4,7 +4,7 @@ import { UserNotificationSettings } from '@/types/notification-settings';
 
 // This would typically be a separate service/utility, but keeping it simple for demo
 interface NotificationEvent {
-    type: 'bidReceived' | 'bidAccepted' | 'bidCancelled' | 'offerFilled' | 'offerCancelled' | 'orderExecuted';
+    type: 'bidReceived' | 'bidAccepted' | 'bidCancelled' | 'offerFilled' | 'offerCancelled' | 'orderExecuted' | 'memeRouletteSwap';
     userPrincipal: string; // The user who should receive the notification
     data: {
         offerId?: string;
@@ -14,6 +14,7 @@ interface NotificationEvent {
         tokenSymbol?: string;
         counterpartyAddress?: string;
         txId?: string;
+        // Add any Meme Roulette Swap specific fields here if needed
     };
 }
 
@@ -58,6 +59,9 @@ function formatNotificationMessage(event: NotificationEvent): string {
 
         case 'orderExecuted':
             return `⚡ <b>Trade Executed!</b>\n\nYour trade order has been successfully executed.\n\n${data.txId ? `Transaction: ${data.txId}` : 'Check your wallet for details.'}`;
+
+        case 'memeRouletteSwap':
+            return `🎲 <b>Meme Roulette Swap!</b>\n\nYour Meme Roulette swap has been processed.${data.txId ? `\nTransaction: ${data.txId}` : ''}`;
 
         default:
             return `📢 You have a new notification regarding your trade activity.`;
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields: type and userPrincipal' }, { status: 400 });
         }
 
-        const validTypes = ['bidReceived', 'bidAccepted', 'bidCancelled', 'offerFilled', 'offerCancelled', 'orderExecuted'];
+        const validTypes = ['bidReceived', 'bidAccepted', 'bidCancelled', 'offerFilled', 'offerCancelled', 'orderExecuted', 'memeRouletteSwap'];
         if (!validTypes.includes(event.type)) {
             return NextResponse.json({ error: 'Invalid notification type' }, { status: 400 });
         }

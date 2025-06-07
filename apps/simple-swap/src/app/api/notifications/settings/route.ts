@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { UserNotificationSettings, OrderExecutedPreferences, BidEventPreferences, OfferEventPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
+import { UserNotificationSettings, OrderExecutedPreferences, BidEventPreferences, OfferEventPreferences, ChannelSpecificPreference, MemeRouletteSwapPreferences } from '@/types/notification-settings';
 import { verifySignatureAndGetSigner, type SignatureVerificationOptions } from 'blaze-sdk';
 import { STACKS_MAINNET } from '@stacks/network';
 
@@ -51,6 +51,11 @@ const defaultOfferEventPrefs: OfferEventPreferences = {
     discord: { ...defaultChannelPref },
     sms: { ...defaultChannelPref },
 };
+const defaultMemeRouletteSwapPrefs: MemeRouletteSwapPreferences = {
+    telegram: { ...defaultChannelPref },
+    discord: { ...defaultChannelPref },
+    sms: { ...defaultChannelPref },
+};
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -76,6 +81,7 @@ export async function GET(request: NextRequest) {
                 bidCancelled: { ...defaultBidEventPrefs },
                 offerFilled: { ...defaultOfferEventPrefs },
                 offerCancelled: { ...defaultOfferEventPrefs },
+                memeRouletteSwap: { ...defaultMemeRouletteSwapPrefs },
             };
         } else {
             // Ensure all notification types exist with defaults if not set
@@ -122,6 +128,19 @@ export async function GET(request: NextRequest) {
                     };
                 }
             });
+
+            // Initialize memeRouletteSwap preferences
+            if (!settings.memeRouletteSwap) {
+                settings.memeRouletteSwap = { ...defaultMemeRouletteSwapPrefs };
+            } else {
+                settings.memeRouletteSwap = {
+                    ...defaultMemeRouletteSwapPrefs,
+                    ...settings.memeRouletteSwap,
+                    telegram: settings.memeRouletteSwap.telegram ? { ...defaultChannelPref, ...settings.memeRouletteSwap.telegram } : { ...defaultChannelPref },
+                    discord: settings.memeRouletteSwap.discord ? { ...defaultChannelPref, ...settings.memeRouletteSwap.discord } : { ...defaultChannelPref },
+                    sms: settings.memeRouletteSwap.sms ? { ...defaultChannelPref, ...settings.memeRouletteSwap.sms } : { ...defaultChannelPref },
+                };
+            }
         }
         return NextResponse.json(settings);
     } catch (error) {
@@ -156,6 +175,7 @@ export async function POST(request: NextRequest) {
                 bidCancelled: { ...defaultBidEventPrefs },
                 offerFilled: { ...defaultOfferEventPrefs },
                 offerCancelled: { ...defaultOfferEventPrefs },
+                memeRouletteSwap: { ...defaultMemeRouletteSwapPrefs },
             };
         }
 
@@ -202,6 +222,18 @@ export async function POST(request: NextRequest) {
                 };
             }
         });
+
+        // Initialize memeRouletteSwap preferences if they don't exist
+        if (!currentSettings.memeRouletteSwap) {
+            currentSettings.memeRouletteSwap = { ...defaultMemeRouletteSwapPrefs };
+        }
+        currentSettings.memeRouletteSwap = {
+            ...defaultMemeRouletteSwapPrefs,
+            ...currentSettings.memeRouletteSwap,
+            telegram: currentSettings.memeRouletteSwap?.telegram ? { ...defaultChannelPref, ...currentSettings.memeRouletteSwap.telegram } : { ...defaultChannelPref },
+            discord: currentSettings.memeRouletteSwap?.discord ? { ...defaultChannelPref, ...currentSettings.memeRouletteSwap.discord } : { ...defaultChannelPref },
+            sms: currentSettings.memeRouletteSwap?.sms ? { ...defaultChannelPref, ...currentSettings.memeRouletteSwap.sms } : { ...defaultChannelPref },
+        };
 
         const newSettings: UserNotificationSettings = JSON.parse(JSON.stringify(currentSettings)); // Deep clone
 
@@ -252,6 +284,20 @@ export async function POST(request: NextRequest) {
                 }
             }
         });
+
+        // Update memeRouletteSwap settings if provided in the body
+        if (body.memeRouletteSwap) {
+            const memePrefs = body.memeRouletteSwap;
+            if (memePrefs.telegram !== undefined) {
+                newSettings.memeRouletteSwap!.telegram = { ...newSettings.memeRouletteSwap!.telegram, ...memePrefs.telegram };
+            }
+            if (memePrefs.discord !== undefined) {
+                newSettings.memeRouletteSwap!.discord = { ...newSettings.memeRouletteSwap!.discord, ...memePrefs.discord };
+            }
+            if (memePrefs.sms !== undefined) {
+                newSettings.memeRouletteSwap!.sms = { ...newSettings.memeRouletteSwap!.sms, ...memePrefs.sms };
+            }
+        }
 
         await kv.set(settingsKey, newSettings);
         return NextResponse.json(newSettings);

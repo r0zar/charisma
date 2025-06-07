@@ -52,6 +52,7 @@ interface NotificationUIToggleState {
     bidCancelled: boolean;
     offerFilled: boolean;
     offerCancelled: boolean;
+    memeRouletteSwap: boolean;
 }
 
 interface NotificationRecipientIDs {
@@ -61,6 +62,7 @@ interface NotificationRecipientIDs {
     bidCancelled?: string;
     offerFilled?: string;
     offerCancelled?: string;
+    memeRouletteSwap?: string;
 }
 
 export default function NotificationSettingsPage() {
@@ -78,6 +80,7 @@ export default function NotificationSettingsPage() {
         bidCancelled: false,
         offerFilled: false,
         offerCancelled: false,
+        memeRouletteSwap: false,
     });
     const [recipientIds, setRecipientIds] = useState<NotificationRecipientIDs>({});
 
@@ -95,6 +98,7 @@ export default function NotificationSettingsPage() {
                     bidCancelled: fetchedSettings.bidCancelled?.telegram?.enabled || false,
                     offerFilled: fetchedSettings.offerFilled?.telegram?.enabled || false,
                     offerCancelled: fetchedSettings.offerCancelled?.telegram?.enabled || false,
+                    memeRouletteSwap: fetchedSettings.memeRouletteSwap?.telegram?.enabled || false,
                 });
 
                 setRecipientIds({
@@ -104,6 +108,7 @@ export default function NotificationSettingsPage() {
                     bidCancelled: fetchedSettings.bidCancelled?.telegram?.recipientId,
                     offerFilled: fetchedSettings.offerFilled?.telegram?.recipientId,
                     offerCancelled: fetchedSettings.offerCancelled?.telegram?.recipientId,
+                    memeRouletteSwap: fetchedSettings.memeRouletteSwap?.telegram?.recipientId,
                 });
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -265,6 +270,16 @@ export default function NotificationSettingsPage() {
                     key: 'offerCancelled' as keyof NotificationUIToggleState,
                     title: "Offer Cancelled",
                     description: "Get notified when an offer you're watching gets cancelled"
+                }
+            ]
+        },
+        {
+            category: "Meme Roulette",
+            notifications: [
+                {
+                    key: 'memeRouletteSwap' as keyof NotificationUIToggleState,
+                    title: "Meme Roulette Swap",
+                    description: "Get notified when your Meme Roulette swap is processed"
                 }
             ]
         }

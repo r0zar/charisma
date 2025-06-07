@@ -29,6 +29,12 @@ export interface OfferEventPreferences {
 //   pushNotification?: ChannelSpecificPreference;
 // }
 
+export interface MemeRouletteSwapPreferences {
+    telegram?: ChannelSpecificPreference;
+    discord?: ChannelSpecificPreference;
+    sms?: ChannelSpecificPreference;
+}
+
 export interface UserNotificationSettings {
     orderExecuted?: OrderExecutedPreferences;
     bidReceived?: BidEventPreferences;      // When someone places a bid on your offer
@@ -36,6 +42,7 @@ export interface UserNotificationSettings {
     bidCancelled?: BidEventPreferences;     // When a bid on your offer gets cancelled
     offerFilled?: OfferEventPreferences;    // When an offer you're watching gets filled
     offerCancelled?: OfferEventPreferences; // When an offer you're watching gets cancelled
+    memeRouletteSwap?: MemeRouletteSwapPreferences; // New notification type for Meme Roulette Swaps
     // Add other notification types here, e.g.:
     // priceAlerts?: PriceAlertPreferences;
 } 

@@ -6,6 +6,8 @@ import { Coins } from 'lucide-react';
 import PoolList from '@/components/PoolList';
 import { getAllVaultData } from '@/lib/pool-service';
 import AddNewPoolButton from '@/components/pool/AddNewPoolButton';
+import { AddLiquidityWizard } from '@/components/pool/add-liquidity-wizard-dialog';
+import { listPrices } from '@repo/tokens';
 
 // export const dynamic = "force-dynamic";
 
@@ -18,12 +20,13 @@ export const metadata: Metadata = {
     title: 'Charisma Invest - Explore Pools',
     description: 'Browse and analyze Stacks liquidity pools',
     type: 'website',
+    images: ['/add-lp.png'],
   },
 };
 
 export default async function ExplorePoolsPage() {
-
   const pools = await getAllVaultData({ type: 'POOL' });
+  const prices = await listPrices();
 
   return (
     <main className="flex-1 container py-8">
@@ -32,7 +35,10 @@ export default async function ExplorePoolsPage() {
           <Coins className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Explore Liquidity Pools</h1>
         </div>
-        <AddNewPoolButton />
+        <div className="flex items-center gap-3">
+          <AddLiquidityWizard pools={pools} prices={prices} />
+          <AddNewPoolButton />
+        </div>
       </div>
       <p className="text-muted-foreground mb-6 max-w-2xl">
         Liquidity pools are essential for the Stacks ecosystem because they allow users to swap between tokens.
