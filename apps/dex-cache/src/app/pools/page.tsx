@@ -13,13 +13,29 @@ import { listPrices } from '@repo/tokens';
 
 // Define metadata for better SEO
 export const metadata: Metadata = {
-  title: 'Explore Pools | Charisma Invest',
-  description: 'Browse and analyze liquidity pools available on the Stacks network through Charisma Invest.',
-  keywords: 'Stacks, LP, Vault, Liquidity Pool, DeFi, Charisma, Invest, DEX, Pools',
+  title: 'Add Liquidity | Charisma Invest',
+  description: 'Add liquidity to a pool with a single click. Charisma Invest makes it easy to add liquidity to a pool.',
+  keywords: 'Stacks, LP, Vault, Liquidity Pool, DeFi, Charisma, Invest, DEX, Pools, Add Liquidity',
   openGraph: {
-    title: 'Charisma Invest - Explore Pools',
-    description: 'Browse and analyze Stacks liquidity pools',
+    title: "Charisma Invest | Add Liquidity Easily",
+    description: "Add liquidity to a pool with a single click. Charisma Invest makes it easy to add liquidity to a pool.",
+    url: 'https://invest.charisma.rocks/pools',
+    siteName: 'Charisma Invest',
+    images: [
+      {
+        url: '/add-lp.png',
+        width: 953,
+        height: 529,
+        alt: 'Earn yield by adding liquidity to a pool',
+      },
+    ],
+    locale: 'en_US',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Charisma Invest | Add Liquidity Easily",
+    description: "Add liquidity to a pool with a single click. Charisma Invest makes it easy to add liquidity to a pool.",
     images: ['/add-lp.png'],
   },
 };

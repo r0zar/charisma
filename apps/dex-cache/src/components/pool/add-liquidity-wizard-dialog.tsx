@@ -308,6 +308,23 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
         }
     }, []);
 
+    // Add after walletTokens are loaded
+    useEffect(() => {
+        if (walletTokens.length === 0) return;
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const tokenAParam = params.get('tokenA');
+        const tokenBParam = params.get('tokenB');
+        if (tokenAParam) {
+            const foundA = walletTokens.find(t => t.contractId === tokenAParam);
+            if (foundA) setSelectedTokenA(foundA);
+        }
+        if (tokenBParam) {
+            const foundB = walletTokens.find(t => t.contractId === tokenBParam);
+            if (foundB) setSelectedTokenB(foundB);
+        }
+    }, [walletTokens]);
+
     const handleReset = () => {
         setSelectedTokenA(null);
         setSelectedTokenB(null);
