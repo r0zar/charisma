@@ -56,19 +56,23 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
     };
 
     const isSubnetToken = token.type === 'SUBNET';
+    const [imgError, setImgError] = React.useState(false);
 
     return (
         <div className={`relative ${className}`}>
             <TokenLogoContainer isSubnetToken={isSubnetToken} size={size}>
-                <img
-                    src={getTokenLogo(token)}
-                    alt={token.symbol}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        (e.target as HTMLImageElement).parentElement!.innerHTML = token.symbol.substring(0, 2);
-                    }}
-                />
+                {!imgError ? (
+                    <img
+                        src={getTokenLogo(token)}
+                        alt={token.symbol}
+                        className="w-full h-full object-cover"
+                        onError={() => setImgError(true)}
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted text-foreground/60 font-bold text-xs uppercase select-none">
+                        {token.symbol?.substring(0, 4) || '?'}
+                    </div>
+                )}
                 {/* Optional highlight ring for better visibility */}
                 <div className={`absolute inset-0 rounded-full shadow-highlight ${size === 'sm' ? 'w-5 h-5' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10'}`}></div>
             </TokenLogoContainer>
