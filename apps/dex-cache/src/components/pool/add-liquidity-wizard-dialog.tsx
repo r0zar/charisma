@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Search, Wallet, AlertCircle, CheckCircle, Loader2, Sparkle, Sparkles } from 'lucide-react';
+import { Plus, Search, Wallet, AlertCircle, CheckCircle, Loader2, Sparkle, Sparkles, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { getFungibleTokenBalance, Vault } from '@/lib/pool-service';
@@ -490,6 +490,24 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                         className="w-full"
                                     >
                                         Reset Selection
+                                    </Button>
+                                )}
+
+                                {selectedTokenA && selectedTokenB && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full flex gap-2 mt-2"
+                                        onClick={() => {
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.set('tokenA', selectedTokenA.contractId);
+                                            url.searchParams.set('tokenB', selectedTokenB.contractId);
+                                            url.hash = '#add-liquidity';
+                                            navigator.clipboard.writeText(url.toString());
+                                            toast.success('Shareable link copied to clipboard!');
+                                        }}
+                                    >
+                                        <Copy className="w-4 h-4" />
+                                        Invite a friend to add liquidity
                                     </Button>
                                 )}
                             </>
