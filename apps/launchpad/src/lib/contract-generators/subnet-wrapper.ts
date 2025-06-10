@@ -12,8 +12,15 @@ export interface SubnetWrapperParams {
 }
 
 export async function generateSubnetWrapper(params: SubnetWrapperParams) {
-    const templatePath = path.join(process.cwd(), 'templates', 'subnet-wrapper.template.clar');
-    const template = fs.readFileSync(templatePath, 'utf8');
+    // Adjust the base URL as needed for your environment
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3007';
+    const templateUrl = `${baseUrl}/templates/subnet-wrapper.template.clar`;
+
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch template: ${response.statusText}`);
+    }
+    const template = await response.text();
 
     const rendered = Mustache.render(template, {
         TOKEN_CONTRACT: params.tokenContract,
