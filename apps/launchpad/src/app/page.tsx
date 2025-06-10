@@ -141,7 +141,7 @@ export default function HomePage() {
               Connect your wallet to get started.
             </p>
 
-            <Link href="/contracts">
+            <Link href="/templates">
               <Button size="lg" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300">
                 Deploy Your First Contract
                 <ArrowRight className="h-4 w-4" />
