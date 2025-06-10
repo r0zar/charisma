@@ -1,8 +1,7 @@
-// import { listTokens, SIP10 } from './token-cache-client'; // Remove this import
-
 import { listTokens } from "./token-cache-client";
 
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
+const STXTOOLS_API_URL = 'https://api.stxtools.io/tokens?page=0&size=4000';
 
 // Restore manual subnet contract mappings
 export const CHARISMA_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
@@ -30,6 +29,50 @@ type PriceUSD = number;
 export type KraxelPriceData = Record<TokenContractId, PriceUSD>;
 
 /**
+ * Represents the structure of token data returned by the STXTools API
+ */
+export interface STXToolsToken {
+    contract_id: string;
+    symbol: string;
+    name: string;
+    decimals: number;
+    description: string | null;
+    circulating_supply: string;
+    total_supply: string;
+    image_url: string;
+    tx_id: string;
+    sender_address: string;
+    block_height: number;
+    deployed_at: number;
+    enabled: boolean;
+    header_image_url: string | null;
+    verified: boolean;
+    metrics: {
+        contract_id: string;
+        holder_count: number;
+        swap_count: number | null;
+        transfer_count: number | null;
+        price_usd: number | null;
+        price_change_1d: number | null;
+        price_change_7d: number | null;
+        price_change_30d: number | null;
+        liquidity_usd: number | null;
+        marketcap_usd: number | null;
+        volume_1h_usd: number;
+        volume_6h_usd: number;
+        volume_1d_usd: number;
+        volume_7d_usd: number;
+    };
+}
+
+/**
+ * Represents the structure of the STXTools API response
+ */
+export interface STXToolsResponse {
+    data: STXToolsToken[];
+}
+
+/**
  * Interface for tokens with subnet information
  */
 export interface TokenWithSubnetInfo {
@@ -37,6 +80,22 @@ export interface TokenWithSubnetInfo {
     type?: string;
     base?: string | null;
 }
+
+/**
+ * Configuration for price aggregation strategy
+ */
+export interface PriceAggregationConfig {
+    strategy: 'fallback' | 'average' | 'kraxel-primary' | 'stxtools-primary';
+    timeout: number;
+}
+
+/**
+ * Default configuration for price aggregation
+ */
+const DEFAULT_CONFIG: PriceAggregationConfig = {
+    strategy: 'average', // Average prices where both sources have data
+    timeout: 5000
+};
 
 /**
  * Process token prices to handle STX key normalization and subnet token price proxying.
@@ -61,7 +120,7 @@ export function processTokenPrices(
         // If only .stx exists, ensure stx is also available if something expects it
         // processedPrices['stx'] = processedPrices['.stx']; 
     } else if (!processedPrices.hasOwnProperty('stx') && !processedPrices.hasOwnProperty('.stx')) {
-        console.warn("Price data from Kraxel API is missing both 'stx' and '.stx' keys.");
+        console.warn("Price data from API is missing both 'stx' and '.stx' keys.");
     }
 
     // Handle subnet token price proxying
@@ -82,42 +141,167 @@ export function processTokenPrices(
 }
 
 /**
- * Fetches the latest token prices from the Kraxel API.
- *
- * @returns A promise that resolves to an object containing token identifiers as keys and their prices as values.
- * @throws Throws an error if the network request fails or if the response cannot be parsed as JSON.
+ * Fetches token prices from the Kraxel API
  */
-export async function listPrices(): Promise<KraxelPriceData> {
-    const TIMEOUT_MS = 5000;
+async function fetchKraxelPrices(): Promise<KraxelPriceData> {
+    const response = await fetch(KRAXEL_API_URL);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
+    }
+    return await response.json() as KraxelPriceData;
+}
 
-    const fetchPrices = async (): Promise<KraxelPriceData> => {
-        const response = await fetch(KRAXEL_API_URL);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
+/**
+ * Fetches token prices from the STXTools API and converts to our format
+ */
+async function fetchSTXToolsPrices(): Promise<KraxelPriceData> {
+    const response = await fetch(STXTOOLS_API_URL);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch prices from STXTools API: ${response.statusText}`);
+    }
+
+    const apiResponse = await response.json() as STXToolsResponse;
+    const priceData: KraxelPriceData = {};
+
+    // Convert STXTools format to our format
+    apiResponse.data.forEach(token => {
+        if (token.contract_id && token.metrics.price_usd !== null) {
+            priceData[token.contract_id] = token.metrics.price_usd;
         }
-        const data = await response.json() as KraxelPriceData;
 
-        // Use the new processTokenPrices function with manual mappings
-        const manualTokenMappings = await listTokens();
-
-        return processTokenPrices(data, manualTokenMappings);
-    };
-
-    const timeoutPromise = new Promise<KraxelPriceData>((_, reject) => {
-        setTimeout(() => {
-            reject(new Error(`Timeout: Price fetching took longer than ${TIMEOUT_MS}ms`));
-        }, TIMEOUT_MS);
+        // Handle STX specifically - check if this is the STX token
+        if (token.symbol === 'STX' && token.contract_id === '.stx') {
+            priceData['.stx'] = token.metrics.price_usd || 0;
+            priceData['stx'] = token.metrics.price_usd || 0;
+        }
     });
 
-    try {
-        const result = await Promise.race([fetchPrices(), timeoutPromise]);
-        return result;
-    } catch (error) {
-        if (error instanceof Error && error.message.startsWith('Timeout')) {
-            console.error(error.message);
-        } else {
-            console.error(`Failed to parse price data from Kraxel API or other fetch error: ${error instanceof Error ? error.message : String(error)}`);
-        }
-        return {}; // Return empty object on any error
+    return priceData;
+}
+
+/**
+ * Merges price data from multiple sources using the specified strategy
+ */
+function mergePriceData(
+    kraxelPrices: KraxelPriceData | null,
+    stxToolsPrices: KraxelPriceData | null,
+    strategy: PriceAggregationConfig['strategy']
+): KraxelPriceData {
+    const merged: KraxelPriceData = {};
+
+    switch (strategy) {
+        case 'kraxel-primary':
+            // Kraxel takes precedence, STXTools fills gaps
+            Object.assign(merged, stxToolsPrices || {}, kraxelPrices || {});
+            break;
+
+        case 'stxtools-primary':
+            // STXTools takes precedence, Kraxel fills gaps
+            Object.assign(merged, kraxelPrices || {}, stxToolsPrices || {});
+            break;
+
+        case 'average':
+            // Average prices where both sources have data
+            const allKeys = new Set([
+                ...Object.keys(kraxelPrices || {}),
+                ...Object.keys(stxToolsPrices || {})
+            ]);
+
+            allKeys.forEach(key => {
+                const kraxelPrice = kraxelPrices?.[key];
+                const stxToolsPrice = stxToolsPrices?.[key];
+
+                if (kraxelPrice !== undefined && stxToolsPrice !== undefined) {
+                    merged[key] = (kraxelPrice + stxToolsPrice) / 2;
+                } else if (kraxelPrice !== undefined) {
+                    merged[key] = kraxelPrice;
+                } else if (stxToolsPrice !== undefined) {
+                    merged[key] = stxToolsPrice;
+                }
+            });
+            break;
+
+        case 'fallback':
+        default:
+            // Use Kraxel, fallback to STXTools for missing data
+            Object.assign(merged, stxToolsPrices || {}, kraxelPrices || {});
+            break;
     }
-} 
+
+    return merged;
+}
+
+/**
+ * Fetches token prices from multiple sources with configurable aggregation strategy
+ */
+export async function listPrices(config: Partial<PriceAggregationConfig> = {}): Promise<KraxelPriceData> {
+    const finalConfig = { ...DEFAULT_CONFIG, ...config };
+
+    const createTimeoutPromise = <T>(ms: number): Promise<T> => {
+        return new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error(`Timeout: Operation took longer than ${ms}ms`));
+            }, ms);
+        });
+    };
+
+    let kraxelPrices: KraxelPriceData | null = null;
+    let stxToolsPrices: KraxelPriceData | null = null;
+
+    // Fetch from both APIs concurrently
+    const results = await Promise.allSettled([
+        Promise.race([fetchKraxelPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]),
+        Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)])
+    ]);
+
+    // Process Kraxel results
+    if (results[0].status === 'fulfilled') {
+        kraxelPrices = results[0].value;
+        console.log(`Successfully fetched ${Object.keys(kraxelPrices).length} prices from Kraxel API`);
+    } else {
+        console.error('Failed to fetch from Kraxel API:', results[0].reason.message);
+    }
+
+    // Process STXTools results
+    if (results[1].status === 'fulfilled') {
+        stxToolsPrices = results[1].value;
+        console.log(`Successfully fetched ${Object.keys(stxToolsPrices).length} prices from STXTools API`);
+    } else {
+        console.error('Failed to fetch from STXTools API:', results[1].reason.message);
+    }
+
+    // If both APIs failed, return empty object
+    if (!kraxelPrices && !stxToolsPrices) {
+        console.error('Both price APIs failed');
+        return {};
+    }
+
+    // Merge the price data according to strategy
+    const mergedPrices = mergePriceData(kraxelPrices, stxToolsPrices, finalConfig.strategy);
+
+    // Apply subnet token processing
+    try {
+        const tokens = await listTokens();
+        const processedPrices = processTokenPrices(mergedPrices, tokens);
+
+        console.log(`Final merged price data contains ${Object.keys(processedPrices).length} tokens`);
+        return processedPrices;
+    } catch (error) {
+        console.error('Failed to process subnet tokens, returning unprocessed prices:', error);
+        return mergedPrices;
+    }
+}
+
+/**
+ * Fetches prices from Kraxel API only (for backward compatibility)
+ */
+export async function listPricesKraxel(): Promise<KraxelPriceData> {
+    return listPrices({ strategy: 'kraxel-primary' });
+}
+
+/**
+ * Fetches prices from STXTools API only
+ */
+export async function listPricesSTXTools(): Promise<KraxelPriceData> {
+    return listPrices({ strategy: 'stxtools-primary' });
+}
