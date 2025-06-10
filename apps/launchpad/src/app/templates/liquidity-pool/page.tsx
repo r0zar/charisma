@@ -123,7 +123,7 @@ function LiquidityPoolWizard() {
     // const [token2Address, setToken2Address] = useState<string>("");
     const [poolName, setPoolName] = useState("");
     const [lpTokenSymbol, setLpTokenSymbol] = useState("");
-    const [swapFee, setSwapFee] = useState<string>("0.003"); // Default fee (0.3%)
+    const [swapFee, setSwapFee] = useState<string>("0.3"); // Default fee (0.3%)
 
     // Remove token1Image, token2Image, use token1Details.image directly
     // const [token1Image, setToken1Image] = useState<string | undefined>(undefined);
