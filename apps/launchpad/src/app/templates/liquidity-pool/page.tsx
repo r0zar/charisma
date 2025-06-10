@@ -300,7 +300,7 @@ function LiquidityPoolWizard() {
             .replace(/-lp$/, '')
 
         // Add the standard suffix
-        return `${baseName}-lp-v1`;
+        return `${baseName}-v1`;
     };
 
     const sanitizeTokenSymbol = (symbol: string): string => {
