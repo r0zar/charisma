@@ -14,7 +14,7 @@ export interface SubnetWrapperParams {
 export async function generateSubnetWrapper(params: SubnetWrapperParams) {
     // Adjust the base URL as needed for your environment
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3007';
-    const templateUrl = `${baseUrl}/templates/subnet-wrapper.template.clar`;
+    const templateUrl = `${baseUrl}/clarity-templates/subnet-wrapper.template.clar`;
 
     const response = await fetch(templateUrl);
     if (!response.ok) {

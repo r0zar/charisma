@@ -12,7 +12,7 @@ export interface SublinkParams {
 export async function generateSublink(params: SublinkParams) {
     // Adjust the base URL as needed for your environment
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3007';
-    const templateUrl = `${baseUrl}/templates/sublink.template.clar`;
+    const templateUrl = `${baseUrl}/clarity-templates/sublink.template.clar`;
 
     const response = await fetch(templateUrl);
     if (!response.ok) {
