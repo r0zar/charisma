@@ -10,10 +10,9 @@ export interface SublinkParams {
 }
 
 export async function generateSublink(params: SublinkParams) {
-    const templatePath = path.join(process.cwd(), 'src', 'lib', 'templates', 'sublink.template.clar');
+    const templatePath = path.join(process.cwd(), 'public', 'templates', 'sublink.template.clar');
     const template = fs.readFileSync(templatePath, 'utf8');
 
-    console.log(params.metadataUri);
     const rendered = Mustache.render(template, {
         TOKEN_NAME: params.tokenName,
         SUBNET_CONTRACT: params.subnetContract,
