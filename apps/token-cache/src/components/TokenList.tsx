@@ -83,6 +83,18 @@ const formatSupplyWithDecimals = (
     }
 };
 
+// Utility to sanitize/normalize image URLs
+function sanitizeImageUrl(url?: string): string {
+    if (!url) return '/placeholder-icon.svg';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('data:')) return url; // Allow data URIs
+    if (url.startsWith('ipfs://')) return 'https://ipfs.io/ipfs/' + url.replace('ipfs://', '');
+    // Bare IPFS hash (with or without a slash)
+    if (/^Qm[1-9A-HJ-NP-Za-km-z]{44,}/.test(url)) return 'https://ipfs.io/ipfs/' + url;
+    if (url.startsWith('/')) return url;
+    return '/placeholder-icon.svg';
+}
+
 export default function TokenList({ initialTokens, isDevelopment, initialSearchTerm = '' }: TokenListProps) {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
@@ -281,7 +293,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                     <div className="flex-shrink-0">
                                         {token.image ? (
                                             <Image
-                                                src={token.image}
+                                                src={sanitizeImageUrl(token.image)}
                                                 alt={`${token.name} logo`}
                                                 width={40}
                                                 height={40}
