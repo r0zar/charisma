@@ -289,9 +289,22 @@ export class MetadataService {
     }
 
     static async list(address?: string): Promise<TokenMetadata[]> {
-        // List keys with both prefixes
-        const metadataKeys = await kv.keys(`${this.KEY_PREFIX}*`);
-        const legacyKeys = await kv.keys(`${this.LEGACY_KEY_PREFIX}*`);
+        // Helper to scan all keys for a given prefix
+        async function scanAllKeys(matchPattern: string): Promise<string[]> {
+            let cursor = 0;
+            let keys: string[] = [];
+            do {
+                // kv.scan returns [nextCursor, keys]
+                const [nextCursor, batch] = await kv.scan(cursor, { match: matchPattern, count: 1000 });
+                keys.push(...batch);
+                cursor = Number(nextCursor);
+            } while (cursor !== 0);
+            return keys;
+        }
+
+        // List keys with both prefixes using SCAN
+        const metadataKeys = await scanAllKeys(`${this.KEY_PREFIX}*`);
+        const legacyKeys = await scanAllKeys(`${this.LEGACY_KEY_PREFIX}*`);
 
         // Combine keys and remove duplicates (when a key exists in both systems)
         const allKeys = [...metadataKeys, ...legacyKeys];
