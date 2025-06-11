@@ -2,6 +2,7 @@ import { kv } from "@vercel/kv";
 import { callReadOnlyFunction, getContractInfo } from '@repo/polyglot';
 import { principalCV, cvToValue, ClarityType, uintCV, bufferCVFromString, optionalCVOf } from '@stacks/transactions';
 import { bufferFromHex } from "@stacks/transactions/dist/cl";
+import { OPCODES, opcodeCV } from "@repo/dexterity";
 
 /**
  * Basic token information
@@ -189,13 +190,13 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
         try {
             const reservesResult = await callReadOnlyFunction(
                 contractAddress, contractName,
-                'get-reserves-quote',
-                []
+                'quote',
+                [uintCV(0), opcodeCV(OPCODES.OP_LOOKUP_RESERVES)]
             );
 
             // Using dx/dy as fallback if reserve-a/reserve-b not present
-            const dxValue = reservesResult?.dx?.value;
-            const dyValue = reservesResult?.dy?.value;
+            const dxValue = reservesResult?.value?.dx?.value;
+            const dyValue = reservesResult?.value?.dy?.value;
 
             const liveReservesA = dxValue !== null ? Number(dxValue) : (dyValue !== undefined ? Number(dyValue) : null);
             const liveReservesB = dyValue !== null ? Number(dyValue) : (dxValue !== undefined ? Number(dxValue) : null);
@@ -206,13 +207,13 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
                 cachedVault.reservesLastUpdatedAt = now;
                 reservesUpdated = true;
             } else {
-                console.warn(`Invalid or incomplete reserves structure from get-reserves-quote for ${contractId}:`, reservesResult);
+                console.warn(`Invalid or incomplete reserves structure from quote for ${contractId}:`, reservesResult);
                 // Set error to indicate primary method failed structurally, even if no exception was thrown
                 primaryError = new Error("Invalid structure from get-reserves-quote");
             }
         } catch (error) {
             primaryError = error instanceof Error ? error : new Error(String(error));
-            console.warn(`Primary reserve fetch (get-reserves-quote) failed for ${contractId}:`, primaryError.message);
+            console.warn(`Primary reserve fetch (quote) failed for ${contractId}:`, primaryError.message);
         }
     }
 
@@ -230,7 +231,7 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedV
                 let backupReservesA: number | null = null;
                 let backupReservesB: number | null = null;
 
-                const vaultPrincipalAddress = contractId; // The vault's principal address IS its contractId
+                const vaultPrincipalAddress = cachedVault.externalPoolId || contractId; // The vault's principal address IS its contractId
 
                 // --- Fetch Backup Reserve A ---
                 if (isTokenAStx) {
