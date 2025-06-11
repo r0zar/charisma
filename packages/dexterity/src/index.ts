@@ -181,9 +181,9 @@ export const buildVault = async (
   let reservesA = 0,
     reservesB = 0;
   try {
-    const r = await callReadOnly(contractId, 'get-reserves-quote', []);
-    reservesA = Number(r.dx.value);
-    reservesB = Number(r.dy.value);
+    const r = await callReadOnly(contractId, 'quote', [uintCV(0), opcodeCV(OPCODES.OP_LOOKUP_RESERVES)]);
+    reservesA = Number(r.value.dx.value);
+    reservesB = Number(r.value.dy.value);
   } catch (e) {
     if (debug) console.warn(`[vault] reserve fetch failed → ${contractId}`, e);
   }
