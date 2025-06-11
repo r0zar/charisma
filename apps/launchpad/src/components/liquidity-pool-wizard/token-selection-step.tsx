@@ -254,12 +254,33 @@ export const TokenSelectionStep = ({
                                     {tokenLoadError}
                                 </div>
                             ) : tokensToDisplay.length === 0 && !searchQuery ? (
-                                <div className="text-center py-8">
+                                <div className="text-center py-8 space-y-4">
                                     <p className="text-muted-foreground">No tokens available. Try adding a custom token.</p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowCustomInput(true);
+                                            setCustomAddress("");
+                                        }}
+                                    >
+                                        Add custom token by contract address
+                                    </Button>
                                 </div>
                             ) : tokensToDisplay.length === 0 && searchQuery ? (
-                                <div className="text-center py-8">
+                                <div className="text-center py-8 space-y-4">
                                     <p className="text-muted-foreground">No tokens match your search "{searchQuery}".</p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowCustomInput(true);
+                                            // If the search query looks like a contract address, pre-fill it
+                                            if (/^[A-Z0-9]+\.[a-zA-Z0-9\-]+$/.test(searchQuery)) {
+                                                setCustomAddress(searchQuery);
+                                            }
+                                        }}
+                                    >
+                                        Add custom token by contract address
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -451,12 +472,33 @@ export const TokenSelectionStep = ({
                                     {tokenLoadError}
                                 </div>
                             ) : tokensToDisplay.length === 0 && !searchQuery ? (
-                                <div className="text-center py-8">
+                                <div className="text-center py-8 space-y-4">
                                     <p className="text-muted-foreground">No tokens available. Try adding a custom token.</p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowCustomInput(true);
+                                            setCustomAddress("");
+                                        }}
+                                    >
+                                        Add custom token by contract address
+                                    </Button>
                                 </div>
                             ) : tokensToDisplay.length === 0 && searchQuery ? (
-                                <div className="text-center py-8">
+                                <div className="text-center py-8 space-y-4">
                                     <p className="text-muted-foreground">No tokens match your search "{searchQuery}".</p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowCustomInput(true);
+                                            // If the search query looks like a contract address, pre-fill it
+                                            if (/^[A-Z0-9]+\.[a-zA-Z0-9\-]+$/.test(searchQuery)) {
+                                                setCustomAddress(searchQuery);
+                                            }
+                                        }}
+                                    >
+                                        Add custom token by contract address
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
