@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
 import {
     Wallet,
     Plus,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useTradingState } from '../../hooks/useTradingState';
+import { usePerpetualPositions } from '../../hooks/usePerps';
 import MarginDepositWithdrawDialog from './MarginDepositWithdrawDialog';
 
 export default function MarginControlsCompact() {
@@ -31,6 +31,9 @@ export default function MarginControlsCompact() {
         depositMargin,
         withdrawMargin
     } = useTradingState();
+
+    // Get detailed perpetual positions for accurate breakdown
+    const { positions: apiPerpetualPositions = [] } = usePerpetualPositions();
 
     // Use margin account state as source of truth - if margin is used, we have active positions
     // This ensures the UI reflects what the margin account actually knows about
@@ -141,6 +144,20 @@ export default function MarginControlsCompact() {
     const liquidationRisk = getLiquidationRisk();
     const marginCallLevel = marginAccount ? marginAccount.marginRatio > 50 : false;
 
+    // Calculate margin breakdown for segmented progress bar
+    const openPositionsMargin = apiPerpetualPositions
+        .filter(p => p.status === 'open')
+        .reduce((sum, p) => sum + parseFloat(p.marginRequired || '0'), 0);
+
+    const pendingPositionsMargin = apiPerpetualPositions
+        .filter(p => p.status === 'pending')
+        .reduce((sum, p) => sum + parseFloat(p.marginRequired || '0'), 0);
+
+    // Calculate percentages for the segmented bar
+    const totalEquity = marginAccount ? marginAccount.accountEquity : 1;
+    const openMarginPercent = (openPositionsMargin / totalEquity) * 100;
+    const pendingMarginPercent = (pendingPositionsMargin / totalEquity) * 100;
+
     // Risk colors based on margin ratio
     const getRiskColor = (risk: 'low' | 'medium' | 'high') => {
         switch (risk) {
@@ -159,22 +176,27 @@ export default function MarginControlsCompact() {
                         <h3 className="font-semibold text-sm">Margin Account</h3>
                     </div>
                     <div className="flex items-center space-x-1">
-                        {/* P&L Sync Button */}
+                        {/* Position breakdown with three colors */}
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                {/* Only show position count if margin account confirms active positions */}
-                                {hasActivePositions && openPositionCount > 0 && (
+                                {/* Only show position breakdown if there are any positions */}
+                                {apiPerpetualPositions.length > 0 && (
                                     <Badge variant="outline" className="text-xs cursor-pointer" onClick={syncPnL}>
-                                        {openPositionCount} pos
+                                        <span className="text-green-400">{apiPerpetualPositions.filter(p => p.status === 'open' && p.direction === 'long').length}L</span>
+                                        <span className="text-muted-foreground mx-0.5">/</span>
+                                        <span className="text-red-400">{apiPerpetualPositions.filter(p => p.status === 'open' && p.direction === 'short').length}S</span>
+                                        <span className="text-muted-foreground mx-0.5">/</span>
+                                        <span className="text-yellow-400">{apiPerpetualPositions.filter(p => p.status === 'pending').length}P</span>
                                     </Badge>
                                 )}
                             </TooltipTrigger>
                             <TooltipContent side="top">
                                 <p className="text-xs">
-                                    Sync P&L with positions
-                                    {hasActivePositions && (
-                                        <><br />Active: {openPositionCount} positions</>
-                                    )}
+                                    Position Breakdown:<br />
+                                    🟢 {apiPerpetualPositions.filter(p => p.status === 'open' && p.direction === 'long').length} Long (Active)<br />
+                                    🔴 {apiPerpetualPositions.filter(p => p.status === 'open' && p.direction === 'short').length} Short (Active)<br />
+                                    🟡 {apiPerpetualPositions.filter(p => p.status === 'pending').length} Pending<br />
+                                    <br />Click to sync P&L
                                 </p>
                             </TooltipContent>
                         </Tooltip>
@@ -193,20 +215,33 @@ export default function MarginControlsCompact() {
                     </div>
                 </div>
 
-                {/* Margin Utilization - Compact */}
+                {/* Margin Utilization - Segmented Progress Bar */}
                 <div className="mb-3">
                     <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-muted-foreground">Used: {formatBalance(marginAccount.usedMargin)}</span>
                         <span className="text-xs font-medium">{marginAccount.marginRatio.toFixed(1)}%</span>
                     </div>
-                    <Progress
-                        value={marginAccount.marginRatio}
-                        className="h-1.5"
-                        indicatorClassName={`${marginAccount.marginRatio > 80 ? 'bg-red-500' :
-                            marginAccount.marginRatio > 50 ? 'bg-yellow-500' :
-                                'bg-green-500'
-                            }`}
-                    />
+                    {/* Custom segmented progress bar */}
+                    <div className="h-1.5 bg-muted/30 rounded overflow-hidden flex">
+                        {/* Open positions portion - color based on risk level */}
+                        {openMarginPercent > 0 && (
+                            <div
+                                className={`h-full ${marginAccount.marginRatio > 80 ? 'bg-red-500' :
+                                    marginAccount.marginRatio > 50 ? 'bg-orange-500' : 'bg-green-500'}`}
+                                style={{ width: `${Math.min(openMarginPercent, 100)}%` }}
+                                title={`Open positions: ${formatBalance(openPositionsMargin)}`}
+                            />
+                        )}
+                        {/* Pending positions portion - yellow */}
+                        {pendingMarginPercent > 0 && (
+                            <div
+                                className="h-full bg-yellow-400"
+                                style={{ width: `${Math.min(pendingMarginPercent, 100 - openMarginPercent)}%` }}
+                                title={`Pending positions: ${formatBalance(pendingPositionsMargin)}`}
+                            />
+                        )}
+                        {/* Remaining space is automatically handled by the parent container */}
+                    </div>
                     {marginCallLevel && (
                         <div className="flex items-center mt-1">
                             <AlertTriangle className="w-3 h-3 text-yellow-500 mr-1" />

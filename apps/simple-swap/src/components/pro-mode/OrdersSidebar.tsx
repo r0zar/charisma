@@ -12,6 +12,7 @@ import TokenLogo from '../TokenLogo';
 import { toast } from 'sonner';
 import { usePerpetualPositions, usePositionPnL, useCancelPerpetualPosition } from '../../hooks/usePerps';
 import { useWallet } from '../../contexts/wallet-context';
+import { TokenCacheData } from '@repo/tokens';
 
 interface OrdersSidebarProps {
     collapsed: boolean;
@@ -54,6 +55,8 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
         selectedToToken,
         formatUsd,
         getUsdPrice,
+        displayTokens,
+        subnetDisplayTokens,
     } = useSwapContext();
 
     const { address: walletAddress } = useWallet();
@@ -79,46 +82,88 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
         };
     }, [refetchPositions, setPerpPositionsRefetchCallback]);
 
+    // Smart filtering state - defaults to show all orders (moved before useMemo to fix initialization order)
+    const [orderTypeFilter, setOrderTypeFilter] = React.useState<'all' | 'regular' | 'perpetual'>('all');
+
     // Convert API positions to display format for compatibility
     const perpetualOrders = React.useMemo(() => {
-        console.log('🔄 Converting API positions to display format:', {
-            apiPerpetualPositionsCount: apiPerpetualPositions.length,
-            apiPerpetualPositions
-        });
+        if (!isPerpetualMode && orderTypeFilter !== 'perpetual' && orderTypeFilter !== 'all') {
+            return [];
+        }
 
         // Always include perpetual orders regardless of current mode
-        const converted = apiPerpetualPositions.map(position => ({
-            uuid: position.uuid,
-            owner: position.owner,
-            inputToken: position.baseToken,
-            outputToken: position.baseAsset,
-            amountIn: Math.floor(parseFloat(position.positionSize) * 1_000_000).toString(), // Convert to micro units
-            targetPrice: position.triggerPrice,
-            direction: 'gt' as const,
-            conditionToken: position.baseToken,
-            baseAsset: position.baseAsset,
-            status: position.status, // Use actual API status: 'pending', 'open', 'closed'
-            createdAt: position.createdAt,
-            recipient: position.owner,
-            validFrom: null,
-            validTo: null,
-            txid: null,
-            signature: position.signature,
-            // Add token metadata (mock for now - you might want to fetch real metadata)
-            inputTokenMeta: selectedFromToken || { symbol: 'BASE', contractId: position.baseToken, decimals: 6 },
-            outputTokenMeta: selectedToToken || { symbol: 'QUOTE', contractId: position.baseAsset, decimals: 6 },
-            conditionTokenMeta: selectedFromToken || { symbol: 'BASE', contractId: position.baseToken, decimals: 6 },
-            baseAssetMeta: selectedToToken || { symbol: 'QUOTE', contractId: position.baseAsset, decimals: 6 },
-            // Add perpetual-specific metadata
-            orderType: 'perpetual',
-            perpetualDirection: position.direction,
-            perpetualLeverage: position.leverage.toString(),
-            perpetualPositionSize: position.positionSize,
-            perpetualStopLoss: position.stopLoss || '',
-            perpetualTakeProfit: position.takeProfit || '',
-            perpetualMarginRequired: position.marginRequired,
-            perpetualLiquidationPrice: position.liquidationPrice,
-        }));
+        const converted = apiPerpetualPositions.map(position => {
+            // Look up the actual token metadata by contract ID in both mainnet and subnet tokens
+            const allTokens = [...displayTokens, ...subnetDisplayTokens];
+            const baseTokenMeta = allTokens.find((t: TokenCacheData) => t.contractId === position.baseToken) ||
+                { symbol: 'BASE', contractId: position.baseToken, decimals: 6 };
+            const quoteTokenMeta = allTokens.find((t: TokenCacheData) => t.contractId === position.baseAsset) ||
+                { symbol: 'QUOTE', contractId: position.baseAsset, decimals: 6 };
+
+            // Debug: Log detailed token mapping for each position
+            console.log(`🔍 Token mapping for position ${position.uuid.substring(0, 8)}:`, {
+                tradingPair: position.tradingPair,
+                direction: position.direction,
+                rawData: {
+                    baseToken: position.baseToken, // Base asset being traded (STX, etc.)
+                    baseAsset: position.baseAsset, // Quote token (USDT, etc.)
+                },
+                searchedTokens: {
+                    mainnetTokens: displayTokens.length,
+                    subnetTokens: subnetDisplayTokens.length,
+                    totalSearched: allTokens.length
+                },
+                foundTokens: {
+                    baseTokenMeta: {
+                        symbol: baseTokenMeta.symbol,
+                        contractId: baseTokenMeta.contractId,
+                        found: !!allTokens.find(t => t.contractId === position.baseToken)
+                    },
+                    quoteTokenMeta: {
+                        symbol: quoteTokenMeta.symbol,
+                        contractId: quoteTokenMeta.contractId,
+                        found: !!allTokens.find(t => t.contractId === position.baseAsset)
+                    }
+                },
+                willDisplay: {
+                    inputTokenMeta: baseTokenMeta.symbol,
+                    outputTokenMeta: quoteTokenMeta.symbol,
+                }
+            });
+
+            return {
+                uuid: position.uuid,
+                owner: position.owner,
+                inputToken: position.baseToken,
+                outputToken: position.baseAsset,
+                amountIn: Math.floor(parseFloat(position.positionSize) * 1_000_000).toString(), // Convert to micro units
+                targetPrice: position.triggerPrice,
+                direction: 'gt' as const,
+                conditionToken: position.baseToken,
+                baseAsset: position.baseAsset,
+                status: position.status, // Use actual API status: 'pending', 'open', 'closed'
+                createdAt: position.createdAt,
+                recipient: position.owner,
+                validFrom: null,
+                validTo: null,
+                txid: null,
+                signature: position.signature,
+                // Use the properly looked up token metadata
+                inputTokenMeta: baseTokenMeta,
+                outputTokenMeta: quoteTokenMeta,
+                conditionTokenMeta: baseTokenMeta,
+                baseAssetMeta: quoteTokenMeta,
+                // Add perpetual-specific metadata
+                orderType: 'perpetual',
+                perpetualDirection: position.direction,
+                perpetualLeverage: position.leverage.toString(),
+                perpetualPositionSize: position.positionSize,
+                perpetualStopLoss: position.stopLoss || '',
+                perpetualTakeProfit: position.takeProfit || '',
+                perpetualMarginRequired: position.marginRequired,
+                perpetualLiquidationPrice: position.liquidationPrice,
+            };
+        });
 
         console.log('✅ Converted perpetual orders:', converted);
 
@@ -137,22 +182,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
         );
 
         return converted;
-    }, [apiPerpetualPositions, selectedFromToken, selectedToToken]);
-
-    // Smart filtering state - defaults to show all orders
-    const [orderTypeFilter, setOrderTypeFilter] = React.useState<'all' | 'regular' | 'perpetual'>('all');
-
-    // Debug current state
-    console.log('🎮 OrdersSidebar State:', {
-        selectedOrderType,
-        isPerpetualMode,
-        orderTypeFilter,
-        showAllOrders,
-        walletAddress,
-        apiPerpetualPositionsCount: apiPerpetualPositions.length,
-        isPerpPositionsLoading,
-        perpPositionsError
-    });
+    }, [apiPerpetualPositions, displayTokens, subnetDisplayTokens]);
 
     // Get the appropriate orders list based on smart filtering
     const ordersToShow = React.useMemo(() => {
@@ -601,10 +631,45 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                         </div>
 
                         {/* Status indicator */}
-                        <div className={`w-2 h-2 rounded-full ${order.status === 'pending' ? 'bg-yellow-400 animate-pulse' :
-                            order.status === 'open' ? 'bg-green-400' :
-                                order.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-400'
-                            }`} />
+                        {isPerpetual && order.status === 'pending' ? (
+                            // Pending perpetual orders get a special tooltip explaining trigger logic
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-background/95 backdrop-blur-sm z-[10000] max-w-64">
+                                        <div className="space-y-2">
+                                            <div className="text-xs font-medium text-foreground">Trigger Logic</div>
+                                            <div className="text-xs text-muted-foreground space-y-1">
+                                                <div>
+                                                    <span className="text-yellow-400 font-medium">Entry Price:</span> {formatUsd(parseFloat(order.targetPrice || '0'))}
+                                                </div>
+                                                <div>
+                                                    <span className="text-purple-300 font-medium">Direction:</span> {order.perpetualDirection.toUpperCase()}
+                                                </div>
+                                                <div className="pt-1 border-t border-border/30">
+                                                    {order.perpetualDirection === 'long' ? (
+                                                        <span>Will trigger when price <span className="text-green-400 font-medium">≥</span> entry price</span>
+                                                    ) : (
+                                                        <span>Will trigger when price <span className="text-red-400 font-medium">≤</span> entry price</span>
+                                                    )}
+                                                </div>
+                                                <div className="text-[10px] text-muted-foreground/70 pt-1">
+                                                    Position opens automatically when condition is met
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : (
+                            // Regular status indicator for non-pending or non-perpetual orders
+                            <div className={`w-2 h-2 rounded-full ${order.status === 'pending' ? 'bg-yellow-400 animate-pulse' :
+                                order.status === 'open' ? 'bg-green-400' :
+                                    order.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-400'
+                                }`} />
+                        )}
 
                         {/* Timestamp */}
                         <span className="text-xs text-muted-foreground ml-auto">
@@ -998,15 +1063,10 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
     if (isLoadingOrders) {
         return (
-            <div className="w-96 border-l border-border/40 bg-card/50 backdrop-blur-sm flex flex-col">
-                <div className="p-4 border-b border-border/40">
-                    <h2 className="text-lg font-semibold text-foreground">Orders</h2>
-                </div>
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-muted-foreground text-sm">Loading orders...</p>
-                    </div>
+            <div className="h-full w-96 border-l border-border/40 bg-card/50 backdrop-blur-sm flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-muted-foreground text-sm">Loading orders...</p>
                 </div>
             </div>
         );
@@ -1014,15 +1074,10 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
     if (ordersError) {
         return (
-            <div className="w-96 border-l border-border/40 bg-card/50 backdrop-blur-sm flex flex-col">
-                <div className="p-4 border-b border-border/40">
-                    <h2 className="text-lg font-semibold text-foreground">Orders</h2>
-                </div>
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <p className="text-destructive text-sm mb-2">Error loading orders</p>
-                        <p className="text-muted-foreground text-xs">{ordersError}</p>
-                    </div>
+            <div className="h-full w-96 border-l border-border/40 bg-card/50 backdrop-blur-sm flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-destructive text-sm mb-2">Error loading orders</p>
+                    <p className="text-muted-foreground text-xs">{ordersError}</p>
                 </div>
             </div>
         );
@@ -1125,7 +1180,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
             </div>
 
             {/* Summary Stats for Perpetual Positions */}
-            {perpetualOrders.filter(order => order.status === 'open').length > 0 && (
+            {perpetualOrders.filter(order => order.status === 'pending' || order.status === 'open').length > 0 && (
                 <div className="p-3 border-b border-border/20 bg-gradient-to-r from-purple-900/10 to-blue-900/10">
                     <div className="grid grid-cols-3 gap-3 text-xs">
                         <div className="text-center">
@@ -1154,18 +1209,20 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                             </div>
                         </div>
                         <div className="text-center">
-                            <div className="text-muted-foreground">Open Positions</div>
-                            <div className="font-medium">
-                                <span className="text-green-400">{perpetualOrders.filter(o => o.status === 'open' && (o as any).perpetualDirection === 'long').length}</span>
-                                <span className="text-muted-foreground mx-1">/</span>
-                                <span className="text-red-400">{perpetualOrders.filter(o => o.status === 'open' && (o as any).perpetualDirection === 'short').length}</span>
+                            <div className="text-muted-foreground">Positions</div>
+                            <div className="font-medium flex items-center justify-center space-x-1 text-xs">
+                                <span className="text-green-400">{perpetualOrders.filter(o => o.status === 'open' && (o as any).perpetualDirection === 'long').length}L</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-red-400">{perpetualOrders.filter(o => o.status === 'open' && (o as any).perpetualDirection === 'short').length}S</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-yellow-400">{perpetualOrders.filter(o => o.status === 'pending').length}P</span>
                             </div>
                         </div>
                         <div className="text-center">
                             <div className="text-muted-foreground">Margin Used</div>
                             <div className="font-mono font-medium">
                                 {formatUsd(perpetualOrders
-                                    .filter(order => order.status === 'open')
+                                    .filter(order => order.status === 'pending' || order.status === 'open')
                                     .reduce((sum, order) =>
                                         sum + parseFloat((order as any).perpetualMarginRequired || '0'), 0
                                     ))}
