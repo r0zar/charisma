@@ -53,8 +53,62 @@ export interface OfferItem extends BaseShopItem {
     bids: Bid[];
 }
 
+// Funding offer interface (similar to Bid)
+export interface FundingOffer {
+    funderId: string;
+    funderCollateralIntent: string; // Signed TRANSFER_TOKENS_LTE intent JSON
+    maxCollateralOffered: string; // Maximum collateral they'll provide
+    requestedFeeRate: string; // Fee rate they want (e.g. "3.5%")
+    message?: string; // Optional message to trader
+    createdAt: number;
+    status: 'pending' | 'accepted' | 'rejected';
+    fundingOfferId: string; // Unique ID for this funding offer
+}
+
+// P2P Perp funding request interface
+export interface PerpFundingRequest extends BaseShopItem {
+    type: 'perp_funding';
+    // No price/currency - funded through offers
+    price?: never;
+    currency?: never;
+    payToken?: never;
+    vault?: never;
+
+    // Links to perpetual position
+    perpUuid: string;
+    traderId: string;
+    traderMarginIntent: string; // Signed REDEEM_BEARER intent JSON
+
+    // Position details for display
+    direction: 'long' | 'short';
+    leverage: number;
+    positionSize: string; // e.g. "$1000"
+    entryPrice: string; // e.g. "$45.50" 
+    liquidationPrice: string; // e.g. "$40.25"
+
+    // Economic terms
+    traderMargin: string; // What trader is putting up
+    maxCollateralNeeded: string; // Maximum collateral needed from funders
+    fundingFeeRate: string; // Guaranteed fee rate for funders
+
+    // Token information
+    baseToken: string; // STX, BTC, etc. (what position is on)
+    quoteToken: string; // USDT, etc. (what margin/collateral is in)
+    marginToken: string; // Usually same as quoteToken
+
+    // Status and lifecycle
+    fundingStatus: "seeking" | "funded" | "expired" | "settled";
+    expiresAt: number; // When funding request expires
+    funderId?: string; // Who funded it (when funded)
+    fundedAt?: number; // When it was funded
+    settledAt?: number; // When position was settled
+
+    // Funding offers (like bids in OTC)
+    fundingOffers: FundingOffer[];
+}
+
 // Union type for all shop items
-export type ShopItem = PurchasableItem | OfferItem;
+export type ShopItem = PurchasableItem | OfferItem | PerpFundingRequest;
 
 // Type guards for better type safety
 export const isPurchasableItem = (item: ShopItem): item is PurchasableItem => {
@@ -63,6 +117,10 @@ export const isPurchasableItem = (item: ShopItem): item is PurchasableItem => {
 
 export const isOfferItem = (item: ShopItem): item is OfferItem => {
     return item.type === 'offer';
+};
+
+export const isPerpFundingRequest = (item: ShopItem): item is PerpFundingRequest => {
+    return item.type === 'perp_funding';
 };
 
 // Helper type for the old interface during migration

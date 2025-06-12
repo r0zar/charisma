@@ -224,6 +224,14 @@ interface ProModeContextType {
     autoTrackEntryPrice: boolean;
     setAutoTrackEntryPrice: (track: boolean) => void;
 
+    // P2P Funding State
+    fundingMode: 'platform' | 'p2p';
+    setFundingMode: (mode: 'platform' | 'p2p') => void;
+    fundingFeeRate: string;
+    setFundingFeeRate: (rate: string) => void;
+    fundingExpiry: string;
+    setFundingExpiry: (expiry: string) => void;
+
     // Real-time calculated values for perpetual
     perpetualMarginRequired: number;
     setPerpetualMarginRequired: (margin: number) => void;
@@ -470,6 +478,11 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const [perpetualStopLoss, setPerpetualStopLoss] = useState('');
     const [perpetualTakeProfit, setPerpetualTakeProfit] = useState('');
     const [autoTrackEntryPrice, setAutoTrackEntryPrice] = useState(true);
+
+    // P2P Funding state
+    const [fundingMode, setFundingMode] = useState<'platform' | 'p2p'>('platform');
+    const [fundingFeeRate, setFundingFeeRate] = useState('3.5');
+    const [fundingExpiry, setFundingExpiry] = useState('24h');
 
     // Real-time calculated values for perpetual
     const [perpetualMarginRequired, setPerpetualMarginRequired] = useState(0);
@@ -1455,17 +1468,107 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
             liquidationPrice: liquidationPrice.toString(),
         };
 
-        // Initialize the perpetual order creation dialog
-        setPerpetualCreationState({
-            isOpen: true,
-            phase: 'preview',
-            order: {
-                ...calculatedOrder,
-                status: 'pending'
-            },
-            errors: validationErrors,
-            previewMode: true
-        });
+        if (fundingMode === 'p2p') {
+            // P2P Mode: Create funding request
+            if (!address) {
+                toast.error('Please connect your wallet for P2P funding');
+                return;
+            }
+
+            // Validate P2P specific fields
+            if (!fundingFeeRate || parseFloat(fundingFeeRate) <= 0) {
+                toast.error('Please enter a valid funding fee rate');
+                return;
+            }
+
+            try {
+                // Calculate expiry timestamp
+                const now = Date.now();
+                let expiryMs: number;
+                switch (fundingExpiry) {
+                    case '1h': expiryMs = 60 * 60 * 1000; break;
+                    case '6h': expiryMs = 6 * 60 * 60 * 1000; break;
+                    case '24h': expiryMs = 24 * 60 * 60 * 1000; break;
+                    case '7d': expiryMs = 7 * 24 * 60 * 60 * 1000; break;
+                    default: expiryMs = 24 * 60 * 60 * 1000; // Default 24h
+                }
+                const expiresAt = now + expiryMs;
+
+                // Generate proper UUIDs
+                const perpUuid = crypto.randomUUID();
+
+                // Preview mode: Use mock signature (verification disabled on API)
+                const mockTraderMarginIntent = `preview-margin-intent-${perpUuid}`;
+
+                // Calculate max collateral needed (position size - trader margin)
+                const positionSizeNum = parseFloat(perpetualPositionSize);
+                const maxCollateralNeeded = Math.max(0, positionSizeNum - marginRequired);
+
+                const fundingRequestData = {
+                    perpUuid: perpUuid,
+                    traderId: address,
+                    traderMarginIntent: mockTraderMarginIntent,
+
+                    // Position details
+                    direction: perpetualDirection,
+                    leverage: perpetualLeverage,
+                    positionSize: perpetualPositionSize.replace(/[^0-9.]/g, ''), // Remove any non-numeric chars
+                    entryPrice: perpetualEntryPrice.replace(/[^0-9.]/g, ''), // Clean numeric string
+                    liquidationPrice: liquidationPrice.toFixed(6), // Ensure proper decimal format
+
+                    // Economic terms
+                    traderMargin: marginRequired.toFixed(6),
+                    maxCollateralNeeded: maxCollateralNeeded.toFixed(6),
+                    fundingFeeRate: fundingFeeRate.includes('%') ? fundingFeeRate : `${fundingFeeRate}%`,
+
+                    // Token contracts
+                    baseToken: selectedFromToken.contractId,
+                    quoteToken: selectedToToken.contractId,
+                    marginToken: selectedToToken.contractId, // Usually quote token
+
+                    // Timing
+                    expiresAt: expiresAt,
+                };
+
+                console.log('Creating P2P funding request:', fundingRequestData);
+
+                // Create funding request via API
+                const response = await fetch('/api/v1/perps/funding-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(fundingRequestData),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    toast.success('P2P funding request created! Redirecting to marketplace...');
+
+                    // Redirect to shop to show the funding request
+                    setTimeout(() => {
+                        window.location.href = '/shop';
+                    }, 1500);
+                } else {
+                    throw new Error(result.error || 'Failed to create funding request');
+                }
+
+            } catch (error) {
+                console.error('Error creating P2P funding request:', error);
+                toast.error(`Failed to create funding request: ${(error as Error).message}`);
+            }
+        } else {
+            // Platform Mode: Use existing dialog
+            setPerpetualCreationState({
+                isOpen: true,
+                phase: 'preview',
+                order: {
+                    ...calculatedOrder,
+                    status: 'pending'
+                },
+                errors: validationErrors,
+                previewMode: true
+            });
+        }
     }, [
         selectedFromToken,
         selectedToToken,
@@ -1475,6 +1578,10 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         perpetualLeverage,
         perpetualStopLoss,
         perpetualTakeProfit,
+        fundingMode,
+        fundingFeeRate,
+        fundingExpiry,
+        address,
         validatePerpetualOrder,
         calculateMarginRequired,
         calculateLiquidationPrice,
@@ -1688,6 +1795,14 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         setPerpetualTakeProfit,
         autoTrackEntryPrice,
         setAutoTrackEntryPrice,
+
+        // P2P Funding State
+        fundingMode,
+        setFundingMode,
+        fundingFeeRate,
+        setFundingFeeRate,
+        fundingExpiry,
+        setFundingExpiry,
 
         // Real-time calculated values for perpetual
         perpetualMarginRequired,

@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShopItem, isOfferItem } from '@/types/shop';
+import { ShopItem, isOfferItem, isPerpFundingRequest } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +66,7 @@ import { useShopTable } from '@/hooks/useShopTable';
 import OfferTooltip from './OfferTooltip';
 import BidDialog from './BidDialog';
 import PurchaseDialog from './PurchaseDialog';
+import FundingRequestDialog from './FundingRequestDialog';
 import { useRouter } from 'next/navigation';
 import { getTokenBalance } from '@/app/actions';
 import { request } from '@stacks/connect';
@@ -189,6 +190,18 @@ const TableRowComponent = React.memo(({
                             </span>
                         </div>
                     </div>
+                ) : isPerpFundingRequest(item) ? (
+                    <div className="text-xs">
+                        <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span
+                                className="font-mono text-muted-foreground"
+                                title={item.traderId}
+                            >
+                                {`${item.traderId.slice(0, 6)}...${item.traderId.slice(-4)}`}
+                            </span>
+                        </div>
+                    </div>
                 ) : (
                     <span className="text-xs text-muted-foreground">-</span>
                 )}
@@ -209,13 +222,18 @@ const TableRowComponent = React.memo(({
                 </div>
             </TableCell>
 
-            {/* Bids */}
+            {/* Bids/Offers */}
             <TableCell className="hidden md:table-cell">
                 <div className="text-sm">
                     {isOfferItem(item) ? (
                         <span className="flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
                             {item.bids?.length || 0}
+                        </span>
+                    ) : isPerpFundingRequest(item) ? (
+                        <span className="flex items-center gap-1">
+                            <Wallet className="h-3 w-3" />
+                            {item.fundingOffers?.length || 0}
                         </span>
                     ) : (
                         <span className="text-muted-foreground">-</span>
@@ -339,6 +357,11 @@ const TableRowComponent = React.memo(({
                                 <Gavel className="h-3 w-3 mr-1" />
                                 Bid
                             </>
+                        ) : item.type === 'perp_funding' ? (
+                            <>
+                                <Wallet className="h-3 w-3 mr-1" />
+                                Fund
+                            </>
                         ) : (
                             <>
                                 <ShoppingCart className="h-3 w-3 mr-1" />
@@ -347,8 +370,8 @@ const TableRowComponent = React.memo(({
                         )}
                     </Button>
 
-                    {/* View Details button for offers */}
-                    {item.type === SHOP_CATEGORIES.OFFER && (
+                    {/* View Details button for offers and funding requests */}
+                    {(item.type === SHOP_CATEGORIES.OFFER || item.type === 'perp_funding') && (
                         <Button
                             size="sm"
                             variant="ghost"
@@ -385,6 +408,12 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
 
     // Deposit transaction state
     const [isDepositing, setIsDepositing] = useState(false);
+
+    // Funding request dialog state
+    const [fundingDialogOpen, setFundingDialogOpen] = useState(false);
+    const [fundingDialogMode, setFundingDialogMode] = useState<'view' | 'fund' | 'accept'>('view');
+    const [selectedFundingRequest, setSelectedFundingRequest] = useState<ShopItem | null>(null);
+    const [isFundingSubmitting, setIsFundingSubmitting] = useState(false);
 
     // Function to handle deposit transaction
     const handleDepositTransaction = async (
@@ -564,8 +593,92 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
     // Handle view details (for offers)
     const handleViewDetailsClick = useCallback((item: ShopItem, e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
-        handleViewDetails(item);
+        if (isPerpFundingRequest(item)) {
+            setSelectedFundingRequest(item);
+            setFundingDialogMode('view');
+            setFundingDialogOpen(true);
+        } else {
+            handleViewDetails(item);
+        }
     }, [handleViewDetails]);
+
+    // Handle funding request actions
+    const handleFundingRequestClick = useCallback((item: ShopItem) => {
+        if (!isPerpFundingRequest(item)) return;
+
+        setSelectedFundingRequest(item);
+        // Determine mode based on user role
+        if (address === item.traderId) {
+            setFundingDialogMode('accept');
+        } else {
+            setFundingDialogMode('fund');
+        }
+        setFundingDialogOpen(true);
+    }, [address]);
+
+    // Handle creating funding offer
+    const handleCreateFundingOffer = useCallback(async (requestId: string, offer: any) => {
+        setIsFundingSubmitting(true);
+        try {
+            const response = await fetch('/api/v1/perps/funding-offer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fundingRequestId: requestId,
+                    ...offer
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                toast.success('Funding offer created successfully!');
+                setFundingDialogOpen(false);
+                router.refresh();
+            } else {
+                throw new Error(result.error || 'Failed to create funding offer');
+            }
+        } catch (error: any) {
+            console.error('Error creating funding offer:', error);
+            toast.error(error.message || 'Failed to create funding offer');
+        } finally {
+            setIsFundingSubmitting(false);
+        }
+    }, [router]);
+
+    // Handle accepting funding offer
+    const handleAcceptFundingOffer = useCallback(async (requestId: string, offerId: string) => {
+        setIsFundingSubmitting(true);
+        try {
+            const response = await fetch('/api/v1/perps/accept-funding', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fundingRequestId: requestId,
+                    fundingOfferId: offerId
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                toast.success('Funding offer accepted successfully!');
+                setFundingDialogOpen(false);
+                router.refresh();
+            } else {
+                throw new Error(result.error || 'Failed to accept funding offer');
+            }
+        } catch (error: any) {
+            console.error('Error accepting funding offer:', error);
+            toast.error(error.message || 'Failed to accept funding offer');
+        } finally {
+            setIsFundingSubmitting(false);
+        }
+    }, [router]);
+
+    // Close funding dialog
+    const closeFundingDialog = useCallback(() => {
+        setFundingDialogOpen(false);
+        setSelectedFundingRequest(null);
+    }, []);
 
     return (
         <TooltipProvider>
@@ -608,6 +721,7 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                             <SelectItem value={SHOP_CATEGORIES.OFFER}>Offers</SelectItem>
                             <SelectItem value={SHOP_CATEGORIES.TOKEN}>Tokens</SelectItem>
                             <SelectItem value={SHOP_CATEGORIES.NFT}>NFTs</SelectItem>
+                            <SelectItem value={SHOP_CATEGORIES.PERP_FUNDING}>P2P Perps</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -679,7 +793,7 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                         className="h-auto p-0 font-semibold hover:bg-transparent"
                                         onClick={() => handleSort('bids')}
                                     >
-                                        Bids
+                                        Bids/Offers
                                         {getSortIcon('bids')}
                                     </Button>
                                 </TableHead>
@@ -723,7 +837,7 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                         subnetTokens={subnetTokens}
                                         prices={prices || {}}
                                         balanceStatuses={balanceStatuses}
-                                        onItemClick={handleItemClick}
+                                        onItemClick={isPerpFundingRequest(item) ? handleFundingRequestClick : handleItemClick}
                                         onViewDetailsClick={handleViewDetailsClick}
                                     />
                                 );
@@ -894,6 +1008,18 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* Funding Request Dialog */}
+                <FundingRequestDialog
+                    isOpen={fundingDialogOpen}
+                    onClose={closeFundingDialog}
+                    fundingRequest={selectedFundingRequest as any}
+                    subnetTokens={subnetTokens}
+                    mode={fundingDialogMode}
+                    onCreateFundingOffer={handleCreateFundingOffer}
+                    onAcceptFundingOffer={handleAcceptFundingOffer}
+                    isSubmitting={isFundingSubmitting}
+                />
             </div>
         </TooltipProvider>
     );

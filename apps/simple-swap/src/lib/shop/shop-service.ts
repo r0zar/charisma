@@ -1,9 +1,11 @@
 import { TokenCacheData, listTokens, getTokenMetadataCached } from '@repo/tokens';
 import { kv } from '@vercel/kv';
 import { getOffer } from '@/lib/otc/kv';
-import { ShopItem, PurchasableItem, OfferItem, OfferAsset, LegacyShopItem } from '@/types/shop';
+import { ShopItem, PurchasableItem, OfferItem, OfferAsset, PerpFundingRequest, LegacyShopItem } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CONTRACTS, FEATURED_ITEMS, OFFER_STATUS } from './constants';
+import { getAllFundingRequests } from '@/lib/perps/p2p-kv';
+import { FundingRequest } from '@/lib/perps/p2p-schema';
 
 /**
  * Unified shop service for all marketplace data operations
@@ -164,6 +166,86 @@ export class ShopService {
     }
 
     /**
+     * Transform funding requests into shop items
+     */
+    static transformFundingRequestsToItems(
+        fundingRequests: FundingRequest[],
+        tokenMap: Record<string, TokenCacheData>
+    ): PerpFundingRequest[] {
+        return fundingRequests
+            .filter(request => request.fundingStatus === 'seeking') // Only show seeking funding
+            .map(request => {
+                // Get token metadata for display
+                const baseTokenData = tokenMap[request.baseToken];
+                const quoteTokenData = tokenMap[request.quoteToken];
+
+                // Generate title based on position
+                const direction = request.direction.toUpperCase();
+                const baseSymbol = baseTokenData?.symbol || request.baseToken.split('.')[1] || 'TOKEN';
+                const leverage = request.leverage;
+                const title = `${direction} ${baseSymbol} ${leverage}x Position`;
+
+                // Generate description
+                const positionSize = parseFloat(request.positionSize);
+                const feeRate = request.fundingFeeRate;
+                const description = `Fund a ${positionSize} ${request.direction} position on ${baseSymbol} with ${leverage}x leverage. ${feeRate} funding fee.`;
+
+                // Use base token image for display
+                const image = baseTokenData?.image || 'https://placehold.co/400?text=P2P';
+
+                return {
+                    id: request.id,
+                    type: 'perp_funding' as const,
+                    title,
+                    description,
+                    image,
+                    createdAt: request.createdAt,
+
+                    // Funding request specific data
+                    perpUuid: request.perpUuid,
+                    traderId: request.traderId,
+                    traderMarginIntent: request.traderMarginIntent,
+
+                    // Position details
+                    direction: request.direction,
+                    leverage: request.leverage,
+                    positionSize: request.positionSize,
+                    entryPrice: request.entryPrice,
+                    liquidationPrice: request.liquidationPrice,
+
+                    // Economic terms
+                    traderMargin: request.traderMargin,
+                    maxCollateralNeeded: request.maxCollateralNeeded,
+                    fundingFeeRate: request.fundingFeeRate,
+
+                    // Token information
+                    baseToken: request.baseToken,
+                    quoteToken: request.quoteToken,
+                    marginToken: request.marginToken,
+
+                    // Status and lifecycle
+                    fundingStatus: request.fundingStatus,
+                    expiresAt: request.expiresAt,
+                    funderId: request.funderId,
+                    fundedAt: request.fundedAt,
+                    settledAt: request.settledAt,
+
+                    // Funding offers
+                    fundingOffers: request.fundingOffers.map(offer => ({
+                        funderId: offer.funderId,
+                        funderCollateralIntent: offer.funderCollateralIntent || '',
+                        maxCollateralOffered: offer.maxCollateralOffered,
+                        requestedFeeRate: offer.requestedFeeRate,
+                        message: offer.message,
+                        createdAt: offer.createdAt,
+                        status: offer.status,
+                        fundingOfferId: offer.fundingOfferId,
+                    }))
+                } as PerpFundingRequest;
+            });
+    }
+
+    /**
      * Create the featured HOOT token item
      */
     static createHootTokenItem(tokenMap: Record<string, TokenCacheData>): PurchasableItem {
@@ -188,7 +270,7 @@ export class ShopService {
     }
 
     /**
-     * Get all shop items (offers + featured items)
+     * Get all shop items (offers + featured items + funding requests)
      */
     static async getAllShopItems(): Promise<ShopItem[]> {
         // Fetch tokens and create map
@@ -197,13 +279,17 @@ export class ShopService {
 
         console.log(`Loaded ${allTokens.length} tokens for shop items`);
 
-        // Fetch offers
-        const offerKeys = await this.getAllOfferKeys();
+        // Fetch offers and funding requests in parallel
+        const [offerKeys, fundingRequests] = await Promise.all([
+            this.getAllOfferKeys(),
+            getAllFundingRequests()
+        ]);
+
         const offersData = await this.fetchOffers(offerKeys);
 
-        console.log(`Found ${offersData.length} offers to process`);
+        console.log(`Found ${offersData.length} offers and ${fundingRequests.length} funding requests to process`);
 
-        // Extract all unique token contract IDs from offers
+        // Extract all unique token contract IDs from offers and funding requests
         const offerTokenIds = new Set<string>();
         offersData.forEach(result => {
             result.offerAssets?.forEach((asset: any) => {
@@ -213,12 +299,19 @@ export class ShopService {
             });
         });
 
-        console.log('Unique tokens found in offers:', Array.from(offerTokenIds));
+        // Add token IDs from funding requests
+        fundingRequests.forEach(request => {
+            offerTokenIds.add(request.baseToken);
+            offerTokenIds.add(request.quoteToken);
+            offerTokenIds.add(request.marginToken);
+        });
+
+        console.log('Unique tokens found in offers and funding requests:', Array.from(offerTokenIds));
 
         // Check for missing tokens and try to fetch them
         const missingTokens = Array.from(offerTokenIds).filter(tokenId => !tokenMap[tokenId]);
         if (missingTokens.length > 0) {
-            console.warn('Missing token data for offers:', missingTokens);
+            console.warn('Missing token data for shop items:', missingTokens);
 
             // Fetch missing tokens individually
             const missingTokenPromises = missingTokens.map(async (tokenId) => {
@@ -244,10 +337,13 @@ export class ShopService {
         }
 
         // Transform data
-        const shopItems = this.transformOffersToItems(offersData, tokenMap);
+        const offerItems = this.transformOffersToItems(offersData, tokenMap);
+        const fundingRequestItems = this.transformFundingRequestsToItems(fundingRequests, tokenMap);
         const hootTokenItem = this.createHootTokenItem(tokenMap);
 
-        return [hootTokenItem, ...shopItems];
+        console.log(`Transformed ${offerItems.length} offers, ${fundingRequestItems.length} funding requests, and 1 featured item`);
+
+        return [hootTokenItem, ...offerItems, ...fundingRequestItems];
     }
 
     /**

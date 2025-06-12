@@ -1,7 +1,7 @@
-import { ShopItem, OfferItem, PurchasableItem, isOfferItem, isPurchasableItem, OfferAsset } from '@/types/shop';
+import { ShopItem, OfferItem, PurchasableItem, PerpFundingRequest, isOfferItem, isPurchasableItem, isPerpFundingRequest, OfferAsset } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
-import { TrendingUp, Coins, ImageIcon, Star } from 'lucide-react';
+import { TrendingUp, Coins, ImageIcon, Star, LineChart } from 'lucide-react';
 
 // Helper function to get token price in USD
 export const getTokenPrice = (tokenId: string, prices: Record<string, any>): number => {
@@ -53,6 +53,15 @@ export const formatCreator = (item: ShopItem): string => {
         return `${status}${timeAgo ? ` • Latest ${timeAgo}` : ''}`;
     }
 
+    if (isPerpFundingRequest(item)) {
+        const offerCount = item.fundingOffers?.length || 0;
+        const status = offerCount > 0 ? `${offerCount} offer${offerCount !== 1 ? 's' : ''}` : 'No offers';
+        const latestOffer = item.fundingOffers?.[offerCount - 1];
+        const timeAgo = latestOffer ? formatTimeAgo(latestOffer.createdAt) : '';
+
+        return `${status}${timeAgo ? ` • Latest ${timeAgo}` : ''}`;
+    }
+
     return 'Available';
 };
 
@@ -76,6 +85,12 @@ export const getTypeConfig = (type: string) => {
                 icon: ImageIcon,
                 color: 'bg-accent/50 text-accent-foreground border-border',
                 label: 'NFT'
+            };
+        case 'perp_funding':
+            return {
+                icon: LineChart,
+                color: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+                label: 'P2P Perps'
             };
         default:
             return {
@@ -115,6 +130,11 @@ export const formatPrice = (
             }
         }
         return 'No bids';
+    }
+
+    if (isPerpFundingRequest(item)) {
+        // Show funding fee rate for P2P perps
+        return `${item.fundingFeeRate} fee`;
     }
 
     if (isPurchasableItem(item) && item.price) {

@@ -60,6 +60,13 @@ export default function PerpetualOrderForm() {
         perpetualChartState,
         autoTrackEntryPrice,
         setAutoTrackEntryPrice,
+        // P2P Funding state
+        fundingMode,
+        setFundingMode,
+        fundingFeeRate,
+        setFundingFeeRate,
+        fundingExpiry,
+        setFundingExpiry,
     } = useProModeContext();
 
     const {
@@ -234,6 +241,89 @@ export default function PerpetualOrderForm() {
                         </div>
                     </div>
 
+                    {/* Funding Mode Selector - New Section */}
+                    <div className="bg-muted/20 rounded-lg p-2 border border-border/50">
+                        {/* Combined funding mode and P2P options on one row for large screens */}
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
+                            {/* Funding Mode Buttons - Take 2 columns on large screens */}
+                            <div className="lg:col-span-2 space-y-1">
+                                <div className="flex items-center space-x-1">
+                                    <label className="text-xs text-muted-foreground font-medium">Funding Mode</label>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" align="start">
+                                            <p className="max-w-xs">
+                                                <strong>Platform:</strong> Charisma provides liquidity. Standard funding fees apply.<br />
+                                                <strong>P2P:</strong> Other users fund your position. Set competitive rates and terms.
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <Button
+                                        variant={fundingMode === 'platform' ? 'default' : 'outline'}
+                                        size="sm"
+                                        className="flex-1 h-8 text-xs"
+                                        onClick={() => setFundingMode('platform')}
+                                    >
+                                        🏛️ Platform Funded
+                                    </Button>
+                                    <Button
+                                        variant={fundingMode === 'p2p' ? 'default' : 'outline'}
+                                        size="sm"
+                                        className="flex-1 h-8 text-xs"
+                                        onClick={() => setFundingMode('p2p')}
+                                    >
+                                        🤝 P2P Funded
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* P2P Funding Options - Show when P2P is selected, each takes 1 column on large screens */}
+                            {fundingMode === 'p2p' && (
+                                <>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center space-x-1">
+                                            <label className="text-xs text-muted-foreground font-medium">Fee Rate (%)</label>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom" align="start">
+                                                    <p className="max-w-xs">
+                                                        Set a competitive fee rate to attract funders. Higher rates get funded faster but reduce your profits.
+                                                    </p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={fundingFeeRate}
+                                            onChange={(e) => setFundingFeeRate(e.target.value)}
+                                            placeholder="3.5"
+                                            className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground h-8 text-xs"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted-foreground font-medium">Expiry</label>
+                                        <select
+                                            value={fundingExpiry}
+                                            onChange={(e) => setFundingExpiry(e.target.value)}
+                                            className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground h-8 text-xs"
+                                        >
+                                            <option value="1h">1 Hour</option>
+                                            <option value="6h">6 Hours</option>
+                                            <option value="24h">24 Hours</option>
+                                            <option value="7d">7 Days</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Assets & Risk Management - 4 Column Layout */}
                     <div className="grid grid-cols-4 gap-2">
                         <div className="space-y-1">
@@ -375,14 +465,6 @@ export default function PerpetualOrderForm() {
                                         <div className="font-medium text-red-500/70">{formatUsd(perpetualLiquidationPrice)}</div>
                                     </div>
                                 )}
-
-                                {/* Margin Account Status */}
-                                {marginAccount && (
-                                    <div>
-                                        <div className="text-muted-foreground">Available Margin:</div>
-                                        <div className="font-medium text-muted-foreground">{formatBalance(marginAccount.freeMargin)}</div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Margin Validation Warning */}
@@ -399,8 +481,6 @@ export default function PerpetualOrderForm() {
                         </div>
                     )}
 
-
-
                     {/* Submit Button */}
                     <Button
                         onClick={handleCreatePerpetualOrder}
@@ -410,14 +490,19 @@ export default function PerpetualOrderForm() {
                             !selectedToToken ||
                             !perpetualEntryPrice ||
                             isSubmitting ||
-                            (perpetualMarginRequired > 0 && !canOpenPosition(perpetualMarginRequired))
+                            (fundingMode === 'platform' && perpetualMarginRequired > 0 && !canOpenPosition(perpetualMarginRequired)) ||
+                            (fundingMode === 'p2p' && (!fundingFeeRate || parseFloat(fundingFeeRate) <= 0))
                         }
                         className="w-full h-10 text-sm font-medium"
                     >
                         {isSubmitting ? 'Creating...' :
-                            (perpetualMarginRequired > 0 && !canOpenPosition(perpetualMarginRequired)) ?
+                            (fundingMode === 'platform' && perpetualMarginRequired > 0 && !canOpenPosition(perpetualMarginRequired)) ?
                                 'Insufficient Margin' :
-                                `Create ${perpetualDirection === 'long' ? 'Long' : 'Short'} Position (Preview)`
+                                (fundingMode === 'p2p' && (!fundingFeeRate || parseFloat(fundingFeeRate) <= 0)) ?
+                                    'Set Valid Fee Rate' :
+                                    fundingMode === 'p2p' ?
+                                        `Request P2P Funding (${fundingFeeRate}% fee)` :
+                                        `Create ${perpetualDirection === 'long' ? 'Long' : 'Short'} Position (Preview)`
                         }
                     </Button>
 

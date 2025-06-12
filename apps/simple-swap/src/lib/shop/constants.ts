@@ -20,9 +20,10 @@ export const FEATURED_ITEMS = {
 // Shop categories and filters
 export const SHOP_CATEGORIES = {
     ALL: 'all',
-    NFT: 'nft',
     TOKEN: 'token',
-    OFFER: 'offer'
+    NFT: 'nft',
+    OFFER: 'offer',
+    PERP_FUNDING: 'perp_funding',
 } as const;
 
 export const SORT_OPTIONS = {
