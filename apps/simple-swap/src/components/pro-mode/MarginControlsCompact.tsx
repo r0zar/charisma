@@ -157,26 +157,17 @@ export default function MarginControlsCompact() {
                     <div className="flex items-center space-x-2">
                         <Wallet className="w-4 h-4 text-muted-foreground" />
                         <h3 className="font-semibold text-sm">Margin Account</h3>
-                        <Badge variant="secondary" className="text-xs">Preview</Badge>
                     </div>
                     <div className="flex items-center space-x-1">
-                        {/* Only show position count if margin account confirms active positions */}
-                        {hasActivePositions && openPositionCount > 0 && (
-                            <Badge variant="outline" className="text-xs">
-                                {openPositionCount} pos
-                            </Badge>
-                        )}
                         {/* P&L Sync Button */}
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={syncPnL}
-                                    className="h-6 w-6 p-0"
-                                >
-                                    <RefreshCw className="w-3 h-3" />
-                                </Button>
+                                {/* Only show position count if margin account confirms active positions */}
+                                {hasActivePositions && openPositionCount > 0 && (
+                                    <Badge variant="outline" className="text-xs cursor-pointer" onClick={syncPnL}>
+                                        {openPositionCount} pos
+                                    </Badge>
+                                )}
                             </TooltipTrigger>
                             <TooltipContent side="top">
                                 <p className="text-xs">
