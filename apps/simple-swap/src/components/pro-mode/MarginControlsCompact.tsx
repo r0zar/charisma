@@ -180,7 +180,12 @@ export default function MarginControlsCompact() {
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="top">
-                                <p className="text-xs">Sync P&L with positions</p>
+                                <p className="text-xs">
+                                    Sync P&L with positions
+                                    {hasActivePositions && (
+                                        <><br />Active: {openPositionCount} positions</>
+                                    )}
+                                </p>
                             </TooltipContent>
                         </Tooltip>
                     </div>
@@ -297,7 +302,6 @@ export default function MarginControlsCompact() {
                     depositMargin={depositMargin}
                     withdrawMargin={withdrawMargin}
                     formatBalance={formatBalance}
-                    getLiquidationRisk={getLiquidationRisk}
                 />
             )}
             {withdrawDialogOpen && marginAccount && (
@@ -309,7 +313,6 @@ export default function MarginControlsCompact() {
                     depositMargin={depositMargin}
                     withdrawMargin={withdrawMargin}
                     formatBalance={formatBalance}
-                    getLiquidationRisk={getLiquidationRisk}
                 />
             )}
         </>

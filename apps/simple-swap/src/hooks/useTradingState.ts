@@ -23,7 +23,7 @@ export function useTradingState() {
 
     const { address } = useWallet();
 
-    // Simple fetch function - gets everything in one call
+    // Fetch function with automatic P&L sync for open positions
     const fetchTradingData = async () => {
         if (!address) {
             setState({
@@ -38,23 +38,43 @@ export function useTradingState() {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            // Fetch both margin and positions in parallel
-            const [marginResponse, positionsResponse] = await Promise.all([
-                fetch(`/api/v1/margin?owner=${address}`),
-                fetch(`/api/v1/perps?owner=${address}`)
-            ]);
+            // First, fetch positions to see if we have any open ones
+            const positionsResponse = await fetch(`/api/v1/perps?owner=${address}`);
+            const positionsData = await positionsResponse.json();
 
-            const [marginData, positionsData] = await Promise.all([
-                marginResponse.json(),
-                positionsResponse.json()
-            ]);
+            const positions = positionsData.status === 'success' ? positionsData.data : [];
+            const hasOpenPositions = positions.some((p: any) => p.status === 'open');
+
+            // If we have open positions, sync P&L first to get accurate margin data
+            if (hasOpenPositions) {
+                console.log('🔄 Syncing P&L for open positions...');
+                try {
+                    await fetch('/api/v1/margin/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ owner: address })
+                    });
+                } catch (syncErr) {
+                    console.warn('P&L sync failed:', syncErr);
+                }
+            }
+
+            // Now fetch the updated margin data
+            const marginResponse = await fetch(`/api/v1/margin?owner=${address}`);
+            const marginData = await marginResponse.json();
 
             setState({
                 marginAccount: marginData.status === 'success' ? marginData.data : null,
-                positions: positionsData.status === 'success' ? positionsData.data : [],
+                positions,
                 isLoading: false,
                 error: marginData.status !== 'success' ? marginData.error :
                     positionsData.status !== 'success' ? positionsData.error : null
+            });
+
+            console.log('📊 Trading data refreshed:', {
+                positions: positions.length,
+                openPositions: positions.filter((p: any) => p.status === 'open').length,
+                marginUsed: marginData.status === 'success' ? marginData.data?.usedMargin : 'N/A'
             });
         } catch (err) {
             setState(prev => ({
@@ -218,23 +238,43 @@ export function useTradingState() {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
 
             try {
-                // Fetch both margin and positions in parallel
-                const [marginResponse, positionsResponse] = await Promise.all([
-                    fetch(`/api/v1/margin?owner=${address}`),
-                    fetch(`/api/v1/perps?owner=${address}`)
-                ]);
+                // First, fetch positions to see if we have any open ones
+                const positionsResponse = await fetch(`/api/v1/perps?owner=${address}`);
+                const positionsData = await positionsResponse.json();
 
-                const [marginData, positionsData] = await Promise.all([
-                    marginResponse.json(),
-                    positionsResponse.json()
-                ]);
+                const positions = positionsData.status === 'success' ? positionsData.data : [];
+                const hasOpenPositions = positions.some((p: any) => p.status === 'open');
+
+                // If we have open positions, sync P&L first to get accurate margin data
+                if (hasOpenPositions) {
+                    console.log('🔄 Syncing P&L for open positions before loading margin data...');
+                    try {
+                        await fetch('/api/v1/margin/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ owner: address })
+                        });
+                    } catch (syncErr) {
+                        console.warn('P&L sync failed:', syncErr);
+                    }
+                }
+
+                // Now fetch the updated margin data
+                const marginResponse = await fetch(`/api/v1/margin?owner=${address}`);
+                const marginData = await marginResponse.json();
 
                 setState({
                     marginAccount: marginData.status === 'success' ? marginData.data : null,
-                    positions: positionsData.status === 'success' ? positionsData.data : [],
+                    positions,
                     isLoading: false,
                     error: marginData.status !== 'success' ? marginData.error :
                         positionsData.status !== 'success' ? positionsData.error : null
+                });
+
+                console.log('📊 Trading data loaded:', {
+                    positions: positions.length,
+                    openPositions: positions.filter((p: any) => p.status === 'open').length,
+                    marginAccount: marginData.status === 'success' ? marginData.data : null
                 });
             } catch (err) {
                 setState(prev => ({
@@ -246,6 +286,15 @@ export function useTradingState() {
         };
 
         loadData();
+
+        // Set up periodic refresh for open positions to keep P&L in sync
+        const interval = setInterval(() => {
+            if (address) {
+                loadData();
+            }
+        }, 30000); // Refresh every 30 seconds
+
+        return () => clearInterval(interval);
     }, [address]);
 
     return {
