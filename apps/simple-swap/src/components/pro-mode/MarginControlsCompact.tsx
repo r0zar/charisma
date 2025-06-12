@@ -50,7 +50,6 @@ export default function MarginControlsCompact() {
                         <div className="flex items-center space-x-2">
                             <Wallet className="w-4 h-4 text-muted-foreground" />
                             <h3 className="font-semibold text-sm">Margin Account</h3>
-                            <Badge variant="secondary" className="text-xs">Preview</Badge>
                         </div>
                         <div className="flex items-center space-x-1">
                             {/* Position badge will appear here when data loads */}

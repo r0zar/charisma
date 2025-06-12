@@ -1,5 +1,5 @@
 import { listPositions } from '../perps/store';
-import { updateMarginUsage } from './store';
+import { updateMarginUsage, getMarginAccount } from './store';
 import { getLatestPrice } from '../price/store';
 
 interface PositionPnL {
@@ -98,8 +98,11 @@ export async function syncAllMarginAccountPnL(): Promise<void> {
             positionsByOwner[position.owner].push(position);
         });
 
-        // Calculate total P&L for each user
+        // Process each user's positions with migration support
         for (const [owner, positions] of Object.entries(positionsByOwner)) {
+            // First, migrate any pre-existing positions that weren't tracked in margin system
+            await migrateExistingPositions(owner, positions);
+
             let totalUnrealizedPnL = 0;
 
             // Calculate P&L for each position
@@ -114,7 +117,7 @@ export async function syncAllMarginAccountPnL(): Promise<void> {
                 unrealizedPnL: totalUnrealizedPnL
             });
 
-            console.log(`💹 Updated P&L for ${owner}: ${totalUnrealizedPnL >= 0 ? '+' : ''}$${totalUnrealizedPnL.toFixed(2)} (${positions.length} positions)`);
+            console.log(`💹 Updated P&L for ${owner.substring(0, 8)}: ${totalUnrealizedPnL >= 0 ? '+' : ''}$${totalUnrealizedPnL.toFixed(2)} (${positions.length} positions)`);
         }
 
         console.log('✅ Margin account P&L sync completed');
@@ -123,14 +126,54 @@ export async function syncAllMarginAccountPnL(): Promise<void> {
     }
 }
 
-// Sync P&L for a specific user
+// Migrate pre-existing positions to margin system
+async function migrateExistingPositions(owner: string, openPositions: any[]): Promise<void> {
+    if (openPositions.length === 0) return;
+
+    try {
+        // Get current margin account
+        const marginAccount = await getMarginAccount(owner);
+
+        // Calculate total margin that should be used based on open positions
+        let expectedUsedMargin = 0;
+        for (const position of openPositions) {
+            if (position.marginRequired) {
+                expectedUsedMargin += parseFloat(position.marginRequired);
+            }
+        }
+
+        // Check if there's a significant mismatch (more than $0.01 difference)
+        const currentUsedMargin = marginAccount.usedMargin;
+        const marginDifference = Math.abs(expectedUsedMargin - currentUsedMargin);
+
+        if (marginDifference > 0.01) {
+            console.log(`🔧 Migrating positions for ${owner.substring(0, 8)}: Expected ${expectedUsedMargin.toFixed(2)}, Current ${currentUsedMargin.toFixed(2)}`);
+
+            // Update to correct margin usage
+            const marginAdjustment = expectedUsedMargin - currentUsedMargin;
+            await updateMarginUsage({
+                owner,
+                usedMarginChange: marginAdjustment
+            });
+
+            console.log(`✅ Migrated ${openPositions.length} positions, adjusted margin by ${marginAdjustment >= 0 ? '+' : ''}${marginAdjustment.toFixed(2)}`);
+        }
+    } catch (error) {
+        console.error(`❌ Error migrating positions for user ${owner}:`, error);
+    }
+}
+
+// Sync P&L for a specific user (with migration support)
 export async function syncUserMarginAccountPnL(owner: string): Promise<void> {
     try {
-        console.log(`🔄 Syncing P&L for user: ${owner}`);
+        console.log(`🔄 Syncing P&L for user: ${owner.substring(0, 8)}...`);
 
         // Get user's open positions
         const allPositions = await listPositions(owner);
         const openPositions = allPositions.filter(p => p.status === 'open');
+
+        // First, migrate any pre-existing positions that weren't tracked in margin system
+        await migrateExistingPositions(owner, openPositions);
 
         let totalUnrealizedPnL = 0;
 
@@ -146,8 +189,11 @@ export async function syncUserMarginAccountPnL(owner: string): Promise<void> {
             unrealizedPnL: totalUnrealizedPnL
         });
 
-        console.log(`💹 Updated P&L for ${owner}: ${totalUnrealizedPnL >= 0 ? '+' : ''}$${totalUnrealizedPnL.toFixed(2)} (${openPositions.length} positions)`);
+        console.log(`💹 Updated P&L for ${owner.substring(0, 8)}: ${totalUnrealizedPnL >= 0 ? '+' : ''}$${totalUnrealizedPnL.toFixed(2)} (${openPositions.length} positions)`);
     } catch (error) {
-        console.error(`❌ Error syncing P&L for user ${owner}:`, error);
+        console.error(`❌ Error syncing P&L for user ${owner.substring(0, 8)}:`, error);
     }
-} 
+}
+
+// Export migration function for external use
+export { migrateExistingPositions }; 
