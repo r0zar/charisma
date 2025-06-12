@@ -1,0 +1,284 @@
+"use client";
+
+import React, { useState } from 'react';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
+import {
+    Wallet,
+    Plus,
+    Minus,
+    RotateCcw,
+    AlertTriangle,
+    HelpCircle
+} from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { useMarginAccountAPI } from '../../hooks/useMarginAccountAPI';
+import { usePerpetualPositions } from '../../hooks/usePerps';
+import MarginDepositWithdrawDialog from './MarginDepositWithdrawDialog';
+
+export default function MarginControlsCompact() {
+    const {
+        account,
+        resetAccount,
+        getLiquidationRisk,
+        isMarginCallLevel,
+        formatBalance
+    } = useMarginAccountAPI();
+
+    const { positions } = usePerpetualPositions();
+
+    // Use margin account state as source of truth - if margin is used, we have active positions
+    // This ensures the UI reflects what the margin account actually knows about
+    const hasActivePositions = account ? account.usedMargin > 0 : false;
+    const openPositionCount = hasActivePositions ? positions.filter(p => p.status === 'open').length : 0;
+
+    const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+    const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+
+    // Skeleton loading state that matches the full layout
+    if (!account) {
+        return (
+            <>
+                <Card className="p-3 h-fit">
+                    {/* Header - Keep static elements, skeleton dynamic ones */}
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                            <Wallet className="w-4 h-4 text-muted-foreground" />
+                            <h3 className="font-semibold text-sm">Margin Account</h3>
+                            <Badge variant="secondary" className="text-xs">Preview</Badge>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                            {/* Position badge will appear here when data loads */}
+                        </div>
+                    </div>
+
+                    {/* Account Balance Grid - Keep labels, skeleton values */}
+                    <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                        <div>
+                            <div className="text-muted-foreground">Equity</div>
+                            <div className="h-4 w-16 bg-muted/50 rounded animate-pulse mt-0.5"></div>
+                        </div>
+                        <div>
+                            <div className="text-muted-foreground">Available</div>
+                            <div className="h-4 w-16 bg-muted/50 rounded animate-pulse mt-0.5"></div>
+                        </div>
+                    </div>
+
+                    {/* Margin Utilization - Keep structure, skeleton values */}
+                    <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center space-x-1">
+                                <span className="text-xs text-muted-foreground">Used:</span>
+                                <div className="h-3 w-12 bg-muted/50 rounded animate-pulse"></div>
+                            </div>
+                            <div className="h-3 w-8 bg-muted/50 rounded animate-pulse"></div>
+                        </div>
+                        {/* Skeleton progress bar */}
+                        <div className="h-1.5 bg-muted/30 rounded overflow-hidden">
+                            <div className="h-full w-0 bg-muted/50 animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    {/* Risk Level - Keep structure, skeleton content */}
+                    <div className="rounded p-2 mb-3 bg-muted/10 border border-muted/20">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1">
+                                <span className="text-xs text-muted-foreground">Risk:</span>
+                                <div className="h-3 w-8 bg-muted/50 rounded animate-pulse"></div>
+                            </div>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
+                        </div>
+                    </div>
+
+                    {/* Quick Actions - Keep buttons, disable them */}
+                    <div className="grid grid-cols-3 gap-1.5">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="text-xs h-7 opacity-50"
+                        >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="text-xs h-7 opacity-50"
+                        >
+                            <Minus className="w-3 h-3 mr-1" />
+                            Take
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="text-xs h-7 opacity-50"
+                        >
+                            <RotateCcw className="w-3 h-3" />
+                        </Button>
+                    </div>
+
+                    {/* Skeleton P&L section (might appear based on position data) */}
+                    <div className="mt-3 pt-2 border-t border-border/40 opacity-50">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Unrealized P&L:</span>
+                            <div className="h-3 w-16 bg-muted/50 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Don't show dialogs during loading */}
+            </>
+        );
+    }
+
+    const liquidationRisk = getLiquidationRisk();
+    const marginCallLevel = isMarginCallLevel();
+
+    // Risk colors based on margin ratio
+    const getRiskColor = (risk: 'low' | 'medium' | 'high') => {
+        switch (risk) {
+            case 'high': return 'text-red-500 bg-red-500/10 border-red-500/20';
+            case 'medium': return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+            default: return 'text-green-500 bg-green-500/10 border-green-500/20';
+        }
+    };
+
+    return (
+        <>
+            <Card className="p-3 h-fit">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                        <Wallet className="w-4 h-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-sm">Margin Account</h3>
+                        <Badge variant="secondary" className="text-xs">Preview</Badge>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        {/* Only show position count if margin account confirms active positions */}
+                        {hasActivePositions && openPositionCount > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                                {openPositionCount} pos
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+
+                {/* Account Balance - Compact Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                    <div>
+                        <div className="text-muted-foreground">Equity</div>
+                        <div className="font-medium">{formatBalance(account.accountEquity)}</div>
+                    </div>
+                    <div>
+                        <div className="text-muted-foreground">Available</div>
+                        <div className="font-medium text-green-600">{formatBalance(account.freeMargin)}</div>
+                    </div>
+                </div>
+
+                {/* Margin Utilization - Compact */}
+                <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">Used: {formatBalance(account.usedMargin)}</span>
+                        <span className="text-xs font-medium">{account.marginRatio.toFixed(1)}%</span>
+                    </div>
+                    <Progress
+                        value={account.marginRatio}
+                        className="h-1.5"
+                        indicatorClassName={`${account.marginRatio > 80 ? 'bg-red-500' :
+                            account.marginRatio > 50 ? 'bg-yellow-500' :
+                                'bg-green-500'
+                            }`}
+                    />
+                    {marginCallLevel && (
+                        <div className="flex items-center mt-1">
+                            <AlertTriangle className="w-3 h-3 text-yellow-500 mr-1" />
+                            <span className="text-xs text-yellow-600 dark:text-yellow-400">Margin Call</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Risk Level - Compact */}
+                <div className={`rounded p-2 mb-3 ${getRiskColor(liquidationRisk)}`}>
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">
+                            Risk: {liquidationRisk.toUpperCase()}
+                        </span>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <HelpCircle className="w-3 h-3" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="end">
+                                <p className="max-w-xs text-xs">
+                                    <strong>Low:</strong> &lt;50% margin used<br />
+                                    <strong>Medium:</strong> 50-80% margin used<br />
+                                    <strong>High:</strong> &gt;80% margin used
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                </div>
+
+                {/* Quick Actions - Horizontal Layout */}
+                <div className="grid grid-cols-3 gap-1.5">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDepositDialogOpen(true)}
+                        className="text-xs h-7"
+                    >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setWithdrawDialogOpen(true)}
+                        disabled={account.freeMargin <= 0}
+                        className="text-xs h-7"
+                    >
+                        <Minus className="w-3 h-3 mr-1" />
+                        Take
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetAccount}
+                        className="text-xs h-7"
+                    >
+                        <RotateCcw className="w-3 h-3" />
+                    </Button>
+                </div>
+
+                {/* P&L Display if margin account has active positions */}
+                {hasActivePositions && account && (
+                    <div className="mt-3 pt-2 border-t border-border/40">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Unrealized P&L:</span>
+                            <span className={`font-medium ${account.unrealizedPnL > 0 ? 'text-green-500' :
+                                account.unrealizedPnL < 0 ? 'text-red-500' : ''
+                                }`}>
+                                {account.unrealizedPnL >= 0 ? '+' : ''}{formatBalance(account.unrealizedPnL)}
+                            </span>
+                        </div>
+                    </div>
+                )}
+            </Card>
+
+            {/* Deposit/Withdraw Dialogs */}
+            <MarginDepositWithdrawDialog
+                type="deposit"
+                open={depositDialogOpen}
+                onOpenChange={setDepositDialogOpen}
+            />
+            <MarginDepositWithdrawDialog
+                type="withdraw"
+                open={withdrawDialogOpen}
+                onOpenChange={setWithdrawDialogOpen}
+            />
+        </>
+    );
+} 

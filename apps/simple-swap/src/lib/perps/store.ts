@@ -1,6 +1,7 @@
 import { PerpetualPosition, NewPerpetualPositionRequest } from './types';
 // @ts-ignore: vercel/kv runtime import without types
 import { kv } from '@vercel/kv';
+import { updateMarginUsage } from '../margin/store';
 
 const PERPS_HASH_KEY = 'perpetual_positions'; // Redis hash for perp positions
 
@@ -54,12 +55,23 @@ export async function closePosition(
     const position = await getPosition(uuid);
     if (!position || position.status !== 'open') return undefined;
 
+    const marginToRelease = parseFloat(position.marginRequired);
+
     position.status = 'closed';
     position.closePrice = closePrice;
     position.closeReason = closeReason;
     position.closeTimestamp = new Date().toISOString();
 
     await updatePosition(position);
+
+    // Release margin back to account
+    await updateMarginUsage({
+        owner: position.owner,
+        usedMarginChange: -marginToRelease
+    });
+
+    console.log(`💰 Released ${marginToRelease.toFixed(2)} margin for closed position ${uuid.substring(0, 8)}`);
+
     return position;
 }
 
@@ -83,6 +95,7 @@ export async function cancelPosition(uuid: string): Promise<PerpetualPosition | 
     // Handle both pending and open positions
     if (position.status === 'pending' || position.status === 'open') {
         const wasOpen = position.status === 'open';
+        const marginToRelease = parseFloat(position.marginRequired);
 
         position.status = 'closed';
         position.closeReason = 'manual';
@@ -95,6 +108,14 @@ export async function cancelPosition(uuid: string): Promise<PerpetualPosition | 
         }
 
         await updatePosition(position);
+
+        // Release margin back to account
+        await updateMarginUsage({
+            owner: position.owner,
+            usedMarginChange: -marginToRelease
+        });
+
+        console.log(`💰 Released ${marginToRelease.toFixed(2)} margin for cancelled position ${uuid.substring(0, 8)}`);
     }
     return position;
 } 

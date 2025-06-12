@@ -40,20 +40,6 @@ interface DisplayOrder extends LimitOrder {
     baseAssetMeta?: TokenCacheData | null;
 }
 
-interface TimeframeOption {
-    label: string;
-    value: string;
-    hours: number;
-}
-
-const timeframes: TimeframeOption[] = [
-    { label: '1H', value: '1h', hours: 1 },
-    { label: '4H', value: '4h', hours: 4 },
-    { label: '1D', value: '1d', hours: 24 },
-    { label: '1W', value: '1w', hours: 168 },
-    { label: '1M', value: '1m', hours: 720 },
-];
-
 interface ProModeChartProps {
     token: TokenCacheData;
     baseToken?: TokenCacheData | null;
@@ -117,7 +103,7 @@ export default function ProModeChart({
     const targetAreaRef = useRef<ISeriesApi<'Area'> | null>(null);
     const orderLinesRef = useRef<IPriceLine[]>([]);
 
-    const [selectedTimeframe, setSelectedTimeframe] = useState('1d');
+    const [selectedTimeframe, setSelectedTimeframe] = useState('4d');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<LineData[] | null>(null);

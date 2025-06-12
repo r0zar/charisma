@@ -39,6 +39,8 @@ function ProModeLayoutContent() {
         handleSwitchTokensEnhanced,
     } = useSwapContext();
 
+    // Note: Margin account syncing now handled by backend API
+
     // Keyboard event handler
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -218,11 +220,14 @@ function ProModeLayoutContent() {
     return (
         <div className="fixed inset-0 bg-background z-50 flex">
             {/* Left Sidebar - Order Type Selection */}
-            <div className={`
-                transition-all duration-300 ease-in-out border-r border-border/40 bg-card/50 backdrop-blur-sm
-                ${leftSidebarCollapsed ? 'w-12 sm:w-16' : 'w-64 sm:w-80'}
-                ${leftSidebarCollapsed ? 'overflow-hidden' : ''}
-            `}>
+            <div
+                data-sidebar="left"
+                className={`
+                    transition-all duration-300 ease-in-out border-r border-border/40 bg-card/50 backdrop-blur-sm
+                    ${leftSidebarCollapsed ? 'w-12 sm:w-16' : 'w-64 sm:w-80'}
+                    ${leftSidebarCollapsed ? 'overflow-hidden' : ''}
+                `}
+            >
                 <OrderTypeSelector collapsed={leftSidebarCollapsed} />
             </div>
 
@@ -239,10 +244,13 @@ function ProModeLayoutContent() {
             </div>
 
             {/* Right Sidebar - Orders */}
-            <div className={`
-                transition-all duration-300 ease-in-out border-l border-border/40 bg-card/50 backdrop-blur-sm
-                ${rightSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-80 sm:w-96'}
-            `}>
+            <div
+                data-sidebar="right"
+                className={`
+                    transition-all duration-300 ease-in-out border-l border-border/40 bg-card/50 backdrop-blur-sm
+                    ${rightSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-80 sm:w-96'}
+                `}
+            >
                 <OrdersSidebar collapsed={rightSidebarCollapsed} />
             </div>
 

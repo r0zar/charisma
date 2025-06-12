@@ -64,7 +64,7 @@ export default function DCAOrderForm() {
     } = useSwapContext();
 
     return (
-        <div className="grid grid-cols-3 gap-3 max-w-4xl">
+        <div data-order-form="dca" className="grid grid-cols-3 gap-3 max-w-4xl">
             {/* Total Amount */}
             <div className="space-y-1">
                 <div className="flex items-center justify-between">

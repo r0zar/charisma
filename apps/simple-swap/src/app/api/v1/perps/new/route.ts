@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { NewPerpetualPositionRequest } from '@/lib/perps/types';
 import { addPosition } from '@/lib/perps/store';
+import { getMarginAccount, canOpenPosition, updateMarginUsage } from '@/lib/margin/store';
 import { callReadOnlyFunction } from '@repo/polyglot';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import {
@@ -79,6 +80,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Leverage too high' }, { status: 400 });
         }
 
+        // ----- Margin Account Validation -----
+        const marginAccount = await getMarginAccount(parsed.owner);
+        const marginNeeded = parseFloat(marginRequired);
+
+        if (!canOpenPosition(marginAccount, marginNeeded)) {
+            return NextResponse.json({
+                error: `Insufficient margin. Required: $${marginNeeded.toFixed(2)}, Available: $${marginAccount.freeMargin.toFixed(2)}`
+            }, { status: 400 });
+        }
+
         // Build complete position request with server-calculated values
         const completeRequest: NewPerpetualPositionRequest = {
             ...parsed,
@@ -126,7 +137,17 @@ export async function POST(req: Request) {
         //     return NextResponse.json({ error: 'Signature verification failed' }, { status: 400 });
         // }
 
+        // Create the position
         const position = await addPosition(completeRequest);
+
+        // Deduct margin from account (position is now pending)
+        await updateMarginUsage({
+            owner: parsed.owner,
+            usedMarginChange: marginNeeded
+        });
+
+        console.log(`💰 Deducted ${marginNeeded.toFixed(2)} margin for position ${parsed.uuid.substring(0, 8)}`);
+
         return NextResponse.json({ status: 'success', data: position });
     } catch (err) {
         console.error('Create perp position error', err);

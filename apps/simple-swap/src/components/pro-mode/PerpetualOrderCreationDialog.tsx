@@ -8,6 +8,7 @@ import { CheckCircle, XCircle, Clock, TrendingUp, TrendingDown, Info, AlertTrian
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useSwapContext } from '../../contexts/swap-context';
 import { useWallet } from '../../contexts/wallet-context';
+import { useMarginAccountAPI } from '../../hooks/useMarginAccountAPI';
 import { useCreatePerpetualPosition } from '../../hooks/usePerps';
 import { toast } from 'sonner';
 
@@ -32,6 +33,12 @@ export default function PerpetualOrderCreationDialog() {
 
     const { address } = useWallet();
     const { createPosition, isLoading: isCreatingPosition } = useCreatePerpetualPosition();
+    const {
+        account,
+        canOpenPosition,
+        updateMarginUsage,
+        formatBalance
+    } = useMarginAccountAPI();
 
     const { isOpen, phase, order, errors, previewMode } = perpetualCreationState;
 
@@ -39,6 +46,14 @@ export default function PerpetualOrderCreationDialog() {
     const startCreation = useCallback(async () => {
         if (!order || !selectedFromToken || !selectedToToken || !address || !tradingPairBase) {
             toast.error('Missing required data for position creation');
+            return;
+        }
+
+        // Check margin requirements BEFORE creating position
+        const marginRequired = perpetualMarginRequired;
+        if (!account || !canOpenPosition(marginRequired)) {
+            const shortfall = account ? marginRequired - account.freeMargin : marginRequired;
+            toast.error(`Insufficient margin. Need ${formatBalance(shortfall)} more to open this position.`);
             return;
         }
 
@@ -79,6 +94,12 @@ export default function PerpetualOrderCreationDialog() {
             // Note: Backend will calculate marginRequired and liquidationPrice for security
             const createdPosition = await createPosition(positionData);
 
+            // SUCCESS: Update margin usage in backend (position is now pending)
+            const actualMarginRequired = parseFloat(createdPosition.marginRequired);
+            await updateMarginUsage(actualMarginRequired);
+
+            console.log(`💰 Margin deducted: ${formatBalance(actualMarginRequired)} (Position: ${uuid.substring(0, 8)})`);
+
             setPerpetualCreationState(prev => ({
                 ...prev,
                 order: prev.order ? { ...prev.order, status: 'success', uuid } : null,
@@ -88,7 +109,7 @@ export default function PerpetualOrderCreationDialog() {
             // Position created successfully - it will appear in the sidebar within 60 seconds via automatic polling
             console.log('✅ Position created successfully');
 
-            toast.success('Perpetual position created successfully!');
+            toast.success(`Position created! ${formatBalance(actualMarginRequired)} margin allocated.`);
 
             // Refresh positions list to immediately show the new position
             await refetchPerpetualPositions();
@@ -101,7 +122,7 @@ export default function PerpetualOrderCreationDialog() {
                 phase: 'preview' // Go back to preview on error
             }));
         }
-    }, [order, selectedFromToken, selectedToToken, address, tradingPairBase, perpetualMarginRequired, perpetualLiquidationPrice, createPosition, setPerpetualCreationState, refetchPerpetualPositions]);
+    }, [order, selectedFromToken, selectedToToken, address, tradingPairBase, perpetualMarginRequired, perpetualLiquidationPrice, createPosition, setPerpetualCreationState, refetchPerpetualPositions, canOpenPosition, account?.freeMargin, formatBalance, updateMarginUsage]);
 
     // Close dialog and cleanup
     const closeDialog = useCallback(() => {

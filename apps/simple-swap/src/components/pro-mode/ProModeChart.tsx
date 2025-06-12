@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useSwapContext } from '../../contexts/swap-context';
+import { useLayoutObserver } from '../../hooks/useLayoutObserver';
 // Import the existing ProModeChart component
 import OriginalProModeChart from '../swap-interface/ProModeChart';
 
@@ -45,46 +46,20 @@ export default function ProModeChart() {
     const chartBaseToken = selectedFromToken;  // Always use the token selected in the form
     const chartQuoteToken = selectedToToken;   // Always use the token selected in the form
 
-    // Trigger chart resize when order type changes to ensure proper layout
-    useEffect(() => {
-        // Multiple resize attempts to ensure chart adapts to new container size
-        const triggerResize = () => {
-            // Dispatch resize event for window listeners
-            window.dispatchEvent(new Event('resize'));
-
-            // Also trigger a custom event that the chart can listen for
-            window.dispatchEvent(new CustomEvent('chartContainerResize'));
-        };
-
-        // Store timeout IDs for cleanup
-        let timeout1: NodeJS.Timeout;
-        let timeout2: NodeJS.Timeout;
-
-        // Use requestAnimationFrame to ensure DOM has updated
-        const frame1 = requestAnimationFrame(() => {
-            // First attempt after 1 frame
-            triggerResize();
-
-            // Second attempt after a short delay for form animation completion
-            timeout1 = setTimeout(() => {
-                triggerResize();
-            }, 150);
-
-            // Third attempt after a longer delay to catch any slow layout changes
-            timeout2 = setTimeout(() => {
-                triggerResize();
-            }, 300);
-        });
-
-        return () => {
-            cancelAnimationFrame(frame1);
-            clearTimeout(timeout1);
-            clearTimeout(timeout2);
-        };
-    }, [selectedOrderType]);
+    // Use layout observer to automatically resize chart when order forms change height
+    const { triggerChartResize } = useLayoutObserver([
+        selectedOrderType,
+        // Include other dependencies that might affect layout
+        sandwichBuyPrice,
+        sandwichSellPrice,
+        perpetualEntryPrice,
+        perpetualStopLoss,
+        perpetualTakeProfit,
+        perpetualChartState
+    ]);
 
     return (
-        <div className="flex-1 p-4 flex flex-col min-h-0">
+        <div className="flex-1 p-4 flex flex-col min-h-0 overflow-hidden">
             {chartBaseToken && chartQuoteToken ? (
                 <div className="relative flex-1">
                     <OriginalProModeChart
