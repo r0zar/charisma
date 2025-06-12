@@ -17,13 +17,27 @@ export async function saveFundingRequest(request: FundingRequest): Promise<void>
  */
 export async function getFundingRequest(id: string): Promise<FundingRequest | null> {
     try {
-        const requestStr = await kv.hget(FUNDING_REQUESTS_HASH_KEY, id);
-        if (!requestStr) {
+        const requestData = await kv.hget(FUNDING_REQUESTS_HASH_KEY, id);
+        if (!requestData) {
             console.log(`📭 Funding request ${id} not found in KV storage`);
             return null;
         }
 
-        const request = JSON.parse(requestStr as string) as FundingRequest;
+        let request: FundingRequest;
+
+        if (typeof requestData === 'string') {
+            // Parse JSON string
+            request = JSON.parse(requestData) as FundingRequest;
+        } else if (typeof requestData === 'object' && requestData !== null) {
+            // Handle legacy object storage
+            request = requestData as FundingRequest;
+            // Re-save as JSON string to fix storage format
+            await saveFundingRequest(request);
+        } else {
+            console.error(`❌ Invalid funding request data type for ${id}:`, typeof requestData);
+            return null;
+        }
+
         console.log(`📦 Retrieved funding request ${id} from KV storage`);
         return request;
     } catch (error) {
@@ -38,9 +52,32 @@ export async function getFundingRequest(id: string): Promise<FundingRequest | nu
 export async function getAllFundingRequests(): Promise<FundingRequest[]> {
     try {
         const requestsHash = await kv.hgetall(FUNDING_REQUESTS_HASH_KEY) || {};
-        const requests = Object.values(requestsHash).map(requestStr =>
-            JSON.parse(requestStr as string) as FundingRequest
-        );
+        const requests: FundingRequest[] = [];
+
+        for (const [key, value] of Object.entries(requestsHash)) {
+            try {
+                let request: FundingRequest;
+
+                if (typeof value === 'string') {
+                    // Try to parse as JSON string
+                    request = JSON.parse(value) as FundingRequest;
+                } else if (typeof value === 'object' && value !== null) {
+                    // Handle legacy object storage
+                    request = value as FundingRequest;
+                    // Re-save as JSON string to fix storage format
+                    await saveFundingRequest(request);
+                } else {
+                    console.warn(`⚠️ Skipping invalid funding request data for key ${key}:`, value);
+                    continue;
+                }
+
+                requests.push(request);
+            } catch (parseError) {
+                console.error(`❌ Failed to parse funding request ${key}:`, parseError, 'Raw value:', value);
+                // Skip this invalid entry but continue with others
+                continue;
+            }
+        }
 
         console.log(`📦 Retrieved ${requests.length} funding requests from KV storage`);
         return requests;
