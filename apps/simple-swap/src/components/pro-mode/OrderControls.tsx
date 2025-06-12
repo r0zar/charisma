@@ -16,15 +16,15 @@ export default function OrderControls() {
             {/* Just Order Form and Preview - No information panel */}
             <div
                 data-order-form-container
-                className="flex flex-col lg:flex-row gap-3 lg:gap-6 min-h-0"
+                className="flex flex-col xl:flex-row gap-3 xl:gap-6 min-h-0"
             >
                 {/* Order Form Controls */}
                 <div className="flex-1 min-w-0">
                     <OrderForm />
                 </div>
 
-                {/* Order Preview */}
-                <div className="w-full lg:w-auto lg:flex-shrink-0">
+                {/* Order Preview - responsive container */}
+                <div className="w-full xl:w-auto xl:flex-shrink-0">
                     <OrderPreview />
                 </div>
             </div>

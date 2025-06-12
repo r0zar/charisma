@@ -47,7 +47,7 @@ export default function SingleOrderPreview() {
 
     if (!hasValidData) {
         return (
-            <div className="w-80 flex-shrink-0">
+            <div className="w-full xl:w-80 xl:flex-shrink-0">
                 <div className="bg-background/60 border border-border/60 rounded-lg p-4">
                     <div className="flex items-center space-x-2 mb-3">
                         <h4 className="font-semibold text-foreground">Order Preview</h4>
@@ -61,7 +61,7 @@ export default function SingleOrderPreview() {
     }
 
     return (
-        <div className="w-80 flex-shrink-0">
+        <div className="w-full xl:w-80 xl:flex-shrink-0">
             <div className="bg-background/60 border border-border/60 rounded-lg p-4">
                 <div className="flex items-center space-x-2 mb-3">
                     <h4 className="font-semibold text-foreground">Order Preview</h4>

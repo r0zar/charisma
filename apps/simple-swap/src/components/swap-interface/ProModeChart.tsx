@@ -645,7 +645,7 @@ export default function ProModeChart({
                     textColor: "#d1d5db",
                     entireTextOnly: false,
                     ticksVisible: true,
-                    minimumWidth: 150,
+                    minimumWidth: 75,
                 },
                 crosshair: {
                     mode: 0, // Normal crosshair mode
@@ -1904,15 +1904,7 @@ export default function ProModeChart({
             {/* Chart Container */}
             <div ref={containerRef} className="flex-1 min-h-0" />
 
-            {/* Real-time data indicator */}
-            {isShowingRealTimeData && (
-                <div className="absolute top-2 right-2 z-10">
-                    <div className="flex items-center gap-1 bg-green-500/20 border border-green-500/30 rounded-md px-2 py-1 text-xs text-green-400">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        LIVE
-                    </div>
-                </div>
-            )}
+
 
             {/* Sandwich Preview Overlay */}
             <SandwichPreviewOverlay
