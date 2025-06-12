@@ -36,6 +36,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
     const [contractId, setContractId] = useState('');
     const [vaultType, setVaultType] = useState('POOL');
     const [protocol, setProtocol] = useState('CHARISMA');
+    const [externalPoolId, setExternalPoolId] = useState('');
 
     // LP Token fields
     const [lpName, setLpName] = useState('');
@@ -68,6 +69,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
         setContractId('');
         setVaultType('POOL');
         setProtocol('CHARISMA');
+        setExternalPoolId('');
         setLpName('');
         setLpSymbol('');
         setLpDecimals('6');
@@ -219,7 +221,8 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                     image: lpImage,
                     lpRebatePercent: parseFloat(feePercent),
                     type: vaultType,
-                    protocol: protocol
+                    protocol: protocol,
+                    externalPoolId: externalPoolId || undefined
                 },
                 tokenA: tokenAContract ? {
                     contractId: tokenAContract,
@@ -359,7 +362,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="protocol">Protocol</Label>
                                 <Select value={protocol} onValueChange={setProtocol}>
@@ -368,7 +371,8 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="CHARISMA">CHARISMA</SelectItem>
-                                        <SelectItem value="ARKADIKO">ARKADIKO</SelectItem>
+                                        <SelectItem value="BITFLOW">BITFLOW</SelectItem>
+                                        <SelectItem value="VELAR">VELAR</SelectItem>
                                         <SelectItem value="ALEX">ALEX</SelectItem>
                                         <SelectItem value="OTHER">OTHER</SelectItem>
                                     </SelectContent>
@@ -383,6 +387,15 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                                     value={feePercent}
                                     onChange={(e) => setFeePercent(e.target.value)}
                                     placeholder="3.00"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="externalPoolId">External Pool ID</Label>
+                                <Input
+                                    id="externalPoolId"
+                                    value={externalPoolId}
+                                    onChange={(e) => setExternalPoolId(e.target.value)}
+                                    placeholder="pool-123"
                                 />
                             </div>
                         </div>
