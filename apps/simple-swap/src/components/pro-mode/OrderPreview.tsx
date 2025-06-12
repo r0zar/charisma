@@ -5,6 +5,7 @@ import { useProModeContext } from '../../contexts/pro-mode-context';
 import SingleOrderPreview from './SingleOrderPreview';
 import DCAOrderPreview from './DCAOrderPreview';
 import SandwichOrderPreview from './SandwichOrderPreview';
+import PerpetualOrderPreview from './PerpetualOrderPreview';
 
 export default function OrderPreview() {
     const { selectedOrderType } = useProModeContext();
@@ -16,6 +17,8 @@ export default function OrderPreview() {
             return <DCAOrderPreview />;
         case 'sandwich':
             return <SandwichOrderPreview />;
+        case 'perpetual':
+            return <PerpetualOrderPreview />;
         default:
             return <SingleOrderPreview />;
     }

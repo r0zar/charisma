@@ -7,6 +7,8 @@ import { useSwapContext } from '../../contexts/swap-context';
 // Import the existing ProModeChart component
 import OriginalProModeChart from '../swap-interface/ProModeChart';
 
+
+
 export default function ProModeChart() {
     const {
         tradingPairBase,
@@ -23,50 +25,103 @@ export default function ProModeChart() {
         setSandwichSellPrice,
         sandwichSpread,
         setCurrentPrice,
+        // Perpetual props
+        perpetualDirection,
+        perpetualEntryPrice,
+        perpetualStopLoss,
+        perpetualTakeProfit,
+        perpetualChartState,
+        handlePerpetualChartClick,
+        chartType,
+        candleInterval,
     } = useProModeContext();
 
-    const { conditionToken, selectedToToken } = useSwapContext();
+    const { conditionToken, selectedToToken, selectedFromToken } = useSwapContext();
 
     // Use the condition token or selected to token for the chart
     const chartToken = conditionToken || selectedToToken;
 
+    // Use the tokens selected in the form for all order types
+    const chartBaseToken = selectedFromToken;  // Always use the token selected in the form
+    const chartQuoteToken = selectedToToken;   // Always use the token selected in the form
+
     // Trigger chart resize when order type changes to ensure proper layout
     useEffect(() => {
-        // Small delay to allow the DOM to update first
-        const timeoutId = setTimeout(() => {
-            // Dispatch a resize event to trigger chart recalculation
+        // Multiple resize attempts to ensure chart adapts to new container size
+        const triggerResize = () => {
+            // Dispatch resize event for window listeners
             window.dispatchEvent(new Event('resize'));
-        }, 100);
 
-        return () => clearTimeout(timeoutId);
+            // Also trigger a custom event that the chart can listen for
+            window.dispatchEvent(new CustomEvent('chartContainerResize'));
+        };
+
+        // Store timeout IDs for cleanup
+        let timeout1: NodeJS.Timeout;
+        let timeout2: NodeJS.Timeout;
+
+        // Use requestAnimationFrame to ensure DOM has updated
+        const frame1 = requestAnimationFrame(() => {
+            // First attempt after 1 frame
+            triggerResize();
+
+            // Second attempt after a short delay for form animation completion
+            timeout1 = setTimeout(() => {
+                triggerResize();
+            }, 150);
+
+            // Third attempt after a longer delay to catch any slow layout changes
+            timeout2 = setTimeout(() => {
+                triggerResize();
+            }, 300);
+        });
+
+        return () => {
+            cancelAnimationFrame(frame1);
+            clearTimeout(timeout1);
+            clearTimeout(timeout2);
+        };
     }, [selectedOrderType]);
 
     return (
         <div className="flex-1 p-4 flex flex-col min-h-0">
-            {tradingPairBase && tradingPairQuote ? (
-                <OriginalProModeChart
-                    token={tradingPairQuote}
-                    baseToken={tradingPairBase}
-                    targetPrice={targetPrice}
-                    onTargetPriceChange={setTargetPrice}
-                    userOrders={pairFilteredOrders}
-                    highlightedOrderId={highlightedOrderId}
-                    conditionDir={conditionDir}
-                    isSandwichMode={selectedOrderType === 'sandwich'}
-                    sandwichBuyPrice={sandwichBuyPrice}
-                    sandwichSellPrice={sandwichSellPrice}
-                    onSandwichBuyPriceChange={setSandwichBuyPrice}
-                    onSandwichSellPriceChange={setSandwichSellPrice}
-                    sandwichSpread={sandwichSpread}
-                    onCurrentPriceChange={setCurrentPrice}
-                />
+            {chartBaseToken && chartQuoteToken ? (
+                <div className="relative flex-1">
+                    <OriginalProModeChart
+                        token={chartQuoteToken}
+                        baseToken={chartBaseToken}
+                        targetPrice={targetPrice}
+                        onTargetPriceChange={setTargetPrice}
+                        userOrders={pairFilteredOrders}
+                        highlightedOrderId={highlightedOrderId}
+                        conditionDir={conditionDir}
+                        isSandwichMode={selectedOrderType === 'sandwich'}
+                        sandwichBuyPrice={sandwichBuyPrice}
+                        sandwichSellPrice={sandwichSellPrice}
+                        onSandwichBuyPriceChange={setSandwichBuyPrice}
+                        onSandwichSellPriceChange={setSandwichSellPrice}
+                        sandwichSpread={sandwichSpread}
+                        isPerpetualMode={selectedOrderType === 'perpetual'}
+                        perpetualDirection={perpetualDirection}
+                        perpetualEntryPrice={perpetualEntryPrice}
+                        perpetualStopLoss={perpetualStopLoss}
+                        perpetualTakeProfit={perpetualTakeProfit}
+                        perpetualChartState={perpetualChartState}
+                        onPerpetualChartClick={handlePerpetualChartClick}
+                        onCurrentPriceChange={setCurrentPrice}
+                        chartType={chartType}
+                        candleInterval={candleInterval}
+                    />
+                </div>
             ) : (
                 <div className="h-full flex items-center justify-center">
                     <div className="text-center">
                         <TrendingUp className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-foreground mb-2">Select Trading Pair</h3>
+                        <h3 className="text-xl font-medium text-foreground mb-2">
+                            Select Tokens to Trade
+                        </h3>
                         <p className="text-muted-foreground">
-                            Choose tokens below to start trading
+                            Choose tokens in the form below to view the price chart
                         </p>
                     </div>
                 </div>

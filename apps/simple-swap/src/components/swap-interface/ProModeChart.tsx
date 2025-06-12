@@ -21,13 +21,16 @@ import {
     type IChartApi,
     type ISeriesApi,
     type LineData,
+    type CandlestickData,
     LineSeries,
+    CandlestickSeries,
     AreaSeries,
     ColorType,
     type IPriceLine,
     LineStyle,
 } from "lightweight-charts";
 import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
+import { useSwapContext } from '@/contexts/swap-context';
 
 // Enriched order type with token metadata
 interface DisplayOrder extends LimitOrder {
@@ -66,8 +69,18 @@ interface ProModeChartProps {
     onSandwichBuyPriceChange?: (price: string) => void;
     onSandwichSellPriceChange?: (price: string) => void;
     sandwichSpread?: string;
+    // Perpetual mode props
+    isPerpetualMode?: boolean;
+    perpetualDirection?: 'long' | 'short';
+    perpetualEntryPrice?: string;
+    perpetualStopLoss?: string;
+    perpetualTakeProfit?: string;
+    perpetualChartState?: any; // Will be typed properly
+    onPerpetualChartClick?: (price: number) => void;
     // Current price callback
     onCurrentPriceChange?: (price: number | null) => void;
+    chartType?: 'line' | 'candles';
+    candleInterval?: string;
 }
 
 export default function ProModeChart({
@@ -84,11 +97,22 @@ export default function ProModeChart({
     onSandwichBuyPriceChange,
     onSandwichSellPriceChange,
     sandwichSpread,
-    onCurrentPriceChange
+    isPerpetualMode,
+    perpetualDirection = 'long',
+    perpetualEntryPrice,
+    perpetualStopLoss,
+    perpetualTakeProfit,
+    perpetualChartState,
+    onPerpetualChartClick,
+    onCurrentPriceChange,
+    chartType = 'line',
+    candleInterval = '4h'
 }: ProModeChartProps) {
+    // Access real-time price data from context
+    const { getUsdPrice } = useSwapContext();
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
-    const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+    const seriesRef = useRef<any>(null);
     const priceLineRef = useRef<IPriceLine | null>(null);
     const targetAreaRef = useRef<ISeriesApi<'Area'> | null>(null);
     const orderLinesRef = useRef<IPriceLine[]>([]);
@@ -97,16 +121,40 @@ export default function ProModeChart({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<LineData[] | null>(null);
-    const [crosshairMode, setCrosshairMode] = useState(false);
+
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [priceChange, setPriceChange] = useState<{ value: number; percentage: number } | null>(null);
+    const [isShowingRealTimeData, setIsShowingRealTimeData] = useState(false);
 
-    // Sandwich mode state
-    const [mousePrice, setMousePrice] = useState<number | null>(null);
-    const [sandwichConfirmedLines, setSandwichConfirmedLines] = useState<{
+    // Store visible range to preserve user's view during data updates (useRef to avoid rerenders)
+    const preservedTimeRangeRef = useRef<{ from: number; to: number } | null>(null);
+    const preservedPriceRangeRef = useRef<{ from: number; to: number } | null>(null);
+    const isInitialLoadRef = useRef(true);
+
+
+
+    // Store original historic data (without real-time enhancements) for clean re-enhancement
+    const historicDataRef = useRef<LineData[]>([]);
+
+    // Store the current noisy data to avoid re-renders from noise updates
+    const noisyDataRef = useRef<LineData[] | null>(null);
+
+    // Store price momentum for more realistic simulation
+    const priceMomentumRef = useRef<number>(0); // -1 to 1, represents current trend direction
+
+    // Track structural properties to detect when full recreation is needed
+    const prevStructuralProps = useRef({ chartType, candleInterval });
+
+    // Sandwich mode state (useRef for chart objects, useState only for UI-affecting values)
+    const mousePriceRef = useRef<number | null>(null);
+    const [mousePrice, setMousePrice] = useState<number | null>(null); // Keep for UI updates
+    const sandwichConfirmedLinesRef = useRef<{
         buyLine: IPriceLine | null;
         sellLine: IPriceLine | null;
     }>({ buyLine: null, sellLine: null });
+
+    // Perpetual mode hover preview state (useRef to avoid rerenders)
+
 
     // Add refs to track confirmed lines more reliably
     const confirmedLinesRef = useRef<{
@@ -122,13 +170,31 @@ export default function ProModeChart({
         currentSpreadRef.current = sandwichSpread || '5';
     }, [sandwichSpread]);
 
-    // Calculate price change
+    // Helper function to get price from data point
+    const getDataPointPrice = useCallback((dataPoint: any): number => {
+        if ('value' in dataPoint) {
+            return dataPoint.value; // Line data
+        } else if ('close' in dataPoint) {
+            return dataPoint.close; // Candlestick data
+        }
+        return 0;
+    }, []);
+
+
+
+    // Calculate price change using noisy data when available
     useEffect(() => {
-        if (data && data.length > 1) {
-            const latest = data[data.length - 1].value;
-            const previous = data[data.length - 2].value;
+        // Use noisy data if available, otherwise fall back to regular data
+        const currentData = noisyDataRef.current || data;
+
+        if (currentData && currentData.length > 1) {
+            const latest = getDataPointPrice(currentData[currentData.length - 1]);
+            const previous = getDataPointPrice(currentData[currentData.length - 2]);
             const change = latest - previous;
             const percentage = (change / previous) * 100;
+
+            console.log(`💰 Current price updated: ${latest.toFixed(8)} (change: ${change > 0 ? '+' : ''}${change.toFixed(8)}, ${percentage > 0 ? '+' : ''}${percentage.toFixed(2)}%)`);
+            console.log(`💰 Sending to parent context: ${latest.toFixed(8)}`);
 
             setCurrentPrice(latest);
             setPriceChange({ value: change, percentage });
@@ -138,9 +204,252 @@ export default function ProModeChart({
                 onCurrentPriceChange(latest);
             }
         }
-    }, [data, onCurrentPriceChange]);
+    }, [data, onCurrentPriceChange, getDataPointPrice]);
 
-    // Fetch chart data
+    // Helper function to convert interval string to minutes
+    const getIntervalMinutes = useCallback((interval: string): number => {
+        const unit = interval.slice(-1);
+        const value = parseInt(interval.slice(0, -1));
+
+        switch (unit) {
+            case 'm': return value;
+            case 'h': return value * 60;
+            case 'd': return value * 60 * 24;
+            case 'w': return value * 60 * 24 * 7;
+            default: return 240; // Default to 4 hours
+        }
+    }, []);
+
+    // Convert line data to candlestick data
+    const convertToCandlestickData = useCallback((lineData: LineData[]): CandlestickData[] => {
+        if (lineData.length === 0) return [];
+
+        // Group data points by time periods based on selected interval
+        const candlestickData: CandlestickData[] = [];
+        const intervalMinutes = getIntervalMinutes(candleInterval);
+        const intervalSeconds = intervalMinutes * 60;
+
+        for (let i = 0; i < lineData.length; i++) {
+            const currentTime = Number(lineData[i].time);
+            const periodStart = Math.floor(currentTime / intervalSeconds) * intervalSeconds;
+
+            // Find all points in this time period
+            const periodPoints = lineData.filter(point => {
+                const pointTime = Number(point.time);
+                return pointTime >= periodStart && pointTime < periodStart + intervalSeconds;
+            });
+
+            if (periodPoints.length === 0) continue;
+
+            // Calculate OHLC for this period
+            const prices = periodPoints.map(p => p.value);
+            const open = periodPoints[0].value;
+            const close = periodPoints[periodPoints.length - 1].value;
+            const high = Math.max(...prices);
+            const low = Math.min(...prices);
+
+            // Only add if we don't already have this period
+            const existingCandle = candlestickData.find(c => Number(c.time) === periodStart);
+            if (!existingCandle) {
+                candlestickData.push({
+                    time: periodStart as any,
+                    open,
+                    high,
+                    low,
+                    close
+                });
+            }
+        }
+
+        return candlestickData.sort((a, b) => Number(a.time) - Number(b.time));
+    }, [candleInterval, getIntervalMinutes]);
+
+    // Functions to preserve chart view state
+    const captureVisibleRange = useCallback(() => {
+        if (!chartRef.current) return;
+
+        try {
+            const timeScale = chartRef.current.timeScale();
+            const priceScale = chartRef.current.priceScale('right');
+
+            const timeRange = timeScale.getVisibleRange();
+            if (timeRange) {
+                preservedTimeRangeRef.current = {
+                    from: Number(timeRange.from),
+                    to: Number(timeRange.to)
+                };
+            }
+
+            // Note: Price range preservation is more complex and depends on the chart's internal state
+            // We'll primarily focus on time range which is the most important for user experience
+        } catch (e) {
+            console.warn('Failed to capture visible range:', e);
+        }
+    }, []);
+
+    const restoreVisibleRange = useCallback(() => {
+        if (!chartRef.current || !preservedTimeRangeRef.current || isInitialLoadRef.current) return;
+
+        try {
+            const timeScale = chartRef.current.timeScale();
+
+            // Small delay to ensure chart has processed the new data
+            setTimeout(() => {
+                if (chartRef.current && preservedTimeRangeRef.current) {
+                    timeScale.setVisibleRange({
+                        from: preservedTimeRangeRef.current.from as any,
+                        to: preservedTimeRangeRef.current.to as any
+                    });
+                }
+            }, 50);
+        } catch (e) {
+            console.warn('Failed to restore visible range:', e);
+        }
+    }, []);
+
+    // Update data without recreating the entire chart
+    const updateChartData = useCallback((newData: LineData[] | CandlestickData[], isRealTimeUpdate = false) => {
+        if (!seriesRef.current || !newData || newData.length === 0) return;
+
+        try {
+            // For real-time updates, don't preserve view - let it show the new data
+            if (!isRealTimeUpdate) {
+                captureVisibleRange();
+            }
+
+            // Update series data
+            if (chartType === 'candles') {
+                const candlestickData = convertToCandlestickData(newData as LineData[]);
+                seriesRef.current.setData(candlestickData);
+            } else {
+                // Always use setData() to ensure complete data consistency
+                seriesRef.current.setData(newData as LineData[]);
+
+                if (isRealTimeUpdate && newData.length > 0) {
+                    const lastPoint = newData[newData.length - 1] as LineData;
+                    console.log('📈 Chart updated with real-time data point:', {
+                        time: lastPoint.time,
+                        value: lastPoint.value,
+                        timeFormatted: new Date(Number(lastPoint.time) * 1000).toISOString()
+                    });
+                }
+            }
+
+            // For real-time updates, ensure the latest data is visible
+            if (isRealTimeUpdate && chartRef.current) {
+                // Get the time of the last data point
+                const lastDataPoint = newData[newData.length - 1];
+                const lastTime = Number((lastDataPoint as LineData).time);
+
+                // Get current visible range
+                const timeScale = chartRef.current.timeScale();
+                const visibleRange = timeScale.getVisibleRange();
+
+                if (visibleRange && lastTime > Number(visibleRange.to)) {
+                    // If the new data point is outside the visible range, adjust the range to show it
+                    const rangeSize = Number(visibleRange.to) - Number(visibleRange.from);
+                    const newTo = lastTime + (rangeSize * 0.1); // Add 10% padding
+                    const newFrom = newTo - rangeSize;
+
+                    timeScale.setVisibleRange({
+                        from: newFrom as any,
+                        to: newTo as any
+                    });
+
+                    console.log('📊 Adjusted time range to show new real-time data point');
+                }
+            } else if (!isRealTimeUpdate) {
+                // For non-real-time updates, restore the preserved view
+                restoreVisibleRange();
+            }
+        } catch (e) {
+            console.warn('Failed to update chart data:', e);
+        }
+    }, [chartType, convertToCandlestickData, captureVisibleRange, restoreVisibleRange]);
+
+    // Function to enhance historic data with real-time price
+    const enhanceWithRealTimePrice = useCallback((historicData: LineData[], tokenToPrice: TokenCacheData, baseTokenToPrice?: TokenCacheData | null): LineData[] => {
+        if (!historicData || historicData.length === 0) return [];
+
+        // Get real-time prices
+        let currentTokenPrice = getUsdPrice(tokenToPrice.contractId);
+        let currentBasePrice: number | undefined;
+
+        // Handle subnet tokens - fallback to base token price
+        if (!currentTokenPrice && tokenToPrice.type === 'SUBNET' && tokenToPrice.base) {
+            currentTokenPrice = getUsdPrice(tokenToPrice.base);
+        }
+
+        console.log('🔍 Real-time price lookup:', {
+            token: tokenToPrice.symbol,
+            contractId: tokenToPrice.contractId,
+            currentTokenPrice,
+            baseToken: baseTokenToPrice?.symbol || 'None'
+        });
+
+        if (baseTokenToPrice?.contractId) {
+            currentBasePrice = getUsdPrice(baseTokenToPrice.contractId);
+            // Handle subnet tokens for base
+            if (!currentBasePrice && baseTokenToPrice.type === 'SUBNET' && baseTokenToPrice.base) {
+                currentBasePrice = getUsdPrice(baseTokenToPrice.base);
+            }
+        }
+
+        // Calculate current price (ratio or direct)
+        let realTimePrice: number | undefined;
+        if (baseTokenToPrice && currentTokenPrice && currentBasePrice) {
+            // If we have a base token, calculate the ratio (base/token)
+            realTimePrice = currentBasePrice / currentTokenPrice;
+            console.log(`📊 RATIO CALCULATION - ${tokenToPrice.symbol}/${baseTokenToPrice.symbol}:`);
+            console.log(`   Token (${tokenToPrice.symbol}) USD price: ${currentTokenPrice}`);
+            console.log(`   Base (${baseTokenToPrice.symbol}) USD price: ${currentBasePrice}`);
+            console.log(`   Calculated ratio (${baseTokenToPrice.symbol}/${tokenToPrice.symbol}): ${realTimePrice}`);
+            console.log(`   This means: 1 ${tokenToPrice.symbol} = ${realTimePrice.toFixed(8)} ${baseTokenToPrice.symbol}`);
+        } else if (currentTokenPrice) {
+            // Direct price
+            realTimePrice = currentTokenPrice;
+            console.log(`📊 DIRECT PRICE - ${tokenToPrice.symbol}: $${realTimePrice}`);
+        }
+
+        // If we don't have a real-time price, return historic data as-is
+        if (!realTimePrice || !isFinite(realTimePrice) || realTimePrice <= 0) {
+            console.warn('No valid real-time price available, using historic data only');
+            setIsShowingRealTimeData(false);
+            return [...historicData];
+        }
+
+        // Create enhanced data array
+        const enhancedData = [...historicData];
+        const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+
+        // Check if the last data point is recent (within last 5 minutes)
+        const lastHistoricPoint = enhancedData[enhancedData.length - 1];
+        const lastHistoricTime = Number(lastHistoricPoint.time);
+        const timeDiffMinutes = (now - lastHistoricTime) / 60;
+
+        if (timeDiffMinutes < 5) {
+            // Replace the last historic point with real-time data
+            enhancedData[enhancedData.length - 1] = {
+                time: now as any,
+                value: realTimePrice
+            };
+            console.log(`🔄 Updated last data point with real-time price: $${realTimePrice.toFixed(8)} (${timeDiffMinutes.toFixed(1)}min ago)`);
+        } else {
+            // Append a new real-time data point
+            enhancedData.push({
+                time: now as any,
+                value: realTimePrice
+            });
+            console.log(`📈 Appended real-time data point: $${realTimePrice.toFixed(8)} (${timeDiffMinutes.toFixed(1)}min gap)`);
+        }
+
+        // Indicate that we're now showing real-time data
+        setIsShowingRealTimeData(true);
+
+        return enhancedData;
+    }, [getUsdPrice]);
+
+    // Fetch chart data and enhance with real-time price
     const loadChart = useCallback(async () => {
         if (!token?.contractId) return;
 
@@ -170,7 +479,17 @@ export default function ProModeChart({
             }
 
             const validData = processedData.filter(isValidDataPoint);
-            setData(validData);
+
+            // Store original historic data for future real-time enhancements
+            historicDataRef.current = validData;
+
+            // Clear any existing noisy data and reset momentum when loading fresh data
+            noisyDataRef.current = null;
+            priceMomentumRef.current = 0;
+
+            // Enhance with real-time price data
+            const enhancedData = enhanceWithRealTimePrice(validData, token, baseToken);
+            setData(enhancedData);
 
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to load chart data";
@@ -179,11 +498,47 @@ export default function ProModeChart({
         } finally {
             setLoading(false);
         }
-    }, [token.contractId, baseToken?.contractId, selectedTimeframe]);
+    }, [token.contractId, baseToken?.contractId, selectedTimeframe, enhanceWithRealTimePrice]);
 
-    // Initialize chart
+    // Separate effect for data-only updates (preserves chart view)
+    useEffect(() => {
+        if (!data || data.length === 0) return;
+
+        // If chart doesn't exist yet, let the chart initialization effect handle it
+        if (!chartRef.current || !seriesRef.current) return;
+
+        // Chart updates are now handled directly for noise data via refs
+
+        // Only update data if chart already exists (not initial creation)
+        if (!isInitialLoadRef.current) {
+            console.log('📊 Updating chart data without recreation (preserving view)');
+            updateChartData(data, false); // Not a real-time update, preserve view
+        } else {
+            console.log('📊 Skipping data-only update - waiting for chart initialization');
+        }
+    }, [data, updateChartData, isInitialLoadRef]);
+
+
+
+    // Initialize chart (only when structure changes, not data)
     useEffect(() => {
         if (!containerRef.current || !data || data.length === 0) return;
+
+        // Check if only data changed (no structural changes)
+        const structuralChanged =
+            prevStructuralProps.current.chartType !== chartType ||
+            prevStructuralProps.current.candleInterval !== candleInterval;
+
+        // If chart exists and only data changed, let the data-only effect handle it
+        if (chartRef.current && seriesRef.current && !structuralChanged && !isInitialLoadRef.current) {
+            console.log('📊 Skipping chart recreation - only data changed');
+            return;
+        }
+
+        console.log('🔄 Recreating chart due to structural changes or initial load');
+
+        // Update tracked structural properties
+        prevStructuralProps.current = { chartType, candleInterval };
 
         // Clean up existing chart
         if (chartRef.current) {
@@ -283,8 +638,8 @@ export default function ProModeChart({
                     fixLeftEdge: false,
                     fixRightEdge: false,
                     lockVisibleTimeRangeOnResize: false,
-                    rightBarStaysOnScroll: false,
-                    shiftVisibleRangeOnNewBar: false,
+                    rightBarStaysOnScroll: false, // Allow normal zoom behavior centered on cursor
+                    shiftVisibleRangeOnNewBar: false, // Don't automatically shift when new data arrives
                     minimumHeight: 0,
                 },
                 leftPriceScale: {
@@ -307,7 +662,7 @@ export default function ProModeChart({
                     minimumWidth: 150,
                 },
                 crosshair: {
-                    mode: crosshairMode ? 1 : 0, // 0 = normal, 1 = magnet
+                    mode: 0, // Normal crosshair mode
                     vertLine: {
                         width: 1,
                         color: '#758694',
@@ -339,14 +694,31 @@ export default function ProModeChart({
                 },
             });
 
-            seriesRef.current = chartRef.current.addSeries(LineSeries, {
-                color: '#3b82f6',
-                lineWidth: 2,
-                priceLineVisible: false,
-                lastValueVisible: true,
-            }) as ISeriesApi<'Line'>;
+            // Create series based on chart type
+            if (chartType === 'candles') {
+                const candlestickData = convertToCandlestickData(data);
+                seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
+                    upColor: '#22c55e',
+                    downColor: '#ef4444',
+                    borderVisible: false,
+                    wickUpColor: '#22c55e',
+                    wickDownColor: '#ef4444',
+                    priceLineVisible: false,
+                    lastValueVisible: true,
+                });
+                seriesRef.current.setData(candlestickData);
+            } else {
+                seriesRef.current = chartRef.current.addSeries(LineSeries, {
+                    color: '#3b82f6',
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                    lastValueVisible: true,
+                });
+                seriesRef.current.setData(data);
+            }
 
-            seriesRef.current.setData(data);
+            // Mark as no longer initial load after first chart creation
+            isInitialLoadRef.current = false;
 
             // Debug: Log data to understand the time range
             console.log('Chart data loaded:', {
@@ -366,10 +738,20 @@ export default function ProModeChart({
             });
 
             if (data.length > 0) {
-                const prices = data.map(d => d.value);
+                const prices = data.map(d => getDataPointPrice(d));
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
                 console.log('Price range:', { minPrice, maxPrice, range: maxPrice - minPrice });
+
+                // Ensure minimum price is never below zero for price data
+                if (minPrice < 0) {
+                    console.warn('Detected negative price values, filtering out invalid data points');
+                    const validPrices = prices.filter(p => p > 0);
+                    if (validPrices.length === 0) {
+                        console.error('All price data is invalid (negative or zero)');
+                        return;
+                    }
+                }
 
                 // Add manual grid lines for better y-axis visibility
                 const priceRange = maxPrice - minPrice;
@@ -451,17 +833,16 @@ export default function ProModeChart({
                             // Create confirmed lines
                             createSandwichConfirmedLines(buyPrice, sellPrice);
                         }
-                    } else {
-                        // Normal mode - single target price
+                    } else if (!isPerpetualMode) {
+                        // Normal mode - single target price (disabled in perpetual mode)
                         onTargetPriceChange(price.toPrecision(9));
                     }
                 }
             };
 
-            // Handle mouse move - no longer creates sandwich preview lines (handled by overlay)
+            // Handle mouse move - handles sandwich mode hover preview
             const handleMouseMove = (param: any) => {
-                // Only track mouse price for potential future use, overlay handles visual feedback
-                if (!isSandwichMode || !seriesRef.current) {
+                if (!seriesRef.current) {
                     setMousePrice(null);
                     return;
                 }
@@ -473,7 +854,10 @@ export default function ProModeChart({
 
                 const price = seriesRef.current.coordinateToPrice(param.point.y);
                 if (price && !isNaN(price)) {
-                    setMousePrice(price);
+                    // Handle sandwich mode (overlay handles visual feedback)
+                    if (isSandwichMode) {
+                        setMousePrice(price);
+                    }
                 } else {
                     setMousePrice(null);
                 }
@@ -481,6 +865,28 @@ export default function ProModeChart({
 
             chartRef.current.subscribeClick(handleClick);
             chartRef.current.subscribeCrosshairMove(handleMouseMove);
+
+            // Subscribe to visible range changes to update fade lines dynamically
+            const handleVisibleRangeChange = () => {
+                // Small delay to ensure chart has updated
+                setTimeout(() => {
+                    // Trigger re-render of fade lines by updating a dummy state
+                    // This will cause the effects to run again with new visible range
+                    if (targetPrice && targetPrice.trim() !== '' && targetPrice !== '0') {
+                        // Force target price effect to re-run
+                        const price = parseFloat(targetPrice);
+                        if (!isNaN(price) && price > 0) {
+                            // The effect will automatically use the new visible range
+                        }
+                    }
+                }, 100);
+            };
+
+            // Listen for time scale changes (zoom/pan)
+            chartRef.current.timeScale().subscribeVisibleTimeRangeChange(handleVisibleRangeChange);
+
+            // Store the handler for cleanup
+            (window as any).visibleRangeHandler = handleVisibleRangeChange;
 
             // Add mouse leave handler
             const handleMouseLeave = () => {
@@ -501,6 +907,21 @@ export default function ProModeChart({
                 // Fit content to show all data initially with some padding
                 if (chartRef.current) {
                     chartRef.current.timeScale().fitContent();
+
+                    // Ensure the price scale doesn't show negative values
+                    if (data.length > 0) {
+                        const prices = data.map(d => getDataPointPrice(d));
+                        const minPrice = Math.min(...prices);
+                        const maxPrice = Math.max(...prices);
+
+                        // Force visible range to start at 0 if we have negative values
+                        if (minPrice < 0) {
+                            const priceScale = chartRef.current.priceScale('right');
+                            priceScale.applyOptions({
+                                scaleMargins: { top: 0.1, bottom: 0.1 }
+                            });
+                        }
+                    }
                 }
             }, 200);
 
@@ -512,11 +933,13 @@ export default function ProModeChart({
                         width: rect.width,
                         height: rect.height
                     });
+                    console.log('📊 Chart resized to:', rect.width, 'x', rect.height);
                 }
             };
 
-            // Listen for window resize
+            // Listen for window resize and custom chart container resize events
             window.addEventListener("resize", handleResize);
+            window.addEventListener("chartContainerResize", handleResize);
 
             // Also listen for container size changes using ResizeObserver
             let resizeObserver: ResizeObserver | null = null;
@@ -535,6 +958,7 @@ export default function ProModeChart({
 
             return () => {
                 window.removeEventListener("resize", handleResize);
+                window.removeEventListener("chartContainerResize", handleResize);
                 // Disconnect ResizeObserver
                 if (resizeObserver) {
                     resizeObserver.disconnect();
@@ -560,14 +984,14 @@ export default function ProModeChart({
                     }
                     // Clean up sandwich lines
                     confirmedLinesRef.current = { buyLine: null, sellLine: null };
-                    setSandwichConfirmedLines({ buyLine: null, sellLine: null });
+                    sandwichConfirmedLinesRef.current = { buyLine: null, sellLine: null };
                 }
             };
 
         } catch (error) {
             console.error("Chart initialization failed:", error);
         }
-    }, [data, crosshairMode, onTargetPriceChange, isSandwichMode, onSandwichBuyPriceChange, onSandwichSellPriceChange]);
+    }, [data, onTargetPriceChange, isSandwichMode, onSandwichBuyPriceChange, onSandwichSellPriceChange, chartType, candleInterval]);
 
     // Separate effect to ensure manual grid lines persist
     useEffect(() => {
@@ -698,7 +1122,7 @@ export default function ProModeChart({
 
         // Debug: Show current chart price range for comparison
         if (data && data.length > 0) {
-            const chartPrices = data.map(d => d.value);
+            const chartPrices = data.map(d => getDataPointPrice(d));
             const minChartPrice = Math.min(...chartPrices);
             const maxChartPrice = Math.max(...chartPrices);
             console.log(`Chart price range: ${minChartPrice.toFixed(8)} to ${maxChartPrice.toFixed(8)}`);
@@ -784,17 +1208,17 @@ export default function ProModeChart({
                     });
                     orderLinesRef.current.push(line);
 
-                    // Create diminishing line effect to show order direction
+                    // Create diminishing line effect to show order direction using visible range
                     if (data && data.length > 0) {
-                        const chartPrices = data.map(d => d.value);
-                        const minChartPrice = Math.min(...chartPrices);
-                        const maxChartPrice = Math.max(...chartPrices);
-                        const priceRange = maxChartPrice - minChartPrice;
+                        const visibleRange = getVisiblePriceRange();
+                        if (!visibleRange) return;
+
+                        const visiblePriceRange = visibleRange.max - visibleRange.min;
 
                         // Create fading lines for each individual order (not just predominant)
                         orders.forEach(order => {
                             const numFadeLines = 8; // Fewer lines to avoid clutter
-                            const maxFadeHeight = priceRange * 0.04; // Smaller, more focused fade area
+                            const maxFadeHeight = Math.max(visiblePriceRange * 0.04, (visibleRange.max - visibleRange.min) * 0.02); // Dynamic height based on zoom level
                             const baseColor = order.direction === 'gt' ? "22, 197, 94" : "239, 68, 68"; // RGB values for green/red
 
                             // Store fade lines for cleanup (create array if it doesn't exist)
@@ -810,7 +1234,7 @@ export default function ProModeChart({
                                     const opacity = Math.max(0.1, 1 - (i / (numFadeLines * 0.4))); // Slower fade, more visible
 
                                     // Ensure line is within chart bounds, or extend chart if needed
-                                    if (linePrice <= maxChartPrice * 1.1) { // Allow slight extension beyond current range
+                                    if (linePrice <= visibleRange.max * 1.2) { // Allow extension beyond visible range
                                         const fadeLine = seriesRef.current!.createPriceLine({
                                             price: linePrice,
                                             color: `rgba(${baseColor}, ${opacity * 0.6})`, // Higher opacity for better visibility
@@ -834,7 +1258,7 @@ export default function ProModeChart({
                                     const opacity = Math.max(0.1, 1 - (i / (numFadeLines * 0.4))); // Slower fade, more visible
 
                                     // Ensure line is within chart bounds, or extend chart if needed
-                                    if (linePrice >= minChartPrice * 0.9) { // Allow slight extension beyond current range
+                                    if (linePrice >= visibleRange.min * 0.8) { // Allow extension beyond visible range
                                         const fadeLine = seriesRef.current!.createPriceLine({
                                             price: linePrice,
                                             color: `rgba(${baseColor}, ${opacity * 0.6})`, // Higher opacity for better visibility
@@ -863,11 +1287,35 @@ export default function ProModeChart({
         setTimeout(() => {
             addManualGridLines();
         }, 100);
-    }, [data, userOrders, token.contractId, baseToken?.contractId, highlightedOrderId]);
+    }, [data, userOrders, token.contractId, baseToken?.contractId, highlightedOrderId, getDataPointPrice]);
 
     // Update target price line and area zone
     useEffect(() => {
         if (!seriesRef.current || !data || data.length === 0) return;
+
+        // Don't show target price line in sandwich or perpetual modes
+        if (isSandwichMode || isPerpetualMode) {
+            // Clean up any existing target lines when switching to these modes
+            if (priceLineRef.current) {
+                seriesRef.current.removePriceLine(priceLineRef.current);
+                priceLineRef.current = null;
+            }
+            if (targetAreaRef.current) {
+                chartRef.current?.removeSeries(targetAreaRef.current);
+                targetAreaRef.current = null;
+            }
+            if ((window as any).targetFadeLines) {
+                (window as any).targetFadeLines.forEach((line: any) => {
+                    try {
+                        seriesRef.current?.removePriceLine(line);
+                    } catch (e) {
+                        // Ignore errors when removing lines
+                    }
+                });
+                (window as any).targetFadeLines = [];
+            }
+            return;
+        }
 
         try {
             // Remove existing target price line
@@ -907,20 +1355,20 @@ export default function ProModeChart({
                     title: `Target: ${conditionDir === 'gt' ? '≥' : '≤'}`,
                 });
 
-                // Create target price area zone based on condition direction
-                const chartPrices = data.map(d => d.value);
-                const minChartPrice = Math.min(...chartPrices);
-                const maxChartPrice = Math.max(...chartPrices);
-                const priceRange = maxChartPrice - minChartPrice;
+                // Create target price area zone based on condition direction using visible range
+                const visibleRange = getVisiblePriceRange();
+                if (!visibleRange) return;
+
+                const visiblePriceRange = visibleRange.max - visibleRange.min;
 
                 // Store references to all the fade lines for cleanup
                 if (!(window as any).targetFadeLines) {
                     (window as any).targetFadeLines = [];
                 }
 
-                // Create multiple lines with fading opacity
+                // Create multiple lines with fading opacity based on visible chart height
                 const numLines = 20; // More lines for tighter packing
-                const maxHeight = priceRange * 0.12; // Extend further before transparent
+                const maxHeight = Math.max(visiblePriceRange * 0.15, (visibleRange.max - visibleRange.min) * 0.05); // Dynamic height based on zoom level
 
                 if (conditionDir === 'gt') {
                     // For ≥ (buy) orders: create fading lines ABOVE target price
@@ -929,7 +1377,7 @@ export default function ProModeChart({
                         const linePrice = price + lineHeight;
                         const opacity = Math.max(0.1, 1 - (i / (numLines * 0.7))); // Extend further before fading
 
-                        if (linePrice <= maxChartPrice) {
+                        if (linePrice <= visibleRange.max * 1.2) { // Allow extension beyond visible range
                             const fadeLine = seriesRef.current!.createPriceLine({
                                 price: linePrice,
                                 color: `rgba(249, 115, 22, ${opacity * 0.5})`, // Orange with fading opacity
@@ -951,7 +1399,7 @@ export default function ProModeChart({
                         const linePrice = price - lineHeight;
                         const opacity = Math.max(0.1, 1 - (i / (numLines * 0.7))); // Extend further before fading
 
-                        if (linePrice >= minChartPrice) {
+                        if (linePrice >= visibleRange.min * 0.8) { // Allow extension beyond visible range
                             const fadeLine = seriesRef.current!.createPriceLine({
                                 price: linePrice,
                                 color: `rgba(249, 115, 22, ${opacity * 0.5})`, // Orange with fading opacity
@@ -970,13 +1418,206 @@ export default function ProModeChart({
         } catch (error) {
             console.warn("Failed to update target price line and zone:", error);
         }
-    }, [targetPrice, conditionDir, data]);
+    }, [targetPrice, conditionDir, data, isSandwichMode, isPerpetualMode]);
+
+    // Update perpetual price lines (only when actual prices change, not UI state)
+    useEffect(() => {
+        if (!isPerpetualMode || !seriesRef.current || !data || data.length === 0) return;
+
+        console.log('🎯 Updating perpetual price lines only - no chart recreation');
+
+        try {
+            // Remove existing perpetual lines
+            if ((window as any).perpetualLines) {
+                (window as any).perpetualLines.forEach((line: any) => {
+                    try {
+                        seriesRef.current?.removePriceLine(line);
+                    } catch (e) {
+                        // Ignore errors when removing lines
+                    }
+                });
+                (window as any).perpetualLines = [];
+            }
+
+            // Create array if it doesn't exist
+            if (!(window as any).perpetualLines) {
+                (window as any).perpetualLines = [];
+            }
+
+            // Entry price line (purple for long, orange for short) with directional zones
+            const entryPrice = parseFloat(perpetualEntryPrice || '');
+            if (!isNaN(entryPrice) && entryPrice > 0) {
+                const entryColor = perpetualDirection === 'long' ? '#8b5cf6' : '#f97316'; // Purple for long, orange for short
+                const entryLine = seriesRef.current.createPriceLine({
+                    price: entryPrice,
+                    color: entryColor,
+                    lineWidth: 3,
+                    lineStyle: LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: `📈 Entry: ${perpetualDirection === 'long' ? 'LONG' : 'SHORT'}`,
+                });
+                (window as any).perpetualLines.push(entryLine);
+
+                // Add entry zone visualization to show direction trigger
+                if (data && data.length > 0) {
+                    const visibleRange = getVisiblePriceRange();
+                    if (!visibleRange) return;
+
+                    const visiblePriceRange = visibleRange.max - visibleRange.min;
+
+                    // Create entry zone based on direction using visible range
+                    const numLines = 15;
+                    const maxHeight = Math.max(visiblePriceRange * 0.08, (visibleRange.max - visibleRange.min) * 0.03); // Dynamic height based on zoom level
+
+                    if (perpetualDirection === 'long') {
+                        // LONG: Show subtle green zone ABOVE entry price (triggers when price goes up)
+                        for (let i = 1; i <= numLines; i++) {
+                            const lineHeight = (maxHeight / numLines) * i;
+                            const linePrice = entryPrice + lineHeight;
+                            const opacity = Math.max(0.02, 1 - (i / (numLines * 0.6))); // Much more subtle
+
+                            if (linePrice <= visibleRange.max * 1.2) { // Allow extension beyond visible range
+                                const entryFadeLine = seriesRef.current.createPriceLine({
+                                    price: linePrice,
+                                    color: `rgba(34, 197, 94, ${opacity * 0.08})`, // Green with very low opacity for LONG
+                                    lineWidth: 1,
+                                    lineStyle: LineStyle.Solid,
+                                    axisLabelVisible: false,
+                                    title: '',
+                                });
+                                (window as any).perpetualLines.push(entryFadeLine);
+                            }
+                        }
+                    } else {
+                        // SHORT: Show subtle red zone BELOW entry price (triggers when price goes down)
+                        for (let i = 1; i <= numLines; i++) {
+                            const lineHeight = (maxHeight / numLines) * i;
+                            const linePrice = entryPrice - lineHeight;
+                            const opacity = Math.max(0.02, 1 - (i / (numLines * 0.6))); // Much more subtle
+
+                            if (linePrice >= visibleRange.min * 0.8) { // Allow extension beyond visible range
+                                const entryFadeLine = seriesRef.current.createPriceLine({
+                                    price: linePrice,
+                                    color: `rgba(239, 68, 68, ${opacity * 0.08})`, // Red with very low opacity for SHORT
+                                    lineWidth: 1,
+                                    lineStyle: LineStyle.Solid,
+                                    axisLabelVisible: false,
+                                    title: '',
+                                });
+                                (window as any).perpetualLines.push(entryFadeLine);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Stop loss line (red)
+            const stopLossPrice = parseFloat(perpetualStopLoss || '');
+            if (!isNaN(stopLossPrice) && stopLossPrice > 0) {
+                const stopLine = seriesRef.current.createPriceLine({
+                    price: stopLossPrice,
+                    color: '#ef4444', // Red
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: '🛑 Stop Loss',
+                });
+                (window as any).perpetualLines.push(stopLine);
+            }
+
+            // Take profit line (green)
+            const takeProfitPrice = parseFloat(perpetualTakeProfit || '');
+            if (!isNaN(takeProfitPrice) && takeProfitPrice > 0) {
+                const profitLine = seriesRef.current.createPriceLine({
+                    price: takeProfitPrice,
+                    color: '#22c55e', // Green
+                    lineWidth: 2,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: '💰 Take Profit',
+                });
+                (window as any).perpetualLines.push(profitLine);
+            }
+
+        } catch (error) {
+            console.warn("Failed to update perpetual price lines:", error);
+        }
+    }, [isPerpetualMode, perpetualDirection, perpetualEntryPrice, perpetualStopLoss, perpetualTakeProfit, data, getDataPointPrice]);
+
+
+
+    // Clean up perpetual lines when exiting perpetual mode
+    useEffect(() => {
+        if (!isPerpetualMode && seriesRef.current) {
+            if ((window as any).perpetualLines) {
+                (window as any).perpetualLines.forEach((line: any) => {
+                    try {
+                        seriesRef.current?.removePriceLine(line);
+                    } catch (e) {
+                        // Ignore errors when removing lines
+                    }
+                });
+                (window as any).perpetualLines = [];
+            }
+        }
+    }, [isPerpetualMode]);
+
+    // Function to get visible price range from chart
+    const getVisiblePriceRange = useCallback(() => {
+        if (!chartRef.current || !data || data.length === 0) {
+            return null;
+        }
+
+        try {
+            // Get the visible range from the chart
+            const timeScale = chartRef.current.timeScale();
+            const visibleRange = timeScale.getVisibleRange();
+
+            if (!visibleRange) {
+                // Fallback to full data range if visible range is not available
+                const prices = data.map(d => getDataPointPrice(d));
+                return {
+                    min: Math.min(...prices),
+                    max: Math.max(...prices)
+                };
+            }
+
+            // Filter data points that are currently visible
+            const visibleData = data.filter(point => {
+                const time = Number(point.time);
+                return time >= Number(visibleRange.from) && time <= Number(visibleRange.to);
+            });
+
+            if (visibleData.length === 0) {
+                // Fallback to full data range
+                const prices = data.map(d => getDataPointPrice(d));
+                return {
+                    min: Math.min(...prices),
+                    max: Math.max(...prices)
+                };
+            }
+
+            const visiblePrices = visibleData.map(d => getDataPointPrice(d));
+            return {
+                min: Math.min(...visiblePrices),
+                max: Math.max(...visiblePrices)
+            };
+        } catch (error) {
+            console.warn('Failed to get visible price range, using full data range:', error);
+            // Fallback to full data range
+            const prices = data.map(d => getDataPointPrice(d));
+            return {
+                min: Math.min(...prices),
+                max: Math.max(...prices)
+            };
+        }
+    }, [chartRef, data, getDataPointPrice]);
 
     // Function to add manual grid lines (extracted for reuse)
     const addManualGridLines = useCallback(() => {
         if (!seriesRef.current || !data || data.length === 0) return;
 
-        const prices = data.map(d => d.value);
+        const prices = data.map(d => getDataPointPrice(d));
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const priceRange = maxPrice - minPrice;
@@ -1092,7 +1733,7 @@ export default function ProModeChart({
         }
 
         console.log(`Added ${lineCount} manual grid lines from ${startPrice.toFixed(decimalPlaces)} to ${endPrice.toFixed(decimalPlaces)} with interval ${gridInterval.toFixed(decimalPlaces)} (data range: ${minPrice.toFixed(decimalPlaces)} - ${maxPrice.toFixed(decimalPlaces)}, extended range: ${extendedRange.toFixed(decimalPlaces)})`);
-    }, [data]);
+    }, [data, getDataPointPrice]);
 
     // Sandwich mode helper functions
     const createSandwichConfirmedLines = useCallback((buyPrice: number, sellPrice: number) => {
@@ -1117,16 +1758,16 @@ export default function ProModeChart({
         }
 
         // Also clean up state-based confirmed lines as backup
-        if (sandwichConfirmedLines.buyLine) {
+        if (sandwichConfirmedLinesRef.current.buyLine) {
             try {
-                seriesRef.current.removePriceLine(sandwichConfirmedLines.buyLine);
+                seriesRef.current.removePriceLine(sandwichConfirmedLinesRef.current.buyLine);
             } catch (e) {
                 // Ignore errors when removing lines
             }
         }
-        if (sandwichConfirmedLines.sellLine) {
+        if (sandwichConfirmedLinesRef.current.sellLine) {
             try {
-                seriesRef.current.removePriceLine(sandwichConfirmedLines.sellLine);
+                seriesRef.current.removePriceLine(sandwichConfirmedLinesRef.current.sellLine);
             } catch (e) {
                 // Ignore errors when removing lines
             }
@@ -1154,7 +1795,7 @@ export default function ProModeChart({
 
             // Update both refs and state
             confirmedLinesRef.current = { buyLine, sellLine };
-            setSandwichConfirmedLines({ buyLine, sellLine });
+            sandwichConfirmedLinesRef.current = { buyLine, sellLine };
         } catch (e) {
             console.warn('Failed to create sandwich confirmed lines:', e);
         }
@@ -1173,13 +1814,13 @@ export default function ProModeChart({
                 confirmedLinesRef.current.sellLine = null;
             }
             // Also clean up state-based lines as backup
-            if (sandwichConfirmedLines.buyLine) {
-                seriesRef.current.removePriceLine(sandwichConfirmedLines.buyLine);
+            if (sandwichConfirmedLinesRef.current.buyLine) {
+                seriesRef.current.removePriceLine(sandwichConfirmedLinesRef.current.buyLine);
             }
-            if (sandwichConfirmedLines.sellLine) {
-                seriesRef.current.removePriceLine(sandwichConfirmedLines.sellLine);
+            if (sandwichConfirmedLinesRef.current.sellLine) {
+                seriesRef.current.removePriceLine(sandwichConfirmedLinesRef.current.sellLine);
             }
-            setSandwichConfirmedLines({ buyLine: null, sellLine: null });
+            sandwichConfirmedLinesRef.current = { buyLine: null, sellLine: null };
         }
     }, [isSandwichMode]);
 
@@ -1198,6 +1839,54 @@ export default function ProModeChart({
     useEffect(() => {
         loadChart();
     }, [loadChart]);
+
+    // Cleanup refs when component unmounts
+    useEffect(() => {
+        return () => {
+            noisyDataRef.current = null;
+            historicDataRef.current = [];
+            priceMomentumRef.current = 0;
+        };
+    }, []);
+
+    // Optimized real-time price feed updates - reduced frequency to avoid API spam
+    useEffect(() => {
+        if (!token?.contractId) return;
+
+        const realTimeUpdateInterval = setInterval(() => {
+            if (historicDataRef.current && historicDataRef.current.length > 0) {
+                // Re-enhance the original historic data with latest real-time prices (no noise)
+                const enhancedData = enhanceWithRealTimePrice(historicDataRef.current, token, baseToken);
+
+                // Store real data without noise
+                noisyDataRef.current = enhancedData;
+
+                // Update chart directly for immediate visual feedback
+                if (chartRef.current && seriesRef.current && !isInitialLoadRef.current) {
+                    updateChartData(enhancedData, true); // Real-time update, adjust view to show new data
+                }
+
+                // Update current price display with real enhanced data
+                if (enhancedData.length > 0) {
+                    const latest = getDataPointPrice(enhancedData[enhancedData.length - 1]);
+                    setCurrentPrice(latest);
+                    if (onCurrentPriceChange) {
+                        onCurrentPriceChange(latest);
+                    }
+
+                    // Calculate price change if there's previous data
+                    if (enhancedData.length > 1) {
+                        const previous = getDataPointPrice(enhancedData[enhancedData.length - 2]);
+                        const change = latest - previous;
+                        const percentage = (change / previous) * 100;
+                        setPriceChange({ value: change, percentage });
+                    }
+                }
+            }
+        }, 120000); // Update every 2 minutes instead of 30 seconds to reduce API load
+
+        return () => clearInterval(realTimeUpdateInterval);
+    }, [token, baseToken, enhanceWithRealTimePrice, updateChartData, isInitialLoadRef, getDataPointPrice, onCurrentPriceChange]);
 
     if (loading) {
         return (
@@ -1228,13 +1917,24 @@ export default function ProModeChart({
         <div className="h-full flex flex-col relative">
             {/* Chart Container */}
             <div ref={containerRef} className="flex-1 min-h-0" />
+
+            {/* Real-time data indicator */}
+            {isShowingRealTimeData && (
+                <div className="absolute top-2 right-2 z-10">
+                    <div className="flex items-center gap-1 bg-green-500/20 border border-green-500/30 rounded-md px-2 py-1 text-xs text-green-400">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        LIVE
+                    </div>
+                </div>
+            )}
+
             {/* Sandwich Preview Overlay */}
             <SandwichPreviewOverlay
                 chartContainerRef={containerRef}
                 currentPrice={currentPrice || undefined}
                 priceRange={data && data.length > 0 ? {
-                    min: Math.min(...data.map(d => d.value)),
-                    max: Math.max(...data.map(d => d.value))
+                    min: Math.min(...data.map(d => getDataPointPrice(d))),
+                    max: Math.max(...data.map(d => getDataPointPrice(d)))
                 } : undefined}
                 chartRef={chartRef}
                 seriesRef={seriesRef}
@@ -1260,11 +1960,14 @@ function calculateRatioData(tokenData: LineData[], baseData: LineData[]): LineDa
             baseIdx++;
         }
 
-        if (currentBase && currentBase !== 0 && !isNaN(currentBase) && point.value && point.value !== 0 && !isNaN(point.value)) {
-            ratioData.push({
-                time: point.time,
-                value: currentBase / point.value  // Inverted: base/token instead of token/base
-            });
+        if (currentBase && currentBase > 0 && !isNaN(currentBase) && point.value && point.value > 0 && !isNaN(point.value)) {
+            const ratio = currentBase / point.value;  // Inverted: base/token instead of token/base
+            if (ratio > 0 && isFinite(ratio)) {  // Ensure ratio is positive and finite
+                ratioData.push({
+                    time: point.time,
+                    value: ratio
+                });
+            }
         }
     }
 
@@ -1277,6 +1980,7 @@ function isValidDataPoint(point: LineData): boolean {
         typeof point.time !== 'undefined' &&
         typeof point.value === 'number' &&
         !isNaN(point.value) &&
-        isFinite(point.value)
+        isFinite(point.value) &&
+        point.value > 0  // Prices must be positive
     );
 } 

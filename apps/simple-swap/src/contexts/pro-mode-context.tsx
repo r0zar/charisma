@@ -18,7 +18,7 @@ export interface DisplayOrder extends LimitOrder {
     baseAssetMeta?: TokenCacheData | null;
 }
 
-export type OrderType = 'single' | 'dca' | 'sandwich';
+export type OrderType = 'single' | 'dca' | 'sandwich' | 'perpetual';
 
 // DCA creation state interface
 interface DCACreationState {
@@ -79,6 +79,41 @@ interface SandwichCreationState {
     successCount: number;
 }
 
+// Perpetual order state interface
+interface PerpetualOrderState {
+    direction: 'long' | 'short';
+    leverage: number; // 2x, 5x, 10x, 20x, etc.
+    positionSize: string; // USD amount
+    entryPrice: string;
+    stopLoss: string;
+    takeProfit: string;
+    marginAmount: string; // Calculated based on leverage
+    liquidationPrice: string; // Calculated
+}
+
+// Perpetual creation state interface
+interface PerpetualCreationState {
+    isOpen: boolean;
+    phase: 'preview' | 'signing' | 'complete';
+    order: (PerpetualOrderState & {
+        status: 'pending' | 'signing' | 'success' | 'error';
+        uuid?: string;
+        error?: string;
+    }) | null;
+    errors: string[];
+    previewMode: true; // Always true for now
+}
+
+// Perpetual chart interaction state
+interface PerpetualChartState {
+    selectionStep: 'entry' | 'stopOrProfit' | 'remaining' | 'complete';
+    entryPrice: string;
+    stopLossPrice: string;
+    takeProfitPrice: string;
+    hasStopLoss: boolean;
+    hasTakeProfit: boolean;
+}
+
 // Token selection dialog state
 interface TokenSelectionState {
     isOpen: boolean;
@@ -97,6 +132,18 @@ interface ProModeContextType {
     setHighlightedOrderId: (id: string | null) => void;
     showAllOrders: boolean;
     setShowAllOrders: (show: boolean) => void;
+    chartType: 'line' | 'candles';
+    setChartType: (type: 'line' | 'candles') => void;
+    candleInterval: string;
+    setCandleInterval: (interval: string) => void;
+
+    // Sidebar State
+    leftSidebarCollapsed: boolean;
+    setLeftSidebarCollapsed: (collapsed: boolean) => void;
+    rightSidebarCollapsed: boolean;
+    setRightSidebarCollapsed: (collapsed: boolean) => void;
+    toggleLeftSidebar: () => void;
+    toggleRightSidebar: () => void;
 
     // Token Selection Dialog State
     tokenSelectionState: TokenSelectionState;
@@ -141,6 +188,16 @@ interface ProModeContextType {
     sandwichCreationState: SandwichCreationState;
     setSandwichCreationState: React.Dispatch<React.SetStateAction<SandwichCreationState>>;
 
+    // Perpetual Creation State
+    perpetualCreationState: PerpetualCreationState;
+    setPerpetualCreationState: React.Dispatch<React.SetStateAction<PerpetualCreationState>>;
+
+    // Perpetual Chart Interaction State
+    perpetualChartState: PerpetualChartState;
+    setPerpetualChartState: React.Dispatch<React.SetStateAction<PerpetualChartState>>;
+    handlePerpetualChartClick: (price: number) => void;
+    resetPerpetualChart: () => void;
+
     // Sandwich State
     sandwichBuyPrice: string;
     setSandwichBuyPrice: (price: string) => void;
@@ -150,6 +207,30 @@ interface ProModeContextType {
     setSandwichSpread: (spread: string) => void;
     sandwichUsdAmount: string;
     setSandwichUsdAmount: (amount: string) => void;
+
+    // Perpetual State
+    perpetualDirection: 'long' | 'short';
+    setPerpetualDirection: (direction: 'long' | 'short') => void;
+    perpetualLeverage: number;
+    setPerpetualLeverage: (leverage: number) => void;
+    perpetualPositionSize: string;
+    setPerpetualPositionSize: (size: string) => void;
+    perpetualEntryPrice: string;
+    setPerpetualEntryPrice: (price: string) => void;
+    perpetualStopLoss: string;
+    setPerpetualStopLoss: (price: string) => void;
+    perpetualTakeProfit: string;
+    setPerpetualTakeProfit: (price: string) => void;
+    autoTrackEntryPrice: boolean;
+    setAutoTrackEntryPrice: (track: boolean) => void;
+
+    // Real-time calculated values for perpetual
+    perpetualMarginRequired: number;
+    setPerpetualMarginRequired: (margin: number) => void;
+    perpetualLiquidationPrice: number;
+    setPerpetualLiquidationPrice: (price: number) => void;
+    perpetualCurrentPnL: { pnl: number; pnlPercentage: number };
+    setPerpetualCurrentPnL: (pnl: { pnl: number; pnlPercentage: number }) => void;
 
     // Orders Data
     displayOrders: DisplayOrder[];
@@ -173,6 +254,7 @@ interface ProModeContextType {
     handleCreateLimitOrder: () => Promise<void>;
     handleCreateDcaOrder: () => Promise<void>;
     handleCreateSandwichOrder: () => Promise<void>;
+    handleCreatePerpetualOrder: () => Promise<void>;
     handleSubmitOrder: () => Promise<void>;
     handleOrderAction: (orderId: string, action: 'cancel' | 'execute') => Promise<void>;
     confirmCancelOrder: (orderId: string) => void;
@@ -181,6 +263,8 @@ interface ProModeContextType {
     toggleOrderExpansion: (orderId: string) => void;
     clearHighlightedOrder: () => void;
     fetchOrders: () => Promise<void>;
+    refetchPerpetualPositions: () => Promise<void>;
+    setPerpPositionsRefetchCallback: (callback: (() => Promise<void>) | null) => void;
 
     // Individual Order Management
     updateOrderById: (orderId: string, updates: Partial<DisplayOrder>) => void;
@@ -201,6 +285,12 @@ interface ProModeContextType {
     formatRelativeTime: (dateString: string) => string;
     getTokenPrice: (token: any) => string | null;
 
+    // Perpetual Calculation Utilities (FOR UI PREVIEW ONLY - backend recalculates for security)
+    calculateMarginRequired: (positionSize: string | number, leverage: number) => number;
+    calculateLiquidationPrice: (entryPrice: string | number, leverage: number, direction: 'long' | 'short') => number;
+    calculatePnL: (entryPrice: string | number, currentPrice: string | number, positionSize: string | number, direction: 'long' | 'short') => { pnl: number; pnlPercentage: number };
+    validatePerpetualOrder: (order: Partial<PerpetualOrderState>) => string[];
+
     // Input Handlers
     handleAmountChange: (value: string) => void;
     handlePriceChange: (value: string) => void;
@@ -209,6 +299,10 @@ interface ProModeContextType {
     handleSandwichSellPriceChange: (value: string) => void;
     handleSandwichSpreadChange: (value: string) => void;
     handleSandwichUsdAmountChange: (value: string) => void;
+    handlePerpetualPositionSizeChange: (value: string) => void;
+    handlePerpetualEntryPriceChange: (value: string) => void;
+    handlePerpetualStopLossChange: (value: string) => void;
+    handlePerpetualTakeProfitChange: (value: string) => void;
 
     // Loading States (additional)
     isSubmitting: boolean;
@@ -265,6 +359,22 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
     const [showAllOrders, setShowAllOrders] = useState(false);
     const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
+    const [chartType, setChartType] = useState<'line' | 'candles'>('line');
+    const [candleInterval, setCandleInterval] = useState<string>('4h');
+
+    // Sidebar State - Start collapsed on mobile
+    const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth < 1024; // Collapse on screens smaller than lg (1024px)
+        }
+        return false;
+    });
+    const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.innerWidth < 1280; // Collapse on screens smaller than xl (1280px)
+        }
+        return false;
+    });
 
     // Trading pair state for pro mode
     // Note: tradingPairBase maps to API's conditionToken (token being watched)
@@ -343,6 +453,42 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         successCount: 0
     });
 
+    // Perpetual creation state for enhanced UX
+    const [perpetualCreationState, setPerpetualCreationState] = useState<PerpetualCreationState>({
+        isOpen: false,
+        phase: 'preview',
+        order: null,
+        errors: [],
+        previewMode: true
+    });
+
+    // Perpetual state for enhanced UX
+    const [perpetualDirection, setPerpetualDirection] = useState<'long' | 'short'>('long');
+    const [perpetualLeverage, setPerpetualLeverage] = useState(2);
+    const [perpetualPositionSize, setPerpetualPositionSize] = useState('');
+    const [perpetualEntryPrice, setPerpetualEntryPrice] = useState('');
+    const [perpetualStopLoss, setPerpetualStopLoss] = useState('');
+    const [perpetualTakeProfit, setPerpetualTakeProfit] = useState('');
+    const [autoTrackEntryPrice, setAutoTrackEntryPrice] = useState(true);
+
+    // Real-time calculated values for perpetual
+    const [perpetualMarginRequired, setPerpetualMarginRequired] = useState(0);
+    const [perpetualLiquidationPrice, setPerpetualLiquidationPrice] = useState(0);
+    const [perpetualCurrentPnL, setPerpetualCurrentPnL] = useState({ pnl: 0, pnlPercentage: 0 });
+
+    // Perpetual positions refetch callback
+    const [perpPositionsRefetchCallback, setPerpPositionsRefetchCallback] = useState<(() => Promise<void>) | null>(null);
+
+    // Perpetual Chart Interaction State
+    const [perpetualChartState, setPerpetualChartState] = useState<PerpetualChartState>({
+        selectionStep: 'entry',
+        entryPrice: '',
+        stopLossPrice: '',
+        takeProfitPrice: '',
+        hasStopLoss: false,
+        hasTakeProfit: false
+    });
+
     // Sync with swap context when entering pro mode
     useEffect(() => {
         setDisplayAmount(swapDisplayAmount);
@@ -364,6 +510,34 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
             setTradingPairQuote(selectedToToken);
         }
     }, [conditionToken, baseToken, selectedToToken, tradingPairBase, tradingPairQuote]);
+
+    // Handle responsive sidebar behavior
+    useEffect(() => {
+        const handleResize = () => {
+            const width = window.innerWidth;
+
+            // Auto-collapse left sidebar on tablets and smaller
+            if (width < 1024 && !leftSidebarCollapsed) {
+                setLeftSidebarCollapsed(true);
+            }
+
+            // Auto-collapse right sidebar on smaller screens
+            if (width < 1280 && !rightSidebarCollapsed) {
+                setRightSidebarCollapsed(true);
+            }
+
+            // Auto-expand on large screens if user hasn't manually collapsed
+            if (width >= 1280) {
+                // Only auto-expand if user hasn't manually collapsed recently
+                // This prevents annoying auto-expand behavior
+            }
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }
+    }, [leftSidebarCollapsed, rightSidebarCollapsed]);
 
     // Fetch real user orders
     const fetchOrders = useCallback(async () => {
@@ -453,6 +627,45 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     useEffect(() => {
         fetchOrders();
     }, [address, connected, fetchOrders]);
+
+    // Optimized price polling for live updates
+    useEffect(() => {
+        // Get only essential tokens to reduce API spam
+        const getEssentialTokens = () => {
+            const tokens = new Set<string>();
+
+            // Only add tokens that are actively being used in UI
+            if (selectedFromToken) tokens.add(selectedFromToken.contractId);
+            if (selectedToToken) tokens.add(selectedToToken.contractId);
+
+            // Add tokens from trading pair only if they're different from swap tokens
+            if (tradingPairBase && tradingPairBase.contractId !== selectedFromToken?.contractId) {
+                tokens.add(tradingPairBase.contractId);
+            }
+            if (tradingPairQuote && tradingPairQuote.contractId !== selectedToToken?.contractId) {
+                tokens.add(tradingPairQuote.contractId);
+            }
+
+            return Array.from(tokens);
+        };
+
+        // Initial price fetch - only for essential tokens
+        const essentialTokens = getEssentialTokens();
+        if (essentialTokens.length > 0) {
+            fetchHistoricalPrices(essentialTokens);
+        }
+
+        // Reduced polling interval - only update essential tokens
+        const pollInterval = setInterval(() => {
+            const essentialTokens = getEssentialTokens();
+            if (essentialTokens.length > 0) {
+                console.log('🔄 Polling prices for', essentialTokens.length, 'essential tokens (reduced from all orders)');
+                fetchHistoricalPrices(essentialTokens);
+            }
+        }, 120000); // Poll every 2 minutes instead of 1 minute to reduce API load
+
+        return () => clearInterval(pollInterval);
+    }, [selectedFromToken, selectedToToken, tradingPairBase, tradingPairQuote, fetchHistoricalPrices]);
 
     // Filter orders based on showAllOrders state
     const filteredOrders = showAllOrders
@@ -608,6 +821,156 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         return price ? formatUsd(price) : null;
     }, [getUsdPrice, formatUsd]);
 
+    // Perpetual Calculation Utilities
+    const calculateMarginRequired = useCallback((positionSize: string | number, leverage: number): number => {
+        // NOTE: This is for UI preview only. Backend recalculates for security.
+        const size = Number(positionSize);
+        if (isNaN(size) || size <= 0 || leverage <= 0) return 0;
+        return size / leverage;
+    }, []);
+
+    const calculateLiquidationPrice = useCallback((
+        entryPrice: string | number,
+        leverage: number,
+        direction: 'long' | 'short'
+    ): number => {
+        // NOTE: This is for UI preview only. Backend recalculates for security.
+        const entry = Number(entryPrice);
+        if (isNaN(entry) || entry <= 0 || leverage <= 0) return 0;
+
+        // Simplified liquidation calculation
+        // For long: liquidationPrice = entryPrice * (1 - 1/leverage * 0.9) // 90% of max loss
+        // For short: liquidationPrice = entryPrice * (1 + 1/leverage * 0.9)
+        const maxLossRatio = (1 / leverage) * 0.9; // 90% of theoretical max to account for fees
+
+        if (direction === 'long') {
+            return entry * (1 - maxLossRatio);
+        } else {
+            return entry * (1 + maxLossRatio);
+        }
+    }, []);
+
+    const calculatePnL = useCallback((
+        entryPrice: string | number,
+        currentPrice: string | number,
+        positionSize: string | number,
+        direction: 'long' | 'short'
+    ): { pnl: number; pnlPercentage: number } => {
+        const entry = Number(entryPrice);
+        const current = Number(currentPrice);
+        const size = Number(positionSize);
+
+        if (isNaN(entry) || isNaN(current) || isNaN(size) || entry <= 0 || current <= 0 || size <= 0) {
+            return { pnl: 0, pnlPercentage: 0 };
+        }
+
+        let pnl: number;
+        if (direction === 'long') {
+            // Long: profit when price goes up
+            pnl = ((current - entry) / entry) * size;
+        } else {
+            // Short: profit when price goes down  
+            pnl = ((entry - current) / entry) * size;
+        }
+
+        const pnlPercentage = (pnl / size) * 100;
+
+        return { pnl, pnlPercentage };
+    }, []);
+
+    const validatePerpetualOrder = useCallback((order: Partial<PerpetualOrderState>): string[] => {
+        const errors: string[] = [];
+
+        if (!order.direction) {
+            errors.push('Direction is required');
+        }
+
+        if (!order.leverage || order.leverage < 1 || order.leverage > 100) {
+            errors.push('Leverage must be between 1x and 100x');
+        }
+
+        if (!order.positionSize || Number(order.positionSize) <= 0) {
+            errors.push('Position size must be greater than 0');
+        }
+
+        if (!order.entryPrice || Number(order.entryPrice) <= 0) {
+            errors.push('Entry price must be greater than 0');
+        }
+
+        // Validate stop loss if provided
+        if (order.stopLoss && Number(order.stopLoss) > 0) {
+            const entryPrice = Number(order.entryPrice);
+            const stopLoss = Number(order.stopLoss);
+
+            if (order.direction === 'long' && stopLoss >= entryPrice) {
+                errors.push('For long positions, stop loss must be below entry price');
+            } else if (order.direction === 'short' && stopLoss <= entryPrice) {
+                errors.push('For short positions, stop loss must be above entry price');
+            }
+        }
+
+        // Validate take profit if provided
+        if (order.takeProfit && Number(order.takeProfit) > 0) {
+            const entryPrice = Number(order.entryPrice);
+            const takeProfit = Number(order.takeProfit);
+
+            if (order.direction === 'long' && takeProfit <= entryPrice) {
+                errors.push('For long positions, take profit must be above entry price');
+            } else if (order.direction === 'short' && takeProfit >= entryPrice) {
+                errors.push('For short positions, take profit must be below entry price');
+            }
+        }
+
+        return errors;
+    }, []);
+
+    // Auto-track entry price with current market price
+    useEffect(() => {
+        if (autoTrackEntryPrice && currentPrice && currentPrice > 0) {
+            const formattedPrice = currentPrice.toPrecision(9);
+            setPerpetualEntryPrice(formattedPrice);
+            console.log(`📍 Auto-tracking entry price: ${formattedPrice}`);
+        }
+    }, [autoTrackEntryPrice, currentPrice, setPerpetualEntryPrice]);
+
+    // Real-time perpetual calculations
+    useEffect(() => {
+        if (perpetualPositionSize && perpetualEntryPrice && perpetualLeverage > 0) {
+            // Calculate margin required
+            const margin = calculateMarginRequired(perpetualPositionSize, perpetualLeverage);
+            setPerpetualMarginRequired(margin);
+
+            // Calculate liquidation price
+            const liquidation = calculateLiquidationPrice(perpetualEntryPrice, perpetualLeverage, perpetualDirection);
+            setPerpetualLiquidationPrice(liquidation);
+
+            // Calculate P&L if we have a current price (including from random noise simulation)
+            if (currentPrice && currentPrice > 0) {
+                const pnlResult = calculatePnL(perpetualEntryPrice, currentPrice, perpetualPositionSize, perpetualDirection);
+                setPerpetualCurrentPnL(pnlResult);
+                console.log(`🎯 Perpetual P&L updated in PREVIEW: ${pnlResult.pnl >= 0 ? '+' : ''}$${pnlResult.pnl.toFixed(2)} (${pnlResult.pnlPercentage >= 0 ? '+' : ''}${pnlResult.pnlPercentage.toFixed(2)}%) | Entry: $${Number(perpetualEntryPrice).toFixed(4)} | Current: $${currentPrice.toFixed(4)}`);
+            } else {
+                setPerpetualCurrentPnL({ pnl: 0, pnlPercentage: 0 });
+                console.log(`🎯 Perpetual P&L reset - no current price available`);
+            }
+        } else {
+            // Reset calculations if inputs are invalid
+            setPerpetualMarginRequired(0);
+            setPerpetualLiquidationPrice(0);
+            setPerpetualCurrentPnL({ pnl: 0, pnlPercentage: 0 });
+        }
+    }, [
+        perpetualPositionSize,
+        perpetualEntryPrice,
+        perpetualLeverage,
+        perpetualDirection,
+        currentPrice,
+        selectedFromToken,
+        calculateMarginRequired,
+        calculateLiquidationPrice,
+        calculatePnL
+    ]);
+
     // Input Handlers
     const handleAmountChange = useCallback((value: string) => {
         if (/^\d*\.?\d*$/.test(value) || value === '') {
@@ -648,6 +1011,35 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const handleSandwichUsdAmountChange = useCallback((value: string) => {
         if (/^\d*\.?\d*$/.test(value) || value === '') {
             setSandwichUsdAmount(value);
+        }
+    }, []);
+
+    const handlePerpetualPositionSizeChange = useCallback((value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setPerpetualPositionSize(value);
+        }
+    }, []);
+
+    const handlePerpetualEntryPriceChange = useCallback((value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setPerpetualEntryPrice(value);
+            // Turn off auto-tracking when user manually changes the price
+            if (autoTrackEntryPrice) {
+                setAutoTrackEntryPrice(false);
+                console.log('📍 Auto-tracking disabled - user manually set entry price');
+            }
+        }
+    }, [autoTrackEntryPrice, setAutoTrackEntryPrice]);
+
+    const handlePerpetualStopLossChange = useCallback((value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setPerpetualStopLoss(value);
+        }
+    }, []);
+
+    const handlePerpetualTakeProfitChange = useCallback((value: string) => {
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setPerpetualTakeProfit(value);
         }
     }, []);
 
@@ -786,6 +1178,15 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const clearHighlightedOrder = useCallback(() => {
         setHighlightedOrderId(null);
         setExpandedOrderId(null);
+    }, []);
+
+    // Sidebar toggle handlers
+    const toggleLeftSidebar = useCallback(() => {
+        setLeftSidebarCollapsed(prev => !prev);
+    }, []);
+
+    const toggleRightSidebar = useCallback(() => {
+        setRightSidebarCollapsed(prev => !prev);
     }, []);
 
     // Token selection handlers
@@ -1010,10 +1411,181 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         setSandwichCreationState
     ]);
 
+    const handleCreatePerpetualOrder = useCallback(async () => {
+        if (!selectedFromToken || !selectedToToken) {
+            toast.error('Please select both tokens');
+            return;
+        }
+        if (!perpetualPositionSize || Number(perpetualPositionSize) <= 0) {
+            toast.error('Please enter a valid position size');
+            return;
+        }
+        if (!perpetualEntryPrice || Number(perpetualEntryPrice) <= 0) {
+            toast.error('Please enter a valid entry price');
+            return;
+        }
+
+        // Create a draft order with current values
+        const draftOrder: PerpetualOrderState = {
+            direction: perpetualDirection,
+            leverage: perpetualLeverage,
+            positionSize: perpetualPositionSize,
+            entryPrice: perpetualEntryPrice,
+            stopLoss: perpetualStopLoss,
+            takeProfit: perpetualTakeProfit,
+            marginAmount: '', // Will be calculated
+            liquidationPrice: '', // Will be calculated
+        };
+
+        // Validate the order
+        const validationErrors = validatePerpetualOrder(draftOrder);
+        if (validationErrors.length > 0) {
+            toast.error(validationErrors[0]); // Show first error
+            return;
+        }
+
+        // Calculate derived values
+        const marginRequired = calculateMarginRequired(perpetualPositionSize, perpetualLeverage);
+        const liquidationPrice = calculateLiquidationPrice(perpetualEntryPrice, perpetualLeverage, perpetualDirection);
+
+        // Update order with calculations
+        const calculatedOrder = {
+            ...draftOrder,
+            marginAmount: marginRequired.toString(),
+            liquidationPrice: liquidationPrice.toString(),
+        };
+
+        // Initialize the perpetual order creation dialog
+        setPerpetualCreationState({
+            isOpen: true,
+            phase: 'preview',
+            order: {
+                ...calculatedOrder,
+                status: 'pending'
+            },
+            errors: validationErrors,
+            previewMode: true
+        });
+    }, [
+        selectedFromToken,
+        selectedToToken,
+        perpetualPositionSize,
+        perpetualEntryPrice,
+        perpetualDirection,
+        perpetualLeverage,
+        perpetualStopLoss,
+        perpetualTakeProfit,
+        validatePerpetualOrder,
+        calculateMarginRequired,
+        calculateLiquidationPrice,
+        setPerpetualCreationState
+    ]);
+
     const handleSubmitOrder = useCallback(async () => {
         // TODO: Implement submit order logic
         console.log('Submit order logic not yet implemented in context');
     }, []);
+
+    // Perpetual Chart Interaction Handlers
+    const handlePerpetualChartClick = useCallback((price: number) => {
+        const priceStr = price.toPrecision(9);
+
+        setPerpetualChartState(prevState => {
+            switch (prevState.selectionStep) {
+                case 'entry':
+                    // First click: Set entry price
+                    handlePerpetualEntryPriceChange(priceStr);
+                    return {
+                        ...prevState,
+                        selectionStep: 'stopOrProfit',
+                        entryPrice: priceStr
+                    };
+
+                case 'stopOrProfit':
+                    // Second click: Determine if it's stop loss or take profit based on direction and price
+                    const entryPrice = parseFloat(prevState.entryPrice);
+                    const isProfitDirection = (perpetualDirection === 'long' && price > entryPrice) ||
+                        (perpetualDirection === 'short' && price < entryPrice);
+
+                    if (isProfitDirection) {
+                        // This is a take profit level
+                        handlePerpetualTakeProfitChange(priceStr);
+                        return {
+                            ...prevState,
+                            selectionStep: prevState.hasStopLoss ? 'complete' : 'remaining',
+                            takeProfitPrice: priceStr,
+                            hasTakeProfit: true
+                        };
+                    } else {
+                        // This is a stop loss level
+                        handlePerpetualStopLossChange(priceStr);
+                        return {
+                            ...prevState,
+                            selectionStep: prevState.hasTakeProfit ? 'complete' : 'remaining',
+                            stopLossPrice: priceStr,
+                            hasStopLoss: true
+                        };
+                    }
+
+                case 'remaining':
+                    // Third click: Set the remaining level (stop loss or take profit)
+                    const entryPriceRemaining = parseFloat(prevState.entryPrice);
+                    const isProfitDirectionRemaining = (perpetualDirection === 'long' && price > entryPriceRemaining) ||
+                        (perpetualDirection === 'short' && price < entryPriceRemaining);
+
+                    if (isProfitDirectionRemaining && !prevState.hasTakeProfit) {
+                        // Set take profit
+                        handlePerpetualTakeProfitChange(priceStr);
+                        return {
+                            ...prevState,
+                            selectionStep: 'complete',
+                            takeProfitPrice: priceStr,
+                            hasTakeProfit: true
+                        };
+                    } else if (!isProfitDirectionRemaining && !prevState.hasStopLoss) {
+                        // Set stop loss
+                        handlePerpetualStopLossChange(priceStr);
+                        return {
+                            ...prevState,
+                            selectionStep: 'complete',
+                            stopLossPrice: priceStr,
+                            hasStopLoss: true
+                        };
+                    }
+                    return prevState;
+
+                case 'complete':
+                    // Reset and start over
+                    handlePerpetualEntryPriceChange(priceStr);
+                    return {
+                        selectionStep: 'stopOrProfit',
+                        entryPrice: priceStr,
+                        stopLossPrice: '',
+                        takeProfitPrice: '',
+                        hasStopLoss: false,
+                        hasTakeProfit: false
+                    };
+
+                default:
+                    return prevState;
+            }
+        });
+    }, [perpetualDirection, handlePerpetualEntryPriceChange, handlePerpetualStopLossChange, handlePerpetualTakeProfitChange]);
+
+    const resetPerpetualChart = useCallback(() => {
+        setPerpetualChartState({
+            selectionStep: 'entry',
+            entryPrice: '',
+            stopLossPrice: '',
+            takeProfitPrice: '',
+            hasStopLoss: false,
+            hasTakeProfit: false
+        });
+        // Also clear the form values
+        handlePerpetualEntryPriceChange('');
+        handlePerpetualStopLossChange('');
+        handlePerpetualTakeProfitChange('');
+    }, [handlePerpetualEntryPriceChange, handlePerpetualStopLossChange, handlePerpetualTakeProfitChange]);
 
     const contextValue: ProModeContextType = {
         // UI State
@@ -1025,6 +1597,18 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         setHighlightedOrderId,
         showAllOrders,
         setShowAllOrders,
+        chartType,
+        setChartType,
+        candleInterval,
+        setCandleInterval,
+
+        // Sidebar State
+        leftSidebarCollapsed,
+        setLeftSidebarCollapsed,
+        rightSidebarCollapsed,
+        setRightSidebarCollapsed,
+        toggleLeftSidebar,
+        toggleRightSidebar,
 
         // Token Selection Dialog State
         tokenSelectionState,
@@ -1069,6 +1653,16 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         sandwichCreationState,
         setSandwichCreationState,
 
+        // Perpetual Creation State
+        perpetualCreationState,
+        setPerpetualCreationState,
+
+        // Perpetual Chart Interaction State
+        perpetualChartState,
+        setPerpetualChartState,
+        handlePerpetualChartClick,
+        resetPerpetualChart,
+
         // Sandwich State
         sandwichBuyPrice,
         setSandwichBuyPrice,
@@ -1078,6 +1672,30 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         setSandwichSpread,
         sandwichUsdAmount,
         setSandwichUsdAmount,
+
+        // Perpetual State
+        perpetualDirection,
+        setPerpetualDirection,
+        perpetualLeverage,
+        setPerpetualLeverage,
+        perpetualPositionSize,
+        setPerpetualPositionSize,
+        perpetualEntryPrice,
+        setPerpetualEntryPrice,
+        perpetualStopLoss,
+        setPerpetualStopLoss,
+        perpetualTakeProfit,
+        setPerpetualTakeProfit,
+        autoTrackEntryPrice,
+        setAutoTrackEntryPrice,
+
+        // Real-time calculated values for perpetual
+        perpetualMarginRequired,
+        setPerpetualMarginRequired,
+        perpetualLiquidationPrice,
+        setPerpetualLiquidationPrice,
+        perpetualCurrentPnL,
+        setPerpetualCurrentPnL,
 
         // Orders Data
         displayOrders,
@@ -1101,6 +1719,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         handleCreateLimitOrder,
         handleCreateDcaOrder,
         handleCreateSandwichOrder,
+        handleCreatePerpetualOrder,
         handleSubmitOrder,
         handleOrderAction,
         confirmCancelOrder,
@@ -1109,6 +1728,18 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         toggleOrderExpansion,
         clearHighlightedOrder,
         fetchOrders,
+        refetchPerpetualPositions: useCallback(async () => {
+            if (perpPositionsRefetchCallback && typeof perpPositionsRefetchCallback === 'function') {
+                try {
+                    await perpPositionsRefetchCallback();
+                } catch (error) {
+                    console.warn('Failed to refresh perpetual positions:', error);
+                }
+            } else {
+                console.log('refetchPerpetualPositions called but no callback registered');
+            }
+        }, [perpPositionsRefetchCallback]),
+        setPerpPositionsRefetchCallback,
 
         // Individual Order Management
         updateOrderById,
@@ -1129,6 +1760,12 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         formatRelativeTime,
         getTokenPrice,
 
+        // Perpetual Calculation Utilities
+        calculateMarginRequired,
+        calculateLiquidationPrice,
+        calculatePnL,
+        validatePerpetualOrder,
+
         // Input Handlers
         handleAmountChange,
         handlePriceChange,
@@ -1137,6 +1774,10 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         handleSandwichSellPriceChange,
         handleSandwichSpreadChange,
         handleSandwichUsdAmountChange,
+        handlePerpetualPositionSizeChange,
+        handlePerpetualEntryPriceChange,
+        handlePerpetualStopLossChange,
+        handlePerpetualTakeProfitChange,
 
         // Loading States (additional)
         isSubmitting: isCreatingOrder || isCreatingSandwichOrder,

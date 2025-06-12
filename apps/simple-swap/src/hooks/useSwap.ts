@@ -813,21 +813,41 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
         return undefined;
     }, [tokenPrices, selectedTokens, historicalPrices]);
 
+    // Cache for recently fetched prices to avoid re-fetching (5 minute TTL)
+    const [priceFetchTimestamps, setPriceFetchTimestamps] = useState<Map<string, number>>(new Map());
+
     // Function to fetch and cache historical prices for tokens without current prices
     const fetchHistoricalPrices = useCallback(async (contractIds: string[]) => {
         const newHistoricalPrices = new Map(historicalPrices);
+        const newTimestamps = new Map(priceFetchTimestamps);
         let hasUpdates = false;
+        const now = Date.now();
+        const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-        for (const contractId of contractIds) {
+        // Filter out tokens that were recently fetched or already cached
+        const tokensToFetch = contractIds.filter(contractId => {
             // Skip if we already have a cached historical price
-            if (historicalPrices.has(contractId)) continue;
+            if (historicalPrices.has(contractId)) return false;
 
+            // Skip if we fetched this token recently (within cache TTL)
+            const lastFetch = priceFetchTimestamps.get(contractId);
+            if (lastFetch && (now - lastFetch) < CACHE_TTL) return false;
+
+            return true;
+        });
+
+        if (tokensToFetch.length === 0) return;
+
+        console.log(`🔍 Fetching prices for ${tokensToFetch.length} tokens (skipped ${contractIds.length - tokensToFetch.length} recently fetched)`);
+
+        for (const contractId of tokensToFetch) {
             try {
                 const response = await fetch(`/api/price-latest?contractId=${encodeURIComponent(contractId)}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.price !== undefined) {
                         newHistoricalPrices.set(contractId, data.price);
+                        newTimestamps.set(contractId, now);
                         hasUpdates = true;
                     }
                 }
@@ -838,32 +858,38 @@ export function useSwap({ initialTokens = [], searchParams }: UseSwapOptions = {
 
         if (hasUpdates) {
             setHistoricalPrices(newHistoricalPrices);
+            setPriceFetchTimestamps(newTimestamps);
         }
-    }, [historicalPrices]);
+    }, [historicalPrices, priceFetchTimestamps]);
 
-    // Effect to fetch historical prices for tokens without current prices
+    // Effect to fetch historical prices for tokens without current prices (debounced)
     useEffect(() => {
         if (!selectedTokens.length || !tokenPrices) return;
 
-        // Find tokens that don't have current prices and don't have cached historical prices
-        const tokensWithoutPrices = selectedTokens
-            .filter(token => {
-                // Check if we have a current price
-                const hasCurrentPrice = tokenPrices[token.contractId] !== undefined ||
-                    (token.contractId === '.stx' && tokenPrices['stx'] !== undefined) ||
-                    (token.type === 'SUBNET' && token.base && tokenPrices[token.base] !== undefined);
+        // Debounce to avoid excessive API calls when tokens change rapidly
+        const timeoutId = setTimeout(() => {
+            // Find tokens that don't have current prices and don't have cached historical prices
+            const tokensWithoutPrices = selectedTokens
+                .filter(token => {
+                    // Check if we have a current price
+                    const hasCurrentPrice = tokenPrices[token.contractId] !== undefined ||
+                        (token.contractId === '.stx' && tokenPrices['stx'] !== undefined) ||
+                        (token.type === 'SUBNET' && token.base && tokenPrices[token.base] !== undefined);
 
-                // Check if we have a cached historical price
-                const hasHistoricalPrice = historicalPrices.has(token.contractId) ||
-                    (token.type === 'SUBNET' && token.base && historicalPrices.has(token.base));
+                    // Check if we have a cached historical price
+                    const hasHistoricalPrice = historicalPrices.has(token.contractId) ||
+                        (token.type === 'SUBNET' && token.base && historicalPrices.has(token.base));
 
-                return !hasCurrentPrice && !hasHistoricalPrice;
-            })
-            .map(token => token.contractId);
+                    return !hasCurrentPrice && !hasHistoricalPrice;
+                })
+                .map(token => token.contractId);
 
-        if (tokensWithoutPrices.length > 0) {
-            fetchHistoricalPrices(tokensWithoutPrices);
-        }
+            if (tokensWithoutPrices.length > 0) {
+                fetchHistoricalPrices(tokensWithoutPrices);
+            }
+        }, 500); // 500ms debounce to avoid rapid consecutive API calls
+
+        return () => clearTimeout(timeoutId);
     }, [selectedTokens, tokenPrices, historicalPrices, fetchHistoricalPrices]);
 
     // ---------------------- UI Helper Logic ----------------------

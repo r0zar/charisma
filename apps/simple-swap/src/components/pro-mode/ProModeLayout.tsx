@@ -28,6 +28,10 @@ function ProModeLayoutContent() {
         setSandwichSpread,
         handlePriceChange,
         handleSandwichSpreadChange,
+        leftSidebarCollapsed,
+        rightSidebarCollapsed,
+        toggleLeftSidebar,
+        toggleRightSidebar,
     } = useProModeContext();
 
     const {
@@ -157,6 +161,16 @@ function ProModeLayoutContent() {
                     clearHighlightedOrder();
                     break;
 
+                case '[':
+                    event.preventDefault();
+                    toggleLeftSidebar();
+                    break;
+
+                case ']':
+                    event.preventDefault();
+                    toggleRightSidebar();
+                    break;
+
                 default:
                     break;
             }
@@ -197,15 +211,23 @@ function ProModeLayoutContent() {
         handleSwitchTokensEnhanced,
         sandwichSpread,
         handleSandwichSpreadChange,
+        toggleLeftSidebar,
+        toggleRightSidebar,
     ]);
 
     return (
         <div className="fixed inset-0 bg-background z-50 flex">
             {/* Left Sidebar - Order Type Selection */}
-            <OrderTypeSelector />
+            <div className={`
+                transition-all duration-300 ease-in-out border-r border-border/40 bg-card/50 backdrop-blur-sm
+                ${leftSidebarCollapsed ? 'w-12 sm:w-16' : 'w-64 sm:w-80'}
+                ${leftSidebarCollapsed ? 'overflow-hidden' : ''}
+            `}>
+                <OrderTypeSelector collapsed={leftSidebarCollapsed} />
+            </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
                 <ProModeHeader />
 
@@ -217,7 +239,12 @@ function ProModeLayoutContent() {
             </div>
 
             {/* Right Sidebar - Orders */}
-            <OrdersSidebar />
+            <div className={`
+                transition-all duration-300 ease-in-out border-l border-border/40 bg-card/50 backdrop-blur-sm
+                ${rightSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-80 sm:w-96'}
+            `}>
+                <OrdersSidebar collapsed={rightSidebarCollapsed} />
+            </div>
 
             {/* Token Selection Dialog */}
             <TokenSelectionDialog

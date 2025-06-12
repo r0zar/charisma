@@ -15,6 +15,10 @@
         {
             "path": "/api/cron/fiat",
             "schedule": "*/1 * * * *"
+        },
+        {
+            "path": "/api/cron/perps-monitor",
+            "schedule": "*/1 * * * *"
         }
     ]
 }
