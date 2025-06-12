@@ -9,7 +9,7 @@ import TokenSelectorButton from './TokenSelectorButton';
 import PerpetualOrderCreationDialog from './PerpetualOrderCreationDialog';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useSwapContext } from '../../contexts/swap-context';
-import { useMarginAccountAPI } from '../../hooks/useMarginAccountAPI';
+import { useTradingState } from '../../hooks/useTradingState';
 import { TokenCacheData } from '@repo/tokens';
 import MarginControlsCompact from './MarginControlsCompact';
 
@@ -72,11 +72,10 @@ export default function PerpetualOrderForm() {
     } = useSwapContext();
 
     const {
-        account,
+        marginAccount,
         canOpenPosition,
-        getMaxPositionSize,
         formatBalance
-    } = useMarginAccountAPI();
+    } = useTradingState();
 
     const leverageOptions = [2, 3, 5, 10, 20, 50, 100];
 
@@ -378,21 +377,21 @@ export default function PerpetualOrderForm() {
                                 )}
 
                                 {/* Margin Account Status */}
-                                {account && (
+                                {marginAccount && (
                                     <div>
                                         <div className="text-muted-foreground">Available Margin:</div>
-                                        <div className="font-medium text-muted-foreground">{formatBalance(account.freeMargin)}</div>
+                                        <div className="font-medium text-muted-foreground">{formatBalance(marginAccount.freeMargin)}</div>
                                     </div>
                                 )}
                             </div>
 
                             {/* Margin Validation Warning */}
-                            {perpetualMarginRequired > 0 && !canOpenPosition(perpetualMarginRequired) && account && (
+                            {perpetualMarginRequired > 0 && !canOpenPosition(perpetualMarginRequired) && marginAccount && (
                                 <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
                                     <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                                         <AlertTriangle className="w-3 h-3" />
                                         <span className="text-xs">
-                                            Insufficient margin. Need {formatBalance(perpetualMarginRequired - account.freeMargin)} more.
+                                            Insufficient margin. Need {formatBalance(perpetualMarginRequired - marginAccount.freeMargin)} more.
                                         </span>
                                     </div>
                                 </div>

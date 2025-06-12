@@ -11,34 +11,37 @@ import {
     Minus,
     RotateCcw,
     AlertTriangle,
-    HelpCircle
+    HelpCircle,
+    RefreshCw
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { useMarginAccountAPI } from '../../hooks/useMarginAccountAPI';
-import { usePerpetualPositions } from '../../hooks/usePerps';
+import { useTradingState } from '../../hooks/useTradingState';
 import MarginDepositWithdrawDialog from './MarginDepositWithdrawDialog';
 
 export default function MarginControlsCompact() {
     const {
-        account,
-        resetAccount,
+        marginAccount,
+        openPositions,
+        isLoading,
+        fetchTradingData,
+        resetMarginAccount,
         getLiquidationRisk,
-        isMarginCallLevel,
-        formatBalance
-    } = useMarginAccountAPI();
-
-    const { positions } = usePerpetualPositions();
+        formatBalance,
+        syncPnL,
+        depositMargin,
+        withdrawMargin
+    } = useTradingState();
 
     // Use margin account state as source of truth - if margin is used, we have active positions
     // This ensures the UI reflects what the margin account actually knows about
-    const hasActivePositions = account ? account.usedMargin > 0 : false;
-    const openPositionCount = hasActivePositions ? positions.filter(p => p.status === 'open').length : 0;
+    const hasActivePositions = marginAccount ? marginAccount.usedMargin > 0 : false;
+    const openPositionCount = openPositions.length;
 
     const [depositDialogOpen, setDepositDialogOpen] = useState(false);
     const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
 
     // Skeleton loading state that matches the full layout
-    if (!account) {
+    if (!marginAccount) {
         return (
             <>
                 <Card className="p-3 h-fit">
@@ -137,7 +140,7 @@ export default function MarginControlsCompact() {
     }
 
     const liquidationRisk = getLiquidationRisk();
-    const marginCallLevel = isMarginCallLevel();
+    const marginCallLevel = marginAccount ? marginAccount.marginRatio > 50 : false;
 
     // Risk colors based on margin ratio
     const getRiskColor = (risk: 'low' | 'medium' | 'high') => {
@@ -164,6 +167,22 @@ export default function MarginControlsCompact() {
                                 {openPositionCount} pos
                             </Badge>
                         )}
+                        {/* P&L Sync Button */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={syncPnL}
+                                    className="h-6 w-6 p-0"
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                                <p className="text-xs">Sync P&L with positions</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                 </div>
 
@@ -171,25 +190,25 @@ export default function MarginControlsCompact() {
                 <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
                     <div>
                         <div className="text-muted-foreground">Equity</div>
-                        <div className="font-medium">{formatBalance(account.accountEquity)}</div>
+                        <div className="font-medium">{formatBalance(marginAccount.accountEquity)}</div>
                     </div>
                     <div>
                         <div className="text-muted-foreground">Available</div>
-                        <div className="font-medium text-green-600">{formatBalance(account.freeMargin)}</div>
+                        <div className="font-medium text-green-600">{formatBalance(marginAccount.freeMargin)}</div>
                     </div>
                 </div>
 
                 {/* Margin Utilization - Compact */}
                 <div className="mb-3">
                     <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground">Used: {formatBalance(account.usedMargin)}</span>
-                        <span className="text-xs font-medium">{account.marginRatio.toFixed(1)}%</span>
+                        <span className="text-xs text-muted-foreground">Used: {formatBalance(marginAccount.usedMargin)}</span>
+                        <span className="text-xs font-medium">{marginAccount.marginRatio.toFixed(1)}%</span>
                     </div>
                     <Progress
-                        value={account.marginRatio}
+                        value={marginAccount.marginRatio}
                         className="h-1.5"
-                        indicatorClassName={`${account.marginRatio > 80 ? 'bg-red-500' :
-                            account.marginRatio > 50 ? 'bg-yellow-500' :
+                        indicatorClassName={`${marginAccount.marginRatio > 80 ? 'bg-red-500' :
+                            marginAccount.marginRatio > 50 ? 'bg-yellow-500' :
                                 'bg-green-500'
                             }`}
                     />
@@ -237,7 +256,7 @@ export default function MarginControlsCompact() {
                         variant="outline"
                         size="sm"
                         onClick={() => setWithdrawDialogOpen(true)}
-                        disabled={account.freeMargin <= 0}
+                        disabled={marginAccount.freeMargin <= 0}
                         className="text-xs h-7"
                     >
                         <Minus className="w-3 h-3 mr-1" />
@@ -246,7 +265,7 @@ export default function MarginControlsCompact() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={resetAccount}
+                        onClick={resetMarginAccount}
                         className="text-xs h-7"
                     >
                         <RotateCcw className="w-3 h-3" />
@@ -254,31 +273,45 @@ export default function MarginControlsCompact() {
                 </div>
 
                 {/* P&L Display if margin account has active positions */}
-                {hasActivePositions && account && (
+                {hasActivePositions && marginAccount && (
                     <div className="mt-3 pt-2 border-t border-border/40">
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Unrealized P&L:</span>
-                            <span className={`font-medium ${account.unrealizedPnL > 0 ? 'text-green-500' :
-                                account.unrealizedPnL < 0 ? 'text-red-500' : ''
+                            <span className={`font-medium ${marginAccount.unrealizedPnL > 0 ? 'text-green-500' :
+                                marginAccount.unrealizedPnL < 0 ? 'text-red-500' : ''
                                 }`}>
-                                {account.unrealizedPnL >= 0 ? '+' : ''}{formatBalance(account.unrealizedPnL)}
+                                {marginAccount.unrealizedPnL >= 0 ? '+' : ''}{formatBalance(marginAccount.unrealizedPnL)}
                             </span>
                         </div>
                     </div>
                 )}
             </Card>
 
-            {/* Deposit/Withdraw Dialogs */}
-            <MarginDepositWithdrawDialog
-                type="deposit"
-                open={depositDialogOpen}
-                onOpenChange={setDepositDialogOpen}
-            />
-            <MarginDepositWithdrawDialog
-                type="withdraw"
-                open={withdrawDialogOpen}
-                onOpenChange={setWithdrawDialogOpen}
-            />
+            {/* Deposit/Withdraw Dialogs - Only render when open and data is ready */}
+            {depositDialogOpen && marginAccount && (
+                <MarginDepositWithdrawDialog
+                    type="deposit"
+                    open={depositDialogOpen}
+                    onOpenChange={setDepositDialogOpen}
+                    marginAccount={marginAccount}
+                    depositMargin={depositMargin}
+                    withdrawMargin={withdrawMargin}
+                    formatBalance={formatBalance}
+                    getLiquidationRisk={getLiquidationRisk}
+                />
+            )}
+            {withdrawDialogOpen && marginAccount && (
+                <MarginDepositWithdrawDialog
+                    type="withdraw"
+                    open={withdrawDialogOpen}
+                    onOpenChange={setWithdrawDialogOpen}
+                    marginAccount={marginAccount}
+                    depositMargin={depositMargin}
+                    withdrawMargin={withdrawMargin}
+                    formatBalance={formatBalance}
+                    getLiquidationRisk={getLiquidationRisk}
+                />
+            )}
         </>
     );
 } 

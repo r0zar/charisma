@@ -22,7 +22,7 @@
         },
         {
             "path": "/api/cron/margin-sync",
-            "schedule": "*/2 * * * *"
+            "schedule": "*/5 * * * *"
         }
     ]
 }

@@ -10,47 +10,50 @@ export function useMarginAccountAPI() {
     const [error, setError] = useState<string | null>(null);
     const { address } = useWallet();
 
-    // Fetch account data with P&L sync
-    const fetchAccount = useCallback(async () => {
+
+
+    // Auto-fetch on address change (without P&L sync to prevent loops)
+    useEffect(() => {
         if (!address) {
             setAccount(null);
             return;
         }
 
-        setIsLoading(true);
-        setError(null);
+        let cancelled = false;
 
-        try {
-            // First, trigger P&L sync for this user to get latest position data
-            await fetch('/api/v1/margin/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ owner: address })
-            }).catch(err => {
-                console.warn('P&L sync failed, continuing with fetch:', err);
-            });
+        const doFetch = async () => {
+            setIsLoading(true);
+            setError(null);
 
-            // Then fetch the updated margin account data
-            const response = await fetch(`/api/v1/margin?owner=${address}`);
-            const data = await response.json();
+            try {
+                const response = await fetch(`/api/v1/margin?owner=${address}`);
+                const data = await response.json();
 
-            if (data.status === 'success') {
-                setAccount(data.data);
-            } else {
-                setError(data.error || 'Failed to fetch margin account');
+                if (!cancelled) {
+                    if (data.status === 'success') {
+                        setAccount(data.data);
+                    } else {
+                        setError(data.error || 'Failed to fetch margin account');
+                    }
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    console.error('Failed to fetch margin account:', err);
+                    setError('Network error fetching margin account');
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             }
-        } catch (err) {
-            console.error('Failed to fetch margin account:', err);
-            setError('Network error fetching margin account');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [address]);
+        };
 
-    // Auto-fetch on address change
-    useEffect(() => {
-        fetchAccount();
-    }, [fetchAccount]);
+        doFetch();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [address]);
 
     // Deposit margin
     const depositMargin = useCallback(async (amount: number): Promise<boolean> => {
@@ -189,6 +192,40 @@ export function useMarginAccountAPI() {
         }).format(amount);
     }, []);
 
+    // Sync P&L and then fetch updated data
+    const syncAndRefetch = useCallback(async (): Promise<void> => {
+        if (!address) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // First sync P&L
+            await fetch('/api/v1/margin/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ owner: address })
+            }).catch(err => {
+                console.warn('P&L sync failed, continuing with fetch:', err);
+            });
+
+            // Then fetch updated data
+            const response = await fetch(`/api/v1/margin?owner=${address}`);
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                setAccount(data.data);
+            } else {
+                setError(data.error || 'Failed to fetch margin account');
+            }
+        } catch (err) {
+            console.error('Failed to sync and fetch margin account:', err);
+            setError('Network error syncing margin account');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [address]);
+
     return {
         // Account state
         account,
@@ -200,7 +237,32 @@ export function useMarginAccountAPI() {
         withdrawMargin,
         resetAccount,
         updateMarginUsage,
-        refetch: fetchAccount,
+        refetch: useCallback(async () => {
+            if (!address) {
+                setAccount(null);
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const response = await fetch(`/api/v1/margin?owner=${address}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    setAccount(data.data);
+                } else {
+                    setError(data.error || 'Failed to fetch margin account');
+                }
+            } catch (err) {
+                console.error('Failed to fetch margin account:', err);
+                setError('Network error fetching margin account');
+            } finally {
+                setIsLoading(false);
+            }
+        }, [address]),
+        syncAndRefetch,
 
         // Utilities
         canOpenPosition,

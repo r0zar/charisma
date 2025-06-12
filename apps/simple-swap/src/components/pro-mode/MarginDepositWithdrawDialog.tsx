@@ -1,141 +1,85 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
-import { Card } from '../ui/card';
-import { Separator } from '../ui/separator';
-import {
-    Wallet,
-    Plus,
-    Minus,
-    DollarSign,
-    AlertTriangle,
-    CheckCircle,
-    Info
-} from 'lucide-react';
-import { useMarginAccountAPI } from '../../hooks/useMarginAccountAPI';
+import { Plus, Minus, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MarginAccount } from '../../lib/margin/types';
 
-interface MarginDepositWithdrawDialogProps {
+interface Props {
     type: 'deposit' | 'withdraw';
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    marginAccount: MarginAccount | null;
+    depositMargin: (amount: number) => Promise<boolean>;
+    withdrawMargin: (amount: number) => Promise<boolean>;
+    formatBalance: (amount: number) => string;
 }
 
-const QUICK_AMOUNTS = {
-    deposit: [500, 1000, 2500, 5000, 10000],
-    withdraw: [] // Will be calculated based on available balance
-};
-
-export default function MarginDepositWithdrawDialog({
+const MarginDepositWithdrawDialog = memo(function MarginDepositWithdrawDialog({
     type,
     open,
-    onOpenChange
-}: MarginDepositWithdrawDialogProps) {
-    const {
-        account,
-        depositMargin,
-        withdrawMargin,
-        formatBalance,
-        getLiquidationRisk
-    } = useMarginAccountAPI();
-
+    onOpenChange,
+    marginAccount,
+    depositMargin,
+    withdrawMargin,
+    formatBalance
+}: Props) {
     const [amount, setAmount] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [validationMessage, setValidationMessage] = useState('');
+    const [error, setError] = useState('');
 
-    // Reset form when dialog opens/closes
-    useEffect(() => {
-        if (open) {
-            setAmount('');
-            setValidationMessage('');
-        }
-    }, [open]);
-
-    // Don't render if account is not loaded
-    if (!account) {
+    // Don't render if no account data
+    if (!marginAccount) {
         return null;
     }
 
-    // Calculate quick amounts for withdrawal
-    const getQuickAmounts = () => {
-        if (type === 'deposit') {
-            return QUICK_AMOUNTS.deposit;
-        } else {
-            // For withdrawals, suggest percentages of free margin
-            const freeMargin = account.freeMargin;
-            if (freeMargin <= 0) return [];
-
-            const percentages = [0.25, 0.5, 0.75, 1.0];
-            return percentages
-                .map(pct => Math.floor(freeMargin * pct))
-                .filter(amt => amt >= 10); // Only show amounts >= $10
+    // Reset when dialog opens
+    const handleOpenChange = (newOpen: boolean) => {
+        if (newOpen) {
+            setAmount('');
+            setError('');
         }
+        onOpenChange(newOpen);
     };
 
-    // Validate amount input
-    const validateAmount = (value: string) => {
-        const numValue = parseFloat(value);
-
-        if (!value || isNaN(numValue) || numValue <= 0) {
-            setValidationMessage('Please enter a valid amount');
-            return false;
+    // Simple validation
+    const validate = (value: string): string => {
+        const num = parseFloat(value);
+        if (!value || isNaN(num) || num <= 0) {
+            return 'Please enter a valid amount';
         }
-
-        if (type === 'deposit') {
-            if (numValue > 1000000) {
-                setValidationMessage('Maximum deposit is $1,000,000 in preview mode');
-                return false;
-            }
-        } else {
-            if (numValue > account.freeMargin) {
-                setValidationMessage(`Maximum withdrawal is ${formatBalance(account.freeMargin)}`);
-                return false;
-            }
-
-            // Check if withdrawal would create dangerous margin ratio
-            const newTotalBalance = account.totalBalance - numValue;
-            const newAccountEquity = newTotalBalance + account.unrealizedPnL;
-            const newMarginRatio = account.usedMargin > 0 ? (account.usedMargin / newAccountEquity) * 100 : 0;
-
-            if (newMarginRatio > 80) {
-                setValidationMessage('This withdrawal would create high liquidation risk');
-                return false;
-            }
+        if (type === 'withdraw' && num > marginAccount.freeMargin) {
+            return `Maximum withdrawal: ${formatBalance(marginAccount.freeMargin)}`;
         }
-
-        setValidationMessage('');
-        return true;
+        if (type === 'deposit' && num > 1000000) {
+            return 'Maximum deposit: $1,000,000';
+        }
+        return '';
     };
 
-    // Handle amount input change
+    // Handle amount change
     const handleAmountChange = (value: string) => {
-        // Only allow numeric input with up to 2 decimal places
+        // Only allow numbers and decimal
         if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
             setAmount(value);
-            if (value) {
-                validateAmount(value);
-            } else {
-                setValidationMessage('');
-            }
+            setError(validate(value));
         }
-    };
-
-    // Handle quick amount selection
-    const selectQuickAmount = (quickAmount: number) => {
-        const amountStr = quickAmount.toString();
-        setAmount(amountStr);
-        validateAmount(amountStr);
     };
 
     // Handle submit
     const handleSubmit = async () => {
-        if (!validateAmount(amount)) return;
+        const validationError = validate(amount);
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
 
         setIsSubmitting(true);
+        setError('');
+
         try {
             const success = type === 'deposit'
                 ? await depositMargin(parseFloat(amount))
@@ -144,89 +88,80 @@ export default function MarginDepositWithdrawDialog({
             if (success) {
                 onOpenChange(false);
             }
-        } catch (error) {
-            console.error('Transaction failed:', error);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Transaction failed');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const quickAmounts = getQuickAmounts();
-    const isValid = amount && validateAmount(amount) && !validationMessage;
+    const numAmount = parseFloat(amount) || 0;
+    const canSubmit = amount && !error && !isSubmitting && numAmount > 0;
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogContent className="sm:max-w-[400px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center space-x-2">
                         {type === 'deposit' ? (
-                            <Plus className="w-5 h-5 text-green-500" />
+                            <Plus className="w-4 h-4 text-green-500" />
                         ) : (
-                            <Minus className="w-5 h-5 text-blue-500" />
+                            <Minus className="w-4 h-4 text-blue-500" />
                         )}
-                        <span>
-                            {type === 'deposit' ? 'Deposit Margin' : 'Withdraw Margin'}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">Preview Mode</Badge>
+                        <span>{type === 'deposit' ? 'Deposit' : 'Withdraw'} Margin</span>
+                        <Badge variant="secondary" className="text-xs">Preview</Badge>
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-6">
-                    {/* Current Account Status */}
-                    <Card className="p-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <div className="text-muted-foreground">Account Equity</div>
-                                <div className="font-medium">{formatBalance(account.accountEquity)}</div>
+                <div className="space-y-4">
+                    {/* Current Status */}
+                    <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg text-sm">
+                        <div>
+                            <div className="text-muted-foreground">Account Equity</div>
+                            <div className="font-medium">{formatBalance(marginAccount.accountEquity)}</div>
+                        </div>
+                        <div>
+                            <div className="text-muted-foreground">
+                                {type === 'deposit' ? 'Current Balance' : 'Available'}
                             </div>
-                            <div>
-                                <div className="text-muted-foreground">
-                                    {type === 'deposit' ? 'Current Balance' : 'Available to Withdraw'}
-                                </div>
-                                <div className="font-medium">
-                                    {type === 'deposit'
-                                        ? formatBalance(account.totalBalance)
-                                        : formatBalance(account.freeMargin)
-                                    }
-                                </div>
+                            <div className="font-medium">
+                                {formatBalance(type === 'deposit' ? marginAccount.totalBalance : marginAccount.freeMargin)}
                             </div>
                         </div>
-                    </Card>
+                    </div>
 
                     {/* Amount Input */}
-                    <div className="space-y-3">
-                        <Label htmlFor="amount">Amount (USD)</Label>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Amount (USD)</label>
                         <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                                id="amount"
                                 value={amount}
                                 onChange={(e) => handleAmountChange(e.target.value)}
                                 placeholder="0.00"
-                                className="pl-10 text-lg font-medium"
+                                className="pl-10 text-lg"
                                 disabled={isSubmitting}
                             />
                         </div>
-
-                        {validationMessage && (
+                        {error && (
                             <div className="flex items-center space-x-2 text-sm text-red-500">
                                 <AlertTriangle className="w-4 h-4" />
-                                <span>{validationMessage}</span>
+                                <span>{error}</span>
                             </div>
                         )}
                     </div>
 
-                    {/* Quick Amount Buttons */}
-                    {quickAmounts.length > 0 && (
+                    {/* Quick amounts for deposit */}
+                    {type === 'deposit' && (
                         <div className="space-y-2">
-                            <Label className="text-sm text-muted-foreground">Quick Select</Label>
+                            <label className="text-sm text-muted-foreground">Quick Select</label>
                             <div className="grid grid-cols-3 gap-2">
-                                {quickAmounts.map((quickAmount) => (
+                                {[500, 1000, 5000].map((quickAmount) => (
                                     <Button
                                         key={quickAmount}
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => selectQuickAmount(quickAmount)}
+                                        onClick={() => handleAmountChange(quickAmount.toString())}
                                         disabled={isSubmitting}
                                         className="text-xs"
                                     >
@@ -237,28 +172,21 @@ export default function MarginDepositWithdrawDialog({
                         </div>
                     )}
 
-                    {/* Warning for Withdrawals */}
-                    {type === 'withdraw' && account.usedMargin > 0 && (
-                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-                            <div className="flex items-start space-x-2">
-                                <Info className="w-4 h-4 text-yellow-500 mt-0.5" />
-                                <div className="text-sm">
-                                    <div className="font-medium text-yellow-700 dark:text-yellow-300">
-                                        Active Positions
-                                    </div>
-                                    <div className="text-yellow-600 dark:text-yellow-400 mt-1">
-                                        You have ${account.usedMargin.toLocaleString()} in active positions.
-                                        Withdrawing too much could increase liquidation risk.
-                                    </div>
+                    {/* Warning for withdrawals with active positions */}
+                    {type === 'withdraw' && marginAccount.usedMargin > 0 && (
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                            <div className="flex items-center space-x-2 text-sm text-yellow-600 dark:text-yellow-400">
+                                <AlertTriangle className="w-4 h-4" />
+                                <div>
+                                    <div className="font-medium">Active Positions</div>
+                                    <div>You have ${marginAccount.usedMargin.toLocaleString()} in active positions.</div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <Separator />
-
                     {/* Action Buttons */}
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-3 pt-2">
                         <Button
                             variant="outline"
                             onClick={() => onOpenChange(false)}
@@ -269,32 +197,23 @@ export default function MarginDepositWithdrawDialog({
                         </Button>
                         <Button
                             onClick={handleSubmit}
-                            disabled={!isValid || isSubmitting}
+                            disabled={!canSubmit}
                             className="flex-1"
                         >
-                            {isSubmitting ? (
-                                'Processing...'
-                            ) : (
-                                <>
-                                    {type === 'deposit' ? 'Deposit' : 'Withdraw'} {
-                                        amount && formatBalance(parseFloat(amount))
-                                    }
-                                </>
-                            )}
+                            {isSubmitting ? 'Processing...' :
+                                `${type === 'deposit' ? 'Deposit' : 'Withdraw'} ${numAmount > 0 ? formatBalance(numAmount) : ''
+                                }`
+                            }
                         </Button>
                     </div>
 
-                    {/* Preview Mode Notice */}
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                        <div className="flex items-start space-x-2">
-                            <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5" />
-                            <div className="text-sm">
-                                <div className="font-medium text-blue-700 dark:text-blue-300">
-                                    Preview Mode Active
-                                </div>
-                                <div className="text-blue-600 dark:text-blue-400 mt-1">
-                                    This is simulated trading with virtual funds. No real money is involved.
-                                </div>
+                    {/* Preview Notice */}
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                            <CheckCircle className="w-4 h-4" />
+                            <div>
+                                <div className="font-medium">Preview Mode</div>
+                                <div>Simulated trading with virtual funds. No real money involved.</div>
                             </div>
                         </div>
                     </div>
@@ -302,4 +221,6 @@ export default function MarginDepositWithdrawDialog({
             </DialogContent>
         </Dialog>
     );
-} 
+});
+
+export default MarginDepositWithdrawDialog; 

@@ -33,7 +33,62 @@ export function usePerpetualPositions() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const { address } = useWallet();
 
-    const fetchPositions = useCallback(async () => {
+
+
+    // Auto-fetch positions every 60 seconds + on refresh trigger changes
+    useEffect(() => {
+        const doFetch = async () => {
+            console.log('🔍 Fetching perpetual positions for address:', address);
+
+            if (!address) {
+                console.log('❌ No wallet address found, setting positions to empty array');
+                setPositions([]);
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+
+            try {
+                const url = `/api/v1/perps?owner=${address}`;
+                console.log('📡 Fetching from:', url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                console.log('📦 API Response:', {
+                    status: response.status,
+                    data: data,
+                    positions: data.data
+                });
+
+                if (data.status === 'success') {
+                    console.log('✅ Successfully fetched positions:', data.data);
+                    setPositions(data.data);
+                } else {
+                    console.log('❌ API returned error:', data.error);
+                    setError(data.error || 'Failed to fetch positions');
+                }
+            } catch (err) {
+                console.error('❌ Network error fetching perps:', err);
+                setError('Network error fetching positions');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        doFetch();
+
+        const interval = setInterval(doFetch, 60000);
+        return () => clearInterval(interval);
+    }, [address, refreshTrigger]);
+
+    // Simple force refresh mechanism
+    const forceRefresh = useCallback(() => {
+        setRefreshTrigger(prev => prev + 1);
+    }, []);
+
+    const refetch = useCallback(async () => {
         console.log('🔍 Fetching perpetual positions for address:', address);
 
         if (!address) {
@@ -71,26 +126,13 @@ export function usePerpetualPositions() {
         } finally {
             setIsLoading(false);
         }
-    }, [address, refreshTrigger]);
-
-    // Auto-fetch positions every 60 seconds + on refresh trigger changes
-    useEffect(() => {
-        fetchPositions();
-
-        const interval = setInterval(fetchPositions, 60000);
-        return () => clearInterval(interval);
-    }, [fetchPositions]);
-
-    // Simple force refresh mechanism
-    const forceRefresh = useCallback(() => {
-        setRefreshTrigger(prev => prev + 1);
-    }, []);
+    }, [address]);
 
     return {
         positions,
         isLoading,
         error,
-        refetch: fetchPositions,
+        refetch,
         forceRefresh
     };
 }
