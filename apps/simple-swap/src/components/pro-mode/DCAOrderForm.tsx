@@ -46,6 +46,7 @@ export default function DCAOrderForm() {
         isSubmitting,
         tradingPairBase,
         setTradingPairBase,
+        targetPrice,
     } = useProModeContext();
 
     const {
@@ -113,6 +114,10 @@ export default function DCAOrderForm() {
                     onChange={(e) => setDcaFrequency(e.target.value)}
                     className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
                 >
+                    <option value="1minute">Every Minute</option>
+                    <option value="5minutes">Every 5 Minutes</option>
+                    <option value="15minutes">Every 15 Minutes</option>
+                    <option value="30minutes">Every 30 Minutes</option>
                     <option value="hourly">Hourly</option>
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -195,13 +200,21 @@ export default function DCAOrderForm() {
             </div>
 
             {/* Submit Button - spans all columns */}
-            <div className="col-span-3 pt-4">
+            <div className="col-span-3 pt-4 space-y-2">
+                {!targetPrice && selectedFromToken && selectedToToken && (
+                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="text-sm text-blue-800 dark:text-blue-200">
+                            <strong>📊 Click on the chart</strong> to set your target price for DCA execution
+                        </div>
+                    </div>
+                )}
                 <Button
                     onClick={handleCreateDcaOrder}
-                    disabled={!dcaAmount || !selectedFromToken || !selectedToToken || !dcaFrequency || !dcaDuration || isSubmitting}
+                    disabled={!dcaAmount || !selectedFromToken || !selectedToToken || !dcaFrequency || !dcaDuration || !targetPrice || isSubmitting}
                     className="w-full h-12 text-base font-medium"
                 >
-                    {isSubmitting ? 'Creating DCA Strategy...' : 'Create DCA Strategy'}
+                    {isSubmitting ? 'Creating DCA Strategy...' :
+                        !targetPrice ? 'Set Target Price on Chart First' : 'Create DCA Strategy'}
                 </Button>
             </div>
 

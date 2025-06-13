@@ -91,22 +91,62 @@ export default function SingleOrderCreationDialog() {
             throw new Error('Missing required data');
         }
 
+        /* 
+         * TOKEN MAPPING EXPLANATION FOR SINGLE ORDERS:
+         * 
+         * User Action: Buying selectedToToken using selectedFromToken
+         * Example: Buying CHA using sUSDh
+         * 
+         * User expects: "1 sUSDh >= 4.18 CHA" (when I can get at least 4.18 CHA for 1 sUSDh)
+         * 
+         * Order Structure:
+         * - inputToken: selectedFromToken (sUSDh) - what user is spending
+         * - outputToken: selectedToToken (CHA) - what user is buying
+         * - conditionToken: selectedFromToken (sUSDh) - watch FROM token's buying power
+         * - baseAsset: selectedToToken (CHA) - denominate in TO token terms
+         * 
+         * This creates the condition: "1 sUSDh >= X CHA" where X is the target price
+         */
+
         const amountMicro = Math.floor(parseFloat(order.amount) * (10 ** (selectedFromToken.decimals || 6))).toString();
 
-        return {
+        const payload = {
             owner: address,
             inputToken: selectedFromToken.contractId,
             outputToken: selectedToToken.contractId,
             amountIn: amountMicro,
             targetPrice: order.targetPrice,
             direction: order.conditionDir,
-            conditionToken: selectedToToken.contractId,
-            baseAsset: baseToken?.contractId || 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
+            // CORRECTED: Watch FROM token's buying power in TO token terms
+            // This creates: "1 FROM_token >= X TO_tokens" condition
+            conditionToken: selectedFromToken.contractId,   // Watch FROM token's exchange rate
+            baseAsset: selectedToToken.contractId,          // Denominate in TO token terms
             recipient: address,
             signature,
             uuid,
         };
-    }, [selectedFromToken, selectedToToken, address, baseToken, order]);
+
+        // Debug logging to verify token mapping
+        console.log('🔍 Single Order Payload Debug:', {
+            orderType: 'Single/Limit',
+            userAction: `Buying ${selectedToToken.symbol} with ${selectedFromToken.symbol}`,
+            payload: {
+                inputToken: `${selectedFromToken.symbol} (${selectedFromToken.contractId})`,
+                outputToken: `${selectedToToken.symbol} (${selectedToToken.contractId})`,
+                conditionToken: `${selectedFromToken.symbol} (${selectedFromToken.contractId})`,
+                baseAsset: `${selectedToToken.symbol} (${selectedToToken.contractId})`,
+                targetPrice: order.targetPrice,
+                direction: order.conditionDir
+            },
+            expectedCondition: order.conditionDir === 'gt'
+                ? `1 ${selectedFromToken.symbol} >= ${order.targetPrice} ${selectedToToken.symbol}`
+                : `1 ${selectedToToken.symbol} >= ${order.targetPrice} ${selectedFromToken.symbol}`,
+            interpretation: `Watch ${selectedFromToken.symbol} buying power in ${selectedToToken.symbol} terms`,
+            chartShould: `Show ${selectedToToken.symbol}/${selectedFromToken.symbol} ratio (how much ${selectedToToken.symbol} per 1 ${selectedFromToken.symbol})`
+        });
+
+        return payload;
+    }, [selectedFromToken, selectedToToken, address, order]);
 
     // Process the order
     const processOrder = useCallback(async () => {
@@ -207,8 +247,8 @@ export default function SingleOrderCreationDialog() {
                     amountIn: Math.floor(parseFloat(order.amount) * (10 ** (selectedFromToken.decimals || 6))).toString(),
                     targetPrice: order.targetPrice,
                     direction: order.conditionDir,
-                    conditionToken: selectedToToken.contractId,
-                    baseAsset: baseToken.contractId,
+                    conditionToken: selectedFromToken.contractId,  // CORRECTED: FROM token 
+                    baseAsset: selectedToToken.contractId,         // CORRECTED: TO token
                     status: 'open' as const,
                     createdAt: new Date().toISOString(),
                     recipient: address,
@@ -219,8 +259,8 @@ export default function SingleOrderCreationDialog() {
                     // Add enriched token metadata
                     inputTokenMeta: selectedFromToken,
                     outputTokenMeta: selectedToToken,
-                    conditionTokenMeta: selectedToToken,
-                    baseAssetMeta: baseToken,
+                    conditionTokenMeta: selectedFromToken,     // Token being watched for price changes (FROM token)
+                    baseAssetMeta: selectedToToken,            // Token used for price denomination (TO token)
                 };
 
                 // Add the new order to the list
@@ -337,7 +377,11 @@ export default function SingleOrderCreationDialog() {
                                             </h4>
                                             <p className="text-sm text-yellow-700 dark:text-yellow-300">
                                                 Your target price condition is already met! This order will execute immediately upon creation.
-                                                Current rate: 1 {selectedFromToken.symbol} = {currentPrice?.toFixed(6)} {selectedToToken.symbol}, Target: {order?.conditionDir === 'gt' ? '≥' : '≤'} {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}
+                                                Current rate: 1 {selectedFromToken.symbol} = {currentPrice?.toFixed(6)} {selectedToToken.symbol}, Target: {order?.conditionDir === 'gt' ? (
+                                                    <>≥ {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}</>
+                                                ) : (
+                                                    <>1 {selectedToToken.symbol} ≥ {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedFromToken.symbol}</>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
@@ -392,10 +436,17 @@ export default function SingleOrderCreationDialog() {
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">Target Rate:</span>
                                         <span className="font-mono font-medium">
-                                            1 {selectedFromToken.symbol} {order?.conditionDir === 'gt' ? '≥' : '≤'} {parseFloat(order?.targetPrice || '0').toLocaleString(undefined, {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 8
-                                            })} {selectedToToken.symbol}
+                                            {order?.conditionDir === 'gt' ? (
+                                                <>1 {selectedFromToken.symbol} ≥ {parseFloat(order?.targetPrice || '0').toLocaleString(undefined, {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 8
+                                                })} {selectedToToken.symbol}</>
+                                            ) : (
+                                                <>1 {selectedToToken.symbol} ≥ {parseFloat(order?.targetPrice || '0').toLocaleString(undefined, {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 8
+                                                })} {selectedFromToken.symbol}</>
+                                            )}
                                         </span>
                                     </div>
                                     {currentPrice && (
@@ -422,11 +473,18 @@ export default function SingleOrderCreationDialog() {
                                         </h4>
                                         <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
                                             <p>
-                                                Your order will automatically execute when the <strong>price of 1 {selectedFromToken.symbol}</strong>
-                                                {order?.conditionDir === 'gt' ? ' exceeds' : ' drops below'} {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}.
+                                                Your order will automatically execute when {order?.conditionDir === 'gt' ? (
+                                                    <>the <strong>price of 1 {selectedFromToken.symbol}</strong> exceeds {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}</>
+                                                ) : (
+                                                    <>the <strong>price of 1 {selectedToToken.symbol}</strong> exceeds {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedFromToken.symbol}</>
+                                                )}.
                                             </p>
                                             <p className="text-xs opacity-90 mt-1">
-                                                This means when 1 {selectedFromToken.symbol} can be exchanged for {order?.conditionDir === 'gt' ? 'more than' : 'less than'} {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}.
+                                                This means when {order?.conditionDir === 'gt' ? (
+                                                    <>1 {selectedFromToken.symbol} can be exchanged for more than {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedToToken.symbol}</>
+                                                ) : (
+                                                    <>1 {selectedToToken.symbol} can be exchanged for more than {parseFloat(order?.targetPrice || '0').toFixed(6)} {selectedFromToken.symbol}</>
+                                                )}.
                                             </p>
                                             {!immediateExecution && (
                                                 <p className="mt-2">

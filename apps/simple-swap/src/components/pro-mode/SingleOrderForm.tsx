@@ -267,13 +267,21 @@ export default function SingleOrderForm() {
                         </div>
 
                         {/* Submit Button - spans all columns */}
-                        <div className="col-span-1 sm:col-span-2 lg:col-span-3 pt-4">
+                        <div className="col-span-1 sm:col-span-2 lg:col-span-3 pt-4 space-y-2">
+                            {!targetPrice && selectedFromToken && selectedToToken && (
+                                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                                        <strong>📊 Click on the chart</strong> to set your target price for the limit order
+                                    </div>
+                                </div>
+                            )}
                             <Button
                                 onClick={handleCreateLimitOrder}
                                 disabled={!displayAmount || !selectedFromToken || !selectedToToken || !targetPrice || isSubmitting}
                                 className="w-full h-12 text-base font-medium"
                             >
-                                {isSubmitting ? 'Creating Order...' : 'Create Limit Order'}
+                                {isSubmitting ? 'Creating Order...' :
+                                    !targetPrice ? 'Set Target Price on Chart First' : 'Create Limit Order'}
                             </Button>
                         </div>
                     </div>

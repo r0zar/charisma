@@ -104,6 +104,7 @@ export default function OrdersPanel() {
     const [activeFilter, setActiveFilter] = useState<string>("all");
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
+    const [recentlyUpdatedOrders, setRecentlyUpdatedOrders] = useState<Set<string>>(new Set());
 
     const fetchOrders = useCallback(async () => {
         if (!connected || !address) {
@@ -118,6 +119,61 @@ export default function OrdersPanel() {
             const j = await res.json();
             if (res.ok) {
                 const rawOrders = j.data as LimitOrder[];
+
+                // Check for status changes before processing
+                const statusChanges: Array<{ order: LimitOrder, oldStatus: string, newStatus: string }> = [];
+                rawOrders.forEach(newOrder => {
+                    const currentOrder = displayOrders.find(o => o.uuid === newOrder.uuid);
+                    if (currentOrder && currentOrder.status !== newOrder.status) {
+                        statusChanges.push({
+                            order: newOrder,
+                            oldStatus: currentOrder.status,
+                            newStatus: newOrder.status
+                        });
+                    }
+                });
+
+                // Show notifications for status changes
+                statusChanges.forEach(change => {
+                    const orderDisplay = displayOrders.find(o => o.uuid === change.order.uuid);
+                    if (!orderDisplay) return;
+
+                    const fromSymbol = orderDisplay.inputTokenMeta?.symbol || 'Token';
+                    const toSymbol = orderDisplay.outputTokenMeta?.symbol || 'Token';
+
+                    if (change.newStatus === 'filled') {
+                        toast.success(`Order Filled: ${fromSymbol} → ${toSymbol}`, {
+                            description: (
+                                <span className="text-green-800 font-medium">
+                                    Your limit order has been executed successfully
+                                </span>
+                            ),
+                            duration: 8000,
+                            className: "border-green-200 bg-green-50 text-green-900",
+                        });
+                    } else if (change.newStatus === 'cancelled') {
+                        toast.info(`Order Cancelled: ${fromSymbol} → ${toSymbol}`, {
+                            description: `Your order has been cancelled.`,
+                            duration: 5000,
+                        });
+                    }
+                });
+
+                // Mark orders as recently updated
+                if (statusChanges.length > 0) {
+                    const updatedOrderIds = statusChanges.map(c => c.order.uuid);
+                    setRecentlyUpdatedOrders(new Set(updatedOrderIds));
+
+                    // Clear the recently updated status after 10 seconds
+                    setTimeout(() => {
+                        setRecentlyUpdatedOrders(prev => {
+                            const newSet = new Set(prev);
+                            updatedOrderIds.forEach(id => newSet.delete(id));
+                            return newSet;
+                        });
+                    }, 10000);
+                }
+
                 if (rawOrders.length === 0) {
                     setDisplayOrders([]);
                     setLoading(false);
@@ -172,12 +228,24 @@ export default function OrdersPanel() {
         } finally {
             setLoading(false);
         }
-    }, [address, connected]);
+    }, [address, connected, displayOrders]);
 
     // fetch once when wallet connects/address changes
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+
+    // Order status polling for real-time updates
+    useEffect(() => {
+        if (!connected || !address) return;
+
+        // Poll every 30 seconds for order status updates  
+        const pollInterval = setInterval(() => {
+            fetchOrders();
+        }, 30000);
+
+        return () => clearInterval(pollInterval);
+    }, [connected, address, fetchOrders]);
 
     const formatTokenAmount = (amount: string | number, decimals: number) => {
         const num = Number(amount);
@@ -241,7 +309,23 @@ export default function OrdersPanel() {
                     order.uuid === uuid ? { ...order, status: 'filled', txid: j.txid } : order
                 )
             );
-            toast.success(`Execution submitted: ${j.txid.substring(0, 10)}...`);
+            toast.success(`Order Executed`, {
+                description: (
+                    <div>
+                        <div className="text-green-800 font-medium">Transaction submitted successfully</div>
+                        <a
+                            href={`https://explorer.hiro.so/txid/${j.txid}?chain=mainnet`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline text-sm font-mono"
+                        >
+                            View on Explorer
+                        </a>
+                    </div>
+                ),
+                duration: 10000,
+                className: "border-green-200 bg-green-50 text-green-900",
+            });
         } catch (err) {
             // Revert optimistic update on error
             setDisplayOrders(prevOrders =>
@@ -373,215 +457,256 @@ export default function OrdersPanel() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredOrders.map((o) => (
-                                        <React.Fragment key={o.uuid}>
-                                            <tr
-                                                className="border-b border-border/50 last:border-0 whitespace-nowrap hover:bg-muted/20 transition-colors cursor-pointer"
-                                                onClick={() => toggleRowExpansion(o.uuid)}
-                                            >
-                                                <td className="px-4 py-2 font-medium">
-                                                    <span title={new Date(o.createdAt).toLocaleString()}>
-                                                        {formatRelativeTime(o.createdAt)}
-                                                    </span>
-                                                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                                                        <span className="font-mono truncate max-w-[80px]" title={o.uuid}>
-                                                            {o.uuid.substring(0, 8)}
-                                                        </span>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                copyToClipboard(o.uuid, o.uuid);
-                                                            }}
-                                                            className="p-0.5 rounded hover:bg-muted/50"
-                                                            title="Copy order ID"
-                                                        >
-                                                            {copiedId === o.uuid ? (
-                                                                <Check className="h-3 w-3 text-green-500" />
-                                                            ) : (
-                                                                <Copy className="h-3 w-3 text-muted-foreground/70" />
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                    {(o.validFrom || o.validTo) && (
-                                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                                            {formatExecWindow(o)}
-                                                        </div>
+                                    {filteredOrders.map((o) => {
+                                        // Check if this order was recently updated
+                                        const isRecentlyUpdated = recentlyUpdatedOrders.has(o.uuid);
+
+                                        return (
+                                            <React.Fragment key={o.uuid}>
+                                                <tr
+                                                    className={`border-b border-border/50 last:border-0 whitespace-nowrap hover:bg-muted/20 transition-colors cursor-pointer relative overflow-hidden ${isRecentlyUpdated ? 'ring-2 ring-green-400/60 bg-green-950/20 border-green-400/40 animate-pulse' : ''
+                                                        }`}
+                                                    onClick={() => toggleRowExpansion(o.uuid)}
+                                                >
+                                                    {/* Recently Updated Indicator */}
+                                                    {isRecentlyUpdated && (
+                                                        <>
+                                                            <td className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full animate-ping z-10" />
+                                                            <td className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full z-10" />
+                                                            <td className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-400 animate-pulse z-10" />
+                                                        </>
                                                     )}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    <span className="flex items-center gap-1">
-                                                        <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
-                                                        <span>{o.inputTokenMeta.symbol}</span>
-                                                        <span className="mx-1 text-muted-foreground">→</span>
-                                                        <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
-                                                        <span>{o.outputTokenMeta.symbol}</span>
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}</td>
-                                                <td className="px-4 py-2">
-                                                    <span className="font-mono flex items-center gap-1">
-                                                        <span>1</span>
-                                                        <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
-                                                        <span>{o.conditionTokenMeta.symbol}</span>
-                                                        <span className="mx-1 font-mono text-lg">{o.direction === 'lt' ? '≤' : '≥'}</span>
-                                                        <span>{Number(o.targetPrice).toLocaleString()}</span>
-                                                        {o.baseAsset === 'USD' || !o.baseAsset ? (
-                                                            <span>USD</span>
-                                                        ) : (
-                                                            o.baseAssetMeta ? (
+                                                    <td className="px-4 py-2 font-medium">
+                                                        <span title={new Date(o.createdAt).toLocaleString()}>
+                                                            {formatRelativeTime(o.createdAt)}
+                                                        </span>
+                                                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                                                            <span className="font-mono truncate max-w-[80px]" title={o.uuid}>
+                                                                {o.uuid.substring(0, 8)}
+                                                            </span>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    copyToClipboard(o.uuid, o.uuid);
+                                                                }}
+                                                                className="p-0.5 rounded hover:bg-muted/50"
+                                                                title="Copy order ID"
+                                                            >
+                                                                {copiedId === o.uuid ? (
+                                                                    <Check className="h-3 w-3 text-green-500" />
+                                                                ) : (
+                                                                    <Copy className="h-3 w-3 text-muted-foreground/70" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        {(o.validFrom || o.validTo) && (
+                                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                                {formatExecWindow(o)}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <span className="flex items-center gap-1">
+                                                            <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
+                                                            <span>{o.inputTokenMeta.symbol}</span>
+                                                            <span className="mx-1 text-muted-foreground">→</span>
+                                                            <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
+                                                            <span>{o.outputTokenMeta.symbol}</span>
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}</td>
+                                                    <td className="px-4 py-2">
+                                                        <span className="font-mono flex items-center gap-1">
+                                                            {o.direction === 'gt' ? (
                                                                 <>
-                                                                    <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
-                                                                    <span>{o.baseAssetMeta.symbol}</span>
+                                                                    <span>1</span>
+                                                                    <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
+                                                                    <span>{o.conditionTokenMeta.symbol}</span>
+                                                                    <span className="mx-1 font-mono text-lg">≥</span>
+                                                                    <span>{Number(o.targetPrice).toLocaleString()}</span>
+                                                                    {o.baseAsset === 'USD' || !o.baseAsset ? (
+                                                                        <span>USD</span>
+                                                                    ) : (
+                                                                        o.baseAssetMeta ? (
+                                                                            <>
+                                                                                <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
+                                                                                <span>{o.baseAssetMeta.symbol}</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
+                                                                        )
+                                                                    )}
                                                                 </>
                                                             ) : (
-                                                                <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
-                                                            )
-                                                        )}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2"><StatusBadge status={o.status} /></td>
-                                                <td className="px-2 py-2">
-                                                    {o.status === "open" && (
-                                                        <div className="flex gap-2">
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="secondary"
-                                                                        size="icon"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            executeNow(o.uuid);
-                                                                        }}
-                                                                    >
-                                                                        <Zap className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="top">
-                                                                    Execute this order immediately at the current market price.
-                                                                </TooltipContent>
-                                                            </Tooltip>
-
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setConfirmUuid(o.uuid);
-                                                                        }}
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="top">
-                                                                    Cancel this order.
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                            {expandedRow === o.uuid && (
-                                                <tr className="bg-muted/10 animate-[slideDown_0.2s_ease-out]">
-                                                    <td colSpan={6} className="p-4">
-                                                        <div className="text-sm">
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                                <div className="space-y-3">
-                                                                    <div>
-                                                                        <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Order Details</h4>
-                                                                        <div className="space-y-1">
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-muted-foreground">Created:</span>
-                                                                                <span title={new Date(o.createdAt).toISOString()}>{new Date(o.createdAt).toLocaleString()}</span>
-                                                                            </div>
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-muted-foreground">Order ID:</span>
-                                                                                <span className="font-mono text-xs flex items-center gap-1">
-                                                                                    {o.uuid}
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            copyToClipboard(o.uuid, o.uuid);
-                                                                                        }}
-                                                                                        className="p-0.5 rounded hover:bg-muted/50"
-                                                                                    >
-                                                                                        {copiedId === o.uuid ? (
-                                                                                            <Check className="h-3 w-3 text-green-500" />
-                                                                                        ) : (
-                                                                                            <Copy className="h-3 w-3 text-muted-foreground/70" />
-                                                                                        )}
-                                                                                    </button>
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-muted-foreground">Owner:</span>
-                                                                                <span className="font-mono text-xs truncate max-w-[400px]" title={o.owner}>{o.owner}</span>
-                                                                            </div>
-                                                                            {(o.validFrom || o.validTo) && (
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">Execution Window:</span>
-                                                                                    <span className="font-mono text-xs text-right max-w-[320px] truncate" title={formatExecWindow(o)}>
-                                                                                        {formatExecWindow(o)}
-                                                                                    </span>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="space-y-3">
-                                                                    <div>
-                                                                        <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Swap Details</h4>
-                                                                        <div className="space-y-1">
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-muted-foreground">From:</span>
-                                                                                <span className="flex items-center gap-1">
-                                                                                    <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
-                                                                                    {o.inputTokenMeta.symbol} ({formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)})
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-muted-foreground">To:</span>
-                                                                                <span className="flex items-center gap-1">
-                                                                                    <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
-                                                                                    {o.outputTokenMeta.symbol}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex justify-between">
-                                                                                <span className="text-muted-foreground">Condition:</span>
-                                                                                <span className="font-medium">
-                                                                                    {/* Assuming conditionToken might also need metadata in future */}
-                                                                                    {o.conditionToken.split(".")[1] || o.conditionToken} price {o.direction === 'lt' ? '≤' : '≥'} ${Number(o.targetPrice).toLocaleString()}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {o.status === "filled" && o.txid && (
-                                                                        <div>
-                                                                            <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Transaction</h4>
-                                                                            <div className="flex items-center justify-between">
-                                                                                <span className="text-muted-foreground">TxID:</span>
-                                                                                <a
-                                                                                    href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    className="text-primary hover:underline font-mono truncate max-w-[200px]"
-                                                                                >
-                                                                                    {o.txid.substring(0, 10)}...
-                                                                                </a>
-                                                                            </div>
-                                                                        </div>
+                                                                <>
+                                                                    <span>1</span>
+                                                                    {o.baseAsset === 'USD' || !o.baseAsset ? (
+                                                                        <span>USD</span>
+                                                                    ) : (
+                                                                        o.baseAssetMeta ? (
+                                                                            <>
+                                                                                <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
+                                                                                <span>{o.baseAssetMeta.symbol}</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
+                                                                        )
                                                                     )}
-                                                                </div>
+                                                                    <span className="mx-1 font-mono text-lg">≥</span>
+                                                                    <span>{Number(o.targetPrice).toLocaleString()}</span>
+                                                                    <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
+                                                                    <span>{o.conditionTokenMeta.symbol}</span>
+                                                                </>
+                                                            )}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2"><StatusBadge status={o.status} /></td>
+                                                    <td className="px-2 py-2">
+                                                        {o.status === "open" && (
+                                                            <div className="flex gap-2">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="secondary"
+                                                                            size="icon"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                executeNow(o.uuid);
+                                                                            }}
+                                                                        >
+                                                                            <Zap className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top">
+                                                                        Execute this order immediately at the current market price.
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setConfirmUuid(o.uuid);
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top">
+                                                                        Cancel this order.
+                                                                    </TooltipContent>
+                                                                </Tooltip>
                                                             </div>
-                                                        </div>
+                                                        )}
                                                     </td>
                                                 </tr>
-                                            )}
-                                        </React.Fragment>
-                                    ))}
+                                                {expandedRow === o.uuid && (
+                                                    <tr className="bg-muted/10 animate-[slideDown_0.2s_ease-out]">
+                                                        <td colSpan={6} className="p-4">
+                                                            <div className="text-sm">
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                    <div className="space-y-3">
+                                                                        <div>
+                                                                            <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Order Details</h4>
+                                                                            <div className="space-y-1">
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">Created:</span>
+                                                                                    <span title={new Date(o.createdAt).toISOString()}>{new Date(o.createdAt).toLocaleString()}</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">Order ID:</span>
+                                                                                    <span className="font-mono text-xs flex items-center gap-1">
+                                                                                        {o.uuid}
+                                                                                        <button
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                copyToClipboard(o.uuid, o.uuid);
+                                                                                            }}
+                                                                                            className="p-0.5 rounded hover:bg-muted/50"
+                                                                                        >
+                                                                                            {copiedId === o.uuid ? (
+                                                                                                <Check className="h-3 w-3 text-green-500" />
+                                                                                            ) : (
+                                                                                                <Copy className="h-3 w-3 text-muted-foreground/70" />
+                                                                                            )}
+                                                                                        </button>
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">Owner:</span>
+                                                                                    <span className="font-mono text-xs truncate max-w-[400px]" title={o.owner}>{o.owner}</span>
+                                                                                </div>
+                                                                                {(o.validFrom || o.validTo) && (
+                                                                                    <div className="flex justify-between">
+                                                                                        <span className="text-muted-foreground">Execution Window:</span>
+                                                                                        <span className="font-mono text-xs text-right max-w-[320px] truncate" title={formatExecWindow(o)}>
+                                                                                            {formatExecWindow(o)}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="space-y-3">
+                                                                        <div>
+                                                                            <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Swap Details</h4>
+                                                                            <div className="space-y-1">
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">From:</span>
+                                                                                    <span className="flex items-center gap-1">
+                                                                                        <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
+                                                                                        {o.inputTokenMeta.symbol} ({formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)})
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">To:</span>
+                                                                                    <span className="flex items-center gap-1">
+                                                                                        <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
+                                                                                        {o.outputTokenMeta.symbol}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="flex justify-between">
+                                                                                    <span className="text-muted-foreground">Condition:</span>
+                                                                                    <span className="font-medium">
+                                                                                        {o.direction === 'gt' ? (
+                                                                                            <>1 {o.conditionTokenMeta.symbol} ≥ ${Number(o.targetPrice).toLocaleString()}</>
+                                                                                        ) : (
+                                                                                            <>1 {o.baseAssetMeta?.symbol || 'USD'} ≥ ${Number(o.targetPrice).toLocaleString()}</>
+                                                                                        )}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {o.status === "filled" && o.txid && (
+                                                                            <div>
+                                                                                <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Transaction</h4>
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <span className="text-muted-foreground">TxID:</span>
+                                                                                    <a
+                                                                                        href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="text-primary hover:underline font-mono truncate max-w-[200px]"
+                                                                                    >
+                                                                                        {o.txid.substring(0, 10)}...
+                                                                                    </a>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

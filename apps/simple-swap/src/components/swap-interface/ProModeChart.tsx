@@ -30,6 +30,7 @@ import {
     LineStyle,
 } from "lightweight-charts";
 import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
+import TargetPriceHoverOverlay from '../pro-mode/TargetPriceHoverOverlay';
 import { useSwapContext } from '@/contexts/swap-context';
 
 // Enriched order type with token metadata
@@ -819,14 +820,17 @@ export default function ProModeChart({
                             // Create confirmed lines
                             createSandwichConfirmedLines(buyPrice, sellPrice);
                         }
+                    } else if (isPerpetualMode && onPerpetualChartClick) {
+                        // Perpetual mode - handle chart interaction for entry/stop/profit
+                        onPerpetualChartClick(price);
                     } else if (!isPerpetualMode) {
-                        // Normal mode - single target price (disabled in perpetual mode)
+                        // Normal mode - single target price (for DCA and Single orders)
                         onTargetPriceChange(price.toPrecision(9));
                     }
                 }
             };
 
-            // Handle mouse move - handles sandwich mode hover preview
+            // Handle mouse move - handles hover preview for all order types
             const handleMouseMove = (param: any) => {
                 if (!seriesRef.current) {
                     setMousePrice(null);
@@ -840,8 +844,8 @@ export default function ProModeChart({
 
                 const price = seriesRef.current.coordinateToPrice(param.point.y);
                 if (price && !isNaN(price)) {
-                    // Handle sandwich mode (overlay handles visual feedback)
-                    if (isSandwichMode) {
+                    // Show hover preview for sandwich mode and also for DCA/Single when no target price is set
+                    if (isSandwichMode || (!targetPrice || targetPrice === '0')) {
                         setMousePrice(price);
                     }
                 } else {
@@ -1908,6 +1912,18 @@ export default function ProModeChart({
 
             {/* Sandwich Preview Overlay */}
             <SandwichPreviewOverlay
+                chartContainerRef={containerRef}
+                currentPrice={currentPrice || undefined}
+                priceRange={data && data.length > 0 ? {
+                    min: Math.min(...data.map(d => getDataPointPrice(d))),
+                    max: Math.max(...data.map(d => getDataPointPrice(d)))
+                } : undefined}
+                chartRef={chartRef}
+                seriesRef={seriesRef}
+            />
+
+            {/* Target Price Hover Overlay for DCA and Single Orders */}
+            <TargetPriceHoverOverlay
                 chartContainerRef={containerRef}
                 currentPrice={currentPrice || undefined}
                 priceRange={data && data.length > 0 ? {

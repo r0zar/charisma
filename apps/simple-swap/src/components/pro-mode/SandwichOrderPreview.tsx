@@ -164,27 +164,27 @@ export default function SandwichOrderPreview() {
 
                 <div className="space-y-3 text-sm">
                     <div className="flex items-center justify-between">
-                        <span className="text-blue-600 font-medium">A→B Swap (sell {selectedFromToken.symbol}):</span>
+                        <span className="text-muted-foreground font-medium">A→B Swap (sell {selectedFromToken.symbol}):</span>
                         <span className="font-mono text-foreground">
                             {formatTokenAmountDisplay(aToBAAmount, selectedFromToken)} {selectedFromToken.symbol}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-orange-600 font-medium">B→A Swap (buy {selectedFromToken.symbol}):</span>
+                        <span className="text-muted-foreground font-medium">B→A Swap (buy {selectedFromToken.symbol}):</span>
                         <span className="font-mono text-foreground">
                             {formatTokenAmountDisplay(bToAAAmount, selectedToToken)} {selectedToToken.symbol}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-blue-600 font-medium">A→B Trigger (sell):</span>
+                        <span className="text-muted-foreground font-medium">A→B Trigger (sell):</span>
                         <span className="font-mono text-foreground">
-                            1 {tradingPairBase.symbol} ≥ {formatPriceDisplay(highPriceTrigger)} {tradingPairQuote.symbol}
+                            1 {tradingPairQuote.symbol} ≥ {formatPriceDisplay(highPriceTrigger)} {tradingPairBase.symbol}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-orange-600 font-medium">B→A Trigger (buy):</span>
+                        <span className="text-muted-foreground font-medium">B→A Trigger (buy):</span>
                         <span className="font-mono text-foreground">
-                            1 {tradingPairBase.symbol} ≤ {formatPriceDisplay(lowPriceTrigger)} {tradingPairQuote.symbol}
+                            1 {tradingPairQuote.symbol} ≤ {formatPriceDisplay(lowPriceTrigger)} {tradingPairBase.symbol}
                         </span>
                     </div>
 
@@ -208,9 +208,9 @@ export default function SandwichOrderPreview() {
                     {/* Profit Estimate */}
                     <div className="border-t border-border/30 pt-3 mt-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-purple-600 font-medium">Estimated Profit:</span>
+                            <span className="text-muted-foreground font-medium">Estimated Profit:</span>
                             <span className="font-mono text-foreground">
-                                <span className={profitData.isPositive ? 'text-green-600' : 'text-red-600'}>
+                                <span className={profitData.isPositive ? 'text-foreground' : 'text-muted-foreground'}>
                                     {profitData.isPositive ? '+' : ''}${profitData.profit.toFixed(2)} ({profitData.isPositive ? '+' : ''}{profitData.profitPercentage.toFixed(2)}%)
                                 </span>
                             </span>

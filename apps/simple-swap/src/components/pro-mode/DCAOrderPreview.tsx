@@ -47,6 +47,10 @@ export default function DCAOrderPreview() {
     // Calculate DCA strategy details
     const getIntervalHours = () => {
         switch (dcaFrequency) {
+            case '1minute': return 1 / 60; // 1 minute = 0.0167 hours
+            case '5minutes': return 5 / 60; // 5 minutes = 0.0833 hours
+            case '15minutes': return 15 / 60; // 15 minutes = 0.25 hours
+            case '30minutes': return 30 / 60; // 30 minutes = 0.5 hours
             case 'hourly': return 1;
             case 'daily': return 24;
             case 'weekly': return 168;
@@ -117,8 +121,20 @@ export default function DCAOrderPreview() {
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Frequency:</span>
-                        <span className="font-mono text-foreground capitalize">
-                            {dcaFrequency}
+                        <span className="font-mono text-foreground">
+                            {(() => {
+                                switch (dcaFrequency) {
+                                    case '1minute': return 'Every Minute';
+                                    case '5minutes': return 'Every 5 Minutes';
+                                    case '15minutes': return 'Every 15 Minutes';
+                                    case '30minutes': return 'Every 30 Minutes';
+                                    case 'hourly': return 'Hourly';
+                                    case 'daily': return 'Daily';
+                                    case 'weekly': return 'Weekly';
+                                    case 'monthly': return 'Monthly';
+                                    default: return dcaFrequency;
+                                }
+                            })()}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">

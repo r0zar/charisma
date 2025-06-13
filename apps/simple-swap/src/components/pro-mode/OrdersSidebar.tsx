@@ -48,6 +48,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
         displayOrders,
         currentPrice, // Add real-time price from chart simulation
         setPerpPositionsRefetchCallback,
+        recentlyUpdatedOrders,
     } = useProModeContext();
 
     const {
@@ -556,13 +557,24 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
         const typeInfo = getOrderTypeIndicator();
 
+        // Check if this order was recently updated
+        const isRecentlyUpdated = recentlyUpdatedOrders.has(order.uuid);
+
         return (
             <div
                 key={order.uuid}
-                className={`border rounded-lg p-3 hover:bg-muted/20 transition-colors cursor-pointer ${getStatusStyling()} ${isPerpetual ? 'border-l-4 border-l-purple-500/60' : ''
-                    }`}
+                className={`border rounded-lg p-3 hover:bg-muted/20 transition-colors cursor-pointer relative overflow-hidden ${getStatusStyling()} ${isPerpetual ? 'border-l-4 border-l-purple-500/60' : ''
+                    } ${isRecentlyUpdated ? 'ring-2 ring-green-400/60 bg-green-950/20 border-green-400/40 animate-pulse' : ''}`}
                 onClick={() => toggleOrderExpansion(order.uuid)}
             >
+                {/* Recently Updated Indicator */}
+                {isRecentlyUpdated && (
+                    <>
+                        <div className="absolute top-1 right-1 w-3 h-3 bg-green-400 rounded-full animate-ping" />
+                        <div className="absolute top-1 right-1 w-3 h-3 bg-green-400 rounded-full" />
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-400 animate-pulse" />
+                    </>
+                )}
                 {/* Compact view - enhanced unified structure */}
                 <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-2 flex-1">
@@ -850,12 +862,21 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                                             <div className="col-span-2">
                                                 <span className="text-muted-foreground text-[10px]">TRIGGER</span>
                                                 <div className="font-mono font-medium text-xs flex items-center space-x-1">
-                                                    <span>1 {order.conditionTokenMeta.symbol}</span>
-                                                    <span className={`${order.direction === 'gt' ? 'text-green-400' : 'text-red-400'}`}>
-                                                        {order.direction === 'gt' ? '≥' : '≤'}
-                                                    </span>
-                                                    <span>{formatCompactPrice(order.targetPrice)}</span>
-                                                    <span>{order.baseAssetMeta?.symbol || 'USD'}</span>
+                                                    {order.direction === 'gt' ? (
+                                                        <>
+                                                            <span>1 {order.conditionTokenMeta.symbol}</span>
+                                                            <span className="text-green-400">≥</span>
+                                                            <span>{formatCompactPrice(order.targetPrice)}</span>
+                                                            <span>{order.baseAssetMeta?.symbol || 'USD'}</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span>1 {order.baseAssetMeta?.symbol || 'USD'}</span>
+                                                            <span className="text-green-400">≥</span>
+                                                            <span>{formatCompactPrice(order.targetPrice)}</span>
+                                                            <span>{order.conditionTokenMeta.symbol}</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </>

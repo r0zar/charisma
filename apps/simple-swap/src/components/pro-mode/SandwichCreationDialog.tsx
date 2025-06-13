@@ -69,6 +69,25 @@ export default function SandwichCreationDialog() {
             throw new Error('Missing required data');
         }
 
+        /* 
+         * TOKEN MAPPING EXPLANATION FOR SANDWICH ORDERS:
+         * 
+         * Sandwich orders use trading pair configuration instead of direct from/to tokens
+         * This allows for more sophisticated price monitoring across different trading pairs
+         * 
+         * Order Structure:
+         * - conditionToken: tradingPairBase - token price to watch
+         * - baseAsset: tradingPairQuote - denomination for price comparison
+         * 
+         * Chart Configuration (should match):
+         * - Shows tradingPairBase/tradingPairQuote price relationship
+         * - When chart shows BTC/USDT, orders watch BTC price in USDT terms
+         * 
+         * This is MORE FLEXIBLE than DCA/Single orders because:
+         * - Can trade selectedFromToken/selectedToToken while monitoring different pair prices
+         * - Enables complex arbitrage strategies
+         */
+
         // Check if tokens are in reversed state (swap tokens don't match trading pair)
         const tokensReversed = (selectedFromToken.contractId !== tradingPairBase.contractId) ||
             (selectedToToken.contractId !== tradingPairQuote.contractId);
@@ -82,7 +101,7 @@ export default function SandwichCreationDialog() {
         // A→B (sell high) uses ≥, B→A (buy low) uses ≤
         const direction: 'lt' | 'gt' = isBuyOrder ? 'gt' : 'lt';
 
-        return {
+        const payload = {
             owner: address,
             inputToken: isBuyOrder ? selectedFromToken.contractId : selectedToToken.contractId,
             outputToken: isBuyOrder ? selectedToToken.contractId : selectedFromToken.contractId,
@@ -95,6 +114,25 @@ export default function SandwichCreationDialog() {
             signature,
             uuid,
         };
+
+        // Debug logging to verify token mapping
+        console.log('🔍 Sandwich Order Payload Debug:', {
+            orderType: 'Sandwich',
+            orderSubType: order.type,
+            swapAction: `${order.type === 'buy' ? 'A→B' : 'B→A'} (${order.type === 'buy' ? selectedFromToken.symbol + '→' + selectedToToken.symbol : selectedToToken.symbol + '→' + selectedFromToken.symbol})`,
+            payload: {
+                inputToken: `${order.type === 'buy' ? selectedFromToken.symbol : selectedToToken.symbol} (${order.type === 'buy' ? selectedFromToken.contractId : selectedToToken.contractId})`,
+                outputToken: `${order.type === 'buy' ? selectedToToken.symbol : selectedFromToken.symbol} (${order.type === 'buy' ? selectedToToken.contractId : selectedFromToken.contractId})`,
+                conditionToken: `${tradingPairBase.symbol} (${tradingPairBase.contractId})`,
+                baseAsset: `${tradingPairQuote.symbol} (${tradingPairQuote.contractId})`,
+                targetPrice: order.price,
+                direction
+            },
+            interpretation: `Watch ${tradingPairBase.symbol} price in ${tradingPairQuote.symbol} terms`,
+            chartShould: `Show ${tradingPairQuote.symbol}/${tradingPairBase.symbol} ratio (how much ${tradingPairQuote.symbol} per 1 ${tradingPairBase.symbol})`
+        });
+
+        return payload;
     }, [selectedFromToken, selectedToToken, address, tradingPairBase, tradingPairQuote, orders]);
 
     // Process individual order
@@ -305,19 +343,15 @@ export default function SandwichCreationDialog() {
         if (!order) return '';
 
         const price = parseFloat(order.price);
-        const operator = type === 'buy' ? '≥' : '≤';
 
         if (type === 'buy') {
-            return `A→B swap (sell) when 1 ${tradingPairBase?.symbol} ${operator} ${price} ${tradingPairQuote?.symbol}`;
+            return `A→B swap (sell) when 1 ${tradingPairQuote?.symbol} ≥ ${price} ${tradingPairBase?.symbol}`;
         } else {
-            return `B→A swap (buy) when 1 ${tradingPairBase?.symbol} ${operator} ${price} ${tradingPairQuote?.symbol}`;
+            return `B→A swap (buy) when 1 ${tradingPairQuote?.symbol} ≤ ${price} ${tradingPairBase?.symbol}`;
         }
     };
 
-    // Helper to get the correct operator for an order
-    const getOrderOperator = (type: 'buy' | 'sell'): string => {
-        return type === 'buy' ? '≥' : '≤';
-    };
+
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
@@ -373,12 +407,12 @@ export default function SandwichCreationDialog() {
                             <span className="font-medium">${sandwichCreationState.usdAmount}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-blue-600 dark:text-blue-400 font-medium">A→B Trigger (sell):</span>
-                            <span className="font-mono">1 {tradingPairBase?.symbol} {getOrderOperator('buy')} {sandwichCreationState.sellPrice} {tradingPairQuote?.symbol}</span>
+                            <span className="text-muted-foreground font-medium">A→B Trigger (sell):</span>
+                            <span className="font-mono">1 {tradingPairQuote?.symbol} ≥ {sandwichCreationState.sellPrice} {tradingPairBase?.symbol}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                            <span className="text-orange-600 dark:text-orange-400 font-medium">B→A Trigger (buy):</span>
-                            <span className="font-mono">1 {tradingPairBase?.symbol} {getOrderOperator('sell')} {sandwichCreationState.buyPrice} {tradingPairQuote?.symbol}</span>
+                            <span className="text-muted-foreground font-medium">B→A Trigger (buy):</span>
+                            <span className="font-mono">1 {tradingPairQuote?.symbol} ≤ {sandwichCreationState.buyPrice} {tradingPairBase?.symbol}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-600 dark:text-gray-400">Spread:</span>
@@ -427,7 +461,11 @@ export default function SandwichCreationDialog() {
                                             {getSwapDescription(order.type)}
                                         </div>
                                         <div className="text-xs text-gray-500 dark:text-gray-500">
-                                            Trigger: 1 {tradingPairBase?.symbol} {getOrderOperator(order.type)} {order.price} {tradingPairQuote?.symbol}
+                                            {order.type === 'buy' ? (
+                                                <>Trigger: 1 {tradingPairQuote?.symbol} ≥ {order.price} {tradingPairBase?.symbol}</>
+                                            ) : (
+                                                <>Trigger: 1 {tradingPairQuote?.symbol} ≤ {order.price} {tradingPairBase?.symbol}</>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

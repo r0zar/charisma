@@ -42,9 +42,48 @@ export default function ProModeChart() {
     // Use the condition token or selected to token for the chart
     const chartToken = conditionToken || selectedToToken;
 
-    // Use the tokens selected in the form for all order types
-    const chartBaseToken = selectedFromToken;  // Always use the token selected in the form
-    const chartQuoteToken = selectedToToken;   // Always use the token selected in the form
+    // Configure chart to show price in an intuitive way for trading
+    // Different order types use different token configurations:
+
+    // For sandwich orders: use trading pair configuration (more flexible)
+    // For DCA/Single orders: use direct from/to tokens (keep original UI)
+    const chartBaseToken = (selectedOrderType === 'sandwich' && tradingPairQuote)
+        ? tradingPairQuote       // Sandwich: use trading pair quote token (denominator)
+        : selectedFromToken;     // DCA/Single: use from token (denominator) - REVERTED
+
+    const chartQuoteToken = (selectedOrderType === 'sandwich' && tradingPairBase)
+        ? tradingPairBase        // Sandwich: use trading pair base token (numerator)  
+        : selectedToToken;       // DCA/Single: use to token (numerator) - REVERTED
+
+    // Chart display remains unchanged - backend order mapping was the issue, not chart UI
+    // Chart shows: chartBaseToken_price / chartQuoteToken_price
+    // This means: how many chartBaseToken = 1 chartQuoteToken
+
+    // Debug logging for chart configuration
+    React.useEffect(() => {
+        if (chartBaseToken && chartQuoteToken) {
+            console.log('📊 Chart Configuration Debug:', {
+                orderType: selectedOrderType,
+                tokenSource: selectedOrderType === 'sandwich' ? 'Trading Pair Tokens' : 'From/To Tokens',
+                userAction: selectedOrderType === 'sandwich'
+                    ? `Monitoring ${chartQuoteToken.symbol}/${chartBaseToken.symbol} pair for sandwich strategy`
+                    : `Buying ${chartBaseToken.symbol} with ${chartQuoteToken.symbol}`,
+                chartConfig: {
+                    token: `${chartQuoteToken.symbol} (${chartQuoteToken.contractId})`,
+                    baseToken: `${chartBaseToken.symbol} (${chartBaseToken.contractId})`
+                },
+                chartCalculation: selectedOrderType === 'sandwich'
+                    ? `${chartBaseToken.symbol}_USD_price / ${chartQuoteToken.symbol}_USD_price`
+                    : `${chartQuoteToken.symbol}_USD_price / ${chartBaseToken.symbol}_USD_price`,
+                chartMeaning: selectedOrderType === 'sandwich'
+                    ? `How many ${chartBaseToken.symbol} = 1 ${chartQuoteToken.symbol}`
+                    : `How many ${chartBaseToken.symbol} = 1 ${chartQuoteToken.symbol} (matches order: "1 ${chartQuoteToken.symbol} >= X ${chartBaseToken.symbol}")`,
+                note: selectedOrderType === 'sandwich'
+                    ? 'Sandwich orders can trade different tokens while monitoring this price relationship'
+                    : 'DCA/Single chart now matches the order condition format'
+            });
+        }
+    }, [chartBaseToken, chartQuoteToken, selectedOrderType]);
 
     // Use layout observer to automatically resize chart when order forms change height
     const { triggerChartResize } = useLayoutObserver([

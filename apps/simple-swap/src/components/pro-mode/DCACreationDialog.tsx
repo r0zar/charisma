@@ -69,24 +69,65 @@ export default function DCACreationDialog() {
             throw new Error('Missing required data');
         }
 
+        /* 
+         * TOKEN MAPPING EXPLANATION FOR DCA ORDERS:
+         * 
+         * User Action: Buying selectedToToken using selectedFromToken
+         * Example: Buying CHA using sUSDh
+         * 
+         * User expects: "1 sUSDh >= 4.18 CHA" (when I can get at least 4.18 CHA for 1 sUSDh)
+         * 
+         * Order Structure:
+         * - inputToken: selectedFromToken (sUSDh) - what user is spending
+         * - outputToken: selectedToToken (CHA) - what user is buying
+         * - conditionToken: selectedFromToken (sUSDh) - watch FROM token's buying power
+         * - baseAsset: selectedToToken (CHA) - denominate in TO token terms
+         * 
+         * This creates the condition: "1 sUSDh >= X CHA" where X is the target price
+         * The backend watches sUSDh's exchange rate in CHA terms
+         */
+
         const amountMicro = Math.floor(order.amount * (10 ** (selectedFromToken.decimals || 6))).toString();
 
-        return {
+        const payload = {
             owner: address,
             inputToken: selectedFromToken.contractId,
             outputToken: selectedToToken.contractId,
             amountIn: amountMicro,
             targetPrice: targetPrice || '0', // DCA orders can have no target price (market orders)
             direction: conditionDir,
-            conditionToken: selectedToToken.contractId,
-            baseAsset: baseToken?.contractId || 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
+            // CORRECTED: Watch FROM token's buying power in TO token terms
+            // This creates: "1 FROM_token >= X TO_tokens" condition
+            conditionToken: selectedFromToken.contractId,  // Watch FROM token's exchange rate
+            baseAsset: selectedToToken.contractId,         // Denominate in TO token terms
             recipient: address,
             signature,
             uuid,
             validFrom: order.validFrom,
             validTo: order.validTo,
         };
-    }, [selectedFromToken, selectedToToken, address, baseToken, targetPrice, conditionDir]);
+
+        // Debug logging to verify token mapping
+        console.log('🔍 DCA Order Payload Debug:', {
+            orderType: 'DCA',
+            userAction: `Buying ${selectedToToken.symbol} with ${selectedFromToken.symbol}`,
+            payload: {
+                inputToken: `${selectedFromToken.symbol} (${selectedFromToken.contractId})`,
+                outputToken: `${selectedToToken.symbol} (${selectedToToken.contractId})`,
+                conditionToken: `${selectedFromToken.symbol} (${selectedFromToken.contractId})`,
+                baseAsset: `${selectedToToken.symbol} (${selectedToToken.contractId})`,
+                targetPrice: targetPrice || '0',
+                direction: conditionDir
+            },
+            expectedCondition: conditionDir === 'gt'
+                ? `1 ${selectedFromToken.symbol} >= ${targetPrice || 'X'} ${selectedToToken.symbol}`
+                : `1 ${selectedToToken.symbol} >= ${targetPrice || 'X'} ${selectedFromToken.symbol}`,
+            interpretation: `Watch ${selectedFromToken.symbol} buying power in ${selectedToToken.symbol} terms`,
+            chartShould: `Show ${selectedToToken.symbol}/${selectedFromToken.symbol} ratio (how much ${selectedToToken.symbol} per 1 ${selectedFromToken.symbol})`
+        });
+
+        return payload;
+    }, [selectedFromToken, selectedToToken, address, targetPrice, conditionDir]);
 
     // Process individual order
     const processOrder = useCallback(async (orderIndex: number) => {
@@ -140,8 +181,8 @@ export default function DCACreationDialog() {
                 ...createdOrder,
                 inputTokenMeta: selectedFromToken,
                 outputTokenMeta: selectedToToken,
-                conditionTokenMeta: selectedToToken,
-                baseAssetMeta: baseToken,
+                conditionTokenMeta: selectedFromToken,  // Token being watched for price changes (FROM token)
+                baseAssetMeta: selectedToToken,         // Token used for price denomination (TO token)
             };
 
             // Add to main order list
@@ -260,10 +301,19 @@ export default function DCACreationDialog() {
     };
 
     const getFrequencyLabel = () => {
+        if (intervalHours === 1 / 60) return 'Every Minute';
+        if (intervalHours === 5 / 60) return 'Every 5 Minutes';
+        if (intervalHours === 15 / 60) return 'Every 15 Minutes';
+        if (intervalHours === 30 / 60) return 'Every 30 Minutes';
         if (intervalHours === 1) return 'Hourly';
         if (intervalHours === 24) return 'Daily';
         if (intervalHours === 168) return 'Weekly';
         if (intervalHours === 720) return 'Monthly';
+        // Handle fractional hours for minutes
+        if (intervalHours < 1) {
+            const minutes = Math.round(intervalHours * 60);
+            return `Every ${minutes} Minutes`;
+        }
         return `Every ${intervalHours}h`;
     };
 

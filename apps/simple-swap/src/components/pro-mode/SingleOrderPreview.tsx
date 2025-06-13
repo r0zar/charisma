@@ -77,10 +77,17 @@ export default function SingleOrderPreview() {
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Target Price:</span>
                         <span className="font-mono text-foreground">
-                            {conditionDir === 'gt' ? '≥' : '≤'} ${parseFloat(targetPrice).toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 8
-                            })}
+                            {conditionDir === 'gt' ? (
+                                <>1 {selectedFromToken.symbol} ≥ ${parseFloat(targetPrice).toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 8
+                                })}</>
+                            ) : (
+                                <>1 {selectedToToken.symbol} ≥ ${parseFloat(targetPrice).toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 8
+                                })}</>
+                            )}
                         </span>
                     </div>
                     <div className="flex items-center justify-between">

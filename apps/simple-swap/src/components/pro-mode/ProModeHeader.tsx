@@ -44,6 +44,8 @@ export default function ProModeHeader() {
     const {
         displayTokens,
         setIsProMode,
+        selectedFromToken,
+        selectedToToken,
     } = useSwapContext();
 
     const hotkeys = [
@@ -95,9 +97,53 @@ export default function ProModeHeader() {
                         </TooltipProvider>
                     </div>
 
+                    {/* Token Ratio Display - Shows what chart is displaying */}
+                    {(() => {
+                        // Determine chart tokens based on order type (same logic as ProModeChart.tsx)
+                        const chartBaseToken = (selectedOrderType === 'sandwich' && tradingPairQuote)
+                            ? tradingPairQuote   // Sandwich: trading pair quote token
+                            : selectedFromToken; // DCA/Single: from token
 
+                        const chartQuoteToken = (selectedOrderType === 'sandwich' && tradingPairBase)
+                            ? tradingPairBase    // Sandwich: trading pair base token
+                            : selectedToToken;   // DCA/Single: to token
 
+                        // Debug logging for sandwich mode
+                        if (selectedOrderType === 'sandwich') {
+                            console.log('🔍 Header Debug - Sandwich Mode:', {
+                                selectedFromToken: selectedFromToken?.symbol,
+                                selectedToToken: selectedToToken?.symbol,
+                                tradingPairBase: tradingPairBase?.symbol,
+                                tradingPairQuote: tradingPairQuote?.symbol,
+                                chartQuoteToken: chartQuoteToken?.symbol,
+                                chartBaseToken: chartBaseToken?.symbol,
+                                willDisplay: chartQuoteToken && chartBaseToken ? `${chartQuoteToken.symbol}/${chartBaseToken.symbol}` : 'null'
+                            });
+                        }
 
+                        if (chartBaseToken && chartQuoteToken) {
+                            return (
+                                <div className="flex items-center space-x-2 px-3 py-1.5 bg-muted/30 border border-border/30 rounded-lg">
+                                    <div className="flex items-center space-x-1 text-sm">
+                                        <span className="text-muted-foreground">Chart:</span>
+                                        <span className="font-medium text-foreground">
+                                            {chartQuoteToken.symbol}
+                                        </span>
+                                        <span className="text-muted-foreground">/</span>
+                                        <span className="font-medium text-foreground">
+                                            {chartBaseToken.symbol}
+                                        </span>
+                                    </div>
+                                    {selectedOrderType === 'sandwich' && (
+                                        <div className="text-xs text-muted-foreground bg-background/60 px-2 py-0.5 rounded border">
+                                            Trading Pair
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
 
                     {/* Show All Orders Button - appears when an order is highlighted */}
                     {highlightedOrderId && (

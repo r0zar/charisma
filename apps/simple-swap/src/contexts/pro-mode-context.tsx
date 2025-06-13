@@ -245,6 +245,7 @@ interface ProModeContextType {
     pairFilteredOrders: DisplayOrder[];
     swapFilteredOrders: DisplayOrder[];
     filteredOrders: DisplayOrder[];
+    recentlyUpdatedOrders: Set<string>;
 
     // Loading States
     isLoadingOrders: boolean;
@@ -424,6 +425,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const [displayOrders, setDisplayOrders] = useState<DisplayOrder[]>([]);
     const [isLoadingOrders, setIsLoadingOrders] = useState(false);
     const [ordersError, setOrdersError] = useState<string | null>(null);
+    const [recentlyUpdatedOrders, setRecentlyUpdatedOrders] = useState<Set<string>>(new Set());
 
     // DCA creation state for enhanced UX
     const [dcaCreationState, setDcaCreationState] = useState<DCACreationState>({
@@ -502,16 +504,25 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         hasTakeProfit: false
     });
 
-    // Sync with swap context when entering pro mode
+    // Sync with swap context when entering pro mode (removed automatic target price setting)
     useEffect(() => {
         setDisplayAmount(swapDisplayAmount);
-        setTargetPrice(swapTargetPrice);
+        // Removed: setTargetPrice(swapTargetPrice); - Users now set target price via chart interaction
         setConditionDir(swapConditionDir);
-    }, [swapDisplayAmount, swapTargetPrice, swapConditionDir]);
+    }, [swapDisplayAmount, swapConditionDir]);
 
     // Auto-set trading pair when entering pro mode
     useEffect(() => {
-        // Set trading pair based on current condition token and base token
+        // For sandwich mode: always use from/to tokens for trading pair
+        if (selectedOrderType === 'sandwich' && selectedFromToken && selectedToToken) {
+            // Set trading pair to match the selected from/to tokens
+            setTradingPairBase(selectedToToken);    // Use 'to' token as base (what we're monitoring)
+            setTradingPairQuote(selectedFromToken); // Use 'from' token as quote (denomination)
+            console.log('🥪 Sandwich mode: Set trading pair to', selectedToToken.symbol, '/', selectedFromToken.symbol);
+            return;
+        }
+
+        // For other order types: use condition token and base token logic
         if (conditionToken && !tradingPairBase) {
             setTradingPairBase(conditionToken);
         }
@@ -522,7 +533,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         else if (selectedToToken && !tradingPairQuote) {
             setTradingPairQuote(selectedToToken);
         }
-    }, [conditionToken, baseToken, selectedToToken, tradingPairBase, tradingPairQuote]);
+    }, [selectedOrderType, conditionToken, baseToken, selectedFromToken, selectedToToken, tradingPairBase, tradingPairQuote]);
 
     // Handle responsive sidebar behavior
     useEffect(() => {
@@ -640,6 +651,98 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     useEffect(() => {
         fetchOrders();
     }, [address, connected, fetchOrders]);
+
+    // Order status polling for real-time updates
+    useEffect(() => {
+        if (!connected || !address) return;
+
+        // Function to check for order status changes and notify user
+        const checkOrderStatusUpdates = async () => {
+            try {
+                const res = await fetch(`/api/v1/orders?owner=${address}`);
+                const j = await res.json();
+
+                if (res.ok) {
+                    const newRawOrders = j.data as LimitOrder[];
+
+                    // Compare with current orders to detect status changes
+                    const statusChanges: Array<{ order: LimitOrder, oldStatus: string, newStatus: string }> = [];
+
+                    newRawOrders.forEach(newOrder => {
+                        const currentOrder = displayOrders.find(o => o.uuid === newOrder.uuid);
+                        if (currentOrder && currentOrder.status !== newOrder.status) {
+                            statusChanges.push({
+                                order: newOrder,
+                                oldStatus: currentOrder.status,
+                                newStatus: newOrder.status
+                            });
+                        }
+                    });
+
+                    // Show notifications for status changes
+                    statusChanges.forEach(change => {
+                        const orderDisplay = displayOrders.find(o => o.uuid === change.order.uuid);
+                        if (!orderDisplay) return;
+
+                        const fromSymbol = orderDisplay.inputTokenMeta?.symbol || 'Token';
+                        const toSymbol = orderDisplay.outputTokenMeta?.symbol || 'Token';
+
+                        if (change.newStatus === 'filled') {
+                            toast.success(`Order Filled: ${fromSymbol} → ${toSymbol}`, {
+                                description: (
+                                    <span className="text-green-800 font-medium">
+                                        Your limit order has been executed successfully
+                                    </span>
+                                ),
+                                duration: 8000,
+                                className: "border-green-200 bg-green-50 text-green-900",
+                            });
+                        } else if (change.newStatus === 'cancelled') {
+                            toast.info(`Order Cancelled: ${fromSymbol} → ${toSymbol}`, {
+                                description: `Your order has been cancelled.`,
+                                duration: 5000,
+                            });
+                        }
+                    });
+
+                    // Update orders if there are changes
+                    if (statusChanges.length > 0) {
+                        console.log(`📊 Order status updates detected:`, statusChanges.map(c => ({
+                            orderId: c.order.uuid.slice(0, 8),
+                            change: `${c.oldStatus} → ${c.newStatus}`
+                        })));
+
+                        // Mark orders as recently updated for visual effects
+                        const updatedOrderIds = statusChanges.map(c => c.order.uuid);
+                        setRecentlyUpdatedOrders(new Set(updatedOrderIds));
+
+                        // Clear the recently updated status after 10 seconds
+                        setTimeout(() => {
+                            setRecentlyUpdatedOrders(prev => {
+                                const newSet = new Set(prev);
+                                updatedOrderIds.forEach(id => newSet.delete(id));
+                                return newSet;
+                            });
+                        }, 10000);
+
+                        // Refresh the full order list to get updated data with metadata
+                        await fetchOrders();
+                    }
+                }
+            } catch (error) {
+                // Silently handle polling errors to avoid spamming user
+                console.warn('Order status polling error:', error);
+            }
+        };
+
+        // Initial check
+        checkOrderStatusUpdates();
+
+        // Poll every 30 seconds for order status updates  
+        const pollInterval = setInterval(checkOrderStatusUpdates, 30000);
+
+        return () => clearInterval(pollInterval);
+    }, [connected, address, displayOrders, fetchOrders]);
 
     // Optimized price polling for live updates
     useEffect(() => {
@@ -1146,7 +1249,23 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
 
                     // Update with transaction ID if successful
                     updateOrderStatus(orderId, 'filled', j.txid);
-                    toast.success(`Execution submitted: ${j.txid.substring(0, 10)}...`);
+                    toast.success(`Order Executed`, {
+                        description: (
+                            <div>
+                                <div className="text-green-800 font-medium">Transaction submitted successfully</div>
+                                <a
+                                    href={`https://explorer.hiro.so/txid/${j.txid}?chain=mainnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline text-sm font-mono"
+                                >
+                                    View on Explorer
+                                </a>
+                            </div>
+                        ),
+                        duration: 10000,
+                        className: "border-green-200 bg-green-50 text-green-900",
+                    });
                 } catch (err) {
                     // Revert optimistic update on error
                     updateOrderStatus(orderId, originalStatusForExecute);
@@ -1270,6 +1389,10 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         // Calculate DCA parameters
         const getIntervalHours = () => {
             switch (dcaFrequency) {
+                case '1minute': return 1 / 60; // 1 minute = 0.0167 hours
+                case '5minutes': return 5 / 60; // 5 minutes = 0.0833 hours
+                case '15minutes': return 15 / 60; // 15 minutes = 0.25 hours
+                case '30minutes': return 30 / 60; // 30 minutes = 0.5 hours
                 case 'hourly': return 1;
                 case 'daily': return 24;
                 case 'weekly': return 168;
@@ -1817,6 +1940,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         pairFilteredOrders,
         swapFilteredOrders,
         filteredOrders,
+        recentlyUpdatedOrders,
 
         // Loading States
         isLoadingOrders,
