@@ -5,7 +5,9 @@ import {
     getPriceEpsilonPercent,
     getCronFrequencyMinutes,
     getPageSize,
-    isDevelopment
+    isDevelopment,
+    formatLocalDateTime,
+    formatRelativeTime
 } from '@/lib/admin-config';
 import { InfoTooltip } from '@/components/ui/tooltip';
 
@@ -78,10 +80,10 @@ async function getCronStatus() {
             details = 'No price data found - cron may not have run yet';
         } else if (!hasRecentData) {
             status = 'stale';
-            details = `Last update: ${lastDataTimestamp ? new Date(lastDataTimestamp).toLocaleString() : 'unknown'}`;
+            details = `Last update: ${lastDataTimestamp ? formatLocalDateTime(lastDataTimestamp, 'compact') : 'unknown'}`;
         } else {
             status = 'active';
-            details = `${trackedTokensCount} tokens tracked, last update: ${lastDataTimestamp ? new Date(lastDataTimestamp).toLocaleString() : 'unknown'}`;
+            details = `${trackedTokensCount} tokens tracked, last update: ${lastDataTimestamp ? formatLocalDateTime(lastDataTimestamp, 'compact') : 'unknown'}`;
         }
 
         console.log(`✅ Cron status check completed: ${status}`);

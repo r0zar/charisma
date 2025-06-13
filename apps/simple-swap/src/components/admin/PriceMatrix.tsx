@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Activity, AlertCircle, Eye, EyeOff, ChevronLeft, ChevronRight, Copy, ExternalLink, RefreshCw, Flame } from 'lucide-react';
 import type { PriceStats } from '@/lib/price/metrics';
-import { getPageSize, getAutoRefreshSeconds } from '@/lib/admin-config';
+import { getPageSize, getAutoRefreshSeconds, formatLocalDateTime } from '@/lib/admin-config';
 import { Button } from '@/components/ui/button';
 import { InfoTooltip } from '@/components/ui/tooltip';
 
@@ -565,7 +565,7 @@ export function PriceMatrix() {
                                         </div>
                                         {token.dataInsights?.firstSeen && (
                                             <div className="text-xs text-muted-foreground mt-1">
-                                                Since {new Date(token.dataInsights.firstSeen).toLocaleDateString()}
+                                                Since {formatLocalDateTime(token.dataInsights.firstSeen, 'date')}
                                             </div>
                                         )}
                                     </td>
@@ -573,10 +573,10 @@ export function PriceMatrix() {
                                         {token.dataInsights?.lastSeen ? (
                                             <div className="text-sm">
                                                 <div className="font-mono text-foreground">
-                                                    {new Date(token.dataInsights.lastSeen).toLocaleTimeString()}
+                                                    {formatLocalDateTime(token.dataInsights.lastSeen, 'time')}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    {new Date(token.dataInsights.lastSeen).toLocaleDateString()}
+                                                    {formatLocalDateTime(token.dataInsights.lastSeen, 'date')}
                                                 </div>
                                             </div>
                                         ) : (
