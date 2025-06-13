@@ -1312,7 +1312,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                                         </span>
                                     </div>
                                     <span className="text-xs text-muted-foreground">
-                                        {order.validFrom ? new Date(order.validFrom).toLocaleDateString() : 'Pending'}
+                                        {order.validFrom ? new Date(order.validFrom).toLocaleString() : 'Pending'}
                                     </span>
                                 </div>
                             ))}
