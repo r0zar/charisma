@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
         // Get URL parameters for pagination
         const url = new URL(request.url);
-        const limit = Math.min(parseInt(url.searchParams.get('limit') || ADMIN_CONFIG.PAGE_SIZE.toString()), ADMIN_CONFIG.MAX_PAGES); // Use centralized config
+        const limit = parseInt(url.searchParams.get('limit') || ADMIN_CONFIG.PAGE_SIZE.toString());
         const cursor = url.searchParams.get('cursor') || '0';
 
         console.log(`📊 Fetching ${limit} tokens starting from cursor ${cursor}`);
