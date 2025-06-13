@@ -105,6 +105,7 @@ export default function DCACreationDialog() {
             uuid,
             validFrom: order.validFrom,
             validTo: order.validTo,
+            orderType: 'dca', // Ensure DCA orders are properly labeled
         };
 
         // Debug logging to verify token mapping

@@ -113,6 +113,7 @@ export default function SandwichCreationDialog() {
             recipient: address,
             signature,
             uuid,
+            orderType: 'sandwich', // Ensure sandwich orders are properly labeled
         };
 
         // Debug logging to verify token mapping

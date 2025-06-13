@@ -124,6 +124,7 @@ export default function SingleOrderCreationDialog() {
             recipient: address,
             signature,
             uuid,
+            orderType: 'single', // Ensure single orders are properly labeled
         };
 
         // Debug logging to verify token mapping
