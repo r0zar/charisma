@@ -5,15 +5,17 @@ interface TokenOption {
     contractId: string;
     symbol: string;
     name: string;
+    image?: string;
 }
 
 // GET /api/token-list
 export async function GET() {
     const tokens = await listTokens();
-    const out: TokenOption[] = tokens.map((t) => ({
+    const out: TokenOption[] = tokens.map((t: any) => ({
         contractId: t.contractId || '',
         symbol: t.symbol || '',
         name: t.name,
+        image: t.image || null,
     }));
     return NextResponse.json(out);
 }

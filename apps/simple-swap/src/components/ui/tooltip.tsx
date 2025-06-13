@@ -1,7 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
+import { Info } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -34,5 +36,31 @@ const TooltipContent = (({ className, sideOffset = 4, ...props }: any, ref: any)
     />
 )) as any
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
+
+interface TooltipProps {
+    content: string;
+    children?: React.ReactNode;
+    side?: "top" | "bottom" | "left" | "right";
+}
+
+export function InfoTooltip({ content, children, side = "top" }: TooltipProps) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="cursor-help inline-flex items-center">
+                        {children || <Info className="w-3 h-3 text-muted-foreground hover:text-foreground transition-colors" />}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent
+                    side={side}
+                    className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 py-3 leading-relaxed whitespace-normal break-words"
+                >
+                    {content}
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } 

@@ -1,12 +1,11 @@
 import { kv } from '@vercel/kv';
+import { ADMIN_CONFIG } from '../admin-config';
 
 const PREFIX = 'price:token';
 
-// how long (ms) to retain snapshots, default 3 days
-const RETENTION_MS = Number(process.env.PRICE_RETENTION_MS ?? 1000 * 60 * 60 * 24 * 3);
-
-// only persist if price deviates more than this fraction (e.g. 0.002 = 0.2%) from last stored price
-const EPSILON = Number(process.env.PRICE_EPSILON ?? 0.0001);
+// Use centralized configuration - single source of truth
+const RETENTION_MS = ADMIN_CONFIG.RETENTION_MS;
+const EPSILON = ADMIN_CONFIG.PRICE_EPSILON;
 
 export async function addPriceSnapshot(contractId: string, price: number, timestamp: number = Date.now()): Promise<void> {
     const key = `${PREFIX}:${contractId}`;
@@ -48,4 +47,103 @@ export async function getPricesInRange(contractId: string, fromTimestamp: number
         out.push([ts, price]);
     }
     return out;
+}
+
+// Fast function to get a limited number of tokens for admin UI
+export async function getTrackedTokensPaginated(limit: number = ADMIN_CONFIG.PAGE_SIZE, cursor: string = '0'): Promise<{
+    tokens: string[];
+    nextCursor: string;
+    total: number;
+}> {
+    const allKeys: string[] = [];
+    let currentCursor = cursor;
+    let iterations = 0;
+    const maxIterations = Math.ceil(limit / 100); // Since we fetch 100 at a time
+
+    do {
+        const result = await kv.scan(currentCursor, {
+            match: `${PREFIX}:*`,
+            count: 100
+        });
+
+        currentCursor = result[0];
+        const keys = result[1] as string[];
+        allKeys.push(...keys);
+
+        iterations++;
+
+        // Stop if we have enough tokens or reached max iterations
+        if (allKeys.length >= limit || iterations >= maxIterations) {
+            break;
+        }
+
+    } while (currentCursor !== '0');
+
+    // Remove the prefix from each key to get just the contract IDs
+    const tokens = allKeys
+        .map(key => key.replace(`${PREFIX}:`, ''))
+        .slice(0, limit);
+
+    return {
+        tokens,
+        nextCursor: currentCursor,
+        total: allKeys.length // This is approximate for the current batch
+    };
+}
+
+// Optimized function for getting basic token count
+export async function getTrackedTokenCount(): Promise<number> {
+    let count = 0;
+    let cursor = '0';
+    let iterations = 0;
+    const maxIterations = 10; // Limit to prevent infinite loops
+
+    do {
+        const result = await kv.scan(cursor, {
+            match: `${PREFIX}:*`,
+            count: 100
+        });
+
+        cursor = result[0];
+        const keys = result[1] as string[];
+        count += keys.length;
+
+        iterations++;
+        if (iterations >= maxIterations) {
+            break; // Safety break - return approximate count
+        }
+
+    } while (cursor !== '0');
+
+    return count;
+}
+
+// Keep the original function for compatibility but mark it as potentially slow
+export async function getAllTrackedTokens(): Promise<string[]> {
+    console.warn('getAllTrackedTokens() can be slow with large datasets. Consider using getTrackedTokensPaginated() instead.');
+
+    const allKeys: string[] = [];
+    let cursor = '0';
+    let iterations = 0;
+    const maxIterations = 100; // Safety limit
+
+    do {
+        const result = await kv.scan(cursor, {
+            match: `${PREFIX}:*`,
+            count: 100
+        });
+
+        cursor = result[0];
+        const keys = result[1] as string[];
+        allKeys.push(...keys);
+
+        iterations++;
+        if (iterations >= maxIterations) {
+            console.warn('getAllTrackedTokens() hit iteration limit, returning partial results');
+            break;
+        }
+
+    } while (cursor !== '0');
+
+    return allKeys.map(key => key.replace(`${PREFIX}:`, ''));
 }

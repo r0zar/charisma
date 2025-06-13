@@ -3,13 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "../wallet-button";
-import { Coins, Menu, X, Settings } from "lucide-react";
+import { Coins, Menu, X, Settings, Shield } from "lucide-react";
 import { Button } from "../ui/button";
 import { useWallet } from "@/contexts/wallet-context";
 
 export function Header() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
     const { connected } = useWallet();
+    const isDev = process.env.NODE_ENV === 'development';
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -45,6 +46,12 @@ export function Header() {
                         <Link href="/shop" className="text-sm font-medium hover:text-primary transition-colors">
                             Marketplace
                         </Link>
+                        {isDev && (
+                            <Link href="/admin" className="flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors">
+                                <Shield className="h-3 w-3" />
+                                Admin
+                            </Link>
+                        )}
                     </nav>
                 </div>
 
@@ -89,6 +96,12 @@ export function Header() {
                         {connected && (
                             <Link href="/notifications" className="text-sm font-medium hover:text-primary transition-colors" onClick={toggleMobileMenu}>
                                 Settings
+                            </Link>
+                        )}
+                        {isDev && (
+                            <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors" onClick={toggleMobileMenu}>
+                                <Shield className="h-4 w-4" />
+                                Admin
                             </Link>
                         )}
                     </nav>
