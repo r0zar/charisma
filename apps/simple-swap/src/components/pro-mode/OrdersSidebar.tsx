@@ -85,6 +85,124 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
     // Smart filtering state - defaults to show all orders (moved before useMemo to fix initialization order)
     const [orderTypeFilter, setOrderTypeFilter] = React.useState<'all' | 'regular' | 'perpetual'>('all');
+    const [viewMode, setViewMode] = React.useState<'individual' | 'strategy'>('strategy');
+
+    // Group related orders into strategies
+    const groupOrdersIntoStrategies = React.useCallback((orders: any[]) => {
+        const strategies: any[] = [];
+        const usedOrderIds = new Set<string>();
+
+        // Group sandwich orders (pairs created together)
+        const sandwichOrders = orders.filter(o => o.orderType === 'sandwich' && !usedOrderIds.has(o.uuid));
+        const sandwichGroups = new Map<string, any[]>();
+
+        sandwichOrders.forEach(order => {
+            // Group by creation time (within 1 minute) and token pair
+            const creationTime = new Date(order.createdAt).getTime();
+            const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
+
+            let groupKey = null;
+            for (const [key, group] of sandwichGroups.entries()) {
+                const [existingTime, existingPair] = key.split('|');
+                if (Math.abs(creationTime - parseInt(existingTime)) < 60000 && // Within 1 minute
+                    (tokenPair === existingPair || tokenPair === existingPair.split('-').reverse().join('-'))) {
+                    groupKey = key;
+                    break;
+                }
+            }
+
+            if (!groupKey) {
+                groupKey = `${creationTime}|${tokenPair}`;
+                sandwichGroups.set(groupKey, []);
+            }
+
+            sandwichGroups.get(groupKey)!.push(order);
+            usedOrderIds.add(order.uuid);
+        });
+
+        // Create sandwich strategy objects
+        sandwichGroups.forEach((orders, key) => {
+            if (orders.length >= 2) {
+                // Find buy and sell orders
+                const buyOrder = orders.find(o => o.direction === 'lt'); // Buy low (B→A)
+                const sellOrder = orders.find(o => o.direction === 'gt'); // Sell high (A→B)
+
+                strategies.push({
+                    type: 'sandwich',
+                    id: `sandwich-${key}`,
+                    orders: orders,
+                    buyOrder,
+                    sellOrder,
+                    createdAt: orders[0].createdAt,
+                    status: orders.every(o => o.status === 'filled') ? 'completed' :
+                        orders.some(o => o.status === 'filled') ? 'partial' : 'pending',
+                    tokenA: orders[0].inputTokenMeta,
+                    tokenB: orders[0].outputTokenMeta,
+                    totalInvested: orders.reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
+                    filledOrders: orders.filter(o => o.status === 'filled').length,
+                    totalOrders: orders.length
+                });
+            }
+        });
+
+        // Group DCA orders (same token pair, similar amounts, created around same time)
+        const dcaOrders = orders.filter(o => o.orderType === 'dca' && !usedOrderIds.has(o.uuid));
+        const dcaGroups = new Map<string, any[]>();
+
+        dcaOrders.forEach(order => {
+            const creationTime = new Date(order.createdAt).getTime();
+            const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
+            const amount = parseFloat(order.amountIn || '0');
+
+            let groupKey = null;
+            for (const [key, group] of dcaGroups.entries()) {
+                const [existingTime, existingPair, existingAmount] = key.split('|');
+                if (Math.abs(creationTime - parseInt(existingTime)) < 300000 && // Within 5 minutes
+                    tokenPair === existingPair &&
+                    Math.abs(amount - parseFloat(existingAmount)) < (amount * 0.1)) { // Within 10% amount difference
+                    groupKey = key;
+                    break;
+                }
+            }
+
+            if (!groupKey) {
+                groupKey = `${creationTime}|${tokenPair}|${amount}`;
+                dcaGroups.set(groupKey, []);
+            }
+
+            dcaGroups.get(groupKey)!.push(order);
+            usedOrderIds.add(order.uuid);
+        });
+
+        // Create DCA strategy objects
+        dcaGroups.forEach((orders, key) => {
+            if (orders.length >= 2) { // Only group if there are multiple orders
+                strategies.push({
+                    type: 'dca',
+                    id: `dca-${key}`,
+                    orders: orders.sort((a, b) => new Date(a.validFrom || a.createdAt).getTime() - new Date(b.validFrom || b.createdAt).getTime()),
+                    createdAt: orders[0].createdAt,
+                    status: orders.every(o => o.status === 'filled') ? 'completed' :
+                        orders.some(o => o.status === 'filled') ? 'active' : 'pending',
+                    tokenFrom: orders[0].inputTokenMeta,
+                    tokenTo: orders[0].outputTokenMeta,
+                    totalInvested: orders.filter(o => o.status === 'filled').reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
+                    totalPlanned: orders.reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
+                    filledOrders: orders.filter(o => o.status === 'filled').length,
+                    totalOrders: orders.length,
+                    nextExecution: orders.find(o => o.status === 'open')?.validFrom || null
+                });
+            } else {
+                // Single DCA orders go back to individual list
+                orders.forEach(order => usedOrderIds.delete(order.uuid));
+            }
+        });
+
+        // Add remaining individual orders (single, perpetual, ungrouped DCA/sandwich)
+        const individualOrders = orders.filter(o => !usedOrderIds.has(o.uuid));
+
+        return { strategies, individualOrders };
+    }, []);
 
     // Convert API positions to display format for compatibility
     const perpetualOrders = React.useMemo(() => {
@@ -268,6 +386,14 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
         return sorted;
     }, [displayOrders, perpetualOrders, showAllOrders, orderTypeFilter]);
+
+    // Apply strategy grouping based on view mode
+    const { strategies, individualOrders } = React.useMemo(() => {
+        if (viewMode === 'individual') {
+            return { strategies: [], individualOrders: ordersToShow };
+        }
+        return groupOrdersIntoStrategies(ordersToShow);
+    }, [ordersToShow, viewMode, groupOrdersIntoStrategies]);
 
     // Hook to calculate total P&L for all open perpetual positions
     const useTotalPerpetualPnL = () => {
@@ -1071,6 +1197,267 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
         );
     };
 
+    // Render DCA strategy
+    const renderDCAStrategy = (strategy: any) => {
+        const progressPercent = strategy.totalOrders > 0 ? (strategy.filledOrders / strategy.totalOrders) * 100 : 0;
+        const avgPrice = strategy.filledOrders > 0 ?
+            strategy.orders.filter((o: any) => o.status === 'filled')
+                .reduce((sum: number, o: any) => sum + parseFloat(o.targetPrice || '0'), 0) / strategy.filledOrders : 0;
+
+        return (
+            <div
+                key={strategy.id}
+                className="border rounded-lg p-3 hover:bg-muted/20 transition-colors cursor-pointer bg-gradient-to-r from-cyan-950/10 to-blue-950/5 border-cyan-500/40"
+                onClick={() => toggleOrderExpansion(strategy.id)}
+            >
+                <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-2 flex-1">
+                        {/* DCA Badge */}
+                        <div className="flex items-center text-cyan-400">
+                            <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-medium text-[10px] px-1.5 py-0.5 rounded">
+                                DCA
+                            </span>
+                        </div>
+
+                        {/* Progress */}
+                        <span className="font-mono text-xs font-medium">
+                            {strategy.filledOrders}/{strategy.totalOrders}
+                        </span>
+
+                        {/* Token Pair */}
+                        <div className="relative flex items-center">
+                            <TokenLogo token={{ ...strategy.tokenFrom, image: strategy.tokenFrom.image ?? undefined }} size="sm" />
+                            <div className="relative -ml-2 z-0 ring-1 ring-background rounded-full">
+                                <TokenLogo token={{ ...strategy.tokenTo, image: strategy.tokenTo.image ?? undefined }} size="sm" />
+                            </div>
+                        </div>
+
+                        {/* Status */}
+                        <span className={`text-xs font-medium ${strategy.status === 'completed' ? 'text-green-400' :
+                            strategy.status === 'active' ? 'text-cyan-400' : 'text-yellow-400'
+                            }`}>
+                            {strategy.status.toUpperCase()}
+                        </span>
+
+                        {/* Timestamp */}
+                        <span className="text-xs text-muted-foreground ml-auto">
+                            {formatRelativeTime(strategy.createdAt)}
+                        </span>
+                    </div>
+
+                    {/* Expand indicator */}
+                    <div className="flex items-center ml-2">
+                        {expandedOrderId === strategy.id ?
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" /> :
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        }
+                    </div>
+                </div>
+
+                {/* Expanded DCA Strategy View */}
+                {expandedOrderId === strategy.id && (
+                    <div className="mt-3 pt-3 border-t border-border/20 text-xs">
+                        {/* Strategy Summary */}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs mb-3">
+                            <div>
+                                <span className="text-muted-foreground text-[10px]">TOTAL PLANNED</span>
+                                <div className="font-mono font-medium text-xs">
+                                    {strategy.totalPlanned.toFixed(6)} {strategy.tokenFrom.symbol}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground text-[10px]">INVESTED</span>
+                                <div className="font-mono font-medium text-xs">
+                                    {strategy.totalInvested.toFixed(6)} {strategy.tokenFrom.symbol}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground text-[10px]">PROGRESS</span>
+                                <div className="font-medium text-xs">
+                                    {strategy.filledOrders}/{strategy.totalOrders} ({progressPercent.toFixed(1)}%)
+                                </div>
+                            </div>
+                            {avgPrice > 0 && (
+                                <div>
+                                    <span className="text-muted-foreground text-[10px]">AVG PRICE</span>
+                                    <div className="font-mono font-medium text-xs">
+                                        {avgPrice.toFixed(6)}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="mb-3">
+                            <div className="w-full bg-border/30 rounded-full h-2 overflow-hidden">
+                                <div
+                                    className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full transition-all duration-300"
+                                    style={{ width: `${progressPercent}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Individual Orders */}
+                        <div className="space-y-2">
+                            <span className="text-muted-foreground text-[10px]">INDIVIDUAL ORDERS</span>
+                            {strategy.orders.slice(0, 5).map((order: any, index: number) => (
+                                <div key={order.uuid} className="flex items-center justify-between p-2 rounded bg-background/50">
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-xs">#{index + 1}</span>
+                                        <span className={`w-2 h-2 rounded-full ${order.status === 'filled' ? 'bg-green-400' :
+                                            order.status === 'open' ? 'bg-yellow-400' : 'bg-gray-400'
+                                            }`} />
+                                        <span className="text-xs font-mono">
+                                            {(parseFloat(order.amountIn || '0') / (10 ** (order.inputTokenMeta.decimals || 6))).toFixed(6)}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                        {order.validFrom ? new Date(order.validFrom).toLocaleDateString() : 'Pending'}
+                                    </span>
+                                </div>
+                            ))}
+                            {strategy.orders.length > 5 && (
+                                <div className="text-center text-xs text-muted-foreground">
+                                    ... and {strategy.orders.length - 5} more orders
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    // Render Sandwich strategy
+    const renderSandwichStrategy = (strategy: any) => {
+        const buyFilled = strategy.buyOrder?.status === 'filled';
+        const sellFilled = strategy.sellOrder?.status === 'filled';
+
+        return (
+            <div
+                key={strategy.id}
+                className="border rounded-lg p-3 hover:bg-muted/20 transition-colors cursor-pointer bg-gradient-to-r from-orange-950/10 to-red-950/5 border-orange-500/40"
+                onClick={() => toggleOrderExpansion(strategy.id)}
+            >
+                <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-2 flex-1">
+                        {/* Sandwich Badge */}
+                        <div className="flex items-center text-orange-400">
+                            <span className="bg-orange-500/20 text-orange-300 border border-orange-500/40 font-medium text-[10px] px-1.5 py-0.5 rounded">
+                                SAND
+                            </span>
+                        </div>
+
+                        {/* Status Indicators */}
+                        <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 rounded-full ${buyFilled ? 'bg-green-400' : 'bg-gray-400'}`} title="Buy Order" />
+                            <div className={`w-2 h-2 rounded-full ${sellFilled ? 'bg-green-400' : 'bg-gray-400'}`} title="Sell Order" />
+                        </div>
+
+                        {/* Token Pair */}
+                        <div className="relative flex items-center">
+                            <TokenLogo token={{ ...strategy.tokenA, image: strategy.tokenA.image ?? undefined }} size="sm" />
+                            <div className="relative -ml-2 z-0 ring-1 ring-background rounded-full">
+                                <TokenLogo token={{ ...strategy.tokenB, image: strategy.tokenB.image ?? undefined }} size="sm" />
+                            </div>
+                        </div>
+
+                        {/* Status */}
+                        <span className={`text-xs font-medium ${strategy.status === 'completed' ? 'text-green-400' :
+                            strategy.status === 'partial' ? 'text-orange-400' : 'text-yellow-400'
+                            }`}>
+                            {strategy.status === 'completed' ? 'BOTH FILLED' :
+                                strategy.status === 'partial' ? 'ONE FILLED' : 'PENDING'}
+                        </span>
+
+                        {/* Timestamp */}
+                        <span className="text-xs text-muted-foreground ml-auto">
+                            {formatRelativeTime(strategy.createdAt)}
+                        </span>
+                    </div>
+
+                    {/* Expand indicator */}
+                    <div className="flex items-center ml-2">
+                        {expandedOrderId === strategy.id ?
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" /> :
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        }
+                    </div>
+                </div>
+
+                {/* Expanded Sandwich Strategy View */}
+                {expandedOrderId === strategy.id && (
+                    <div className="mt-3 pt-3 border-t border-border/20 text-xs">
+                        {/* Strategy Summary */}
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs mb-3">
+                            <div>
+                                <span className="text-muted-foreground text-[10px]">TOTAL INVESTED</span>
+                                <div className="font-mono font-medium text-xs">
+                                    {strategy.totalInvested.toFixed(6)} {strategy.tokenA.symbol}
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground text-[10px]">STATUS</span>
+                                <div className="font-medium text-xs">
+                                    {strategy.filledOrders}/{strategy.totalOrders} Orders Filled
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Individual Orders */}
+                        <div className="space-y-2">
+                            <span className="text-muted-foreground text-[10px]">STRATEGY LEGS</span>
+
+                            {/* Buy Order */}
+                            {strategy.buyOrder && (
+                                <div className="flex items-center justify-between p-2 rounded bg-background/50">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center">
+                                            <span className="text-[8px] text-white font-bold">B</span>
+                                        </div>
+                                        <span className="text-xs">Buy Low</span>
+                                        <span className={`w-2 h-2 rounded-full ${buyFilled ? 'bg-green-400' : 'bg-gray-400'}`} />
+                                    </div>
+                                    <span className="text-xs font-mono">
+                                        ≤ {parseFloat(strategy.buyOrder.targetPrice || '0').toFixed(6)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Sell Order */}
+                            {strategy.sellOrder && (
+                                <div className="flex items-center justify-between p-2 rounded bg-background/50">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-3 h-3 rounded-full bg-orange-500 flex items-center justify-center">
+                                            <span className="text-[8px] text-white font-bold">S</span>
+                                        </div>
+                                        <span className="text-xs">Sell High</span>
+                                        <span className={`w-2 h-2 rounded-full ${sellFilled ? 'bg-green-400' : 'bg-gray-400'}`} />
+                                    </div>
+                                    <span className="text-xs font-mono">
+                                        ≥ {parseFloat(strategy.sellOrder.targetPrice || '0').toFixed(6)}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* P&L if both orders filled */}
+                            {strategy.status === 'completed' && (
+                                <div className="mt-2 pt-2 border-t border-border/30">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground text-[10px]">STRATEGY P&L</span>
+                                        <span className="text-xs font-mono text-green-400">
+                                            +{((parseFloat(strategy.sellOrder?.targetPrice || '0') - parseFloat(strategy.buyOrder?.targetPrice || '0')) * strategy.totalInvested).toFixed(4)} {strategy.tokenB.symbol}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     if (isLoadingOrders) {
         return (
             <div className="h-full w-96 border-l border-border/40 bg-card/50 backdrop-blur-sm flex items-center justify-center">
@@ -1104,9 +1491,11 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
             <div className="p-4 border-b border-border/40 bg-gradient-to-r from-blue-950/20 to-purple-950/20">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-foreground">Orders</h2>
+                        <h2 className="text-lg font-semibold text-foreground">
+                            {viewMode === 'strategy' ? 'Strategies' : 'Orders'}
+                        </h2>
                         <Badge variant="outline" className="text-xs">
-                            {ordersToShow.length}
+                            {viewMode === 'strategy' ? strategies.length + individualOrders.length : ordersToShow.length}
                         </Badge>
                     </div>
                     <Button
@@ -1116,6 +1505,14 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                         className="text-xs h-6 px-2"
                     >
                         {showAllOrders ? 'Open Only' : 'Show All'}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewMode(viewMode === 'strategy' ? 'individual' : 'strategy')}
+                        className="text-xs h-6 px-2"
+                    >
+                        {viewMode === 'strategy' ? 'Individual' : 'Strategy'}
                     </Button>
                 </div>
 
@@ -1181,10 +1578,14 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
                 {/* Filter Status */}
                 <div className="mt-2 text-xs text-muted-foreground">
-                    {orderTypeFilter === 'all' ? (
-                        <span>Showing all order types</span>
+                    {viewMode === 'strategy' ? (
+                        <span>Strategy view • {strategies.length} grouped, {individualOrders.length} individual</span>
                     ) : (
-                        <span>Filtered: {orderTypeFilter === 'regular' ? 'Single, DCA, Sandwich orders' : 'Perpetual positions'}</span>
+                        orderTypeFilter === 'all' ? (
+                            <span>Showing all order types</span>
+                        ) : (
+                            <span>Filtered: {orderTypeFilter === 'regular' ? 'Single, DCA, Sandwich orders' : 'Perpetual positions'}</span>
+                        )
                     )}
                 </div>
             </div>
@@ -1244,21 +1645,63 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
             {/* Unified Orders List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {ordersToShow.length === 0 ? (
-                    <div className="text-center py-8">
-                        <h3 className="font-medium text-foreground mb-2">No Orders</h3>
-                        <p className="text-muted-foreground text-sm mb-4">
-                            Create your first order to start trading
-                        </p>
-                        <div className="text-xs text-muted-foreground space-y-1">
-                            <p>• Single: Traditional limit orders</p>
-                            <p>• DCA: Dollar-cost averaging strategies</p>
-                            <p>• Sandwich: Dual trigger strategies</p>
-                            <p>• Perpetual: Leveraged positions</p>
-                        </div>
-                    </div>
+                {viewMode === 'strategy' ? (
+                    // Strategy View Mode
+                    <>
+                        {strategies.length === 0 && individualOrders.length === 0 ? (
+                            <div className="text-center py-8">
+                                <h3 className="font-medium text-foreground mb-2">No Strategies</h3>
+                                <p className="text-muted-foreground text-sm mb-4">
+                                    Create DCA or Sandwich strategies to see them grouped here
+                                </p>
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                    <p>• DCA: Multiple orders over time</p>
+                                    <p>• Sandwich: Buy low, sell high pairs</p>
+                                    <p>• Single orders show individually</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Render Strategies */}
+                                {strategies.map((strategy) => (
+                                    strategy.type === 'dca' ? renderDCAStrategy(strategy) :
+                                        strategy.type === 'sandwich' ? renderSandwichStrategy(strategy) : null
+                                ))}
+
+                                {/* Render Individual Orders */}
+                                {individualOrders.map(renderOrderItem)}
+
+                                {/* Summary */}
+                                {strategies.length > 0 && (
+                                    <div className="mt-4 pt-3 border-t border-border/20 text-center">
+                                        <div className="text-xs text-muted-foreground">
+                                            {strategies.length} {strategies.length === 1 ? 'strategy' : 'strategies'} • {individualOrders.length} individual {individualOrders.length === 1 ? 'order' : 'orders'}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </>
                 ) : (
-                    ordersToShow.map(renderOrderItem)
+                    // Individual View Mode
+                    <>
+                        {ordersToShow.length === 0 ? (
+                            <div className="text-center py-8">
+                                <h3 className="font-medium text-foreground mb-2">No Orders</h3>
+                                <p className="text-muted-foreground text-sm mb-4">
+                                    Create your first order to start trading
+                                </p>
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                    <p>• Single: Traditional limit orders</p>
+                                    <p>• DCA: Dollar-cost averaging strategies</p>
+                                    <p>• Sandwich: Dual trigger strategies</p>
+                                    <p>• Perpetual: Leveraged positions</p>
+                                </div>
+                            </div>
+                        ) : (
+                            ordersToShow.map(renderOrderItem)
+                        )}
+                    </>
                 )}
             </div>
         </div>
