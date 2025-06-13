@@ -862,21 +862,10 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                                             <div className="col-span-2">
                                                 <span className="text-muted-foreground text-[10px]">TRIGGER</span>
                                                 <div className="font-mono font-medium text-xs flex items-center space-x-1">
-                                                    {order.direction === 'gt' ? (
-                                                        <>
-                                                            <span>1 {order.conditionTokenMeta.symbol}</span>
-                                                            <span className="text-green-400">≥</span>
-                                                            <span>{formatCompactPrice(order.targetPrice)}</span>
-                                                            <span>{order.baseAssetMeta?.symbol || 'USD'}</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <span>1 {order.baseAssetMeta?.symbol || 'USD'}</span>
-                                                            <span className="text-green-400">≥</span>
-                                                            <span>{formatCompactPrice(order.targetPrice)}</span>
-                                                            <span>{order.conditionTokenMeta.symbol}</span>
-                                                        </>
-                                                    )}
+                                                    <span>1 {order.conditionTokenMeta?.symbol || 'USD'}</span>
+                                                    <span className="text-green-400">≥</span>
+                                                    <span>{formatCompactPrice(order.targetPrice)}</span>
+                                                    <span>{order.baseAssetMeta.symbol}</span>
                                                 </div>
                                             </div>
                                         </>
