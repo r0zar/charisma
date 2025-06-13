@@ -76,12 +76,12 @@ export default function SandwichCreationDialog() {
          * This allows for more sophisticated price monitoring across different trading pairs
          * 
          * Order Structure:
-         * - conditionToken: tradingPairBase - token price to watch
-         * - baseAsset: tradingPairQuote - denomination for price comparison
+         * - conditionToken: tradingPairQuote - token price to watch
+         * - baseAsset: tradingPairBase - denomination for price comparison
          * 
          * Chart Configuration (should match):
-         * - Shows tradingPairBase/tradingPairQuote price relationship
-         * - When chart shows BTC/USDT, orders watch BTC price in USDT terms
+         * - Shows tradingPairQuote/tradingPairBase price relationship
+         * - When chart shows sUSDh/CHA, orders watch sUSDh price in CHA terms
          * 
          * This is MORE FLEXIBLE than DCA/Single orders because:
          * - Can trade selectedFromToken/selectedToToken while monitoring different pair prices
@@ -108,8 +108,8 @@ export default function SandwichCreationDialog() {
             amountIn: order.amount,
             targetPrice: order.price,
             direction,
-            conditionToken: tradingPairBase.contractId, // Watch tradingPairBase token price (maps to conditionToken)
-            baseAsset: tradingPairQuote.contractId, // Denominate in tradingPairQuote token (maps to baseAsset)
+            conditionToken: tradingPairQuote.contractId, // Watch tradingPairQuote token price (maps to conditionToken)
+            baseAsset: tradingPairBase.contractId, // Denominate in tradingPairBase token (maps to baseAsset)
             recipient: address,
             signature,
             uuid,
@@ -123,13 +123,13 @@ export default function SandwichCreationDialog() {
             payload: {
                 inputToken: `${order.type === 'buy' ? selectedFromToken.symbol : selectedToToken.symbol} (${order.type === 'buy' ? selectedFromToken.contractId : selectedToToken.contractId})`,
                 outputToken: `${order.type === 'buy' ? selectedToToken.symbol : selectedFromToken.symbol} (${order.type === 'buy' ? selectedToToken.contractId : selectedFromToken.contractId})`,
-                conditionToken: `${tradingPairBase.symbol} (${tradingPairBase.contractId})`,
-                baseAsset: `${tradingPairQuote.symbol} (${tradingPairQuote.contractId})`,
+                conditionToken: `${tradingPairQuote.symbol} (${tradingPairQuote.contractId})`,
+                baseAsset: `${tradingPairBase.symbol} (${tradingPairBase.contractId})`,
                 targetPrice: order.price,
                 direction
             },
-            interpretation: `Watch ${tradingPairBase.symbol} price in ${tradingPairQuote.symbol} terms`,
-            chartShould: `Show ${tradingPairQuote.symbol}/${tradingPairBase.symbol} ratio (how much ${tradingPairQuote.symbol} per 1 ${tradingPairBase.symbol})`
+            interpretation: `Watch ${tradingPairQuote.symbol} price in ${tradingPairBase.symbol} terms`,
+            chartShould: `Show ${tradingPairBase.symbol}/${tradingPairQuote.symbol} ratio (how much ${tradingPairBase.symbol} per 1 ${tradingPairQuote.symbol})`
         });
 
         return payload;
@@ -184,8 +184,8 @@ export default function SandwichCreationDialog() {
                 ...createdOrder,
                 inputTokenMeta: order.type === 'buy' ? selectedFromToken : selectedToToken,
                 outputTokenMeta: order.type === 'buy' ? selectedToToken : selectedFromToken,
-                conditionTokenMeta: tradingPairBase,
-                baseAssetMeta: tradingPairQuote,
+                conditionTokenMeta: tradingPairQuote,
+                baseAssetMeta: tradingPairBase,
             };
 
             // Add to main order list
