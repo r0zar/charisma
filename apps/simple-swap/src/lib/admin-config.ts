@@ -1,7 +1,7 @@
 // Centralized admin configuration - single source of truth
 export const ADMIN_CONFIG = {
     // Price system configuration
-    RETENTION_MS: Number(process.env.PRICE_RETENTION_MS ?? 1000 * 60 * 60 * 24 * 3),
+    RETENTION_MS: Number(process.env.PRICE_RETENTION_MS ?? 1000 * 60 * 60 * 24 * 7),
     RETENTION_DAYS: 7,
     PRICE_EPSILON: Number(process.env.PRICE_EPSILON ?? 0.0001),
     PRICE_EPSILON_PERCENT: 0.01, // 0.0001 = 0.01%
