@@ -10,25 +10,35 @@ const EPSILON = ADMIN_CONFIG.PRICE_EPSILON;
 export async function addPriceSnapshot(contractId: string, price: number, timestamp: number = Date.now()): Promise<void> {
     const key = `${PREFIX}:${contractId}`;
 
+    // Log snapshot attempt
+    console.log(`[addPriceSnapshot] contractId=${contractId}, price=${price}, timestamp=${timestamp}`);
+
     // if epsilon is set, skip writing if change is insignificant
     if (EPSILON > 0) {
         const last = await getLatestPrice(contractId);
         if (last !== undefined && Math.abs(price - last) / last < EPSILON) {
+            console.log(`[addPriceSnapshot] Skipped write for contractId=${contractId} (change < EPSILON)`);
             return; // skip write
         }
     }
 
     await kv.zadd(key, { score: timestamp, member: price.toString() });
+    console.log(`[addPriceSnapshot] Added price snapshot for contractId=${contractId}`);
 
     // cleanup old entries
     const cutoff = timestamp - RETENTION_MS;
     await kv.zremrangebyscore(key, 0, cutoff);
+    console.log(`[addPriceSnapshot] Cleaned up old entries for contractId=${contractId}, cutoff=${cutoff}`);
 }
 
 export async function getLatestPrice(contractId: string): Promise<number | undefined> {
     const key = `${PREFIX}:${contractId}`;
     const res = await kv.zrange(key, -1, -1);
-    if (!res || res.length === 0) return undefined;
+    if (!res || res.length === 0) {
+        console.log(`[getLatestPrice] No price found for contractId=${contractId}`);
+        return undefined;
+    }
+    console.log(`[getLatestPrice] contractId=${contractId}, price=${res[0]}`);
     return Number(res[0]);
 }
 
@@ -46,6 +56,7 @@ export async function getPricesInRange(contractId: string, fromTimestamp: number
         const ts = Number(res[i + 1]);
         out.push([ts, price]);
     }
+    console.log(`[getPricesInRange] contractId=${contractId}, from=${fromTimestamp}, to=${toTimestamp}, count=${out.length}`);
     return out;
 }
 
@@ -84,6 +95,8 @@ export async function getTrackedTokensPaginated(limit: number = ADMIN_CONFIG.PAG
         .map(key => key.replace(`${PREFIX}:`, ''))
         .slice(0, limit);
 
+    console.log(`[getTrackedTokensPaginated] limit=${limit}, returned=${tokens.length}, nextCursor=${currentCursor}`);
+
     return {
         tokens,
         nextCursor: currentCursor,
@@ -115,6 +128,7 @@ export async function getTrackedTokenCount(): Promise<number> {
 
     } while (cursor !== '0');
 
+    console.log(`[getTrackedTokenCount] count=${count}`);
     return count;
 }
 
@@ -145,5 +159,7 @@ export async function getAllTrackedTokens(): Promise<string[]> {
 
     } while (cursor !== '0');
 
-    return allKeys.map(key => key.replace(`${PREFIX}:`, ''));
+    const tokens = allKeys.map(key => key.replace(`${PREFIX}:`, ''));
+    console.log(`[getAllTrackedTokens] total=${tokens.length}`);
+    return tokens;
 }

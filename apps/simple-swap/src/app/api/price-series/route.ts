@@ -1,11 +1,12 @@
-import { getPricesInRange } from '@/lib/price/store';
-import { NextResponse } from 'next/server';
+import { getPricesInRange } from "@/lib/price/store";
+import { NextResponse } from "next/server";
 
-// GET /api/price-series?contractId=...&from=...&to=...
-// Returns an array of { time: number, value: number } objects compatible with Lightweight Charts.
+// In your API endpoint
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const contractId = searchParams.get('contractId');
+    const timeframe = searchParams.get('timeframe');
+
     if (!contractId) {
         return NextResponse.json(
             { error: 'Missing "contractId" query param' },
@@ -14,14 +15,21 @@ export async function GET(request: Request) {
     }
 
     const now = Date.now();
-    const fromParam = searchParams.get('from');
-    const toParam = searchParams.get('to');
+    let from: number;
 
-    const from = fromParam ? Number(fromParam) : now - 1000 * 60 * 60 * 24 * 30; // default 30 days
+    // Convert timeframe to milliseconds
+    if (timeframe) {
+        const timeframeMs = parseTimeframe(timeframe);
+        from = now - timeframeMs;
+    } else {
+        const fromParam = searchParams.get('from');
+        from = fromParam ? Number(fromParam) : now - 1000 * 60 * 60 * 24 * 30;
+    }
+
+    const toParam = searchParams.get('to');
     const to = toParam ? Number(toParam) : now;
 
     const raw = await getPricesInRange(contractId, from, to);
-    // Convert to Lightweight Charts format (time in seconds)
     const series = raw.map(([ts, price]) => ({
         time: Math.floor(ts / 1000),
         value: price,
@@ -30,5 +38,17 @@ export async function GET(request: Request) {
     return NextResponse.json(series);
 }
 
-// Price series can update frequently; cache for 30 seconds to balance freshness and load
-export const revalidate = 30; 
+function parseTimeframe(timeframe: string): number {
+    const match = timeframe.match(/^(\d+)([hdw])$/);
+    if (!match) return 4 * 24 * 60 * 60 * 1000; // default 4 days
+
+    const value = parseInt(match[1]);
+    const unit = match[2];
+
+    switch (unit) {
+        case 'h': return value * 60 * 60 * 1000;
+        case 'd': return value * 24 * 60 * 60 * 1000;
+        case 'w': return value * 7 * 24 * 60 * 60 * 1000;
+        default: return 4 * 24 * 60 * 60 * 1000;
+    }
+}
