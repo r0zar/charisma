@@ -91,7 +91,7 @@ export interface PriceAggregationConfig {
  * Default configuration for price aggregation
  */
 const DEFAULT_CONFIG: PriceAggregationConfig = {
-    strategy: 'average', // Average prices where both sources have data
+    strategy: 'stxtools-primary', // Average prices where both sources have data
     timeout: 5000
 };
 
@@ -257,7 +257,8 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
         kraxelPrices = results[0].value;
         console.log(`Successfully fetched ${Object.keys(kraxelPrices).length} prices from Kraxel API`);
     } else {
-        console.error('Failed to fetch from Kraxel API:', results[0].reason.message);
+        const reason = (results[0] as PromiseRejectedResult).reason;
+        console.error('Failed to fetch from Kraxel API:', reason && reason.message ? reason.message : reason);
     }
 
     // Process STXTools results
@@ -265,12 +266,13 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
         stxToolsPrices = results[1].value;
         console.log(`Successfully fetched ${Object.keys(stxToolsPrices).length} prices from STXTools API`);
     } else {
-        console.error('Failed to fetch from STXTools API:', results[1].reason.message);
+        const reason = (results[1] as PromiseRejectedResult).reason;
+        console.error('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
     }
 
     // If both APIs failed, return empty object
     if (!kraxelPrices && !stxToolsPrices) {
-        console.error('Both price APIs failed');
+        console.error('Both price APIs failed, returning empty price object.');
         return {};
     }
 
@@ -281,12 +283,11 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     try {
         const tokens = await listTokens();
         const processedPrices = processTokenPrices(mergedPrices, tokens);
-
         console.log(`Final merged price data contains ${Object.keys(processedPrices).length} tokens`);
         return processedPrices;
     } catch (error) {
-        console.error('Failed to process subnet tokens, returning unprocessed prices:', error);
-        return mergedPrices;
+        console.error('Failed to process subnet tokens, returning unprocessed prices:', error && (error as Error).message ? (error as Error).message : error);
+        return mergedPrices || {};
     }
 }
 
