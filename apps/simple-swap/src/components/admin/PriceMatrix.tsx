@@ -88,6 +88,9 @@ export function PriceMatrix() {
         total: 0
     });
 
+    // Tab system state
+    const [viewMode, setViewMode] = useState<'detailed' | 'simple'>('detailed');
+
     const [sortField, setSortField] = useState<keyof PriceStats | 'marketcap'>('marketcap');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [filter, setFilter] = useState('');
@@ -100,6 +103,64 @@ export function PriceMatrix() {
 
     // Track current loaded count for refresh
     const loadedCountRef = useRef(0);
+
+    // --- Simple Matrix Real Data ---
+    const [matrixLoading, setMatrixLoading] = useState(false);
+    const [matrixData, setMatrixData] = useState<Record<string, { [iso: string]: number | null }>>({});
+    const [matrixIntervals, setMatrixIntervals] = useState<string[]>([]);
+    const [simpleMatrixFilter, setSimpleMatrixFilter] = useState('');
+
+    // Generate 24 hourly intervals ending at the current hour
+    useEffect(() => {
+        const now = new Date();
+        now.setMinutes(0, 0, 0); // round to hour
+        const intervals: string[] = [];
+        for (let i = 23; i >= 0; i--) {
+            const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+            intervals.push(d.toISOString());
+        }
+        setMatrixIntervals(intervals);
+        // Clear matrixData when intervals change
+        setMatrixData({});
+    }, []);
+
+    // Only fetch price series for newly added tokens
+    useEffect(() => {
+        if (viewMode !== 'simple' || data.tokens.length === 0 || matrixIntervals.length === 0) return;
+        // Find tokens that are not yet in matrixData
+        const tokensToFetch = data.tokens.filter(token => !(token.contractId in matrixData));
+        if (tokensToFetch.length === 0) return;
+        setMatrixLoading(true);
+        const from = new Date(matrixIntervals[0]).getTime();
+        const to = new Date(matrixIntervals[matrixIntervals.length - 1]).getTime() + 60 * 60 * 1000 - 1;
+        Promise.all(
+            tokensToFetch.map(async (token) => {
+                const res = await fetch(`/api/price-series?contractId=${encodeURIComponent(token.contractId)}&from=${from}&to=${to}`);
+                const series = await res.json(); // [{ time, value }]
+                // Map each interval to the closest price at or before that time
+                const intervalMap: { [iso: string]: number | null } = {};
+                let idx = 0;
+                for (const iso of matrixIntervals) {
+                    const t = Math.floor(new Date(iso).getTime() / 1000);
+                    while (idx < series.length && series[idx].time <= t) idx++;
+                    const snap = series[idx - 1];
+                    intervalMap[iso] = snap ? snap.value : null;
+                }
+                return { contractId: token.contractId, intervalMap };
+            })
+        ).then(results => {
+            setMatrixData(prev => {
+                const map = { ...prev };
+                for (const r of results) {
+                    if (r) map[r.contractId] = r.intervalMap;
+                }
+                return map;
+            });
+            setMatrixLoading(false);
+        });
+    }, [viewMode, data.tokens, matrixIntervals]);
+
+    // --- END Simple Matrix Real Data ---
 
     const fetchPriceData = async (cursor: string = '0', append: boolean = false, limit?: number) => {
         try {
@@ -253,6 +314,83 @@ export function PriceMatrix() {
             }
         });
 
+    // --- Simple Matrix: Ensure all tokens are loaded ---
+    useEffect(() => {
+        if (viewMode !== 'simple' || data.loading || data.tokens.length === 0 || !data.hasMore) return;
+        // If not all tokens are loaded, load them all
+        let cancelled = false;
+        async function loadAllTokens() {
+            let cursor = data.nextCursor;
+            let hasMore = data.hasMore;
+            while (hasMore && !cancelled) {
+                await fetchPriceData(cursor, true);
+                // Wait for state to update
+                await new Promise(res => setTimeout(res, 100));
+                // Get latest data
+                hasMore = data.hasMore;
+                cursor = data.nextCursor;
+            }
+        }
+        loadAllTokens();
+        return () => { cancelled = true; };
+    }, [viewMode, data.loading, data.tokens.length, data.hasMore, data.nextCursor]);
+
+    // Simple Matrix Table
+    function SimpleMatrixTable() {
+        // Filter tokens by symbol or contractId
+        const filteredTokens = data.tokens.filter(token => {
+            const symbol = token.metadata?.symbol?.toLowerCase() || '';
+            const contractId = token.contractId.toLowerCase();
+            const filter = simpleMatrixFilter.toLowerCase();
+            return symbol.includes(filter) || contractId.includes(filter);
+        });
+        return (
+            <div>
+                <div className="mb-2 flex items-center gap-2">
+                    <input
+                        type="text"
+                        placeholder="Filter tokens..."
+                        value={simpleMatrixFilter}
+                        onChange={e => setSimpleMatrixFilter(e.target.value)}
+                        className="px-3 py-2 bg-background border border-border rounded-md text-sm"
+                    />
+                    {data.hasMore && (
+                        <span className="ml-2 animate-spin text-muted-foreground" title="Loading more tokens...">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                        </span>
+                    )}
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full border text-xs">
+                        <thead>
+                            <tr>
+                                <th className="border px-2 py-1 bg-muted">Token</th>
+                                {matrixIntervals.map(iso => (
+                                    <th key={iso} className="border px-2 py-1 bg-muted">{new Date(iso).getHours()}:00</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredTokens.map(token => (
+                                <tr key={token.contractId}>
+                                    <td className="border px-2 py-1 font-mono">{token.metadata?.symbol || token.contractId}</td>
+                                    {matrixIntervals.map(iso => {
+                                        const price = matrixData[token.contractId]?.[iso];
+                                        return (
+                                            <td key={iso} className="border px-2 py-1 text-right font-mono">
+                                                {price != null ? price.toFixed(4) : '-'}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    }
+
     if (data.loading && data.tokens.length === 0) {
         return (
             <div className="space-y-3">
@@ -290,342 +428,365 @@ export function PriceMatrix() {
 
     return (
         <div className="space-y-4">
-            {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="text"
-                            placeholder="Filter tokens..."
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                            className="px-3 py-2 bg-background border border-border rounded-md text-sm"
-                        />
-                        <InfoTooltip content="Filter tokens by contract ID or name. Search is case-insensitive and matches partial strings." />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            onClick={() => setShowInactive(!showInactive)}
-                            variant={showInactive ? "default" : "outline"}
-                            size="sm"
-                        >
-                            {showInactive ? <Eye className="w-4 h-4 mr-2" /> : <EyeOff className="w-4 h-4 mr-2" />}
-                            Show Inactive
-                        </Button>
-                        <InfoTooltip content="Toggle visibility of tokens that don't have current price data. Inactive tokens may be delisted or temporarily unavailable." />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            onClick={() => setShowWithoutMarketCap(!showWithoutMarketCap)}
-                            variant={showWithoutMarketCap ? "default" : "outline"}
-                            size="sm"
-                        >
-                            {showWithoutMarketCap ? <Eye className="w-4 h-4 mr-2" /> : <EyeOff className="w-4 h-4 mr-2" />}
-                            Show No Market Cap
-                        </Button>
-                        <InfoTooltip content="Toggle visibility of tokens that don't have market cap data. These tokens may lack total supply information needed for market cap calculation." />
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                        Showing {filteredAndSortedTokens.length} of {data.tokens.length} loaded tokens
-                        {isLoadingMore && " • Loading more..."}
-                    </span>
-                    <InfoTooltip content="Current view shows filtered results from loaded data. Use 'Load More' to fetch additional tokens from the database." />
-                </div>
+            {/* Tab system */}
+            <div className="flex gap-2 mb-4">
+                <button
+                    className={`px-3 py-1 rounded-t border-b-2 ${viewMode === 'detailed' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground'}`}
+                    onClick={() => setViewMode('detailed')}
+                >
+                    Detailed View
+                </button>
+                <button
+                    className={`px-3 py-1 rounded-t border-b-2 ${viewMode === 'simple' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground'}`}
+                    onClick={() => setViewMode('simple')}
+                >
+                    Simple Matrix
+                </button>
             </div>
 
-            {/* Matrix Table */}
-            <div className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold">Token Price Matrix</h3>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            onClick={handleManualRefresh}
-                            disabled={data.loading || isManualRefreshing}
-                            variant="outline"
-                            size="sm"
-                        >
-                            {isManualRefreshing ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                                    Refreshing...
-                                </>
-                            ) : (
-                                <>
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                    Refresh
-                                </>
-                            )}
-                        </Button>
-                        <InfoTooltip content="Manually refresh all currently loaded tokens with the latest price data. This updates prices without losing your current view position." />
-
-                        {data.hasMore && (
-                            <>
+            {/* Render based on tab */}
+            {viewMode === 'detailed' ? (
+                <>
+                    {/* Controls */}
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Filter tokens..."
+                                    value={filter}
+                                    onChange={(e) => setFilter(e.target.value)}
+                                    className="px-3 py-2 bg-background border border-border rounded-md text-sm"
+                                />
+                                <InfoTooltip content="Filter tokens by contract ID or name. Search is case-insensitive and matches partial strings." />
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <Button
-                                    onClick={handleLoadMore}
-                                    disabled={data.loading || isManualRefreshing || isLoadingMore}
+                                    onClick={() => setShowInactive(!showInactive)}
+                                    variant={showInactive ? "default" : "outline"}
+                                    size="sm"
+                                >
+                                    {showInactive ? <Eye className="w-4 h-4 mr-2" /> : <EyeOff className="w-4 h-4 mr-2" />}
+                                    Show Inactive
+                                </Button>
+                                <InfoTooltip content="Toggle visibility of tokens that don't have current price data. Inactive tokens may be delisted or temporarily unavailable." />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    onClick={() => setShowWithoutMarketCap(!showWithoutMarketCap)}
+                                    variant={showWithoutMarketCap ? "default" : "outline"}
+                                    size="sm"
+                                >
+                                    {showWithoutMarketCap ? <Eye className="w-4 h-4 mr-2" /> : <EyeOff className="w-4 h-4 mr-2" />}
+                                    Show No Market Cap
+                                </Button>
+                                <InfoTooltip content="Toggle visibility of tokens that don't have market cap data. These tokens may lack total supply information needed for market cap calculation." />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                                Showing {filteredAndSortedTokens.length} of {data.tokens.length} loaded tokens
+                                {isLoadingMore && " • Loading more..."}
+                            </span>
+                            <InfoTooltip content="Current view shows filtered results from loaded data. Use 'Load More' to fetch additional tokens from the database." />
+                        </div>
+                    </div>
+
+                    {/* Matrix Table */}
+                    <div className="bg-card rounded-lg border border-border p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold">Token Price Matrix</h3>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    onClick={handleManualRefresh}
+                                    disabled={data.loading || isManualRefreshing}
                                     variant="outline"
                                     size="sm"
                                 >
-                                    {isLoadingMore ? (
+                                    {isManualRefreshing ? (
                                         <>
-                                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                                            Loading More...
+                                            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                                            Refreshing...
                                         </>
                                     ) : (
                                         <>
-                                            <ChevronRight className="w-4 h-4 mr-2" />
-                                            Load More
+                                            <RefreshCw className="w-4 h-4 mr-2" />
+                                            Refresh
                                         </>
                                     )}
                                 </Button>
-                                <InfoTooltip content="Load additional tokens from the database. Data is loaded in batches for optimal performance." />
-                            </>
-                        )}
-                    </div>
-                </div>
-                <div className="overflow-x-auto overflow-y-visible">
-                    <table className="min-w-full divide-y divide-border">
-                        <thead className="bg-muted/50">
-                            <tr>
-                                <th
-                                    className="px-4 py-3 text-left text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
-                                    onClick={() => handleSort('contractId')}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span>Token {sortField === 'contractId' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
-                                        <InfoTooltip content="Token information with quick actions to copy contract address or view on Hiro Explorer" side="bottom" />
-                                    </div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
-                                    onClick={() => handleSort('price')}
-                                >
-                                    Current Price {sortField === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
-                                    onClick={() => handleSort('marketcap')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        <span>Market Cap {sortField === 'marketcap' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
-                                        <InfoTooltip content="Market capitalization calculated as current price × total supply. Shows the total value of all tokens in circulation." side="bottom" />
-                                    </div>
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
-                                    onClick={() => handleSort('change1h')}
-                                >
-                                    1h Change {sortField === 'change1h' && (sortDirection === 'asc' ? '↑' : '↓')}
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
-                                    onClick={() => handleSort('change24h')}
-                                >
-                                    24h Change {sortField === 'change24h' && (sortDirection === 'asc' ? '↑' : '↓')}
-                                </th>
-                                <th
-                                    className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
-                                    onClick={() => handleSort('change7d')}
-                                >
-                                    7d Change {sortField === 'change7d' && (sortDirection === 'asc' ? '↑' : '↓')}
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
-                                    Status
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <span>Data Points</span>
-                                        <InfoTooltip content="Total number of price data points indexed for this token. Higher numbers indicate more comprehensive price history." side="bottom" />
-                                    </div>
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <span>Last Updated</span>
-                                        <InfoTooltip content="When the most recent price data was recorded. Shows how current the data is and helps identify stale tokens." side="bottom" />
-                                    </div>
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <span>Data Quality</span>
-                                        <InfoTooltip content="Quality assessment: Good (recent data), Stale (>2hrs old), Sparse (<10 points), No Data (empty), or Error (issues detected)." side="bottom" />
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-card divide-y divide-border">
-                            {filteredAndSortedTokens.map((token) => (
-                                <tr key={token.contractId} className="hover:bg-muted/20 transition-colors">
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center gap-3">
-                                            {token.metadata?.image && (
-                                                <img
-                                                    src={token.metadata.image}
-                                                    alt={token.metadata.name || 'Token'}
-                                                    className="w-8 h-8 rounded-full bg-muted flex-shrink-0"
-                                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                />
+                                <InfoTooltip content="Manually refresh all currently loaded tokens with the latest price data. This updates prices without losing your current view position." />
+
+                                {data.hasMore && (
+                                    <>
+                                        <Button
+                                            onClick={handleLoadMore}
+                                            disabled={data.loading || isManualRefreshing || isLoadingMore}
+                                            variant="outline"
+                                            size="sm"
+                                        >
+                                            {isLoadingMore ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                                                    Loading More...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ChevronRight className="w-4 h-4 mr-2" />
+                                                    Load More
+                                                </>
                                             )}
-                                            <div className="flex flex-col min-w-0">
-                                                <div className="text-sm font-medium text-foreground truncate flex items-center gap-1">
-                                                    <span>{token.metadata?.name || token.contractId.split('.')[1] || token.contractId}</span>
-                                                    {token.metadata?.type === 'SUBNET' && (
-                                                        <InfoTooltip content="Subnet token" side="top">
-                                                            <Flame className="w-3 h-3 text-red-500 flex-shrink-0" />
-                                                        </InfoTooltip>
+                                        </Button>
+                                        <InfoTooltip content="Load additional tokens from the database. Data is loaded in batches for optimal performance." />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto overflow-y-visible">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted/50">
+                                    <tr>
+                                        <th
+                                            className="px-4 py-3 text-left text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
+                                            onClick={() => handleSort('contractId')}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span>Token {sortField === 'contractId' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                <InfoTooltip content="Token information with quick actions to copy contract address or view on Hiro Explorer" side="bottom" />
+                                            </div>
+                                        </th>
+                                        <th
+                                            className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
+                                            onClick={() => handleSort('price')}
+                                        >
+                                            Current Price {sortField === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                        </th>
+                                        <th
+                                            className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
+                                            onClick={() => handleSort('marketcap')}
+                                        >
+                                            <div className="flex items-center justify-end gap-2">
+                                                <span>Market Cap {sortField === 'marketcap' && (sortDirection === 'asc' ? '↑' : '↓')}</span>
+                                                <InfoTooltip content="Market capitalization calculated as current price × total supply. Shows the total value of all tokens in circulation." side="bottom" />
+                                            </div>
+                                        </th>
+                                        <th
+                                            className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
+                                            onClick={() => handleSort('change1h')}
+                                        >
+                                            1h Change {sortField === 'change1h' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                        </th>
+                                        <th
+                                            className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
+                                            onClick={() => handleSort('change24h')}
+                                        >
+                                            24h Change {sortField === 'change24h' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                        </th>
+                                        <th
+                                            className="px-4 py-3 text-right text-xs font-medium text-muted-foreground tracking-wider cursor-pointer hover:bg-muted/70"
+                                            onClick={() => handleSort('change7d')}
+                                        >
+                                            7d Change {sortField === 'change7d' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
+                                            Status
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span>Data Points</span>
+                                                <InfoTooltip content="Total number of price data points indexed for this token. Higher numbers indicate more comprehensive price history." side="bottom" />
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span>Last Updated</span>
+                                                <InfoTooltip content="When the most recent price data was recorded. Shows how current the data is and helps identify stale tokens." side="bottom" />
+                                            </div>
+                                        </th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground tracking-wider">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span>Data Quality</span>
+                                                <InfoTooltip content="Quality assessment: Good (recent data), Stale (>2hrs old), Sparse (<10 points), No Data (empty), or Error (issues detected)." side="bottom" />
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-card divide-y divide-border">
+                                    {filteredAndSortedTokens.map((token) => (
+                                        <tr key={token.contractId} className="hover:bg-muted/20 transition-colors">
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    {token.metadata?.image && (
+                                                        <img
+                                                            src={token.metadata.image}
+                                                            alt={token.metadata.name || 'Token'}
+                                                            className="w-8 h-8 rounded-full bg-muted flex-shrink-0"
+                                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                        />
                                                     )}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <div className="text-sm font-medium text-foreground truncate flex items-center gap-1">
+                                                            <span>{token.metadata?.name || token.contractId.split('.')[1] || token.contractId}</span>
+                                                            {token.metadata?.type === 'SUBNET' && (
+                                                                <InfoTooltip content="Subnet token" side="top">
+                                                                    <Flame className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                                                </InfoTooltip>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                                            {token.metadata?.symbol && (
+                                                                <span className="font-mono">${token.metadata.symbol}</span>
+                                                            )}
+                                                            <TokenActions contractId={token.contractId} />
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                                    {token.metadata?.symbol && (
-                                                        <span className="font-mono">${token.metadata.symbol}</span>
-                                                    )}
-                                                    <TokenActions contractId={token.contractId} />
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <div className="text-sm font-medium text-foreground">
+                                                    {token.price ? `$${token.price.toFixed(8)}` : 'N/A'}
                                                 </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-right">
-                                        <div className="text-sm font-medium text-foreground">
-                                            {token.price ? `$${token.price.toFixed(8)}` : 'N/A'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-right">
-                                        <div className="text-sm font-medium text-foreground">
-                                            {token.marketcap ? (
-                                                token.marketcap >= 1000000 ?
-                                                    `$${(token.marketcap / 1000000).toFixed(2)}M` :
-                                                    token.marketcap >= 1000 ?
-                                                        `$${(token.marketcap / 1000).toFixed(2)}K` :
-                                                        `$${token.marketcap.toFixed(2)}`
-                                            ) : 'N/A'}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-right">
-                                        {token.change1h !== null ? (
-                                            <div className={`inline-flex items-center text-sm font-medium ${token.change1h >= 0 ? 'text-green-400' : 'text-red-400'
-                                                }`}>
-                                                {token.change1h >= 0 ? (
-                                                    <TrendingUp className="w-3 h-3 mr-1" />
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <div className="text-sm font-medium text-foreground">
+                                                    {token.marketcap ? (
+                                                        token.marketcap >= 1000000 ?
+                                                            `$${(token.marketcap / 1000000).toFixed(2)}M` :
+                                                            token.marketcap >= 1000 ?
+                                                                `$${(token.marketcap / 1000).toFixed(2)}K` :
+                                                                `$${token.marketcap.toFixed(2)}`
+                                                    ) : 'N/A'}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                {token.change1h !== null ? (
+                                                    <div className={`inline-flex items-center text-sm font-medium ${token.change1h >= 0 ? 'text-green-400' : 'text-red-400'
+                                                        }`}>
+                                                        {token.change1h >= 0 ? (
+                                                            <TrendingUp className="w-3 h-3 mr-1" />
+                                                        ) : (
+                                                            <TrendingDown className="w-3 h-3 mr-1" />
+                                                        )}
+                                                        {token.change1h >= 0 ? '+' : ''}{token.change1h.toFixed(2)}%
+                                                    </div>
                                                 ) : (
-                                                    <TrendingDown className="w-3 h-3 mr-1" />
+                                                    <span className="text-muted-foreground text-sm">N/A</span>
                                                 )}
-                                                {token.change1h >= 0 ? '+' : ''}{token.change1h.toFixed(2)}%
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground text-sm">N/A</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-right">
-                                        {token.change24h !== null ? (
-                                            <div className={`inline-flex items-center text-sm font-medium ${token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                                                }`}>
-                                                {token.change24h >= 0 ? (
-                                                    <TrendingUp className="w-3 h-3 mr-1" />
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                {token.change24h !== null ? (
+                                                    <div className={`inline-flex items-center text-sm font-medium ${token.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                                                        }`}>
+                                                        {token.change24h >= 0 ? (
+                                                            <TrendingUp className="w-3 h-3 mr-1" />
+                                                        ) : (
+                                                            <TrendingDown className="w-3 h-3 mr-1" />
+                                                        )}
+                                                        {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
+                                                    </div>
                                                 ) : (
-                                                    <TrendingDown className="w-3 h-3 mr-1" />
+                                                    <span className="text-muted-foreground text-sm">N/A</span>
                                                 )}
-                                                {token.change24h >= 0 ? '+' : ''}{token.change24h.toFixed(2)}%
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground text-sm">N/A</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-right">
-                                        {token.change7d !== null ? (
-                                            <div className={`inline-flex items-center text-sm font-medium ${token.change7d >= 0 ? 'text-green-400' : 'text-red-400'
-                                                }`}>
-                                                {token.change7d >= 0 ? (
-                                                    <TrendingUp className="w-3 h-3 mr-1" />
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                {token.change7d !== null ? (
+                                                    <div className={`inline-flex items-center text-sm font-medium ${token.change7d >= 0 ? 'text-green-400' : 'text-red-400'
+                                                        }`}>
+                                                        {token.change7d >= 0 ? (
+                                                            <TrendingUp className="w-3 h-3 mr-1" />
+                                                        ) : (
+                                                            <TrendingDown className="w-3 h-3 mr-1" />
+                                                        )}
+                                                        {token.change7d >= 0 ? '+' : ''}{token.change7d.toFixed(2)}%
+                                                    </div>
                                                 ) : (
-                                                    <TrendingDown className="w-3 h-3 mr-1" />
+                                                    <span className="text-muted-foreground text-sm">N/A</span>
                                                 )}
-                                                {token.change7d >= 0 ? '+' : ''}{token.change7d.toFixed(2)}%
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground text-sm">N/A</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        {token.price !== null ? (
-                                            <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                                                <Activity className="w-3 h-3" />
-                                                Active
-                                            </div>
-                                        ) : (
-                                            <div className="inline-flex items-center gap-1 px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
-                                                <AlertCircle className="w-3 h-3" />
-                                                Inactive
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <div className="text-sm font-mono">
-                                            {token.dataInsights?.totalDataPoints ?? 'N/A'}
-                                        </div>
-                                        {token.dataInsights?.firstSeen && (
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                                Since {formatLocalDateTime(token.dataInsights.firstSeen, 'date')}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        {token.dataInsights?.lastSeen ? (
-                                            <div className="text-sm">
-                                                <div className="font-mono text-foreground">
-                                                    {formatLocalDateTime(token.dataInsights.lastSeen, 'time')}
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                {token.price !== null ? (
+                                                    <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
+                                                        <Activity className="w-3 h-3" />
+                                                        Active
+                                                    </div>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1 px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
+                                                        <AlertCircle className="w-3 h-3" />
+                                                        Inactive
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                <div className="text-sm font-mono">
+                                                    {token.dataInsights?.totalDataPoints ?? 'N/A'}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {formatLocalDateTime(token.dataInsights.lastSeen, 'date')}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground text-sm">N/A</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        {(() => {
-                                            const quality = token.dataInsights?.dataQuality ?? 'unknown';
-                                            const qualityConfig = {
-                                                'good': { color: 'text-green-400', bg: 'bg-green-500/20', label: 'Good' },
-                                                'stale': { color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Stale' },
-                                                'sparse': { color: 'text-orange-400', bg: 'bg-orange-500/20', label: 'Sparse' },
-                                                'no-data': { color: 'text-red-400', bg: 'bg-red-500/20', label: 'No Data' },
-                                                'error': { color: 'text-red-400', bg: 'bg-red-500/20', label: 'Error' },
-                                                'unknown': { color: 'text-muted-foreground', bg: 'bg-muted', label: 'Unknown' }
-                                            };
-                                            const config = qualityConfig[quality];
-                                            return (
-                                                <div className={`inline-flex items-center gap-1 px-2 py-1 ${config.bg} ${config.color} rounded-full text-xs`}>
-                                                    {quality === 'good' && <Activity className="w-3 h-3" />}
-                                                    {quality === 'stale' && <AlertCircle className="w-3 h-3" />}
-                                                    {quality === 'sparse' && <TrendingDown className="w-3 h-3" />}
-                                                    {(quality === 'no-data' || quality === 'error') && <AlertCircle className="w-3 h-3" />}
-                                                    {quality === 'unknown' && <AlertCircle className="w-3 h-3" />}
-                                                    {config.label}
-                                                </div>
-                                            );
-                                        })()}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                                {token.dataInsights?.firstSeen && (
+                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                        Since {formatLocalDateTime(token.dataInsights.firstSeen, 'date')}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                {token.dataInsights?.lastSeen ? (
+                                                    <div className="text-sm">
+                                                        <div className="font-mono text-foreground">
+                                                            {formatLocalDateTime(token.dataInsights.lastSeen, 'time')}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {formatLocalDateTime(token.dataInsights.lastSeen, 'date')}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-sm">N/A</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                {(() => {
+                                                    const quality = token.dataInsights?.dataQuality ?? 'unknown';
+                                                    const qualityConfig = {
+                                                        'good': { color: 'text-green-400', bg: 'bg-green-500/20', label: 'Good' },
+                                                        'stale': { color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Stale' },
+                                                        'sparse': { color: 'text-orange-400', bg: 'bg-orange-500/20', label: 'Sparse' },
+                                                        'no-data': { color: 'text-red-400', bg: 'bg-red-500/20', label: 'No Data' },
+                                                        'error': { color: 'text-red-400', bg: 'bg-red-500/20', label: 'Error' },
+                                                        'unknown': { color: 'text-muted-foreground', bg: 'bg-muted', label: 'Unknown' }
+                                                    };
+                                                    const config = qualityConfig[quality];
+                                                    return (
+                                                        <div className={`inline-flex items-center gap-1 px-2 py-1 ${config.bg} ${config.color} rounded-full text-xs`}>
+                                                            {quality === 'good' && <Activity className="w-3 h-3" />}
+                                                            {quality === 'stale' && <AlertCircle className="w-3 h-3" />}
+                                                            {quality === 'sparse' && <TrendingDown className="w-3 h-3" />}
+                                                            {(quality === 'no-data' || quality === 'error') && <AlertCircle className="w-3 h-3" />}
+                                                            {quality === 'unknown' && <AlertCircle className="w-3 h-3" />}
+                                                            {config.label}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-            {filteredAndSortedTokens.length === 0 && !data.loading && (
-                <div className="text-center py-8 text-muted-foreground">
-                    {filter ? 'No tokens match your filter.' : 'No price data available.'}
-                </div>
-            )}
+                    {filteredAndSortedTokens.length === 0 && !data.loading && (
+                        <div className="text-center py-8 text-muted-foreground">
+                            {filter ? 'No tokens match your filter.' : 'No price data available.'}
+                        </div>
+                    )}
 
-            {/* Loading more indicator */}
-            {isLoadingMore && (
-                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                    Loading additional tokens...
-                </div>
+                    {/* Loading more indicator */}
+                    {isLoadingMore && (
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                            Loading additional tokens...
+                        </div>
+                    )}
+                </>
+            ) : (
+                <SimpleMatrixTable />
             )}
         </div>
     );
