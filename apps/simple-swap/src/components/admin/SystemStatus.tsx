@@ -1,4 +1,4 @@
-import { DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import { DollarSign, CheckCircle, AlertCircle, Settings, Settings2 } from 'lucide-react';
 import { kv } from '@vercel/kv';
 import {
     getRetentionDays,
@@ -114,7 +114,7 @@ export async function SystemStatus() {
     return (
         <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3 mb-4">
-                <DollarSign className="w-5 h-5 text-primary" />
+                <Settings2 className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold">System Configuration</h3>
             </div>
             <div className="space-y-4 text-sm">
@@ -179,13 +179,6 @@ export async function SystemStatus() {
                             </div>
                         )}
                     </div>
-                </div>
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Load Strategy:</span>
-                        <InfoTooltip content="Data loading approach used to handle large datasets efficiently. Pagination loads data in chunks to prevent memory issues and improve page load times. KV Scan uses Vercel's optimized scanning method." />
-                    </div>
-                    <span className="font-mono text-blue-500">Paginated ({getPageSize()}/page)</span>
                 </div>
             </div>
 

@@ -76,7 +76,7 @@ export default function PriceDashboard() {
                     </div>
                 </div>
                 <p className="text-muted-foreground">
-                    Comprehensive price data matrix for tracked tokens • Auto-refreshes every {getAutoRefreshSeconds()}s • Loads {getPageSize()} tokens per page
+                    Comprehensive price data matrix for tracked tokens • Loads {getPageSize()} tokens per page
                 </p>
             </div>
 
@@ -120,43 +120,6 @@ export default function PriceDashboard() {
                     </Suspense>
 
                     <QuickActions />
-
-                    <div className="bg-card rounded-lg border border-border p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <h3 className="text-lg font-semibold">Performance</h3>
-                            <InfoTooltip content="Real-time performance metrics for the price data system. These indicators help monitor system health and optimization status." />
-                        </div>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Page Load:</span>
-                                    <InfoTooltip content="Current page loading performance. 'Optimized' means the page loads efficiently using pagination and caching strategies to handle large datasets." />
-                                </div>
-                                <span className="font-mono text-green-500">Optimized</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Tokens/Page:</span>
-                                    <InfoTooltip content="Number of tokens loaded per page request. This limit prevents memory issues and ensures fast response times when dealing with large token datasets." />
-                                </div>
-                                <span className="font-mono">{getPageSize()}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Memory Usage:</span>
-                                    <InfoTooltip content="Current memory consumption status. 'Low' indicates efficient memory management with minimal impact on system resources." />
-                                </div>
-                                <span className="font-mono text-green-500">Low</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Cache Strategy:</span>
-                                    <InfoTooltip content="Data retrieval method used for optimal performance. KV Scan uses Vercel's Redis-compatible key-value store with efficient scanning to avoid memory limits." />
-                                </div>
-                                <span className="font-mono text-blue-500">KV Scan</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

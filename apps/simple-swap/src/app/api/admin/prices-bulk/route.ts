@@ -7,12 +7,9 @@ import { ADMIN_CONFIG } from '@/lib/admin-config';
 
 export async function GET(request: NextRequest) {
     try {
-        console.log('🔍 Admin prices API called');
-
         // Get URL parameters for pagination and filtering
         const url = new URL(request.url);
         const limit = parseInt(url.searchParams.get('limit') || url.searchParams.get('pageSize') || ADMIN_CONFIG.PAGE_SIZE.toString());
-        const cursor = url.searchParams.get('cursor') || '0';
         const page = parseInt(url.searchParams.get('page') || '1');
         const search = url.searchParams.get('search')?.toLowerCase() || '';
         const sortField = url.searchParams.get('sortField') || 'marketcap';
@@ -20,23 +17,17 @@ export async function GET(request: NextRequest) {
         const showInactive = url.searchParams.get('showInactive') === 'true';
         const showWithoutMarketCap = url.searchParams.get('showWithoutMarketCap') === 'true';
 
-        // Fetch all tokens if searching, otherwise use paginated
+        // Fetch all tokens for search, otherwise use paginated
         let tokens: any[] = [];
-        let nextCursor = '0';
-        let total = 0;
         let totalRecords = 0;
         if (search) {
-            // Fetch all tokens for search
             const tokensModule = await import('@/lib/price/store');
             const all = await tokensModule.getAllTrackedTokens();
             tokens = all;
-            total = tokens.length;
-            totalRecords = await getTrackedTokenCount();
+            totalRecords = tokens.length;
         } else {
-            const paged = await getTrackedTokensPaginated(limit, cursor);
+            const paged = await getTrackedTokensPaginated(limit, String((page - 1) * limit));
             tokens = paged.tokens;
-            nextCursor = paged.nextCursor;
-            total = paged.total;
             totalRecords = await getTrackedTokenCount();
         }
 
@@ -161,21 +152,21 @@ export async function GET(request: NextRequest) {
             const start = (page - 1) * limit;
             pagedStats = filteredStats.slice(start, start + limit);
         } else {
-            // Use cursor-based paging for default
-            pagedStats = filteredStats;
+            // Use offset-based paging for default
+            const start = (page - 1) * limit;
+            pagedStats = filteredStats.slice(start, start + limit);
         }
 
         return NextResponse.json({
             tokens: pagedStats,
-            nextCursor: search ? undefined : nextCursor,
-            hasMore: search ? page * limit < totalFiltered : nextCursor !== '0',
+            hasMore: page * limit < totalFiltered,
             total: totalFiltered,
             totalRecords
         });
     } catch (error) {
         return NextResponse.json(
             {
-                error: 'Failed to fetch price data',
+                error: 'Failed to fetch price data (bulk)',
                 details: error instanceof Error ? error.message : 'Unknown error',
                 debugInfo: {
                     timestamp: new Date().toISOString(),
