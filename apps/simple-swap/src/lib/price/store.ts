@@ -201,10 +201,10 @@ export async function addPriceSnapshotsBulk(
         const key = `${PREFIX}:${contractId}`;
         if (pipeline) {
             pipeline.zadd(key, { score: timestamp, member: price.toString() });
-            // Optionally: pipeline.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+            pipeline.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
         } else {
             await kv.zadd(key, { score: timestamp, member: price.toString() });
-            // Optionally: await kv.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+            await kv.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
         }
     }
     if (pipeline) await pipeline.exec();
