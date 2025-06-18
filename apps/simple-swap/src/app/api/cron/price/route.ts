@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { addPriceSnapshot, getLatestPrice } from '@/lib/price/store';
+import { addPriceSnapshot, getLatestPrice, addPriceSnapshotsBulk } from '@/lib/price/store';
 import { listPrices } from '@repo/tokens';
 import { listTokens } from 'dexterity-sdk';
 
@@ -28,35 +28,23 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Store each token's price individually in parallel
-        const snapshotPromises: Promise<void>[] = [];
+        const snapshots: { contractId: string, price: number, timestamp: number }[] = [];
         for (const [contractId, price] of Object.entries(prices)) {
             let valueToStore: number | undefined = undefined;
             if (typeof price === 'number' && !isNaN(price)) {
                 valueToStore = price;
             } else {
-                // Try to get the latest price if current is invalid
-                snapshotPromises.push(
-                    getLatestPrice(contractId)
-                        .then(latestPrice => {
-                            if (typeof latestPrice === 'number' && !isNaN(latestPrice)) {
-                                return addPriceSnapshot(contractId, latestPrice, now).then(() => { count++; });
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Failed to add price snapshot (latest fallback)', err);
-                        })
-                );
-                continue;
+                const latestPrice = await getLatestPrice(contractId);
+                if (typeof latestPrice === 'number' && !isNaN(latestPrice)) {
+                    valueToStore = latestPrice;
+                }
             }
-            const p = addPriceSnapshot(contractId, valueToStore, now)
-                .then(() => { count++; })
-                .catch(err => {
-                    console.error('Failed to add price snapshot', err);
-                });
-            snapshotPromises.push(p);
+            if (typeof valueToStore === 'number' && !isNaN(valueToStore)) {
+                snapshots.push({ contractId, price: valueToStore, timestamp: now });
+            }
         }
-        await Promise.all(snapshotPromises);
+        await addPriceSnapshotsBulk(snapshots);
+        count = snapshots.length;
 
         return NextResponse.json({ status: 'success', count, timestamp: now });
     } catch (err) {

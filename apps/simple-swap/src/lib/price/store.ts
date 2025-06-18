@@ -191,3 +191,21 @@ export async function getPriceHistoryInfo(contractId: string): Promise<{
         lastSeen
     };
 }
+
+export async function addPriceSnapshotsBulk(
+    snapshots: { contractId: string, price: number, timestamp: number }[]
+): Promise<void> {
+    if (!snapshots.length) return;
+    const pipeline = kv.pipeline ? kv.pipeline() : null;
+    for (const { contractId, price, timestamp } of snapshots) {
+        const key = `${PREFIX}:${contractId}`;
+        if (pipeline) {
+            pipeline.zadd(key, { score: timestamp, member: price.toString() });
+            // Optionally: pipeline.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+        } else {
+            await kv.zadd(key, { score: timestamp, member: price.toString() });
+            // Optionally: await kv.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+        }
+    }
+    if (pipeline) await pipeline.exec();
+}
