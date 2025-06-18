@@ -28,15 +28,18 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Store each token's price individually
+        // Store each token's price individually in parallel
+        const snapshotPromises: Promise<void>[] = [];
         for (const [contractId, price] of Object.entries(prices)) {
-            if (isNaN(price!)) continue;
-
-            addPriceSnapshot(contractId, price!, now).catch(err => {
-                console.error('Failed to add price snapshot', err);
-            });
-            count++;
+            if (typeof price !== 'number' || isNaN(price)) continue;
+            const p = addPriceSnapshot(contractId, price, now)
+                .then(() => { count++; })
+                .catch(err => {
+                    console.error('Failed to add price snapshot', err);
+                });
+            snapshotPromises.push(p);
         }
+        await Promise.all(snapshotPromises);
 
         return NextResponse.json({ status: 'success', count, timestamp: now });
     } catch (err) {
