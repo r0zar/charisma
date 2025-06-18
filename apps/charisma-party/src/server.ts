@@ -20,6 +20,18 @@ interface ClientSubscription {
     lastSeen: number;
 }
 
+// Contract ID validation
+function isValidContractId(contractId: string): boolean {
+    if (!contractId || typeof contractId !== 'string') return false;
+    
+    // Native STX token
+    if (contractId === '.stx' || contractId === 'stx') return true;
+    
+    // Standard contract format with optional trait
+    const contractPattern = /^(SP|ST)[A-Z0-9]{38,39}\.[a-z0-9\-]+(::[a-z0-9\-]+)?$/;
+    return contractPattern.test(contractId);
+}
+
 export default class PriceServer implements Party.Server {
     private subscriptions = new Map<string, ClientSubscription>();
     private latestPrices = new Map<string, PriceUpdate>();
@@ -83,7 +95,7 @@ export default class PriceServer implements Party.Server {
         console.log('✅ Local interval setup complete');
     }
 
-    onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+    onConnect(conn: Party.Connection, _ctx: Party.ConnectionContext) {
         const clientId = conn.id;
         console.log(`🔌 Client ${clientId} connected to price server`);
 
@@ -202,7 +214,20 @@ export default class PriceServer implements Party.Server {
         const subscription = this.subscriptions.get(clientId);
         if (!subscription) return;
 
-        data.contractIds.forEach(contractId => {
+        // Validate contract IDs
+        const validContractIds = data.contractIds.filter(contractId => {
+            if (!isValidContractId(contractId)) {
+                console.warn(`Invalid contract ID from client ${clientId}: ${contractId}`);
+                this.room.getConnection(clientId)?.send(JSON.stringify({
+                    type: 'ERROR',
+                    message: `Invalid contract ID format: ${contractId}`
+                }));
+                return false;
+            }
+            return true;
+        });
+
+        validContractIds.forEach(contractId => {
             subscription.contractIds.add(contractId);
             this.watchedTokens.add(contractId);
 
@@ -212,7 +237,7 @@ export default class PriceServer implements Party.Server {
             }
         });
 
-        console.log(`📊 Client ${clientId} subscribed to ${data.contractIds.length} tokens`);
+        console.log(`📊 Client ${clientId} subscribed to ${validContractIds.length} tokens`);
         console.log(`📊 Total watched tokens: ${this.watchedTokens.size}`);
 
         // Restart local interval if we have subscribers and it's not running

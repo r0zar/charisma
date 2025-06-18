@@ -3,8 +3,5 @@
   "name": "charisma-party",
   "main": "src/server.ts",
   "compatibilityDate": "2025-06-17",
-  "serve": {
-    "path": "public",
-    "build": "src/index.tsx"
-  }
+  "serve": "dist"
 }

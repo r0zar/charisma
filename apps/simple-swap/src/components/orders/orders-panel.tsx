@@ -228,7 +228,7 @@ export default function OrdersPanel() {
         } finally {
             setLoading(false);
         }
-    }, [address, connected, displayOrders]);
+    }, [address, connected]);
 
     // fetch once when wallet connects/address changes
     useEffect(() => {

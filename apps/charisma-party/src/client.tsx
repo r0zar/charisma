@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import PartySocket from 'partysocket';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import usePartySocket from 'partysocket/react';
 import './styles.css';
 
 // Types
@@ -56,9 +56,25 @@ interface PriceItem {
   source?: string;
 }
 
+// Contract ID validation
+const isValidContractId = (contractId: string): boolean => {
+  // Valid formats:
+  // 1. Native token: .stx or stx
+  // 2. Standard contract: SP[address].[contract-name]
+  // 3. Standard contract with :: SP[address].[contract-name]::[trait-name]
+  
+  if (!contractId || typeof contractId !== 'string') return false;
+  
+  // Native STX token
+  if (contractId === '.stx' || contractId === 'stx') return true;
+  
+  // Standard contract format with optional trait
+  const contractPattern = /^(SP|ST)[A-Z0-9]{38,39}\.[a-z0-9\-]+(::[a-z0-9\-]+)?$/;
+  return contractPattern.test(contractId);
+};
+
 const PriceDashboard = () => {
   // State
-  const [isConnected, setIsConnected] = useState(false);
   const [subscribedTokens, setSubscribedTokens] = useState<Set<string>>(new Set());
   const [updateCount, setUpdateCount] = useState(0);
   const [startTime, setStartTime] = useState(0);
@@ -67,42 +83,48 @@ const PriceDashboard = () => {
   const [priceItems, setPriceItems] = useState<PriceItem[]>([]);
   const [systemMessages, setSystemMessages] = useState<SystemMessage[]>([]);
   const [latestPrices, setLatestPrices] = useState<Record<string, PriceItem>>({});
-  // Dummy state to force re-render for uptime
-  const [tick, setTick] = useState(0);
 
   // Refs
-  const connectionRef = useRef<PartySocket | null>(null);
   const priceFeedRef = useRef<HTMLDivElement>(null);
 
-  // Connection management
-  const connect = useCallback(() => {
-    try {
-      const socket = new PartySocket({
-        host: window.location.host.includes('localhost') ? 'localhost:1999' : 'charisma-party.r0zar.partykit.dev',
-        room: "prices"
-      });
+  // Helper functions
+  const addSystemMessage = useCallback((message: string, type: 'info' | 'error') => {
+    const newMessage: SystemMessage = {
+      id: `${Date.now()}-${Math.random()}`,
+      message,
+      type,
+      timestamp: Date.now()
+    };
 
-      socket.addEventListener('open', () => {
-        setIsConnected(true);
-        setStartTime(Date.now());
-        addSystemMessage('Connection established', 'info');
-      });
+    setSystemMessages(prev => {
+      const updated = [newMessage, ...prev];
+      return updated.slice(0, 50); // Keep only latest 50 messages
+    });
+  }, []);
 
-      socket.addEventListener('close', () => {
-        setIsConnected(false);
-        addSystemMessage('Connection lost', 'error');
-      });
+  const handlePriceUpdate = useCallback((update: PriceUpdate) => {
+    setUpdateCount(prev => prev + 1);
 
-      socket.addEventListener('error', (error) => {
-        addSystemMessage(`Connection error: ${error.type}`, 'error');
-      });
+    const newPriceItem: PriceItem = {
+      id: `${update.contractId}-${update.timestamp}`,
+      contractId: update.contractId,
+      price: update.price,
+      timestamp: update.timestamp,
+      source: update.source
+    };
 
-      socket.addEventListener('message', handleMessage);
-
-      connectionRef.current = socket;
-    } catch (error) {
-      addSystemMessage(`Connection failed: ${error}`, 'error');
-    }
+    setPriceItems(prev => {
+      const updated = [newPriceItem, ...prev];
+      return updated.slice(0, 100); // Keep only latest 100 items
+    });
+    setLatestPrices(prev => {
+      const prevItem = prev[update.contractId];
+      // Only update if this is the latest timestamp for the token
+      if (!prevItem || update.timestamp > (prevItem?.timestamp ?? 0)) {
+        return { ...prev, [update.contractId]: newPriceItem };
+      }
+      return prev;
+    });
   }, []);
 
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -136,49 +158,48 @@ const PriceDashboard = () => {
     } catch (error) {
       addSystemMessage(`Raw message: ${event.data}`, 'info');
     }
-  }, []);
+  }, [addSystemMessage, handlePriceUpdate]);
 
-  const handlePriceUpdate = useCallback((update: PriceUpdate) => {
-    setUpdateCount(prev => prev + 1);
+  // Determine host based on environment
+  // In development, everything runs on the same port (1999)
+  // In production, use the production domain
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const partyHost = isDev ? window.location.host : 'charisma-party.r0zar.partykit.dev';
+  
+  console.log('Connecting to PartyKit host:', partyHost, 'from:', window.location.host);
 
-    const newPriceItem: PriceItem = {
-      id: `${update.contractId}-${update.timestamp}`,
-      contractId: update.contractId,
-      price: update.price,
-      timestamp: update.timestamp,
-      source: update.source
-    };
-
-    setPriceItems(prev => {
-      const updated = [newPriceItem, ...prev];
-      return updated.slice(0, 100); // Keep only latest 100 items
-    });
-    setLatestPrices(prev => {
-      const prevItem = prev[update.contractId];
-      // Only update if this is the latest timestamp for the token
-      if (!prevItem || update.timestamp > (prevItem?.timestamp ?? 0)) {
-        return { ...prev, [update.contractId]: newPriceItem };
-      }
-      return prev;
-    });
-  }, []);
-
-  const addSystemMessage = useCallback((message: string, type: 'info' | 'error') => {
-    const newMessage: SystemMessage = {
-      id: `${Date.now()}-${Math.random()}`,
-      message,
-      type,
-      timestamp: Date.now()
-    };
-
-    setSystemMessages(prev => {
-      const updated = [newMessage, ...prev];
-      return updated.slice(0, 50); // Keep only latest 50 messages
-    });
-  }, []);
+  // PartySocket hook
+  const socket = usePartySocket({
+    host: partyHost,
+    room: "prices",
+    party: "prices", // Specify the party name explicitly
+    onOpen: () => {
+      console.log('WebSocket opened');
+      setStartTime(Date.now());
+      addSystemMessage('Connection established', 'info');
+    },
+    onClose: (event) => {
+      console.log('WebSocket closed:', event);
+      addSystemMessage('Connection lost', 'error');
+    },
+    onError: (error) => {
+      console.error('WebSocket error:', error);
+      addSystemMessage(`Connection error: ${error}`, 'error');
+    },
+    onMessage: (event) => {
+      console.log('WebSocket message received');
+      handleMessage(event);
+    }
+  });
 
   const subscribeToToken = useCallback((tokenId: string) => {
-    if (!connectionRef.current || !isConnected || subscribedTokens.has(tokenId)) return;
+    if (!socket || subscribedTokens.has(tokenId)) return;
+    
+    // Validate contract ID
+    if (!isValidContractId(tokenId)) {
+      addSystemMessage(`Invalid contract ID format: ${tokenId}`, 'error');
+      return;
+    }
 
     const message: PriceSubscription = {
       type: 'SUBSCRIBE',
@@ -186,13 +207,13 @@ const PriceDashboard = () => {
       clientId: 'react-dashboard'
     };
 
-    connectionRef.current.send(JSON.stringify(message));
+    socket.send(JSON.stringify(message));
     setSubscribedTokens(prev => new Set([...prev, tokenId]));
     addSystemMessage(`Subscribed to ${tokenId}`, 'info');
-  }, [isConnected, subscribedTokens, addSystemMessage]);
+  }, [socket, subscribedTokens, addSystemMessage]);
 
   const unsubscribeFromToken = useCallback((tokenId: string) => {
-    if (!connectionRef.current || !isConnected) return;
+    if (!socket) return;
 
     const message: PriceSubscription = {
       type: 'UNSUBSCRIBE',
@@ -200,14 +221,14 @@ const PriceDashboard = () => {
       clientId: 'react-dashboard'
     };
 
-    connectionRef.current.send(JSON.stringify(message));
+    socket.send(JSON.stringify(message));
     setSubscribedTokens(prev => {
       const updated = new Set(prev);
       updated.delete(tokenId);
       return updated;
     });
     addSystemMessage(`Unsubscribed from ${tokenId}`, 'info');
-  }, [isConnected, addSystemMessage]);
+  }, [socket, addSystemMessage]);
 
   const handleSubscribe = useCallback(() => {
     const trimmedInput = tokenInput.trim();
@@ -218,12 +239,12 @@ const PriceDashboard = () => {
   }, [tokenInput, subscribedTokens, subscribeToToken]);
 
   const triggerManualUpdate = useCallback(() => {
-    if (!connectionRef.current || !isConnected) return;
+    if (!socket) return;
 
     const message: PriceSubscription = { type: 'MANUAL_UPDATE' };
-    connectionRef.current.send(JSON.stringify(message));
+    socket.send(JSON.stringify(message));
     addSystemMessage('Manual update requested', 'info');
-  }, [isConnected, addSystemMessage]);
+  }, [socket, addSystemMessage]);
 
   const clearFeed = useCallback(() => {
     setPriceItems([]);
@@ -247,35 +268,18 @@ const PriceDashboard = () => {
   }, []);
 
   // Effects
-  useEffect(() => {
-    connect();
-
-    return () => {
-      if (connectionRef.current) {
-        connectionRef.current.close();
-      }
-    };
-  }, [connect]);
-
-  // Effect to update uptime every second while connected
-  useEffect(() => {
-    if (!isConnected) return;
-    const interval = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(interval);
-  }, [isConnected]);
-
   // Effect to send PING every 10 seconds for latency measurement
   useEffect(() => {
-    if (!isConnected || !connectionRef.current) return;
+    if (!socket) return;
     const interval = setInterval(() => {
       const message = { type: 'PING', timestamp: Date.now() };
-      connectionRef.current!.send(JSON.stringify(message));
+      socket.send(JSON.stringify(message));
     }, 10000); // every 10 seconds
     return () => clearInterval(interval);
-  }, [isConnected]);
+  }, [socket]);
 
   // Calculate uptime
-  const uptime = isConnected && startTime > 0
+  const uptime = socket && startTime > 0
     ? Math.floor((Date.now() - startTime) / 1000)
     : 0;
 
@@ -295,8 +299,8 @@ const PriceDashboard = () => {
         <div className="header-content">
           <h1>Price Monitoring System</h1>
           <div className="connection-indicator">
-            <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`}></span>
-            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+            <span className={`status-dot ${socket ? 'connected' : 'disconnected'}`}></span>
+            <span>{socket ? 'Connected' : 'Disconnected'}</span>
           </div>
         </div>
       </header>
@@ -343,7 +347,7 @@ const PriceDashboard = () => {
               />
               <button
                 onClick={handleSubscribe}
-                disabled={!isConnected || !tokenInput.trim() || subscribedTokens.has(tokenInput.trim())}
+                disabled={!socket || !tokenInput.trim() || subscribedTokens.has(tokenInput.trim())}
                 className="btn btn-primary"
               >
                 Subscribe
@@ -374,7 +378,7 @@ const PriceDashboard = () => {
             <div className="action-buttons">
               <button
                 onClick={triggerManualUpdate}
-                disabled={!isConnected}
+                disabled={!socket}
                 className="btn btn-secondary"
               >
                 Refresh Prices
