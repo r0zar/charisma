@@ -1,7 +1,7 @@
 import { listTokens } from "./token-cache-client";
 
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
-const STXTOOLS_API_URL = 'https://api.stxtools.io/tokens?page=0&size=4000';
+const STXTOOLS_API_URL = 'https://api.stxtools.io/tokens?page=0&size=10000';
 
 // Restore manual subnet contract mappings
 export const CHARISMA_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
