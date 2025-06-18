@@ -1,9 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { addPriceSnapshot, getLatestPrice, addPriceSnapshotsBulk } from '@/lib/price/store';
+import { addPriceSnapshotsBulk } from '@/lib/price/store';
 import { listPrices } from '@repo/tokens';
-import { listTokens } from 'dexterity-sdk';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
