@@ -6,6 +6,8 @@ import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapContext } from '../../contexts/swap-context';
+import { usePriceConnection } from '@/lib/stores/usePriceStore';
+import { formatPriceUSD } from '@/lib/utils';
 
 export default function TokenOutputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -18,7 +20,6 @@ export default function TokenOutputSection() {
         toTokenBalance,
         isLoadingQuote,
         isLoadingPrices,
-        toTokenValueUsd,
         formatTokenAmount,
         displayTokens,
         displayedToToken,
@@ -26,12 +27,14 @@ export default function TokenOutputSection() {
         useSubnetTo,
         setUseSubnetTo,
         setSelectedToToken,
-        baseSelectedToToken,
         setBaseSelectedToToken,
         tokenCounterparts,
         totalPriceImpact,
         toLabel,
     } = useSwapContext();
+
+    const priceStore = usePriceConnection([selectedToToken?.contractId ?? '']);
+    const price = priceStore.getPrice?.(selectedToToken?.contractId ?? '');
 
     // Determine props based on mode and state
     const label = toLabel;
@@ -50,7 +53,6 @@ export default function TokenOutputSection() {
         return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    const tokenValueUsd = formatUsd(toTokenValueUsd);
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
     const quoteHops = quote ? quote.path.length - 1 : null;
 
@@ -177,8 +179,8 @@ export default function TokenOutputSection() {
                                 <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
                                 <span className="animate-pulse">Loading price...</span>
                             </div>
-                        ) : tokenValueUsd !== null ? (
-                            <span>~{tokenValueUsd}</span>
+                        ) : price !== undefined ? (
+                            <span>{formatPriceUSD(price * Number(outputAmount))}</span>
                         ) : null}
                 </div>
                 {/* {!isLoadingQuote && priceImpactDisplay} Render the passed price impact display node */}

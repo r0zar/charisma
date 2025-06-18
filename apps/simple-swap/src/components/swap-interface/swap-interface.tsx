@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import TokenInputSection from './TokenInputSection';
 import TokenOutputSection from './TokenOutputSection';
 import SwapDetails from './swap-details';
@@ -17,7 +17,6 @@ import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@repo/tokens";
 import { SwapProvider, useSwapContext } from "../../contexts/swap-context";
 import { toast } from '@/components/ui/sonner';
-import { CheckCircle } from 'lucide-react';
 
 interface SwapInterfaceProps {
   initialTokens?: TokenCacheData[];
@@ -42,7 +41,7 @@ function SwapInterfaceInner({ urlParams: _unused }: { urlParams?: any }) {
     clearSwapSuccessInfo,
   } = useSwapContext();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (orderSuccessInfo) {
       toast.success(
         <div className="flex items-center gap-3">

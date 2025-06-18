@@ -86,9 +86,6 @@ const PriceDashboard = () => {
         setIsConnected(true);
         setStartTime(Date.now());
         addSystemMessage('Connection established', 'info');
-
-        // Auto-subscribe to demo token
-        subscribeToToken('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token');
       });
 
       socket.addEventListener('close', () => {

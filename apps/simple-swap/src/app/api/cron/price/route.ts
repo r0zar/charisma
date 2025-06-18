@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
 
     try {
         // Fetch all token prices (USD values) from the source
-        const prices = await listPrices();
+        const prices1 = await listPrices();
+        const prices2 = await listPrices();
+        const prices3 = await listPrices();
+
+        // merge the prices
+        const prices = { ...prices1, ...prices2, ...prices3 };
 
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {

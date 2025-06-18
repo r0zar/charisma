@@ -170,7 +170,7 @@ export default function SwapDetails() {
                                         : 'Minimum received'}
                             </span>
                             <span className="font-medium text-foreground flex items-center">
-                                {formatTokenAmount(Number(quote.amountOut * 0.95), selectedToToken.decimals || 0)} {selectedToToken.symbol}
+                                {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
                             </span>
                         </div>
                     )}
@@ -193,7 +193,6 @@ export default function SwapDetails() {
                                             : 'Route details'} ({quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'})
                                 </span>
                                 <div className="flex items-center gap-1">
-                                    {/* Replace price impact with mini-path view */}
                                     {quote && quote.path.length > 0 && (
                                         <div className="flex items-center space-x-0.5">
                                             {quote.path.map((token: TokenCacheData, index: number) => (

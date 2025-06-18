@@ -6,6 +6,8 @@ import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapContext } from '../../contexts/swap-context';
+import { usePriceConnection } from '@/lib/stores/usePriceStore';
+import { formatPriceUSD } from '@/lib/utils';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -34,6 +36,9 @@ export default function TokenInputSection() {
         allTokenBalances,
     } = useSwapContext();
 
+    const priceStore = usePriceConnection([selectedFromToken?.contractId ?? '']);
+    const price = priceStore.getPrice?.(selectedFromToken?.contractId ?? '');
+
     // Determine which tokens to show and other props based on mode
     const label = 'You send';
     const displayedToken = mode === 'order' ? selectedFromToken : displayedFromToken;
@@ -42,16 +47,7 @@ export default function TokenInputSection() {
     const isToggleDisabled = mode === 'order';
     const hasBothVersionsForToken = mode === 'order' ? true : hasBothVersions(selectedFromToken);
 
-    // Helper to format USD currency
-    const formatUsd = (value: number | null) => {
-        if (value === null || isNaN(value)) return null;
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
-    const tokenValueUsd = formatUsd(fromTokenValueUsd);
-
     const handleSelectToken = (t: TokenCacheData) => {
-        console.log("Selected FROM token:", t.symbol);
         if (mode === 'order') {
             // In order mode, directly set the subnet token
             setSelectedFromTokenSafe(t);
@@ -175,9 +171,9 @@ export default function TokenInputSection() {
                         <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
                         <span className="animate-pulse">Loading price...</span>
                     </div>
-                ) : tokenValueUsd !== null ? (
+                ) : price !== undefined ? (
                     // Use the passed formatted value directly
-                    <span>~{tokenValueUsd}</span>
+                    <span>{formatPriceUSD(price * Number(displayAmount))}</span>
                 ) : null}
             </div>
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { usePartySocket } from 'partysocket/react';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 
 interface PriceData {
     contractId: string;
@@ -46,14 +46,21 @@ export const usePriceStore = create<PriceStore>()(
 
         formatPrice: (contractId) => {
             const price = get().getPrice(contractId);
-            if (!price) return '$0.00';
+            if (price === undefined || price === null || isNaN(price)) return '$0.00';
 
-            if (price < 0.01) {
-                return `$${price.toFixed(6)}`;
+            // Smart dynamic precision
+            if (price === 0) return '$0.00';
+            if (price < 0.000001) {
+                return `$${price.toExponential(2)}`; // scientific notation for tiny values
+            } else if (price < 0.01) {
+                return `$${price.toFixed(8).replace(/0+$/, '').replace(/\.$/, '')}`; // up to 8 decimals, trim trailing zeros
             } else if (price < 1) {
-                return `$${price.toFixed(4)}`;
+                return `$${price.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')}`; // up to 6 decimals
+            } else if (price < 1000) {
+                return `$${price.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}`; // up to 4 decimals
             } else {
-                return `$${price.toFixed(2)}`;
+                // For large prices, use commas and 2 decimals
+                return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             }
         },
 
@@ -93,6 +100,12 @@ export const usePriceStore = create<PriceStore>()(
 export const usePriceConnection = (contractIds: string[] = []) => {
     const store = usePriceStore();
 
+    // SOLUTION 1: Memoize the contractIds to prevent unnecessary re-renders
+    const stableContractIds = useMemo(() => {
+        // Sort and create a stable reference only when values actually change
+        return [...contractIds].sort();
+    }, [contractIds.join(',')]); // Use join as dependency to check actual values
+
     // Create PartySocket connection using the React hook
     const socket = usePartySocket({
         host: PARTY_HOST,
@@ -118,6 +131,10 @@ export const usePriceConnection = (contractIds: string[] = []) => {
                         store._updatePrice(data.contractId, data.price, data.timestamp);
                         break;
 
+                    case 'PRICE_BATCH':
+                        data.prices.forEach((price: PriceData) => store._updatePrice(price.contractId, price.price, price.timestamp));
+                        break;
+
                     case 'ERROR':
                         console.error('Price server error:', data.message);
                         break;
@@ -129,7 +146,7 @@ export const usePriceConnection = (contractIds: string[] = []) => {
     });
 
     // Subscription management
-    const subscribeToTokens = useCallback((tokenIds: string[]) => {
+    const subscribeToTokens = (tokenIds: string[]) => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({
                 type: 'SUBSCRIBE',
@@ -139,9 +156,9 @@ export const usePriceConnection = (contractIds: string[] = []) => {
             console.log(`📊 Subscribed to: ${tokenIds.join(', ')}`);
         }
         store.addSubscription(tokenIds);
-    }, [socket, store]);
+    };
 
-    const unsubscribeFromTokens = useCallback((tokenIds: string[]) => {
+    const unsubscribeFromTokens = (tokenIds: string[]) => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({
                 type: 'UNSUBSCRIBE',
@@ -151,21 +168,47 @@ export const usePriceConnection = (contractIds: string[] = []) => {
             console.log(`📊 Unsubscribed from: ${tokenIds.join(', ')}`);
         }
         store.removeSubscription(tokenIds);
-    }, [socket, store]);
+    };
+
+    // Use a ref to track the last subscribed contract IDs
+    const lastContractIds = useRef<string[]>([]);
 
     // Auto-subscribe to provided contract IDs
     useEffect(() => {
-        if (contractIds.length > 0 && socket && socket.readyState === WebSocket.OPEN) {
-            subscribeToTokens(contractIds);
+        // Only proceed if socket is connected and contract IDs have changed
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            return;
         }
 
-        // Cleanup: unsubscribe when component unmounts or contractIds change
+        // Compare current contractIds with last ones
+        const hasChanged =
+            stableContractIds.length !== lastContractIds.current.length ||
+            !stableContractIds.every((id, index) => id === lastContractIds.current[index]);
+
+        if (!hasChanged) {
+            return;
+        }
+
+        // Unsubscribe from old contract IDs
+        if (lastContractIds.current.length > 0) {
+            unsubscribeFromTokens(lastContractIds.current);
+        }
+
+        // Subscribe to new contract IDs
+        if (stableContractIds.length > 0) {
+            subscribeToTokens(stableContractIds);
+        }
+
+        // Update the ref
+        lastContractIds.current = stableContractIds;
+
+        // Cleanup function for component unmount
         return () => {
-            if (contractIds.length > 0) {
-                unsubscribeFromTokens(contractIds);
+            if (stableContractIds.length > 0) {
+                unsubscribeFromTokens(stableContractIds);
             }
         };
-    }, [contractIds, socket, subscribeToTokens, unsubscribeFromTokens]);
+    }, [stableContractIds, socket?.readyState]);
 
     return {
         socket,
