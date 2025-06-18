@@ -91,7 +91,7 @@ export interface PriceAggregationConfig {
  * Default configuration for price aggregation
  */
 const DEFAULT_CONFIG: PriceAggregationConfig = {
-    strategy: 'average', // Average prices where both sources have data
+    strategy: 'stxtools-primary', // Average prices where both sources have data
     timeout: 5000
 };
 

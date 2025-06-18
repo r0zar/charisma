@@ -85,8 +85,10 @@ export async function GET(request: NextRequest) {
                         const info = await getPriceHistoryInfo(token);
                         dataInsights = {
                             ...info,
+                            totalDataPoints: info.totalDataPoints,
                             dataQuality: info.totalDataPoints === 0 ? 'no-data' : (Date.now() - (info.lastSeen ? Date.parse(info.lastSeen) : 0) > 2 * 60 * 60 * 1000 ? 'stale' : 'good')
                         };
+                        console.log(`[DEBUG] dataInsights for ${token}:`, dataInsights);
                     } catch (e) {
                         // fallback to default
                     }
