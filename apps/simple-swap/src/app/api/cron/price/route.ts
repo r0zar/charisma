@@ -35,12 +35,10 @@ export async function GET(request: NextRequest) {
             if (typeof price !== 'number' || isNaN(price)) {
                 const latestPrice = await getLatestPrice(contractId);
                 if (latestPrice !== undefined) {
-                    prices[contractId] = latestPrice;
+                    await addPriceSnapshot(contractId, latestPrice, now);
+                    count++;
                 }
-            }
-
-            // Use contractId as the key for storage
-            if (price !== undefined) {
+            } else {
                 await addPriceSnapshot(contractId, price, now);
                 count++;
             }
