@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {
             if (isNaN(price!)) continue;
-            await addPriceSnapshot(contractId, price!, now);
+
+            addPriceSnapshot(contractId, price!, now).catch(err => {
+                console.error('Failed to add price snapshot', err);
+            });
             count++;
         }
 
