@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
         const snapshots: { contractId: string, price: number, timestamp: number }[] = [];
         for (const [contractId, price] of Object.entries(oraclePrices)) {
             if (typeof price === 'number' && !isNaN(price)) {
-                snapshots.push({ contractId, price, timestamp: now });
+                // Add tiny random noise to price (0.000001% of value)
+                const noise = price * 0.00000001 * (Math.random() - 0.5); // ±0.0000005%
+                const noisyPrice = price + noise;
+                snapshots.push({ contractId, price: noisyPrice, timestamp: now });
             }
         }
         await addPriceSnapshotsBulk(snapshots);
