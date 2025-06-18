@@ -31,8 +31,25 @@ export async function GET(request: NextRequest) {
         // Store each token's price individually in parallel
         const snapshotPromises: Promise<void>[] = [];
         for (const [contractId, price] of Object.entries(prices)) {
-            if (typeof price !== 'number' || isNaN(price)) continue;
-            const p = addPriceSnapshot(contractId, price, now)
+            let valueToStore: number | undefined = undefined;
+            if (typeof price === 'number' && !isNaN(price)) {
+                valueToStore = price;
+            } else {
+                // Try to get the latest price if current is invalid
+                snapshotPromises.push(
+                    getLatestPrice(contractId)
+                        .then(latestPrice => {
+                            if (typeof latestPrice === 'number' && !isNaN(latestPrice)) {
+                                return addPriceSnapshot(contractId, latestPrice, now).then(() => { count++; });
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Failed to add price snapshot (latest fallback)', err);
+                        })
+                );
+                continue;
+            }
+            const p = addPriceSnapshot(contractId, valueToStore, now)
                 .then(() => { count++; })
                 .catch(err => {
                     console.error('Failed to add price snapshot', err);
