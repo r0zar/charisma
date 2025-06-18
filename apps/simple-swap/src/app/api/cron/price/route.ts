@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
                 prices[token.contractId] = undefined;
             }
         }
+        console.log(prices);
 
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {
