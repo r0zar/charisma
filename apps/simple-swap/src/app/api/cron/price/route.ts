@@ -27,20 +27,11 @@ export async function GET(request: NextRequest) {
                 prices[token.contractId] = undefined;
             }
         }
-        console.log(prices);
 
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {
-            let valueToStore = price;
-            if (typeof valueToStore !== 'number' || isNaN(valueToStore)) {
-                const latestPrice = await getLatestPrice(contractId);
-                if (typeof latestPrice === 'number' && !isNaN(latestPrice)) {
-                    valueToStore = latestPrice;
-                } else {
-                    continue; // Skip if no valid price
-                }
-            }
-            await addPriceSnapshot(contractId, valueToStore, now);
+            if (isNaN(price!)) continue;
+            await addPriceSnapshot(contractId, price!, now);
             count++;
         }
 
