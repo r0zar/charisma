@@ -14,13 +14,13 @@ export async function addPriceSnapshot(contractId: string, price: number, timest
     console.log(`[addPriceSnapshot] contractId=${contractId}, price=${price}, timestamp=${timestamp}`);
 
     // if epsilon is set, skip writing if change is insignificant
-    // if (EPSILON > 0) {
-    //     const last = await getLatestPrice(contractId);
-    //     if (last !== undefined && Math.abs(price - last) / last < EPSILON) {
-    //         console.log(`[addPriceSnapshot] Skipped write for contractId=${contractId} (change < EPSILON)`);
-    //         return; // skip write
-    //     }
-    // }
+    if (EPSILON > 0) {
+        const last = await getLatestPrice(contractId);
+        if (last !== undefined && Math.abs(price - last) / last < EPSILON) {
+            console.log(`[addPriceSnapshot] Skipped write for contractId=${contractId} (change < EPSILON)`);
+            return; // skip write
+        }
+    }
 
     await kv.zadd(key, { score: timestamp, member: price.toString() });
     console.log(`[addPriceSnapshot] Added price snapshot for contractId=${contractId}`);
@@ -199,12 +199,22 @@ export async function addPriceSnapshotsBulk(
     const pipeline = kv.pipeline ? kv.pipeline() : null;
     for (const { contractId, price, timestamp } of snapshots) {
         const key = `${PREFIX}:${contractId}`;
-        if (pipeline) {
-            pipeline.zadd(key, { score: timestamp, member: price.toString() });
-            pipeline.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
-        } else {
-            await kv.zadd(key, { score: timestamp, member: price.toString() });
-            await kv.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+        // Only add if EPSILON is 0 or price changed enough
+        let shouldAdd = true;
+        if (EPSILON > 0) {
+            const last = await getLatestPrice(contractId);
+            if (last !== undefined && Math.abs(price - last) / last < EPSILON) {
+                shouldAdd = false;
+            }
+        }
+        if (shouldAdd) {
+            if (pipeline) {
+                pipeline.zadd(key, { score: timestamp, member: price.toString() });
+                pipeline.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+            } else {
+                await kv.zadd(key, { score: timestamp, member: price.toString() });
+                await kv.zremrangebyscore(key, 0, timestamp - RETENTION_MS);
+            }
         }
     }
     if (pipeline) await pipeline.exec();

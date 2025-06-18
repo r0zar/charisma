@@ -48,6 +48,7 @@ function PriceSeriesDialog({ open, onClose, contractId, symbol }: { open: boolea
                         onChange={e => setPeriod(Number(e.target.value))}
                         className="px-2 py-1 border border-border rounded-md text-sm bg-background"
                     >
+                        <option value={5 * 60}>5 minutes</option>
                         <option value={15 * 60}>15 minutes</option>
                         <option value={60 * 60}>1 hour</option>
                         <option value={4 * 60 * 60}>4 hours</option>

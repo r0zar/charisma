@@ -20,27 +20,11 @@ export async function GET(request: NextRequest) {
     try {
         // Fetch all token prices (USD values) from the source
         const oraclePrices = await listPrices();
-        const tokens = await listTokens();
-        const prices: Record<string, number | undefined> = { ...oraclePrices };
-        for (const token of tokens) {
-            if (!(token.contractId in prices)) {
-                prices[token.contractId] = undefined;
-            }
-        }
 
         const snapshots: { contractId: string, price: number, timestamp: number }[] = [];
-        for (const [contractId, price] of Object.entries(prices)) {
-            let valueToStore: number | undefined = undefined;
+        for (const [contractId, price] of Object.entries(oraclePrices)) {
             if (typeof price === 'number' && !isNaN(price)) {
-                valueToStore = price;
-            } else {
-                const latestPrice = await getLatestPrice(contractId);
-                if (typeof latestPrice === 'number' && !isNaN(latestPrice)) {
-                    valueToStore = latestPrice;
-                }
-            }
-            if (typeof valueToStore === 'number' && !isNaN(valueToStore)) {
-                snapshots.push({ contractId, price: valueToStore, timestamp: now });
+                snapshots.push({ contractId, price, timestamp: now });
             }
         }
         await addPriceSnapshotsBulk(snapshots);
