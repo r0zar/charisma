@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { addPriceSnapshot, getLatestPrice } from '@/lib/price/store';
 import { listPrices } from '@repo/tokens';
+import { listTokens } from 'dexterity-sdk';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -18,11 +19,13 @@ export async function GET(request: NextRequest) {
 
     try {
         // Fetch all token prices (USD values) from the source
-        const prices = await listPrices();
-
-        // check if CHA token is in the processed prices
-        if (prices['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token']) {
-            console.log('CHA token found in processed prices');
+        const oraclePrices = await listPrices();
+        const tokens = await listTokens();
+        const prices: Record<string, number | undefined> = { ...oraclePrices };
+        for (const token of tokens) {
+            if (!(token.contractId in prices)) {
+                prices[token.contractId] = undefined;
+            }
         }
 
         // Store each token's price individually
@@ -37,8 +40,10 @@ export async function GET(request: NextRequest) {
             }
 
             // Use contractId as the key for storage
-            await addPriceSnapshot(contractId, price, now);
-            count++;
+            if (price !== undefined) {
+                await addPriceSnapshot(contractId, price, now);
+                count++;
+            }
         }
 
         return NextResponse.json({ status: 'success', count, timestamp: now });
