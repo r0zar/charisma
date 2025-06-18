@@ -80,19 +80,32 @@ export interface TokenWithSubnetInfo {
 }
 
 /**
+ * Configuration for price sources
+ */
+export interface PriceSourceConfig {
+    kraxel: boolean;
+    stxtools: boolean;
+}
+
+/**
  * Configuration for price aggregation strategy
  */
 export interface PriceAggregationConfig {
     strategy: 'fallback' | 'average' | 'kraxel-primary' | 'stxtools-primary';
     timeout: number;
+    sources: PriceSourceConfig;
 }
 
 /**
  * Default configuration for price aggregation
  */
 const DEFAULT_CONFIG: PriceAggregationConfig = {
-    strategy: 'stxtools-primary', // Average prices where both sources have data
-    timeout: 5000
+    strategy: 'stxtools-primary',
+    timeout: 5000,
+    sources: {
+        kraxel: false,
+        stxtools: true
+    }
 };
 
 /**
@@ -235,6 +248,11 @@ function mergePriceData(
 export async function listPrices(config: Partial<PriceAggregationConfig> = {}): Promise<KraxelPriceData> {
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
+    // Validate that at least one source is enabled
+    if (!finalConfig.sources.kraxel && !finalConfig.sources.stxtools) {
+        throw new Error('At least one price source must be enabled');
+    }
+
     const createTimeoutPromise = <T>(ms: number): Promise<T> => {
         return new Promise((_, reject) => {
             setTimeout(() => {
@@ -246,33 +264,55 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     let kraxelPrices: KraxelPriceData | null = null;
     let stxToolsPrices: KraxelPriceData | null = null;
 
-    // Fetch from both APIs concurrently
-    const results = await Promise.allSettled([
-        Promise.race([fetchKraxelPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]),
-        Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)])
-    ]);
+    // Create promises array based on enabled sources
+    const promises: Promise<KraxelPriceData>[] = [];
+    const sourceNames: string[] = [];
 
-    // Process Kraxel results
-    if (results[0].status === 'fulfilled') {
-        kraxelPrices = results[0].value;
-        console.log(`Successfully fetched ${Object.keys(kraxelPrices).length} prices from Kraxel API`);
-    } else {
-        const reason = (results[0] as PromiseRejectedResult).reason;
-        console.error('Failed to fetch from Kraxel API:', reason && reason.message ? reason.message : reason);
+    if (finalConfig.sources.kraxel) {
+        promises.push(Promise.race([fetchKraxelPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
+        sourceNames.push('kraxel');
     }
 
-    // Process STXTools results
-    if (results[1].status === 'fulfilled') {
-        stxToolsPrices = results[1].value;
-        console.log(`Successfully fetched ${Object.keys(stxToolsPrices).length} prices from STXTools API`);
-    } else {
-        const reason = (results[1] as PromiseRejectedResult).reason;
-        console.error('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
+    if (finalConfig.sources.stxtools) {
+        promises.push(Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
+        sourceNames.push('stxtools');
     }
 
-    // If both APIs failed, return empty object
-    if (!kraxelPrices && !stxToolsPrices) {
-        console.error('Both price APIs failed, returning empty price object.');
+    // Fetch from enabled APIs concurrently
+    const results = await Promise.allSettled(promises);
+
+    // Process results based on which sources were enabled
+    let resultIndex = 0;
+
+    if (finalConfig.sources.kraxel) {
+        if (results[resultIndex].status === 'fulfilled') {
+            kraxelPrices = (results[resultIndex] as PromiseFulfilledResult<KraxelPriceData>).value;
+            console.log(`Successfully fetched ${Object.keys(kraxelPrices).length} prices from Kraxel API`);
+        } else {
+            const reason = (results[resultIndex] as PromiseRejectedResult).reason;
+            console.error('Failed to fetch from Kraxel API:', reason && reason.message ? reason.message : reason);
+        }
+        resultIndex++;
+    } else {
+        console.log('Kraxel API disabled');
+    }
+
+    if (finalConfig.sources.stxtools) {
+        if (results[resultIndex].status === 'fulfilled') {
+            stxToolsPrices = (results[resultIndex] as PromiseFulfilledResult<KraxelPriceData>).value;
+            console.log(`Successfully fetched ${Object.keys(stxToolsPrices).length} prices from STXTools API`);
+        } else {
+            const reason = (results[resultIndex] as PromiseRejectedResult).reason;
+            console.error('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
+        }
+    } else {
+        console.log('STXTools API disabled');
+    }
+
+    // If all enabled APIs failed, return empty object
+    if ((!kraxelPrices || !finalConfig.sources.kraxel) && (!stxToolsPrices || !finalConfig.sources.stxtools)) {
+        const enabledSources = sourceNames.join(', ');
+        console.error(`All enabled price APIs (${enabledSources}) failed, returning empty price object.`);
         return {};
     }
 
@@ -295,12 +335,18 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
  * Fetches prices from Kraxel API only (for backward compatibility)
  */
 export async function listPricesKraxel(): Promise<KraxelPriceData> {
-    return listPrices({ strategy: 'kraxel-primary' });
+    return listPrices({
+        strategy: 'kraxel-primary',
+        sources: { kraxel: true, stxtools: false }
+    });
 }
 
 /**
  * Fetches prices from STXTools API only
  */
 export async function listPricesSTXTools(): Promise<KraxelPriceData> {
-    return listPrices({ strategy: 'stxtools-primary' });
+    return listPrices({
+        strategy: 'stxtools-primary',
+        sources: { kraxel: false, stxtools: true }
+    });
 }
