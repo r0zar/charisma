@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { addPriceSnapshotsBulk } from '@/lib/price/store';
 import { listPrices } from '@repo/tokens';
 import { listTokens } from 'dexterity-sdk';
+import { ADMIN_CONFIG } from '@/lib/admin-config';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
         for (const [contractId, price] of Object.entries(oraclePricesFiltered)) {
             if (typeof price === 'number' && !isNaN(price)) {
                 // Add tiny random noise to price (0.000001% of value)
-                const noise = price * 0.00000001 * (Math.random() - 0.5); // ±0.0000005%
+                const noise = price * ADMIN_CONFIG.PRICE_EPSILON * (Math.random() - 0.5); // ±0.0000005%
                 const noisyPrice = price + noise;
                 snapshots.push({ contractId, price: noisyPrice, timestamp: now });
             }
