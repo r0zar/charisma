@@ -18,17 +18,15 @@ export async function GET(request: NextRequest) {
 
     try {
         // Fetch all token prices (USD values) from the source
-        const prices1 = await listPrices();
-        const prices2 = await listPrices();
-        const prices3 = await listPrices();
+        const prices = await listPrices();
 
-        // merge the prices
-        const prices = { ...prices1, ...prices2, ...prices3 };
+        // check if CHA token is in the processed prices
+        if (prices['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token']) {
+            console.log('CHA token found in processed prices');
+        }
 
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {
-
-
             // Skip tokens without a valid price
             if (typeof price !== 'number' || isNaN(price)) continue;
 
