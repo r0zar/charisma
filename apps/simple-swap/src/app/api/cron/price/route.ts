@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { addPriceSnapshot } from '@/lib/price/store';
+import { addPriceSnapshot, getLatestPrice } from '@/lib/price/store';
 import { listPrices } from '@repo/tokens';
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
 
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {
+
+
             // Skip tokens without a valid price
             if (typeof price !== 'number' || isNaN(price)) continue;
 
