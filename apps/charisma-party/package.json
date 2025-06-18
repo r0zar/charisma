@@ -1,0 +1,26 @@
+{
+  "name": "charisma-party",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"vite --port 3001\" \"partykit dev\"",
+    "start": "vite --port 3001",
+    "partykit": "partykit dev",
+    "deploy": "partykit deploy"
+  },
+  "dependencies": {
+    "partysocket": "^1.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.70",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "partykit": "^0.0.110",
+    "typescript": "^5.5.4",
+    "vite": "^5.2.0"
+  }
+}
