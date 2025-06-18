@@ -27,8 +27,14 @@ export async function GET(request: NextRequest) {
 
         // Store each token's price individually
         for (const [contractId, price] of Object.entries(prices)) {
-            // Skip tokens without a valid price
-            if (typeof price !== 'number' || isNaN(price)) continue;
+
+            // if token has invalid price, try to get latest price
+            if (typeof price !== 'number' || isNaN(price)) {
+                const latestPrice = await getLatestPrice(contractId);
+                if (latestPrice !== undefined) {
+                    prices[contractId] = latestPrice;
+                }
+            }
 
             // Use contractId as the key for storage
             await addPriceSnapshot(contractId, price, now);

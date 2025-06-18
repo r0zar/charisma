@@ -68,18 +68,33 @@ export async function GET(request: NextRequest) {
                             console.warn(`⚠️ Error calculating marketcap for ${token}:`, error);
                         }
                     }
-                    // Add mock data insights for now
-                    const mockDataInsights = {
-                        totalDataPoints: Math.floor(Math.random() * 500) + 10,
-                        firstSeen: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-                        lastSeen: new Date(Date.now() - Math.random() * 2 * 60 * 60 * 1000).toISOString(),
-                        dataQuality: ['good', 'stale', 'sparse'][Math.floor(Math.random() * 3)] as 'good' | 'stale' | 'sparse'
+                    // Use real data insights
+                    let dataInsights: {
+                        totalDataPoints: number;
+                        firstSeen: string | null;
+                        lastSeen: string | null;
+                        dataQuality: 'no-data' | 'stale' | 'good';
+                    } = {
+                        totalDataPoints: 0,
+                        firstSeen: null,
+                        lastSeen: null,
+                        dataQuality: 'no-data'
                     };
+                    try {
+                        const { getPriceHistoryInfo } = await import('@/lib/price/store');
+                        const info = await getPriceHistoryInfo(token);
+                        dataInsights = {
+                            ...info,
+                            dataQuality: info.totalDataPoints === 0 ? 'no-data' : (Date.now() - (info.lastSeen ? Date.parse(info.lastSeen) : 0) > 2 * 60 * 60 * 1000 ? 'stale' : 'good')
+                        };
+                    } catch (e) {
+                        // fallback to default
+                    }
                     return {
                         ...stats,
                         metadata: metadata || null,
                         marketcap,
-                        dataInsights: mockDataInsights
+                        dataInsights
                     };
                 } catch (error) {
                     return {

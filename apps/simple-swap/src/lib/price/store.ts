@@ -163,3 +163,31 @@ export async function getAllTrackedTokens(): Promise<string[]> {
     console.log(`[getAllTrackedTokens] total=${tokens.length}`);
     return tokens;
 }
+
+// Returns { totalDataPoints, firstSeen, lastSeen } for a token's price history
+export async function getPriceHistoryInfo(contractId: string): Promise<{
+    totalDataPoints: number;
+    firstSeen: string | null;
+    lastSeen: string | null;
+}> {
+    const key = `${PREFIX}:${contractId}`;
+    // Get count
+    const totalDataPoints = await kv.zcard(key);
+    // Get first (oldest) entry
+    const first = await kv.zrange(key, 0, 0, { withScores: true });
+    // Get last (newest) entry
+    const last = await kv.zrange(key, -1, -1, { withScores: true });
+    let firstSeen: string | null = null;
+    let lastSeen: string | null = null;
+    if (first && first.length === 2) {
+        firstSeen = new Date(Number(first[1])).toISOString();
+    }
+    if (last && last.length === 2) {
+        lastSeen = new Date(Number(last[1])).toISOString();
+    }
+    return {
+        totalDataPoints: totalDataPoints || 0,
+        firstSeen,
+        lastSeen
+    };
+}
