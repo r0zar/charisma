@@ -7,7 +7,8 @@
     "dev": "concurrently \"vite --port 3001\" \"partykit dev\"",
     "start": "vite --port 3001",
     "partykit": "partykit dev",
-    "deploy": "partykit deploy"
+    "deploy": "partykit deploy",
+    "build": "vite build"
   },
   "dependencies": {
     "partysocket": "^1.0.2",
