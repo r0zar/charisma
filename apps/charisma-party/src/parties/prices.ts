@@ -58,14 +58,16 @@ export default class PricesParty implements Party.Server {
             console.log('☁️ Production detected, using alarms');
             // Set initial alarm for production
             this.room.storage.setAlarm(Date.now() + 60_000);
-            this.startNoiseInterval();
         }
+        // Start noise interval in both dev and production
+        this.startNoiseInterval();
     }
 
     private detectLocalDev(): boolean {
         try {
-            const isDev = process.env.NODE_ENV === 'development';
-            return isDev;
+            // In production PartyKit, use alarms only. In dev, use intervals.
+            // Check if we're running on localhost (port 1999 is dev server)
+            return false; // Always use production mode (alarms) for now
         } catch {
             return false;
         }

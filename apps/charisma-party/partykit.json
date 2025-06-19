@@ -6,7 +6,6 @@
   "serve": "dist",
   "parties": {
     "prices": "src/parties/prices.ts",
-    "balances": "src/parties/balances.ts",
-    "metadata": "src/parties/metadata.ts"
+    "balances": "src/parties/balances.ts"
   }
 }
