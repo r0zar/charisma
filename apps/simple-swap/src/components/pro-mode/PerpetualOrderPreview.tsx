@@ -5,7 +5,8 @@ import { Badge } from '../ui/badge';
 import { TrendingUp, TrendingDown, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { formatPriceUSD } from '@/lib/utils';
 
 export default function PerpetualOrderPreview() {
     const {
@@ -23,8 +24,7 @@ export default function PerpetualOrderPreview() {
     const {
         selectedFromToken,
         selectedToToken,
-        formatUsd,
-    } = useSwapContext();
+    } = useSwapTokens();
 
     const hasValidData = perpetualPositionSize && selectedFromToken && selectedToToken && perpetualEntryPrice;
 
@@ -72,7 +72,7 @@ export default function PerpetualOrderPreview() {
                         <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Position Size:</span>
                             <span className="font-mono text-foreground">
-                                {formatUsd(parseFloat(perpetualPositionSize))}
+                                {formatPriceUSD(parseFloat(perpetualPositionSize))}
                             </span>
                         </div>
 
@@ -80,7 +80,7 @@ export default function PerpetualOrderPreview() {
                         <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Entry Price:</span>
                             <span className="font-mono text-foreground">
-                                {formatUsd(parseFloat(perpetualEntryPrice))}
+                                {formatPriceUSD(parseFloat(perpetualEntryPrice))}
                             </span>
                         </div>
 
@@ -101,7 +101,7 @@ export default function PerpetualOrderPreview() {
                                 </Tooltip>
                             </div>
                             <span className="font-mono text-foreground">
-                                {formatUsd(perpetualMarginRequired)}
+                                {formatPriceUSD(perpetualMarginRequired)}
                             </span>
                         </div>
 
@@ -122,7 +122,7 @@ export default function PerpetualOrderPreview() {
                                 </Tooltip>
                             </div>
                             <span className="font-mono text-red-600">
-                                {formatUsd(perpetualLiquidationPrice)}
+                                {formatPriceUSD(perpetualLiquidationPrice)}
                             </span>
                         </div>
 
@@ -133,7 +133,7 @@ export default function PerpetualOrderPreview() {
                                     <div className="flex items-center justify-between">
                                         <span className="text-muted-foreground">Stop Loss:</span>
                                         <span className="font-mono text-red-600">
-                                            {formatUsd(parseFloat(perpetualStopLoss))}
+                                            {formatPriceUSD(parseFloat(perpetualStopLoss))}
                                         </span>
                                     </div>
                                 )}
@@ -141,7 +141,7 @@ export default function PerpetualOrderPreview() {
                                     <div className="flex items-center justify-between">
                                         <span className="text-muted-foreground">Take Profit:</span>
                                         <span className="font-mono text-green-600">
-                                            {formatUsd(parseFloat(perpetualTakeProfit))}
+                                            {formatPriceUSD(parseFloat(perpetualTakeProfit))}
                                         </span>
                                     </div>
                                 )}

@@ -3,10 +3,12 @@
 import React from 'react';
 import { Button } from '../ui/button';
 import { ClockArrowUp, Repeat, Loader2 } from 'lucide-react';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
 
 export default function OrderButton() {
-    const { handleCreateLimitOrder, setDcaDialogOpen, isCreatingOrder } = useSwapContext();
+    const { handleCreateLimitOrder, isCreatingOrder } = useRouterTrading();
+
+    const setDcaDialogOpen = (v: boolean) => { };
 
     return (
         <div className="mt-6">

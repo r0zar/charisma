@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { ArrowDown } from 'lucide-react';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function ReverseTokensButton() {
     const {
@@ -11,7 +11,7 @@ export default function ReverseTokensButton() {
         selectedToToken,
         hasBothVersions,
         handleSwitchTokens
-    } = useSwapContext();
+    } = useSwapTokens();
 
     // Determine if reverse button should be disabled
     const isReverseDisabled = useMemo(() => {

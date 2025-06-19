@@ -5,9 +5,11 @@ import TokenDropdown from '../TokenDropdown';
 import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { formatTokenAmount } from '@/lib/swap-utils';
 
 export default function TokenOutputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -16,11 +18,6 @@ export default function TokenOutputSection() {
     const {
         mode,
         selectedToToken,
-        quote,
-        toTokenBalance,
-        isLoadingQuote,
-        isLoadingPrices,
-        formatTokenAmount,
         displayTokens,
         displayedToToken,
         hasBothVersions,
@@ -29,11 +26,15 @@ export default function TokenOutputSection() {
         setSelectedToToken,
         setBaseSelectedToToken,
         tokenCounterparts,
-        totalPriceImpact,
-        toLabel,
-    } = useSwapContext();
+    } = useSwapTokens();
 
-    const { prices } = useBlaze();
+    const { quote, isLoadingQuote, totalPriceImpact, toLabel } = useRouterTrading();
+
+    // Get balance data directly from useSwapBalances
+    const { balances, prices } = useBlaze();
+
+    // Get balance for the current token
+    const toTokenBalance = selectedToToken ? balances[selectedToToken.contractId]?.balance : "0";
     const price = prices[selectedToToken?.contractId ?? ''];
 
     // Determine props based on mode and state
@@ -44,14 +45,7 @@ export default function TokenOutputSection() {
         type: useSubnetTo ? 'SUBNET' as const : displayedToToken.type
     } : null;
     const tokensToShow = displayTokens;
-    const isSubnetSelected = useSubnetTo;
     const hasBothVersionsForToken = hasBothVersions(selectedToToken);
-
-    // Helper to format USD currency
-    const formatUsd = (value: number | null) => {
-        if (value === null || isNaN(value)) return null;
-        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
 
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
     const quoteHops = quote ? quote.path.length - 1 : null;
@@ -89,7 +83,7 @@ export default function TokenOutputSection() {
     };
 
     // Price impact display component
-    const priceImpactDisplay = totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && !isLoadingQuote ? (
+    const priceImpactDisplay = totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote ? (
         <div className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${totalPriceImpact.priceImpact > 0
             ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
             : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
@@ -174,16 +168,9 @@ export default function TokenOutputSection() {
             <div className="text-xs mt-1.5 h-4 flex items-center justify-between">
                 <div className="text-muted-foreground">
                     {isLoadingQuote ? null : // Don't show loading if quote is loading
-                        isLoadingPrices ? (
-                            <div className="flex items-center space-x-1">
-                                <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
-                                <span className="animate-pulse">Loading price...</span>
-                            </div>
-                        ) : price !== undefined ? (
-                            <span>{formatPriceUSD(price.price * Number(outputAmount))}</span>
-                        ) : null}
+                        <span>{formatPriceUSD(price?.price * Number(outputAmount))}</span>
+                    }
                 </div>
-                {/* {!isLoadingQuote && priceImpactDisplay} Render the passed price impact display node */}
             </div>
 
             {/* collapsible chart */}

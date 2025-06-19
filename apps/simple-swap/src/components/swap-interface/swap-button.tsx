@@ -2,19 +2,23 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function SwapButton() {
     // Get swap state from context
     const {
         quote,
         isLoadingQuote,
+        handleSwap,
+        swapping,
+    } = useRouterTrading();
+
+    const {
         selectedFromToken,
         selectedToToken,
         displayAmount,
-        handleSwap,
-        swapping,
-    } = useSwapContext();
+    } = useSwapTokens();
 
     const isDisabled = !quote || isLoadingQuote || swapping;
     const showShimmer = !isLoadingQuote && !swapping && quote && selectedFromToken && selectedToToken && displayAmount && displayAmount !== "0";

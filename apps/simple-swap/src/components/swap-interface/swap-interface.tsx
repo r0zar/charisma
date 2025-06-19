@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import TokenInputSection from './TokenInputSection';
 import TokenOutputSection from './TokenOutputSection';
 import SwapDetails from './swap-details';
@@ -15,31 +15,36 @@ import BalanceCheckDialog from './balance-check-dialog';
 import ProModeLayout from './pro-mode-layout';
 import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@repo/tokens";
-import { SwapProvider, useSwapContext } from "../../contexts/swap-context";
+import { SwapTokensProvider, useSwapTokens } from "../../contexts/swap-tokens-context";
+import { useRouterTrading } from "../../hooks/useRouterTrading";
 import { toast } from '@/components/ui/sonner';
 
 interface SwapInterfaceProps {
   initialTokens?: TokenCacheData[];
   urlParams?: any;
+  searchParams?: URLSearchParams;
 }
 
 // Inner component that uses the swap context
 function SwapInterfaceInner({ urlParams: _unused }: { urlParams?: any }) {
-  // Get all swap state from context
+  // Get swap token state from context
   const {
     mode,
-    quote,
     isInitializing,
     isLoadingTokens,
-    isLoadingRouteInfo,
+  } = useSwapTokens();
+
+  // Get router and trading functionality
+  const {
+    quote,
     balanceCheckResult,
     setBalanceCheckResult,
-    isProMode,
-    orderSuccessInfo,
-    clearOrderSuccessInfo,
     swapSuccessInfo,
     clearSwapSuccessInfo,
-  } = useSwapContext();
+    orderSuccessInfo,
+    clearOrderSuccessInfo,
+    isProMode,
+  } = useRouterTrading();
 
   useEffect(() => {
     if (orderSuccessInfo) {
@@ -87,7 +92,7 @@ function SwapInterfaceInner({ urlParams: _unused }: { urlParams?: any }) {
   }, [orderSuccessInfo, swapSuccessInfo, toast, clearOrderSuccessInfo, clearSwapSuccessInfo]);
 
   // Enhanced loading animation - Use LoadingState component
-  if (isInitializing || isLoadingTokens || isLoadingRouteInfo) {
+  if (isInitializing || isLoadingTokens) {
     return <LoadingState />;
   }
 
@@ -152,10 +157,10 @@ function SwapInterfaceInner({ urlParams: _unused }: { urlParams?: any }) {
 }
 
 // Main component that provides the swap context
-export default function SwapInterface({ initialTokens = [], urlParams }: SwapInterfaceProps) {
+export default function SwapInterface({ initialTokens = [], urlParams, searchParams }: SwapInterfaceProps) {
   return (
-    <SwapProvider initialTokens={initialTokens}>
+    <SwapTokensProvider initialTokens={initialTokens} searchParams={searchParams}>
       <SwapInterfaceInner urlParams={urlParams} />
-    </SwapProvider>
+    </SwapTokensProvider>
   );
 }

@@ -6,11 +6,13 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { CheckCircle, XCircle, Clock, TrendingUp, TrendingDown, Info, AlertTriangle } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useWallet } from '../../contexts/wallet-context';
 import { useTradingState } from '../../hooks/useTradingState';
 import { useCreatePerpetualPosition } from '../../hooks/usePerps';
 import { toast } from 'sonner';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
+import { formatPriceUSD } from '@/lib/utils';
 
 export default function PerpetualOrderCreationDialog() {
     const {
@@ -27,9 +29,9 @@ export default function PerpetualOrderCreationDialog() {
     const {
         selectedFromToken,
         selectedToToken,
-        formatUsd,
-        getUsdPrice,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const { getPrice } = useBlaze();
 
     const { address } = useWallet();
     const { createPosition, isLoading: isCreatingPosition } = useCreatePerpetualPosition();
@@ -256,28 +258,28 @@ export default function PerpetualOrderCreationDialog() {
                                     <div>
                                         <span className="text-muted-foreground">Position Size:</span>
                                         <div className="font-medium">
-                                            {formatUsd(parseFloat(order.positionSize))}
+                                            {formatPriceUSD(parseFloat(order.positionSize))}
                                         </div>
                                     </div>
 
                                     <div>
                                         <span className="text-muted-foreground">Entry Price:</span>
                                         <div className="font-medium">
-                                            {formatUsd(parseFloat(order.entryPrice))}
+                                            {formatPriceUSD(parseFloat(order.entryPrice))}
                                         </div>
                                     </div>
 
                                     <div>
                                         <span className="text-muted-foreground">Margin Required:</span>
                                         <div className="font-medium">
-                                            {formatUsd(perpetualMarginRequired)}
+                                            {formatPriceUSD(perpetualMarginRequired)}
                                         </div>
                                     </div>
 
                                     <div>
                                         <span className="text-muted-foreground">Liquidation Price:</span>
                                         <div className={`font-medium ${liquidationRisk === 'high' ? 'text-red-600' : ''}`}>
-                                            {formatUsd(perpetualLiquidationPrice)}
+                                            {formatPriceUSD(perpetualLiquidationPrice)}
                                         </div>
                                     </div>
                                 </div>
@@ -290,7 +292,7 @@ export default function PerpetualOrderCreationDialog() {
                                                 <div>
                                                     <span className="text-muted-foreground">Stop Loss:</span>
                                                     <div className="font-medium text-red-600">
-                                                        {formatUsd(parseFloat(order.stopLoss))}
+                                                        {formatPriceUSD(parseFloat(order.stopLoss))}
                                                     </div>
                                                 </div>
                                             )}
@@ -298,7 +300,7 @@ export default function PerpetualOrderCreationDialog() {
                                                 <div>
                                                     <span className="text-muted-foreground">Take Profit:</span>
                                                     <div className="font-medium text-green-600">
-                                                        {formatUsd(parseFloat(order.takeProfit))}
+                                                        {formatPriceUSD(parseFloat(order.takeProfit))}
                                                     </div>
                                                 </div>
                                             )}

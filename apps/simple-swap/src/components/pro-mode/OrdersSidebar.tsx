@@ -7,12 +7,13 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import TokenLogo from '../TokenLogo';
 import { toast } from 'sonner';
 import { usePerpetualPositions, usePositionPnL, useCancelPerpetualPosition } from '../../hooks/usePerps';
-import { useWallet } from '../../contexts/wallet-context';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
+import { formatUsd } from '@/lib/swap-utils';
 
 interface OrdersSidebarProps {
     collapsed: boolean;
@@ -20,47 +21,32 @@ interface OrdersSidebarProps {
 
 export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
     const {
-        pairFilteredOrders,
-        swapFilteredOrders,
-        shouldShowSplitSections,
-        tradingPairBase,
-        tradingPairQuote,
         expandedOrderId,
-        setExpandedOrderId,
         showAllOrders,
         setShowAllOrders,
         isLoadingOrders,
         ordersError,
-        handleOrderAction,
         confirmCancelOrder,
         cancelOrderAction,
-        executeOrderAction,
         cancelingOrders,
-        executingOrders,
         confirmCancelOrderId,
         setConfirmCancelOrderId,
         toggleOrderExpansion,
-        formatTokenAmount,
         formatCompactNumber,
         formatCompactPrice,
         formatRelativeTime,
         selectedOrderType,
         displayOrders,
-        currentPrice, // Add real-time price from chart simulation
         setPerpPositionsRefetchCallback,
         recentlyUpdatedOrders,
     } = useProModeContext();
 
     const {
-        selectedFromToken,
-        selectedToToken,
-        formatUsd,
-        getUsdPrice,
         displayTokens,
         subnetDisplayTokens,
-    } = useSwapContext();
+    } = useSwapTokens();
 
-    const { address: walletAddress } = useWallet();
+    const { getPrice } = useBlaze();
 
     // Check if we're in perpetual mode
     const isPerpetualMode = selectedOrderType === 'perpetual';
@@ -531,7 +517,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                     <div className="flex justify-between items-center">
                         <span className="text-xs text-muted-foreground">Position Size:</span>
                         <span className="text-xs font-mono font-medium text-foreground">
-                            {formatUsd(parseFloat(positionSize || '0'))}
+                            {getPrice(positionSize || '0')}
                         </span>
                     </div>
 

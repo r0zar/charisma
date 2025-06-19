@@ -17,6 +17,28 @@ export interface BalanceData {
   totalReceived: string;
   timestamp: number;
   source: string;
+  // Subnet balance fields
+  subnetBalance?: number;
+  formattedSubnetBalance?: number;
+  subnetContractId?: string;
+  // Enhanced metadata fields from enhanced balance updates
+  name?: string;
+  symbol?: string;
+  decimals?: number;
+  description?: string | null;
+  image?: string | null;
+  total_supply?: string | null;
+  type?: string;
+  identifier?: string;
+  token_uri?: string | null;
+  lastUpdated?: number | null;
+  tokenAContract?: string | null;
+  tokenBContract?: string | null;
+  lpRebatePercent?: number | null;
+  externalPoolId?: string | null;
+  engineContractId?: string | null;
+  base?: string | null;
+  formattedBalance?: number;
 }
 
 export interface TokenMetadata {
@@ -53,11 +75,33 @@ export interface BalanceUpdateMessage {
   type: 'BALANCE_UPDATE';
   userId: string;
   contractId: string;
-  balance: string;
+  balance: number;
   totalSent: string;
   totalReceived: string;
+  formattedBalance: number;
   timestamp: number;
   source: string;
+  // Subnet balance fields
+  subnetBalance?: number;
+  formattedSubnetBalance?: number;
+  subnetContractId?: string;
+  // Enhanced metadata fields
+  name: string;
+  symbol: string;
+  decimals: number;
+  description?: string | null;
+  image?: string | null;
+  total_supply?: string | null;
+  tokenType?: string;
+  identifier?: string;
+  token_uri?: string | null;
+  lastUpdated?: number | null;
+  tokenAContract?: string | null;
+  tokenBContract?: string | null;
+  lpRebatePercent?: number | null;
+  externalPoolId?: string | null;
+  engineContractId?: string | null;
+  baseToken?: string | null;
 }
 
 export interface BalanceBatchMessage {
@@ -90,7 +134,7 @@ export interface ServerInfoMessage {
   timestamp: number;
 }
 
-export type ServerMessage = 
+export type ServerMessage =
   | PriceUpdateMessage
   | PriceBatchMessage
   | BalanceUpdateMessage

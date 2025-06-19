@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 interface SandwichPreviewOverlayProps {
     chartContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -29,17 +29,13 @@ export default function SandwichPreviewOverlay({
 
     const {
         selectedOrderType,
-        sandwichBuyPrice,
-        sandwichSellPrice,
         sandwichSpread,
-        sandwichUsdAmount,
-        handleSandwichSpreadChange,
     } = useProModeContext();
 
     const {
         selectedFromToken,
         selectedToToken,
-    } = useSwapContext();
+    } = useSwapTokens();
 
     // Subscribe to chart's visible price range changes
     useEffect(() => {

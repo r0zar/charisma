@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -38,9 +39,11 @@ export default function DCAOrderPreview() {
     const {
         selectedFromToken,
         selectedToToken,
-        getUsdPrice,
-        formatUsd,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const {
+        getPrice,
+    } = useBlaze();
 
     const hasValidData = dcaAmount && selectedFromToken && selectedToToken && dcaFrequency && dcaDuration;
 
@@ -148,9 +151,9 @@ export default function DCAOrderPreview() {
                         <span className="font-mono text-foreground">
                             {(() => {
                                 const amount = parseFloat(dcaAmount);
-                                const price = getUsdPrice(selectedFromToken.contractId);
+                                const price = getPrice(selectedFromToken.contractId);
                                 if (price && amount > 0) {
-                                    return `≈ ${formatUsd(price * amount)}`;
+                                    return `≈ $${(price * amount).toFixed(2)}`;
                                 }
                                 return '—';
                             })()}

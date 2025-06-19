@@ -5,12 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { CheckCircle, XCircle, Clock, Loader2, TrendingUp, AlertTriangle, Info } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useWallet } from '../../contexts/wallet-context';
 import { toast } from 'sonner';
 import { request } from '@stacks/connect';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
+import { formatPriceUSD } from '@/lib/utils';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -49,9 +51,9 @@ export default function SingleOrderCreationDialog() {
         selectedFromToken,
         selectedToToken,
         baseToken,
-        getUsdPrice,
-        formatUsd,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const { getPrice } = useBlaze();
 
     const { address } = useWallet();
 
@@ -400,12 +402,12 @@ export default function SingleOrderCreationDialog() {
                                             {formatTokenBalance(parseFloat(order?.amount || '0'), selectedFromToken)} {selectedFromToken.symbol}
                                         </div>
                                         {(() => {
-                                            const price = getUsdPrice(selectedFromToken.contractId);
+                                            const price = getPrice(selectedFromToken.contractId);
                                             if (price && order?.amount) {
                                                 const usdValue = price * parseFloat(order.amount);
                                                 return (
                                                     <div className="text-xs text-muted-foreground">
-                                                        ≈ {formatUsd(usdValue)}
+                                                        ≈ {formatPriceUSD(usdValue)}
                                                     </div>
                                                 );
                                             }
@@ -419,12 +421,12 @@ export default function SingleOrderCreationDialog() {
                                             {estimatedOutput ? `~${formatTokenBalance(estimatedOutput, selectedToToken)}` : '~'} {selectedToToken.symbol}
                                         </div>
                                         {(() => {
-                                            const price = getUsdPrice(selectedToToken.contractId);
+                                            const price = getPrice(selectedToToken.contractId);
                                             if (price && estimatedOutput) {
                                                 const usdValue = price * estimatedOutput;
                                                 return (
                                                     <div className="text-xs text-muted-foreground">
-                                                        ≈ {formatUsd(usdValue)}
+                                                        ≈ {formatPriceUSD(usdValue)}
                                                     </div>
                                                 );
                                             }

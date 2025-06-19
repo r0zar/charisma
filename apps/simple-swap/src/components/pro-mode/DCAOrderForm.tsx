@@ -6,8 +6,9 @@ import TokenSelectorButton from './TokenSelectorButton';
 import DateTimePicker from '../ui/date-time-picker';
 import DCACreationDialog from './DCACreationDialog';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -44,25 +45,18 @@ export default function DCAOrderForm() {
         setDcaStartDate,
         handleCreateDcaOrder,
         isSubmitting,
-        tradingPairBase,
-        setTradingPairBase,
         targetPrice,
     } = useProModeContext();
 
     const {
         selectedFromToken,
-        setSelectedFromTokenSafe,
         selectedToToken,
-        setSelectedToToken,
-        displayTokens,
-        fromTokenBalance,
-        toTokenBalance,
-        getUsdPrice,
-        formatUsd,
-        conditionToken,
-        setConditionToken,
-        allTokenBalances,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const {
+        balances,
+        getPrice,
+    } = useBlaze();
 
     return (
         <div data-order-form="dca" className="grid grid-cols-3 gap-3 max-w-4xl">
@@ -73,9 +67,9 @@ export default function DCAOrderForm() {
                     {selectedFromToken && (
                         <button
                             onClick={() => {
-                                const balance = allTokenBalances.get(selectedFromToken.contractId);
-                                if (balance && balance > 0) {
-                                    setDcaAmount(balance.toString());
+                                const balance = balances[selectedFromToken.contractId];
+                                if (balance && Number(balance.balance) > 0) {
+                                    setDcaAmount(balance.balance);
                                 }
                             }}
                             className="text-xs text-primary hover:text-primary/80 font-medium"
@@ -92,13 +86,13 @@ export default function DCAOrderForm() {
                     className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                 />
                 {selectedFromToken && (() => {
-                    const balance = allTokenBalances.get(selectedFromToken.contractId);
+                    const balance = balances[selectedFromToken.contractId];
                     if (balance !== undefined) {
-                        const price = getUsdPrice(selectedFromToken.contractId);
+                        const price = getPrice(selectedFromToken.contractId);
                         return (
                             <div className="text-xs text-muted-foreground">
-                                Balance: {formatTokenBalance(balance, selectedFromToken)} {selectedFromToken.symbol}
-                                {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                Balance: {formatTokenBalance(Number(balance.balance), selectedFromToken)} {selectedFromToken.symbol}
+                                {price && Number(balance.balance) > 0 ? ` (≈ ${price * Number(balance.balance)})` : ''}
                             </div>
                         );
                     }
@@ -162,13 +156,13 @@ export default function DCAOrderForm() {
                     className="w-full"
                 />
                 {selectedFromToken && (() => {
-                    const balance = allTokenBalances.get(selectedFromToken.contractId);
+                    const balance = balances[selectedFromToken.contractId];
                     if (balance !== undefined) {
-                        const price = getUsdPrice(selectedFromToken.contractId);
+                        const price = getPrice(selectedFromToken.contractId);
                         return (
                             <div className="text-xs text-muted-foreground">
-                                Balance: {formatTokenBalance(balance, selectedFromToken)} {selectedFromToken.symbol}
-                                {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                Balance: {formatTokenBalance(Number(balance.balance), selectedFromToken)} {selectedFromToken.symbol}
+                                {price && Number(balance.balance) > 0 ? ` (≈ ${price * Number(balance.balance)})` : ''}
                             </div>
                         );
                     }
@@ -185,13 +179,13 @@ export default function DCAOrderForm() {
                     className="w-full"
                 />
                 {selectedToToken && (() => {
-                    const balance = allTokenBalances.get(selectedToToken.contractId);
+                    const balance = balances[selectedToToken.contractId];
                     if (balance !== undefined) {
-                        const price = getUsdPrice(selectedToToken.contractId);
+                        const price = getPrice(selectedToToken.contractId);
                         return (
                             <div className="text-xs text-muted-foreground">
-                                Balance: {formatTokenBalance(balance, selectedToToken)} {selectedToToken.symbol}
-                                {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                Balance: {formatTokenBalance(Number(balance.balance), selectedToToken)} {selectedToToken.symbol}
+                                {price && Number(balance.balance) > 0 ? ` (≈ ${price * Number(balance.balance)})` : ''}
                             </div>
                         );
                     }

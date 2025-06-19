@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import TokenLogo from '../TokenLogo';
 import { AlertTriangle, ArrowRight, Wallet, Zap, TrendingUp } from 'lucide-react';
-import { useSwapContext } from '../../contexts/swap-context';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
 
 interface BalanceCheckDialogProps {
     open: boolean;
@@ -17,17 +18,18 @@ interface BalanceCheckDialogProps {
 
 export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckDialogProps) {
     const {
-        balanceCheckResult,
         selectedFromToken,
         displayAmount,
-        executeDeposit,
-        executeSwapForOrder,
         setDisplayAmount,
         tokenCounterparts,
-        formatUsd,
-        getUsdPrice,
+    } = useSwapTokens();
+
+    const {
+        balanceCheckResult,
+        executeDeposit,
+        executeSwapForOrder,
         isLoadingSwapOptions
-    } = useSwapContext();
+    } = useRouterTrading();
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingType, setProcessingType] = useState<'deposit' | 'swap' | null>(null);
@@ -105,11 +107,6 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
             minimumFractionDigits: 0,
             maximumFractionDigits: Math.min(decimals, 4)
         });
-    };
-
-    const getTokenPrice = (token: TokenCacheData) => {
-        const price = getUsdPrice(token.contractId);
-        return price ? formatUsd(price) : null;
     };
 
     return (

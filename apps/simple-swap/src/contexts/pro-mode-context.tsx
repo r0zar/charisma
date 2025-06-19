@@ -1,15 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { useSwapContext } from './swap-context';
+import { useSwapTokens } from './swap-tokens-context';
 import { useWallet } from './wallet-context';
 import type { LimitOrder } from '../lib/orders/types';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import { signedFetch } from 'blaze-sdk';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { toast } from 'sonner';
-import { request } from '@stacks/connect';
-import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
+import { formatUsd } from '@/lib/swap-utils';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
 
 // Enriched order type with token metadata
 export interface DisplayOrder extends LimitOrder {
@@ -343,39 +343,25 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         selectedFromToken,
         selectedToToken,
         displayAmount: swapDisplayAmount,
-        setDisplayAmount: setSwapDisplayAmount,
-        targetPrice: swapTargetPrice,
-        setTargetPrice: setSwapTargetPrice,
         conditionToken,
-        setConditionToken,
         baseToken,
-        setBaseToken,
         conditionDir: swapConditionDir,
-        setConditionDir: setSwapConditionDir,
-        displayTokens,
-        setIsProMode,
-        handleCreateLimitOrder: originalHandleCreateLimitOrder,
+        handleSwitchTokensEnhanced
+    } = useSwapTokens();
+
+    const {
         isCreatingOrder,
-        handleSwitchTokensEnhanced: originalHandleSwitchTokensEnhanced,
-        fromTokenBalance,
-        toTokenBalance,
-        formatUsd,
-        getUsdPrice,
-        fetchHistoricalPrices,
-        setSelectedFromTokenSafe,
-        setSelectedToToken,
-        subnetDisplayTokens,
-    } = useSwapContext();
+    } = useRouterTrading();
 
     const { address, connected } = useWallet();
 
     // Real-time price and balance data from Blaze
-    const { 
-        prices: blazePrices, 
-        balances: blazeBalances, 
+    const {
+        prices: blazePrices,
+        balances: blazeBalances,
         isConnected: isPricesConnected,
         getPrice,
-        getBalance 
+        getBalance
     } = useBlaze(address ? { userId: address } : undefined);
 
     // UI State
@@ -773,45 +759,6 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         return () => clearInterval(pollInterval);
     }, [connected, address, displayOrders, fetchOrders]);
 
-    // Optimized price polling for live updates
-    useEffect(() => {
-        // Get only essential tokens to reduce API spam
-        const getEssentialTokens = () => {
-            const tokens = new Set<string>();
-
-            // Only add tokens that are actively being used in UI
-            if (selectedFromToken) tokens.add(selectedFromToken.contractId);
-            if (selectedToToken) tokens.add(selectedToToken.contractId);
-
-            // Add tokens from trading pair only if they're different from swap tokens
-            if (tradingPairBase && tradingPairBase.contractId !== selectedFromToken?.contractId) {
-                tokens.add(tradingPairBase.contractId);
-            }
-            if (tradingPairQuote && tradingPairQuote.contractId !== selectedToToken?.contractId) {
-                tokens.add(tradingPairQuote.contractId);
-            }
-
-            return Array.from(tokens);
-        };
-
-        // Initial price fetch - only for essential tokens
-        const essentialTokens = getEssentialTokens();
-        if (essentialTokens.length > 0) {
-            fetchHistoricalPrices(essentialTokens);
-        }
-
-        // Reduced polling interval - only update essential tokens
-        const pollInterval = setInterval(() => {
-            const essentialTokens = getEssentialTokens();
-            if (essentialTokens.length > 0) {
-                console.log('🔄 Polling prices for', essentialTokens.length, 'essential tokens (reduced from all orders)');
-                fetchHistoricalPrices(essentialTokens);
-            }
-        }, 120000); // Poll every 2 minutes instead of 1 minute to reduce API load
-
-        return () => clearInterval(pollInterval);
-    }, [selectedFromToken, selectedToToken, tradingPairBase, tradingPairQuote, fetchHistoricalPrices]);
-
     // Filter orders based on showAllOrders state
     const filteredOrders = showAllOrders
         ? displayOrders
@@ -962,9 +909,9 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
 
     const getTokenPrice = useCallback((token: any) => {
         if (!token) return null;
-        const price = getUsdPrice(token.contractId);
+        const price = getPrice(token.contractId);
         return price ? formatUsd(price) : null;
-    }, [getUsdPrice, formatUsd]);
+    }, [getPrice, formatUsd]);
 
     // Perpetual Calculation Utilities
     const calculateMarginRequired = useCallback((positionSize: string | number, leverage: number): number => {
@@ -1379,12 +1326,6 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         }));
     }, []);
 
-    // Enhanced handlers that sync with swap context
-    const handleSwitchTokensEnhanced = useCallback(() => {
-        originalHandleSwitchTokensEnhanced();
-        // The swap context will update, and our useEffect will sync the local state
-    }, [originalHandleSwitchTokensEnhanced]);
-
     const handleCreateLimitOrder = useCallback(async () => {
         if (!selectedFromToken || !selectedToToken) {
             toast.error('Please select both tokens');
@@ -1519,17 +1460,15 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         // Get token prices with fallback to base token for subnet tokens
         const getTokenPriceWithFallback = (token: TokenCacheData): number => {
             // First try to get the direct price
-            let price = getUsdPrice(token.contractId);
+            let price = getPrice(token.contractId);
 
             // If no price and it's a subnet token, try the base token price
             if (!price && token.type === 'SUBNET' && token.base) {
-                price = getUsdPrice(token.base);
+                price = getPrice(token.base);
             }
 
-            // If still no price, trigger historical price fetch and throw an error
+            // If still no price, throw an error
             if (!price) {
-                // Trigger historical price fetch for this token
-                fetchHistoricalPrices([token.contractId]);
                 throw new Error(`Price data not available for ${token.symbol}. Please wait a moment and try again.`);
             }
 

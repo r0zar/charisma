@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useSwap } from "@/hooks/useSwap";
 import { PurchaseDialog } from "./checkout";
 import TokenDropdown from "@/components/TokenDropdown";
-import { fetchTokenBalance } from "blaze-sdk";
+import { fetchTokenBalance, useBlaze } from "blaze-sdk";
 import { toast } from "sonner";
 import { fetchQuote } from "dexterity-sdk";
 import { useWallet } from "@/contexts/wallet-context";
@@ -50,11 +50,10 @@ export default function TokenPurchaseForm() {
         subnetDisplayTokens,
         selectedToToken,
         setSelectedToToken,
-        userAddress,
-        tokenPrices,
-        fetchRawPrices,
-        isLoadingPrices,
     } = useSwap();
+    
+    const { address: userAddress } = useWallet();
+    const { prices: tokenPrices } = useBlaze();
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
@@ -158,9 +157,10 @@ export default function TokenPurchaseForm() {
     const reserveUsd = reserveTokens * getTokenUsdPrice(selectedToToken);
     const reserveUsd90 = reserveUsd * 0.9;
 
-    // Handler to refresh prices
+    // Handler to refresh prices (not needed with real-time data)
     const handleRefreshPrices = async () => {
-        if (fetchRawPrices) await fetchRawPrices();
+        // BlazeProvider handles real-time price updates automatically
+        console.log('Prices are updated automatically via BlazeProvider');
     };
 
     const handleCheckout = async () => {
@@ -329,9 +329,9 @@ export default function TokenPurchaseForm() {
                                             className="ml-2 p-1 rounded cursor-pointer hover:bg-accent transition-colors"
                                             onClick={handleRefreshPrices}
                                             aria-label="Refresh prices"
-                                            disabled={isLoadingPrices}
+                                            disabled={false}
                                         >
-                                            <RefreshCw className={"h-4 w-4 transition-transform " + (isLoadingPrices ? "animate-spin" : "")} />
+                                            <RefreshCw className="h-4 w-4 transition-transform" />
                                         </button>
                                     </div>
                                 </div>

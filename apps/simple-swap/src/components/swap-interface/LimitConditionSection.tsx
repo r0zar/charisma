@@ -5,7 +5,7 @@ import TokenDropdown from '../TokenDropdown';
 import { AlarmClockCheck, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function LimitConditionSection() {
     const [showChart, setShowChart] = useState(true);
@@ -24,7 +24,7 @@ export default function LimitConditionSection() {
         setConditionDir,
         handleBumpPrice,
         displayedToToken,
-    } = useSwapContext();
+    } = useSwapTokens();
 
     const selectedToken = conditionToken || displayedToToken;
 

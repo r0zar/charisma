@@ -4,10 +4,12 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Search, X, Wallet, Flame } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import TokenLogo from '../TokenLogo';
 import { TokenCacheData } from '@repo/tokens';
 import { getTokenBalance } from '../../app/actions';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useWallet } from '@/contexts/wallet-context';
+import { useBlaze } from 'blaze-sdk';
 
 interface TokenSelectionDialogProps {
     isOpen: boolean;
@@ -43,14 +45,13 @@ export default function TokenSelectionDialog({
         selectedToToken,
         setSelectedFromTokenSafe,
         setSelectedToToken,
-        getUsdPrice,
-        formatUsd,
         setConditionToken,
-        fromTokenBalance,
-        toTokenBalance,
-        userAddress,
         tokenCounterparts
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const { address: userAddress } = useWallet();
+
+    const { getPrice } = useBlaze();
 
     // Determine which tokens to show based on selection type
     const availableTokens = useMemo(() => {
@@ -228,7 +229,7 @@ export default function TokenSelectionDialog({
     // Calculate total value (price × balance)
     const getTotalValue = (token: TokenCacheData) => {
         const balance = tokenBalances.get(token.contractId);
-        const price = getUsdPrice(token.contractId);
+        const price = getPrice(token.contractId);
 
         if (!balance || !price || balance === 0) return null;
 
@@ -324,8 +325,8 @@ export default function TokenSelectionDialog({
         const getTokenData = (token: TokenCacheData | null) => {
             if (!token) return null;
             return {
-                price: getUsdPrice(token.contractId),
-                formattedPrice: getUsdPrice(token.contractId) ? formatTokenPrice(getUsdPrice(token.contractId)!) : null,
+                price: getPrice(token.contractId),
+                formattedPrice: getPrice(token.contractId) ? formatTokenPrice(getPrice(token.contractId)!) : null,
                 balanceDisplay: getTokenBalanceDisplay(token),
                 totalValue: getTotalValue(token),
                 isLoadingBalance: loadingBalances.has(token.contractId)

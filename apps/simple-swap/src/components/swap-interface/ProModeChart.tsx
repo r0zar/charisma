@@ -31,7 +31,7 @@ import {
 } from "lightweight-charts";
 import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
 import TargetPriceHoverOverlay from '../pro-mode/TargetPriceHoverOverlay';
-import { useSwapContext } from '@/contexts/swap-context';
+import { useBlaze } from 'blaze-sdk';
 
 // Enriched order type with token metadata
 interface DisplayOrder extends LimitOrder {
@@ -96,7 +96,7 @@ export default function ProModeChart({
     candleInterval = '4h'
 }: ProModeChartProps) {
     // Access real-time price data from context
-    const { getUsdPrice } = useSwapContext();
+    const { getPrice } = useBlaze();
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<any>(null);
@@ -359,12 +359,12 @@ export default function ProModeChart({
         if (!historicData || historicData.length === 0) return [];
 
         // Get real-time prices
-        let currentTokenPrice = getUsdPrice(tokenToPrice.contractId);
+        let currentTokenPrice = getPrice(tokenToPrice.contractId);
         let currentBasePrice: number | undefined;
 
         // Handle subnet tokens - fallback to base token price
         if (!currentTokenPrice && tokenToPrice.type === 'SUBNET' && tokenToPrice.base) {
-            currentTokenPrice = getUsdPrice(tokenToPrice.base);
+            currentTokenPrice = getPrice(tokenToPrice.base);
         }
 
         console.log('🔍 Real-time price lookup:', {
@@ -375,10 +375,10 @@ export default function ProModeChart({
         });
 
         if (baseTokenToPrice?.contractId) {
-            currentBasePrice = getUsdPrice(baseTokenToPrice.contractId);
+            currentBasePrice = getPrice(baseTokenToPrice.contractId);
             // Handle subnet tokens for base
             if (!currentBasePrice && baseTokenToPrice.type === 'SUBNET' && baseTokenToPrice.base) {
-                currentBasePrice = getUsdPrice(baseTokenToPrice.base);
+                currentBasePrice = getPrice(baseTokenToPrice.base);
             }
         }
 
@@ -434,7 +434,7 @@ export default function ProModeChart({
         setIsShowingRealTimeData(true);
 
         return enhancedData;
-    }, [getUsdPrice]);
+    }, [getPrice]);
 
     // Fetch chart data and enhance with real-time price
     const loadChart = useCallback(async () => {

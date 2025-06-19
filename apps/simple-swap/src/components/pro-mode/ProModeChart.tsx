@@ -3,12 +3,10 @@
 import React, { useEffect } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useLayoutObserver } from '../../hooks/useLayoutObserver';
 // Import the existing ProModeChart component
 import OriginalProModeChart from '../swap-interface/ProModeChart';
-
-
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function ProModeChart() {
     const {
@@ -37,10 +35,7 @@ export default function ProModeChart() {
         candleInterval,
     } = useProModeContext();
 
-    const { conditionToken, selectedToToken, selectedFromToken } = useSwapContext();
-
-    // Use the condition token or selected to token for the chart
-    const chartToken = conditionToken || selectedToToken;
+    const { selectedToToken, selectedFromToken } = useSwapTokens();
 
     // Configure chart to show price in an intuitive way for trading
     // Different order types use different token configurations:

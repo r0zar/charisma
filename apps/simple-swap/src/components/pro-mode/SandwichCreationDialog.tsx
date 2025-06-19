@@ -3,12 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { CheckCircle, XCircle, Clock, Loader2, TrendingDown, TrendingUp, ArrowRight } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useWallet } from '../../contexts/wallet-context';
 import { toast } from 'sonner';
 import { request } from '@stacks/connect';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
 import TokenLogo from '../TokenLogo';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function SandwichCreationDialog() {
     const {
@@ -25,8 +25,7 @@ export default function SandwichCreationDialog() {
     const {
         selectedFromToken,
         selectedToToken,
-        baseToken
-    } = useSwapContext();
+    } = useSwapTokens();
 
     const { address } = useWallet();
 

@@ -1,12 +1,12 @@
 "use client";
 
 import React from 'react';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
 
 export default function ErrorAlert() {
-    const { error, priceError } = useSwapContext();
+    const { error } = useRouterTrading();
 
-    if (!error && !priceError) {
+    if (!error) {
         return null;
     }
 
@@ -21,7 +21,6 @@ export default function ErrorAlert() {
                 <div className="flex-1">
                     <h4 className="text-sm font-semibold mb-1">Transaction Error</h4>
                     {error && <p className="text-xs leading-relaxed">{error}</p>}
-                    {priceError && <p className="text-xs leading-relaxed mt-1">{priceError}</p>}
                 </div>
             </div>
         </div>

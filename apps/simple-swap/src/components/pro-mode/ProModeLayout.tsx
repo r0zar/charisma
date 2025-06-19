@@ -2,13 +2,14 @@
 
 import React, { useEffect } from 'react';
 import { ProModeProvider, useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import OrderTypeSelector from './OrderTypeSelector';
 import ProModeHeader from './ProModeHeader';
 import ProModeChart from './ProModeChart';
 import OrderControls from './OrderControls';
 import OrdersSidebar from './OrdersSidebar';
 import TokenSelectionDialog from './TokenSelectionDialog';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 function ProModeLayoutContent() {
     const {
@@ -35,9 +36,12 @@ function ProModeLayoutContent() {
     } = useProModeContext();
 
     const {
-        setIsProMode,
         handleSwitchTokensEnhanced,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const {
+        setIsProMode,
+    } = useRouterTrading();
 
     // Note: Margin account syncing now handled by backend API
 

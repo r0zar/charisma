@@ -5,7 +5,8 @@ import TokenLogo from '../TokenLogo';
 import { Loader2, Check, X as XIcon } from 'lucide-react';
 import { TokenCacheData } from '@repo/tokens';
 import { useRouter } from 'next/navigation';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
 
 export const DcaDialog: React.FC = () => {
     const EASY_PRESET = { slices: 4, intervalHours: 24 } as const;
@@ -13,8 +14,6 @@ export const DcaDialog: React.FC = () => {
 
     // Get all needed state from context
     const {
-        dcaDialogOpen,
-        setDcaDialogOpen,
         displayAmount,
         selectedFromToken,
         selectedToToken,
@@ -22,12 +21,15 @@ export const DcaDialog: React.FC = () => {
         baseToken,
         targetPrice,
         conditionDir,
+    } = useSwapTokens();
+
+    const {
         createSingleOrder,
-    } = useSwapContext();
+    } = useRouterTrading();
 
     // Use context values
-    const open = dcaDialogOpen;
-    const onOpenChange = setDcaDialogOpen;
+    const open = false;
+    const onOpenChange = (v: boolean) => { };
     const defaultAmount = displayAmount;
     const fromToken = selectedFromToken;
     const toToken = selectedToToken;

@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
 
 export default function SandwichOrderPreview() {
     const {
@@ -17,10 +18,11 @@ export default function SandwichOrderPreview() {
     const {
         selectedFromToken,
         selectedToToken,
-        getUsdPrice,
-        fetchHistoricalPrices,
-        formatTokenAmount,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const {
+        getPrice,
+    } = useBlaze();
 
     const hasValidData = sandwichUsdAmount && sandwichBuyPrice && sandwichSellPrice && selectedFromToken && selectedToToken && tradingPairBase && tradingPairQuote;
 
@@ -46,12 +48,10 @@ export default function SandwichOrderPreview() {
     // Get token prices with fallback to base token for subnet tokens
     const getTokenPriceWithFallback = (token: TokenCacheData): number | null => {
         // Use the context's getUsdPrice which already includes subnet fallback logic
-        const price = getUsdPrice(token.contractId);
+        const price = getPrice(token.contractId);
 
-        // If still no price, trigger historical price fetch and return null
+        // If still no price, return null
         if (!price) {
-            // Trigger historical price fetch for this token
-            fetchHistoricalPrices([token.contractId]);
             return null;
         }
 

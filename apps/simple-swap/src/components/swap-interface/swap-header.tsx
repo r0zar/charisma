@@ -1,21 +1,115 @@
 "use client";
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Share2, Repeat, TrendingUp, Monitor } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useSwapContext } from '../../contexts/swap-context';
+import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
+
+// Pure function for creating share URLs and tweets
+function createShareData(params: {
+    selectedFromToken: TokenCacheData | null;
+    selectedToToken: TokenCacheData | null;
+    displayAmount: string;
+    useSubnetFrom: boolean;
+    useSubnetTo: boolean;
+    mode: 'swap' | 'order';
+    targetPrice?: string;
+    conditionDir?: 'lt' | 'gt';
+    conditionToken?: TokenCacheData | null;
+    baseToken?: TokenCacheData | null;
+    shiftDirection?: 'to-subnet' | 'from-subnet' | null;
+}) {
+    const {
+        selectedFromToken, selectedToToken, displayAmount, useSubnetFrom, useSubnetTo,
+        mode, targetPrice, conditionDir = 'gt', conditionToken, baseToken, shiftDirection
+    } = params;
+
+    // Build URL parameters
+    const urlParams = new URLSearchParams();
+    if (selectedFromToken) urlParams.set('fromSymbol', selectedFromToken.symbol);
+    if (selectedToToken) urlParams.set('toSymbol', selectedToToken.symbol);
+    if (displayAmount) urlParams.set('amount', displayAmount);
+    if (useSubnetFrom) urlParams.set('fromSubnet', '1');
+    if (useSubnetTo) urlParams.set('toSubnet', '1');
+
+    if (mode === 'order') {
+        urlParams.set('mode', 'order');
+        if (targetPrice) urlParams.set('targetPrice', targetPrice);
+        urlParams.set('direction', conditionDir);
+        // Include extra order params for deep-linking
+        const condSymbol = (conditionToken || selectedToToken)?.symbol;
+        if (condSymbol) urlParams.set('conditionToken', condSymbol);
+        if (baseToken) urlParams.set('baseAsset', baseToken.symbol);
+    }
+
+    const shareUrl = `${window.location.origin}/swap?${urlParams.toString()}`;
+    const toTag = selectedToToken ? `$${selectedToToken.symbol}` : '';
+
+    // Create tweet text
+    let text: string;
+    if (mode === 'order') {
+        text = `Planning an order on Charisma: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} when price ${conditionDir === 'lt' ? '≤' : '≥'} ${targetPrice}. `;
+    } else {
+        // Swap mode
+        if (shiftDirection === 'to-subnet') {
+            text = `Subnet deposit: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} (subnet) via Charisma`;
+        } else if (shiftDirection === 'from-subnet') {
+            text = `Subnet swap: ${displayAmount || ''} ${selectedFromToken?.symbol} (subnet) → ${toTag} via Charisma`;
+        } else {
+            text = `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${toTag} on Charisma`;
+        }
+    }
+
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+
+    return { shareUrl, tweetUrl, text };
+}
 
 export default function SwapHeader() {
     const {
         mode,
         setMode,
-        securityLevel,
-        handleShare,
         selectedFromToken,
+        selectedToToken,
+        displayAmount,
+        useSubnetFrom,
+        useSubnetTo,
+        targetPrice,
+        conditionDir,
+        conditionToken,
+        baseToken,
         hasBothVersions,
+    } = useSwapTokens();
+
+    const {
         isProMode,
-        setIsProMode
-    } = useSwapContext();
+        setIsProMode,
+        securityLevel,
+        shiftDirection,
+    } = useRouterTrading();
+
+    // Create local handleShare function using the pure function
+    const handleShare = useCallback(() => {
+        if (typeof window === 'undefined') return;
+
+        const { tweetUrl } = createShareData({
+            selectedFromToken,
+            selectedToToken,
+            displayAmount,
+            useSubnetFrom,
+            useSubnetTo,
+            mode,
+            targetPrice,
+            conditionDir,
+            conditionToken,
+            baseToken,
+            shiftDirection
+        });
+
+        window.open(tweetUrl, '_blank');
+    }, [selectedFromToken, selectedToToken, displayAmount, useSubnetFrom, useSubnetTo, mode, targetPrice, conditionDir, conditionToken, baseToken, shiftDirection]);
 
     // Check if order mode should be disabled based on from token subnet compatibility
     const isOrderModeDisabled = !hasBothVersions(selectedFromToken);

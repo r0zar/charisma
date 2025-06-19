@@ -3,11 +3,15 @@
 import React, { useState } from 'react';
 import TokenLogo from '../TokenLogo';
 import Image from 'next/image';
-import { useSwapContext } from '../../contexts/swap-context';
 import { Hop } from 'dexterity-sdk';
 import { TokenCacheData } from '@repo/tokens';
 import { Info, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { formatTokenAmount } from '@/lib/swap-utils';
+import { useBlaze } from 'blaze-sdk';
+import { formatPriceUSD } from '@/lib/utils';
 
 // Pool image with fallback for LP vaults
 function PoolImageWithFallback({ src, alt }: { src?: string; alt?: string }) {
@@ -39,17 +43,23 @@ export default function SwapDetails() {
     // Get swap state from context
     const {
         quote,
-        selectedToToken,
-        microAmount,
-        tokenPrices,
-        isLoadingPrices,
         isLoadingQuote,
-        formatTokenAmount,
         totalPriceImpact,
         priceImpacts,
         securityLevel,
-        formatUsd,
-    } = useSwapContext();
+    } = useRouterTrading();
+
+    const {
+        selectedToToken,
+        displayAmount,
+    } = useSwapTokens();
+
+
+    const {
+        getPrice,
+        balances,
+        prices
+    } = useBlaze();
 
     if (!quote || isLoadingQuote) return null;
 
@@ -230,14 +240,14 @@ export default function SwapDetails() {
                                                 <div className="font-medium text-sm sm:text-base">
                                                     {quote.path[0].symbol}
                                                     <span className="font-normal ml-1 text-xs text-muted-foreground">
-                                                        ({formatTokenAmount(Number(microAmount), quote.path[0].decimals || 6)})
+                                                        ({displayAmount})
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center">
                                                     <span>Start</span>
-                                                    {tokenPrices && tokenPrices[quote.path[0].contractId] && (
+                                                    {prices && prices[quote.path[0].contractId] && (
                                                         <span className="ml-1">
-                                                            ~{formatUsd(Number(microAmount) * tokenPrices[quote.path[0].contractId] / (10 ** (quote.path[0].decimals || 6)))}
+                                                            ~{formatPriceUSD(Number(displayAmount))}
                                                         </span>
                                                     )}
                                                 </div>
@@ -298,11 +308,11 @@ export default function SwapDetails() {
                                                             <TokenLogo token={fromToken} size="sm" className="mr-1" />
                                                             <span className="font-medium text-foreground/90">{fromToken.symbol}</span>
                                                             <span className="ml-1 text-xs text-muted-foreground">
-                                                                {idx === 0 ? `(${formatTokenAmount(Number(microAmount), fromToken.decimals || 6)})` : `(${formatTokenAmount(Number(hop.quote?.amountIn), fromToken.decimals || 6)})`}
+                                                                {idx === 0 ? `(${displayAmount})` : `(${formatTokenAmount(Number(hop.quote?.amountIn), fromToken.decimals || 6)})`}
                                                             </span>
                                                             {/* Add USD value */}
                                                             {priceImpact && priceImpact.fromValueUsd !== null && (
-                                                                <span className="ml-1">~{formatUsd(priceImpact.fromValueUsd)}</span>
+                                                                <span className="ml-1">~{formatPriceUSD(priceImpact.fromValueUsd)}</span>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center whitespace-nowrap">
@@ -313,7 +323,7 @@ export default function SwapDetails() {
                                                             </span>
                                                             {/* Add USD value */}
                                                             {priceImpact && priceImpact.toValueUsd !== null && (
-                                                                <span className="ml-1">~{formatUsd(priceImpact.toValueUsd)}</span>
+                                                                <span className="ml-1">~{formatPriceUSD(priceImpact.toValueUsd)}</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -335,9 +345,9 @@ export default function SwapDetails() {
                                                                 <div className="font-medium text-sm sm:text-base">{toToken.symbol}</div>
                                                                 <div className="text-xs text-muted-foreground flex items-center">
                                                                     <span>Intermediate</span>
-                                                                    {tokenPrices && tokenPrices[toToken.contractId] && (
+                                                                    {prices && prices[toToken.contractId] && (
                                                                         <span className="ml-1">
-                                                                            ~{formatUsd(Number(hop.quote?.amountOut) * tokenPrices[toToken.contractId] / (10 ** (toToken.decimals || 6)))}
+                                                                            ~{formatPriceUSD(Number(hop.quote?.amountOut) * prices[toToken.contractId].price / (10 ** (toToken.decimals || 6)))}
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -379,9 +389,9 @@ export default function SwapDetails() {
                                                                 : 'Destination'
                                                         }
                                                     </span>
-                                                    {tokenPrices && tokenPrices[quote.path[quote.path.length - 1].contractId] && (
+                                                    {prices && prices[quote.path[quote.path.length - 1].contractId] && (
                                                         <span className="ml-1 text-xs text-muted-foreground">
-                                                            ~{formatUsd(Number(quote.amountOut) * tokenPrices[quote.path[quote.path.length - 1].contractId] / (10 ** (quote.path[quote.path.length - 1].decimals || 6)))}
+                                                            ~{formatPriceUSD(Number(quote.amountOut) * prices[quote.path[quote.path.length - 1].contractId].price / (10 ** (quote.path[quote.path.length - 1].decimals || 6)))}
                                                         </span>
                                                     )}
                                                 </div>
@@ -394,7 +404,7 @@ export default function SwapDetails() {
                     )}
 
                     {/* Total price impact summary */}
-                    {quote && totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingPrices && (
+                    {quote && totalPriceImpact && totalPriceImpact.priceImpact !== null && (
                         <div className="flex justify-between items-center pt-3 border-t border-border/30 flex-wrap gap-y-1">
                             <span className="text-muted-foreground flex items-center whitespace-nowrap">
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -409,10 +419,10 @@ export default function SwapDetails() {
                             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 justify-end w-full sm:w-auto">
                                 <div className="text-xs flex items-center flex-wrap gap-x-1">
                                     <span className="text-muted-foreground">Input:</span>
-                                    <span className="text-foreground/90">{formatUsd(totalPriceImpact.inputValueUsd)}</span>
+                                    <span className="text-foreground/90">{formatPriceUSD(totalPriceImpact.inputValueUsd)}</span>
                                     <span className="mx-1 text-muted-foreground">→</span>
                                     <span className="text-muted-foreground">Output:</span>
-                                    <span className="text-foreground/90">{formatUsd(totalPriceImpact.outputValueUsd)}</span>
+                                    <span className="text-foreground/90">{formatPriceUSD(totalPriceImpact.outputValueUsd)}</span>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded-sm text-xs font-medium whitespace-nowrap ${totalPriceImpact.priceImpact > 0
                                     ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'

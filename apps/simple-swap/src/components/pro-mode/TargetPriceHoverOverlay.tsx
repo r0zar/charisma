@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 interface TargetPriceHoverOverlayProps {
     chartContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -34,7 +34,7 @@ export default function TargetPriceHoverOverlay({
     const {
         selectedFromToken,
         selectedToToken,
-    } = useSwapContext();
+    } = useSwapTokens();
 
     // Stable condition check - cache the tokens to prevent re-renders from clearing the overlay
     const [cachedTokens, setCachedTokens] = useState<{ from: any, to: any } | null>(null);

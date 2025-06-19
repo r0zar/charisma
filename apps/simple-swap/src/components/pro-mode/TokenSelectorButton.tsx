@@ -2,9 +2,9 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import TokenLogo from '../TokenLogo';
 import { TokenCacheData } from '@repo/tokens';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 interface TokenSelectorButtonProps {
     selectionType: 'from' | 'to' | 'tradingPairBase' | 'tradingPairQuote';
@@ -30,7 +30,7 @@ export default function TokenSelectorButton({
     const {
         selectedFromToken,
         selectedToToken
-    } = useSwapContext();
+    } = useSwapTokens();
 
     // Get the current token based on selection type
     const getCurrentToken = (): TokenCacheData | null => {

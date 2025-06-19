@@ -8,10 +8,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import TokenSelectorButton from './TokenSelectorButton';
 import PerpetualOrderCreationDialog from './PerpetualOrderCreationDialog';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useTradingState } from '../../hooks/useTradingState';
 import { TokenCacheData } from '@repo/tokens';
 import MarginControlsCompact from './MarginControlsCompact';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { formatPriceUSD } from '@/lib/utils';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -72,11 +73,7 @@ export default function PerpetualOrderForm() {
     const {
         selectedFromToken,
         selectedToToken,
-        displayTokens,
-        getUsdPrice,
-        formatUsd,
-        allTokenBalances,
-    } = useSwapContext();
+    } = useSwapTokens();
 
     const {
         marginAccount,
@@ -439,7 +436,7 @@ export default function PerpetualOrderForm() {
                                         </div>
                                         <div className={`font-medium ${canOpenPosition(perpetualMarginRequired) ? 'text-muted-foreground' : 'text-red-500'
                                             }`}>
-                                            {formatUsd(perpetualMarginRequired)}
+                                            {formatPriceUSD(perpetualMarginRequired)}
                                             {!canOpenPosition(perpetualMarginRequired) && (
                                                 <span className="ml-1 text-red-500">⚠️</span>
                                             )}
@@ -462,7 +459,7 @@ export default function PerpetualOrderForm() {
                                                 </TooltipContent>
                                             </Tooltip>
                                         </div>
-                                        <div className="font-medium text-red-500/70">{formatUsd(perpetualLiquidationPrice)}</div>
+                                        <div className="font-medium text-red-500/70">{formatPriceUSD(perpetualLiquidationPrice)}</div>
                                     </div>
                                 )}
                             </div>

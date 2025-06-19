@@ -5,9 +5,10 @@ import TokenDropdown from '../TokenDropdown';
 import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
-import { useSwapContext } from '../../contexts/swap-context';
 import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
+import { useWallet } from '@/contexts/wallet-context';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -18,11 +19,6 @@ export default function TokenInputSection() {
         selectedFromToken,
         displayAmount,
         setDisplayAmount,
-        setMicroAmount,
-        convertToMicroUnits,
-        fromTokenBalance,
-        isLoadingPrices,
-        fromTokenValueUsd,
         displayTokens,
         subnetDisplayTokens,
         displayedFromToken,
@@ -30,14 +26,17 @@ export default function TokenInputSection() {
         useSubnetFrom,
         setUseSubnetFrom,
         setSelectedFromTokenSafe,
-        baseSelectedFromToken,
         setBaseSelectedFromToken,
         tokenCounterparts,
-        allTokenBalances,
-    } = useSwapContext();
+    } = useSwapTokens();
 
-    const { prices } = useBlaze();
+    const { address } = useWallet();
+
+    const { prices, balances } = useBlaze({ userId: address });
     const price = prices[selectedFromToken?.contractId ?? ''];
+
+    // Get balances for the current token
+    const fromTokenBalance = balances[selectedFromToken?.contractId!];
 
     // Determine which tokens to show and other props based on mode
     const label = 'You send';
@@ -73,7 +72,6 @@ export default function TokenInputSection() {
                     setSelectedFromTokenSafe(targetToken);
                     setBaseSelectedFromToken(targetToken);
                     setUseSubnetFrom(!useSubnetFrom);
-                    setMicroAmount(convertToMicroUnits(displayAmount, targetToken.decimals!));
                 }
             }
         }
@@ -82,12 +80,7 @@ export default function TokenInputSection() {
     const handleSetMax = () => {
         if (!selectedFromToken) return;
 
-        // Get raw balance from the allTokenBalances map instead of formatted string
-        const rawBalance = allTokenBalances.get(selectedFromToken.contractId) || 0;
-        const rawBalanceString = rawBalance.toString();
-
-        setDisplayAmount(rawBalanceString);
-        setMicroAmount(convertToMicroUnits(rawBalanceString, selectedFromToken.decimals!));
+        setDisplayAmount(fromTokenBalance.balance);
     };
 
     return (
@@ -109,7 +102,7 @@ export default function TokenInputSection() {
 
                 {selectedFromToken && (
                     <div className="text-xs text-muted-foreground flex items-center gap-1 bg-background/40 px-2 py-0.5 rounded-full self-start">
-                        Balance: <span className="font-semibold text-foreground">{fromTokenBalance}</span> {selectedFromToken.symbol}
+                        Balance: <span className="font-semibold text-foreground">{fromTokenBalance?.balance}</span> {selectedFromToken.symbol}
                         {/* Conditionally render Flame toggle */}
                         {hasBothVersionsForToken && (
                             <button
@@ -147,9 +140,6 @@ export default function TokenInputSection() {
                         const v = e.target.value;
                         if (/^[0-9]*\.?[0-9]*$/.test(v) || v === "") {
                             setDisplayAmount(v);
-                            if (selectedFromToken) {
-                                setMicroAmount(convertToMicroUnits(v, selectedFromToken.decimals!));
-                            }
                         }
                     }}
                     placeholder="0.00"
@@ -166,15 +156,7 @@ export default function TokenInputSection() {
                 </div>
             </div>
             <div className="text-xs text-muted-foreground mt-1.5 h-4 flex items-center">
-                {isLoadingPrices ? (
-                    <div className="flex items-center space-x-1">
-                        <span className="h-2 w-2 bg-primary/30 rounded-full animate-pulse"></span>
-                        <span className="animate-pulse">Loading price...</span>
-                    </div>
-                ) : price !== undefined ? (
-                    // Use the passed formatted value directly
-                    <span>{formatPriceUSD(price.price * Number(displayAmount))}</span>
-                ) : null}
+                <span>{formatPriceUSD(price?.price * Number(displayAmount))}</span>
             </div>
 
             {/* collapsible chart */}

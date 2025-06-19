@@ -4,10 +4,12 @@ import React, { useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import TokenSelectorButton from './TokenSelectorButton';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import SandwichCreationDialog from './SandwichCreationDialog';
 import { TokenCacheData } from '@repo/tokens';
 import { ArrowUpDown, Lock, Unlock } from 'lucide-react';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
+import { formatPriceUSD } from '@/lib/utils';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -49,8 +51,6 @@ export default function SandwichOrderForm() {
         setSandwichSpread,
         handleCreateSandwichOrder,
         isSubmitting,
-        tradingPairBase,
-        setTradingPairBase,
         lockTradingPairToSwapTokens,
         setLockTradingPairToSwapTokens,
         handleSandwichSpreadChange,
@@ -58,18 +58,13 @@ export default function SandwichOrderForm() {
 
     const {
         selectedFromToken,
-        setSelectedFromTokenSafe,
         selectedToToken,
-        setSelectedToToken,
-        displayTokens,
-        fromTokenBalance,
-        toTokenBalance,
-        getUsdPrice,
-        formatUsd,
-        conditionToken,
-        setConditionToken,
-        allTokenBalances,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const {
+        balances,
+        getPrice,
+    } = useBlaze();
 
     // Keep track of current spread value without causing re-renders
     useEffect(() => {
@@ -260,13 +255,13 @@ export default function SandwichOrderForm() {
                                 className="w-full"
                             />
                             {selectedFromToken && (() => {
-                                const balance = allTokenBalances.get(selectedFromToken.contractId);
+                                const balance = balances[selectedFromToken.contractId];
                                 if (balance !== undefined) {
-                                    const price = getUsdPrice(selectedFromToken.contractId);
+                                    const price = getPrice(selectedFromToken.contractId);
                                     return (
                                         <div className="text-xs text-muted-foreground">
-                                            Balance: {formatTokenBalance(balance, selectedFromToken)} {selectedFromToken.symbol}
-                                            {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                            Balance: {formatTokenBalance(Number(balance.balance), selectedFromToken)} {selectedFromToken.symbol}
+                                            {price && Number(balance.balance) > 0 ? ` (≈ ${formatPriceUSD(price * Number(balance.balance))})` : ''}
                                         </div>
                                     );
                                 }
@@ -283,13 +278,13 @@ export default function SandwichOrderForm() {
                                 className="w-full"
                             />
                             {selectedToToken && (() => {
-                                const balance = allTokenBalances.get(selectedToToken.contractId);
+                                const balance = balances[selectedToToken.contractId];
                                 if (balance !== undefined) {
-                                    const price = getUsdPrice(selectedToToken.contractId);
+                                    const price = getPrice(selectedToToken.contractId);
                                     return (
                                         <div className="text-xs text-muted-foreground">
-                                            Balance: {formatTokenBalance(balance, selectedToToken)} {selectedToToken.symbol}
-                                            {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                            Balance: {formatTokenBalance(Number(balance.balance), selectedToToken)} {selectedToToken.symbol}
+                                            {price && Number(balance.balance) > 0 ? ` (≈ ${formatPriceUSD(price * Number(balance.balance))})` : ''}
                                         </div>
                                     );
                                 }

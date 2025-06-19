@@ -34,10 +34,10 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   const currentUserSubscription = useRef<string | null>(null);
 
   // Determine host based on environment
-  const isDev = typeof window !== 'undefined' && 
+  const isDev = typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const partyHost = host || (isDev ? 
-    (typeof window !== 'undefined' ? `${window.location.hostname}:1999` : 'localhost:1999') : 
+  const partyHost = host || (isDev ?
+    (typeof window !== 'undefined' ? `${window.location.hostname}:1999` : 'localhost:1999') :
     'charisma-party.r0zar.partykit.dev');
 
   // Prices socket
@@ -64,7 +64,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         switch (data.type) {
           case 'PRICE_UPDATE':
             setPrices(prev => ({
@@ -129,7 +129,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         switch (data.type) {
           case 'BALANCE_UPDATE':
             // Extract base contractId (before :: if present)
@@ -138,11 +138,33 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
               setBalances(prev => ({
                 ...prev,
                 [`${data.userId}:${baseContractId}`]: {
-                  balance: data.balance,
+                  balance: String(data.balance || 0),
                   totalSent: data.totalSent || '0',
                   totalReceived: data.totalReceived || '0',
                   timestamp: data.timestamp || Date.now(),
-                  source: data.source || 'realtime'
+                  source: data.source || 'realtime',
+                  // Subnet balance fields
+                  subnetBalance: data.subnetBalance,
+                  formattedSubnetBalance: data.formattedSubnetBalance,
+                  subnetContractId: data.subnetContractId,
+                  // Enhanced metadata fields
+                  name: data.name,
+                  symbol: data.symbol,
+                  decimals: data.decimals,
+                  description: data.description,
+                  image: data.image,
+                  total_supply: data.total_supply,
+                  type: data.tokenType,
+                  identifier: data.identifier,
+                  token_uri: data.token_uri,
+                  lastUpdated: data.lastUpdated,
+                  tokenAContract: data.tokenAContract,
+                  tokenBContract: data.tokenBContract,
+                  lpRebatePercent: data.lpRebatePercent,
+                  externalPoolId: data.externalPoolId,
+                  engineContractId: data.engineContractId,
+                  base: data.baseToken,
+                  formattedBalance: data.formattedBalance
                 }
               }));
               setLastUpdate(Date.now());
@@ -157,11 +179,33 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                 const baseContractId = balance.contractId?.split('::')[0];
                 if (baseContractId && balance.userId && balance.balance !== undefined) {
                   newBalances[`${balance.userId}:${baseContractId}`] = {
-                    balance: balance.balance,
+                    balance: String(balance.balance || 0),
                     totalSent: balance.totalSent || '0',
                     totalReceived: balance.totalReceived || '0',
                     timestamp: balance.timestamp || Date.now(),
-                    source: balance.source || 'realtime'
+                    source: balance.source || 'realtime',
+                    // Subnet balance fields
+                    subnetBalance: balance.subnetBalance,
+                    formattedSubnetBalance: balance.formattedSubnetBalance,
+                    subnetContractId: balance.subnetContractId,
+                    // Enhanced metadata fields
+                    name: balance.name,
+                    symbol: balance.symbol,
+                    decimals: balance.decimals,
+                    description: balance.description,
+                    image: balance.image,
+                    total_supply: balance.total_supply,
+                    type: balance.tokenType,
+                    identifier: balance.identifier,
+                    token_uri: balance.token_uri,
+                    lastUpdated: balance.lastUpdated,
+                    tokenAContract: balance.tokenAContract,
+                    tokenBContract: balance.tokenBContract,
+                    lpRebatePercent: balance.lpRebatePercent,
+                    externalPoolId: balance.externalPoolId,
+                    engineContractId: balance.engineContractId,
+                    base: balance.baseToken,
+                    formattedBalance: balance.formattedBalance
                   };
                 }
               });
@@ -203,7 +247,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   // Internal function to manage balance subscriptions (memoized)
   const subscribeToUserBalances = useCallback((userId: string) => {
     if (currentUserSubscription.current === userId) return;
-    
+
     // Unsubscribe from previous user if any
     if (currentUserSubscription.current && balancesSocket) {
       balancesSocket.send(JSON.stringify({
@@ -263,7 +307,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
 // Custom hook to use the Blaze context with configuration
 export function useBlaze(config?: BlazeConfig): BlazeData {
   const context = useContext(BlazeContext);
-  
+
   if (context === undefined) {
     throw new Error('useBlaze must be used within a BlazeProvider');
   }

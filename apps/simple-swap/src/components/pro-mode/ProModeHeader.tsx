@@ -5,9 +5,9 @@ import { X, ArrowUpDown, Keyboard, Lock, Unlock, Radio, BarChart, Activity, Pane
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
-import TokenSelectorButton from './TokenSelectorButton';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useRouterTrading } from '@/hooks/useRouterTrading';
 
 export default function ProModeHeader() {
     const [showHotkeysDialog, setShowHotkeysDialog] = useState(false);
@@ -15,22 +15,9 @@ export default function ProModeHeader() {
     const {
         selectedOrderType,
         tradingPairBase,
-        setTradingPairBase,
         tradingPairQuote,
-        setTradingPairQuote,
-        targetPrice,
-        setTargetPrice,
-        conditionDir,
-        setConditionDir,
         highlightedOrderId,
         clearHighlightedOrder,
-        handlePriceChange,
-        sandwichBuyPrice,
-        setSandwichBuyPrice,
-        sandwichSellPrice,
-        setSandwichSellPrice,
-        lockTradingPairToSwapTokens,
-        setLockTradingPairToSwapTokens,
         chartType,
         setChartType,
         candleInterval,
@@ -42,11 +29,11 @@ export default function ProModeHeader() {
     } = useProModeContext();
 
     const {
-        displayTokens,
-        setIsProMode,
         selectedFromToken,
         selectedToToken,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const { setIsProMode } = useRouterTrading();
 
     const hotkeys = [
         { key: 'Esc', description: 'Exit Pro mode' },

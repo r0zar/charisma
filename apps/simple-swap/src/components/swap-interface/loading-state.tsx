@@ -1,15 +1,11 @@
 "use client";
 
 import React from 'react';
-import { useSwapContext } from '../../contexts/swap-context';
 
 export default function LoadingState() {
     // Get loading state from context
-    const {
-        isInitializing,
-        isLoadingTokens,
-        isLoadingRouteInfo
-    } = useSwapContext();
+    const isInitializing = false;
+    const isLoadingTokens = false;
 
     return (
         <div className="glass-card p-8 flex flex-col items-center justify-center h-[400px]">

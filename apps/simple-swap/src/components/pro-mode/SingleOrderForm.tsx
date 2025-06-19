@@ -5,9 +5,11 @@ import { Button } from '../ui/button';
 import TokenSelectorButton from './TokenSelectorButton';
 import SingleOrderCreationDialog from './SingleOrderCreationDialog';
 import { useProModeContext } from '../../contexts/pro-mode-context';
-import { useSwapContext } from '../../contexts/swap-context';
 import { TokenCacheData } from '@repo/tokens';
 import { ArrowUpDown, Lock, Unlock } from 'lucide-react';
+import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useBlaze } from 'blaze-sdk';
+import { formatPriceUSD } from '@/lib/utils';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -57,15 +59,9 @@ export default function SingleOrderForm() {
         setSelectedFromTokenSafe,
         selectedToToken,
         setSelectedToToken,
-        displayTokens,
-        fromTokenBalance,
-        toTokenBalance,
-        getUsdPrice,
-        formatUsd,
-        conditionToken,
-        setConditionToken,
-        allTokenBalances,
-    } = useSwapContext();
+    } = useSwapTokens();
+
+    const { getPrice, balances } = useBlaze();
 
     return (
         <div data-order-form="single" className="space-y-6 max-w-6xl">
@@ -187,7 +183,7 @@ export default function SingleOrderForm() {
                                 {selectedFromToken && (
                                     <button
                                         onClick={() => {
-                                            const balance = allTokenBalances.get(selectedFromToken.contractId);
+                                            const balance = Number(balances[selectedFromToken.contractId]?.balance);
                                             if (balance && balance > 0) {
                                                 setDisplayAmount(balance.toString());
                                             }
@@ -206,13 +202,13 @@ export default function SingleOrderForm() {
                                 className="w-full p-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                             />
                             {selectedFromToken && (() => {
-                                const balance = allTokenBalances.get(selectedFromToken.contractId);
+                                const balance = Number(balances[selectedFromToken.contractId]?.balance);
                                 if (balance !== undefined) {
-                                    const price = getUsdPrice(selectedFromToken.contractId);
+                                    const price = getPrice(selectedFromToken.contractId);
                                     return (
                                         <div className="text-xs text-muted-foreground">
                                             Balance: {formatTokenBalance(balance, selectedFromToken)} {selectedFromToken.symbol}
-                                            {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                            {price && balance > 0 ? ` (≈ ${formatPriceUSD(price * balance)})` : ''}
                                         </div>
                                     );
                                 }
@@ -229,13 +225,13 @@ export default function SingleOrderForm() {
                                 className="w-full"
                             />
                             {selectedFromToken && (() => {
-                                const balance = allTokenBalances.get(selectedFromToken.contractId);
+                                const balance = Number(balances[selectedFromToken.contractId]?.balance);
                                 if (balance !== undefined) {
-                                    const price = getUsdPrice(selectedFromToken.contractId);
+                                    const price = getPrice(selectedFromToken.contractId);
                                     return (
                                         <div className="text-xs text-muted-foreground">
                                             Balance: {formatTokenBalance(balance, selectedFromToken)} {selectedFromToken.symbol}
-                                            {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                            {price && balance > 0 ? ` (≈ ${formatPriceUSD(price * balance)})` : ''}
                                         </div>
                                     );
                                 }
@@ -252,13 +248,13 @@ export default function SingleOrderForm() {
                                 className="w-full"
                             />
                             {selectedToToken && (() => {
-                                const balance = allTokenBalances.get(selectedToToken.contractId);
+                                const balance = Number(balances[selectedToToken.contractId]?.balance);
                                 if (balance !== undefined) {
-                                    const price = getUsdPrice(selectedToToken.contractId);
+                                    const price = getPrice(selectedToToken.contractId);
                                     return (
                                         <div className="text-xs text-muted-foreground">
                                             Balance: {formatTokenBalance(balance, selectedToToken)} {selectedToToken.symbol}
-                                            {price && balance > 0 ? ` (≈ ${formatUsd(price * balance)})` : ''}
+                                            {price && balance > 0 ? ` (≈ ${formatPriceUSD(price * balance)})` : ''}
                                         </div>
                                     );
                                 }
