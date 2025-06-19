@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { getQuote, getRoutableTokens, getStxBalance, getTokenBalance } from '../app/actions';
+import { getQuote, getRoutableTokens } from '../app/actions';
 import { buildSwapTransaction, loadVaults, Route, Router } from 'dexterity-sdk';
 import { request } from '@stacks/connect';
 import { TransactionResult } from '@stacks/connect/dist/types/methods';
@@ -13,7 +13,7 @@ import { signTriggeredSwap } from 'blaze-sdk';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf, bufferCV, Pc } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 import { useSwapTokens } from '../contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
+import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
 
 interface BalanceCheckResult {
@@ -74,14 +74,58 @@ export function useRouterTrading() {
     displayAmount,
     displayTokens,
     subnetDisplayTokens,
+    useSubnetFrom,
+    useSubnetTo,
+    tokenCounterparts,
   } = useSwapTokens();
 
   // Get prices from BlazeProvider
   const { prices, balances } = useBlaze({ userId: walletAddress });
 
+  // Determine the actual tokens to use for routing based on subnet toggles
+  const actualFromToken = useMemo(() => {
+    if (!selectedFromToken) return null;
+
+    // If subnet toggle is on, try to get subnet version
+    if (useSubnetFrom) {
+      const baseId = selectedFromToken.type === 'SUBNET'
+        ? selectedFromToken.base!
+        : selectedFromToken.contractId;
+      const counterparts = tokenCounterparts.get(baseId);
+      return counterparts?.subnet || selectedFromToken;
+    }
+
+    // If subnet toggle is off, try to get mainnet version
+    const baseId = selectedFromToken.type === 'SUBNET'
+      ? selectedFromToken.base!
+      : selectedFromToken.contractId;
+    const counterparts = tokenCounterparts.get(baseId);
+    return counterparts?.mainnet || selectedFromToken;
+  }, [selectedFromToken, useSubnetFrom, tokenCounterparts]);
+
+  const actualToToken = useMemo(() => {
+    if (!selectedToToken) return null;
+
+    // If subnet toggle is on, try to get subnet version
+    if (useSubnetTo) {
+      const baseId = selectedToToken.type === 'SUBNET'
+        ? selectedToToken.base!
+        : selectedToToken.contractId;
+      const counterparts = tokenCounterparts.get(baseId);
+      return counterparts?.subnet || selectedToToken;
+    }
+
+    // If subnet toggle is off, try to get mainnet version
+    const baseId = selectedToToken.type === 'SUBNET'
+      ? selectedToToken.base!
+      : selectedToToken.contractId;
+    const counterparts = tokenCounterparts.get(baseId);
+    return counterparts?.mainnet || selectedToToken;
+  }, [selectedToToken, useSubnetTo, tokenCounterparts]);
+
   // Derive microAmount from displayAmount
-  const microAmount = displayAmount && selectedFromToken ?
-    convertToMicroUnits(displayAmount, selectedFromToken.decimals || 6) : '';
+  const microAmount = displayAmount && actualFromToken ?
+    convertToMicroUnits(displayAmount, actualFromToken.decimals || 6) : '';
 
   // Router initialization
   const router = useRef<Router>(new Router({
@@ -104,9 +148,6 @@ export function useRouterTrading() {
 
   // Pro mode state
   const [isProMode, setIsProMode] = useState(false);
-
-  // Counterparts
-  const tokenCounterparts = new Map();
 
   // Initialize router with vaults
   useEffect(() => {
@@ -137,7 +178,7 @@ export function useRouterTrading() {
 
   // Fetch quote when tokens or amount change
   const fetchQuote = useCallback(async () => {
-    if (!selectedFromToken || !selectedToToken) return;
+    if (!actualFromToken || !actualToToken) return;
     const amountNum = Number(microAmount);
     if (isNaN(amountNum) || amountNum <= 0) return;
 
@@ -145,8 +186,8 @@ export function useRouterTrading() {
     setError(null);
     try {
       const result = await getQuote(
-        selectedFromToken.contractId,
-        selectedToToken.contractId,
+        actualFromToken.contractId,
+        actualToToken.contractId,
         microAmount
       );
       if (result && result.data) {
@@ -160,17 +201,17 @@ export function useRouterTrading() {
     } finally {
       setIsLoadingQuote(false);
     }
-  }, [selectedFromToken, selectedToToken, microAmount]);
+  }, [actualFromToken, actualToToken, microAmount]);
 
   // Auto-fetch quote when dependencies change
   useEffect(() => {
-    if (!selectedFromToken || !selectedToToken) return;
+    if (!actualFromToken || !actualToToken) return;
     if (!microAmount || Number(microAmount) <= 0) {
       setQuote(null);
       return;
     }
     fetchQuote();
-  }, [selectedFromToken, selectedToToken, microAmount, fetchQuote]);
+  }, [actualFromToken, actualToToken, microAmount, fetchQuote]);
 
   // Execute swap transaction
   const handleSwap = useCallback(async () => {
@@ -237,21 +278,21 @@ export function useRouterTrading() {
     validTo?: string;
   }) => {
     if (!walletAddress) throw new Error('Connect wallet');
-    if (!selectedFromToken || !selectedToToken) throw new Error('Select tokens');
+    if (!actualFromToken || !actualToToken) throw new Error('Select tokens');
 
     const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
-    const micro = convertToMicroUnits(opts.amountDisplay, selectedFromToken.decimals || 6);
+    const micro = convertToMicroUnits(opts.amountDisplay, actualFromToken.decimals || 6);
 
     const signature = await signTriggeredSwap({
-      subnet: selectedFromToken.contractId!,
+      subnet: actualFromToken.contractId!,
       uuid,
       amount: BigInt(micro),
     });
 
     const payload: Record<string, unknown> = {
       owner: walletAddress,
-      inputToken: selectedFromToken.contractId,
-      outputToken: selectedToToken.contractId,
+      inputToken: actualFromToken.contractId,
+      outputToken: actualToToken.contractId,
       amountIn: micro,
       targetPrice: opts.targetPrice,
       direction: opts.direction,
@@ -278,7 +319,7 @@ export function useRouterTrading() {
     setOrderSuccessInfo({ success: true });
 
     return await res.json();
-  }, [walletAddress, selectedFromToken, selectedToToken]);
+  }, [walletAddress, actualFromToken, actualToToken]);
 
   // Callback for DcaDialog to create a single slice order
   const createSingleOrder = useCallback(async ({ amountDisplay, validFrom, validTo }: {
@@ -301,7 +342,7 @@ export function useRouterTrading() {
 
   // ===================== BALANCE CHECKING FUNCTIONALITY =====================
 
-  // Fast balance check that shows dialog immediately, then loads swap options progressively
+  // Fast balance check using enhanced balance feed
   const checkBalanceForOrder = useCallback(async (
     token: TokenCacheData,
     amount: string,
@@ -321,45 +362,24 @@ export function useRouterTrading() {
       };
     }
 
-    // Step 1: Quick check of just the required tokens (subnet + mainnet versions)
+    // Step 1: Quick check using enhanced balance feed
     const counterparts = tokenCounterparts.get(token.type === 'SUBNET' ? token.base! : token.contractId);
     const subnetToken = token.type === 'SUBNET' ? token : counterparts?.subnet;
     const mainnetToken = token.type === 'SUBNET' ? counterparts?.mainnet : token;
 
-    // Fast balance check using direct API calls
-    const balancePromises = [];
+    // Get balances from enhanced balance feed
+    let subnetBalance = 0;
+    let mainnetBalance = 0;
+
     if (subnetToken) {
-      balancePromises.push(
-        (async () => {
-          let rawBalance = 0;
-          if (subnetToken.contractId === ".stx") {
-            rawBalance = await getStxBalance(userAddress);
-          } else {
-            rawBalance = await getTokenBalance(subnetToken.contractId, userAddress);
-          }
-          const numericBalance = rawBalance / Math.pow(10, subnetToken.decimals || 6);
-          return { token: subnetToken, balance: numericBalance };
-        })()
-      );
-    }
-    if (mainnetToken && mainnetToken.contractId !== subnetToken?.contractId) {
-      balancePromises.push(
-        (async () => {
-          let rawBalance = 0;
-          if (mainnetToken.contractId === ".stx") {
-            rawBalance = await getStxBalance(userAddress);
-          } else {
-            rawBalance = await getTokenBalance(mainnetToken.contractId, userAddress);
-          }
-          const numericBalance = rawBalance / Math.pow(10, mainnetToken.decimals || 6);
-          return { token: mainnetToken, balance: numericBalance };
-        })()
-      );
+      const subnetBalanceData = balances[`${userAddress}:${subnetToken.contractId}`];
+      subnetBalance = subnetBalanceData?.formattedBalance ?? 0;
     }
 
-    const requiredBalances = await Promise.all(balancePromises);
-    const subnetBalance = requiredBalances.find(b => b.token.contractId === subnetToken?.contractId)?.balance || 0;
-    const mainnetBalance = requiredBalances.find(b => b.token.contractId === mainnetToken?.contractId)?.balance || 0;
+    if (mainnetToken && mainnetToken.contractId !== subnetToken?.contractId) {
+      const mainnetBalanceData = balances[`${userAddress}:${mainnetToken.contractId}`];
+      mainnetBalance = mainnetBalanceData?.formattedBalance ?? 0;
+    }
 
     const hasEnoughSubnet = subnetBalance >= requiredAmount;
     const hasEnoughMainnet = mainnetBalance >= requiredAmount;
@@ -414,12 +434,16 @@ export function useRouterTrading() {
     const seenTokens = new Set<string>();
     const swapPromises: Promise<SwapOption | null>[] = [];
 
-    // Get all user balances first
-    const allBalances = balances
+    // Get all user balances from enhanced balance feed
+    const allBalances = balances;
 
     // For each token the user has a balance in, check if we can swap it for the target
-    for (const [contractId, userBalance] of Object.entries(allBalances)) {
-      const numericBalance = Number(userBalance!.balance);
+    for (const [balanceKey, userBalance] of Object.entries(allBalances)) {
+      // Extract contractId from the balance key format: "userId:contractId"
+      const [, contractId] = balanceKey.split(':');
+      if (!contractId) continue;
+
+      const numericBalance = userBalance.formattedBalance ?? 0;
       if (numericBalance <= 0.001) continue; // Skip tiny balances
 
       const sourceToken = [...displayTokens, ...subnetDisplayTokens].find(t => t.contractId === contractId);
@@ -609,13 +633,13 @@ export function useRouterTrading() {
 
     // Calculate total price impact
     let totalImpact: TotalPriceImpact | null = null;
-    if (selectedFromToken && selectedToToken && microAmount) {
-      const fromPrice = getPrice(selectedFromToken.contractId);
-      const toPrice = getPrice(selectedToToken.contractId);
+    if (actualFromToken && actualToToken && microAmount) {
+      const fromPrice = getPrice(actualFromToken.contractId);
+      const toPrice = getPrice(actualToToken.contractId);
 
       if (fromPrice !== undefined && toPrice !== undefined) {
-        const inputValueUsd = Number(microAmount) * fromPrice / (10 ** selectedFromToken.decimals!);
-        const outputValueUsd = Number(quote.amountOut) * toPrice / (10 ** selectedToToken.decimals!);
+        const inputValueUsd = Number(microAmount) * fromPrice / (10 ** actualFromToken.decimals!);
+        const outputValueUsd = Number(quote.amountOut) * toPrice / (10 ** actualToToken.decimals!);
 
         if (!isNaN(inputValueUsd) && !isNaN(outputValueUsd) && inputValueUsd !== 0) {
           const priceImpact = ((outputValueUsd / inputValueUsd) - 1) * 100;
@@ -629,7 +653,7 @@ export function useRouterTrading() {
     }
 
     return { priceImpacts: hopImpacts, totalPriceImpact: totalImpact };
-  }, [quote, prices, selectedFromToken, selectedToToken, microAmount]);
+  }, [quote, prices, actualFromToken, actualToToken, microAmount]);
 
   // ---------------------- Security Level ----------------------
   const securityLevel = useMemo((): 'high' | 'medium' | 'low' => {
@@ -648,9 +672,9 @@ export function useRouterTrading() {
 
   // Get shift direction for label customization
   const shiftDirection = useMemo((): 'to-subnet' | 'from-subnet' | null => {
-    if (!isSubnetShift || !selectedToToken) return null;
-    return selectedToToken.contractId.includes('-subnet') ? 'to-subnet' : 'from-subnet';
-  }, [isSubnetShift, selectedToToken]);
+    if (!isSubnetShift || !actualToToken) return null;
+    return actualToToken.contractId.includes('-subnet') ? 'to-subnet' : 'from-subnet';
+  }, [isSubnetShift, actualToToken]);
 
   // Custom label based on operation type
   const toLabel = useMemo(() => {

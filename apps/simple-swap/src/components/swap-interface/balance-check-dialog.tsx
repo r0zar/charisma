@@ -103,10 +103,24 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
     };
 
     const formatBalance = (balance: number, decimals: number = 6) => {
-        return balance.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: Math.min(decimals, 4)
-        });
+        // Use similar formatting logic to balance feed for consistency
+        if (balance === 0) return '0';
+        if (balance < 0.001) {
+            return balance.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: Math.min(decimals, 8)
+            });
+        } else if (balance < 1) {
+            return balance.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: Math.min(decimals, 6)
+            });
+        } else {
+            return balance.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: Math.min(decimals, 4)
+            });
+        }
     };
 
     return (

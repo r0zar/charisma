@@ -2,14 +2,17 @@
 
 import React, { useState } from 'react';
 import TokenDropdown from '../TokenDropdown';
-import { Flame, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
-import { useBlaze } from 'blaze-sdk';
+import { useBlaze } from 'blaze-sdk/realtime';
 import { formatPriceUSD } from '@/lib/utils';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
-import { formatTokenAmount } from '@/lib/swap-utils';
+import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
+import { useWallet } from '@/contexts/wallet-context';
+import { BalanceTooltip } from '@/components/ui/tooltip';
 
 export default function TokenOutputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -30,11 +33,12 @@ export default function TokenOutputSection() {
 
     const { quote, isLoadingQuote, totalPriceImpact, toLabel } = useRouterTrading();
 
-    // Get balance data directly from useSwapBalances
-    const { balances, prices } = useBlaze();
+    // Get balance data from BlazeProvider with user-specific balances
+    const { address } = useWallet();
+    const { balances, prices } = useBlaze({ userId: address });
 
-    // Get balance for the current token
-    const toTokenBalance = selectedToToken ? balances[selectedToToken.contractId]?.balance : "0";
+    // Get enhanced balance data for the current token
+    const toTokenBalance = selectedToToken && address ? balances[`${address}:${selectedToToken.contractId}`] : null;
     const price = prices[selectedToToken?.contractId ?? ''];
 
     // Determine props based on mode and state
@@ -45,7 +49,36 @@ export default function TokenOutputSection() {
         type: useSubnetTo ? 'SUBNET' as const : displayedToToken.type
     } : null;
     const tokensToShow = displayTokens;
+    const isSubnetSelected = useSubnetTo;
     const hasBothVersionsForToken = hasBothVersions(selectedToToken);
+
+    // Calculate compact balance display and tooltip content
+    const { compactBalance, tooltipData } = React.useMemo(() => {
+        if (!toTokenBalance) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined } };
+
+        const mainnetBalance = Number(toTokenBalance.formattedBalance ?? 0);
+        const subnetBalance = Number(toTokenBalance.formattedSubnetBalance ?? 0);
+        const hasSubnet = toTokenBalance.subnetBalance !== undefined;
+
+        // Determine active balance based on subnet toggle
+        const activeBalance = isSubnetSelected && hasSubnet ? subnetBalance : mainnetBalance;
+
+        // Create compact display
+        const compact = formatCompactNumber(activeBalance);
+
+        // Create tooltip data
+        const activeLabel = isSubnetSelected && hasSubnet ? 'Subnet' : 'Mainnet';
+        const tooltipData = {
+            mainnet: mainnetBalance.toLocaleString(),
+            subnet: hasSubnet ? subnetBalance.toLocaleString() : undefined,
+            activeLabel: activeLabel
+        };
+
+        return {
+            compactBalance: compact,
+            tooltipData
+        };
+    }, [toTokenBalance, isSubnetSelected]);
 
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
     const quoteHops = quote ? quote.path.length - 1 : null;
@@ -64,21 +97,10 @@ export default function TokenOutputSection() {
     };
 
     const handleToggleSubnet = () => {
-        if (selectedToToken) {
-            // Toggle between mainnet and subnet versions
-            const baseId = selectedToToken.type === 'SUBNET'
-                ? selectedToToken.base!
-                : selectedToToken.contractId;
-            const counterparts = tokenCounterparts.get(baseId);
-
-            if (counterparts) {
-                const targetToken = useSubnetTo ? counterparts.mainnet : counterparts.subnet;
-                if (targetToken) {
-                    setSelectedToToken(targetToken);
-                    setBaseSelectedToToken(targetToken);
-                    setUseSubnetTo(!useSubnetTo);
-                }
-            }
+        if (selectedToToken && hasBothVersionsForToken) {
+            // Simply toggle the subnet flag - no need to change tokens
+            // The enhanced balance feed handles both mainnet and subnet balances
+            setUseSubnetTo(!useSubnetTo);
         }
     };
 
@@ -111,19 +133,31 @@ export default function TokenOutputSection() {
                 </div>
 
                 {selectedToToken && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-1 bg-background/40 px-2 py-0.5 rounded-full self-start">
-                        Balance: <span className="font-semibold text-foreground">{toTokenBalance}</span> {selectedToToken.symbol}
-                        {hasBothVersionsForToken && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 bg-background/40 px-2 py-1 rounded-lg self-start">
+                        <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
+                            <span className={`cursor-help font-semibold ${isSubnetSelected && toTokenBalance?.subnetBalance !== undefined ? 'text-purple-600 dark:text-purple-400' : 'text-foreground'}`}>
+                                {compactBalance} {selectedToToken.symbol}
+                            </span>
+                        </BalanceTooltip>
+                        {/* TokenLogo showing subnet state */}
+                        {hasBothVersionsForToken && selectedToToken && (
                             <button
                                 onClick={handleToggleSubnet}
-                                className={`ml-1 p-0.5 cursor-pointer rounded-full transition-colors ${useSubnetTo ? 'text-red-500' : 'text-muted-foreground/50'}`}
+                                className="ml-1 cursor-pointer transition-opacity hover:opacity-80"
                                 title={
-                                    useSubnetTo
+                                    isSubnetSelected
                                         ? "Using Subnet Token - Click to use Mainnet"
                                         : "Using Mainnet Token - Click to use Subnet"
                                 }
                             >
-                                <Flame size={14} />
+                                <TokenLogo
+                                    token={{
+                                        ...selectedToToken,
+                                        type: isSubnetSelected ? 'SUBNET' : selectedToToken.type
+                                    }}
+                                    size="sm"
+                                    suppressFlame={!isSubnetSelected}
+                                />
                             </button>
                         )}
                     </div>
@@ -162,6 +196,7 @@ export default function TokenOutputSection() {
                         selected={displayedToken}
                         onSelect={handleSelectToken}
                         label=""
+                        showBalances={true}
                     />
                 </div>
             </div>

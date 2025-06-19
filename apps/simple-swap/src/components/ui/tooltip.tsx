@@ -63,4 +63,64 @@ export function InfoTooltip({ content, children, side = "top" }: TooltipProps) {
     );
 }
 
+interface BalanceTooltipProps {
+    mainnet: string;
+    subnet?: string;
+    activeLabel: string;
+    children?: React.ReactNode;
+    side?: "top" | "bottom" | "left" | "right";
+}
+
+export function BalanceTooltip({ mainnet, subnet, activeLabel, children, side = "bottom" }: BalanceTooltipProps) {
+    const hasSubnet = subnet !== undefined;
+    const total = hasSubnet ? (Number(mainnet.replace(/,/g, '')) + Number(subnet.replace(/,/g, ''))).toLocaleString() : mainnet;
+    
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="cursor-help inline-flex items-center">
+                        {children}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent
+                    side={side}
+                    className="px-3 py-2 text-sm"
+                >
+                    <div className="space-y-1">
+                        {hasSubnet && (
+                            <>
+                                <div className="flex justify-between items-center gap-3">
+                                    <span className="text-muted-foreground">Active:</span>
+                                    <span className="font-medium">{activeLabel}</span>
+                                </div>
+                                <div className="border-t border-border/50 pt-1 space-y-1">
+                                    <div className="flex justify-between items-center gap-3">
+                                        <span className="text-muted-foreground">Mainnet:</span>
+                                        <span className="font-mono text-xs">{mainnet}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center gap-3">
+                                        <span className="text-muted-foreground">Subnet:</span>
+                                        <span className="font-mono text-xs text-purple-600 dark:text-purple-400">{subnet}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center gap-3 pt-1 border-t border-border/30">
+                                        <span className="text-muted-foreground font-medium">Total:</span>
+                                        <span className="font-mono text-xs font-medium">{total}</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {!hasSubnet && (
+                            <div className="flex justify-between items-center gap-3">
+                                <span className="text-muted-foreground">Balance:</span>
+                                <span className="font-mono text-xs">{mainnet}</span>
+                            </div>
+                        )}
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
+
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } 

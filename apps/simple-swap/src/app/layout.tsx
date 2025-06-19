@@ -44,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <BlazeProvider host="charisma-party.r0zar.partykit.dev">
+        <BlazeProvider>
           <WalletProvider>
             {children}
             <Toaster />

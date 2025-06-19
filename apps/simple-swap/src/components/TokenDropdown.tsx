@@ -2,6 +2,8 @@ import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from "re
 import { createPortal } from "react-dom";
 import TokenLogo from "./TokenLogo";
 import { TokenCacheData } from "@repo/tokens";
+import { useBlaze } from 'blaze-sdk/realtime';
+import { useWallet } from '@/contexts/wallet-context';
 
 interface TokenDropdownProps {
     tokens: TokenCacheData[];
@@ -9,6 +11,7 @@ interface TokenDropdownProps {
     onSelect: (t: TokenCacheData) => void;
     label?: string;
     suppressFlame?: boolean;
+    showBalances?: boolean;
 }
 
 export default function TokenDropdown({
@@ -17,6 +20,7 @@ export default function TokenDropdown({
     onSelect,
     label,
     suppressFlame = false,
+    showBalances = false,
 }: TokenDropdownProps) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -24,6 +28,10 @@ export default function TokenDropdown({
     const dropdownRef = useRef<HTMLDivElement>(null);
     const portalRef = useRef<HTMLDivElement>(null);
     const [mounted, setMounted] = useState(false);
+
+    // Get balance data for enhanced display
+    const { address } = useWallet();
+    const { balances } = useBlaze({ userId: address });
 
     /* ---------------- helpers ---------------- */
     const filtered = useMemo(() => {
@@ -135,10 +143,25 @@ export default function TokenDropdown({
                                         }`}
                                 >
                                     <TokenLogo token={token} size="sm" suppressFlame={suppressFlame} />
-                                    <div>
+                                    <div className="flex-1">
                                         <div className="font-medium">{token.symbol}</div>
                                         <div className="text-xs text-dark-500">{token.name}</div>
                                     </div>
+                                    {showBalances && address && (
+                                        <div className="text-right">
+                                            <div className="text-sm font-medium">
+                                                {balances[`${address}:${token.contractId}`]?.formattedBalance ?? '0'}
+                                            </div>
+                                            {balances[`${address}:${token.contractId}`]?.subnetBalance !== undefined && (
+                                                <div className="text-xs text-purple-600 dark:text-purple-400">
+                                                    +{balances[`${address}:${token.contractId}`]?.formattedSubnetBalance ?? '0'} subnet
+                                                </div>
+                                            )}
+                                            <div className="text-xs text-dark-500">
+                                                {balances[`${address}:${token.contractId}`]?.subnetBalance !== undefined ? 'Mainnet' : 'Balance'}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}

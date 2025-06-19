@@ -1,14 +1,31 @@
 // Utility functions for swap logic
 import { TokenCacheData } from '@repo/tokens';
 
+// Format numbers with k/M/B suffixes for compact display
+export function formatCompactNumber(num: number): string {
+    if (num === 0) return '0';
+    if (num < 1000) {
+        // Show up to 3 decimal places for small numbers
+        return num < 0.001 ? '<0.001' : num.toFixed(3).replace(/\.?0+$/, '');
+    }
+    if (num < 1000000) {
+        return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    if (num < 1000000000) {
+        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+}
+
 export function formatTokenAmount(amount: number, decimals: number): string {
     const balance = amount / Math.pow(10, decimals);
 
+    // Use consistent formatting logic with balance feed
     if (balance === 0) return '0';
     if (balance < 0.001) {
         return balance.toLocaleString(undefined, {
             minimumFractionDigits: 0,
-            maximumFractionDigits: Math.min(decimals, 10)
+            maximumFractionDigits: Math.min(decimals, 8)
         });
     } else if (balance < 1) {
         return balance.toLocaleString(undefined, {
@@ -20,6 +37,22 @@ export function formatTokenAmount(amount: number, decimals: number): string {
             minimumFractionDigits: 0,
             maximumFractionDigits: Math.min(decimals, 4)
         });
+    }
+}
+
+// Helper function to format balance values consistently with the enhanced balance feed
+export function formatBalanceDisplay(formattedBalance: number): string {
+    if (formattedBalance === 0) return '0';
+    if (formattedBalance >= 1000000) {
+        return `${(formattedBalance / 1000000).toFixed(2)}M`;
+    } else if (formattedBalance >= 1000) {
+        return `${(formattedBalance / 1000).toFixed(2)}K`;
+    } else if (formattedBalance >= 1) {
+        return formattedBalance.toFixed(2);
+    } else if (formattedBalance >= 0.000001) {
+        return formattedBalance.toFixed(6);
+    } else {
+        return formattedBalance.toExponential(2);
     }
 }
 

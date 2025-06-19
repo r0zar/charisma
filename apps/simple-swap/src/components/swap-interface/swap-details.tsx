@@ -9,8 +9,8 @@ import { Info, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { formatTokenAmount } from '@/lib/swap-utils';
-import { useBlaze } from 'blaze-sdk';
+import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
+import { useBlaze } from 'blaze-sdk/realtime';
 import { formatPriceUSD } from '@/lib/utils';
 
 // Pool image with fallback for LP vaults
@@ -233,21 +233,19 @@ export default function SwapDetails() {
                                     {/* Starting token with USD value */}
                                     <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
                                         <div className="flex items-center mb-2">
-                                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center" style={{ overflow: 'visible' }}>
-                                                <TokenLogo token={quote.path[0]} size="lg" />
-                                            </div>
+                                            <TokenLogo token={quote.path[0]} size="lg" />
                                             <div className="ml-2 sm:ml-2.5">
                                                 <div className="font-medium text-sm sm:text-base">
                                                     {quote.path[0].symbol}
                                                     <span className="font-normal ml-1 text-xs text-muted-foreground">
-                                                        ({displayAmount})
+                                                        ({formatCompactNumber(Number(displayAmount))})
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center">
                                                     <span>Start</span>
                                                     {prices && prices[quote.path[0].contractId] && (
                                                         <span className="ml-1">
-                                                            ~{formatPriceUSD(Number(displayAmount))}
+                                                            ~{formatPriceUSD(Number(displayAmount) * prices[quote.path[0].contractId].price)}
                                                         </span>
                                                     )}
                                                 </div>
@@ -308,7 +306,7 @@ export default function SwapDetails() {
                                                             <TokenLogo token={fromToken} size="sm" className="mr-1" />
                                                             <span className="font-medium text-foreground/90">{fromToken.symbol}</span>
                                                             <span className="ml-1 text-xs text-muted-foreground">
-                                                                {idx === 0 ? `(${displayAmount})` : `(${formatTokenAmount(Number(hop.quote?.amountIn), fromToken.decimals || 6)})`}
+                                                                {idx === 0 ? `(${formatCompactNumber(Number(displayAmount))})` : `(${formatCompactNumber(Number(hop.quote?.amountIn) / (10 ** (fromToken.decimals || 6)))})`}
                                                             </span>
                                                             {/* Add USD value */}
                                                             {priceImpact && priceImpact.fromValueUsd !== null && (
@@ -319,7 +317,7 @@ export default function SwapDetails() {
                                                             <TokenLogo token={toToken} size="sm" className="mr-1" />
                                                             <span className="font-medium text-foreground/90">{toToken.symbol}</span>
                                                             <span className="ml-1 text-xs text-muted-foreground">
-                                                                {`(${formatTokenAmount(Number(hop.quote?.amountOut), toToken.decimals || 6)})`}
+                                                                {`(${formatCompactNumber(Number(hop.quote?.amountOut) / (10 ** (toToken.decimals || 6)))})`}
                                                             </span>
                                                             {/* Add USD value */}
                                                             {priceImpact && priceImpact.toValueUsd !== null && (
@@ -365,9 +363,7 @@ export default function SwapDetails() {
                                         'bg-green-500/10 dark:bg-green-900/20 border-green-500/30'
                                         }`}>
                                         <div className="flex items-center">
-                                            <div className="h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
-                                                <TokenLogo token={quote.path[quote.path.length - 1]} size="lg" />
-                                            </div>
+                                            <TokenLogo token={quote.path[quote.path.length - 1]} size="lg" />
                                             <div className="ml-2 sm:ml-2.5">
                                                 <div className="font-medium text-xs sm:text-base">
                                                     {quote.path[quote.path.length - 1].symbol}
