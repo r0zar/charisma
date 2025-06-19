@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import usePartySocket from 'partysocket/react';
 
 // Simple direct useBlaze implementation that was working
@@ -12,10 +12,10 @@ export function useBlaze() {
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 
   // Determine host based on environment
-  const isDev = typeof window !== 'undefined' && 
+  const isDev = typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const partyHost = isDev ? 
-    (typeof window !== 'undefined' ? `${window.location.hostname}:1999` : 'localhost:1999') : 
+  const partyHost = isDev ?
+    (typeof window !== 'undefined' ? `${window.location.hostname}:1999` : 'localhost:1999') :
     'charisma-party.r0zar.partykit.dev';
 
   // Prices socket
@@ -42,7 +42,7 @@ export function useBlaze() {
     onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         switch (data.type) {
           case 'PRICE_UPDATE':
             setPrices(prev => ({
@@ -105,7 +105,7 @@ export function useBlaze() {
     onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         switch (data.type) {
           case 'METADATA_UPDATE':
             setMetadata(prev => ({
@@ -176,7 +176,7 @@ export function useBlaze() {
     onMessage: (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         switch (data.type) {
           case 'BALANCE_UPDATE':
             // Extract base contractId (before :: if present)
@@ -240,7 +240,7 @@ export function useBlaze() {
 }
 
 const SimpleBlazeTest = () => {
-  const { prices, metadata, balances, isConnected, lastUpdate } = useBlaze();
+  const { prices, metadata, balances, isConnected } = useBlaze();
 
   const formatPrice = (price: number): string => {
     if (price >= 1) {
@@ -466,7 +466,7 @@ const SimpleBlazeTest = () => {
                     <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
                       USER BALANCES ({token.balances.length})
                     </div>
-                    {token.balances.slice(0, 3).map((balance: any, index: number) => (
+                    {token.balances.slice(0, 3).map((balance: any) => (
                       <div key={balance.userId} style={{
                         fontSize: '11px',
                         color: '#4b5563',
