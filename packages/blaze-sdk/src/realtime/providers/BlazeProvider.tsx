@@ -1,293 +1,257 @@
 'use client';
 
 /**
- * BlazeProvider - Global connection provider for real-time data
- * Manages WebSocket connections and React state for all real-time data
+ * BlazeProvider - Context provider for real-time price and balance data
+ * Manages WebSocket connections and provides shared state across components
  */
 
-import React, { createContext, useContext, useReducer, ReactNode, Dispatch } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
-import { blazeReducer, initialState, stateUtils, BlazeState, BlazeAction } from '../state/reducer';
-import { 
-  BlazeProviderConfig, 
-  ServerMessage,
-  PriceUpdateMessage,
-  PriceBatchMessage,
-  BalanceUpdateMessage,
-  MetadataUpdateMessage
-} from '../types';
+import { BlazeData, BlazeConfig, PriceData, BalanceData, TokenMetadata } from '../types';
 
-interface BlazeContextValue {
-  state: BlazeState;
-  dispatch: Dispatch<BlazeAction>;
-  pricesSocket: any;
-  balancesSocket: any;
-  metadataSocket: any;
-  // Utility functions
-  getPrice: (contractId: string) => number | undefined;
-  formatPrice: (contractId: string) => string;
-  getBalance: (userId: string, contractId: string) => any;
-  getMetadata: (contractId: string) => any;
-  isConnected: boolean;
-  lastUpdate: number;
+interface BlazeContextType extends BlazeData {
+  // Internal subscription management
+  _subscribeToUserBalances: (userId: string) => void;
+  _unsubscribeFromUserBalances: () => void;
 }
 
-const BlazeContext = createContext<BlazeContextValue | null>(null);
+const BlazeContext = createContext<BlazeContextType | undefined>(undefined);
 
 interface BlazeProviderProps {
   children: ReactNode;
   host?: string;
-  reconnectAttempts?: number;
-  reconnectDelay?: number;
 }
 
-export function BlazeProvider({ 
-  children, 
-  host = 'localhost:1999',
-  reconnectAttempts = 10,
-  reconnectDelay = 1000
-}: BlazeProviderProps) {
-  // Central state management with useReducer
-  const [state, dispatch] = useReducer(blazeReducer, initialState);
+export function BlazeProvider({ children, host }: BlazeProviderProps) {
+  // State
+  const [prices, setPrices] = useState<Record<string, PriceData>>({});
+  const [balances, setBalances] = useState<Record<string, BalanceData>>({});
+  const [metadata, setMetadata] = useState<Record<string, TokenMetadata>>({});
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  // Message handlers that dispatch actions
-  const handlePricesMessage = (event: MessageEvent) => {
-    try {
-      const data: ServerMessage = JSON.parse(event.data);
-
-      switch (data.type) {
-        case 'PRICE_UPDATE':
-          const priceUpdate = data as PriceUpdateMessage;
-          dispatch({
-            type: 'PRICE_UPDATE',
-            contractId: priceUpdate.contractId,
-            price: priceUpdate.price,
-            timestamp: priceUpdate.timestamp,
-            source: priceUpdate.source
-          });
-          break;
-
-        case 'PRICE_BATCH':
-          const priceBatch = data as PriceBatchMessage;
-          dispatch({
-            type: 'PRICE_BATCH',
-            prices: priceBatch.prices
-          });
-          break;
-
-        case 'ERROR':
-          console.error('Prices server error:', data.message);
-          break;
-
-        case 'SERVER_INFO':
-          console.log('Prices server info:', data);
-          break;
-      }
-    } catch (error) {
-      console.error('Error parsing prices message:', error);
-    }
-  };
-
-  const handleBalancesMessage = (event: MessageEvent) => {
-    try {
-      const data: ServerMessage = JSON.parse(event.data);
-
-      switch (data.type) {
-        case 'BALANCE_UPDATE':
-          // Extract base contractId (before :: if present)
-          const baseContractId = data.contractId?.split('::')[0];
-          if (baseContractId && data.userId && data.balance !== undefined) {
-            dispatch({
-              type: 'BALANCE_UPDATE',
-              userId: data.userId,
-              contractId: baseContractId,
-              balance: {
-                balance: data.balance,
-                totalSent: data.totalSent || '0',
-                totalReceived: data.totalReceived || '0',
-                timestamp: data.timestamp || Date.now(),
-                source: data.source || 'realtime'
-              }
-            });
-          }
-          break;
-
-        case 'BALANCE_BATCH':
-          if (data.balances && Array.isArray(data.balances)) {
-            data.balances.forEach((balance: any) => {
-              const baseContractId = balance.contractId?.split('::')[0];
-              if (baseContractId && balance.userId && balance.balance !== undefined) {
-                dispatch({
-                  type: 'BALANCE_UPDATE',
-                  userId: balance.userId,
-                  contractId: baseContractId,
-                  balance: {
-                    balance: balance.balance,
-                    totalSent: balance.totalSent || '0',
-                    totalReceived: balance.totalReceived || '0',
-                    timestamp: balance.timestamp || Date.now(),
-                    source: balance.source || 'realtime'
-                  }
-                });
-              }
-            });
-          }
-          break;
-
-        case 'ERROR':
-          console.error('Balances server error:', data.message);
-          break;
-
-        case 'SERVER_INFO':
-          console.log('Balances server info:', data);
-          break;
-      }
-    } catch (error) {
-      console.error('Error parsing balances message:', error);
-    }
-  };
-
-  const handleMetadataMessage = (event: MessageEvent) => {
-    try {
-      const data: ServerMessage = JSON.parse(event.data);
-
-      switch (data.type) {
-        case 'METADATA_UPDATE':
-          if (data.contractId && data.metadata) {
-            dispatch({
-              type: 'METADATA_UPDATE',
-              contractId: data.contractId,
-              metadata: {
-                contractId: data.contractId,
-                name: data.metadata.name || 'Unknown Token',
-                symbol: data.metadata.symbol || 'TKN',
-                decimals: data.metadata.decimals || 6,
-                imageUrl: data.metadata.image,
-                verified: true,
-                timestamp: data.timestamp || Date.now()
-              }
-            });
-          }
-          break;
-
-        case 'METADATA_BATCH':
-          if (data.metadata && Array.isArray(data.metadata)) {
-            data.metadata.forEach((meta: any) => {
-              if (meta.contractId && meta.metadata) {
-                dispatch({
-                  type: 'METADATA_UPDATE',
-                  contractId: meta.contractId,
-                  metadata: {
-                    contractId: meta.contractId,
-                    name: meta.metadata.name || 'Unknown Token',
-                    symbol: meta.metadata.symbol || 'TKN',
-                    decimals: meta.metadata.decimals || 6,
-                    imageUrl: meta.metadata.image,
-                    verified: true,
-                    timestamp: meta.timestamp || Date.now()
-                  }
-                });
-              }
-            });
-          }
-          break;
-
-        case 'ERROR':
-          console.error('Metadata server error:', data.message);
-          break;
-
-        case 'SERVER_INFO':
-          console.log('Metadata server info:', data);
-          break;
-      }
-    } catch (error) {
-      console.error('Error parsing metadata message:', error);
-    }
-  };
+  // Track current balance subscriptions
+  const currentUserSubscription = useRef<string | null>(null);
 
   // Determine host based on environment
   const isDev = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const partyHost = isDev ? 
-    (typeof window !== 'undefined' ? `${window.location.hostname}:1999` : host) : 
-    'charisma-party.r0zar.partykit.dev';
+  const partyHost = host || (isDev ? 
+    (typeof window !== 'undefined' ? `${window.location.hostname}:1999` : 'localhost:1999') : 
+    'charisma-party.r0zar.partykit.dev');
 
-  // Prices connection
+  // Prices socket
   const pricesSocket = usePartySocket({
     host: partyHost,
     room: 'main',
     party: 'prices',
     onOpen: () => {
-      console.log('✅ Connected to prices server');
-      dispatch({ type: 'PRICES_CONNECTION', connected: true });
+      console.log('✅ BlazeProvider: Connected to prices server');
+      setIsConnected(true);
+      // Subscribe to all prices
+      if (pricesSocket) {
+        pricesSocket.send(JSON.stringify({
+          type: 'SUBSCRIBE',
+          contractIds: [], // Empty = subscribe to all
+          clientId: 'blaze-provider'
+        }));
+      }
     },
     onClose: () => {
-      console.log('🔌 Disconnected from prices server');
-      dispatch({ type: 'PRICES_CONNECTION', connected: false });
+      console.log('🔌 BlazeProvider: Disconnected from prices server');
+      setIsConnected(false);
     },
-    onError: (error) => {
-      console.error('Prices server connection error:', error);
-      dispatch({ type: 'PRICES_CONNECTION', connected: false });
-    },
-    onMessage: handlePricesMessage
+    onMessage: (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'PRICE_UPDATE':
+            setPrices(prev => ({
+              ...prev,
+              [data.contractId]: {
+                contractId: data.contractId,
+                price: data.price,
+                timestamp: data.timestamp,
+                source: data.source
+              }
+            }));
+            setLastUpdate(Date.now());
+            break;
+
+          case 'PRICE_BATCH':
+            const newPrices: Record<string, PriceData> = {};
+            data.prices.forEach((price: any) => {
+              newPrices[price.contractId] = {
+                contractId: price.contractId,
+                price: price.price,
+                timestamp: price.timestamp,
+                source: price.source
+              };
+            });
+            setPrices(prev => ({ ...prev, ...newPrices }));
+            setLastUpdate(Date.now());
+            break;
+
+          case 'SERVER_INFO':
+            console.log('BlazeProvider: Prices server info:', data);
+            break;
+
+          case 'ERROR':
+            console.error('BlazeProvider: Prices server error:', data.message);
+            break;
+        }
+      } catch (error) {
+        console.error('BlazeProvider: Error parsing prices message:', error);
+      }
+    }
   });
 
-  // Balances connection (future implementation)
+  // Balances socket
   const balancesSocket = usePartySocket({
     host: partyHost,
     room: 'main',
     party: 'balances',
     onOpen: () => {
-      console.log('✅ Connected to balances server');
-      dispatch({ type: 'BALANCES_CONNECTION', connected: true });
+      console.log('✅ BlazeProvider: Connected to balances server');
+      // Re-subscribe to current user if we have one
+      if (currentUserSubscription.current && balancesSocket) {
+        balancesSocket.send(JSON.stringify({
+          type: 'SUBSCRIBE',
+          userIds: [currentUserSubscription.current],
+          clientId: 'blaze-provider'
+        }));
+      }
     },
     onClose: () => {
-      console.log('🔌 Disconnected from balances server');
-      dispatch({ type: 'BALANCES_CONNECTION', connected: false });
+      console.log('🔌 BlazeProvider: Disconnected from balances server');
     },
-    onError: (error) => {
-      console.error('Balances server connection error:', error);
-      dispatch({ type: 'BALANCES_CONNECTION', connected: false });
-    },
-    onMessage: handleBalancesMessage
+    onMessage: (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'BALANCE_UPDATE':
+            // Extract base contractId (before :: if present)
+            const baseContractId = data.contractId?.split('::')[0];
+            if (baseContractId && data.userId && data.balance !== undefined) {
+              setBalances(prev => ({
+                ...prev,
+                [`${data.userId}:${baseContractId}`]: {
+                  balance: data.balance,
+                  totalSent: data.totalSent || '0',
+                  totalReceived: data.totalReceived || '0',
+                  timestamp: data.timestamp || Date.now(),
+                  source: data.source || 'realtime'
+                }
+              }));
+              setLastUpdate(Date.now());
+            }
+            break;
+
+          case 'BALANCE_BATCH':
+            console.log('📊 BlazeProvider: Received BALANCE_BATCH:', data);
+            if (data.balances && Array.isArray(data.balances)) {
+              const newBalances: Record<string, BalanceData> = {};
+              data.balances.forEach((balance: any) => {
+                const baseContractId = balance.contractId?.split('::')[0];
+                if (baseContractId && balance.userId && balance.balance !== undefined) {
+                  newBalances[`${balance.userId}:${baseContractId}`] = {
+                    balance: balance.balance,
+                    totalSent: balance.totalSent || '0',
+                    totalReceived: balance.totalReceived || '0',
+                    timestamp: balance.timestamp || Date.now(),
+                    source: balance.source || 'realtime'
+                  };
+                }
+              });
+              console.log(`📊 BlazeProvider: Processed ${Object.keys(newBalances).length} balance entries`);
+              setBalances(prev => ({ ...prev, ...newBalances }));
+              setLastUpdate(Date.now());
+            } else {
+              console.warn('📊 BlazeProvider: BALANCE_BATCH received but no valid balances array');
+            }
+            break;
+
+          case 'SERVER_INFO':
+            console.log('BlazeProvider: Balances server info:', data);
+            break;
+
+          case 'ERROR':
+            console.error('BlazeProvider: Balances server error:', data.message);
+            break;
+        }
+      } catch (error) {
+        console.error('BlazeProvider: Error parsing balances message:', error);
+      }
+    }
   });
 
-  // Metadata connection (future implementation)
-  const metadataSocket = usePartySocket({
-    host: partyHost,
-    room: 'main',
-    party: 'metadata',
-    onOpen: () => {
-      console.log('✅ Connected to metadata server');
-      dispatch({ type: 'METADATA_CONNECTION', connected: true });
-    },
-    onClose: () => {
-      console.log('🔌 Disconnected from metadata server');
-      dispatch({ type: 'METADATA_CONNECTION', connected: false });
-    },
-    onError: (error) => {
-      console.error('Metadata server connection error:', error);
-      dispatch({ type: 'METADATA_CONNECTION', connected: false });
-    },
-    onMessage: handleMetadataMessage
-  });
+  // Utility functions (memoized to prevent unnecessary re-renders)
+  const getPrice = useCallback((contractId: string): number | undefined => {
+    return prices[contractId]?.price;
+  }, [prices]);
 
-  // Create context value with state and utility functions
-  const contextValue: BlazeContextValue = {
-    state,
-    dispatch,
-    pricesSocket,
-    balancesSocket,
-    metadataSocket,
+  const getBalance = useCallback((userId: string, contractId: string): BalanceData | undefined => {
+    return balances[`${userId}:${contractId}`];
+  }, [balances]);
+
+  const getMetadata = useCallback((contractId: string): TokenMetadata | undefined => {
+    return metadata[contractId];
+  }, [metadata]);
+
+  // Internal function to manage balance subscriptions (memoized)
+  const subscribeToUserBalances = useCallback((userId: string) => {
+    if (currentUserSubscription.current === userId) return;
     
-    // Utility functions using state
-    getPrice: (contractId: string) => stateUtils.getPrice(state, contractId),
-    formatPrice: (contractId: string) => stateUtils.formatPrice(state, contractId),
-    getBalance: (userId: string, contractId: string) => stateUtils.getBalance(state, userId, contractId),
-    getMetadata: (contractId: string) => stateUtils.getMetadata(state, contractId),
-    isConnected: stateUtils.isConnected(state),
-    lastUpdate: stateUtils.getLastUpdate(state)
-  };
+    // Unsubscribe from previous user if any
+    if (currentUserSubscription.current && balancesSocket) {
+      balancesSocket.send(JSON.stringify({
+        type: 'UNSUBSCRIBE',
+        userIds: [currentUserSubscription.current],
+        clientId: 'blaze-provider'
+      }));
+    }
+
+    // Subscribe to new user
+    currentUserSubscription.current = userId;
+    if (balancesSocket && balancesSocket.readyState === WebSocket.OPEN) {
+      const subscribeMessage = {
+        type: 'SUBSCRIBE',
+        userIds: [userId],
+        clientId: 'blaze-provider'
+      };
+      balancesSocket.send(JSON.stringify(subscribeMessage));
+      console.log(`📊 BlazeProvider: Subscribed to balances for user: ${userId}`, subscribeMessage);
+    } else {
+      console.warn(`⚠️ BlazeProvider: Cannot subscribe to balances - socket not ready. State: ${balancesSocket?.readyState}`);
+    }
+  }, [balancesSocket]);
+
+  const unsubscribeFromUserBalances = useCallback(() => {
+    if (currentUserSubscription.current && balancesSocket) {
+      balancesSocket.send(JSON.stringify({
+        type: 'UNSUBSCRIBE',
+        userIds: [currentUserSubscription.current],
+        clientId: 'blaze-provider'
+      }));
+      console.log(`📊 BlazeProvider: Unsubscribed from balances for user: ${currentUserSubscription.current}`);
+      currentUserSubscription.current = null;
+    }
+  }, [balancesSocket]);
+
+  const contextValue: BlazeContextType = useMemo(() => ({
+    prices,
+    balances,
+    metadata,
+    isConnected,
+    lastUpdate,
+    getPrice,
+    getBalance,
+    getMetadata,
+    _subscribeToUserBalances: subscribeToUserBalances,
+    _unsubscribeFromUserBalances: unsubscribeFromUserBalances
+  }), [prices, balances, metadata, isConnected, lastUpdate, getPrice, getBalance, getMetadata, subscribeToUserBalances, unsubscribeFromUserBalances]);
 
   return (
     <BlazeContext.Provider value={contextValue}>
@@ -296,10 +260,30 @@ export function BlazeProvider({
   );
 }
 
-export function useBlazeContext() {
+// Custom hook to use the Blaze context with configuration
+export function useBlaze(config?: BlazeConfig): BlazeData {
   const context = useContext(BlazeContext);
-  if (!context) {
-    throw new Error('useBlazeContext must be used within a BlazeProvider');
+  
+  if (context === undefined) {
+    throw new Error('useBlaze must be used within a BlazeProvider');
   }
+
+  // Handle balance subscription based on config
+  useEffect(() => {
+    if (config?.userId) {
+      context._subscribeToUserBalances(config.userId);
+    } else {
+      context._unsubscribeFromUserBalances();
+    }
+
+    // Cleanup on unmount or userId change
+    return () => {
+      if (config?.userId) {
+        // Don't unsubscribe on unmount - let other components continue using the subscription
+        // Only unsubscribe when userId actually changes or is removed
+      }
+    };
+  }, [config?.userId]); // Remove context from dependencies to prevent re-subscription loops
+
   return context;
 }

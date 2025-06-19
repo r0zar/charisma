@@ -4,7 +4,7 @@ import './globals.css';
 import { WalletProvider } from '../contexts/wallet-context';
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from '@/components/ui/sonner';
-import { BlazeProvider } from 'blaze-sdk';
+import { BlazeProvider } from 'blaze-sdk/realtime';
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
@@ -44,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <BlazeProvider>
+        <BlazeProvider host="charisma-party.r0zar.partykit.dev">
           <WalletProvider>
             {children}
             <Toaster />

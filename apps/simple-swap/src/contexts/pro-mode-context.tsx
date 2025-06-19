@@ -6,6 +6,7 @@ import { useWallet } from './wallet-context';
 import type { LimitOrder } from '../lib/orders/types';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import { signedFetch } from 'blaze-sdk';
+import { useBlaze } from 'blaze-sdk/realtime';
 import { toast } from 'sonner';
 import { request } from '@stacks/connect';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
@@ -294,6 +295,11 @@ interface ProModeContextType {
     formatRelativeTime: (dateString: string) => string;
     getTokenPrice: (token: any) => string | null;
 
+    // Real-time Blaze Data Functions
+    getRealTimePrice: (contractId: string) => number | null;
+    getRealTimeBalance: (contractId: string) => string | null;
+    isPricesConnected: boolean;
+
     // Perpetual Calculation Utilities (FOR UI PREVIEW ONLY - backend recalculates for security)
     calculateMarginRequired: (positionSize: string | number, leverage: number) => number;
     calculateLiquidationPrice: (entryPrice: string | number, leverage: number, direction: 'long' | 'short') => number;
@@ -363,6 +369,15 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
 
     const { address, connected } = useWallet();
 
+    // Real-time price and balance data from Blaze
+    const { 
+        prices: blazePrices, 
+        balances: blazeBalances, 
+        isConnected: isPricesConnected,
+        getPrice,
+        getBalance 
+    } = useBlaze(address ? { userId: address } : undefined);
+
     // UI State
     const [selectedOrderType, setSelectedOrderType] = useState<OrderType>('single');
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -405,6 +420,20 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const [targetPrice, setTargetPrice] = useState('');
     const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+
+    // Update current price from real-time Blaze data based on trading pair
+    useEffect(() => {
+        if (!tradingPairBase || !isPricesConnected) {
+            return;
+        }
+
+        // Get real-time price for the base token of the trading pair
+        const price = getPrice(tradingPairBase.contractId);
+        if (price && price > 0) {
+            setCurrentPrice(price);
+            console.log(`🔥 Real-time price update for ${tradingPairBase.symbol}: $${price.toFixed(6)}`);
+        }
+    }, [tradingPairBase, blazePrices, isPricesConnected, getPrice]);
 
     // DCA-specific state
     const [dcaFrequency, setDcaFrequency] = useState('daily');
@@ -993,6 +1022,19 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
 
         return { pnl, pnlPercentage };
     }, []);
+
+    // Get real-time price for any token from Blaze feed
+    const getRealTimePrice = useCallback((contractId: string): number | null => {
+        if (!isPricesConnected) return null;
+        return getPrice(contractId) || null;
+    }, [isPricesConnected, getPrice]);
+
+    // Get real-time balance for any token from Blaze feed
+    const getRealTimeBalance = useCallback((contractId: string): string | null => {
+        if (!address || !isPricesConnected) return null;
+        const balance = getBalance(address, contractId);
+        return balance ? balance.balance : null;
+    }, [address, isPricesConnected, getBalance]);
 
     const validatePerpetualOrder = useCallback((order: Partial<PerpetualOrderState>): string[] => {
         const errors: string[] = [];
@@ -1998,6 +2040,11 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         formatCompactPrice,
         formatRelativeTime,
         getTokenPrice,
+
+        // Real-time Blaze Data Functions
+        getRealTimePrice,
+        getRealTimeBalance,
+        isPricesConnected,
 
         // Perpetual Calculation Utilities
         calculateMarginRequired,

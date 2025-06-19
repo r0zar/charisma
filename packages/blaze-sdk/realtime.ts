@@ -1,12 +1,11 @@
 /**
- * Real-time data module for Blaze SDK
- * Provides unified hook and provider for real-time prices, balances, and metadata
- * Now using React Context pattern for shared state management
+ * Real-time data module for Blaze SDK - Browser-safe exports
+ * This file exports only the realtime functionality without crypto dependencies
  */
 
 // Main hook and provider
-export { useBlaze } from './hooks/useBlaze';
-export { BlazeProvider } from './providers/BlazeProvider';
+export { useBlaze } from './src/realtime/hooks/useBlaze';
+export { BlazeProvider } from './src/realtime/providers/BlazeProvider';
 
 // Types
 export type {
@@ -24,4 +23,4 @@ export type {
   MetadataBatchMessage,
   ErrorMessage,
   ServerInfoMessage
-} from './types';
+} from './src/realtime/types';

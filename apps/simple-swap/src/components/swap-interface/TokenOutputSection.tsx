@@ -180,7 +180,7 @@ export default function TokenOutputSection() {
                                 <span className="animate-pulse">Loading price...</span>
                             </div>
                         ) : price !== undefined ? (
-                            <span>{formatPriceUSD(price * Number(outputAmount))}</span>
+                            <span>{formatPriceUSD(price.price * Number(outputAmount))}</span>
                         ) : null}
                 </div>
                 {/* {!isLoadingQuote && priceImpactDisplay} Render the passed price impact display node */}

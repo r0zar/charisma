@@ -22,12 +22,12 @@
     },
     "./realtime": {
       "import": {
-        "types": "./dist/es/realtime/index.d.ts",
-        "default": "./dist/es/realtime/index.js"
+        "types": "./dist/es/realtime.d.ts",
+        "default": "./dist/es/realtime.js"
       },
       "require": {
-        "types": "./dist/cjs/realtime/index.d.cts",
-        "default": "./dist/cjs/realtime/index.cjs"
+        "types": "./dist/cjs/realtime.d.cts",
+        "default": "./dist/cjs/realtime.cjs"
       }
     }
   },

@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"partykit dev\" \"vite --port 3001 --host\"",
-    "start": "vite --port 3001",
+    "dev": "concurrently \"partykit dev\" \"vite --port 2000 --host\"",
+    "start": "vite --port 2000",
     "partykit": "partykit dev",
     "deploy": "partykit deploy",
     "build": "vite build"

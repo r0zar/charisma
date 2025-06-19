@@ -2,7 +2,6 @@ import { optionalCVOf, privateKeyToPublic, signStructuredData, TupleCV } from "@
 import { noneCV, principalCV, someCV, stringAsciiCV, tupleCV, uintCV } from "@stacks/transactions";
 import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { BLAZE_V1_DOMAIN, MULTIHOP_CONTRACT_ID } from "./constants";
-import { randomUUID } from "crypto";
 import { request } from "@stacks/connect";
 
 export interface IntentInput {
@@ -11,7 +10,7 @@ export interface IntentInput {
     opcode?: string;
     amount?: number;
     target?: string;
-    uuid?: string;
+    uuid: string;
 }
 
 export interface SecureIntentInput extends IntentInput {
@@ -25,7 +24,7 @@ export interface SignedIntent {
 }
 
 export async function signIntentWithPrivateKey(input: SecureIntentInput): Promise<SignedIntent> {
-    const uuid = input.uuid || randomUUID();
+    const uuid = input.uuid;
 
     const message = tupleCV({
         contract: principalCV(input.contract),
@@ -52,7 +51,7 @@ export async function signIntentWithPrivateKey(input: SecureIntentInput): Promis
 }
 
 export async function signIntentWithWallet(input: IntentInput): Promise<SignedIntent> {
-    const uuid = input.uuid || randomUUID();
+    const uuid = input.uuid;
 
     const message = tupleCV({
         contract: principalCV(input.contract),

@@ -173,7 +173,7 @@ export default function TokenInputSection() {
                     </div>
                 ) : price !== undefined ? (
                     // Use the passed formatted value directly
-                    <span>{formatPriceUSD(price * Number(displayAmount))}</span>
+                    <span>{formatPriceUSD(price.price * Number(displayAmount))}</span>
                 ) : null}
             </div>
 

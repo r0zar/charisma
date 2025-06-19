@@ -238,14 +238,31 @@ export default class BalancesParty implements Party.Server {
             this.watchedUsers.add(userId);
 
             // Send latest balances for this user if available
-            this.latestBalances.forEach((balance) => {
-                if (balance.userId === userId) {
+            const userBalances = Array.from(this.latestBalances.values()).filter(balance => balance.userId === userId);
+            if (userBalances.length > 0) {
+                console.log(`📤 Sending ${userBalances.length} cached balances for user ${userId} to client ${clientId}`);
+                userBalances.forEach(balance => {
                     this.room.getConnection(clientId)?.send(JSON.stringify(balance));
-                }
-            });
+                });
+            } else {
+                console.log(`📭 No cached balances found for user ${userId} - will fetch fresh data`);
+            }
         });
 
         console.log(`💰 Client ${clientId} subscribed to ${validUserIds.length} specific user balances`);
+
+        // Trigger immediate fetch for new users if they don't have cached data
+        const newUsers = validUserIds.filter(userId => 
+            !Array.from(this.latestBalances.keys()).some(key => key.startsWith(`${userId}:`))
+        );
+        
+        if (newUsers.length > 0) {
+            console.log(`🚀 Triggering immediate fetch for ${newUsers.length} new users`);
+            // Trigger immediate fetch (don't await to avoid blocking the subscription response)
+            this.fetchAndBroadcastBalances().catch(err => 
+                console.error('Failed immediate balance fetch:', err)
+            );
+        }
 
         // Restart intervals if needed
         if (this.isLocalDev && !this.localInterval && this.subscriptions.size > 0) {
