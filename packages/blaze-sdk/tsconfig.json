@@ -2,9 +2,12 @@
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
     "lib": [
-      "ES2015"
+      "ES2015",
+      "DOM",
+      "DOM.Iterable"
     ],
     "outDir": "./dist",
+    "jsx": "react-jsx",
     "types": [
       "jest",
       "node"

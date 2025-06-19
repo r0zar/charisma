@@ -4,6 +4,7 @@ import './globals.css';
 import { WalletProvider } from '../contexts/wallet-context';
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from '@/components/ui/sonner';
+import { BlazeProvider } from 'blaze-sdk';
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
@@ -43,10 +44,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <WalletProvider>
-          {children}
-          <Toaster />
-        </WalletProvider>
+        <BlazeProvider>
+          <WalletProvider>
+            {children}
+            <Toaster />
+          </WalletProvider>
+        </BlazeProvider>
       </body>
       <Analytics />
     </html>

@@ -6,7 +6,7 @@ import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapContext } from '../../contexts/swap-context';
-import { usePriceConnection } from '@/lib/stores/usePriceStore';
+import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
 
 export default function TokenOutputSection() {
@@ -33,8 +33,8 @@ export default function TokenOutputSection() {
         toLabel,
     } = useSwapContext();
 
-    const priceStore = usePriceConnection([selectedToToken?.contractId ?? '']);
-    const price = priceStore.getPrice?.(selectedToToken?.contractId ?? '');
+    const { prices } = useBlaze();
+    const price = prices[selectedToToken?.contractId ?? ''];
 
     // Determine props based on mode and state
     const label = toLabel;

@@ -4,14 +4,17 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "partykit dev",
+    "dev": "concurrently \"partykit dev\" \"vite --port 3001 --host\"",
     "start": "vite --port 3001",
     "partykit": "partykit dev",
     "deploy": "partykit deploy",
     "build": "vite build"
   },
   "dependencies": {
+    "blaze-sdk": "workspace:*",
     "partysocket": "^1.0.2",
+    "@repo/polyglot": "workspace:*",
+    "@repo/tokens": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

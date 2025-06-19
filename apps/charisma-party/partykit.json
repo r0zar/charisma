@@ -1,7 +1,12 @@
 {
   "$schema": "https://www.partykit.io/schema.json",
   "name": "charisma-party",
-  "main": "src/server.ts",
+  "main": "src/parties/prices.ts",
   "compatibilityDate": "2025-06-17",
-  "serve": "dist"
+  "serve": "dist",
+  "parties": {
+    "prices": "src/parties/prices.ts",
+    "balances": "src/parties/balances.ts",
+    "metadata": "src/parties/metadata.ts"
+  }
 }

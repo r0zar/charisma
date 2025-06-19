@@ -6,7 +6,7 @@ import { Flame, ChevronDown } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapContext } from '../../contexts/swap-context';
-import { usePriceConnection } from '@/lib/stores/usePriceStore';
+import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
 
 export default function TokenInputSection() {
@@ -36,8 +36,8 @@ export default function TokenInputSection() {
         allTokenBalances,
     } = useSwapContext();
 
-    const priceStore = usePriceConnection([selectedFromToken?.contractId ?? '']);
-    const price = priceStore.getPrice?.(selectedFromToken?.contractId ?? '');
+    const { prices } = useBlaze();
+    const price = prices[selectedFromToken?.contractId ?? ''];
 
     // Determine which tokens to show and other props based on mode
     const label = 'You send';

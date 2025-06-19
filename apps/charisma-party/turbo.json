@@ -4,10 +4,23 @@
   ],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "@repo/tokens#build",
+        "@repo/polyglot#build"
+      ],
       "outputs": [
         "dist/**"
       ],
-      "env": []
+      "env": [
+        "HIRO_API_KEY",
+        "NEXT_PUBLIC_TOKEN_CACHE_URL"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@repo/tokens#build",
+        "@repo/polyglot#build"
+      ]
     }
   }
 }

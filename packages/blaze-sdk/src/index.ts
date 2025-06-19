@@ -5,3 +5,6 @@ export * from './solvers';
 export * from './sip10';
 export * from './core';
 export * from './auth';
+
+// Real-time data module
+export * from './realtime';

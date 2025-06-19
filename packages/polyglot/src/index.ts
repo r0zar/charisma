@@ -233,7 +233,7 @@ export async function getAccountBalances(
     const { data } = await apiClient.GET(`/extended/v1/address/${principal}/balances` as any, {
       params: {
         query: {
-          unanchored: params?.unanchored,
+          unanchored: params?.unanchored ?? true,
           until_block: params?.until_block,
         },
       },

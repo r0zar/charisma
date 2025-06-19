@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import { listPrices } from "./prices-lib";
+import { listPrices } from "@repo/tokens";
 
 interface PriceUpdate {
     type: 'PRICE_UPDATE';
@@ -18,21 +18,22 @@ interface PriceSubscription {
 interface ClientSubscription {
     contractIds: Set<string>;
     lastSeen: number;
+    subscribeToAll: boolean; // true if no specific contractIds provided
 }
 
 // Contract ID validation
 function isValidContractId(contractId: string): boolean {
     if (!contractId || typeof contractId !== 'string') return false;
-    
+
     // Native STX token
     if (contractId === '.stx' || contractId === 'stx') return true;
-    
+
     // Standard contract format with optional trait
     const contractPattern = /^(SP|ST)[A-Z0-9]{38,39}\.[a-z0-9\-]+(::[a-z0-9\-]+)?$/;
     return contractPattern.test(contractId);
 }
 
-export default class PriceServer implements Party.Server {
+export default class PricesParty implements Party.Server {
     private subscriptions = new Map<string, ClientSubscription>();
     private latestPrices = new Map<string, PriceUpdate>();
     private watchedTokens = new Set<string>();
@@ -40,10 +41,11 @@ export default class PriceServer implements Party.Server {
 
     // For local development only
     private localInterval: NodeJS.Timeout | null = null;
+    private noiseInterval: NodeJS.Timeout | null = null;
     private isLocalDev = false;
 
     constructor(readonly room: Party.Room) {
-        console.log(`🏠 Price server room: ${this.room.id}`);
+        console.log(`🏠 Prices party room: ${this.room.id}`);
 
         // Detect if we're in local development
         this.isLocalDev = this.detectLocalDev();
@@ -51,20 +53,20 @@ export default class PriceServer implements Party.Server {
         if (this.isLocalDev) {
             console.log('🛠️ Local development detected, using interval timer');
             this.startLocalInterval();
+            this.startNoiseInterval();
         } else {
             console.log('☁️ Production detected, using alarms');
             // Set initial alarm for production
             this.room.storage.setAlarm(Date.now() + 60_000);
+            this.startNoiseInterval();
         }
     }
 
     private detectLocalDev(): boolean {
-        // Multiple ways to detect local development
         try {
             const isDev = process.env.NODE_ENV === 'development';
             return isDev;
         } catch {
-            // If we can't determine, assume production
             return false;
         }
     }
@@ -72,38 +74,71 @@ export default class PriceServer implements Party.Server {
     private startLocalInterval() {
         console.log('🚀 Starting local interval setup...');
 
-        // Clear any existing interval
         if (this.localInterval) {
-            console.log('🧹 Clearing existing interval');
             clearInterval(this.localInterval);
         }
 
-        // Start interval for local development (60 seconds)
-        console.log('⏱️ Setting up 60-second interval');
         this.localInterval = setInterval(async () => {
             console.log('🔄 [Local Dev] Running scheduled price update');
             await this.fetchAndBroadcastPrices();
         }, 60_000);
 
-        // Also run immediately for faster development feedback
-        console.log('⚡ Scheduling immediate price update in 2 seconds...');
         setTimeout(async () => {
             console.log('⚡ Running immediate price update');
             await this.fetchAndBroadcastPrices();
         }, 2000);
+    }
 
-        console.log('✅ Local interval setup complete');
+    private startNoiseInterval() {
+        console.log('🎲 Starting price noise interval (every 1 second)');
+
+        // Clear any existing noise interval
+        if (this.noiseInterval) {
+            clearInterval(this.noiseInterval);
+        }
+
+        // Add noise every 1 second
+        this.noiseInterval = setInterval(() => {
+            this.addPriceNoise();
+        }, 1_000);
+    }
+
+    private addPriceNoise() {
+        if (this.latestPrices.size === 0) return;
+
+        const priceEntries = Array.from(this.latestPrices.entries());
+        const randomIndex = Math.floor(Math.random() * priceEntries.length);
+        const [contractId, originalUpdate] = priceEntries[randomIndex]!;
+
+        // Add small random noise: ±0.0000001% of the original price
+        const noisePercent = (Math.random() - 0.5) * 0.000002; // ±0.0000001%
+        const noisyPrice = originalUpdate.price * (1 + noisePercent);
+
+        const noisyUpdate: PriceUpdate = {
+            type: 'PRICE_UPDATE',
+            contractId,
+            price: noisyPrice,
+            timestamp: Date.now(),
+            source: 'noise'
+        };
+
+        this.latestPrices.set(contractId, noisyUpdate);
+        this.room.broadcast(JSON.stringify(noisyUpdate));
+
+        console.log(`🎲 Added noise to ${contractId}: ${originalUpdate.price} → ${noisyPrice} (${(noisePercent * 100).toFixed(8)}%)`);
     }
 
     onConnect(conn: Party.Connection, _ctx: Party.ConnectionContext) {
         const clientId = conn.id;
-        console.log(`🔌 Client ${clientId} connected to price server`);
+        console.log(`🔌 Client ${clientId} connected to prices party`);
 
         this.subscriptions.set(clientId, {
             contractIds: new Set(),
-            lastSeen: Date.now()
+            lastSeen: Date.now(),
+            subscribeToAll: false
         });
 
+        // Send latest prices if available
         if (this.latestPrices.size > 0) {
             const prices = Array.from(this.latestPrices.values());
             conn.send(JSON.stringify({
@@ -113,9 +148,10 @@ export default class PriceServer implements Party.Server {
             }));
         }
 
-        // Send environment info to client for debugging
+        // Send server info
         conn.send(JSON.stringify({
             type: 'SERVER_INFO',
+            party: 'prices',
             isLocalDev: this.isLocalDev,
             timestamp: Date.now()
         }));
@@ -134,21 +170,16 @@ export default class PriceServer implements Party.Server {
                     this.handleUnsubscribe(data as PriceSubscription, clientId);
                     break;
                 case 'MANUAL_UPDATE':
-                    // Allow manual price updates for testing
                     console.log('🔄 Manual price update triggered');
                     this.fetchAndBroadcastPrices();
                     break;
-                case 'HEARTBEAT':
-                    sender.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
-                    break;
                 case 'PING':
-                    // Respond to latency pings with a PONG and the original timestamp
                     sender.send(JSON.stringify({ type: 'PONG', timestamp: data.timestamp }));
                     break;
                 default:
                     sender.send(JSON.stringify({
                         type: 'ERROR',
-                        message: 'Unknown or unsupported message type'
+                        message: 'Unknown message type'
                     }));
             }
         } catch (error) {
@@ -162,17 +193,20 @@ export default class PriceServer implements Party.Server {
 
     onClose(connection: Party.Connection) {
         const clientId = connection.id;
-        console.log(`🔌 Client ${clientId} disconnected from price server`);
+        console.log(`🔌 Client ${clientId} disconnected from prices party`);
 
         this.subscriptions.delete(clientId);
         this.cleanupWatchedTokens();
 
-        // If no more connections in local dev, clear interval to save resources
         if (this.isLocalDev && this.subscriptions.size === 0) {
-            console.log('🛑 No more connections, pausing local interval');
+            console.log('🛑 No more connections, pausing intervals');
             if (this.localInterval) {
                 clearInterval(this.localInterval);
                 this.localInterval = null;
+            }
+            if (this.noiseInterval) {
+                clearInterval(this.noiseInterval);
+                this.noiseInterval = null;
             }
         }
     }
@@ -182,12 +216,11 @@ export default class PriceServer implements Party.Server {
             return this.handlePriceQuery(request);
         }
         if (request.method === 'POST') {
-            // Allow external triggers
             console.log('🔄 External price update triggered');
             this.fetchAndBroadcastPrices();
             return new Response(JSON.stringify({
                 status: 'triggered',
-                isLocalDev: this.isLocalDev,
+                party: 'prices',
                 timestamp: Date.now()
             }), {
                 headers: { 'Content-Type': 'application/json' }
@@ -196,16 +229,13 @@ export default class PriceServer implements Party.Server {
         return new Response('Method not allowed', { status: 405 });
     }
 
-    // Production alarm handler
     async onAlarm() {
-        console.log('⏰ [Production] Alarm triggered - fetching prices');
+        console.log('⏰ [Production] Prices alarm triggered');
         try {
             await this.fetchAndBroadcastPrices();
-            // Schedule next alarm
             this.room.storage.setAlarm(Date.now() + 60_000);
         } catch (err) {
-            console.error('[Alarm] Failed to fetch/broadcast prices:', err);
-            // Still schedule next alarm
+            console.error('[Prices Alarm] Failed:', err);
             this.room.storage.setAlarm(Date.now() + 60_000);
         }
     }
@@ -214,7 +244,26 @@ export default class PriceServer implements Party.Server {
         const subscription = this.subscriptions.get(clientId);
         if (!subscription) return;
 
-        // Validate contract IDs
+        // If no contractIds provided, subscribe to ALL
+        if (!data.contractIds || data.contractIds.length === 0) {
+            subscription.subscribeToAll = true;
+            subscription.contractIds.clear();
+            console.log(`📊 Client ${clientId} subscribed to ALL prices`);
+
+            // Send all current prices
+            if (this.latestPrices.size > 0) {
+                const prices = Array.from(this.latestPrices.values());
+                this.room.getConnection(clientId)?.send(JSON.stringify({
+                    type: 'PRICE_BATCH',
+                    prices,
+                    timestamp: Date.now()
+                }));
+            }
+            return;
+        }
+
+        // Subscribe to specific tokens
+        subscription.subscribeToAll = false;
         const validContractIds = data.contractIds.filter(contractId => {
             if (!isValidContractId(contractId)) {
                 console.warn(`Invalid contract ID from client ${clientId}: ${contractId}`);
@@ -231,19 +280,21 @@ export default class PriceServer implements Party.Server {
             subscription.contractIds.add(contractId);
             this.watchedTokens.add(contractId);
 
+            // Send latest price if available
             const latestPrice = this.latestPrices.get(contractId);
             if (latestPrice) {
                 this.room.getConnection(clientId)?.send(JSON.stringify(latestPrice));
             }
         });
 
-        console.log(`📊 Client ${clientId} subscribed to ${validContractIds.length} tokens`);
-        console.log(`📊 Total watched tokens: ${this.watchedTokens.size}`);
+        console.log(`📊 Client ${clientId} subscribed to ${validContractIds.length} specific prices`);
 
-        // Restart local interval if we have subscribers and it's not running
+        // Restart intervals if needed
         if (this.isLocalDev && !this.localInterval && this.subscriptions.size > 0) {
-            console.log('🔄 Restarting local interval (new subscriber)');
             this.startLocalInterval();
+        }
+        if (!this.noiseInterval && this.subscriptions.size > 0) {
+            this.startNoiseInterval();
         }
     }
 
@@ -251,12 +302,20 @@ export default class PriceServer implements Party.Server {
         const subscription = this.subscriptions.get(clientId);
         if (!subscription) return;
 
-        data.contractIds.forEach(contractId => {
-            subscription.contractIds.delete(contractId);
-        });
+        if (!data.contractIds || data.contractIds.length === 0) {
+            // Unsubscribe from ALL
+            subscription.subscribeToAll = false;
+            subscription.contractIds.clear();
+            console.log(`📊 Client ${clientId} unsubscribed from ALL prices`);
+        } else {
+            // Unsubscribe from specific tokens
+            data.contractIds.forEach(contractId => {
+                subscription.contractIds.delete(contractId);
+            });
+            console.log(`📊 Client ${clientId} unsubscribed from ${data.contractIds.length} prices`);
+        }
 
         this.cleanupWatchedTokens();
-        console.log(`📊 Client ${clientId} unsubscribed from ${data.contractIds.length} tokens`);
     }
 
     private async handlePriceQuery(request: Party.Request) {
@@ -267,7 +326,7 @@ export default class PriceServer implements Party.Server {
             const allPrices = Array.from(this.latestPrices.values());
             return new Response(JSON.stringify({
                 prices: allPrices,
-                isLocalDev: this.isLocalDev,
+                party: 'prices',
                 serverTime: Date.now()
             }), {
                 headers: { 'Content-Type': 'application/json' }
@@ -280,7 +339,7 @@ export default class PriceServer implements Party.Server {
 
         return new Response(JSON.stringify({
             prices: requestedPrices,
-            isLocalDev: this.isLocalDev,
+            party: 'prices',
             serverTime: Date.now()
         }), {
             headers: { 'Content-Type': 'application/json' }
@@ -290,9 +349,16 @@ export default class PriceServer implements Party.Server {
     private cleanupWatchedTokens() {
         const activeTokens = new Set<string>();
         this.subscriptions.forEach(subscription => {
-            subscription.contractIds.forEach(contractId => {
-                activeTokens.add(contractId);
-            });
+            if (subscription.subscribeToAll) {
+                // If anyone subscribes to all, we need to watch everything we have
+                this.latestPrices.forEach((_, contractId) => {
+                    activeTokens.add(contractId);
+                });
+            } else {
+                subscription.contractIds.forEach(contractId => {
+                    activeTokens.add(contractId);
+                });
+            }
         });
 
         this.watchedTokens = activeTokens;
@@ -301,15 +367,31 @@ export default class PriceServer implements Party.Server {
     private async fetchAndBroadcastPrices() {
         try {
             const prices = await listPrices();
-            console.log(`💰 Fetched ${Object.keys(prices).length} prices`);
             const now = Date.now();
-            let broadcasted = 0;
+            const source = this.isLocalDev ? '[Local Dev]' : '[Production]';
+
+            console.log(`💰 ${source} Fetched ${Object.keys(prices).length} prices from API`);
+
+            let newPrices = 0;
+            let updatedPrices = 0;
+            let unchangedPrices = 0;
+            const newTokens: string[] = [];
+            const updatedTokens: string[] = [];
 
             for (const [contractId, price] of Object.entries(prices)) {
-                if (typeof price !== 'number' || isNaN(price)) continue;
+                if (typeof price !== 'number' || isNaN(price)) {
+                    console.warn(`⚠️ Invalid price for ${contractId}: ${price}`);
+                    continue;
+                }
 
                 const prev = this.lastBroadcastedPrices.get(contractId);
-                if (prev === price) continue; // Only broadcast if changed
+                const isNewToken = prev === undefined;
+                const hasChanged = prev !== price;
+
+                if (!hasChanged && !isNewToken) {
+                    unchangedPrices++;
+                    continue; // Only broadcast if changed or new
+                }
 
                 const update: PriceUpdate = {
                     type: 'PRICE_UPDATE',
@@ -321,19 +403,32 @@ export default class PriceServer implements Party.Server {
 
                 this.latestPrices.set(contractId, update);
                 this.lastBroadcastedPrices.set(contractId, price);
+
+                // Send to all clients
                 this.room.broadcast(JSON.stringify(update));
-                broadcasted++;
+
+                if (isNewToken) {
+                    newPrices++;
+                    newTokens.push(contractId);
+                } else {
+                    updatedPrices++;
+                    updatedTokens.push(contractId);
+                    console.log(`📈 ${contractId}: ${prev} → ${price} (${((price - prev) / prev * 100).toFixed(4)}%)`);
+                }
             }
 
-            if (broadcasted > 0) {
-                const source = this.isLocalDev ? '[Local Dev]' : '[Production]';
-                console.log(`${source} Broadcasted ${broadcasted} price updates at ${new Date(now).toISOString()}`);
-            }
+            // Summary log
+            console.log(`📊 ${source} Batch Summary:`);
+            console.log(`   • ${newPrices} new tokens${newTokens.length > 0 ? ': ' + newTokens.slice(0, 3).join(', ') + (newTokens.length > 3 ? '...' : '') : ''}`);
+            console.log(`   • ${updatedPrices} price changes${updatedTokens.length > 0 ? ': ' + updatedTokens.slice(0, 3).join(', ') + (updatedTokens.length > 3 ? '...' : '') : ''}`);
+            console.log(`   • ${unchangedPrices} unchanged prices`);
+            console.log(`   → Broadcasted ${newPrices + updatedPrices} updates total`);
+
         } catch (err) {
             const source = this.isLocalDev ? '[Local Dev]' : '[Production]';
-            console.error(`${source} Failed to fetch/broadcast prices:`, err);
+            console.error(`${source} Prices: Failed to fetch/broadcast:`, err);
         }
     }
 }
 
-PriceServer satisfies Party.Worker;
+PricesParty satisfies Party.Worker;
