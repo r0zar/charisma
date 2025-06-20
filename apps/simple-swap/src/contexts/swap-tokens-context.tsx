@@ -92,6 +92,10 @@ interface SwapTokensContextType {
   setValidationAlert: (alert: ValidationAlert | null) => void;
   clearValidationAlert: () => void;
   triggerValidationAlert: (type: 'swap' | 'order') => void;
+
+  // DCA dialog
+  isDcaDialogOpen: boolean;
+  setIsDcaDialogOpen: (open: boolean) => void;
 }
 
 const SwapTokensContext = createContext<SwapTokensContextType | undefined>(undefined);
@@ -135,6 +139,9 @@ export function SwapTokensProvider({
 
   // Validation alert state
   const [validationAlert, setValidationAlert] = useState<ValidationAlert | null>(null);
+
+  // DCA dialog state
+  const [isDcaDialogOpen, setIsDcaDialogOpen] = useState(false);
 
   // Ref to track previous mode for order mode defaults
   const prevModeRef = useRef<string>(mode);
@@ -655,6 +662,10 @@ export function SwapTokensProvider({
     setValidationAlert,
     clearValidationAlert,
     triggerValidationAlert,
+
+    // DCA dialog
+    isDcaDialogOpen,
+    setIsDcaDialogOpen,
   };
 
   return (

@@ -21,6 +21,8 @@ export const DcaDialog: React.FC = () => {
         baseToken,
         targetPrice,
         conditionDir,
+        isDcaDialogOpen,
+        setIsDcaDialogOpen,
     } = useSwapTokens();
 
     const {
@@ -28,8 +30,8 @@ export const DcaDialog: React.FC = () => {
     } = useRouterTrading();
 
     // Use context values
-    const open = false;
-    const onOpenChange = (v: boolean) => { };
+    const open = isDcaDialogOpen;
+    const onOpenChange = setIsDcaDialogOpen;
     const defaultAmount = displayAmount;
     const fromToken = selectedFromToken;
     const toToken = selectedToToken;

@@ -8,7 +8,7 @@ import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
 export default function OrderButton() {
     const { handleCreateLimitOrder, isCreatingOrder } = useRouterTrading();
-    const { mode, targetPrice, displayAmount, triggerValidationAlert } = useSwapTokens();
+    const { mode, targetPrice, displayAmount, triggerValidationAlert, setIsDcaDialogOpen } = useSwapTokens();
     
     // Button should be disabled if creating order, no input amount, or if in order mode but no target price set
     const isDisabled = isCreatingOrder || 
@@ -16,8 +16,6 @@ export default function OrderButton() {
                       displayAmount === "0" || 
                       displayAmount.trim() === "" ||
                       (mode === 'order' && (!targetPrice || targetPrice === ''));
-
-    const setDcaDialogOpen = (v: boolean) => { };
 
     const handleClick = () => {
         if (isDisabled) {
@@ -32,7 +30,7 @@ export default function OrderButton() {
             triggerValidationAlert('order');
             return;
         }
-        setDcaDialogOpen(true);
+        setIsDcaDialogOpen(true);
     };
 
     return (
