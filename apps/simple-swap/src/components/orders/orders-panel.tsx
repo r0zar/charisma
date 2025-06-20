@@ -343,7 +343,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                 <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
                                 <span className="text-white/80">{o.conditionTokenMeta.symbol}</span>
                                 <span className="text-lg text-white/60">≥</span>
-                                <span className="text-white/90">${Number(o.targetPrice).toLocaleString()}</span>
+                                <span className="text-white/90">{Number(o.targetPrice).toLocaleString()}</span>
                                 {o.baseAsset === 'USD' || !o.baseAsset ? (
                                     <span className="text-white/60">USD</span>
                                 ) : (
@@ -377,7 +377,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                     )
                                 )}
                                 <span className="text-lg text-white/60">≥</span>
-                                <span className="text-white/90">${Number(o.targetPrice).toLocaleString()}</span>
+                                <span className="text-white/90">{Number(o.targetPrice).toLocaleString()}</span>
                                 <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
                                 <span className="text-white/80">{o.conditionTokenMeta.symbol}</span>
                             </>
