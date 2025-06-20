@@ -22,7 +22,7 @@ import {
 } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { STACKS_MAINNET } from '@stacks/network';
-import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID } from '../constants';
+import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../constants';
 import { recoverSigner } from '../core';
 import { ContractCallTxOptions } from './types';
 
@@ -124,7 +124,13 @@ export function buildInputTuple(
     signature: string,
     uuid: string
 ): ClarityValue {
-    const [addr, name] = splitContractId(inputToken.contractId);
+    // Special case: Replace STX with wrapped STX for x-multihop compatibility
+    let contractId = inputToken.contractId;
+    if (contractId === STX_CONTRACT_ID) {
+        contractId = WRAPPED_STX_CONTRACT_ID;
+    }
+    
+    const [addr, name] = splitContractId(contractId);
 
     return tupleCV({
         token: contractPrincipalCV(addr, name),
@@ -145,7 +151,13 @@ export function buildOutputTuple(
     outputToken: Token,
     recipient: string
 ): ClarityValue {
-    const [addr, name] = splitContractId(outputToken.contractId);
+    // Special case: Replace STX with wrapped STX for x-multihop compatibility
+    let contractId = outputToken.contractId;
+    if (contractId === STX_CONTRACT_ID) {
+        contractId = WRAPPED_STX_CONTRACT_ID;
+    }
+    
+    const [addr, name] = splitContractId(contractId);
 
     return tupleCV({
         token: contractPrincipalCV(addr, name),
