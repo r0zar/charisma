@@ -53,12 +53,6 @@ interface SwapOption {
   route?: any;
 }
 
-// interface UseRouterTradingProps {
-//   tokenCounterparts: Map<string, { mainnet: TokenCacheData | null; subnet: TokenCacheData | null }>;
-//   displayTokens: TokenCacheData[];
-//   subnetDisplayTokens: TokenCacheData[];
-// }
-
 export function useRouterTrading() {
 
   const { address: walletAddress } = useWallet();
@@ -74,54 +68,52 @@ export function useRouterTrading() {
     displayAmount,
     displayTokens,
     subnetDisplayTokens,
-    useSubnetFrom,
-    useSubnetTo,
-    tokenCounterparts,
   } = useSwapTokens();
 
   // Get prices from BlazeProvider
   const { prices, balances } = useBlaze({ userId: walletAddress });
 
+  // Debug logging for balances
+  useEffect(() => {
+    // Helper to get base contract ID
+    const getBaseContractId = (token: any) => {
+      if (!token) return null;
+      return token.type === 'SUBNET' && token.base ? token.base : token.contractId;
+    };
+    
+    const fromBaseContractId = getBaseContractId(selectedFromToken);
+    const toBaseContractId = getBaseContractId(selectedToToken);
+    
+    console.log('🔍 useRouterTrading - Debug balances:', {
+      walletAddress,
+      balancesCount: Object.keys(balances).length,
+      selectedFromToken: selectedFromToken?.contractId,
+      selectedFromTokenType: selectedFromToken?.type,
+      selectedFromTokenBase: selectedFromToken?.base,
+      fromBaseContractId,
+      selectedToToken: selectedToToken?.contractId,
+      fromTokenBalance: fromBaseContractId ? balances[`${walletAddress}:${fromBaseContractId}`] : null,
+      toTokenBalance: toBaseContractId ? balances[`${walletAddress}:${toBaseContractId}`] : null,
+      charismaKeys: Object.keys(balances).filter(key => key.includes('charisma'))
+    });
+  }, [balances, walletAddress, selectedFromToken, selectedToToken]);
+
   // Determine the actual tokens to use for routing based on subnet toggles
   const actualFromToken = useMemo(() => {
     if (!selectedFromToken) return null;
 
-    // If subnet toggle is on, try to get subnet version
-    if (useSubnetFrom) {
-      const baseId = selectedFromToken.type === 'SUBNET'
-        ? selectedFromToken.base!
-        : selectedFromToken.contractId;
-      const counterparts = tokenCounterparts.get(baseId);
-      return counterparts?.subnet || selectedFromToken;
-    }
-
-    // If subnet toggle is off, try to get mainnet version
-    const baseId = selectedFromToken.type === 'SUBNET'
-      ? selectedFromToken.base!
-      : selectedFromToken.contractId;
-    const counterparts = tokenCounterparts.get(baseId);
-    return counterparts?.mainnet || selectedFromToken;
-  }, [selectedFromToken, useSubnetFrom, tokenCounterparts]);
+    // For now, return the selected token directly since BlazeProvider handles both mainnet and subnet balances
+    // The subnet toggle preference is handled at the balance level, not token level
+    return selectedFromToken;
+  }, [selectedFromToken]);
 
   const actualToToken = useMemo(() => {
     if (!selectedToToken) return null;
 
-    // If subnet toggle is on, try to get subnet version
-    if (useSubnetTo) {
-      const baseId = selectedToToken.type === 'SUBNET'
-        ? selectedToToken.base!
-        : selectedToToken.contractId;
-      const counterparts = tokenCounterparts.get(baseId);
-      return counterparts?.subnet || selectedToToken;
-    }
-
-    // If subnet toggle is off, try to get mainnet version
-    const baseId = selectedToToken.type === 'SUBNET'
-      ? selectedToToken.base!
-      : selectedToToken.contractId;
-    const counterparts = tokenCounterparts.get(baseId);
-    return counterparts?.mainnet || selectedToToken;
-  }, [selectedToToken, useSubnetTo, tokenCounterparts]);
+    // For now, return the selected token directly since BlazeProvider handles both mainnet and subnet balances
+    // The subnet toggle preference is handled at the balance level, not token level
+    return selectedToToken;
+  }, [selectedToToken]);
 
   // Derive microAmount from displayAmount
   const microAmount = displayAmount && actualFromToken ?
@@ -277,48 +269,79 @@ export function useRouterTrading() {
     validFrom?: string;
     validTo?: string;
   }) => {
+    console.log('📝 createTriggeredSwap called with:', opts);
+    
     if (!walletAddress) throw new Error('Connect wallet');
     if (!actualFromToken || !actualToToken) throw new Error('Select tokens');
 
+    console.log('🔢 Generating UUID and micro amount...');
     const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
     const micro = convertToMicroUnits(opts.amountDisplay, actualFromToken.decimals || 6);
+    
+    console.log('📝 Order details:', {
+      uuid,
+      micro,
+      actualFromToken: actualFromToken.contractId,
+      actualToToken: actualToToken.contractId,
+      walletAddress
+    });
 
-    const signature = await signTriggeredSwap({
+    console.log('✍️ Requesting signature for triggered swap...');
+    const signatureData = {
       subnet: actualFromToken.contractId!,
       uuid,
       amount: BigInt(micro),
-    });
-
-    const payload: Record<string, unknown> = {
-      owner: walletAddress,
-      inputToken: actualFromToken.contractId,
-      outputToken: actualToToken.contractId,
-      amountIn: micro,
-      targetPrice: opts.targetPrice,
-      direction: opts.direction,
-      conditionToken: opts.conditionToken.contractId,
-      baseAsset: opts.baseToken ? opts.baseToken.contractId : 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
-      recipient: walletAddress,
-      signature,
-      uuid,
     };
+    console.log('✍️ Signature data:', signatureData);
 
-    if (opts.validFrom) payload.validFrom = opts.validFrom;
-    if (opts.validTo) payload.validTo = opts.validTo;
+    try {
+      const signature = await signTriggeredSwap(signatureData);
+      console.log('✅ Signature received:', signature);
 
-    const res = await fetch('/api/v1/orders/new', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+      console.log('📦 Building payload...');
+      const payload: Record<string, unknown> = {
+        owner: walletAddress,
+        inputToken: actualFromToken.contractId,
+        outputToken: actualToToken.contractId,
+        amountIn: micro,
+        targetPrice: opts.targetPrice,
+        direction: opts.direction,
+        conditionToken: opts.conditionToken.contractId,
+        baseAsset: opts.baseToken ? opts.baseToken.contractId : 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
+        recipient: walletAddress,
+        signature,
+        uuid,
+      };
 
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({ error: 'unknown' }));
-      throw new Error(j.error || 'Order create failed');
+      if (opts.validFrom) payload.validFrom = opts.validFrom;
+      if (opts.validTo) payload.validTo = opts.validTo;
+
+      console.log('📤 Sending order to API:', payload);
+
+      const res = await fetch('/api/v1/orders/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      console.log('📥 API response status:', res.status);
+
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({ error: 'unknown' }));
+        console.error('❌ API error:', j);
+        throw new Error(j.error || 'Order create failed');
+      }
+      
+      console.log('✅ Order creation API call successful');
+      setOrderSuccessInfo({ success: true });
+
+      const result = await res.json();
+      console.log('✅ Order created successfully:', result);
+      return result;
+    } catch (err) {
+      console.error('❌ Error in createTriggeredSwap:', err);
+      throw err;
     }
-    setOrderSuccessInfo({ success: true });
-
-    return await res.json();
   }, [walletAddress, actualFromToken, actualToToken]);
 
   // Callback for DcaDialog to create a single slice order
@@ -362,24 +385,23 @@ export function useRouterTrading() {
       };
     }
 
-    // Step 1: Quick check using enhanced balance feed
-    const counterparts = tokenCounterparts.get(token.type === 'SUBNET' ? token.base! : token.contractId);
-    const subnetToken = token.type === 'SUBNET' ? token : counterparts?.subnet;
-    const mainnetToken = token.type === 'SUBNET' ? counterparts?.mainnet : token;
+    // Step 1: Quick check using enhanced balance feed - both mainnet and subnet balances are in the same entry
+    // For subnet tokens, we need to look up the base token's balance data
+    const baseContractId = token.type === 'SUBNET' && token.base ? token.base : token.contractId;
+    const balanceData = balances[`${userAddress}:${baseContractId}`];
+    
+    console.log('🔍 Balance lookup in checkBalanceForOrder:', {
+      tokenContract: token.contractId,
+      tokenType: token.type,
+      tokenBase: token.base,
+      baseContractId,
+      hasBalanceData: !!balanceData,
+      balanceData: balanceData
+    });
 
-    // Get balances from enhanced balance feed
-    let subnetBalance = 0;
-    let mainnetBalance = 0;
-
-    if (subnetToken) {
-      const subnetBalanceData = balances[`${userAddress}:${subnetToken.contractId}`];
-      subnetBalance = subnetBalanceData?.formattedBalance ?? 0;
-    }
-
-    if (mainnetToken && mainnetToken.contractId !== subnetToken?.contractId) {
-      const mainnetBalanceData = balances[`${userAddress}:${mainnetToken.contractId}`];
-      mainnetBalance = mainnetBalanceData?.formattedBalance ?? 0;
-    }
+    // Get balances from the unified balance data
+    const subnetBalance = balanceData?.formattedSubnetBalance ?? 0;
+    const mainnetBalance = balanceData?.formattedBalance ?? 0;
 
     const hasEnoughSubnet = subnetBalance >= requiredAmount;
     const hasEnoughMainnet = mainnetBalance >= requiredAmount;
@@ -388,8 +410,8 @@ export function useRouterTrading() {
     const maxDepositAmount = Math.min(mainnetBalance, requiredAmount - subnetBalance);
     const shortfall = Math.max(0, requiredAmount - subnetBalance - maxDepositAmount);
 
-    // Can deposit if we have any mainnet tokens and there's a subnet shortfall
-    const canDeposit = (requiredAmount - subnetBalance) > 0 && mainnetBalance > 0 && !!mainnetToken && !!subnetToken;
+    // Can deposit if we have any mainnet tokens and there's a subnet shortfall, and we have subnet contract info
+    const canDeposit = (requiredAmount - subnetBalance) > 0 && mainnetBalance > 0 && !!balanceData?.subnetContractId;
 
     // Return initial result immediately (without swap options)
     const initialResult: BalanceCheckResult = {
@@ -411,7 +433,7 @@ export function useRouterTrading() {
     // Step 2: Generate swap options in background
     setIsLoadingSwapOptions(true);
     try {
-      const swapOptions = await generateSwapOptions(token, requiredAmount, subnetToken!);
+      const swapOptions = await generateSwapOptions(token, requiredAmount);
       const finalResult = { ...initialResult, swapOptions };
       setIsLoadingSwapOptions(false);
       return finalResult;
@@ -420,17 +442,16 @@ export function useRouterTrading() {
       setIsLoadingSwapOptions(false);
       return initialResult;
     }
-  }, [tokenCounterparts]);
+  }, [balances]);
 
   // Generate swap options for balance checking
   const generateSwapOptions = useCallback(async (
     targetToken: TokenCacheData,
-    requiredAmount: number,
-    subnetToken: TokenCacheData
+    requiredAmount: number
   ): Promise<SwapOption[]> => {
     console.log(`🔄 Generating swap options for ${requiredAmount} ${targetToken.symbol}...`);
 
-    const targetOutputMicro = convertToMicroUnits(requiredAmount.toString(), subnetToken.decimals || 6);
+    const targetOutputMicro = convertToMicroUnits(requiredAmount.toString(), targetToken.decimals || 6);
     const seenTokens = new Set<string>();
     const swapPromises: Promise<SwapOption | null>[] = [];
 
@@ -447,18 +468,17 @@ export function useRouterTrading() {
       if (numericBalance <= 0.001) continue; // Skip tiny balances
 
       const sourceToken = [...displayTokens, ...subnetDisplayTokens].find(t => t.contractId === contractId);
-      if (!sourceToken || sourceToken.contractId === subnetToken.contractId) continue;
+      if (!sourceToken || sourceToken.contractId === targetToken.contractId) continue;
 
-      const sourceBase = sourceToken.type === 'SUBNET' ? sourceToken.base : null;
-      const tokenKey = sourceBase || sourceToken.contractId;
-      if (seenTokens.has(tokenKey)) continue;
-      seenTokens.add(tokenKey);
+      // Use contractId directly since we don't need counterpart mapping
+      if (seenTokens.has(contractId)) continue;
+      seenTokens.add(contractId);
 
       swapPromises.push(
         (async (): Promise<SwapOption | null> => {
           try {
             // Use REVERSE quote: specify output amount, get required input amount
-            const reverseQuoteResult = await getQuoteForTokens(subnetToken.contractId, sourceToken.contractId, targetOutputMicro);
+            const reverseQuoteResult = await getQuoteForTokens(targetToken.contractId, sourceToken.contractId, targetOutputMicro);
 
             if (reverseQuoteResult.success && reverseQuoteResult.data) {
               // The quote gives us how much of the source token we need
@@ -471,12 +491,12 @@ export function useRouterTrading() {
               if (numericBalance >= requiredInputAmount) {
                 // Now get the forward quote with the exact required input amount for the actual swap route
                 const requiredInputMicro = convertToMicroUnits(requiredInputAmount.toString(), sourceToken.decimals || 6);
-                const forwardQuoteResult = await getQuoteForTokens(sourceToken.contractId, subnetToken.contractId, requiredInputMicro);
+                const forwardQuoteResult = await getQuoteForTokens(sourceToken.contractId, targetToken.contractId, requiredInputMicro);
 
                 if (forwardQuoteResult.success && forwardQuoteResult.data) {
                   const actualOutput = parseFloat(formatTokenAmount(
                     Number(forwardQuoteResult.data.amountOut),
-                    subnetToken.decimals || 6
+                    targetToken.decimals || 6
                   ));
 
                   return {
@@ -509,18 +529,38 @@ export function useRouterTrading() {
     });
 
     return swapOptions.slice(0, 3);
-  }, [tokenCounterparts, displayTokens, subnetDisplayTokens, balances, getQuoteForTokens, convertToMicroUnits, formatTokenAmount]);
+  }, [displayTokens, subnetDisplayTokens, balances, getQuoteForTokens, convertToMicroUnits, formatTokenAmount]);
 
   // Enhanced order creation with fast balance checking
   const handleCreateLimitOrderWithBalanceCheck = useCallback(async () => {
-    if (!selectedFromToken || !selectedToToken) return;
-    if (!walletAddress) return;
+    console.log('🚀 Starting order creation flow:', {
+      selectedFromToken: selectedFromToken?.contractId,
+      selectedToToken: selectedToToken?.contractId,
+      displayAmount,
+      walletAddress,
+      conditionToken: conditionToken?.contractId,
+      baseToken: baseToken?.contractId,
+      targetPrice,
+      conditionDir
+    });
 
+    if (!selectedFromToken || !selectedToToken) {
+      console.error('❌ Order creation failed: Missing tokens');
+      return;
+    }
+    if (!walletAddress) {
+      console.error('❌ Order creation failed: No wallet address');
+      return;
+    }
+
+    console.log('🔍 Checking balance for order...');
     const balanceCheck = await checkBalanceForOrder(selectedFromToken, displayAmount, walletAddress);
+    console.log('📊 Balance check result:', balanceCheck);
     setBalanceCheckResult(balanceCheck);
 
     // If user has enough subnet balance, create the order directly
     if (balanceCheck.hasEnoughSubnet) {
+      console.log('✅ User has enough subnet balance, creating order...');
       try {
         await createTriggeredSwap({
           conditionToken: conditionToken || selectedToToken,
@@ -529,9 +569,13 @@ export function useRouterTrading() {
           direction: conditionDir,
           amountDisplay: displayAmount,
         });
+        console.log('✅ Order created successfully');
       } catch (err) {
+        console.error('❌ Order creation failed:', err);
         setError(err instanceof Error ? err.message : 'Order creation failed');
       }
+    } else {
+      console.log('⚠️ User does not have enough subnet balance, showing balance check dialog');
     }
     // If not enough balance, the balance check dialog will show via balanceCheckResult
   }, [selectedFromToken, selectedToToken, displayAmount, targetPrice, conditionToken, baseToken, conditionDir, checkBalanceForOrder, createTriggeredSwap, walletAddress]);

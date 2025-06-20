@@ -81,7 +81,6 @@ export default function TokenOutputSection() {
     }, [toTokenBalance, isSubnetSelected]);
 
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
-    const quoteHops = quote ? quote.path.length - 1 : null;
 
     const handleSelectToken = (t: TokenCacheData) => {
         console.log("Selected TO token:", t.symbol);
@@ -226,15 +225,8 @@ export default function TokenOutputSection() {
                                 <div className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white/95">
                                     {outputAmount}
                                 </div>
-                                <div className="flex items-center space-x-2 mt-1">
-                                    <div className="text-sm text-white/60">
-                                        {price && outputAmount ? formatPriceUSD(price.price * Number(outputAmount)) : 'Enter amount'}
-                                    </div>
-                                    {quoteHops !== null && (
-                                        <div className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded-md text-xs font-medium border border-green-500/30">
-                                            {quoteHops} {quoteHops === 1 ? 'hop' : 'hops'}
-                                        </div>
-                                    )}
+                                <div className="text-sm text-white/60 mt-1">
+                                    {price && outputAmount ? formatPriceUSD(price.price * Number(outputAmount)) : 'Enter amount'}
                                 </div>
                             </>
                         )}
