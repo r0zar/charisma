@@ -1,10 +1,9 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
-import { WalletProvider } from '../contexts/wallet-context';
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from '@/components/ui/sonner';
-import { BlazeProvider } from 'blaze-sdk/realtime';
+import { ClientProviders } from '@/components/providers/client-providers';
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
@@ -44,12 +43,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <BlazeProvider>
-          <WalletProvider>
-            {children}
-            <Toaster />
-          </WalletProvider>
-        </BlazeProvider>
+        <ClientProviders>
+          {children}
+          <Toaster />
+        </ClientProviders>
       </body>
       <Analytics />
     </html>

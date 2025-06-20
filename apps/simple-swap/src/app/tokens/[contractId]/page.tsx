@@ -1,12 +1,16 @@
+import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getTokenDetail, listTokenSummaries } from '../../token-actions';
+import { getTokenDetail, listTokenSummaries, preloadPriceSeriesData, type TokenSummary } from '../../token-actions';
 import { Header } from '@/components/layout/header';
 import TokenDetailClient from '@/components/tokens/token-detail-client';
 import TokenDetailSkeleton from '@/components/tokens/token-detail-skeleton';
 import TokenBreadcrumbs from '@/components/tokens/token-breadcrumbs';
 import RelatedTokens from '@/components/tokens/related-tokens';
+import PremiumTokenInfo from '@/components/tokens/premium-token-info';
 import { Suspense } from 'react';
+import { priceSeriesService } from '@/lib/price-series-service';
+import { perfMonitor } from '@/lib/performance-monitor';
 
 interface PageProps {
     params: { contractId: string };
@@ -46,14 +50,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function TokenDetailPage({ params }: PageProps) {
     const { contractId } = await params;
+    const decodedContractId = decodeURIComponent(contractId);
 
     try {
+        const timer = perfMonitor.startTiming('token-detail-page-load');
+
+        // Step 1: Fetch basic token data and summaries in parallel
         const [detail, summaries] = await Promise.all([
-            getTokenDetail(decodeURIComponent(contractId)),
+            getTokenDetail(decodedContractId),
             listTokenSummaries(),
         ]);
 
         if (!detail) notFound();
+
+        // Step 2: Preload chart data for primary token and common comparison tokens
+        const commonComparisonTokens = getCommonComparisonTokens(summaries);
+        const tokensToPreload = [decodedContractId, ...commonComparisonTokens.slice(0, 5)];
+
+        // Preload price series data and warm the cache
+        const preloadedData = await preloadPriceSeriesData(tokensToPreload);
+        priceSeriesService.bulkSetCachedPriceSeries(preloadedData);
+
+        timer.end({
+            tokenId: decodedContractId.substring(0, 10),
+            preloadedTokens: tokensToPreload.length,
+            totalDataPoints: Object.values(preloadedData).reduce((sum, data) => sum + data.length, 0)
+        });
 
         return (
             <div className="flex flex-col min-h-screen">
@@ -70,65 +92,8 @@ export default async function TokenDetailPage({ params }: PageProps) {
                             <TokenDetailClient detail={detail} tokens={summaries} />
                         </Suspense>
 
-                        {/* Token Information Cards */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Metadata */}
-                            <div className="bg-card border border-border rounded-xl p-6">
-                                <h2 className="text-lg font-semibold mb-4">Token Information</h2>
-                                <dl className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm">
-                                    <div className="flex justify-between">
-                                        <dt className="font-medium text-muted-foreground">Contract Address</dt>
-                                        <dd className="break-all text-right max-w-[200px] font-mono text-xs">
-                                            {detail.contractId}
-                                        </dd>
-                                    </div>
-                                    {detail.description && (
-                                        <div className="flex justify-between">
-                                            <dt className="font-medium text-muted-foreground">Description</dt>
-                                            <dd className="text-right max-w-[200px]">{detail.description}</dd>
-                                        </div>
-                                    )}
-                                    {detail.total_supply && (
-                                        <div className="flex justify-between">
-                                            <dt className="font-medium text-muted-foreground">Total Supply</dt>
-                                            <dd className="font-mono">{Number(detail.total_supply).toLocaleString()}</dd>
-                                        </div>
-                                    )}
-                                    {detail.decimals !== undefined && (
-                                        <div className="flex justify-between">
-                                            <dt className="font-medium text-muted-foreground">Decimals</dt>
-                                            <dd>{detail.decimals}</dd>
-                                        </div>
-                                    )}
-                                </dl>
-                            </div>
-
-                            {/* Market Stats */}
-                            <div className="bg-card border border-border rounded-xl p-6">
-                                <h2 className="text-lg font-semibold mb-4">Market Statistics</h2>
-                                <div className="space-y-4">
-                                    <Stat
-                                        label="Current Price"
-                                        value={fmtPrice(detail.price)}
-                                    />
-                                    <Stat
-                                        label="24h Change"
-                                        value={fmtDelta(detail.change24h)}
-                                        delta={detail.change24h}
-                                    />
-                                    <Stat
-                                        label="7d Change"
-                                        value={fmtDelta(detail.change7d)}
-                                        delta={detail.change7d}
-                                    />
-                                    <Stat
-                                        label="30d Change"
-                                        value={fmtDelta(detail.change30d)}
-                                        delta={detail.change30d}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                        {/* Premium Token Information Grid */}
+                        <PremiumTokenInfo detail={detail} />
 
                         {/* Related Tokens */}
                         <RelatedTokens currentToken={detail} allTokens={summaries} />
@@ -143,6 +108,34 @@ export default async function TokenDetailPage({ params }: PageProps) {
 }
 
 /* --- helpers --- */
+
+/**
+ * Get the most commonly used comparison tokens for preloading
+ */
+function getCommonComparisonTokens(summaries: TokenSummary[]): string[] {
+    // Priority order for comparison tokens
+    const prioritySymbols = ['aeUSDC', 'STX', 'sBTC', 'CHA', 'WELSH', 'USDC', 'USDT'];
+
+    const tokens: string[] = [];
+
+    // Add priority tokens if they exist
+    for (const symbol of prioritySymbols) {
+        const token = summaries.find(t => t.symbol === symbol);
+        if (token) {
+            tokens.push(token.contractId);
+        }
+    }
+
+    // Fill remaining slots with highest volume/price tokens
+    const remainingTokens = summaries
+        .filter(t => !tokens.includes(t.contractId))
+        .sort((a, b) => (b.price || 0) * (b.marketCap || 0) - (a.price || 0) * (a.marketCap || 0))
+        .slice(0, 10 - tokens.length)
+        .map(t => t.contractId);
+
+    return [...tokens, ...remainingTokens];
+}
+
 function fmtPrice(price: number | null) {
     if (price === null) return "-";
     return `$${price.toFixed(4)}`;
@@ -151,7 +144,7 @@ function fmtPrice(price: number | null) {
 function fmtDelta(delta: number | null) {
     if (delta === null) return "-";
     const sign = delta > 0 ? "+" : "";
-    return `${sign}${delta.toFixed(2)}%`;
+    return `${sign}${delta?.toFixed(2)}%`;
 }
 
 function getDeltaColour(delta: number | null) {
@@ -161,11 +154,4 @@ function getDeltaColour(delta: number | null) {
     return "";
 }
 
-function Stat({ label, value, delta }: { label: string; value: string; delta?: number | null }) {
-    return (
-        <div className="flex justify-between items-center py-2 border-b border-border/50 last:border-b-0">
-            <div className="text-sm text-muted-foreground">{label}</div>
-            <div className={`text-sm font-medium ${getDeltaColour(delta ?? null)}`}>{value}</div>
-        </div>
-    );
-} 
+// Premium components are now in separate client component files 

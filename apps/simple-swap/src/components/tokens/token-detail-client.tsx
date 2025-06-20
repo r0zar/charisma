@@ -1,16 +1,75 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import type { TokenSummary } from '@/app/token-actions';
 import TokenChartWrapper from './token-chart-wrapper';
 import { useDominantColor } from '../utils/useDominantColor';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import CompareTokenSelector from './compare-token-selector';
+import { perfMonitor } from '@/lib/performance-monitor';
+import LivePriceIndicator, { LivePriceStatus } from './live-price-indicator';
+import { useBlaze } from 'blaze-sdk/realtime';
+import { useWallet } from '@/contexts/wallet-context';
+import { useComparisonToken } from '@/contexts/comparison-token-context';
 
 interface Props {
     detail: TokenSummary;
     tokens?: TokenSummary[];
+}
+
+interface PremiumComparisonCardProps {
+    period: string;
+    change: number | null;
+    isRelative: boolean;
+    compareSymbol?: string;
+}
+
+// Premium comparison card component
+function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: PremiumComparisonCardProps) {
+    const getCleanColor = (delta: number | null) => {
+        if (delta === null) return 'text-white/60';
+        if (delta > 0) return 'text-emerald-400';
+        if (delta < 0) return 'text-red-400';
+        return 'text-white/60';
+    };
+
+    const getBorderGlow = (delta: number | null) => {
+        if (delta === null) return 'border-white/[0.08] hover:border-white/[0.15]';
+        if (delta > 0) return 'border-emerald-500/[0.15] hover:border-emerald-400/[0.3] shadow-emerald-500/[0.05]';
+        if (delta < 0) return 'border-red-500/[0.15] hover:border-red-400/[0.3] shadow-red-500/[0.05]';
+        return 'border-white/[0.08] hover:border-white/[0.15]';
+    };
+
+    const fmtDelta = (delta: number | null) => {
+        if (delta === null) return '-';
+        const sign = delta > 0 ? '+' : '';
+        return `${sign}${delta.toFixed(2)}%`;
+    };
+
+    return (
+        <div className={`group relative p-6 rounded-2xl border bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:shadow-lg ${getBorderGlow(change)}`}>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            
+            <div className="relative flex flex-col items-center space-y-3">
+                <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
+                    {period} {isRelative && compareSymbol && (
+                        <span className="text-white/30">vs {compareSymbol}</span>
+                    )}
+                </div>
+                <div className={`text-xl font-semibold font-mono transition-colors duration-300 ${getCleanColor(change)}`}>
+                    {fmtDelta(change)}
+                </div>
+            </div>
+            
+            {/* Trend indicator */}
+            {change !== null && (
+                <div className="absolute top-3 right-3">
+                    <div className={`w-2 h-2 rounded-full ${change > 0 ? 'bg-emerald-400' : 'bg-red-400'} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
+                </div>
+            )}
+        </div>
+    );
 }
 
 // Token Image component with error handling
@@ -38,41 +97,128 @@ function TokenImage({ token, size = 56 }: { token: TokenSummary; size?: number }
 
 export default function TokenDetailClient({ detail, tokens: initialTokens }: Props) {
     const [tokens, setTokens] = useState<TokenSummary[]>(initialTokens ?? []);
-    const [compareId, setCompareId] = useState<string | null>(null);
+    const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const pathname = usePathname();
+    // Use shared comparison token context
+    const { compareId, setCompareId, isInitialized } = useComparisonToken();
 
+    // Real-time data from useBlaze
+    const { address } = useWallet();
+    const { prices, balances, getPrice, getBalance, isConnected } = useBlaze({ userId: address });
+
+    // Only fetch tokens if not provided from SSR and we don't have any tokens yet
     useEffect(() => {
-        if (initialTokens && initialTokens.length) return;
-        fetch('/api/token-summaries')
-            .then((r) => r.json())
-            .then((d: TokenSummary[]) => {
-                setTokens(d);
-            })
-            .catch(console.error);
-    }, [initialTokens]);
-
-    /* ------------- init compareId from URL/localStorage ------------- */
-    useEffect(() => {
-        if (compareId) return;
-        const urlCompare = searchParams?.get('compare');
-        if (urlCompare) {
-            setCompareId(urlCompare);
+        if (initialTokens && initialTokens.length > 0) {
+            console.log('[TOKEN-DETAIL-CLIENT] Using SSR token data, skipping API call');
             return;
         }
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('compareTokenId');
-            if (stored) setCompareId(stored);
+
+        if (tokens.length > 0) {
+            console.log('[TOKEN-DETAIL-CLIENT] Tokens already loaded, skipping API call');
+            return;
         }
-    }, [compareId, searchParams]);
 
-    const compareToken = tokens.find((t) => t.contractId === compareId) ?? null;
+        const timer = perfMonitor.startTiming('token-detail-client-fetch-tokens');
+        setIsLoadingTokens(true);
 
-    // extract colors
+        fetch('/api/token-summaries')
+            .then((r) => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            })
+            .then((d: TokenSummary[]) => {
+                setTokens(d);
+                timer.end({ source: 'api', tokenCount: d.length });
+                console.log('[TOKEN-DETAIL-CLIENT] Loaded tokens from API:', d.length);
+            })
+            .catch((error) => {
+                console.error('[TOKEN-DETAIL-CLIENT] Failed to fetch tokens:', error);
+                timer.end({ source: 'api', error: error.message });
+            })
+            .finally(() => {
+                setIsLoadingTokens(false);
+            });
+    }, [initialTokens, tokens.length]);
+
+    // compareId initialization is now handled by ComparisonTokenContext
+
+    // Memoize expensive computations with real-time price enhancement
+    const compareToken = useMemo(() =>
+        compareId ? tokens.find((t) => t.contractId === compareId) ?? null : null,
+        [tokens, compareId]
+    );
+
+    // Enhanced token details with real-time data from useBlaze
+    const enhancedDetail = useMemo(() => {
+        const realtimePrice = getPrice(detail.contractId);
+        const userBalance = address ? getBalance(address, detail.contractId) : null;
+
+        return {
+            ...detail,
+            // Use real-time price if available, fallback to static
+            currentPrice: realtimePrice ?? detail.price,
+            // Enhanced metadata from balance data (includes full token info)
+            enhancedMetadata: userBalance ? {
+                name: userBalance.name || detail.name,
+                symbol: userBalance.symbol || detail.symbol,
+                decimals: userBalance.decimals || detail.decimals,
+                description: userBalance.description || detail.description,
+                image: userBalance.image || detail.image,
+                formattedBalance: userBalance.formattedBalance,
+                subnetBalance: userBalance.subnetBalance,
+                formattedSubnetBalance: userBalance.formattedSubnetBalance,
+            } : null,
+            userBalance,
+        };
+    }, [detail, getPrice, getBalance, address]);
+
+    // Calculate relative percentage changes when comparison token is selected
+    const relativeChanges = useMemo(() => {
+        if (!compareToken) {
+            // No comparison token, use USD-based changes
+            return {
+                change1h: detail.change1h,
+                change24h: detail.change24h,
+                change7d: detail.change7d,
+                isRelative: false
+            };
+        }
+
+        // Calculate relative changes (Primary change - Compare change)
+        const calculateRelativeChange = (primaryChange: number | null, compareChange: number | null): number | null => {
+            if (primaryChange === null || compareChange === null) return null;
+            return primaryChange - compareChange;
+        };
+
+        return {
+            change1h: calculateRelativeChange(detail.change1h, compareToken.change1h),
+            change24h: calculateRelativeChange(detail.change24h, compareToken.change24h),
+            change7d: calculateRelativeChange(detail.change7d, compareToken.change7d),
+            isRelative: true
+        };
+    }, [detail, compareToken]);
+
+    // Extract colors with memoization
     const primaryColor = useDominantColor(detail.image);
     const compareColor = useDominantColor(compareToken?.image ?? null);
+
+    // Memoize the default comparison token selection
+    const defaultCompareId = useMemo(() => {
+        if (!tokens.length) return null;
+
+        // Priority order for default comparison
+        const prioritySymbols = ['aUSD', 'USDC', 'USDT', 'STX'];
+        for (const symbol of prioritySymbols) {
+            const token = tokens.find((t) => t.symbol === symbol);
+            if (token && token.contractId !== detail.contractId) {
+                return token.contractId;
+            }
+        }
+
+        // Fallback to first available token that's not the current one
+        const fallback = tokens.find((t) => t.contractId !== detail.contractId);
+        return fallback?.contractId ?? null;
+    }, [tokens, detail.contractId]);
 
     function diff(a: number | null, b: number | null): number | null {
         if (a === null || b === null) return null;
@@ -86,30 +232,28 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
     }
 
     function getColour(delta: number | null) {
-        if (delta === null) return 'text-muted-foreground';
-        if (delta > 0) return 'text-green-600';
-        if (delta < 0) return 'text-red-600';
-        return '';
+        if (delta === null) return 'text-white/60';
+        if (delta > 0) return 'text-emerald-400';
+        if (delta < 0) return 'text-red-400';
+        return 'text-white/60';
     }
 
-    /* ------------- persist compareId changes ------------- */
-    useEffect(() => {
-        if (!compareId) return;
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('compareTokenId', compareId);
-        }
-        const params = new URLSearchParams(searchParams?.toString());
-        params.set('compare', compareId);
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }, [compareId, pathname, router, searchParams]);
+    // compareId persistence is now handled by ComparisonTokenContext
 
-    // fallback default when still null after previous effects
+    // Set default comparison token when available (only after context is initialized)
     useEffect(() => {
-        if (!compareId && tokens.length) {
-            const stable = tokens.find((t) => ['aUSD', 'USDC', 'USDT', 'USD'].includes(t.symbol));
-            setCompareId(stable ? stable.contractId : tokens[0].contractId);
+        if (!isInitialized) {
+            console.log('[TOKEN-DETAIL-CLIENT] Waiting for context initialization...');
+            return;
         }
-    }, [compareId, tokens]);
+        
+        if (!compareId && defaultCompareId) {
+            console.log('[TOKEN-DETAIL-CLIENT] Setting default comparison token:', defaultCompareId.substring(0, 10));
+            setCompareId(defaultCompareId);
+        } else if (compareId) {
+            console.log('[TOKEN-DETAIL-CLIENT] Using existing comparison token from context:', compareId.substring(0, 10));
+        }
+    }, [compareId, defaultCompareId, isInitialized, setCompareId]);
 
     return (
         <>
@@ -122,7 +266,50 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                     </div>
                     <div>
                         <h1 className="text-2xl font-semibold leading-tight">{detail.name}</h1>
-                        <p className="text-muted-foreground text-sm">{detail.symbol}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-muted-foreground text-sm">
+                                {enhancedDetail.enhancedMetadata?.symbol || detail.symbol}
+                            </p>
+                            <LivePriceStatus contractIds={[detail.contractId]} />
+                            {/* Real-time connection indicator */}
+                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+                                title={isConnected ? 'Real-time data connected' : 'Real-time data disconnected'} />
+                        </div>
+                        {/* User balance display with tooltip */}
+                        {enhancedDetail.userBalance && (
+                            <div className="group relative text-xs text-muted-foreground mt-1 inline-block cursor-help">
+                                Your balance: {(
+                                    (enhancedDetail.userBalance.formattedBalance || 0) + 
+                                    (enhancedDetail.userBalance.formattedSubnetBalance || 0)
+                                ).toFixed(4)} {enhancedDetail.enhancedMetadata?.symbol}
+                                
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-black/20 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-lg text-xs text-white/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                    <div className="font-medium mb-2 text-white/95">Balance Breakdown</div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between">
+                                            <span className="text-white/70">Mainnet:</span>
+                                            <span className="font-mono">{enhancedDetail.userBalance.formattedBalance?.toFixed(4) || '0.0000'}</span>
+                                        </div>
+                                        {enhancedDetail.userBalance.subnetBalance !== undefined && (
+                                            <div className="flex justify-between">
+                                                <span className="text-white/70">Subnet:</span>
+                                                <span className="font-mono">{enhancedDetail.userBalance.formattedSubnetBalance?.toFixed(4) || '0.0000'}</span>
+                                            </div>
+                                        )}
+                                        <div className="border-t border-white/[0.1] pt-1 mt-2">
+                                            <div className="flex justify-between font-medium">
+                                                <span className="text-white/90">Total:</span>
+                                                <span className="font-mono text-white/95">{(
+                                                    (enhancedDetail.userBalance.formattedBalance || 0) + 
+                                                    (enhancedDetail.userBalance.formattedSubnetBalance || 0)
+                                                ).toFixed(4)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -132,27 +319,60 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                     primary={detail}
                     selectedId={compareId}
                     onSelect={setCompareId}
+                    isLoading={isLoadingTokens}
                 />
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="p-4 rounded-lg bg-muted/20">
-                    <div className="text-xs text-muted-foreground mb-1">Price</div>
-                    <div className="text-sm font-medium">{detail.price === null ? '-' : `$${detail.price.toFixed(4)}`}</div>
+            {/* Premium comparison stats - Apple/Tesla design */}
+            <div className="grid grid-cols-4 gap-6 mb-8">
+                <div className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:border-white/[0.15] hover:shadow-lg">
+                    {/* Subtle gradient overlay */}
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                    
+                    <div className="relative flex flex-col items-center space-y-3">
+                        <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300">
+                            Price
+                        </div>
+                        <LivePriceIndicator
+                            contractId={detail.contractId}
+                            fallbackPrice={detail.price}
+                            className="text-xl font-semibold font-mono text-white/90"
+                            showChange={false}
+                            showStatus={false}
+                        />
+                    </div>
+                    
+                    {/* Live indicator */}
+                    {isConnected && (
+                        <div className="absolute top-3 right-3">
+                            <div className="relative">
+                                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                                <div className="absolute inset-0 w-2 h-2 bg-emerald-400/40 rounded-full animate-ping" />
+                            </div>
+                        </div>
+                    )}
                 </div>
-                <div className="p-4 rounded-lg bg-muted/20 flex flex-col items-center">
-                    <div className="text-xs text-muted-foreground mb-1">1h</div>
-                    <div className={`text-sm font-medium ${getColour(diff(detail.change1h, compareToken?.change1h ?? null))}`}>{fmtDelta(diff(detail.change1h, compareToken?.change1h ?? null))}</div>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/20 flex flex-col items-center">
-                    <div className="text-xs text-muted-foreground mb-1">24h</div>
-                    <div className={`text-sm font-medium ${getColour(diff(detail.change24h, compareToken?.change24h ?? null))}`}>{fmtDelta(diff(detail.change24h, compareToken?.change24h ?? null))}</div>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/20 flex flex-col items-center">
-                    <div className="text-xs text-muted-foreground mb-1">7d</div>
-                    <div className={`text-sm font-medium ${getColour(diff(detail.change7d, compareToken?.change7d ?? null))}`}>{fmtDelta(diff(detail.change7d, compareToken?.change7d ?? null))}</div>
-                </div>
+                
+                <PremiumComparisonCard
+                    period="1h"
+                    change={relativeChanges.change1h}
+                    isRelative={relativeChanges.isRelative}
+                    compareSymbol={compareToken?.symbol}
+                />
+                
+                <PremiumComparisonCard
+                    period="24h"
+                    change={relativeChanges.change24h}
+                    isRelative={relativeChanges.isRelative}
+                    compareSymbol={compareToken?.symbol}
+                />
+                
+                <PremiumComparisonCard
+                    period="7d"
+                    change={relativeChanges.change7d}
+                    isRelative={relativeChanges.isRelative}
+                    compareSymbol={compareToken?.symbol}
+                />
             </div>
 
             {/* Chart */}

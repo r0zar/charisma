@@ -1,6 +1,7 @@
 import { TokenCacheData } from "@repo/tokens";
 import React from "react";
 import { Flame } from "lucide-react";
+import { getIpfsUrl } from "@/lib/utils";
 
 interface TokenLogoProps {
     token: TokenCacheData;
@@ -52,7 +53,8 @@ function TokenFlameOverlay({ size }: { size: 'sm' | 'md' | 'lg' }) {
 
 export default function TokenLogo({ token, size = "md", className = "", suppressFlame = false }: TokenLogoProps) {
     const getTokenLogo = (token: TokenCacheData) => {
-        return token.image || `https://charisma.rocks/charisma.png`;
+        const imageUrl = token.image || `https://charisma.rocks/charisma.png`;
+        return getIpfsUrl(imageUrl);
     };
 
     const isSubnetToken = token.type === 'SUBNET';

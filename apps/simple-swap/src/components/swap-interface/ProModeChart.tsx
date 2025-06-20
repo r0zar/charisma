@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
@@ -32,6 +32,7 @@ import {
 import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
 import TargetPriceHoverOverlay from '../pro-mode/TargetPriceHoverOverlay';
 import { useBlaze } from 'blaze-sdk';
+import { usePriceSeriesService } from '@/lib/price-series-service';
 
 // Enriched order type with token metadata
 interface DisplayOrder extends LimitOrder {
@@ -70,7 +71,7 @@ interface ProModeChartProps {
     candleInterval?: string;
 }
 
-export default function ProModeChart({
+const ProModeChart = React.memo(function ProModeChart({
     token,
     baseToken,
     targetPrice,
@@ -169,29 +170,52 @@ export default function ProModeChart({
 
 
 
-    // Calculate price change using noisy data when available
-    useEffect(() => {
-        // Use noisy data if available, otherwise fall back to regular data
-        const currentData = noisyDataRef.current || data;
+    // Optimized price change calculation with debouncing and memoization
+    const lastProcessedDataRef = useRef<{ latest: number; previous: number; timestamp: number } | null>(null);
+    
+    const updatePriceChange = useCallback((currentData: LineData[]) => {
+        if (!currentData || currentData.length < 2) return;
 
-        if (currentData && currentData.length > 1) {
-            const latest = getDataPointPrice(currentData[currentData.length - 1]);
-            const previous = getDataPointPrice(currentData[currentData.length - 2]);
-            const change = latest - previous;
-            const percentage = (change / previous) * 100;
-
-            console.log(`💰 Current price updated: ${latest.toFixed(8)} (change: ${change > 0 ? '+' : ''}${change.toFixed(8)}, ${percentage > 0 ? '+' : ''}${percentage.toFixed(2)}%)`);
-            console.log(`💰 Sending to parent context: ${latest.toFixed(8)}`);
-
-            setCurrentPrice(latest);
-            setPriceChange({ value: change, percentage });
-
-            // Notify parent component of current price change
-            if (onCurrentPriceChange) {
-                onCurrentPriceChange(latest);
-            }
+        const latest = getDataPointPrice(currentData[currentData.length - 1]);
+        const previous = getDataPointPrice(currentData[currentData.length - 2]);
+        
+        // Only update if values have actually changed (prevent unnecessary re-renders)
+        const lastProcessed = lastProcessedDataRef.current;
+        if (lastProcessed && 
+            Math.abs(lastProcessed.latest - latest) < 0.00000001 && 
+            Math.abs(lastProcessed.previous - previous) < 0.00000001) {
+            return; // Values haven't changed significantly
         }
-    }, [data, onCurrentPriceChange, getDataPointPrice]);
+
+        const change = latest - previous;
+        const percentage = (change / previous) * 100;
+
+        // Store the processed values
+        lastProcessedDataRef.current = { latest, previous, timestamp: Date.now() };
+
+        console.log(`💰 Current price updated: ${latest.toFixed(8)} (change: ${change > 0 ? '+' : ''}${change.toFixed(8)}, ${percentage > 0 ? '+' : ''}${percentage.toFixed(2)}%)`);
+
+        setCurrentPrice(latest);
+        setPriceChange({ value: change, percentage });
+
+        // Notify parent component of current price change
+        if (onCurrentPriceChange) {
+            onCurrentPriceChange(latest);
+        }
+    }, [getDataPointPrice, onCurrentPriceChange]);
+
+    // Debounced effect for price change calculation
+    useEffect(() => {
+        const currentData = noisyDataRef.current || data;
+        if (!currentData) return;
+
+        // Debounce price updates to avoid excessive re-renders
+        const timeoutId = setTimeout(() => {
+            updatePriceChange(currentData);
+        }, 50);
+
+        return () => clearTimeout(timeoutId);
+    }, [data, updatePriceChange]);
 
     // Helper function to convert interval string to minutes
     const getIntervalMinutes = useCallback((interval: string): number => {
@@ -294,59 +318,64 @@ export default function ProModeChart({
         }
     }, []);
 
-    // Update data without recreating the entire chart
-    const updateChartData = useCallback((newData: LineData[] | CandlestickData[], isRealTimeUpdate = false) => {
+    // Optimized chart data update with incremental updates support
+    const updateChartData = useCallback((newData: LineData[] | CandlestickData[], isRealTimeUpdate = false, incrementalPoint?: LineData) => {
         if (!seriesRef.current || !newData || newData.length === 0) return;
 
         try {
-            // For real-time updates, don't preserve view - let it show the new data
-            if (!isRealTimeUpdate) {
-                captureVisibleRange();
-            }
-
-            // Update series data
-            if (chartType === 'candles') {
-                const candlestickData = convertToCandlestickData(newData as LineData[]);
-                seriesRef.current.setData(candlestickData);
-            } else {
-                // Always use setData() to ensure complete data consistency
-                seriesRef.current.setData(newData as LineData[]);
-
-                if (isRealTimeUpdate && newData.length > 0) {
-                    const lastPoint = newData[newData.length - 1] as LineData;
-                    console.log('📈 Chart updated with real-time data point:', {
+            // For real-time updates with a single incremental point, use update() instead of setData()
+            if (isRealTimeUpdate && incrementalPoint && newData.length > 0) {
+                const lastPoint = newData[newData.length - 1] as LineData;
+                
+                // Use efficient incremental update for single data points
+                if (chartType === 'line') {
+                    seriesRef.current.update(lastPoint);
+                    console.log('📈 Incremental chart update:', {
                         time: lastPoint.time,
                         value: lastPoint.value,
                         timeFormatted: new Date(Number(lastPoint.time) * 1000).toISOString()
                     });
+                } else {
+                    // For candlestick charts, we still need to use setData for now
+                    const candlestickData = convertToCandlestickData(newData as LineData[]);
+                    seriesRef.current.setData(candlestickData);
                 }
+
+                // Auto-scroll to show new data if needed
+                if (chartRef.current) {
+                    const lastTime = Number(lastPoint.time);
+                    const timeScale = chartRef.current.timeScale();
+                    const visibleRange = timeScale.getVisibleRange();
+
+                    if (visibleRange && lastTime > Number(visibleRange.to)) {
+                        const rangeSize = Number(visibleRange.to) - Number(visibleRange.from);
+                        const newTo = lastTime + (rangeSize * 0.05); // Smaller padding for smoother scrolling
+                        const newFrom = newTo - rangeSize;
+
+                        timeScale.setVisibleRange({
+                            from: newFrom as any,
+                            to: newTo as any
+                        });
+                    }
+                }
+                return;
             }
 
-            // For real-time updates, ensure the latest data is visible
-            if (isRealTimeUpdate && chartRef.current) {
-                // Get the time of the last data point
-                const lastDataPoint = newData[newData.length - 1];
-                const lastTime = Number((lastDataPoint as LineData).time);
+            // For bulk updates, preserve view unless it's real-time
+            if (!isRealTimeUpdate) {
+                captureVisibleRange();
+            }
 
-                // Get current visible range
-                const timeScale = chartRef.current.timeScale();
-                const visibleRange = timeScale.getVisibleRange();
+            // Bulk data update (used for initial load and major refreshes)
+            if (chartType === 'candles') {
+                const candlestickData = convertToCandlestickData(newData as LineData[]);
+                seriesRef.current.setData(candlestickData);
+            } else {
+                seriesRef.current.setData(newData as LineData[]);
+            }
 
-                if (visibleRange && lastTime > Number(visibleRange.to)) {
-                    // If the new data point is outside the visible range, adjust the range to show it
-                    const rangeSize = Number(visibleRange.to) - Number(visibleRange.from);
-                    const newTo = lastTime + (rangeSize * 0.1); // Add 10% padding
-                    const newFrom = newTo - rangeSize;
-
-                    timeScale.setVisibleRange({
-                        from: newFrom as any,
-                        to: newTo as any
-                    });
-
-                    console.log('📊 Adjusted time range to show new real-time data point');
-                }
-            } else if (!isRealTimeUpdate) {
-                // For non-real-time updates, restore the preserved view
+            // Restore view for non-real-time bulk updates
+            if (!isRealTimeUpdate) {
                 restoreVisibleRange();
             }
         } catch (e) {
@@ -354,10 +383,8 @@ export default function ProModeChart({
         }
     }, [chartType, convertToCandlestickData, captureVisibleRange, restoreVisibleRange]);
 
-    // Function to enhance historic data with real-time price
-    const enhanceWithRealTimePrice = useCallback((historicData: LineData[], tokenToPrice: TokenCacheData, baseTokenToPrice?: TokenCacheData | null): LineData[] => {
-        if (!historicData || historicData.length === 0) return [];
-
+    // Optimized function to get current real-time price for incremental updates
+    const getCurrentRealTimePrice = useCallback((tokenToPrice: TokenCacheData, baseTokenToPrice?: TokenCacheData | null): { price: number | null; point: LineData | null } => {
         // Get real-time prices
         let currentTokenPrice = getPrice(tokenToPrice.contractId);
         let currentBasePrice: number | undefined;
@@ -366,13 +393,6 @@ export default function ProModeChart({
         if (!currentTokenPrice && tokenToPrice.type === 'SUBNET' && tokenToPrice.base) {
             currentTokenPrice = getPrice(tokenToPrice.base);
         }
-
-        console.log('🔍 Real-time price lookup:', {
-            token: tokenToPrice.symbol,
-            contractId: tokenToPrice.contractId,
-            currentTokenPrice,
-            baseToken: baseTokenToPrice?.symbol || 'None'
-        });
 
         if (baseTokenToPrice?.contractId) {
             currentBasePrice = getPrice(baseTokenToPrice.contractId);
@@ -385,29 +405,47 @@ export default function ProModeChart({
         // Calculate current price (ratio or direct)
         let realTimePrice: number | undefined;
         if (baseTokenToPrice && currentTokenPrice && currentBasePrice) {
-            // If we have a base token, calculate the ratio (base/token)
             realTimePrice = currentBasePrice / currentTokenPrice;
-            console.log(`📊 RATIO CALCULATION - ${tokenToPrice.symbol}/${baseTokenToPrice.symbol}:`);
-            console.log(`   Token (${tokenToPrice.symbol}) USD price: ${currentTokenPrice}`);
-            console.log(`   Base (${baseTokenToPrice.symbol}) USD price: ${currentBasePrice}`);
-            console.log(`   Calculated ratio (${baseTokenToPrice.symbol}/${tokenToPrice.symbol}): ${realTimePrice}`);
-            console.log(`   This means: 1 ${tokenToPrice.symbol} = ${realTimePrice.toFixed(8)} ${baseTokenToPrice.symbol}`);
         } else if (currentTokenPrice) {
-            // Direct price
             realTimePrice = currentTokenPrice;
-            console.log(`📊 DIRECT PRICE - ${tokenToPrice.symbol}: $${realTimePrice}`);
         }
 
-        // If we don't have a real-time price, return historic data as-is
+        // Return null if no valid price
         if (!realTimePrice || !isFinite(realTimePrice) || realTimePrice <= 0) {
+            return { price: null, point: null };
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        return {
+            price: realTimePrice,
+            point: {
+                time: now as any,
+                value: realTimePrice
+            }
+        };
+    }, [getPrice]);
+
+    // Function to enhance historic data with real-time price (used for full refreshes)
+    const enhanceWithRealTimePrice = useCallback((historicData: LineData[], tokenToPrice: TokenCacheData, baseTokenToPrice?: TokenCacheData | null): LineData[] => {
+        if (!historicData || historicData.length === 0) return [];
+
+        const realTimeData = getCurrentRealTimePrice(tokenToPrice, baseTokenToPrice);
+        
+        if (!realTimeData.price || !realTimeData.point) {
             console.warn('No valid real-time price available, using historic data only');
             setIsShowingRealTimeData(false);
             return [...historicData];
         }
 
-        // Create enhanced data array
-        const enhancedData = [...historicData];
-        const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+        console.log('🔍 Real-time price enhancement:', {
+            token: tokenToPrice.symbol,
+            baseToken: baseTokenToPrice?.symbol || 'USD',
+            price: realTimeData.price.toFixed(8)
+        });
+
+        // Create enhanced data array (minimize array operations)
+        const enhancedData = historicData.slice(); // Shallow copy
+        const now = Number(realTimeData.point.time);
 
         // Check if the last data point is recent (within last 5 minutes)
         const lastHistoricPoint = enhancedData[enhancedData.length - 1];
@@ -416,27 +454,32 @@ export default function ProModeChart({
 
         if (timeDiffMinutes < 5) {
             // Replace the last historic point with real-time data
-            enhancedData[enhancedData.length - 1] = {
-                time: now as any,
-                value: realTimePrice
-            };
-            console.log(`🔄 Updated last data point with real-time price: $${realTimePrice.toFixed(8)} (${timeDiffMinutes.toFixed(1)}min ago)`);
+            enhancedData[enhancedData.length - 1] = realTimeData.point;
+            console.log(`🔄 Updated last data point with real-time price: $${realTimeData.price.toFixed(8)}`);
         } else {
             // Append a new real-time data point
-            enhancedData.push({
-                time: now as any,
-                value: realTimePrice
-            });
-            console.log(`📈 Appended real-time data point: $${realTimePrice.toFixed(8)} (${timeDiffMinutes.toFixed(1)}min gap)`);
+            enhancedData.push(realTimeData.point);
+            console.log(`📈 Appended real-time data point: $${realTimeData.price.toFixed(8)}`);
         }
 
         // Indicate that we're now showing real-time data
         setIsShowingRealTimeData(true);
 
         return enhancedData;
-    }, [getPrice]);
+    }, [getCurrentRealTimePrice]);
+
+    // Store latest refs to avoid dependency issues
+    const latestTokenRef = useRef(token);
+    const latestBaseTokenRef = useRef(baseToken);
+    const latestOnCurrentPriceChangeRef = useRef(onCurrentPriceChange);
+    
+    latestTokenRef.current = token;
+    latestBaseTokenRef.current = baseToken;
+    latestOnCurrentPriceChangeRef.current = onCurrentPriceChange;
 
     // Fetch chart data and enhance with real-time price
+    const priceSeriesService = usePriceSeriesService();
+
     const loadChart = useCallback(async () => {
         if (!token?.contractId) return;
 
@@ -444,22 +487,17 @@ export default function ProModeChart({
         setError(null);
 
         try {
-            const [tokenResponse, baseResponse] = await Promise.all([
-                fetch(`/api/price-series?contractId=${encodeURIComponent(token.contractId)}&timeframe=${selectedTimeframe}`),
-                baseToken?.contractId
-                    ? fetch(`/api/price-series?contractId=${encodeURIComponent(baseToken.contractId)}&timeframe=${selectedTimeframe}`)
-                    : Promise.resolve(null)
-            ]);
+            // Use bulk fetching service for efficiency
+            const contractIds = baseToken?.contractId 
+                ? [token.contractId, baseToken.contractId]
+                : [token.contractId];
 
-            if (!tokenResponse.ok) {
-                throw new Error(`Failed to fetch price data: ${tokenResponse.status}`);
-            }
-
-            const tokenData: LineData[] = await tokenResponse.json();
+            const bulkData = await priceSeriesService.fetchBulkPriceSeries(contractIds);
+            const tokenData = bulkData[token.contractId] || [];
             let processedData = tokenData;
 
-            if (baseResponse?.ok && baseToken?.contractId) {
-                const baseData: LineData[] = await baseResponse.json();
+            if (baseToken?.contractId && bulkData[baseToken.contractId]) {
+                const baseData = bulkData[baseToken.contractId];
                 if (Array.isArray(baseData)) {
                     processedData = calculateRatioData(tokenData, baseData);
                 }
@@ -485,27 +523,42 @@ export default function ProModeChart({
         } finally {
             setLoading(false);
         }
-    }, [token.contractId, baseToken?.contractId, selectedTimeframe, enhanceWithRealTimePrice]);
+    }, [token.contractId, baseToken?.contractId, selectedTimeframe, priceSeriesService]); // Removed enhanceWithRealTimePrice from deps
 
-    // Separate effect for data-only updates (preserves chart view)
+    // Memoized data reference to prevent unnecessary updates
+    const memoizedData = useMemo(() => {
+        if (!data || data.length === 0) return null;
+        
+        // Create a stable reference based on data length and first/last values
+        const key = `${data.length}-${data[0]?.time}-${data[data.length - 1]?.time}-${data[data.length - 1]?.value}`;
+        return { data, key };
+    }, [data]);
+
+    // Optimized effect for data-only updates (preserves chart view)
     useEffect(() => {
-        if (!data || data.length === 0) return;
+        if (!memoizedData) return;
 
         // If chart doesn't exist yet, let the chart initialization effect handle it
         if (!chartRef.current || !seriesRef.current) return;
 
-        // Chart updates are now handled directly for noise data via refs
-
         // Only update data if chart already exists (not initial creation)
         if (!isInitialLoadRef.current) {
             console.log('📊 Updating chart data without recreation (preserving view)');
-            updateChartData(data, false); // Not a real-time update, preserve view
+            updateChartData(memoizedData.data, false); // Not a real-time update, preserve view
         } else {
             console.log('📊 Skipping data-only update - waiting for chart initialization');
         }
-    }, [data, updateChartData, isInitialLoadRef]);
+    }, [memoizedData, updateChartData]);
 
 
+
+    // Memoized structural properties to prevent unnecessary chart recreations
+    const structuralProps = useMemo(() => ({
+        chartType,
+        candleInterval,
+        containerWidth: containerRef.current?.getBoundingClientRect().width || 0,
+        containerHeight: containerRef.current?.getBoundingClientRect().height || 0
+    }), [chartType, candleInterval]);
 
     // Initialize chart (only when structure changes, not data)
     useEffect(() => {
@@ -513,8 +566,8 @@ export default function ProModeChart({
 
         // Check if only data changed (no structural changes)
         const structuralChanged =
-            prevStructuralProps.current.chartType !== chartType ||
-            prevStructuralProps.current.candleInterval !== candleInterval;
+            prevStructuralProps.current.chartType !== structuralProps.chartType ||
+            prevStructuralProps.current.candleInterval !== structuralProps.candleInterval;
 
         // If chart exists and only data changed, let the data-only effect handle it
         if (chartRef.current && seriesRef.current && !structuralChanged && !isInitialLoadRef.current) {
@@ -525,7 +578,7 @@ export default function ProModeChart({
         console.log('🔄 Recreating chart due to structural changes or initial load');
 
         // Update tracked structural properties
-        prevStructuralProps.current = { chartType, candleInterval };
+        prevStructuralProps.current = { chartType: structuralProps.chartType, candleInterval: structuralProps.candleInterval };
 
         // Clean up existing chart
         if (chartRef.current) {
@@ -981,7 +1034,7 @@ export default function ProModeChart({
         } catch (error) {
             console.error("Chart initialization failed:", error);
         }
-    }, [data, onTargetPriceChange, isSandwichMode, onSandwichBuyPriceChange, onSandwichSellPriceChange, chartType, candleInterval]);
+    }, [data, onTargetPriceChange, isSandwichMode, onSandwichBuyPriceChange, onSandwichSellPriceChange, structuralProps]);
 
     // Separate effect to ensure manual grid lines persist
     useEffect(() => {
@@ -1839,44 +1892,87 @@ export default function ProModeChart({
         };
     }, []);
 
-    // Optimized real-time price feed updates - reduced frequency to avoid API spam
+    // Optimized real-time price feed with incremental updates and reduced API calls
     useEffect(() => {
-        if (!token?.contractId) return;
+        if (!latestTokenRef.current?.contractId) return;
 
         const realTimeUpdateInterval = setInterval(() => {
             if (historicDataRef.current && historicDataRef.current.length > 0) {
-                // Re-enhance the original historic data with latest real-time prices (no noise)
-                const enhancedData = enhanceWithRealTimePrice(historicDataRef.current, token, baseToken);
-
-                // Store real data without noise
-                noisyDataRef.current = enhancedData;
-
-                // Update chart directly for immediate visual feedback
-                if (chartRef.current && seriesRef.current && !isInitialLoadRef.current) {
-                    updateChartData(enhancedData, true); // Real-time update, adjust view to show new data
-                }
-
-                // Update current price display with real enhanced data
-                if (enhancedData.length > 0) {
-                    const latest = getDataPointPrice(enhancedData[enhancedData.length - 1]);
-                    setCurrentPrice(latest);
-                    if (onCurrentPriceChange) {
-                        onCurrentPriceChange(latest);
+                // Get only the current real-time price for incremental update
+                const realTimeData = getCurrentRealTimePrice(latestTokenRef.current, latestBaseTokenRef.current);
+                
+                if (realTimeData.price && realTimeData.point) {
+                    // Check if we have existing noisy data to update incrementally
+                    const currentData = noisyDataRef.current || historicDataRef.current;
+                    const lastPoint = currentData[currentData.length - 1];
+                    const lastTime = Number(lastPoint.time);
+                    const newTime = Number(realTimeData.point.time);
+                    
+                    // Only update if the price has changed significantly or enough time has passed
+                    const timeDiff = newTime - lastTime;
+                    const priceDiff = Math.abs(realTimeData.price - lastPoint.value) / lastPoint.value;
+                    
+                    if (timeDiff > 60 || priceDiff > 0.001) { // 1 minute or 0.1% price change
+                        // Efficient incremental update
+                        let updatedData: LineData[];
+                        
+                        if (timeDiff < 300) { // Less than 5 minutes - replace last point
+                            updatedData = currentData.slice();
+                            updatedData[updatedData.length - 1] = realTimeData.point;
+                        } else { // More than 5 minutes - append new point
+                            updatedData = [...currentData, realTimeData.point];
+                        }
+                        
+                        // Store updated data
+                        noisyDataRef.current = updatedData;
+                        
+                        // Efficient chart update with incremental API
+                        if (chartRef.current && seriesRef.current && !isInitialLoadRef.current) {
+                            updateChartData(updatedData, true, realTimeData.point);
+                        }
+                        
+                        // Update price state
+                        setCurrentPrice(realTimeData.price);
+                        if (latestOnCurrentPriceChangeRef.current) {
+                            latestOnCurrentPriceChangeRef.current(realTimeData.price);
+                        }
+                        
+                        // Calculate price change efficiently
+                        if (updatedData.length > 1) {
+                            const previous = getDataPointPrice(updatedData[updatedData.length - 2]);
+                            const change = realTimeData.price - previous;
+                            const percentage = (change / previous) * 100;
+                            setPriceChange({ value: change, percentage });
+                        }
+                        
+                        console.log(`⚡ Incremental price update: ${realTimeData.price.toFixed(8)} (${priceDiff > 0.001 ? 'price change' : 'time elapsed'})`);
                     }
-
-                    // Calculate price change if there's previous data
-                    if (enhancedData.length > 1) {
-                        const previous = getDataPointPrice(enhancedData[enhancedData.length - 2]);
-                        const change = latest - previous;
-                        const percentage = (change / previous) * 100;
-                        setPriceChange({ value: change, percentage });
+                } else {
+                    // Fallback to full enhancement if incremental fails
+                    const enhancedData = enhanceWithRealTimePrice(historicDataRef.current, latestTokenRef.current, latestBaseTokenRef.current);
+                    noisyDataRef.current = enhancedData;
+                    
+                    if (chartRef.current && seriesRef.current && !isInitialLoadRef.current) {
+                        updateChartData(enhancedData, true);
                     }
                 }
             }
-        }, 120000); // Update every 2 minutes instead of 30 seconds to reduce API load
+        }, 60000); // 60 second updates to reduce re-render frequency
 
         return () => clearInterval(realTimeUpdateInterval);
-    }, [token, baseToken, enhanceWithRealTimePrice, updateChartData, isInitialLoadRef, getDataPointPrice, onCurrentPriceChange]);
+    }, []); // Empty deps array to prevent re-running the effect
+
+    // Memoized price range calculation to prevent recalculation on every render
+    // IMPORTANT: This must be before any conditional returns to avoid hook order issues
+    const priceRange = useMemo(() => {
+        if (!data || data.length === 0) return undefined;
+        
+        const prices = data.map(d => getDataPointPrice(d));
+        return {
+            min: Math.min(...prices),
+            max: Math.max(...prices)
+        };
+    }, [data, getDataPointPrice]);
 
     if (loading) {
         return (
@@ -1908,16 +2004,11 @@ export default function ProModeChart({
             {/* Chart Container */}
             <div ref={containerRef} className="flex-1 min-h-0" />
 
-
-
             {/* Sandwich Preview Overlay */}
             <SandwichPreviewOverlay
                 chartContainerRef={containerRef}
                 currentPrice={currentPrice || undefined}
-                priceRange={data && data.length > 0 ? {
-                    min: Math.min(...data.map(d => getDataPointPrice(d))),
-                    max: Math.max(...data.map(d => getDataPointPrice(d)))
-                } : undefined}
+                priceRange={priceRange}
                 chartRef={chartRef}
                 seriesRef={seriesRef}
             />
@@ -1926,16 +2017,15 @@ export default function ProModeChart({
             <TargetPriceHoverOverlay
                 chartContainerRef={containerRef}
                 currentPrice={currentPrice || undefined}
-                priceRange={data && data.length > 0 ? {
-                    min: Math.min(...data.map(d => getDataPointPrice(d))),
-                    max: Math.max(...data.map(d => getDataPointPrice(d)))
-                } : undefined}
+                priceRange={priceRange}
                 chartRef={chartRef}
                 seriesRef={seriesRef}
             />
         </div>
     );
-}
+});
+
+export default ProModeChart;
 
 // Utility functions
 function calculateRatioData(tokenData: LineData[], baseData: LineData[]): LineData[] {

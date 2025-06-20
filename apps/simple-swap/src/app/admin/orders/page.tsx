@@ -1,21 +1,44 @@
-import React, { Suspense } from 'react';
-import type { Metadata } from 'next';
+'use client';
+
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Database, Clock, DollarSign, Download, Zap, Filter, Search, RefreshCw } from 'lucide-react';
 import { ADMIN_CONFIG, getPageSize, getAutoRefreshSeconds } from '@/lib/admin-config';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { RefreshButton } from '@/components/admin/RefreshButton';
-import { SystemStatus } from '@/components/admin/SystemStatus';
-import { QuickActions } from '@/components/admin/QuickActions';
 import { OrdersTable } from '@/components/admin/OrdersTable';
 import { OrdersStats } from '@/components/admin/OrdersStats';
 import { OrdersFilters } from '@/components/admin/OrdersFilters';
+import { TransactionMonitoringStats } from '@/components/admin/TransactionMonitoringStats';
+import { OrderTypesBreakdown } from '@/components/admin/OrderTypesBreakdown';
 
-export const metadata: Metadata = {
-    title: 'Order Management | Simple Swap Admin',
-    description: 'Monitor and manage limit orders and perpetual positions',
-};
+// Shared stats interface
+interface AdminStats {
+    totalOrders: number;
+    ordersNeedingMonitoring: number;
+    pendingTransactions: number;
+    confirmedTransactions: number;
+    failedTransactions: number;
+    orderTypes: {
+        single: number;
+        dca: number;
+        sandwich: number;
+    };
+}
+
+async function fetchAdminStats(): Promise<AdminStats> {
+    const response = await fetch('/api/admin/transaction-monitor/stats');
+    const data = await response.json();
+    
+    if (data.success) {
+        return data.data;
+    }
+    
+    throw new Error('Failed to fetch admin stats');
+}
+
+// Metadata moved to layout or parent component since this is now a client component
 
 function OrdersStatsSkeleton() {
     return (
@@ -62,6 +85,32 @@ function OrdersTableSkeleton() {
 }
 
 export default function OrderManagement() {
+    const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadStats = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const stats = await fetchAdminStats();
+            setAdminStats(stats);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load stats');
+            console.error('Failed to load admin stats:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadStats();
+        
+        // Auto-refresh disabled - users can manually refresh using the refresh button
+        // const interval = setInterval(loadStats, 30000);
+        // return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className={`mx-auto px-4 py-8 ${ADMIN_CONFIG.MAX_WIDTH.ADMIN_WIDE} w-full`}>
             {/* Header */}
@@ -86,19 +135,30 @@ export default function OrderManagement() {
                             </h1>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                                 <Zap className="w-3 h-3 text-green-500" />
-                                Real-time monitoring • Auto-refreshes every {getAutoRefreshSeconds()}s
+                                Real-time monitoring • Use refresh button to update data
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <RefreshButton />
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                             <Download className="w-4 h-4 mr-2" />
-                            Export Orders
+                            Export All Orders
                         </Button>
-                        <Button variant="outline" size="sm">
-                            <Database className="w-4 h-4 mr-2" />
-                            Bulk Actions
+                        <Button variant="outline" size="sm" onClick={async () => {
+                            try {
+                                const response = await fetch('/api/admin/transaction-monitor/trigger', { method: 'POST' });
+                                if (response.ok) {
+                                    alert('Transaction monitoring triggered successfully');
+                                } else {
+                                    alert('Failed to trigger transaction monitoring');
+                                }
+                            } catch (error) {
+                                alert('Error triggering transaction monitoring');
+                            }
+                        }}>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Check Transactions
                         </Button>
                     </div>
                 </div>
@@ -108,9 +168,15 @@ export default function OrderManagement() {
             </div>
 
             {/* Order Statistics */}
-            <Suspense fallback={<OrdersStatsSkeleton />}>
-                <OrdersStats />
-            </Suspense>
+            {loading ? (
+                <OrdersStatsSkeleton />
+            ) : error ? (
+                <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <p className="text-destructive">Error loading stats: {error}</p>
+                </div>
+            ) : adminStats ? (
+                <OrdersStats stats={adminStats} />
+            ) : null}
 
             {/* Main Content Layout */}
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
@@ -131,136 +197,74 @@ export default function OrderManagement() {
                     </Suspense>
                 </div>
 
-                {/* Sidebar with System Info and Quick Actions */}
+                {/* Sidebar with Monitoring Stats */}
                 <div className="space-y-6">
-                    {/* System Status */}
-                    <Suspense fallback={
+
+                    {/* Transaction Monitoring Stats */}
+                    {loading ? (
                         <div className="bg-card rounded-lg border border-border p-6">
                             <div className="animate-pulse space-y-4">
-                                <div className="h-6 bg-muted rounded w-32"></div>
+                                <div className="h-6 bg-muted rounded w-48"></div>
                                 <div className="space-y-3">
-                                    {[...Array(5)].map((_, i) => (
+                                    {[...Array(4)].map((_, i) => (
                                         <div key={i} className="h-4 bg-muted rounded"></div>
                                     ))}
                                 </div>
                             </div>
                         </div>
-                    }>
-                        <SystemStatus />
-                    </Suspense>
-
-                    {/* Quick Actions */}
-                    <QuickActions />
-
-                    {/* Order Monitoring Stats */}
-                    <div className="bg-card rounded-lg border border-border p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <h3 className="text-lg font-semibold">Order Processing</h3>
-                            <InfoTooltip content="Real-time statistics about order processing performance and system health." />
-                        </div>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Processing Speed:</span>
-                                    <InfoTooltip content="Average time to process and execute eligible orders. Lower is better." />
-                                </div>
-                                <span className="font-mono text-green-500">~2.3s</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Success Rate:</span>
-                                    <InfoTooltip content="Percentage of orders that execute successfully without errors. Higher is better." />
-                                </div>
-                                <span className="font-mono text-green-500">98.7%</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Queue Length:</span>
-                                    <InfoTooltip content="Number of orders currently pending execution. Lower indicates healthy processing." />
-                                </div>
-                                <span className="font-mono text-blue-500">3</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">Last Execution:</span>
-                                    <InfoTooltip content="Time since the last order was successfully executed. Recent activity indicates healthy system." />
-                                </div>
-                                <span className="font-mono text-muted-foreground">12s ago</span>
-                            </div>
-                        </div>
-                    </div>
+                    ) : adminStats ? (
+                        <TransactionMonitoringStats stats={adminStats} />
+                    ) : null}
 
                     {/* Order Types Breakdown */}
-                    <div className="bg-card rounded-lg border border-border p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <h3 className="text-lg font-semibold">Order Types</h3>
-                            <InfoTooltip content="Distribution of different order types in the system. Helps understand trading patterns." />
-                        </div>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                    <span className="text-muted-foreground">Limit Orders:</span>
+                    {loading ? (
+                        <div className="bg-card rounded-lg border border-border p-6">
+                            <div className="animate-pulse space-y-4">
+                                <div className="h-6 bg-muted rounded w-32"></div>
+                                <div className="space-y-3">
+                                    {[...Array(4)].map((_, i) => (
+                                        <div key={i} className="h-4 bg-muted rounded"></div>
+                                    ))}
                                 </div>
-                                <span className="font-mono">847</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <span className="text-muted-foreground">DCA Orders:</span>
-                                </div>
-                                <span className="font-mono">234</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                                    <span className="text-muted-foreground">Perpetuals:</span>
-                                </div>
-                                <span className="font-mono">156</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                                    <span className="text-muted-foreground">Sandwich:</span>
-                                </div>
-                                <span className="font-mono">89</span>
                             </div>
                         </div>
-                    </div>
+                    ) : adminStats ? (
+                        <OrderTypesBreakdown stats={adminStats} />
+                    ) : null}
 
-                    {/* Execution Health */}
+                    {/* System Status */}
                     <div className="bg-card rounded-lg border border-border p-6">
                         <div className="flex items-center gap-2 mb-4">
-                            <h3 className="text-lg font-semibold">Execution Health</h3>
-                            <InfoTooltip content="System health indicators for order execution pipeline. All systems operating normally." />
+                            <h3 className="text-lg font-semibold">System Status</h3>
+                            <InfoTooltip content="Real-time status of key system components and monitoring processes." />
                         </div>
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Price Oracle:</span>
+                                <span className="text-muted-foreground">Transaction Monitoring:</span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="font-mono text-green-500">Online</span>
+                                    <span className="font-mono text-green-500">Active</span>
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">DEX Connectivity:</span>
+                                <span className="text-muted-foreground">Order Processing:</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span className="font-mono text-green-500">Operational</span>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">API Health:</span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                     <span className="font-mono text-green-500">Healthy</span>
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Execution Queue:</span>
+                                <span className="text-muted-foreground">Database:</span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="font-mono text-green-500">Normal</span>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Gas Tracker:</span>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                    <span className="font-mono text-yellow-500">Moderate</span>
+                                    <span className="font-mono text-green-500">Connected</span>
                                 </div>
                             </div>
                         </div>

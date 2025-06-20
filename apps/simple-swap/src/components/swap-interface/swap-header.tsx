@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
+import Link from 'next/link';
 
 // Pure function for creating share URLs and tweets
 function createShareData(params: {
@@ -84,8 +85,6 @@ export default function SwapHeader() {
     } = useSwapTokens();
 
     const {
-        isProMode,
-        setIsProMode,
         securityLevel,
         shiftDirection,
     } = useRouterTrading();
@@ -115,18 +114,21 @@ export default function SwapHeader() {
     const isOrderModeDisabled = !hasBothVersions(selectedFromToken);
 
     return (
-        <div className="flex items-center justify-between p-4 border-b border-border/40 bg-gradient-to-r from-primary/5 to-secondary/5">
-            <div className="flex items-center space-x-3">
-                <div className="flex items-center bg-background/80 rounded-lg p-1 shadow-sm border border-border/30">
+        <div className="relative px-6 py-4 flex items-center justify-between overflow-hidden">
+            {/* Left Side - Mode Selection & Status */}
+            <div className="flex items-center space-x-4">
+                {/* Compact Mode Toggle */}
+                <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-xl p-1">
                     <button
                         onClick={() => setMode('swap')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${mode === 'swap'
-                            ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${mode === 'swap'
+                            ? 'bg-white/[0.1] text-white'
+                            : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05]'
                             }`}
                     >
-                        <TrendingUp className="w-4 h-4 mr-1.5 inline" />
-                        Swap
+                        <div className={`h-2 w-2 rounded-full transition-all duration-300 ${mode === 'swap' ? 'bg-blue-400' : 'bg-white/40'}`} />
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Instant Swap</span>
                     </button>
                     <button
                         onClick={() => !isOrderModeDisabled && setMode('order')}
@@ -135,60 +137,62 @@ export default function SwapHeader() {
                             ? "Order mode requires a token with subnet support. Please select a different token."
                             : "Switch to order mode for triggered swaps"
                         }
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${isOrderModeDisabled
-                            ? 'text-muted-foreground/50 cursor-not-allowed opacity-50'
+                        className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${isOrderModeDisabled
+                            ? 'text-white/30 cursor-not-allowed opacity-50'
                             : mode === 'order'
-                                ? 'bg-primary text-primary-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                ? 'bg-white/[0.1] text-white'
+                                : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05]'
                             }`}
                     >
-                        <Repeat className="w-4 h-4 mr-1.5 inline" />
-                        Order
+                        <div className={`h-2 w-2 rounded-full transition-all duration-300 ${mode === 'order' && !isOrderModeDisabled ? 'bg-purple-400' : 'bg-white/40'}`} />
+                        <Repeat className="w-4 h-4" />
+                        <span>Limit Orders</span>
                     </button>
                 </div>
 
-                {/* Security indicator */}
+                {/* Premium Security & Route Intelligence Indicator - Only on XL screens */}
                 {securityLevel && (
-                    <div className="flex items-center text-xs text-muted-foreground bg-background/60 px-2 py-1 rounded-md border border-border/30">
-                        <span className={`h-2 w-2 rounded-full mr-1.5 ${securityLevel === 'high' ? 'bg-green-500' :
-                            securityLevel === 'medium' ? 'bg-blue-500' : 'bg-purple-500'
-                            }`}></span>
-                        {securityLevel === 'high' ? 'Direct route' :
-                            securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing'}
+                    <div className="hidden 2xl:flex items-center space-x-3 bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg px-3 py-2">
+                        <div className="flex items-center space-x-2">
+                            <div className={`h-2 w-2 rounded-full ${securityLevel === 'high' ? 'bg-green-400' :
+                                securityLevel === 'medium' ? 'bg-blue-400' : 'bg-purple-400'
+                                }`} />
+                            <span className="text-sm font-medium text-white/90">
+                                {securityLevel === 'high' ? 'Direct Route' :
+                                    securityLevel === 'medium' ? 'Optimized Path' : 'Advanced Routing'}
+                            </span>
+                        </div>
+                        <div className="h-3 w-px bg-white/[0.15]" />
+                        <span className="text-xs text-white/60 font-medium">LIVE</span>
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center space-x-2">
-                {/* Pro Mode Button - only enabled in order mode */}
-                <Button
-                    variant={isProMode ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setIsProMode(!isProMode)}
-                    disabled={mode !== 'order'}
-                    title={mode !== 'order'
-                        ? "Pro mode is only available in Order mode"
-                        : isProMode
-                            ? "Exit Pro mode"
-                            : "Enter Pro mode for full-screen orderbook experience"
-                    }
-                    className={`${mode !== 'order'
-                        ? 'opacity-50 cursor-not-allowed'
-                        : 'text-muted-foreground hover:text-foreground'
-                        } ${isProMode ? 'bg-primary text-primary-foreground' : ''}`}
-                >
-                    <Monitor className="w-4 h-4" />
-                    {isProMode && <span className="ml-1 text-xs">Pro</span>}
-                </Button>
+            {/* Right Side - Premium Action Controls */}
+            <div className="relative z-10 flex items-center space-x-4">
+                {/* Pro Trading - Compact Button - Only on very large screens */}
+                <div className="hidden 3xl:block">
+                    <Link href="/pro">
+                        <div className="group bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 cursor-pointer">
+                            <div className="flex items-center space-x-2">
+                                <Monitor className="w-4 h-4 text-white/90" />
+                                <div>
+                                    <span className="text-sm font-semibold text-white/95">Pro Trading</span>
+                                    <span className="text-xs text-white/60 ml-2">Advanced tools</span>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
 
-                <Button
-                    variant="ghost"
-                    size="sm"
+                {/* Share - Simplified Button */}
+                <button
                     onClick={handleShare}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="h-10 w-10 bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 flex items-center justify-center"
+                    title="Share this swap configuration"
                 >
-                    <Share2 className="w-4 h-4" />
-                </Button>
+                    <Share2 className="w-4 h-4 text-white/80 hover:text-white/95 transition-colors duration-300" />
+                </button>
             </div>
         </div>
     );

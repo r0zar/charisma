@@ -16,25 +16,31 @@ export function WalletButton({ className }: WalletButtonProps) {
                 <button
                     onClick={connectWallet}
                     disabled={isConnecting}
-                    className="cursor-pointer w-fit h-9 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center min-w-[140px]"
+                    className="relative cursor-pointer h-9 px-5 py-2 text-sm font-medium rounded-xl bg-white/[0.08] border border-white/[0.15] text-white/90 hover:bg-white/[0.12] hover:border-white/[0.25] hover:text-white disabled:opacity-50 transition-all duration-200 flex items-center justify-center min-w-[140px] backdrop-blur-sm overflow-hidden"
                 >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent pointer-events-none" />
                     {isConnecting ? (
                         <>
-                            <span className="mr-2 flex items-center justify-center"><span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></span></span>
-                            <span className="truncate">Connecting...</span>
+                            <span className="mr-2 flex items-center justify-center">
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white/80"></span>
+                            </span>
+                            <span className="truncate relative z-10">Connecting...</span>
                         </>
                     ) : (
-                        "Connect Wallet"
+                        <span className="relative z-10">Connect Wallet</span>
                     )}
                 </button>
             ) : (
                 <button
                     onClick={disconnectWallet}
-                    className="cursor-pointer h-9 px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 transition-colors"
+                    className="relative cursor-pointer h-9 px-4 py-2 text-sm font-medium rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all duration-200 backdrop-blur-sm overflow-hidden"
                 >
-                    {address
-                        ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
-                        : "Connected"}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/[0.01] to-transparent pointer-events-none" />
+                    <span className="relative z-10 font-mono">
+                        {address
+                            ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
+                            : "Connected"}
+                    </span>
                 </button>
             )}
         </div>

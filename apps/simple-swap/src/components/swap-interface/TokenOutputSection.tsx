@@ -42,7 +42,7 @@ export default function TokenOutputSection() {
     const price = prices[selectedToToken?.contractId ?? ''];
 
     // Determine props based on mode and state
-    const label = toLabel;
+    const label = 'You receive';
     // Create a virtual display token that shows subnet type when useSubnetTo is true
     const displayedToken = displayedToToken ? {
         ...displayedToToken,
@@ -104,116 +104,177 @@ export default function TokenOutputSection() {
         }
     };
 
-    // Price impact display component
-    const priceImpactDisplay = totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote ? (
-        <div className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${totalPriceImpact.priceImpact > 0
-            ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
-            : 'text-red-600 dark:text-red-400 bg-red-100/30 dark:bg-red-900/20'
-            }`}>
-            {totalPriceImpact.priceImpact > 0 ? '+' : ''}
-            {totalPriceImpact.priceImpact.toFixed(2)}% impact
-        </div>
-    ) : null;
-
     return (
-        <div className="bg-muted/20 rounded-2xl p-4 sm:p-5 mb-5 backdrop-blur-sm border border-muted/40 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0 mb-2">
-                <div className="flex items-center gap-1">
-                    <label className="text-sm text-foreground/80 font-medium">{label}</label>
-                    {selectedToToken && (
-                        <button
-                            type="button"
-                            onClick={() => setShowChart(!showChart)}
-                            className="text-muted-foreground hover:text-foreground p-0.5 rounded-md"
-                            title={showChart ? 'Hide price chart' : 'Show price chart'}
-                        >
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
-                        </button>
-                    )}
-                </div>
-
-                {selectedToToken && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-1 bg-background/40 px-2 py-1 rounded-lg self-start">
-                        <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
-                            <span className={`cursor-help font-semibold ${isSubnetSelected && toTokenBalance?.subnetBalance !== undefined ? 'text-purple-600 dark:text-purple-400' : 'text-foreground'}`}>
-                                {compactBalance} {selectedToToken.symbol}
-                            </span>
-                        </BalanceTooltip>
-                        {/* TokenLogo showing subnet state */}
-                        {hasBothVersionsForToken && selectedToToken && (
-                            <button
-                                onClick={handleToggleSubnet}
-                                className="ml-1 cursor-pointer transition-opacity hover:opacity-80"
-                                title={
-                                    isSubnetSelected
-                                        ? "Using Subnet Token - Click to use Mainnet"
-                                        : "Using Mainnet Token - Click to use Subnet"
-                                }
-                            >
-                                <TokenLogo
-                                    token={{
-                                        ...selectedToToken,
-                                        type: isSubnetSelected ? 'SUBNET' : selectedToToken.type
-                                    }}
-                                    size="sm"
-                                    suppressFlame={!isSubnetSelected}
-                                />
-                            </button>
-                        )}
+        <div className="space-y-4">
+            {/* Premium Header with Analytics */}
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M12 2v20M2 12h20" />
+                        </svg>
                     </div>
+                    <div className="min-w-0">
+                        <h4 className="text-sm font-semibold text-white/95">{label}</h4>
+                        <p className="text-xs text-white/60 hidden sm:block">Expected output amount</p>
+                    </div>
+                </div>
+                
+                {selectedToToken && (
+                    <button
+                        type="button"
+                        onClick={() => setShowChart(!showChart)}
+                        className="h-8 w-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white/90 hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
+                        title={showChart ? 'Hide price chart' : 'Show price chart'}
+                    >
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
+                    </button>
                 )}
             </div>
 
-            <div className="flex justify-between items-center gap-3">
-                <div className="text-xl sm:text-2xl font-medium text-foreground relative min-h-[36px]">
-                    {isLoadingQuote ? (
-                        <div className="flex items-center space-x-2">
-                            <div className="animate-pulse bg-muted rounded-md h-8 w-20"></div>
-                            <div className="relative h-4 w-4">
-                                <div className="absolute animate-ping h-full w-full rounded-full bg-primary opacity-30"></div>
-                                <div className="absolute h-full w-full rounded-full bg-primary opacity-75 animate-pulse"></div>
+            {/* Balance Display - Invisible until hover */}
+            {selectedToToken && (
+                <div className="bg-transparent hover:bg-white/[0.03] rounded-xl p-3 sm:p-4 transition-all duration-200">
+                    <div className="flex items-center justify-between mb-3 gap-3">
+                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                            <div className="relative flex-shrink-0">
+                                {hasBothVersionsForToken && selectedToToken && (
+                                    <button
+                                        onClick={handleToggleSubnet}
+                                        className="relative transition-all duration-200 cursor-pointer hover:scale-105"
+                                        title={
+                                            isSubnetSelected
+                                                ? "Using Subnet Token - Click to use Mainnet"
+                                                : "Using Mainnet Token - Click to use Subnet"
+                                        }
+                                    >
+                                        <TokenLogo
+                                            token={{
+                                                ...selectedToToken,
+                                                type: isSubnetSelected ? 'SUBNET' : selectedToToken.type
+                                            }}
+                                            size="md"
+                                            suppressFlame={!isSubnetSelected}
+                                        />
+                                        {/* Subtle toggle indicator */}
+                                        <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white/20 bg-green-500" />
+                                    </button>
+                                )}
+                                {!hasBothVersionsForToken && selectedToToken && (
+                                    <TokenLogo token={selectedToToken} size="md" />
+                                )}
+                            </div>
+                            
+                            <div className="min-w-0">
+                                <div className="text-sm font-medium text-white/95">{selectedToToken.symbol}</div>
+                                <div className="text-xs text-white/60 truncate">{selectedToToken.name}</div>
                             </div>
                         </div>
-                    ) : outputAmount ? (
-                        <>
-                            {outputAmount}
-                            {quoteHops !== null && (
-                                <div className="text-sm text-muted-foreground flex items-center">
-                                    <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs">
-                                        {quoteHops} {quoteHops === 1 ? 'hop' : 'hops'}
-                                    </span>
+
+                        <div className="text-right flex-shrink-0">
+                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
+                                <div className="cursor-help">
+                                    <div className={`text-sm font-semibold ${isSubnetSelected && toTokenBalance?.subnetBalance !== undefined ? 'text-purple-400' : 'text-white/95'}`}>
+                                        {compactBalance} {selectedToToken.symbol}
+                                    </div>
+                                    <div className="text-xs text-white/60">
+                                        {isSubnetSelected ? 'Subnet' : 'Mainnet'}
+                                    </div>
                                 </div>
-                            )}
-                        </>
-                    ) : (
-                        "0.00"
-                    )}
-                </div>
+                            </BalanceTooltip>
+                        </div>
+                    </div>
 
-                <div className="min-w-[120px] sm:min-w-[140px] shrink-0">
-                    <TokenDropdown
-                        tokens={tokensToShow}
-                        selected={displayedToken}
-                        onSelect={handleSelectToken}
-                        label=""
-                        showBalances={true}
-                    />
+                    {/* Network Status Indicator */}
+                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.08] gap-3">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                            <div className="h-2 w-2 rounded-full bg-green-400 flex-shrink-0"></div>
+                            <span className="text-xs text-white/70 truncate">
+                                Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {price ? formatPriceUSD(price.price) : 'Price loading...'}
+                            </span>
+                        </div>
+                        
+                        {/* Price Impact Display */}
+                        {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
+                            <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
+                                totalPriceImpact.priceImpact > 0
+                                    ? 'text-green-400 bg-green-500/20 border border-green-500/30'
+                                    : 'text-red-400 bg-red-500/20 border border-red-500/30'
+                            }`}>
+                                {totalPriceImpact.priceImpact > 0 ? '+' : ''}
+                                {totalPriceImpact.priceImpact.toFixed(2)}%
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Amount Display - Invisible until hover */}
+            <div className="group bg-transparent hover:bg-white/[0.02] rounded-xl p-3 sm:p-4 transition-all duration-200">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                        {isLoadingQuote ? (
+                            <div className="flex items-center space-x-3">
+                                <div className="animate-pulse bg-white/[0.05] rounded-xl h-12 w-32"></div>
+                                <div className="relative h-5 w-5">
+                                    <div className="absolute animate-ping h-full w-full rounded-full bg-green-400 opacity-30"></div>
+                                    <div className="absolute h-full w-full rounded-full bg-green-400 opacity-75 animate-pulse"></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white/95">
+                                    {outputAmount}
+                                </div>
+                                <div className="flex items-center space-x-2 mt-1">
+                                    <div className="text-sm text-white/60">
+                                        {price && outputAmount ? formatPriceUSD(price.price * Number(outputAmount)) : 'Enter amount'}
+                                    </div>
+                                    {quoteHops !== null && (
+                                        <div className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded-md text-xs font-medium border border-green-500/30">
+                                            {quoteHops} {quoteHops === 1 ? 'hop' : 'hops'}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Token Selector - Invisible until hover */}
+                    <div className="ml-2 sm:ml-4 min-w-0 w-32 sm:w-36 flex-shrink-0" onMouseEnter={(e) => e.stopPropagation()}>
+                        <div>
+                            <TokenDropdown
+                                tokens={tokensToShow}
+                                selected={displayedToken}
+                                onSelect={handleSelectToken}
+                                label=""
+                                showBalances={true}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="text-xs mt-1.5 h-4 flex items-center justify-between">
-                <div className="text-muted-foreground">
-                    {isLoadingQuote ? null : // Don't show loading if quote is loading
-                        <span>{formatPriceUSD(price?.price * Number(outputAmount))}</span>
-                    }
-                </div>
-            </div>
 
-            {/* collapsible chart */}
+            {/* Collapsible Chart */}
             {showChart && selectedToToken && (
-                <div className="mt-4">
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 sm:p-4 backdrop-blur-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
+                            <div className="h-6 w-6 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path d="M3 3v18h18" />
+                                    <path d="m19 9-5 5-4-4-3 3" />
+                                </svg>
+                            </div>
+                            <span className="text-sm font-medium text-white/90">Price Chart</span>
+                        </div>
+                        <div className="text-xs text-white/60 flex-shrink-0">
+                            {price ? formatPriceUSD(price.price) : 'Loading...'}
+                        </div>
+                    </div>
                     <ConditionTokenChartWrapper token={selectedToToken} targetPrice="" onTargetPriceChange={() => { }} />
                 </div>
             )}
         </div>
     );
-} 
+}

@@ -84,13 +84,20 @@ export async function GET(request: Request) {
 
         const result: Record<string, SeriesPoint[] | AggregatedPoint[]> = {};
 
-        console.log('[DEBUG] /api/price-series/bulk', { contractIds, from: fromNum, to: toNum, periodSec });
+        const startTime = Date.now();
+        console.log('[BULK-API] Processing request', { 
+            tokenCount: contractIds.length, 
+            timeRange: `${Math.round((toNum - fromNum) / (24 * 60 * 60 * 1000))}d`,
+            aggregated: !!periodSec 
+        });
+
+        const results = { processed: 0, totalPoints: 0, errors: 0 };
 
         // Process all contract IDs
         await Promise.all(contractIds.map(async (contractId: string) => {
             try {
                 const raw = await getPricesInRange(contractId, fromNum, toNum);
-                console.log(`[DEBUG] getPricesInRange for ${contractId}: count=${raw.length}`);
+                results.processed++;
 
                 // Validate the data structure
                 if (!Array.isArray(raw)) {
@@ -112,13 +119,22 @@ export async function GET(request: Request) {
                 } else {
                     result[contractId] = series;
                 }
+                
+                results.totalPoints += series.length;
             } catch (error) {
-                console.error(`[ERROR] Failed to process ${contractId}:`, error);
+                console.warn(`[BULK-API] Failed to process token ${contractId.substring(0, 10)}...:`, error.message);
                 result[contractId] = [];
+                results.errors++;
             }
         }));
 
-        console.log('[DEBUG] Final result keys:', Object.keys(result));
+        const duration = Date.now() - startTime;
+        console.log('[BULK-API] Completed', {
+            ...results,
+            duration: `${duration}ms`,
+            avgPointsPerToken: Math.round(results.totalPoints / results.processed)
+        });
+        
         return NextResponse.json(result);
 
     } catch (err) {

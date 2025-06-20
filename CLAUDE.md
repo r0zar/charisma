@@ -30,3 +30,7 @@
 - Common configuration shared via workspace packages
 - Source code lives in `src/` directories
 - Tests in `__tests__/` directories
+
+## Workflow
+- Always clean up dead code if detect it
+- Don't try to build apps unless I ask

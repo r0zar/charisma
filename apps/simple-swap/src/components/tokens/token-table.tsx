@@ -1,14 +1,17 @@
 "use client";
 
 import React, { useMemo, useState, useRef, useEffect } from "react";
-import { ArrowUpDown, Search, Flame } from "lucide-react";
+import { ArrowUpDown, Search, Flame, Wallet } from "lucide-react";
 import Image from "next/image";
 import type { TokenSummary } from "@/app/token-actions";
+import { useBlaze } from 'blaze-sdk/realtime';
+import { useWallet } from '@/contexts/wallet-context';
+import { formatCompactNumber } from '@/lib/swap-utils';
+import { getIpfsUrl } from '@/lib/utils';
 
 interface TokenTableProps {
     tokens: TokenSummary[];
     compareId: string | null;
-    subnetMapping: Map<string, TokenSummary>;
 }
 
 type SortKey = "name" | "market_cap" | "price" | "change1h" | "change24h" | "change7d";
@@ -27,7 +30,7 @@ function TokenImage({ token }: { token: TokenSummary }) {
 
     return (
         <Image
-            src={token.image}
+            src={getIpfsUrl(token.image)}
             alt={token.symbol}
             width={32}
             height={32}
@@ -37,12 +40,335 @@ function TokenImage({ token }: { token: TokenSummary }) {
     );
 }
 
-export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTableProps) {
+// Enhanced Token Price Component with real-time updates
+const TokenPriceCell = React.memo(function TokenPriceCell({ token }: { token: TokenSummary }) {
+    const { address } = useWallet();
+    const { prices, getPrice } = useBlaze({ userId: address });
+    
+    // Get real-time price or fallback to server price
+    const currentPrice = getPrice(token.contractId) ?? token.price;
+    const hasRealTimePrice = prices[token.contractId] !== undefined;
+    
+    return (
+        <div className="text-right font-medium">
+            <div className={`${hasRealTimePrice ? 'text-green-600 dark:text-green-400' : ''}`}>
+                {fmtPrice(currentPrice)}
+            </div>
+            {hasRealTimePrice && (
+                <div className="text-[10px] text-green-600/80 dark:text-green-400/80">LIVE</div>
+            )}
+        </div>
+    );
+});
+
+// Enhanced Token Balance Component with simplified subnet handling
+const TokenBalanceCell = React.memo(function TokenBalanceCell({ token }: { token: TokenSummary }) {
+    const { address } = useWallet();
+    const { balances } = useBlaze({ userId: address });
+    
+    if (!address) return null;
+    
+    const balance = balances[`${address}:${token.contractId}`];
+    if (!balance) return null;
+    
+    const mainnetBalance = Number(balance.formattedBalance ?? 0);
+    const subnetBalance = Number(balance.formattedSubnetBalance ?? 0);
+    const hasSubnetSupport = balance.subnetBalance !== undefined;
+    
+    // Only show if user has any balance
+    if (mainnetBalance === 0 && subnetBalance === 0) return null;
+    
+    return (
+        <div className="text-xs space-y-1">
+            {mainnetBalance > 0 && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                    <Wallet className="h-3 w-3" />
+                    <span>{formatCompactNumber(mainnetBalance)}</span>
+                </div>
+            )}
+            {hasSubnetSupport && subnetBalance > 0 && (
+                <div className="flex items-center gap-1 text-red-500">
+                    <Flame className="h-3 w-3" />
+                    <span>{formatCompactNumber(subnetBalance)}</span>
+                </div>
+            )}
+            {hasSubnetSupport && subnetBalance === 0 && mainnetBalance > 0 && (
+                <div className="flex items-center gap-1 text-muted-foreground/50">
+                    <Flame className="h-2.5 w-2.5" />
+                    <span className="text-[10px]">subnet ready</span>
+                </div>
+            )}
+        </div>
+    );
+});
+
+// Clean Apple/Tesla version with price update animation
+const CleanTokenPriceCell = React.memo(function CleanTokenPriceCell({ token }: { token: TokenSummary }) {
+    const { address } = useWallet();
+    const { prices, getPrice } = useBlaze({ userId: address });
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [lastPrice, setLastPrice] = useState<number | null>(null);
+    
+    // Get real-time price or fallback to server price
+    const currentPrice = getPrice(token.contractId) ?? token.price;
+    const hasRealTimePrice = prices[token.contractId] !== undefined;
+    
+    // Detect price changes and trigger animation
+    useEffect(() => {
+        if (currentPrice !== null && lastPrice !== null && currentPrice !== lastPrice) {
+            setIsUpdating(true);
+            const timer = setTimeout(() => setIsUpdating(false), 1000); // 1 second animation
+            return () => clearTimeout(timer);
+        }
+        setLastPrice(currentPrice);
+    }, [currentPrice, lastPrice]);
+    
+    const getPriceChangeColor = () => {
+        if (!isUpdating) return 'text-white/90';
+        
+        // During update animation - subtle color hints
+        if (currentPrice !== null && lastPrice !== null) {
+            return currentPrice > lastPrice ? 'text-emerald-300' : currentPrice < lastPrice ? 'text-red-300' : 'text-white/90';
+        }
+        return 'text-white/90';
+    };
+    
+    return (
+        <div className="text-right">
+            <div className={`font-mono transition-all duration-1000 ${getPriceChangeColor()} ${
+                isUpdating ? 'transform scale-105 drop-shadow-sm' : ''
+            }`}>
+                {fmtPrice(currentPrice)}
+            </div>
+            {hasRealTimePrice && (
+                <div className={`text-[10px] font-medium transition-all duration-1000 ${
+                    isUpdating ? 'text-emerald-300' : 'text-emerald-400/60'
+                }`}>
+                    LIVE
+                </div>
+            )}
+        </div>
+    );
+});
+
+const CleanTokenBalanceCell = React.memo(function CleanTokenBalanceCell({ token }: { token: TokenSummary }) {
+    const { address } = useWallet();
+    const { balances } = useBlaze({ userId: address });
+    
+    if (!address) return null;
+    
+    const balance = balances[`${address}:${token.contractId}`];
+    if (!balance) return null;
+    
+    const mainnetBalance = Number(balance.formattedBalance ?? 0);
+    const subnetBalance = Number(balance.formattedSubnetBalance ?? 0);
+    const hasSubnetSupport = balance.subnetBalance !== undefined;
+    
+    // Only show if user has any balance
+    if (mainnetBalance === 0 && subnetBalance === 0) return null;
+    
+    return (
+        <div className="text-xs space-y-1">
+            {mainnetBalance > 0 && (
+                <div className="flex items-center gap-1 text-white/60">
+                    <Wallet className="h-3 w-3" />
+                    <span className="font-mono">{formatCompactNumber(mainnetBalance)}</span>
+                </div>
+            )}
+            {hasSubnetSupport && subnetBalance > 0 && (
+                <div className="flex items-center gap-1 text-orange-400">
+                    <Flame className="h-3 w-3" />
+                    <span className="font-mono">{formatCompactNumber(subnetBalance)}</span>
+                </div>
+            )}
+            {hasSubnetSupport && subnetBalance === 0 && mainnetBalance > 0 && (
+                <div className="flex items-center gap-1 text-white/30">
+                    <Flame className="h-2.5 w-2.5" />
+                    <span className="text-[10px]">L2 ready</span>
+                </div>
+            )}
+        </div>
+    );
+});
+
+// Skeleton cell component for comparison loading states
+const SkeletonCell = React.memo(function SkeletonCell() {
+    return (
+        <div className="animate-pulse">
+            <div className="h-4 bg-white/[0.06] rounded-lg" />
+        </div>
+    );
+});
+
+// Enhanced token row with subtle price update animation
+interface EnhancedTokenRowProps {
+    token: TokenSummary;
+    showBalances: boolean;
+    address: string | null;
+    compareToken: TokenSummary | null;
+    getMarketCap: (token: TokenSummary) => number | null;
+    getPercentageChange: (tokenChange: number | null, compareTokenChange: number | null, mode?: 'absolute' | 'relative') => number | null;
+    hasSubnetSupport: (token: TokenSummary) => boolean;
+    isComparisonChanging: boolean;
+}
+
+const EnhancedTokenRow = React.memo(function EnhancedTokenRow({ 
+    token, 
+    showBalances, 
+    address, 
+    compareToken,
+    getMarketCap,
+    getPercentageChange,
+    hasSubnetSupport,
+    isComparisonChanging
+}: EnhancedTokenRowProps) {
+    const { getPrice } = useBlaze({ userId: address });
+    const [isRowUpdating, setIsRowUpdating] = useState(false);
+    const [lastRowPrice, setLastRowPrice] = useState<number | null>(null);
+    
+    // Get current price for this row
+    const currentRowPrice = getPrice(token.contractId) ?? token.price;
+    
+    // Detect price changes and trigger subtle row animation
+    useEffect(() => {
+        if (currentRowPrice !== null && lastRowPrice !== null && currentRowPrice !== lastRowPrice) {
+            setIsRowUpdating(true);
+            const timer = setTimeout(() => setIsRowUpdating(false), 800); // Slightly shorter than price cell
+            return () => clearTimeout(timer);
+        }
+        setLastRowPrice(currentRowPrice);
+    }, [currentRowPrice, lastRowPrice]);
+    
+    const getRowBorderColor = () => {
+        if (!isRowUpdating) return 'border-white/[0.03]';
+        
+        // Subtle border pulse during price update
+        if (currentRowPrice !== null && lastRowPrice !== null) {
+            return currentRowPrice > lastRowPrice 
+                ? 'border-emerald-400/20' 
+                : currentRowPrice < lastRowPrice 
+                ? 'border-red-400/20' 
+                : 'border-emerald-400/20';
+        }
+        return 'border-emerald-400/20';
+    };
+    
+    return (
+        <tr
+            className={`cursor-pointer transition-all duration-800 border-b ${getRowBorderColor()} ${
+                isRowUpdating 
+                    ? 'bg-white/[0.01] shadow-sm' 
+                    : 'hover:bg-white/[0.02]'
+            }`}
+            onClick={() => {
+                if (token.contractId && typeof token.contractId === 'string' && token.contractId.trim()) {
+                    try {
+                        window.location.href = `/tokens/${encodeURIComponent(token.contractId)}`;
+                    } catch (error) {
+                        console.error('Failed to navigate to token page:', error, token);
+                    }
+                } else {
+                    console.warn('Invalid token contractId for navigation:', token);
+                }
+            }}
+        >
+            {/* Token */}
+            <td className="p-4 flex items-center gap-3 sticky left-0 backdrop-blur-sm z-10 w-[14rem]">
+                <div className="h-8 w-8 rounded-xl bg-white/[0.05] flex items-center justify-center overflow-hidden">
+                    <TokenImage token={token} />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="font-medium leading-tight truncate max-w-[10rem] text-white/90">{token.name}</div>
+                    <div className="text-xs text-white/50 font-mono">{token.symbol}</div>
+                </div>
+            </td>
+            {/* Market Cap */}
+            <td className="p-4 text-right font-mono text-white/80">{fmtMarketCap(getMarketCap(token))}</td>
+            {/* Price */}
+            <td className="p-4">
+                <CleanTokenPriceCell token={token} />
+            </td>
+            {/* Balance (conditional) */}
+            {showBalances && address && (
+                <td className="p-4">
+                    <CleanTokenBalanceCell token={token} />
+                </td>
+            )}
+            {/* 1h */}
+            <td className="p-4 text-right font-mono">
+                {isComparisonChanging ? (
+                    <SkeletonCell />
+                ) : (
+                    <span className={getCleanDeltaColour(getPercentageChange(token.change1h ?? null, compareToken?.change1h ?? null, 'absolute'))}>
+                        {fmtDelta(getPercentageChange(token.change1h ?? null, compareToken?.change1h ?? null, 'absolute'))}
+                    </span>
+                )}
+            </td>
+            {/* 24h */}
+            <td className="p-4 text-right font-mono">
+                {isComparisonChanging ? (
+                    <SkeletonCell />
+                ) : (
+                    <span className={getCleanDeltaColour(getPercentageChange(token.change24h ?? null, compareToken?.change24h ?? null, 'absolute'))}>
+                        {fmtDelta(getPercentageChange(token.change24h ?? null, compareToken?.change24h ?? null, 'absolute'))}
+                    </span>
+                )}
+            </td>
+            {/* 7d */}
+            <td className="p-4 text-right font-mono">
+                {isComparisonChanging ? (
+                    <SkeletonCell />
+                ) : (
+                    <span className={getCleanDeltaColour(getPercentageChange(token.change7d ?? null, compareToken?.change7d ?? null, 'absolute'))}>
+                        {fmtDelta(getPercentageChange(token.change7d ?? null, compareToken?.change7d ?? null, 'absolute'))}
+                    </span>
+                )}
+            </td>
+            {/* Layer 2 */}
+            <td className="p-4 text-center">
+                {hasSubnetSupport(token) ? (
+                    <div className="inline-flex items-center justify-center w-6 h-6" title={`${token.symbol} supports Layer 2 transactions`}>
+                        <Flame className="h-4 w-4 text-orange-400" />
+                    </div>
+                ) : (
+                    <span className="text-white/20">-</span>
+                )}
+            </td>
+        </tr>
+    );
+});
+
+export default function TokenTable({ tokens, compareId }: TokenTableProps) {
     const [query, setQuery] = useState("");
     const [sortKey, setSortKey] = useState<SortKey>("market_cap");
     const [asc, setAsc] = useState<boolean>(false); // Default to descending for market cap
+    const [showBalances, setShowBalances] = useState(false);
+    const [isComparisonChanging, setIsComparisonChanging] = useState(false);
+    const [previousCompareId, setPreviousCompareId] = useState<string | null>(compareId);
+
+    // Detect comparison token changes and trigger skeleton loading
+    useEffect(() => {
+        if (compareId !== previousCompareId) {
+            setIsComparisonChanging(true);
+            setPreviousCompareId(compareId);
+        }
+    }, [compareId, previousCompareId]);
+
+    // Reset loading state when comparison has stabilized
+    useEffect(() => {
+        if (isComparisonChanging) {
+            // Reset loading state after comparison data has time to process
+            const timer = setTimeout(() => {
+                setIsComparisonChanging(false);
+            }, 300);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [isComparisonChanging, tokens, compareId]);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const { address } = useWallet();
+    const { prices, balances, getPrice } = useBlaze({ userId: address });
 
     /* ------------- hot-key focus '/' ------------- */
     useEffect(() => {
@@ -65,22 +391,47 @@ export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTa
 
     const compareToken = useMemo(() => tokens.find((t) => t.contractId === compareId) ?? null, [tokens, compareId]);
 
+    // Calculate difference with better fallback handling
     function diff(a: number | null, b: number | null) {
         if (a === null || b === null) return null;
         return a - b;
     }
 
-    // Calculate market cap from price and total supply
-    function getMarketCap(token: TokenSummary): number | null {
-        if (!token.price || !token.total_supply) return null;
-        try {
-            const supply = parseFloat(token.total_supply);
-            const decimals = token.decimals || 6;
-            const adjustedSupply = supply / Math.pow(10, decimals);
-            return token.price * adjustedSupply;
-        } catch {
-            return null;
+    // Get percentage change with fallback to absolute values
+    function getPercentageChange(tokenChange: number | null, compareTokenChange: number | null, mode: 'absolute' | 'relative' = 'relative'): number | null {
+        if (tokenChange === null) return null;
+        
+        // If no comparison token or comparison mode is absolute, return the raw percentage
+        if (compareTokenChange === null || mode === 'absolute') {
+            return tokenChange;
         }
+        
+        // Return the difference (relative comparison)
+        return tokenChange - compareTokenChange;
+    }
+
+    // Get market cap (pre-calculated or real-time adjusted)
+    function getMarketCap(token: TokenSummary): number | null {
+        // If we have real-time price updates, recalculate market cap
+        const currentPrice = getPrice(token.contractId);
+        if (currentPrice && currentPrice !== token.price && token.total_supply) {
+            try {
+                const supply = parseFloat(token.total_supply);
+                const decimals = token.decimals || 6;
+                const adjustedSupply = supply / Math.pow(10, decimals);
+                return currentPrice * adjustedSupply;
+            } catch {
+                return token.marketCap; // Fallback to pre-calculated
+            }
+        }
+        
+        // Use pre-calculated market cap
+        return token.marketCap;
+    }
+
+    // Get current price (real-time or fallback)
+    function getCurrentPrice(token: TokenSummary): number | null {
+        return getPrice(token.contractId) ?? token.price;
     }
 
     function getSortValue(token: TokenSummary, key: SortKey) {
@@ -90,31 +441,31 @@ export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTa
             case "market_cap":
                 return getMarketCap(token) ?? 0;
             case "price":
-                return token.price ?? 0;
+                return getCurrentPrice(token) ?? 0;
             case "change1h":
-                return diff(token.change1h, compareToken?.change1h ?? null) ?? -Infinity;
+                return getPercentageChange(token.change1h ?? null, compareToken?.change1h ?? null, 'absolute') ?? -Infinity;
             case "change24h":
-                return diff(token.change24h, compareToken?.change24h ?? null) ?? -Infinity;
+                return getPercentageChange(token.change24h ?? null, compareToken?.change24h ?? null, 'absolute') ?? -Infinity;
             case "change7d":
-                return diff(token.change7d, compareToken?.change7d ?? null) ?? -Infinity;
+                return getPercentageChange(token.change7d ?? null, compareToken?.change7d ?? null, 'absolute') ?? -Infinity;
             default:
                 return 0;
         }
     }
 
-    // Check if a token has a subnet version available
-    function hasSubnetVersion(token: TokenSummary): boolean {
-        return subnetMapping.has(token.symbol);
-    }
-
-    // Get the subnet version of a token
-    function getSubnetVersion(token: TokenSummary): TokenSummary | undefined {
-        return subnetMapping.get(token.symbol);
+    // Check if a token has subnet support using useBlaze balance data
+    function hasSubnetSupport(token: TokenSummary): boolean {
+        if (!address) return false;
+        const balance = balances[`${address}:${token.contractId}`];
+        return balance?.subnetBalance !== undefined;
     }
 
     const filtered = useMemo(() => {
+        const startTime = performance.now();
         const q = query.trim().toLowerCase();
         let out = tokens;
+        
+        // Apply search filter if query exists
         if (q) {
             out = tokens.filter((t) =>
                 t.name.toLowerCase().includes(q) ||
@@ -123,6 +474,7 @@ export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTa
             );
         }
 
+        // Sort results
         out = [...out].sort((a, b) => {
             const dir = asc ? 1 : -1;
             const aVal = getSortValue(a, sortKey);
@@ -130,6 +482,11 @@ export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTa
             if (aVal === bVal) return 0;
             return aVal > bVal ? dir : -dir;
         });
+
+        const duration = performance.now() - startTime;
+        if (duration > 10) { // Log if filtering takes more than 10ms
+            console.log('[TOKEN-TABLE] Filtering took', duration.toFixed(2), 'ms for', tokens.length, 'tokens');
+        }
 
         return out;
     }, [tokens, query, sortKey, asc, compareToken]);
@@ -146,96 +503,84 @@ export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTa
 
     return (
         <div className="w-full">
-            {/* Search */}
-            <div className="mb-6">
-                <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {/* Clean search and controls - no heavy borders */}
+            <div className="mb-8 flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                     <input
                         ref={searchInputRef}
                         type="text"
-                        placeholder="Search by name, symbol or address"
+                        placeholder="Search tokens..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="w-full h-12 pl-10 pr-12 rounded-lg border border-input bg-background text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        className="w-full h-12 pl-12 pr-12 rounded-xl border border-white/[0.1] bg-white/[0.02] text-white/90 placeholder:text-white/40 focus:outline-none focus:border-white/[0.3] transition-colors duration-200"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] text-muted-foreground border border-border rounded px-1 py-0.5 bg-muted/50 select-none">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-white/30 border border-white/[0.1] rounded px-2 py-1 bg-white/[0.03] select-none">
                         /
                     </span>
                 </div>
+                
+                {address && (
+                    <button
+                        onClick={() => setShowBalances(!showBalances)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 ${
+                            showBalances 
+                                ? 'bg-white/[0.08] text-white border-white/[0.2]' 
+                                : 'text-white/60 border-white/[0.1] hover:text-white/90 hover:bg-white/[0.03]'
+                        }`}
+                    >
+                        <Wallet className="h-4 w-4" />
+                        <span className="text-sm">Portfolio</span>
+                    </button>
+                )}
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            {/* Clean table with minimal styling */}
+            <div className="overflow-x-auto rounded-2xl border border-white/[0.05]">
                 <table className="min-w-full text-sm">
-                    <thead className="bg-muted text-muted-foreground sticky top-0 z-20">
-                        <tr>
-                            {headerCell("Token", "name", "sticky bg-muted left-0 z-10 w-[14rem]")}
+                    <thead className="sticky top-0 z-20">
+                        <tr className="border-b border-white/[0.05]">
+                            {headerCell("Token", "name", "sticky left-0 z-10 w-[14rem]")}
                             {headerCell("Market Cap", "market_cap", "text-right")}
                             {headerCell("Price", "price", "text-right")}
-                            {headerCell("1h %", "change1h", "text-right")}
-                            {headerCell("24h %", "change24h", "text-right")}
-                            {headerCell("7d %", "change7d", "text-right")}
-                            <th className="p-4 text-center">
-                                <div className="inline-flex items-center gap-1">
-                                    <Flame className="h-3.5 w-3.5 text-red-500" />
-                                    <span>Subnets</span>
+                            {showBalances && address && (
+                                <th className="p-4 text-center backdrop-blur-sm">
+                                    <div className="inline-flex items-center gap-2 text-white/60">
+                                        <Wallet className="h-3.5 w-3.5" />
+                                        <span>Balance</span>
+                                    </div>
+                                </th>
+                            )}
+                            {headerCell("1h", "change1h", "text-right")}
+                            {headerCell("24h", "change24h", "text-right")}
+                            {headerCell("7d", "change7d", "text-right")}
+                            <th className="p-4 text-center backdrop-blur-sm">
+                                <div className="inline-flex items-center gap-2 text-white/60">
+                                    <Flame className="h-3.5 w-3.5 text-orange-400" />
+                                    <span>Layer 2</span>
                                 </div>
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody>
                         {filtered.map((token) => (
-                            <tr
-                                key={token.contractId}
-                                className="hover:bg-muted/20 cursor-pointer"
-                                onClick={() => (window.location.href = `/tokens/${encodeURIComponent(token.contractId)}`)}
-                            >
-                                {/* Token */}
-                                <td className="p-4 flex items-center gap-3 sticky left-0 bg-card z-10 w-[14rem]">
-                                    <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden">
-                                        <TokenImage token={token} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="font-medium leading-tight truncate max-w-[10rem]">{token.name}</div>
-                                        <div className="text-xs text-muted-foreground">{token.symbol}</div>
-                                    </div>
-                                </td>
-                                {/* Market Cap */}
-                                <td className="p-4 text-right font-medium">{fmtMarketCap(getMarketCap(token))}</td>
-                                {/* Price */}
-                                <td className="p-4 text-right font-medium">{fmtPrice(token.price)}</td>
-                                {/* 1h */}
-                                <td className={`p-4 text-right ${getDeltaColour(diff(token.change1h, compareToken?.change1h ?? null))}`}>{fmtDelta(diff(token.change1h, compareToken?.change1h ?? null))}</td>
-                                {/* 24h */}
-                                <td className={`p-4 text-right ${getDeltaColour(diff(token.change24h, compareToken?.change24h ?? null))}`}>{fmtDelta(diff(token.change24h, compareToken?.change24h ?? null))}</td>
-                                {/* 7d */}
-                                <td className={`p-4 text-right ${getDeltaColour(diff(token.change7d, compareToken?.change7d ?? null))}`}>{fmtDelta(diff(token.change7d, compareToken?.change7d ?? null))}</td>
-                                {/* Subnets */}
-                                <td className="p-4 text-center">
-                                    {hasSubnetVersion(token) ? (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const subnetToken = getSubnetVersion(token);
-                                                if (subnetToken) {
-                                                    window.location.href = `/tokens/${encodeURIComponent(subnetToken.contractId)}`;
-                                                }
-                                            }}
-                                            className="cursor-pointer inline-flex items-center justify-center w-6 h-6 rounded hover:bg-muted/90 transition-colors"
-                                            title={`View subnet version of ${token.symbol}`}
-                                        >
-                                            <Flame className="h-4 w-4 text-red-500" />
-                                        </button>
-                                    ) : (
-                                        <span className="text-muted-foreground/30">-</span>
-                                    )}
-                                </td>
-                            </tr>
+                            <EnhancedTokenRow 
+                                key={token.contractId} 
+                                token={token} 
+                                showBalances={showBalances} 
+                                address={address} 
+                                compareToken={compareToken}
+                                getMarketCap={getMarketCap}
+                                getPercentageChange={getPercentageChange}
+                                hasSubnetSupport={hasSubnetSupport}
+                                isComparisonChanging={isComparisonChanging}
+                            />
                         ))}
 
                         {filtered.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="p-6 text-center text-muted-foreground">
-                                    No tokens match your query.
+                                <td colSpan={showBalances && address ? 8 : 7} className="p-8 text-center text-white/40">
+                                    No tokens found matching your search.
                                 </td>
                             </tr>
                         )}
@@ -250,11 +595,11 @@ export default function TokenTable({ tokens, compareId, subnetMapping }: TokenTa
         return (
             <th
                 onClick={() => toggleSort(key)}
-                className={`p-4 cursor-pointer select-none ${extraClass}`}
+                className={`p-4 cursor-pointer select-none backdrop-blur-sm ${extraClass}`}
             >
-                <div className="inline-flex items-center gap-1">
-                    {label}
-                    <ArrowUpDown className={`h-3.5 w-3.5 ${active ? "text-primary" : ""}`} />
+                <div className="inline-flex items-center gap-2 text-white/60 hover:text-white/90 transition-colors duration-200">
+                    <span className="text-sm font-medium">{label}</span>
+                    <ArrowUpDown className={`h-3.5 w-3.5 ${active ? "text-white/90" : "text-white/30"}`} />
                 </div>
             </th>
         );
@@ -314,4 +659,11 @@ function getDeltaColour(delta: number | null) {
     if (delta > 0) return "text-green-600";
     if (delta < 0) return "text-red-600";
     return "";
+}
+
+function getCleanDeltaColour(delta: number | null) {
+    if (delta === null) return "text-white/40";
+    if (delta > 0) return "text-emerald-400";
+    if (delta < 0) return "text-red-400";
+    return "text-white/60";
 } 

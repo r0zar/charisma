@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { TrendingUp, Settings, Database, Activity } from 'lucide-react';
+import { TrendingUp, Settings, Database, Activity, BarChart3 } from 'lucide-react';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
 
 export const metadata: Metadata = {
@@ -47,6 +47,13 @@ const adminActions = [
         color: 'blue',
     },
     {
+        title: 'Chart Diagnostics',
+        description: 'Diagnose and test conditional token chart data loading issues',
+        href: '/admin/chart-diagnostics',
+        icon: <BarChart3 className="w-6 h-6" />,
+        color: 'teal',
+    },
+    {
         title: 'System Monitoring',
         description: 'Monitor system performance and health metrics',
         href: '/admin/monitoring',
@@ -86,7 +93,8 @@ export default function AdminDashboard() {
                                 action.color === 'blue' ? 'bg-primary/20 text-primary' :
                                     action.color === 'green' ? 'bg-green-500/20 text-green-400' :
                                         action.color === 'orange' ? 'bg-orange-500/20 text-orange-400' :
-                                            'bg-secondary/20 text-secondary'
+                                            action.color === 'teal' ? 'bg-teal-500/20 text-teal-400' :
+                                                'bg-secondary/20 text-secondary'
                                 }`}>
                                 {action.icon}
                             </div>

@@ -1,4 +1,4 @@
-import { getLatestPrice, getPricesInRange } from './store';
+import { getLatestPrice, getPricesInRange, getBulkLatestPrices, getBulkPricesInRange } from './store';
 
 // Time windows we want percentage changes for (in milliseconds)
 const ONE_HOUR = 1000 * 60 * 60;
@@ -62,4 +62,90 @@ export async function getPriceStats(contractId: string): Promise<PriceStats> {
         change24h: pctChange(past24h, latest),
         change7d: pctChange(past7d, latest),
     };
+}
+
+/**
+ * Bulk version of getPriceStats for efficient processing of multiple tokens
+ * Uses Redis pipelining to minimize round trips
+ */
+export async function getBulkPriceStats(contractIds: string[]): Promise<Record<string, PriceStats>> {
+    if (contractIds.length === 0) return {};
+
+    const now = Date.now();
+    const startTime = Date.now();
+
+    console.log('[BULK-PRICE-STATS] Starting bulk processing for', contractIds.length, 'tokens');
+
+    // Step 1: Get all latest prices in bulk
+    const latestPrices = await getBulkLatestPrices(contractIds);
+    
+    // Filter out tokens with no prices to avoid unnecessary historical queries
+    const tokensWithPrices = contractIds.filter(id => latestPrices[id] !== undefined);
+    
+    console.log('[BULK-PRICE-STATS] Found prices for', tokensWithPrices.length, '/', contractIds.length, 'tokens');
+
+    if (tokensWithPrices.length === 0) {
+        // Return empty stats for all tokens
+        const result: Record<string, PriceStats> = {};
+        contractIds.forEach(contractId => {
+            result[contractId] = {
+                contractId,
+                price: null,
+                change1h: null,
+                change24h: null,
+                change7d: null,
+            };
+        });
+        return result;
+    }
+
+    // Step 2: Get historical prices for all time periods in parallel
+    const [past1hData, past24hData, past7dData] = await Promise.all([
+        getBulkPricesInRange(tokensWithPrices, now - ONE_HOUR, now),
+        getBulkPricesInRange(tokensWithPrices, now - TWENTY_FOUR_HOURS, now),
+        getBulkPricesInRange(tokensWithPrices, now - SEVEN_DAYS, now)
+    ]);
+
+    // Step 3: Process results and calculate percentage changes
+    const result: Record<string, PriceStats> = {};
+    
+    contractIds.forEach(contractId => {
+        const latestPrice = latestPrices[contractId] ?? null;
+        
+        if (latestPrice === null) {
+            result[contractId] = {
+                contractId,
+                price: null,
+                change1h: null,
+                change24h: null,
+                change7d: null,
+            };
+            return;
+        }
+
+        // Extract historical prices (first entry in range = oldest)
+        const past1h = past1hData[contractId]?.[0]?.[1] ?? null;
+        const past24h = past24hData[contractId]?.[0]?.[1] ?? null;
+        const past7d = past7dData[contractId]?.[0]?.[1] ?? null;
+
+        result[contractId] = {
+            contractId,
+            price: latestPrice,
+            change1h: pctChange(past1h, latestPrice),
+            change24h: pctChange(past24h, latestPrice),
+            change7d: pctChange(past7d, latestPrice),
+        };
+    });
+
+    const duration = Date.now() - startTime;
+    const avgTime = duration / contractIds.length;
+    
+    console.log('[BULK-PRICE-STATS] Completed bulk processing', {
+        totalTokens: contractIds.length,
+        tokensWithPrices: tokensWithPrices.length,
+        duration: `${duration}ms`,
+        avgPerToken: `${avgTime.toFixed(2)}ms`
+    });
+
+    return result;
 } 

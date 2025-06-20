@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useWallet } from '@/contexts/wallet-context';
 import { UserNotificationSettings, OrderExecutedPreferences, BidEventPreferences, OfferEventPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
 import { signMessage, type SignedMessage } from 'blaze-sdk';
@@ -65,7 +65,7 @@ interface NotificationRecipientIDs {
     memeRouletteSwap?: string;
 }
 
-export default function NotificationSettingsPage() {
+function NotificationSettingsContent() {
     const { address: userPrincipal, connected } = useWallet();
 
     const [isLoading, setIsLoading] = useState(true);
@@ -288,105 +288,224 @@ export default function NotificationSettingsPage() {
     return (
         <div className="relative flex flex-col min-h-screen">
             <Header />
-            <main className="container flex-1 py-2">
-                {!connected ? (
-                    <div className="mx-auto py-4 max-w-2xl text-center">
-                        <p className="text-lg text-gray-600">Please connect your wallet to manage notification settings.</p>
-                    </div>
-                ) : isLoading ? (
-                    <div className="mx-auto p-4 max-w-2xl text-center"><p>Loading settings...</p></div>
-                ) : (
-                    <div className="mx-auto py-2 max-w-2xl">
-                        <h1 className="text-2xl font-bold mb-4 text-center">Notification Settings</h1>
-                        {error && (
-                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                                <strong className="font-bold">Error:</strong>
-                                <span className="block sm:inline"> {error}</span>
-                            </div>
-                        )}
-                        <div className="space-y-6">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                                <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">Setup Instructions</h3>
-                                <div className="text-xs text-blue-700 dark:text-blue-300 space-y-2">
-                                    <p>
-                                        <strong>Step 1:</strong> Get your numerical Telegram Chat ID by messaging{' '}
-                                        <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@userinfobot</a>
-                                    </p>
-                                    <p>
-                                        <strong>Step 2:</strong> Start a chat with our notification bot{' '}
-                                        <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">@BuiltOnBitcoin_bot</a>{' '}
-                                        so it can send you messages
-                                    </p>
-                                    <p>
-                                        <strong>Step 3:</strong> Enter your Chat ID above and enable the notifications you want to receive
-                                    </p>
+            <main className="flex-1 py-8 md:py-12">
+                <div className="container max-w-6xl">
+                    {!connected ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                            <div className="relative mb-6">
+                                <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
+                                    <div className="h-8 w-8 text-white/30">🔔</div>
                                 </div>
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
                             </div>
-                            {notificationTypes.map(({ category, notifications }) => (
-                                <div key={category} className="bg-card shadow-md rounded-lg p-6">
-                                    <h2 className="text-xl font-semibold mb-4">{category}</h2>
-                                    {notifications.map(({ key, title, description }) => {
-                                        const isPending = pendingToggles.has(key);
-                                        const isDisabled = !userPrincipal || isLoading || isPending;
-                                        return (
-                                            <div key={key} className="py-3 border-b last:border-b-0">
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div className="flex-1">
-                                                        <h3 className="text-md font-medium">{title}</h3>
-                                                        <p className="text-sm text-gray-500 mt-1">{description}</p>
-                                                        {isPending && (
-                                                            <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                                                                <span className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full"></span>
-                                                                Saving...
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center ml-4">
-                                                        <div className="relative">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`${key}Toggle`}
-                                                                className="sr-only"
-                                                                checked={uiToggleState[key]}
-                                                                onChange={() => handleNotificationToggle(key)}
-                                                                disabled={isDisabled}
-                                                            />
-                                                            <div
-                                                                className={`block w-12 h-7 rounded-full transition-colors cursor-pointer ${isDisabled
-                                                                    ? 'bg-gray-200 cursor-not-allowed'
-                                                                    : uiToggleState[key]
-                                                                        ? 'bg-blue-600'
-                                                                        : 'bg-gray-300'
-                                                                    }`}
-                                                                onClick={() => !isDisabled && handleNotificationToggle(key)}
-                                                            ></div>
-                                                            <div
-                                                                className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform pointer-events-none ${uiToggleState[key] ? 'transform translate-x-5' : ''}
-                                                                    ${isPending ? 'animate-pulse' : ''}`}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Enter numerical Telegram Chat ID"
-                                                        value={recipientIds[key] || ''}
-                                                        onChange={(e) => handleRecipientIdChange(key, e.target.value)}
-                                                        onBlur={() => handleRecipientIdSave(key)}
-                                                        className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                                        disabled={isSaving || !userPrincipal}
-                                                    />
+                            <h3 className="text-lg font-medium text-white/70 mb-2">Connect Your Wallet</h3>
+                            <p className="text-sm text-center max-w-md leading-relaxed">
+                                Please connect your wallet to manage your notification preferences and receive real-time updates.
+                            </p>
+                        </div>
+                    ) : isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <div className="h-8 w-8 border-2 border-white/30 border-t-white/80 rounded-full animate-spin mb-4" />
+                            <p className="text-white/60">Loading your notification settings...</p>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {/* Main Content */}
+                            <div className="md:col-span-2">
+                                <div className="space-y-8">
+                                    {/* Header Section */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">Notification Settings</h1>
+                                            <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+                                                Configure your notification preferences to stay updated on trades, bids, offers, and other important events.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {error && (
+                                        <div className="relative p-4 rounded-2xl bg-red-500/[0.08] border border-red-500/[0.15] backdrop-blur-sm overflow-hidden" role="alert">
+                                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/[0.02] to-transparent pointer-events-none" />
+                                            <div className="relative">
+                                                <strong className="font-semibold text-red-400">Error:</strong>
+                                                <span className="block sm:inline text-red-300 ml-2">{error}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Notification Categories */}
+                                    <div className="space-y-6">
+                                        {notificationTypes.map(({ category, notifications }) => (
+                                            <div key={category} className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm overflow-hidden">
+                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                                <div className="relative">
+                                                    <h2 className="text-xl font-semibold text-white/90 mb-6">{category}</h2>
+                                                    {notifications.map(({ key, title, description }) => {
+                                                        const isPending = pendingToggles.has(key);
+                                                        const isDisabled = !userPrincipal || isLoading || isPending;
+                                                        return (
+                                                            <div key={key} className="py-4 border-b border-white/[0.08] last:border-b-0">
+                                                                <div className="flex items-start justify-between mb-4">
+                                                                    <div className="flex-1">
+                                                                        <h3 className="text-base font-semibold text-white/90">{title}</h3>
+                                                                        <p className="text-sm text-white/60 mt-1 leading-relaxed">{description}</p>
+                                                                        {isPending && (
+                                                                            <div className="flex items-center gap-2 mt-2">
+                                                                                <div className="h-3 w-3 border-2 border-blue-400/60 border-t-blue-400 rounded-full animate-spin" />
+                                                                                <span className="text-xs text-blue-400">Saving changes...</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center ml-6">
+                                                                        <div className="relative">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                id={`${key}Toggle`}
+                                                                                className="sr-only"
+                                                                                checked={uiToggleState[key]}
+                                                                                onChange={() => handleNotificationToggle(key)}
+                                                                                disabled={isDisabled}
+                                                                            />
+                                                                            <div
+                                                                                className={`relative w-12 h-6 rounded-full transition-all duration-200 cursor-pointer overflow-hidden ${
+                                                                                    isDisabled
+                                                                                        ? 'bg-white/[0.08] cursor-not-allowed'
+                                                                                        : uiToggleState[key]
+                                                                                            ? 'bg-blue-500/80 shadow-lg shadow-blue-500/20'
+                                                                                            : 'bg-white/[0.12] hover:bg-white/[0.15]'
+                                                                                }`}
+                                                                                onClick={() => !isDisabled && handleNotificationToggle(key)}
+                                                                            >
+                                                                                <div className="absolute inset-0 bg-gradient-to-r from-white/[0.05] to-transparent" />
+                                                                            </div>
+                                                                            <div
+                                                                                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200 pointer-events-none ${
+                                                                                    uiToggleState[key] ? 'transform translate-x-6' : ''
+                                                                                } ${isPending ? 'animate-pulse' : ''}`}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="relative">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Enter numerical Telegram Chat ID"
+                                                                        value={recipientIds[key] || ''}
+                                                                        onChange={(e) => handleRecipientIdChange(key, e.target.value)}
+                                                                        onBlur={() => handleRecipientIdSave(key)}
+                                                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/90 text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/20 transition-all duration-200 disabled:opacity-50 backdrop-blur-sm"
+                                                                        disabled={isSaving || !userPrincipal}
+                                                                    />
+                                                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/[0.01] to-transparent pointer-events-none" />
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
+                            
+                            {/* Sidebar */}
+                            <div className="md:col-span-1">
+                                <div className="sticky top-24 space-y-6">
+                                    {/* Setup Instructions */}
+                                    <div className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent pointer-events-none" />
+                                        <div className="relative">
+                                            <h3 className="text-lg font-semibold text-white/90 mb-4 flex items-center gap-2">
+                                                <div className="h-1.5 w-1.5 bg-blue-400 rounded-full" />
+                                                Setup Guide
+                                            </h3>
+                                            <div className="text-sm text-white/70 space-y-4">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-white/40 rounded-full flex-shrink-0" />
+                                                    <div>
+                                                        <p className="font-medium text-white/80 mb-1">Get Your Chat ID</p>
+                                                        <p className="leading-relaxed">
+                                                            Message{' '}
+                                                            <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2">@userinfobot</a>{' '}
+                                                            to get your numerical Telegram Chat ID
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-white/40 rounded-full flex-shrink-0" />
+                                                    <div>
+                                                        <p className="font-medium text-white/80 mb-1">Start Bot Chat</p>
+                                                        <p className="leading-relaxed">
+                                                            Start a conversation with{' '}
+                                                            <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2">@BuiltOnBitcoin_bot</a>{' '}
+                                                            so it can send you messages
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-white/40 rounded-full flex-shrink-0" />
+                                                    <div>
+                                                        <p className="font-medium text-white/80 mb-1">Configure Notifications</p>
+                                                        <p className="leading-relaxed">
+                                                            Enter your Chat ID and toggle the notifications you want to receive
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Status */}
+                                    <div className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-green-500/[0.02] to-transparent pointer-events-none" />
+                                        <div className="relative">
+                                            <h3 className="text-lg font-semibold text-white/90 mb-4 flex items-center gap-2">
+                                                <div className="h-1.5 w-1.5 bg-green-400 rounded-full" />
+                                                Status
+                                            </h3>
+                                            <div className="space-y-3 text-sm">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-white/60">Service:</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                        <span className="text-green-400 font-medium">Active</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-white/60">Notifications:</span>
+                                                    <span className="text-white/80 font-medium">{Object.values(uiToggleState).filter(Boolean).length} enabled</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </main>
         </div>
+    );
+}
+
+function NotificationsFallback() {
+    return (
+        <div className="relative flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-1 py-8 md:py-12">
+                <div className="container max-w-6xl">
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div className="h-8 w-8 border-2 border-white/30 border-t-white/80 rounded-full animate-spin mb-4" />
+                        <p className="text-white/60">Loading notification settings...</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}
+
+export default function NotificationSettingsPage() {
+    return (
+        <Suspense fallback={<NotificationsFallback />}>
+            <NotificationSettingsContent />
+        </Suspense>
     );
 } 

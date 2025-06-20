@@ -56,7 +56,7 @@ export async function getPricesInRange(contractId: string, fromTimestamp: number
         const ts = Number(res[i + 1]);
         out.push([ts, price]);
     }
-    console.log(`[getPricesInRange] contractId=${contractId}, from=${fromTimestamp}, to=${toTimestamp}, count=${out.length}`);
+    // Removed individual logging - use aggregated logging in bulk operations
     return out;
 }
 
@@ -218,4 +218,129 @@ export async function addPriceSnapshotsBulk(
         }
     }
     if (pipeline) await pipeline.exec();
+}
+
+/**
+ * Get latest prices for multiple tokens in bulk using Redis pipelining
+ */
+export async function getBulkLatestPrices(contractIds: string[]): Promise<Record<string, number>> {
+    if (contractIds.length === 0) return {};
+
+    const startTime = Date.now();
+    const result: Record<string, number> = {};
+
+    // Use pipeline for bulk operations
+    const pipeline = kv.pipeline();
+    if (!pipeline) {
+        // Fallback to individual queries if pipeline not available
+        const promises = contractIds.map(async (contractId) => {
+            const price = await getLatestPrice(contractId);
+            return { contractId, price };
+        });
+        
+        const results = await Promise.all(promises);
+        results.forEach(({ contractId, price }) => {
+            if (price !== undefined) {
+                result[contractId] = price;
+            }
+        });
+        
+        console.log('[BULK-LATEST] Fallback method completed in', Date.now() - startTime, 'ms');
+        return result;
+    }
+
+    // Add all queries to pipeline
+    contractIds.forEach(contractId => {
+        const key = `${PREFIX}:${contractId}`;
+        pipeline.zrange(key, -1, -1);
+    });
+
+    const results = await pipeline.exec();
+    
+    // Process pipeline results
+    contractIds.forEach((contractId, index) => {
+        const res = results?.[index];
+        if (res && Array.isArray(res) && res.length > 0) {
+            // Handle both string and number results from Redis
+            const priceValue = res[0];
+            const price = typeof priceValue === 'string' ? Number(priceValue) : Number(priceValue);
+            if (!isNaN(price)) {
+                result[contractId] = price;
+            }
+        }
+    });
+
+    const duration = Date.now() - startTime;
+    console.log('[BULK-LATEST] Retrieved prices for', Object.keys(result).length, '/', contractIds.length, 'tokens in', duration, 'ms');
+
+    return result;
+}
+
+/**
+ * Get price ranges for multiple tokens in bulk using Redis pipelining
+ */
+export async function getBulkPricesInRange(
+    contractIds: string[], 
+    fromTimestamp: number, 
+    toTimestamp: number
+): Promise<Record<string, [number, number][]>> {
+    if (contractIds.length === 0) return {};
+
+    const startTime = Date.now();
+    const result: Record<string, [number, number][]> = {};
+
+    // Use pipeline for bulk operations
+    const pipeline = kv.pipeline();
+    if (!pipeline) {
+        // Fallback to individual queries if pipeline not available
+        const promises = contractIds.map(async (contractId) => {
+            const data = await getPricesInRange(contractId, fromTimestamp, toTimestamp);
+            return { contractId, data };
+        });
+        
+        const results = await Promise.all(promises);
+        results.forEach(({ contractId, data }) => {
+            result[contractId] = data;
+        });
+        
+        console.log('[BULK-RANGE] Fallback method completed in', Date.now() - startTime, 'ms');
+        return result;
+    }
+
+    // Add all queries to pipeline
+    contractIds.forEach(contractId => {
+        const key = `${PREFIX}:${contractId}`;
+        pipeline.zrange(key, fromTimestamp, toTimestamp, {
+            byScore: true,
+            withScores: true
+        });
+    });
+
+    const results = await pipeline.exec();
+    
+    // Process pipeline results
+    contractIds.forEach((contractId, index) => {
+        const res = results?.[index];
+        if (res && Array.isArray(res)) {
+            const out: [number, number][] = [];
+            // Data is returned as alternating price, ts, price, ts...
+            for (let i = 0; i < res.length; i += 2) {
+                const price = Number(res[i]);
+                const ts = Number(res[i + 1]);
+                if (!isNaN(price) && !isNaN(ts)) {
+                    out.push([ts, price]);
+                }
+            }
+            result[contractId] = out;
+        } else {
+            result[contractId] = [];
+        }
+    });
+
+    const duration = Date.now() - startTime;
+    const totalPoints = Object.values(result).reduce((sum, data) => sum + data.length, 0);
+    
+    console.log('[BULK-RANGE] Retrieved', totalPoints, 'price points for', contractIds.length, 'tokens in', duration, 'ms');
+
+    return result;
 }

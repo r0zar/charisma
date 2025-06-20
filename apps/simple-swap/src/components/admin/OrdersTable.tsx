@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     MoreHorizontal,
     ExternalLink,
@@ -29,15 +29,33 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatLocalDateTime, formatRelativeTime } from '@/lib/admin-config';
+import type { LimitOrder } from '@/lib/orders/types';
+import { getTokenMetadataCached, TokenCacheData, listPrices } from '@repo/tokens';
+import { useTransactionStatus } from '@/hooks/useTransactionStatus';
+import { classifyOrderType } from '@/lib/orders/classification';
+import PremiumPagination, { type PaginationInfo } from '../orders/premium-pagination';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-interface Order {
+interface EnrichedOrder {
     id: string;
-    type: 'limit' | 'dca' | 'perpetual' | 'sandwich';
-    status: 'open' | 'filled' | 'cancelled' | 'failed' | 'pending';
+    order: LimitOrder;
+    inputTokenMeta: TokenCacheData;
+    outputTokenMeta: TokenCacheData;
+    conditionTokenMeta: TokenCacheData;
+}
+
+interface DisplayOrder {
+    id: string;
+    type: 'single' | 'dca' | 'perpetual' | 'sandwich';
+    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled';
     owner: string;
+    ownerFull: string;
     inputToken: string;
     outputToken: string;
+    inputTokenSymbol: string;
+    outputTokenSymbol: string;
     amount: string;
+    amountFormatted: string;
     targetPrice: string;
     currentPrice: string;
     direction: 'buy' | 'sell' | 'long' | 'short';
@@ -48,113 +66,258 @@ interface Order {
     fillPercent?: number;
     estimatedGas?: string;
     priority: 'low' | 'medium' | 'high';
+    blockHeight?: number;
+    blockTime?: number;
+    confirmedAt?: string;
+    failedAt?: string;
+    failureReason?: string;
 }
 
-// Mock data - in real implementation, this would come from props or API
-const mockOrders: Order[] = [
-    {
-        id: '0x1234...abcd',
-        type: 'limit',
-        status: 'open',
-        owner: 'SP2ZNG...55KS',
-        inputToken: 'STX',
-        outputToken: 'USDT',
-        amount: '1,000',
-        targetPrice: '0.85',
-        currentPrice: '0.82',
-        direction: 'sell',
-        volume: '$850',
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: '2024-01-15T10:30:00Z',
-        priority: 'medium'
-    },
-    {
-        id: '0x5678...efgh',
-        type: 'dca',
-        status: 'filled',
-        owner: 'SP3ABC...DEF1',
-        inputToken: 'USDT',
-        outputToken: 'BTC',
-        amount: '500',
-        targetPrice: '45,000',
-        currentPrice: '45,250',
-        direction: 'buy',
-        volume: '$22,625',
-        createdAt: '2024-01-15T09:15:00Z',
-        updatedAt: '2024-01-15T11:45:00Z',
-        txHash: '0xabc123...def456',
-        fillPercent: 100,
-        priority: 'high'
-    },
-    {
-        id: '0x9abc...ijkl',
-        type: 'perpetual',
-        status: 'open',
-        owner: 'SP4XYZ...789A',
-        inputToken: 'STX',
-        outputToken: 'USDT',
-        amount: '2,500',
-        targetPrice: '0.90',
-        currentPrice: '0.82',
-        direction: 'long',
-        volume: '$2,250',
-        createdAt: '2024-01-15T08:00:00Z',
-        updatedAt: '2024-01-15T12:00:00Z',
-        priority: 'high'
-    },
-    {
-        id: '0xdef0...mnop',
-        type: 'sandwich',
-        status: 'failed',
-        owner: 'SP5GHI...JKL2',
-        inputToken: 'CHA',
-        outputToken: 'STX',
-        amount: '10,000',
-        targetPrice: '0.015',
-        currentPrice: '0.014',
-        direction: 'sell',
-        volume: '$150',
-        createdAt: '2024-01-15T07:30:00Z',
-        updatedAt: '2024-01-15T07:35:00Z',
-        priority: 'low'
+// Convert EnrichedOrder to DisplayOrder for admin interface
+function convertToDisplayOrder(
+    enrichedOrder: EnrichedOrder, 
+    priceData: Record<string, number> = {},
+    allEnrichedOrders: EnrichedOrder[] = []
+): DisplayOrder {
+    const { id, order, inputTokenMeta, outputTokenMeta } = enrichedOrder;
+    
+    // Parse amounts using correct decimals from token metadata
+    const inputDecimals = inputTokenMeta.decimals || 6;
+    const outputDecimals = outputTokenMeta.decimals || 6;
+    
+    // Use amountIn from LimitOrder (not inputAmount)
+    const inputAmount = parseFloat(order.amountIn || '0') / Math.pow(10, inputDecimals);
+    // targetPrice is already in decimal format, don't divide by decimals
+    const targetPrice = parseFloat(order.targetPrice || '0');
+    
+    // Calculate volume in output tokens
+    let volumeInOutputTokens = 0;
+    
+    if (inputAmount > 0 && targetPrice > 0) {
+        volumeInOutputTokens = inputAmount * targetPrice;
     }
-];
+    
+    // Calculate USD estimates using price data
+    const inputTokenPrice = priceData[order.inputToken] || 0;
+    const outputTokenPrice = priceData[order.outputToken] || 0;
+    
+    let usdEstimate = 0;
+    if (volumeInOutputTokens > 0 && outputTokenPrice > 0) {
+        // Use output token volume × output token USD price
+        usdEstimate = volumeInOutputTokens * outputTokenPrice;
+    } else if (inputAmount > 0 && inputTokenPrice > 0) {
+        // Fallback: use input amount × input token USD price  
+        usdEstimate = inputAmount * inputTokenPrice;
+    }
+    
+    // Fallback: if we can't calculate output tokens, show input amount value
+    const fallbackVolume = inputAmount;
+    
+    // Format owner address
+    const shortOwner = order.owner.length > 20 
+        ? `${order.owner.slice(0, 8)}...${order.owner.slice(-4)}`
+        : order.owner;
+    
+    // Determine direction based on LimitOrder.direction field
+    const direction = order.direction === 'gt' ? 'sell' : 'buy'; // gt = greater than = sell, lt = less than = buy
+    
+    // Handle legacy 'filled' status for migration
+    const displayStatus = order.status === 'filled' ? 'broadcasted' : order.status;
+    
+    // Classify order type using the classification utility
+    const allOrdersWithMeta = allEnrichedOrders.map(e => ({
+        ...e.order,
+        inputTokenMeta: e.inputTokenMeta,
+        outputTokenMeta: e.outputTokenMeta
+    }));
+    const orderType = classifyOrderType({
+        ...order,
+        inputTokenMeta,
+        outputTokenMeta
+    }, allOrdersWithMeta);
+    
+    return {
+        id: order.uuid, // Use the actual order UUID, not the hash key
+        type: orderType,
+        status: displayStatus,
+        owner: shortOwner,
+        ownerFull: order.owner,
+        inputToken: order.inputToken,
+        outputToken: order.outputToken,
+        inputTokenSymbol: inputTokenMeta.symbol || 'UNK',
+        outputTokenSymbol: outputTokenMeta.symbol || 'UNK',
+        amount: inputAmount.toFixed(inputDecimals > 2 ? 2 : inputDecimals),
+        amountFormatted: `${inputAmount.toLocaleString()} ${inputTokenMeta.symbol || 'UNK'}`,
+        targetPrice: targetPrice.toFixed(6),
+        currentPrice: targetPrice.toFixed(6), // TODO: Get real current price
+        direction,
+        volume: volumeInOutputTokens > 0 
+            ? `${volumeInOutputTokens.toFixed(2)} ${outputTokenMeta.symbol || 'UNK'}${usdEstimate > 0 ? ` (~$${usdEstimate.toFixed(2)})` : ''}` 
+            : fallbackVolume > 0 
+                ? `${fallbackVolume.toFixed(2)} ${inputTokenMeta.symbol || 'UNK'}${usdEstimate > 0 ? ` (~$${usdEstimate.toFixed(2)})` : ''}` 
+                : 'N/A',
+        createdAt: order.createdAt,
+        updatedAt: order.createdAt, // LimitOrder doesn't have updatedAt
+        txHash: order.txid,
+        priority: 'medium',
+        blockHeight: order.blockHeight,
+        blockTime: order.blockTime,
+        confirmedAt: order.confirmedAt,
+        failedAt: order.failedAt,
+        failureReason: order.failureReason
+    };
+}
 
-const StatusBadge = ({ status }: { status: Order['status'] }) => {
+async function fetchAndEnrichOrders(
+    page: number = 1,
+    limit: number = 20,
+    sortBy: 'createdAt' | 'status' = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
+    statusFilter?: string,
+    searchQuery?: string
+): Promise<{ orders: DisplayOrder[], pagination: PaginationInfo }> {
+    try {
+        // Build query parameters
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            sortBy,
+            sortOrder
+        });
+        
+        if (statusFilter && statusFilter !== 'all') {
+            params.append('status', statusFilter);
+        }
+        
+        if (searchQuery && searchQuery.trim()) {
+            params.append('search', searchQuery.trim());
+        }
+        
+        const [ordersResponse, priceData] = await Promise.all([
+            fetch(`/api/v1/orders?${params}`),
+            listPrices().catch(() => ({})) // Fallback to empty object if prices fail
+        ]);
+        
+        const data = await ordersResponse.json();
+        
+        if (data.status !== 'success') {
+            throw new Error('Failed to fetch orders');
+        }
+        
+        const orders = data.data as LimitOrder[];
+        const pagination = data.pagination as PaginationInfo;
+        
+        if (orders.length === 0) {
+            return {
+                orders: [],
+                pagination: pagination || {
+                    total: 0,
+                    page: 1,
+                    limit: 20,
+                    totalPages: 0,
+                    hasNextPage: false,
+                    hasPrevPage: false
+                }
+            };
+        }
+        
+        // Enrich orders with token metadata
+        const enrichedOrders: EnrichedOrder[] = [];
+        
+        for (const order of orders) {
+            try {
+                const [inputTokenMeta, outputTokenMeta, conditionTokenMeta] = await Promise.all([
+                    getTokenMetadataCached(order.inputToken),
+                    getTokenMetadataCached(order.outputToken),
+                    getTokenMetadataCached(order.conditionToken)
+                ]);
+                
+                enrichedOrders.push({
+                    id: order.uuid,
+                    order,
+                    inputTokenMeta,
+                    outputTokenMeta,
+                    conditionTokenMeta
+                });
+            } catch (metaError) {
+                console.error(`Failed to fetch metadata for order ${order.uuid}:`, metaError);
+                // Create fallback metadata
+                const fallbackMeta: TokenCacheData = {
+                    type: 'token',
+                    contractId: '',
+                    name: 'Unknown Token',
+                    symbol: 'UNK',
+                    decimals: 6,
+                    identifier: ''
+                };
+                
+                enrichedOrders.push({
+                    id: order.uuid,
+                    order,
+                    inputTokenMeta: { ...fallbackMeta, contractId: order.inputToken },
+                    outputTokenMeta: { ...fallbackMeta, contractId: order.outputToken },
+                    conditionTokenMeta: { ...fallbackMeta, contractId: order.conditionToken }
+                });
+            }
+        }
+        
+        return {
+            orders: enrichedOrders.map(enrichedOrder => convertToDisplayOrder(enrichedOrder, priceData, enrichedOrders)),
+            pagination
+        };
+        
+    } catch (error) {
+        console.error('Failed to fetch orders:', error);
+        return {
+            orders: [],
+            pagination: {
+                total: 0,
+                page: 1,
+                limit: 20,
+                totalPages: 0,
+                hasNextPage: false,
+                hasPrevPage: false
+            }
+        };
+    }
+}
+
+
+const StatusBadge = ({ status }: { status: DisplayOrder['status'] }) => {
     const config = {
-        open: { icon: Clock, color: 'bg-blue-100 text-blue-700 border-blue-200' },
-        filled: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200' },
-        cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-700 border-gray-200' },
-        failed: { icon: AlertTriangle, color: 'bg-red-100 text-red-700 border-red-200' },
-        pending: { icon: Timer, color: 'bg-yellow-100 text-yellow-700 border-yellow-200' }
+        open: { icon: Clock, color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Open' },
+        broadcasted: { icon: Timer, color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Broadcasted' },
+        confirmed: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200', label: 'Confirmed' },
+        failed: { icon: AlertTriangle, color: 'bg-red-100 text-red-700 border-red-200', label: 'Failed' },
+        cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Cancelled' }
     };
 
-    const { icon: Icon, color } = config[status];
+    const { icon: Icon, color, label } = config[status];
 
     return (
         <Badge variant="outline" className={`${color} gap-1`}>
             <Icon className="w-3 h-3" />
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {label}
         </Badge>
     );
 };
 
-const TypeBadge = ({ type }: { type: Order['type'] }) => {
+const TypeBadge = ({ type }: { type: DisplayOrder['type'] }) => {
     const config = {
-        limit: { color: 'bg-blue-50 text-blue-600 border-blue-200' },
-        dca: { color: 'bg-green-50 text-green-600 border-green-200' },
-        perpetual: { color: 'bg-purple-50 text-purple-600 border-purple-200' },
-        sandwich: { color: 'bg-orange-50 text-orange-600 border-orange-200' }
+        single: { color: 'bg-blue-50 text-blue-600 border-blue-200', label: 'LIMIT' },
+        dca: { color: 'bg-green-50 text-green-600 border-green-200', label: 'DCA' },
+        perpetual: { color: 'bg-purple-50 text-purple-600 border-purple-200', label: 'PERP' },
+        sandwich: { color: 'bg-orange-50 text-orange-600 border-orange-200', label: 'SANDWICH' }
     };
 
     return (
         <Badge variant="outline" className={config[type].color}>
-            {type.toUpperCase()}
+            {config[type].label}
         </Badge>
     );
 };
 
-const PriorityIndicator = ({ priority }: { priority: Order['priority'] }) => {
+const PriorityIndicator = ({ priority }: { priority: DisplayOrder['priority'] }) => {
     const colors = {
         low: 'bg-gray-400',
         medium: 'bg-yellow-400',
@@ -166,10 +329,120 @@ const PriorityIndicator = ({ priority }: { priority: Order['priority'] }) => {
     );
 };
 
+// Transaction Status Component for orders with transactions
+const TransactionStatus = ({ txHash, status, order }: { 
+    txHash?: string; 
+    status: DisplayOrder['status']; 
+    order: DisplayOrder;
+}) => {
+    if (!txHash) return null;
+    
+    // Show status based on order status, not the hook
+    switch (status) {
+        case 'broadcasted':
+            return (
+                <div className="flex items-center gap-1 mt-1">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                    <span className="text-xs text-amber-400">Broadcasting...</span>
+                </div>
+            );
+        case 'confirmed':
+            return (
+                <div className="flex items-center gap-1 mt-1">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                    <span className="text-xs text-emerald-400">
+                        Confirmed {order.blockHeight ? `at block ${order.blockHeight}` : ''}
+                    </span>
+                </div>
+            );
+        case 'failed':
+            return (
+                <div className="flex items-center gap-1 mt-1">
+                    <div className="w-2 h-2 bg-red-400 rounded-full" />
+                    <span className="text-xs text-red-400">
+                        Failed: {order.failureReason || 'Unknown reason'}
+                    </span>
+                </div>
+            );
+        default:
+            return null;
+    }
+};
+
 export function OrdersTable() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    
     const [sortField, setSortField] = useState<string>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+    const [orders, setOrders] = useState<DisplayOrder[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [paginationLoading, setPaginationLoading] = useState(false);
+    
+    // Pagination state
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false
+    });
+    
+    // Current filter state from URL
+    const currentStatusFilter = searchParams?.get('status') || 'all';
+    const currentSearchQuery = searchParams?.get('search') || '';
+    
+    // Initialize pagination from URL params
+    useEffect(() => {
+        const urlPage = searchParams?.get('page');
+        const urlLimit = searchParams?.get('limit');
+        
+        if (urlPage) {
+            const page = parseInt(urlPage, 10);
+            if (!isNaN(page) && page > 0) {
+                setPagination(prev => ({ ...prev, page }));
+            }
+        }
+        
+        if (urlLimit) {
+            const limit = parseInt(urlLimit, 10);
+            if (!isNaN(limit) && limit > 0 && limit <= 100) {
+                setPagination(prev => ({ ...prev, limit }));
+            }
+        }
+    }, [searchParams]);
+    
+    const loadOrders = useCallback(async (usePagination = true) => {
+        const isInitialLoad = orders.length === 0;
+        if (isInitialLoad) {
+            setLoading(true);
+        } else {
+            setPaginationLoading(true);
+        }
+        
+        try {
+            const result = await fetchAndEnrichOrders(
+                pagination.page,
+                pagination.limit,
+                sortField as 'createdAt' | 'status',
+                sortDirection,
+                currentStatusFilter,
+                currentSearchQuery
+            );
+            setOrders(result.orders);
+            setPagination(result.pagination);
+        } finally {
+            setLoading(false);
+            setPaginationLoading(false);
+        }
+    }, [pagination.page, pagination.limit, sortField, sortDirection, currentStatusFilter, currentSearchQuery, orders.length]);
+    
+    useEffect(() => {
+        loadOrders();
+    }, [loadOrders]);
 
     const handleSort = (field: string) => {
         if (sortField === field) {
@@ -191,16 +464,63 @@ export function OrdersTable() {
     };
 
     const handleSelectAll = () => {
-        if (selectedOrders.size === mockOrders.length) {
+        if (selectedOrders.size === orders.length) {
             setSelectedOrders(new Set());
         } else {
-            setSelectedOrders(new Set(mockOrders.map(order => order.id)));
+            setSelectedOrders(new Set(orders.map(order => order.id)));
         }
     };
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         // You could add a toast notification here
+    };
+
+    const handleBulkCancel = async () => {
+        if (selectedOrders.size === 0) return;
+        
+        // TODO: Implement bulk cancel API call
+        console.log('Cancelling orders:', Array.from(selectedOrders));
+        // For now, just clear selection
+        setSelectedOrders(new Set());
+    };
+
+    const handleBulkExport = () => {
+        if (selectedOrders.size === 0) return;
+        
+        const selectedData = orders.filter(order => selectedOrders.has(order.id));
+        const csvContent = "data:text/csv;charset=utf-8," 
+            + "ID,Status,Owner,Pair,Amount,Target Price,Volume,Created\n"
+            + selectedData.map(order => 
+                `${order.id},${order.status},${order.owner},"${order.inputTokenSymbol}→${order.outputTokenSymbol}",${order.amountFormatted},${order.targetPrice},${order.volume},${order.createdAt}`
+            ).join("\n");
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `orders_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setSelectedOrders(new Set());
+    };
+
+    const handleRefresh = async () => {
+        await loadOrders();
+    };
+    
+    const handlePageChange = (page: number) => {
+        const params = new URLSearchParams(searchParams?.toString());
+        params.set('page', page.toString());
+        router.push(`${pathname}?${params.toString()}`);
+    };
+    
+    const handleLimitChange = (limit: number) => {
+        const params = new URLSearchParams(searchParams?.toString());
+        params.set('limit', limit.toString());
+        params.set('page', '1'); // Reset to first page when changing limit
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
@@ -221,7 +541,7 @@ export function OrdersTable() {
                     <div className="flex items-center gap-4">
                         <h3 className="text-lg font-semibold">Orders</h3>
                         <span className="text-sm text-muted-foreground">
-                            {mockOrders.length} total orders
+                            {loading ? 'Loading...' : `${orders.length} total orders`}
                         </span>
                         {selectedOrders.size > 0 && (
                             <span className="text-sm text-primary font-medium">
@@ -232,16 +552,16 @@ export function OrdersTable() {
                     <div className="flex items-center gap-2">
                         {selectedOrders.size > 0 && (
                             <>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={handleBulkCancel}>
                                     Cancel Selected
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={handleBulkExport}>
                                     Export Selected
                                 </Button>
                             </>
                         )}
-                        <Button variant="outline" size="sm">
-                            Refresh
+                        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+                            {loading ? 'Refreshing...' : 'Refresh'}
                         </Button>
                     </div>
                 </div>
@@ -255,9 +575,10 @@ export function OrdersTable() {
                             <th className="text-left p-4">
                                 <input
                                     type="checkbox"
-                                    checked={selectedOrders.size === mockOrders.length && mockOrders.length > 0}
+                                    checked={selectedOrders.size === orders.length && orders.length > 0}
                                     onChange={handleSelectAll}
                                     className="rounded border-border"
+                                    disabled={loading}
                                 />
                             </th>
                             <th className="text-left p-4 text-sm font-medium text-muted-foreground">
@@ -293,7 +614,22 @@ export function OrdersTable() {
                         </tr>
                     </thead>
                     <tbody>
-                        {mockOrders.map((order) => (
+                        {loading ? (
+                            [...Array(5)].map((_, i) => (
+                                <tr key={i} className="border-b border-border">
+                                    <td colSpan={11} className="p-4">
+                                        <div className="h-16 bg-muted/20 rounded animate-pulse" />
+                                    </td>
+                                </tr>
+                            ))
+                        ) : orders.length === 0 ? (
+                            <tr>
+                                <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                                    No orders found
+                                </td>
+                            </tr>
+                        ) : (
+                            orders.map((order) => (
                             <tr key={order.id} className="border-b border-border hover:bg-muted/5 transition-colors">
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
@@ -309,7 +645,7 @@ export function OrdersTable() {
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
                                         <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                                            {order.id}
+                                            {order.id.length > 12 ? `${order.id.slice(0, 8)}...${order.id.slice(-4)}` : order.id}
                                         </code>
                                         <button
                                             onClick={() => copyToClipboard(order.id)}
@@ -318,6 +654,7 @@ export function OrdersTable() {
                                             <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
                                         </button>
                                     </div>
+                                    <TransactionStatus txHash={order.txHash} status={order.status} order={order} />
                                 </td>
                                 <td className="p-4">
                                     <TypeBadge type={order.type} />
@@ -331,7 +668,7 @@ export function OrdersTable() {
                                             {order.owner}
                                         </code>
                                         <button
-                                            onClick={() => copyToClipboard(order.owner)}
+                                            onClick={() => copyToClipboard(order.ownerFull)}
                                             className="opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
@@ -340,20 +677,23 @@ export function OrdersTable() {
                                 </td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium">{order.inputToken}</span>
+                                        <span className="font-medium text-sm">{order.inputTokenSymbol}</span>
                                         <div className="flex items-center gap-1">
-                                            {order.direction === 'buy' || order.direction === 'long' ? (
+                                            {order.direction === 'buy' ? (
                                                 <TrendingUp className="w-3 h-3 text-green-500" />
                                             ) : (
                                                 <TrendingDown className="w-3 h-3 text-red-500" />
                                             )}
                                         </div>
-                                        <span className="text-muted-foreground">{order.outputToken}</span>
+                                        <span className="text-muted-foreground text-sm">{order.outputTokenSymbol}</span>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        {order.direction === 'buy' ? 'Buy' : 'Sell'} Order
                                     </div>
                                 </td>
                                 <td className="p-4">
                                     <div className="text-sm">
-                                        <div className="font-medium">{order.amount} {order.inputToken}</div>
+                                        <div className="font-medium">{order.amountFormatted}</div>
                                         {order.fillPercent && (
                                             <div className="text-xs text-muted-foreground">
                                                 {order.fillPercent}% filled
@@ -363,9 +703,9 @@ export function OrdersTable() {
                                 </td>
                                 <td className="p-4">
                                     <div className="text-sm">
-                                        <div className="font-medium">${order.targetPrice}</div>
+                                        <div className="font-medium">{order.targetPrice} {order.outputTokenSymbol}</div>
                                         <div className="text-xs text-muted-foreground">
-                                            Current: ${order.currentPrice}
+                                            per {order.inputTokenSymbol}
                                         </div>
                                     </div>
                                 </td>
@@ -428,26 +768,20 @@ export function OrdersTable() {
                                     </div>
                                 </td>
                             </tr>
-                        ))}
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
 
             {/* Table Footer with Pagination */}
             <div className="px-6 py-4 border-t border-border bg-muted/10">
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                        Showing 1-{mockOrders.length} of {mockOrders.length} orders
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" disabled>
-                            Previous
-                        </Button>
-                        <Button variant="outline" size="sm">
-                            Next
-                        </Button>
-                    </div>
-                </div>
+                <PremiumPagination
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                    onLimitChange={handleLimitChange}
+                    isLoading={paginationLoading}
+                />
             </div>
         </div>
     );

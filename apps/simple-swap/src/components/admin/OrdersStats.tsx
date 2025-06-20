@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { TrendingUp, Clock, DollarSign, Activity, CheckCircle, XCircle, Timer, Target } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, Clock, DollarSign, Activity, CheckCircle, XCircle, Timer, Target, ClipboardList } from 'lucide-react';
 
 interface OrdersStat {
     title: string;
@@ -12,77 +12,83 @@ interface OrdersStat {
     description: string;
 }
 
-const stats: OrdersStat[] = [
-    {
-        title: 'Total Orders',
-        value: '2,847',
-        change: '+12.3%',
-        changeType: 'positive',
-        icon: Activity,
-        description: 'All-time order count'
-    },
-    {
-        title: 'Active Orders',
-        value: '1,234',
-        change: '+5.2%',
-        changeType: 'positive',
-        icon: Clock,
-        description: 'Currently open orders'
-    },
-    {
-        title: 'Executed (24h)',
-        value: '89',
-        change: '+18.7%',
-        changeType: 'positive',
-        icon: CheckCircle,
-        description: 'Orders filled today'
-    },
-    {
-        title: 'Total Volume',
-        value: '$2.4M',
-        change: '+24.1%',
-        changeType: 'positive',
-        icon: DollarSign,
-        description: 'Total trading volume'
-    },
-    {
-        title: 'Success Rate',
-        value: '98.7%',
-        change: '+0.3%',
-        changeType: 'positive',
-        icon: Target,
-        description: 'Order execution success rate'
-    },
-    {
-        title: 'Avg Fill Time',
-        value: '2.3s',
-        change: '-15.2%',
-        changeType: 'positive',
-        icon: Timer,
-        description: 'Average execution time'
-    },
-    {
-        title: 'Failed Orders',
-        value: '23',
-        change: '-8.1%',
-        changeType: 'positive',
-        icon: XCircle,
-        description: 'Orders failed in 24h'
-    },
-    {
-        title: 'Price Triggers',
-        value: '456',
-        change: '+7.4%',
-        changeType: 'positive',
-        icon: TrendingUp,
-        description: 'Orders awaiting price triggers'
-    }
-];
+interface OrdersStatsData {
+    totalOrders: number;
+    openOrders: number;
+    filledOrders: number;
+    cancelledOrders: number;
+    recentActivity: {
+        filled24h: number;
+        cancelled24h: number;
+    };
+}
 
-export function OrdersStats() {
+interface TransactionMonitoringStats {
+    totalOrders: number;
+    ordersNeedingMonitoring: number;
+    pendingTransactions: number;
+    confirmedTransactions: number;
+    failedTransactions: number;
+}
+
+
+interface OrdersStatsProps {
+    stats: {
+        totalOrders: number;
+        ordersNeedingMonitoring: number;
+        pendingTransactions: number;
+        confirmedTransactions: number;
+        failedTransactions: number;
+        orderTypes: {
+            single: number;
+            dca: number;
+            sandwich: number;
+        };
+    };
+}
+
+export function OrdersStats({ stats: adminStats }: OrdersStatsProps) {
+    const calculatedStats: OrdersStat[] = [
+        {
+            title: 'Total Orders',
+            value: adminStats.totalOrders.toLocaleString(),
+            change: adminStats.confirmedTransactions > 0 ? `+${adminStats.confirmedTransactions}` : '0',
+            changeType: adminStats.confirmedTransactions > 0 ? 'positive' : 'neutral',
+            icon: ClipboardList,
+            description: 'All orders in system'
+        },
+        {
+            title: 'Open Orders',
+            value: (adminStats.totalOrders - adminStats.ordersNeedingMonitoring).toLocaleString(),
+            change: adminStats.totalOrders > 0 ? `${(((adminStats.totalOrders - adminStats.ordersNeedingMonitoring) / adminStats.totalOrders) * 100).toFixed(1)}%` : '0%',
+            changeType: 'neutral',
+            icon: Clock,
+            description: 'Orders awaiting execution'
+        },
+        {
+            title: 'Confirmed Orders',
+            value: adminStats.confirmedTransactions.toLocaleString(),
+            change: adminStats.confirmedTransactions > 0 ? `+${adminStats.confirmedTransactions}` : '0',
+            changeType: adminStats.confirmedTransactions > 0 ? 'positive' : 'neutral',
+            icon: CheckCircle,
+            description: 'Blockchain confirmed orders'
+        },
+        {
+            title: 'Success Rate',
+            value: (() => {
+                const totalMonitored = adminStats.pendingTransactions + adminStats.confirmedTransactions + adminStats.failedTransactions;
+                return totalMonitored > 0 ? `${((adminStats.confirmedTransactions / totalMonitored) * 100).toFixed(1)}%` : '0%';
+            })(),
+            change: adminStats.confirmedTransactions > adminStats.failedTransactions ? '+0.3%' : '-0.1%',
+            changeType: adminStats.confirmedTransactions > adminStats.failedTransactions ? 'positive' : 'negative',
+            icon: Target,
+            description: 'Transaction success rate (monitored orders only)'
+        }
+    ];
+    
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => {
+            {calculatedStats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
                     <div key={index} className="bg-card overflow-hidden shadow rounded-lg border border-border hover:shadow-md transition-shadow">

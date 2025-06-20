@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSwapTokens } from './swap-tokens-context';
 import { useWallet } from './wallet-context';
 import type { LimitOrder } from '../lib/orders/types';
@@ -10,14 +10,10 @@ import { useBlaze } from 'blaze-sdk/realtime';
 import { toast } from 'sonner';
 import { formatUsd } from '@/lib/swap-utils';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { classifyOrderTypes, groupOrdersIntoStrategies, type ClassifiedOrder } from '@/lib/orders/classification';
 
-// Enriched order type with token metadata
-export interface DisplayOrder extends LimitOrder {
-    inputTokenMeta: TokenCacheData;
-    outputTokenMeta: TokenCacheData;
-    conditionTokenMeta: TokenCacheData;
-    baseAssetMeta?: TokenCacheData | null;
-}
+// Use the ClassifiedOrder type from the shared utility
+export type DisplayOrder = ClassifiedOrder;
 
 export type OrderType = 'single' | 'dca' | 'sandwich' | 'perpetual';
 
@@ -407,19 +403,36 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
     const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
+    // Ref for current price to avoid context re-renders
+    const currentPriceRef = useRef<number | null>(null);
+
+    // Debounced current price updates to reduce context re-renders
+    const updateCurrentPriceDebounced = useCallback((newPrice: number) => {
+        // Only update state if price changed significantly (>0.01%)
+        if (!currentPrice || Math.abs((newPrice - currentPrice) / currentPrice) > 0.0001) {
+            setCurrentPrice(newPrice);
+        }
+        // Always update ref for immediate access
+        currentPriceRef.current = newPrice;
+    }, [currentPrice]);
+
     // Update current price from real-time Blaze data based on trading pair
     useEffect(() => {
         if (!tradingPairBase || !isPricesConnected) {
             return;
         }
 
-        // Get real-time price for the base token of the trading pair
-        const price = getPrice(tradingPairBase.contractId);
-        if (price && price > 0) {
-            setCurrentPrice(price);
-            console.log(`🔥 Real-time price update for ${tradingPairBase.symbol}: $${price.toFixed(6)}`);
-        }
-    }, [tradingPairBase, blazePrices, isPricesConnected, getPrice]);
+        // Debounce price updates to avoid excessive re-renders
+        const timeoutId = setTimeout(() => {
+            const price = getPrice(tradingPairBase.contractId);
+            if (price && price > 0) {
+                updateCurrentPriceDebounced(price);
+                console.log(`🔥 Real-time price update for ${tradingPairBase.symbol}: $${price.toFixed(6)}`);
+            }
+        }, 100);
+
+        return () => clearTimeout(timeoutId);
+    }, [tradingPairBase, blazePrices, isPricesConnected, getPrice, updateCurrentPriceDebounced]);
 
     // DCA-specific state
     const [dcaFrequency, setDcaFrequency] = useState('daily');
@@ -601,7 +614,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                 }
 
                 // Enrich orders with token metadata
-                const enrichedOrders: DisplayOrder[] = [];
+                const enrichedOrdersForClassification: (LimitOrder & { inputTokenMeta: TokenCacheData; outputTokenMeta: TokenCacheData })[] = [];
                 const tokenMetaCache = new Map<string, TokenCacheData>();
 
                 for (const order of rawOrders) {
@@ -636,14 +649,22 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                         }
                     }
 
-                    enrichedOrders.push({
+                    enrichedOrdersForClassification.push({
                         ...order,
                         inputTokenMeta: inputMeta,
-                        outputTokenMeta: outputMeta,
-                        conditionTokenMeta: conditionMeta,
-                        baseAssetMeta: baseMeta,
+                        outputTokenMeta: outputMeta
                     });
                 }
+
+                // Classify orders using the shared utility
+                const { classifiedOrders } = classifyOrderTypes(enrichedOrdersForClassification);
+                
+                // Add condition token and base asset metadata to classified orders
+                const enrichedOrders: DisplayOrder[] = classifiedOrders.map(order => ({
+                    ...order,
+                    conditionTokenMeta: tokenMetaCache.get(order.conditionToken)!,
+                    baseAssetMeta: order.baseAsset && order.baseAsset !== 'USD' ? tokenMetaCache.get(order.baseAsset) || null : null
+                }));
 
                 // Sort by creation date (newest first)
                 setDisplayOrders(enrichedOrders.sort((a, b) =>
@@ -1222,9 +1243,9 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                 // Set loading state
                 setExecutingOrders(prev => new Set(prev).add(orderId));
 
-                // Optimistic update - mark as filled immediately
+                // Optimistic update - mark as broadcasted immediately
                 const originalStatusForExecute = order.status;
-                updateOrderStatus(orderId, 'filled');
+                updateOrderStatus(orderId, 'broadcasted');
 
                 toast.info("Submitting order for execution...", { duration: 5000 });
 
@@ -1237,7 +1258,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                     if (!res.ok) throw new Error(j.error || 'Execution failed');
 
                     // Update with transaction ID if successful
-                    updateOrderStatus(orderId, 'filled', j.txid);
+                    updateOrderStatus(orderId, 'broadcasted', j.txid);
                     toast.success(`Order Executed`, {
                         description: (
                             <div>

@@ -5,6 +5,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * Converts IPFS hash to full IPFS gateway URL
+ * @param ipfsHash - IPFS hash like "QmRaKvxkd2GHieKjd7GtWhgtAftQwsfZC2hWvzFCixRpSb/01.jpeg"
+ * @param gateway - IPFS gateway URL (defaults to ipfs.io)
+ * @returns Full IPFS URL
+ */
+export function getIpfsUrl(ipfsHash: string, gateway: string = 'https://ipfs.io/ipfs'): string {
+  if (!ipfsHash) return '';
+  
+  // If it's already a full URL, return as-is
+  if (ipfsHash.startsWith('http')) {
+    return ipfsHash;
+  }
+  
+  // Remove "ipfs://" prefix if present
+  const cleanHash = ipfsHash.replace(/^ipfs:\/\//, '');
+  
+  return `${gateway}/${cleanHash}`;
+}
+
 export const formatPriceUSD = (price: number) => {
   if (price === undefined || price === null || isNaN(price)) return 'Price not available';
 

@@ -6,14 +6,17 @@ import CompareTokenSelector from "./compare-token-selector";
 import TokenTable from "./token-table";
 import MarketHighlights from "./market-highlights";
 import TokenFilters from "./token-filters";
+import MarketInsights from "./market-insights";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useComparisonToken } from "@/contexts/comparison-token-context";
 
 interface Props {
     tokens: TokenSummary[];
 }
 
 export default function TokensPageClient({ tokens }: Props) {
-    const [compareId, setCompareId] = useState<string | null>(null);
+    // Use shared comparison context instead of local state
+    const { compareId, setCompareId, isInitialized } = useComparisonToken();
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
     const [sortBy, setSortBy] = useState<string>("market_cap");
 
@@ -21,34 +24,25 @@ export default function TokensPageClient({ tokens }: Props) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
 
-    // Create subnet mapping and token stats
-    const { tokenStats, subnetMapping } = useMemo(() => {
+    // Create token stats (subnet mapping no longer needed with useBlaze)
+    const tokenStats = useMemo(() => {
         const typeCount = new Map<string, number>();
         const subnetTokens: TokenSummary[] = [];
-        const subnetMap = new Map<string, TokenSummary>();
 
         tokens.forEach(token => {
             const type = token.type || 'UNKNOWN';
             typeCount.set(type, (typeCount.get(type) || 0) + 1);
 
-            // Collect SUBNET tokens and create mapping by symbol
+            // Count SUBNET tokens for statistics
             if (token.type === "SUBNET") {
                 subnetTokens.push(token);
-                subnetMap.set(token.symbol, token);
             }
         });
 
-        console.log("Token types:", Object.fromEntries(typeCount));
-        console.log("SUBNET tokens found:", subnetTokens.map(t => t.symbol));
-        console.log("Subnet mapping created for symbols:", Array.from(subnetMap.keys()));
-
         return {
-            tokenStats: {
-                typeCount,
-                subnetTokenCount: subnetTokens.length,
-                tokensWithoutImages: tokens.filter(t => !t.image).length
-            },
-            subnetMapping: subnetMap
+            typeCount,
+            subnetTokenCount: subnetTokens.length,
+            tokensWithoutImages: tokens.filter(t => !t.image).length
         };
     }, [tokens]);
 
@@ -61,25 +55,17 @@ export default function TokensPageClient({ tokens }: Props) {
             // Filter out SUBNET tokens from main list
             if (token.type === "SUBNET") return false;
 
+            // Must have a valid contractId
+            if (!token.contractId || typeof token.contractId !== 'string' || token.contractId.trim() === '') {
+                console.warn('Token missing or invalid contractId:', token);
+                return false;
+            }
+
             return true;
         });
     }, [tokens]);
 
-    // init compareId
-    useEffect(() => {
-        if (compareId) return;
-        const urlC = searchParams?.get("compare");
-        if (urlC) {
-            setCompareId(urlC);
-            return;
-        }
-        if (typeof window !== "undefined") {
-            const stored = localStorage.getItem("compareTokenId");
-            if (stored) {
-                setCompareId(stored);
-            }
-        }
-    }, [compareId, searchParams]);
+    // compareId initialization is now handled by ComparisonTokenContext
 
     // init filters from URL
     useEffect(() => {
@@ -89,28 +75,21 @@ export default function TokensPageClient({ tokens }: Props) {
         if (urlSort) setSortBy(urlSort);
     }, [searchParams]);
 
-    // default fallback
+    // Set default comparison token when available (only after context is initialized)
     useEffect(() => {
+        if (!isInitialized) return;
+
         if (!compareId && defaultFilteredTokens.length) {
             const stable = defaultFilteredTokens.find((t) => ["aUSD", "USDC", "USDT", "USD"].includes(t.symbol));
             setCompareId(stable ? stable.contractId : defaultFilteredTokens[0].contractId);
         }
-    }, [compareId, defaultFilteredTokens]);
+    }, [compareId, defaultFilteredTokens, isInitialized, setCompareId]);
 
-    // persist compareId
-    useEffect(() => {
-        if (!compareId) return;
-        if (typeof window !== "undefined") {
-            localStorage.setItem("compareTokenId", compareId);
-        }
-        const params = new URLSearchParams(searchParams?.toString());
-        params.set("compare", compareId);
-        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }, [compareId, pathname, router, searchParams]);
+    // compareId persistence is now handled by ComparisonTokenContext
 
     // persist filters
     useEffect(() => {
-        const params = new URLSearchParams(searchParams?.toString());
+        const params = new URLSearchParams(searchParams?.toString() || '');
         if (categoryFilter !== "all") {
             params.set("category", categoryFilter);
         } else {
@@ -156,47 +135,64 @@ export default function TokensPageClient({ tokens }: Props) {
     }, [defaultFilteredTokens, categoryFilter]);
 
     return (
-        <>
-            {/* Header row with title and selector */}
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
-                {/* title & subtitle */}
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight mb-2">Token Explorer</h1>
-                    <p className="text-muted-foreground max-w-2xl text-lg">
-                        Discover and track live cryptocurrency prices, market data, and analytics.
-                        Compare tokens and access detailed information for informed trading decisions.
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Showing {filteredTokens.length} of {tokens.length} tokens
-                        • Filtered: No images ({tokenStats.tokensWithoutImages}), SUBNET tokens ({tokenStats.subnetTokenCount})
-                        • Subnet versions available: {subnetMapping.size}
-                    </p>
-                </div>
+        <div className="space-y-16">
+            {/* Immersive header - seamless design */}
+            <div className="space-y-8">
+                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+                    {/* Clean title section */}
+                    <div className="space-y-6">
+                        <div>
+                            <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">Token Explorer</h1>
+                            <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+                                Discover live cryptocurrency prices with advanced market intelligence and pattern analysis.
+                                Compare tokens and access actionable insights for informed decisions.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-6 text-sm text-white/40">
+                            <span>{filteredTokens.length} tokens</span>
+                            {compareToken && (
+                                <span>Baseline: {compareToken.symbol}</span>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <div className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                    <div className="absolute inset-0 h-1.5 w-1.5 bg-emerald-400/40 rounded-full animate-ping" />
+                                    <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-emerald-400/20 rounded-full blur-sm animate-pulse" />
+                                </div>
+                                <span className="animate-pulse">Live data</span>
+                            </div>
+                        </div>
+                    </div>
 
-                {compareToken && (
-                    <CompareTokenSelector
-                        tokens={defaultFilteredTokens}
-                        primary={compareToken}
-                        selectedId={compareId}
-                        onSelect={setCompareId}
-                    />
-                )}
+                    {compareToken && (
+                        <CompareTokenSelector
+                            tokens={defaultFilteredTokens}
+                            primary={compareToken}
+                            selectedId={compareId}
+                            onSelect={setCompareId}
+                        />
+                    )}
+                </div>
             </div>
 
-            {/* Market Highlights */}
-            <MarketHighlights tokens={defaultFilteredTokens} className="mb-8" />
+            {/* Market Highlights - flowing design */}
+            <MarketHighlights tokens={defaultFilteredTokens} />
 
-            {/* Filters */}
-            <TokenFilters
-                categoryFilter={categoryFilter}
-                setCategoryFilter={setCategoryFilter}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                className="mb-6"
-            />
+            {/* Market Intelligence - seamless integration */}
+            <MarketInsights tokens={defaultFilteredTokens} />
 
-            {/* token table */}
-            <TokenTable tokens={filteredTokens} compareId={compareId} subnetMapping={subnetMapping} />
-        </>
+            {/* Clean filters */}
+            <div className="pt-8 border-t border-white/[0.05]">
+                <TokenFilters
+                    categoryFilter={categoryFilter}
+                    setCategoryFilter={setCategoryFilter}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                />
+            </div>
+
+            {/* Token table */}
+            <TokenTable tokens={filteredTokens} compareId={compareId} />
+        </div>
     );
 } 

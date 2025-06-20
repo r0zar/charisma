@@ -36,7 +36,11 @@ function PoolImageWithFallback({ src, alt }: { src?: string; alt?: string }) {
     }
 }
 
-export default function SwapDetails() {
+interface SwapDetailsProps {
+    compact?: boolean;
+}
+
+export default function SwapDetails({ compact = false }: SwapDetailsProps) {
     const [showDetails, setShowDetails] = useState(false);
     const [showRouteDetails, setShowRouteDetails] = useState(true);
 
@@ -61,7 +65,6 @@ export default function SwapDetails() {
         prices
     } = useBlaze();
 
-    if (!quote || isLoadingQuote) return null;
 
     // Determine if this is a subnet shift operation by checking for SUBLINK vault type
     const isSubnetShift = quote?.hops.some((hop: Hop) => hop.vault.type === 'SUBLINK');
@@ -94,100 +97,285 @@ export default function SwapDetails() {
     const impactValue = totalPriceImpact && totalPriceImpact.priceImpact !== null ? totalPriceImpact.priceImpact : null;
     const showHighImpactWarning = impactValue && (impactValue > 20 || impactValue < -20);
 
-    return (
-        <div className="mb-5 border border-border/40 rounded-xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-sm">
-            {/* High price impact warning */}
-            {showHighImpactWarning && impactValue !== null && (
-                <div className={`flex items-center px-4 py-2 border-b border-yellow-400/5 animate-[appear_0.3s_ease-out] ${impactValue > 0 ? 'bg-green-200 dark:bg-green-900/40 text-green-900 dark:text-green-200' : 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-200'}`}>
-                    {impactValue > 0 ? (
-                        <DollarSign className="h-5 w-5 mr-2 text-green-600 dark:text-green-300" />
-                    ) : (
-                        <svg className="h-5 w-5 mr-2 text-yellow-600 dark:text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    )}
-                    <span className="font-mono">
-                        {impactValue > 0
-                            ? 'Notice: You are receiving significantly more than expected!'
-                            : 'Warning: You are receiving significantly less than expected!'}
-                    </span>
-                    <PriceImpactWizardDialog />
-                </div>
-            )}
-            <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="w-full flex justify-between items-center p-4 hover:bg-muted/10 transition-colors"
-            >
-                <div className="flex items-center space-x-2">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`h-4 w-4 text-primary transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}`}
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                    >
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    <div className="flex items-center">
-                        {/* Change title based on whether it's a swap or shift */}
-                        <span className="font-medium text-foreground">
-                            {isSubnetToSubnet
-                                ? 'Subnet Swap details'
-                                : isSubnetShift
-                                    ? `Subnet ${operationType} details`
-                                    : 'Swap details'}
-                        </span>
-                        {securityLevel && (
-                            <span className={`ml-2 inline-flex px-1.5 py-0.5 text-xs rounded-full items-center ${isSubnetShift ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400' :
-                                securityLevel === 'high' ? 'bg-green-500/10 text-green-700 dark:text-green-400' :
-                                    securityLevel === 'medium' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400' :
-                                        'bg-purple-500/10 text-purple-700 dark:text-purple-400'
-                                }`}>
-                                <span className={`h-1.5 w-1.5 rounded-full mr-1 ${isSubnetShift ? 'bg-purple-500' :
-                                    securityLevel === 'high' ? 'bg-green-500' :
-                                        securityLevel === 'medium' ? 'bg-blue-500' : 'bg-purple-500'
-                                    }`}></span>
-                                {isSubnetToSubnet
-                                    ? 'Subnet to Subnet'
-                                    : isSubnetShift
-                                        ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from subnet')
-                                        : (securityLevel === 'high' ? 'Direct route' :
-                                            securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing')
-                                }
-                            </span>
-                        )}
+    // Don't show anything if no quote and not loading
+    if (!quote && !isLoadingQuote) {
+        return null;
+    }
+
+    // Show loading state if loading
+    if (isLoadingQuote) {
+        if (compact) {
+            return (
+                <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-5 h-5 border border-white/[0.3] border-t-blue-400 rounded-full animate-spin"></div>
+                        <p className="text-white/60 text-sm">Finding best route...</p>
                     </div>
                 </div>
-                {!isLoadingQuote && quote && (
-                    <div className="text-sm text-muted-foreground flex items-center">
-                        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs">
-                            {quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'}
+            );
+        }
+        return (
+            <div className="flex items-center justify-center h-[400px] bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                <div className="flex flex-col items-center space-y-4">
+                    <div className="relative">
+                        <div className="w-12 h-12 border-2 border-white/[0.1] border-t-blue-400 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 w-12 h-12 border-2 border-transparent border-t-purple-400 rounded-full animate-spin-reverse animation-delay-150"></div>
+                    </div>
+                    <p className="text-white/70 text-sm">Analyzing optimal route...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Compact version for main interface
+    if (compact) {
+        return (
+            <div className="space-y-3">
+                {/* High price impact warning */}
+                {showHighImpactWarning && impactValue !== null && (
+                    <div className={`flex items-center p-3 rounded-lg text-xs ${
+                        impactValue > 0 
+                            ? 'bg-green-500/[0.08] border border-green-500/[0.15] text-green-400' 
+                            : 'bg-yellow-500/[0.08] border border-yellow-500/[0.15] text-yellow-400'
+                    }`}>
+                        <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium">
+                            {impactValue > 0 ? 'Positive price impact!' : 'High price impact warning'}
                         </span>
                     </div>
                 )}
+
+                {/* Quick Route Summary */}
+                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg">
+                    <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-1">
+                            {quote.path.slice(0, 3).map((token: TokenCacheData, index: number) => (
+                                <React.Fragment key={token.contractId || index}>
+                                    <TokenLogo token={token} size="sm" />
+                                    {index < Math.min(quote.path.length - 1, 2) && (
+                                        <svg className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                            {quote.path.length > 3 && <span className="text-xs text-white/60">+{quote.path.length - 3}</span>}
+                        </div>
+                        <div className="text-xs text-white/70">
+                            {quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'}
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs">
+                        {totalPriceImpact && totalPriceImpact.priceImpact !== null && (
+                            <span className={`px-2 py-1 rounded ${
+                                totalPriceImpact.priceImpact > 0 ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                            }`}>
+                                {totalPriceImpact.priceImpact > 0 ? '+' : ''}{totalPriceImpact.priceImpact.toFixed(2)}%
+                            </span>
+                        )}
+                        <div className={`h-2 w-2 rounded-full ${
+                            securityLevel === 'high' ? 'bg-green-400' : 
+                            securityLevel === 'medium' ? 'bg-blue-400' : 'bg-purple-400'
+                        }`}></div>
+                    </div>
+                </div>
+
+                {/* Quick guarantee info */}
+                {quote && selectedToToken && (
+                    <div className="flex items-center justify-between text-xs p-3 bg-green-500/[0.05] border border-green-500/[0.1] rounded-lg">
+                        <span className="text-white/70">Minimum guaranteed:</span>
+                        <span className="text-green-400 font-medium">
+                            {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
+                        </span>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* High price impact warning */}
+            {showHighImpactWarning && impactValue !== null && (
+                <div className={`flex items-center p-4 rounded-xl border animate-[appear_0.3s_ease-out] ${
+                    impactValue > 0 
+                        ? 'bg-green-500/[0.08] border border-green-500/[0.15] text-green-400' 
+                        : 'bg-yellow-500/[0.08] border border-yellow-500/[0.15] text-yellow-400'
+                }`}>
+                    {impactValue > 0 ? (
+                        <DollarSign className="h-5 w-5 mr-3 flex-shrink-0" />
+                    ) : (
+                        <svg className="h-5 w-5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    )}
+                    <div className="flex-1">
+                        <span className="font-medium">
+                            {impactValue > 0
+                                ? 'Notice: You are receiving significantly more than expected!'
+                                : 'Warning: You are receiving significantly less than expected!'}
+                        </span>
+                        <PriceImpactWizardDialog />
+                    </div>
+                </div>
+            )}
+
+            {/* Route Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {/* Route Efficiency */}
+                <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                                securityLevel === 'high' ? 'bg-green-500/20 text-green-400' :
+                                securityLevel === 'medium' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                            }`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                            securityLevel === 'high' ? 'bg-green-500/10 text-green-400' :
+                            securityLevel === 'medium' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
+                        }`}>
+                            {securityLevel === 'high' ? 'Optimal' : securityLevel === 'medium' ? 'Good' : 'Complex'}
+                        </span>
+                    </div>
+                    <div className="text-sm text-white/90 font-medium">Route Efficiency</div>
+                    <div className="text-xs text-white/60 mt-1">
+                        {isSubnetShift
+                            ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from subnet')
+                            : (securityLevel === 'high' ? 'Direct route' : securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing')
+                        }
+                    </div>
+                </div>
+
+                {/* Hops Count */}
+                <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="h-8 w-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                        <span className="text-lg font-semibold text-white/90">
+                            {quote.path.length - 1}
+                        </span>
+                    </div>
+                    <div className="text-sm text-white/90 font-medium">Network Hops</div>
+                    <div className="text-xs text-white/60 mt-1">
+                        {quote.path.length - 1 === 1 ? 'Single hop route' : `Multi-hop via ${quote.path.length - 2} pools`}
+                    </div>
+                </div>
+
+                {/* Price Impact */}
+                {totalPriceImpact && totalPriceImpact.priceImpact !== null && (
+                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                                totalPriceImpact.priceImpact > 0 ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                            }`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path d="M12 2v20M2 12h20" />
+                                </svg>
+                            </div>
+                            <span className={`text-lg font-semibold ${
+                                totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-orange-400'
+                            }`}>
+                                {totalPriceImpact.priceImpact > 0 ? '+' : ''}{totalPriceImpact.priceImpact.toFixed(2)}%
+                            </span>
+                        </div>
+                        <div className="text-sm text-white/90 font-medium">Price Impact</div>
+                        <div className="text-xs text-white/60 mt-1">
+                            {formatPriceUSD(totalPriceImpact.inputValueUsd)} → {formatPriceUSD(totalPriceImpact.outputValueUsd)}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Network Flow Visualization Toggle */}
+            <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 backdrop-blur-sm mb-4"
+            >
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            </svg>
+                        </div>
+                        <div className="text-left">
+                            <div className="text-sm font-medium text-white/95">Network Flow Analysis</div>
+                            <div className="text-xs text-white/60">
+                                {showDetails ? 'Hide detailed route breakdown' : 'View detailed route breakdown'}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                        {/* Token flow preview */}
+                        <div className="hidden sm:flex items-center space-x-1">
+                            {quote.path.slice(0, 4).map((token: TokenCacheData, index: number) => (
+                                <React.Fragment key={token.contractId || index}>
+                                    <TokenLogo token={token} size="sm" />
+                                    {index < Math.min(quote.path.length - 1, 3) && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                            {quote.path.length > 4 && <span className="text-xs text-white/60">+{quote.path.length - 4}</span>}
+                        </div>
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`h-5 w-5 text-white/70 transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                        >
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
             </button>
 
             {showDetails && (
-                <div className="p-4 pt-0 pb-0 bg-card/50 text-sm space-y-4 animate-[slideDown_0.2s_ease-out]">
-                    {/* Minimum received */}
+                <div className="bg-white/[0.01] border border-white/[0.06] rounded-xl p-6 animate-[slideDown_0.2s_ease-out] space-y-6">
+                    
+                    {/* Transaction Guarantee */}
                     {quote && selectedToToken && (
-                        <div className="flex justify-between pt-3 border-t border-border/30">
-                            <span className="text-muted-foreground flex items-center">
-                                <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                                </svg>
-                                {isSubnetToSubnet
-                                    ? 'Minimum swapped'
-                                    : isSubnetShift
-                                        ? `Minimum ${operationType.toLowerCase()}ed`
-                                        : 'Minimum received'}
-                            </span>
-                            <span className="font-medium text-foreground flex items-center">
-                                {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
-                            </span>
+                        <div className="bg-white/[0.03] border border-green-500/[0.15] rounded-xl p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <div className="h-10 w-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center">
+                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 12l2 2 4-4"></path>
+                                            <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.37 0 4.52.92 6.11 2.42"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-white/95">Transaction Guarantee</div>
+                                        <div className="text-xs text-white/70">Minimum amount protected by blockchain postconditions</div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm font-medium text-green-400">
+                                        {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
+                                    </div>
+                                    <div className="text-xs text-white/60">
+                                        {isSubnetToSubnet ? 'Min. swapped' : isSubnetShift ? `Min. ${operationType.toLowerCase()}ed` : 'Min. received'}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     {/* Path/Route visualization with price impacts */}
                     {quote && (
-                        <div className="flex flex-col pt-3 border-t border-border/30">
+                        <div className="flex flex-col pt-3 border-t border-white/[0.08]">
                             <button
                                 onClick={() => setShowRouteDetails(!showRouteDetails)}
                                 className="flex items-center justify-between w-full"
@@ -231,7 +419,7 @@ export default function SwapDetails() {
                             {showRouteDetails && (
                                 <div className="flex flex-col space-y-2 mt-3 animate-[slideDown_0.2s_ease-out]">
                                     {/* Starting token with USD value */}
-                                    <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
+                                    <div className="bg-white/[0.03] rounded-xl p-3 sm:p-3.5 border border-white/[0.08]">
                                         <div className="flex items-center mb-2">
                                             <TokenLogo token={quote.path[0]} size="lg" />
                                             <div className="ml-2 sm:ml-2.5">
@@ -272,26 +460,30 @@ export default function SwapDetails() {
                                                 </div>
 
                                                 {/* Pool node with price impact */}
-                                                <div className={`bg-muted/20 rounded-xl p-3 sm:p-3.5 border ${isSubnetShiftHop ?
+                                                <div className={`bg-white/[0.02] rounded-xl p-3 sm:p-3.5 border ${isSubnetShiftHop ?
                                                     'border-purple-500/30 border-dashed bg-purple-500/5' :
-                                                    'border-primary/30 border-dashed'
+                                                    'border-white/[0.06] border-dashed'
                                                     }`}>
                                                     <div className="flex items-center mb-2">
                                                         <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md flex items-center justify-center ${isSubnetShiftHop ? 'bg-purple-500/20' : 'bg-primary/20'}`}>
                                                             <PoolImageWithFallback src={hop.vault.image} alt={vaultName} />
                                                         </div>
                                                         <div className="ml-2 sm:ml-2.5 flex items-center w-full">
-                                                            <div className="font-medium text-sm sm:text-base">
-                                                                {vaultName}
+                                                            <div className="flex-1">
+                                                                <div className="font-medium text-sm sm:text-base">
+                                                                    {vaultName}
+                                                                </div>
+                                                                <div className="text-xs text-white/60">
+                                                                    {hop.vault.fee === 0 ? 'No Fee' : `${formattedFee}% fee`}
+                                                                </div>
                                                             </div>
-                                                            <div className="flex-1" />
                                                             {/* Add Liquidity button for non-subnet hops */}
                                                             {!isSubnetShiftHop && hop.vault.tokenA && hop.vault.tokenB && (
                                                                 <a
                                                                     href={`https://invest.charisma.rocks/pools?tokenA=${encodeURIComponent(hop.vault.tokenA.contractId)}&tokenB=${encodeURIComponent(hop.vault.tokenB.contractId)}#add`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="text-xs px-2 py-1 rounded border border-primary/30 text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 ml-2"
+                                                                    className="text-xs px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/90 hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-sm flex items-center gap-1 ml-2 flex-shrink-0"
                                                                     title="Add liquidity to this pool"
                                                                 >
                                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" /></svg>
@@ -334,7 +526,7 @@ export default function SwapDetails() {
 
                                                 {/* Only show intermediate tokens (not the final destination) */}
                                                 {idx < quote.hops.length - 1 && (
-                                                    <div className="bg-muted/20 rounded-xl p-3 sm:p-3.5 border border-border/40">
+                                                    <div className="bg-white/[0.03] rounded-xl p-3 sm:p-3.5 border border-white/[0.08]">
                                                         <div className="flex items-center">
                                                             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
                                                                 <TokenLogo token={toToken} size="lg" />
@@ -359,8 +551,8 @@ export default function SwapDetails() {
 
                                     {/* Final token with USD value */}
                                     <div className={`rounded-xl p-2.5 sm:p-3.5 border ${isSubnetShift ?
-                                        'bg-purple-500/10 dark:bg-purple-900/20 border-purple-500/30' :
-                                        'bg-green-500/10 dark:bg-green-900/20 border-green-500/30'
+                                        'bg-white/[0.03] border border-purple-500/[0.15]' :
+                                        'bg-white/[0.03] border border-green-500/[0.15]'
                                         }`}>
                                         <div className="flex items-center">
                                             <TokenLogo token={quote.path[quote.path.length - 1]} size="lg" />
@@ -401,7 +593,7 @@ export default function SwapDetails() {
 
                     {/* Total price impact summary */}
                     {quote && totalPriceImpact && totalPriceImpact.priceImpact !== null && (
-                        <div className="flex justify-between items-center pt-3 border-t border-border/30 flex-wrap gap-y-1">
+                        <div className="flex justify-between items-center pt-3 border-t border-white/[0.08] flex-wrap gap-y-1">
                             <span className="text-muted-foreground flex items-center whitespace-nowrap">
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
@@ -433,7 +625,7 @@ export default function SwapDetails() {
 
                     {/* Vault Security Info */}
                     {quote && (
-                        <div className="flex justify-between items-center py-3 border-t border-border/30">
+                        <div className="flex justify-between items-center py-3 border-t border-white/[0.08]">
                             <span className="text-muted-foreground flex items-center whitespace-nowrap">
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>

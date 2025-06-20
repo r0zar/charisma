@@ -19,9 +19,16 @@ export interface LimitOrder {
     recipient: string;
     signature: string; // 65-byte hex without 0x
     uuid: string; // uuid from signed message
-    status: 'open' | 'filled' | 'cancelled';
+    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled';
     createdAt: string; // ISO
     txid?: string;
+    
+    // Blockchain confirmation details (populated when status becomes 'confirmed' or 'failed')
+    blockHeight?: number;
+    blockTime?: number;
+    confirmedAt?: string; // ISO timestamp when status changed to 'confirmed'
+    failedAt?: string; // ISO timestamp when status changed to 'failed'
+    failureReason?: string; // Reason for failure (e.g., 'abort_by_response')
 
     /**
      * Optional ISO 8601 timestamps that bound when the order can be executed.

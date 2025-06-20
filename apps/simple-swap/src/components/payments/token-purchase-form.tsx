@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { useSwap } from "@/hooks/useSwap";
+import { useSwapTokens } from "@/contexts/swap-tokens-context";
 import { PurchaseDialog } from "./checkout";
 import TokenDropdown from "@/components/TokenDropdown";
 import { fetchTokenBalance, useBlaze } from "blaze-sdk";
@@ -50,7 +50,7 @@ export default function TokenPurchaseForm() {
         subnetDisplayTokens,
         selectedToToken,
         setSelectedToToken,
-    } = useSwap();
+    } = useSwapTokens();
     
     const { address: userAddress } = useWallet();
     const { prices: tokenPrices } = useBlaze();

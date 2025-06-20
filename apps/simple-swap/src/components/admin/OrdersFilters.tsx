@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, Download, SlidersHorizontal, X, Zap, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 interface FilterState {
     search: string;
@@ -18,6 +19,10 @@ interface FilterState {
 }
 
 export function OrdersFilters() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    
     const [filters, setFilters] = useState<FilterState>({
         search: '',
         status: 'all',
@@ -32,15 +37,58 @@ export function OrdersFilters() {
 
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [activeFilterCount, setActiveFilterCount] = useState(0);
-
-    const handleFilterChange = (key: keyof FilterState, value: any) => {
+    
+    // Initialize filters from URL parameters
+    useEffect(() => {
+        const urlStatus = searchParams?.get('status') || 'all';
+        const urlSearch = searchParams?.get('search') || '';
+        const urlOwner = searchParams?.get('owner') || '';
+        
         setFilters(prev => ({
             ...prev,
-            [key]: value
+            status: urlStatus,
+            search: urlSearch,
+            owner: urlOwner
         }));
+        
+        // Count active filters
+        const count = [urlStatus !== 'all', urlSearch !== '', urlOwner !== ''].filter(Boolean).length;
+        setActiveFilterCount(count);
+    }, [searchParams]);
 
-        // Update active filter count
+    const handleFilterChange = (key: keyof FilterState, value: any) => {
         const newFilters = { ...filters, [key]: value };
+        setFilters(newFilters);
+        
+        // Update URL parameters for server-side filtering
+        const params = new URLSearchParams(searchParams?.toString());
+        
+        if (key === 'status') {
+            if (value === 'all') {
+                params.delete('status');
+            } else {
+                params.set('status', value);
+            }
+        } else if (key === 'search') {
+            if (value === '') {
+                params.delete('search');
+            } else {
+                params.set('search', value);
+            }
+        } else if (key === 'owner') {
+            if (value === '') {
+                params.delete('owner');
+            } else {
+                params.set('owner', value);
+            }
+        }
+        
+        // Reset to first page when filters change
+        params.set('page', '1');
+        
+        router.push(`${pathname}?${params.toString()}`);
+        
+        // Update active filter count
         const count = Object.entries(newFilters).filter(([k, v]) => {
             if (k === 'search' || k === 'owner') return v !== '';
             if (k === 'priceRange' || k === 'volumeRange') {
@@ -64,6 +112,11 @@ export function OrdersFilters() {
             owner: ''
         });
         setActiveFilterCount(0);
+        
+        // Clear URL parameters
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const presetFilters = [
@@ -74,9 +127,9 @@ export function OrdersFilters() {
             color: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
         },
         {
-            label: 'Recent Fills',
+            label: 'Confirmed Orders',
             icon: Zap,
-            action: () => handleFilterChange('status', 'filled'),
+            action: () => handleFilterChange('status', 'confirmed'),
             color: 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
         },
         {
@@ -183,10 +236,10 @@ export function OrdersFilters() {
                 >
                     <option value="all">All Statuses</option>
                     <option value="open">🟢 Open Orders</option>
-                    <option value="filled">✅ Filled Orders</option>
+                    <option value="broadcasted">🟡 Pending Orders</option>
+                    <option value="confirmed">✅ Confirmed Orders</option>
                     <option value="cancelled">⚪ Cancelled Orders</option>
                     <option value="failed">🔴 Failed Orders</option>
-                    <option value="pending">🟡 Pending Orders</option>
                 </select>
 
                 {/* Order Type Filter */}

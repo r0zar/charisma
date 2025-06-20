@@ -67,7 +67,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
             console.log('🧹 Unregistering perpetual positions refetch callback');
             setPerpPositionsRefetchCallback(null);
         };
-    }, [refetchPositions, setPerpPositionsRefetchCallback]);
+    }, [setPerpPositionsRefetchCallback]); // Remove refetchPositions from deps to prevent re-registering
 
     // Smart filtering state - defaults to show all orders (moved before useMemo to fix initialization order)
     const [orderTypeFilter, setOrderTypeFilter] = React.useState<'all' | 'regular' | 'perpetual'>('all');
@@ -120,12 +120,12 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                     buyOrder,
                     sellOrder,
                     createdAt: orders[0].createdAt,
-                    status: orders.every(o => o.status === 'filled') ? 'completed' :
-                        orders.some(o => o.status === 'filled') ? 'partial' : 'pending',
+                    status: orders.every(o => o.status === 'confirmed') ? 'completed' :
+                        orders.some(o => o.status === 'confirmed') ? 'partial' : 'pending',
                     tokenA: orders[0].inputTokenMeta,
                     tokenB: orders[0].outputTokenMeta,
                     totalInvested: orders.reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
-                    filledOrders: orders.filter(o => o.status === 'filled').length,
+                    filledOrders: orders.filter(o => o.status === 'confirmed').length,
                     totalOrders: orders.length
                 });
             }
@@ -168,13 +168,13 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                     id: `dca-${key}`,
                     orders: orders.sort((a, b) => new Date(a.validFrom || a.createdAt).getTime() - new Date(b.validFrom || b.createdAt).getTime()),
                     createdAt: orders[0].createdAt,
-                    status: orders.every(o => o.status === 'filled') ? 'completed' :
-                        orders.some(o => o.status === 'filled') ? 'active' : 'pending',
+                    status: orders.every(o => o.status === 'confirmed') ? 'completed' :
+                        orders.some(o => o.status === 'confirmed') ? 'active' : 'pending',
                     tokenFrom: orders[0].inputTokenMeta,
                     tokenTo: orders[0].outputTokenMeta,
-                    totalInvested: orders.filter(o => o.status === 'filled').reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
+                    totalInvested: orders.filter(o => o.status === 'confirmed').reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
                     totalPlanned: orders.reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
-                    filledOrders: orders.filter(o => o.status === 'filled').length,
+                    filledOrders: orders.filter(o => o.status === 'confirmed').length,
                     totalOrders: orders.length,
                     nextExecution: orders.find(o => o.status === 'open')?.validFrom || null
                 });
@@ -644,7 +644,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                 switch (order.status) {
                     case 'open':
                         return `border-blue-500/40 bg-gradient-to-r ${baseGradient}`;
-                    case 'filled':
+                    case 'confirmed':
                         return `border-green-500/40 bg-gradient-to-r from-green-950/10 to-emerald-950/5`;
                     case 'cancelled':
                         return `border-gray-500/40 bg-gradient-to-r from-gray-950/10 to-gray-900/5`;
@@ -791,7 +791,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                             // Regular status indicator for non-pending or non-perpetual orders
                             <div className={`w-2 h-2 rounded-full ${order.status === 'pending' ? 'bg-yellow-400 animate-pulse' :
                                 order.status === 'open' ? 'bg-green-400' :
-                                    order.status === 'filled' ? 'bg-emerald-400' : 'bg-gray-400'
+                                    order.status === 'confirmed' ? 'bg-emerald-400' : 'bg-gray-400'
                                 }`} />
                         )}
 
@@ -1187,7 +1187,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
     const renderDCAStrategy = (strategy: any) => {
         const progressPercent = strategy.totalOrders > 0 ? (strategy.filledOrders / strategy.totalOrders) * 100 : 0;
         const avgPrice = strategy.filledOrders > 0 ?
-            strategy.orders.filter((o: any) => o.status === 'filled')
+            strategy.orders.filter((o: any) => o.status === 'confirmed')
                 .reduce((sum: number, o: any) => sum + parseFloat(o.targetPrice || '0'), 0) / strategy.filledOrders : 0;
 
         return (
@@ -1290,7 +1290,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
                                 <div key={order.uuid} className="flex items-center justify-between p-2 rounded bg-background/50">
                                     <div className="flex items-center space-x-2">
                                         <span className="text-xs">#{index + 1}</span>
-                                        <span className={`w-2 h-2 rounded-full ${order.status === 'filled' ? 'bg-green-400' :
+                                        <span className={`w-2 h-2 rounded-full ${order.status === 'confirmed' ? 'bg-green-400' :
                                             order.status === 'open' ? 'bg-yellow-400' : 'bg-gray-400'
                                             }`} />
                                         <span className="text-xs font-mono">
@@ -1316,8 +1316,8 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
 
     // Render Sandwich strategy
     const renderSandwichStrategy = (strategy: any) => {
-        const buyFilled = strategy.buyOrder?.status === 'filled';
-        const sellFilled = strategy.sellOrder?.status === 'filled';
+        const buyFilled = strategy.buyOrder?.status === 'confirmed';
+        const sellFilled = strategy.sellOrder?.status === 'confirmed';
 
         return (
             <div

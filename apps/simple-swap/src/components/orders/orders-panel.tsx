@@ -5,18 +5,20 @@ import { useWallet } from "@/contexts/wallet-context";
 import type { LimitOrder } from "@/lib/orders/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import TokenLogo from "../TokenLogo";
-import { ClipboardList, Copy, Check, Zap, Trash2 } from "lucide-react";
+import { ClipboardList, Copy, Check, Zap, Trash2, Search } from "lucide-react";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../ui/tooltip";
 import { signedFetch } from "blaze-sdk";
+import { useTransactionStatus } from "@/hooks/useTransactionStatus";
+import PremiumPagination, { type PaginationInfo } from "./premium-pagination";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface BadgeProps {
     status: LimitOrder["status"];
+    failureReason?: string;
 }
 
 // Enriched order type with token metadata
@@ -27,34 +29,511 @@ interface DisplayOrder extends LimitOrder {
     baseAssetMeta?: TokenCacheData | null;
 }
 
-const StatusBadge: React.FC<BadgeProps> = ({ status }) => {
-    const statusConfig: Record<LimitOrder["status"], { color: string, label: string }> = {
+// Transaction Status Indicator for filled orders
+const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ txid }) => {
+    const { status, isConfirmed, isFailed, isPending, isLoading } = useTransactionStatus(txid);
+    
+    if (!txid || status === 'unknown') return null;
+    
+    if (isLoading) {
+        return (
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-white/40 rounded-full animate-pulse" />
+                        <span className="text-xs text-white/40">Checking...</span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Checking transaction status on blockchain...</p>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+    
+    if (isConfirmed) {
+        return (
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                        <span className="text-xs text-emerald-400">Confirmed</span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Transaction confirmed on blockchain</p>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+    
+    if (isFailed) {
+        return (
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-red-400 rounded-full" />
+                        <span className="text-xs text-red-400">Failed</span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Transaction failed on blockchain - order reverted to open</p>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+    
+    if (isPending) {
+        return (
+            <Tooltip>
+                <TooltipTrigger>
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+                        <span className="text-xs text-amber-400">Broadcasting...</span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Transaction broadcasted - waiting for blockchain confirmation</p>
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+    
+    return null;
+};
+
+// Premium Status Badge with Apple/Tesla design
+const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string }> = ({ status, txid, failureReason }) => {
+    const statusConfig: Record<LimitOrder["status"], { color: string, bgColor: string, borderColor: string, label: string, indicatorColor: string }> = {
         open: {
-            color: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/50",
-            label: "Pending"
+            color: "text-blue-400",
+            bgColor: "bg-blue-500/[0.08]",
+            borderColor: "border-blue-500/[0.15]",
+            label: "Open",
+            indicatorColor: "bg-blue-400"
+        },
+        broadcasted: {
+            color: "text-amber-400",
+            bgColor: "bg-amber-500/[0.08]",
+            borderColor: "border-amber-500/[0.15]",
+            label: "Pending",
+            indicatorColor: "bg-amber-400"
+        },
+        confirmed: {
+            color: "text-emerald-400",
+            bgColor: "bg-emerald-500/[0.08]",
+            borderColor: "border-emerald-500/[0.15]",
+            label: "Confirmed",
+            indicatorColor: "bg-emerald-400"
+        },
+        failed: {
+            color: "text-red-400",
+            bgColor: "bg-red-500/[0.08]",
+            borderColor: "border-red-500/[0.15]",
+            label: "Failed",
+            indicatorColor: "bg-red-400"
         },
         filled: {
-            color: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/50",
-            label: "Executed"
+            color: "text-amber-400",
+            bgColor: "bg-amber-500/[0.08]",
+            borderColor: "border-amber-500/[0.15]",
+            label: "Pending",
+            indicatorColor: "bg-amber-400"
         },
         cancelled: {
-            color: "bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800",
-            label: "Cancelled"
+            color: "text-white/60",
+            bgColor: "bg-white/[0.03]",
+            borderColor: "border-white/[0.08]",
+            label: "Cancelled",
+            indicatorColor: "bg-white/40"
         },
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] || {
+        color: "text-gray-400",
+        bgColor: "bg-gray-500/[0.08]",
+        borderColor: "border-gray-500/[0.15]",
+        label: status.charAt(0).toUpperCase() + status.slice(1),
+        indicatorColor: "bg-gray-400"
+    };
+
+    const badgeContent = (
+        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${config.color} ${config.bgColor} ${config.borderColor}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${config.indicatorColor} ${status === 'open' ? 'animate-pulse' : ''}`} />
+            <span>{config.label}</span>
+        </div>
+    );
+
+    // Determine if we should show a tooltip
+    const shouldShowTooltip = (status === 'failed' && failureReason) || 
+                             (status === 'broadcasted') ||
+                             (status === 'open');
+
+    const getTooltipContent = () => {
+        if (status === 'failed' && failureReason) {
+            return (
+                <div className="text-xs">
+                    <div className="font-medium text-red-400 mb-1">Transaction Failed</div>
+                    <div className="text-muted-foreground">{failureReason}</div>
+                </div>
+            );
+        }
+        if (status === 'broadcasted') {
+            return (
+                <div className="text-xs">
+                    <div className="font-medium text-amber-400 mb-1">Transaction Broadcasted</div>
+                    <div className="text-muted-foreground">Waiting for blockchain confirmation</div>
+                </div>
+            );
+        }
+        if (status === 'open') {
+            return (
+                <div className="text-xs">
+                    <div className="font-medium text-blue-400 mb-1">Order Active</div>
+                    <div className="text-muted-foreground">Waiting for market conditions to be met</div>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
-        <span
-            className={cn(
-                "w-fit px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap border flex items-center gap-1.5",
-                config.color
+        <div className="flex flex-col gap-1">
+            {shouldShowTooltip ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        {badgeContent}
+                    </TooltipTrigger>
+                    <TooltipContent 
+                        side="top" 
+                        align="center"
+                        sideOffset={8}
+                        className="max-w-xs z-50 bg-popover border border-border shadow-lg"
+                        avoidCollisions={true}
+                        collisionPadding={20}
+                    >
+                        {getTooltipContent()}
+                    </TooltipContent>
+                </Tooltip>
+            ) : (
+                badgeContent
             )}
+        </div>
+    );
+};
+
+// Premium Order Card Component
+interface PremiumOrderCardProps {
+    order: DisplayOrder;
+    isRecentlyUpdated: boolean;
+    expandedRow: string | null;
+    toggleRowExpansion: (uuid: string) => void;
+    copyToClipboard: (text: string, id: string) => void;
+    copiedId: string | null;
+    executeNow: (uuid: string) => void;
+    setConfirmUuid: (uuid: string) => void;
+    formatTokenAmount: (amount: string | number, decimals: number) => string;
+    formatRelativeTime: (dateString: string) => string;
+    formatExecWindow: (order: LimitOrder) => string;
+}
+
+const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
+    order: o,
+    isRecentlyUpdated,
+    expandedRow,
+    toggleRowExpansion,
+    copyToClipboard,
+    copiedId,
+    executeNow,
+    setConfirmUuid,
+    formatTokenAmount,
+    formatRelativeTime,
+    formatExecWindow
+}) => {
+    const isExpanded = expandedRow === o.uuid;
+    
+    return (
+        <div 
+            className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer ${
+                isRecentlyUpdated 
+                    ? 'border-emerald-500/[0.3] bg-emerald-950/10 shadow-emerald-500/[0.1] ring-1 ring-emerald-500/[0.2]' 
+                    : 'border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15]'
+            } backdrop-blur-sm`}
+            onClick={() => toggleRowExpansion(o.uuid)}
         >
-            <span className={`w-1.5 h-1.5 rounded-full ${status === 'open' ? 'bg-yellow-500' : status === 'filled' ? 'bg-green-500' : 'bg-gray-500'}`}></span>
-            {config.label}
-        </span>
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            
+            {/* Recently Updated Indicator */}
+            {isRecentlyUpdated && (
+                <>
+                    <div className="absolute top-3 right-3 w-2 h-2 bg-emerald-400 rounded-full animate-ping z-10" />
+                    <div className="absolute top-3 right-3 w-2 h-2 bg-emerald-400 rounded-full z-10" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-400 animate-pulse z-10 rounded-t-2xl" />
+                </>
+            )}
+            
+            <div className="relative p-6 space-y-4">
+                {/* Header Row */}
+                <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                        <div className="text-sm font-medium text-white/90" title={new Date(o.createdAt).toLocaleString()}>
+                            {formatRelativeTime(o.createdAt)}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-white/40">
+                            <span className="font-mono" title={o.uuid}>
+                                #{o.uuid.substring(0, 8)}
+                            </span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(o.uuid, o.uuid);
+                                }}
+                                className="p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
+                                title="Copy order ID"
+                            >
+                                {copiedId === o.uuid ? (
+                                    <Check className="h-3 w-3 text-emerald-400" />
+                                ) : (
+                                    <Copy className="h-3 w-3" />
+                                )}
+                            </button>
+                        </div>
+                        {(o.validFrom || o.validTo) && (
+                            <div className="text-xs text-white/40 mt-1">
+                                {formatExecWindow(o)}
+                            </div>
+                        )}
+                    </div>
+                    
+                    <PremiumStatusBadge status={o.status} txid={o.txid} failureReason={o.failureReason} />
+                </div>
+
+                {/* Swap Details Row */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
+                            <span className="text-sm font-medium text-white/80">{o.inputTokenMeta.symbol}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white/40">
+                            <span className="text-lg">→</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
+                            <span className="text-sm font-medium text-white/80">{o.outputTokenMeta.symbol}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="text-right">
+                        <div className="text-sm font-mono text-white/90">
+                            {formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}
+                        </div>
+                        <div className="text-xs text-white/40">{o.inputTokenMeta.symbol}</div>
+                    </div>
+                </div>
+
+                {/* Price Condition Row */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-mono">
+                        <span className="text-white/60">When</span>
+                        {o.direction === 'gt' ? (
+                            <>
+                                <span className="text-white/80">1</span>
+                                <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
+                                <span className="text-white/80">{o.conditionTokenMeta.symbol}</span>
+                                <span className="text-lg text-white/60">≥</span>
+                                <span className="text-white/90">${Number(o.targetPrice).toLocaleString()}</span>
+                                {o.baseAsset === 'USD' || !o.baseAsset ? (
+                                    <span className="text-white/60">USD</span>
+                                ) : (
+                                    o.baseAssetMeta ? (
+                                        <>
+                                            <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
+                                            <span className="text-white/80">{o.baseAssetMeta.symbol}</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-white/60" title={o.baseAsset}>
+                                            {(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}
+                                        </span>
+                                    )
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <span className="text-white/80">1</span>
+                                {o.baseAsset === 'USD' || !o.baseAsset ? (
+                                    <span className="text-white/60">USD</span>
+                                ) : (
+                                    o.baseAssetMeta ? (
+                                        <>
+                                            <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
+                                            <span className="text-white/80">{o.baseAssetMeta.symbol}</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-white/60" title={o.baseAsset}>
+                                            {(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}
+                                        </span>
+                                    )
+                                )}
+                                <span className="text-lg text-white/60">≥</span>
+                                <span className="text-white/90">${Number(o.targetPrice).toLocaleString()}</span>
+                                <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
+                                <span className="text-white/80">{o.conditionTokenMeta.symbol}</span>
+                            </>
+                        )}
+                    </div>
+                    
+                    {/* Action buttons */}
+                    {o.status === "open" && (
+                        <div className="flex gap-2">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            executeNow(o.uuid);
+                                        }}
+                                        className="p-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] text-emerald-400 hover:bg-emerald-500/[0.15] hover:border-emerald-400/[0.3] transition-all duration-200 backdrop-blur-sm"
+                                    >
+                                        <Zap className="h-4 w-4" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                    Execute this order immediately at the current market price.
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setConfirmUuid(o.uuid);
+                                        }}
+                                        className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400 transition-all duration-200 backdrop-blur-sm"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                    Cancel this order.
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                    )}
+                </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                    <div className="pt-4 border-t border-white/[0.08] animate-[slideDown_0.2s_ease-out]">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+                            {/* Order Details Column */}
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Order Details</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Created:</span>
+                                            <span className="text-white/90 font-mono text-xs" title={new Date(o.createdAt).toISOString()}>
+                                                {new Date(o.createdAt).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Order ID:</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-white/90 font-mono text-xs">{o.uuid}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        copyToClipboard(o.uuid, o.uuid);
+                                                    }}
+                                                    className="p-1 rounded-lg hover:bg-white/[0.05]"
+                                                >
+                                                    {copiedId === o.uuid ? (
+                                                        <Check className="h-3 w-3 text-emerald-400" />
+                                                    ) : (
+                                                        <Copy className="h-3 w-3 text-white/40" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Owner:</span>
+                                            <span className="text-white/90 font-mono text-xs truncate max-w-[200px]" title={o.owner}>
+                                                {o.owner}
+                                            </span>
+                                        </div>
+                                        {(o.validFrom || o.validTo) && (
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-white/60">Execution Window:</span>
+                                                <span className="text-white/90 font-mono text-xs text-right max-w-[200px]" title={formatExecWindow(o)}>
+                                                    {formatExecWindow(o)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Swap Details Column */}
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Swap Details</h4>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">From:</span>
+                                            <div className="flex items-center gap-2">
+                                                <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
+                                                <span className="text-white/90">
+                                                    {o.inputTokenMeta.symbol} ({formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)})
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">To:</span>
+                                            <div className="flex items-center gap-2">
+                                                <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
+                                                <span className="text-white/90">{o.outputTokenMeta.symbol}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">Condition:</span>
+                                            <span className="text-white/90 font-medium">
+                                                {o.direction === 'gt' ? (
+                                                    <>1 {o.conditionTokenMeta.symbol} ≥ ${Number(o.targetPrice).toLocaleString()}</>
+                                                ) : (
+                                                    <>1 {o.baseAssetMeta?.symbol || 'USD'} ≥ ${Number(o.targetPrice).toLocaleString()}</>
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Transaction Details */}
+                                {o.status === "filled" && o.txid && (
+                                    <div>
+                                        <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Transaction</h4>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-white/60">TxID:</span>
+                                            <a
+                                                href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-400 hover:text-blue-300 transition-colors duration-200 font-mono text-xs truncate max-w-[150px]"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {o.txid.substring(0, 10)}...
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 
@@ -102,23 +581,113 @@ export default function OrdersPanel() {
     const [error, setError] = useState<string | null>(null);
     const [confirmUuid, setConfirmUuid] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState<string>("");
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [recentlyUpdatedOrders, setRecentlyUpdatedOrders] = useState<Set<string>>(new Set());
+    
+    // URL state management
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    
+    // Pagination state
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false
+    });
+    const [paginationLoading, setPaginationLoading] = useState(false);
 
-    const fetchOrders = useCallback(async () => {
+    // Initialize pagination from URL params
+    useEffect(() => {
+        const urlPage = searchParams?.get('page');
+        const urlLimit = searchParams?.get('limit');
+        const urlFilter = searchParams?.get('filter');
+        const urlSearch = searchParams?.get('search');
+        
+        if (urlPage) {
+            const page = parseInt(urlPage, 10);
+            if (!isNaN(page) && page > 0) {
+                setPagination(prev => ({ ...prev, page }));
+            }
+        }
+        
+        if (urlLimit) {
+            const limit = parseInt(urlLimit, 10);
+            if (!isNaN(limit) && limit > 0 && limit <= 100) {
+                setPagination(prev => ({ ...prev, limit }));
+            }
+        }
+        
+        if (urlFilter && ['all', 'open', 'confirmed', 'failed', 'cancelled'].includes(urlFilter)) {
+            setActiveFilter(urlFilter);
+        }
+        
+        if (urlSearch) {
+            setSearchQuery(urlSearch);
+        }
+    }, [searchParams]);
+
+    const fetchOrders = useCallback(async (usePagination = true) => {
         if (!connected || !address) {
             setDisplayOrders([]);
             setLoading(false);
+            setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }));
             return;
         }
-        setLoading(true);
+        
+        const isInitialLoad = displayOrders.length === 0;
+        if (isInitialLoad) {
+            setLoading(true);
+        } else {
+            setPaginationLoading(true);
+        }
+        
         setError(null);
+        
         try {
-            const res = await fetch(`/api/v1/orders?owner=${address}`);
+            // Build query parameters
+            const params = new URLSearchParams({
+                owner: address
+            });
+            
+            if (usePagination) {
+                params.append('page', pagination.page.toString());
+                params.append('limit', pagination.limit.toString());
+                params.append('sortBy', 'createdAt');
+                params.append('sortOrder', 'desc');
+                if (activeFilter !== 'all' && activeFilter !== 'open') {
+                    // For specific filters, use server-side filtering
+                    // "open" filter will fetch all orders and filter client-side to include both 'open' and 'broadcasted'
+                    params.append('status', activeFilter);
+                }
+                
+                if (searchQuery && searchQuery.trim()) {
+                    params.append('search', searchQuery.trim());
+                }
+            }
+            
+            const res = await fetch(`/api/v1/orders?${params}`);
             const j = await res.json();
+            
             if (res.ok) {
                 const rawOrders = j.data as LimitOrder[];
+                
+                // Update pagination info if available
+                if (j.pagination) {
+                    setPagination({
+                        total: j.pagination.total,
+                        page: j.pagination.page,
+                        limit: j.pagination.limit,
+                        totalPages: j.pagination.totalPages,
+                        hasNextPage: j.pagination.hasNextPage,
+                        hasPrevPage: j.pagination.hasPrevPage
+                    });
+                }
 
                 // Check for status changes before processing
                 const statusChanges: Array<{ order: LimitOrder, oldStatus: string, newStatus: string }> = [];
@@ -227,8 +796,9 @@ export default function OrdersPanel() {
             setDisplayOrders([]);
         } finally {
             setLoading(false);
+            setPaginationLoading(false);
         }
-    }, [address, connected]);
+    }, [address, connected, pagination.page, pagination.limit, activeFilter, searchQuery]);
 
     // fetch once when wallet connects/address changes
     useEffect(() => {
@@ -309,7 +879,7 @@ export default function OrdersPanel() {
                     order.uuid === uuid ? { ...order, status: 'filled', txid: j.txid } : order
                 )
             );
-            toast.success(`Order Executed`, {
+            toast.success(`Order Submitted`, {
                 description: (
                     <div>
                         <div className="text-green-800 font-medium">Transaction submitted successfully</div>
@@ -337,10 +907,10 @@ export default function OrdersPanel() {
         }
     };
 
-    // Filter orders based on selected tab
-    const filteredOrders = displayOrders.filter(order =>
-        activeFilter === "all" || order.status === activeFilter
-    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Apply client-side filtering only for "open" filter to include both open and broadcasted orders
+    const filteredOrders = activeFilter === 'open' 
+        ? displayOrders.filter(order => order.status === 'open' || order.status === 'broadcasted' || order.status === 'filled')
+        : displayOrders;
 
     // Function to copy text to clipboard with visual feedback
     const copyToClipboard = (text: string, id: string) => {
@@ -355,376 +925,256 @@ export default function OrdersPanel() {
         setExpandedRow(expandedRow === uuid ? null : uuid);
     };
 
+    // Pagination handlers
+    const handlePageChange = (newPage: number) => {
+        setPagination(prev => ({ ...prev, page: newPage }));
+        updateUrlParams({ page: newPage.toString() });
+        setExpandedRow(null); // Close any expanded rows when changing pages
+    };
+
+    const handleLimitChange = (newLimit: number) => {
+        setPagination(prev => ({ 
+            ...prev, 
+            limit: newLimit, 
+            page: 1 // Reset to first page when changing limit
+        }));
+        updateUrlParams({ limit: newLimit.toString(), page: '1' });
+        setExpandedRow(null);
+    };
+
+    const handleFilterChange = (newFilter: string) => {
+        setActiveFilter(newFilter);
+        setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when changing filters
+        updateUrlParams({ filter: newFilter, page: '1' });
+        setExpandedRow(null);
+    };
+
+    const handleSearchChange = (newSearch: string) => {
+        setSearchQuery(newSearch);
+        setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
+        updateUrlParams({ search: newSearch, page: '1' });
+        setExpandedRow(null);
+    };
+
+    // Update URL parameters
+    const updateUrlParams = (updates: Record<string, string>) => {
+        const params = new URLSearchParams(searchParams?.toString() || '');
+        
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value && value !== 'all' && value !== '1' && value !== '10') {
+                params.set(key, value);
+            } else {
+                params.delete(key);
+            }
+        });
+        
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
     if (!connected) {
-        return <p className="text-center text-sm text-muted-foreground">Connect wallet to view your orders.</p>;
+        return (
+            <div className="container max-w-6xl mx-auto px-4 py-16">
+                <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                    <div className="relative mb-6">
+                        <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
+                            <ClipboardList className="h-8 w-8 text-white/30" />
+                        </div>
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                    </div>
+                    <h3 className="text-lg font-medium text-white/70 mb-2">Connect Your Wallet</h3>
+                    <p className="text-sm text-center max-w-md leading-relaxed">
+                        Please connect your wallet to view and manage your smart limit orders with real-time monitoring.
+                    </p>
+                </div>
+            </div>
+        );
     }
 
     return (
         <TooltipProvider delayDuration={200}>
-            <Card className="bg-transparent border-none container">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 md:px-0 pt-6 md:pt-0">
-                    <CardHeader className="flex-row items-center gap-3 px-1">
-                        <ClipboardList className="h-6 w-6 text-primary" />
-                        <div>
-                            <CardTitle>My Orders</CardTitle>
-                            <CardDescription>View and manage your open, filled or cancelled triggered swaps.</CardDescription>
+            <div className="container max-w-6xl mx-auto px-4 py-8">
+                {/* Immersive header - seamless design */}
+                <div className="space-y-8 mb-16">
+                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+                        {/* Clean title section */}
+                        <div className="space-y-6">
+                            <div>
+                                <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">Order Management</h1>
+                                <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+                                    Monitor and manage your smart limit orders with real-time status updates and seamless execution control.
+                                    Track pending, executed, and cancelled orders in a unified dashboard.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-6 text-sm text-white/40">
+                                <span>{pagination.total} {activeFilter === 'all' ? 'total' : activeFilter} orders</span>
+                                <span>Page {pagination.page} of {pagination.totalPages}</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                        <div className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                        <div className="absolute inset-0 h-1.5 w-1.5 bg-emerald-400/40 rounded-full animate-ping" />
+                                        <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-emerald-400/20 rounded-full blur-sm animate-pulse" />
+                                    </div>
+                                    <span className="animate-pulse">Live monitoring</span>
+                                </div>
+                            </div>
                         </div>
-                    </CardHeader>
-                    <div className="mb-0 md:mb-4 flex justify-start md:justify-center">
-                        <Tabs value={activeFilter} onValueChange={setActiveFilter} className="w-full md:w-auto max-w-md">
-                            <TabsList className="grid grid-cols-4 w-full md:w-auto">
-                                <TabsTrigger value="all">All</TabsTrigger>
-                                <TabsTrigger value="open">Pending</TabsTrigger>
-                                <TabsTrigger value="filled">Executed</TabsTrigger>
-                                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+
+                        {/* Search and filter controls */}
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            {/* Search input */}
+                            <div className="relative flex-1 lg:max-w-sm">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
+                                <input
+                                    type="text"
+                                    placeholder="Search orders, addresses, tokens..."
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
+                                    disabled={loading}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/90 text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/[0.15] focus:border-white/[0.2] transition-all duration-200 disabled:opacity-50"
+                                />
+                            </div>
+
+                            {/* Premium filter tabs */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                            {[['all', 'All'], ['open', 'Open'], ['confirmed', 'Confirmed'], ['failed', 'Failed'], ['cancelled', 'Cancelled']].map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    onClick={() => handleFilterChange(value)}
+                                    disabled={loading || paginationLoading}
+                                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 ${
+                                        activeFilter === value
+                                            ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
+                                            : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <CardContent className="pt-4 px-6 md:px-0">
-                    {loading && (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left border-b border-border/70 whitespace-nowrap">
-                                        <th className="px-4 py-2">When</th>
-                                        <th className="px-4 py-2">Swap</th>
-                                        <th className="px-4 py-2 text-right">Amount</th>
-                                        <th className="px-4 py-2">Price Condition</th>
-                                        <th className="px-4 py-2">Status</th>
-                                        <th className="px-2 py-2"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="animate-pulse">
-                                    {Array.from({ length: 3 }).map((_, i) => (
-                                        <tr key={i} className="border-b border-border/50 whitespace-nowrap">
-                                            <td className="px-4 py-2">
-                                                <div className="h-5 w-20 bg-muted rounded"></div>
-                                                <div className="h-3 w-16 bg-muted rounded mt-1 opacity-60"></div>
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-5 w-5 bg-muted rounded-full"></div>
-                                                    <div className="h-4 w-10 bg-muted rounded"></div>
-                                                    <div className="mx-1 h-4 w-4 bg-muted rounded-full opacity-30"></div>
-                                                    <div className="h-5 w-5 bg-muted rounded-full"></div>
-                                                    <div className="h-4 w-10 bg-muted rounded"></div>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-2 text-right">
-                                                <div className="h-5 w-14 bg-muted rounded ml-auto"></div>
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                <div className="h-5 w-32 rounded bg-muted"></div>
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                <div className="h-5 w-16 rounded-full bg-muted"></div>
-                                            </td>
-                                            <td className="px-2 py-2">
-                                                <div className="flex gap-2">
-                                                    <div className="h-8 w-16 bg-muted rounded"></div>
-                                                    <div className="h-8 w-16 bg-muted rounded"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+
+                {/* Premium Pagination - Top */}
+                {!loading && pagination.totalPages > 1 && (
+                    <div className="mb-8">
+                        <PremiumPagination
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onLimitChange={handleLimitChange}
+                            isLoading={paginationLoading}
+                        />
+                    </div>
+                )}
+
+                {/* Premium loading skeleton */}
+                {loading && (
+                    <div className="grid gap-6">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm animate-pulse">
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                <div className="relative space-y-4">
+                                    {/* Header row */}
+                                    <div className="flex items-start justify-between">
+                                        <div className="space-y-2">
+                                            <div className="h-4 w-16 bg-white/[0.06] rounded-lg" />
+                                            <div className="h-3 w-20 bg-white/[0.04] rounded-lg" />
+                                        </div>
+                                        <div className="h-6 w-20 bg-white/[0.06] rounded-full" />
+                                    </div>
+                                    {/* Swap row */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-8 w-8 bg-white/[0.06] rounded-full" />
+                                            <div className="h-4 w-12 bg-white/[0.06] rounded-lg" />
+                                            <div className="h-4 w-6 bg-white/[0.04] rounded-lg" />
+                                            <div className="h-8 w-8 bg-white/[0.06] rounded-full" />
+                                            <div className="h-4 w-12 bg-white/[0.06] rounded-lg" />
+                                        </div>
+                                        <div className="h-4 w-24 bg-white/[0.06] rounded-lg" />
+                                    </div>
+                                    {/* Condition row */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="h-4 w-48 bg-white/[0.06] rounded-lg" />
+                                        <div className="flex gap-2">
+                                            <div className="h-8 w-8 bg-white/[0.06] rounded-xl" />
+                                            <div className="h-8 w-8 bg-white/[0.06] rounded-xl" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+
+                {!loading && (filteredOrders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                        <div className="relative mb-6">
+                            <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
+                                <ClipboardList className="h-8 w-8 text-white/30" />
+                            </div>
+                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
                         </div>
-                    )}
-                    {error && <p className="text-sm text-destructive mb-4">{error}</p>}
-                    {!loading && (filteredOrders.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                            <ClipboardList className="h-12 w-12 mb-3 text-primary/60" />
-                            <p className="text-sm mb-1">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</p>
-                            <p className="text-xs text-center max-w-xs">
-                                {displayOrders.length === 0
-                                    ? 'Create a swap order from the Swap tab and it will appear here for tracking.'
-                                    : `No ${activeFilter === 'all' ? '' : activeFilter} orders found. Try another filter.`}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left border-b border-border/70 whitespace-nowrap">
-                                        <th className="px-4 py-2">When</th>
-                                        <th className="px-4 py-2">Swap</th>
-                                        <th className="px-4 py-2 text-center">Amount</th>
-                                        <th className="px-4 py-2">Price Condition</th>
-                                        <th className="px-4 py-2">Status</th>
-                                        <th className="px-2 py-2"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredOrders.map((o) => {
-                                        // Check if this order was recently updated
-                                        const isRecentlyUpdated = recentlyUpdatedOrders.has(o.uuid);
+                        <h3 className="text-lg font-medium text-white/70 mb-2">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</h3>
+                        <p className="text-sm text-center max-w-md leading-relaxed">
+                            {displayOrders.length === 0
+                                ? 'Create your first smart limit order from the Swap tab and it will appear here for real-time monitoring and management.'
+                                : `No ${activeFilter === 'all' ? '' : activeFilter} orders found. Try adjusting your filter or create new orders to get started.`}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {filteredOrders.map((o) => {
+                            // Check if this order was recently updated
+                            const isRecentlyUpdated = recentlyUpdatedOrders.has(o.uuid);
+                            
+                            return (
+                                <PremiumOrderCard 
+                                    key={o.uuid}
+                                    order={o}
+                                    isRecentlyUpdated={isRecentlyUpdated}
+                                    expandedRow={expandedRow}
+                                    toggleRowExpansion={toggleRowExpansion}
+                                    copyToClipboard={copyToClipboard}
+                                    copiedId={copiedId}
+                                    executeNow={executeNow}
+                                    setConfirmUuid={setConfirmUuid}
+                                    formatTokenAmount={formatTokenAmount}
+                                    formatRelativeTime={formatRelativeTime}
+                                    formatExecWindow={formatExecWindow}
+                                />
+                            );
+                        })}
+                    </div>
+                ))}
+            </div>
 
-                                        return (
-                                            <React.Fragment key={o.uuid}>
-                                                <tr
-                                                    className={`border-b border-border/50 last:border-0 whitespace-nowrap hover:bg-muted/20 transition-colors cursor-pointer relative overflow-hidden ${isRecentlyUpdated ? 'ring-2 ring-green-400/60 bg-green-950/20 border-green-400/40 animate-pulse' : ''
-                                                        }`}
-                                                    onClick={() => toggleRowExpansion(o.uuid)}
-                                                >
-                                                    {/* Recently Updated Indicator */}
-                                                    {isRecentlyUpdated && (
-                                                        <>
-                                                            <td className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full animate-ping z-10" />
-                                                            <td className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full z-10" />
-                                                            <td className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-400 animate-pulse z-10" />
-                                                        </>
-                                                    )}
-                                                    <td className="px-4 py-2 font-medium">
-                                                        <span title={new Date(o.createdAt).toLocaleString()}>
-                                                            {formatRelativeTime(o.createdAt)}
-                                                        </span>
-                                                        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                                                            <span className="font-mono truncate max-w-[80px]" title={o.uuid}>
-                                                                {o.uuid.substring(0, 8)}
-                                                            </span>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    copyToClipboard(o.uuid, o.uuid);
-                                                                }}
-                                                                className="p-0.5 rounded hover:bg-muted/50"
-                                                                title="Copy order ID"
-                                                            >
-                                                                {copiedId === o.uuid ? (
-                                                                    <Check className="h-3 w-3 text-green-500" />
-                                                                ) : (
-                                                                    <Copy className="h-3 w-3 text-muted-foreground/70" />
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                        {(o.validFrom || o.validTo) && (
-                                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                                {formatExecWindow(o)}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        <span className="flex items-center gap-1">
-                                                            <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
-                                                            <span>{o.inputTokenMeta.symbol}</span>
-                                                            <span className="mx-1 text-muted-foreground">→</span>
-                                                            <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
-                                                            <span>{o.outputTokenMeta.symbol}</span>
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-2 text-center">{formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}</td>
-                                                    <td className="px-4 py-2">
-                                                        <span className="font-mono flex items-center gap-1">
-                                                            {o.direction === 'gt' ? (
-                                                                <>
-                                                                    <span>1</span>
-                                                                    <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
-                                                                    <span>{o.conditionTokenMeta.symbol}</span>
-                                                                    <span className="mx-1 font-mono text-lg">≥</span>
-                                                                    <span>{Number(o.targetPrice).toLocaleString()}</span>
-                                                                    {o.baseAsset === 'USD' || !o.baseAsset ? (
-                                                                        <span>USD</span>
-                                                                    ) : (
-                                                                        o.baseAssetMeta ? (
-                                                                            <>
-                                                                                <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
-                                                                                <span>{o.baseAssetMeta.symbol}</span>
-                                                                            </>
-                                                                        ) : (
-                                                                            <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
-                                                                        )
-                                                                    )}
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <span>1</span>
-                                                                    {o.baseAsset === 'USD' || !o.baseAsset ? (
-                                                                        <span>USD</span>
-                                                                    ) : (
-                                                                        o.baseAssetMeta ? (
-                                                                            <>
-                                                                                <TokenLogo token={{ ...o.baseAssetMeta, image: o.baseAssetMeta.image ?? undefined }} size="sm" />
-                                                                                <span>{o.baseAssetMeta.symbol}</span>
-                                                                            </>
-                                                                        ) : (
-                                                                            <span className="font-mono text-xs" title={o.baseAsset}>{(o.baseAsset.split('.').pop() || o.baseAsset).slice(0, 10)}</span>
-                                                                        )
-                                                                    )}
-                                                                    <span className="mx-1 font-mono text-lg">≥</span>
-                                                                    <span>{Number(o.targetPrice).toLocaleString()}</span>
-                                                                    <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
-                                                                    <span>{o.conditionTokenMeta.symbol}</span>
-                                                                </>
-                                                            )}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-2"><StatusBadge status={o.status} /></td>
-                                                    <td className="px-2 py-2">
-                                                        {o.status === "open" && (
-                                                            <div className="flex gap-2">
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="secondary"
-                                                                            size="icon"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                executeNow(o.uuid);
-                                                                            }}
-                                                                        >
-                                                                            <Zap className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top">
-                                                                        Execute this order immediately at the current market price.
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setConfirmUuid(o.uuid);
-                                                                            }}
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top">
-                                                                        Cancel this order.
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                                {expandedRow === o.uuid && (
-                                                    <tr className="bg-muted/10 animate-[slideDown_0.2s_ease-out]">
-                                                        <td colSpan={6} className="p-4">
-                                                            <div className="text-sm">
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                                    <div className="space-y-3">
-                                                                        <div>
-                                                                            <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Order Details</h4>
-                                                                            <div className="space-y-1">
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">Created:</span>
-                                                                                    <span title={new Date(o.createdAt).toISOString()}>{new Date(o.createdAt).toLocaleString()}</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">Order ID:</span>
-                                                                                    <span className="font-mono text-xs flex items-center gap-1">
-                                                                                        {o.uuid}
-                                                                                        <button
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                copyToClipboard(o.uuid, o.uuid);
-                                                                                            }}
-                                                                                            className="p-0.5 rounded hover:bg-muted/50"
-                                                                                        >
-                                                                                            {copiedId === o.uuid ? (
-                                                                                                <Check className="h-3 w-3 text-green-500" />
-                                                                                            ) : (
-                                                                                                <Copy className="h-3 w-3 text-muted-foreground/70" />
-                                                                                            )}
-                                                                                        </button>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">Owner:</span>
-                                                                                    <span className="font-mono text-xs truncate max-w-[400px]" title={o.owner}>{o.owner}</span>
-                                                                                </div>
-                                                                                {(o.validFrom || o.validTo) && (
-                                                                                    <div className="flex justify-between">
-                                                                                        <span className="text-muted-foreground">Execution Window:</span>
-                                                                                        <span className="font-mono text-xs text-right max-w-[320px] truncate" title={formatExecWindow(o)}>
-                                                                                            {formatExecWindow(o)}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="space-y-3">
-                                                                        <div>
-                                                                            <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Swap Details</h4>
-                                                                            <div className="space-y-1">
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">From:</span>
-                                                                                    <span className="flex items-center gap-1">
-                                                                                        <TokenLogo token={{ ...o.inputTokenMeta, image: o.inputTokenMeta.image ?? undefined }} size="sm" />
-                                                                                        {o.inputTokenMeta.symbol} ({formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)})
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">To:</span>
-                                                                                    <span className="flex items-center gap-1">
-                                                                                        <TokenLogo token={{ ...o.outputTokenMeta, image: o.outputTokenMeta.image ?? undefined }} size="sm" />
-                                                                                        {o.outputTokenMeta.symbol}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-muted-foreground">Condition:</span>
-                                                                                    <span className="font-medium">
-                                                                                        {o.direction === 'gt' ? (
-                                                                                            <>1 {o.conditionTokenMeta.symbol} ≥ ${Number(o.targetPrice).toLocaleString()}</>
-                                                                                        ) : (
-                                                                                            <>1 {o.baseAssetMeta?.symbol || 'USD'} ≥ ${Number(o.targetPrice).toLocaleString()}</>
-                                                                                        )}
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {o.status === "filled" && o.txid && (
-                                                                            <div>
-                                                                                <h4 className="font-medium text-xs uppercase text-muted-foreground mb-1">Transaction</h4>
-                                                                                <div className="flex items-center justify-between">
-                                                                                    <span className="text-muted-foreground">TxID:</span>
-                                                                                    <a
-                                                                                        href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
-                                                                                        target="_blank"
-                                                                                        rel="noopener noreferrer"
-                                                                                        className="text-primary hover:underline font-mono truncate max-w-[200px]"
-                                                                                    >
-                                                                                        {o.txid.substring(0, 10)}...
-                                                                                    </a>
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-
-            {/* Cancel confirmation dialog */}
+            {/* Premium cancel confirmation dialog */}
             {confirmUuid && (
                 <Dialog open onOpenChange={(open) => { if (!open) setConfirmUuid(null); }}>
-                    <DialogContent>
+                    <DialogContent className="border-white/[0.08] bg-black/40 backdrop-blur-xl">
                         <DialogHeader>
-                            <DialogTitle>Cancel Order</DialogTitle>
-                            <DialogDescription>Are you sure you want to cancel this order?</DialogDescription>
+                            <DialogTitle className="text-white/95">Cancel Order</DialogTitle>
+                            <DialogDescription className="text-white/60">
+                                Are you sure you want to cancel this limit order? This action cannot be undone.
+                            </DialogDescription>
                         </DialogHeader>
-                        <DialogFooter className="flex justify-end gap-2 pt-4">
-                            <Button variant="outline" onClick={() => setConfirmUuid(null)}>Dismiss</Button>
-                            <Button variant="destructive" onClick={() => cancelOrder(confirmUuid)}>Confirm</Button>
+                        <DialogFooter className="flex justify-end gap-3 pt-4">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setConfirmUuid(null)}
+                                className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white"
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={() => cancelOrder(confirmUuid)}
+                                className="bg-red-500/[0.15] border border-red-500/[0.3] text-red-400 hover:bg-red-500/[0.25] hover:border-red-400/[0.5]"
+                            >
+                                Confirm Cancellation
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

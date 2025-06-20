@@ -10,9 +10,10 @@ interface CompareTokenSelectorProps {
     primary: TokenSummary;
     selectedId: string | null;
     onSelect: (id: string | null) => void;
+    isLoading?: boolean;
 }
 
-export default function CompareTokenSelector({ tokens, primary, selectedId, onSelect }: CompareTokenSelectorProps) {
+export default function CompareTokenSelector({ tokens, primary, selectedId, onSelect, isLoading = false }: CompareTokenSelectorProps) {
     const selected = tokens.find((t) => t.contractId === selectedId) || null;
 
     // helper token symbols
@@ -48,28 +49,41 @@ export default function CompareTokenSelector({ tokens, primary, selectedId, onSe
                     Compare with:
                 </label>
                 <div className="w-full sm:min-w-[160px] sm:w-auto">
-                    <CompareTokenDropdown
-                        tokens={tokens}
-                        selected={selected}
-                        onSelect={(t) => onSelect(t.contractId)}
-                    />
+                    {isLoading ? (
+                        <div className="h-10 bg-muted/20 rounded-lg animate-pulse flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground">Loading...</span>
+                        </div>
+                    ) : (
+                        <CompareTokenDropdown
+                            tokens={tokens}
+                            selected={selected}
+                            onSelect={(t) => onSelect(t.contractId)}
+                        />
+                    )}
                 </div>
                 {/* helper buttons */}
                 <div className="grid grid-cols-5 gap-1 sm:flex sm:gap-2 flex-wrap">
-                    {helpers.map((h) => (
-                        <button
-                            key={h.contractId}
-                            onClick={() => onSelect(h.contractId)}
-                            className={`cursor-pointer p-2 rounded-lg border border-none bg-muted/20 hover:bg-muted/30 flex items-center justify-center ${selectedId === h.contractId ? 'bg-muted/30' : ''}`}
-                            title={h.symbol}
-                        >
-                            {h.image ? (
-                                <Image src={h.image} alt={h.symbol} width={20} height={20} className="rounded-full" />
-                            ) : (
-                                <span className="text-xs font-semibold text-primary/80">{h.symbol.charAt(0)}</span>
-                            )}
-                        </button>
-                    ))}
+                    {isLoading ? (
+                        // Show skeleton buttons while loading
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="w-10 h-10 bg-muted/20 rounded-lg animate-pulse" />
+                        ))
+                    ) : (
+                        helpers.map((h) => (
+                            <button
+                                key={h.contractId}
+                                onClick={() => onSelect(h.contractId)}
+                                className={`cursor-pointer p-2 rounded-lg border border-none bg-muted/20 hover:bg-muted/30 flex items-center justify-center transition-colors ${selectedId === h.contractId ? 'bg-muted/30' : ''}`}
+                                title={h.symbol}
+                            >
+                                {h.image ? (
+                                    <Image src={h.image} alt={h.symbol} width={20} height={20} className="rounded-full" />
+                                ) : (
+                                    <span className="text-xs font-semibold text-primary/80">{h.symbol.charAt(0)}</span>
+                                )}
+                            </button>
+                        ))
+                    )}
                 </div>
             </div>
             {/* removed stats grid inside selector as per request */}

@@ -13,6 +13,16 @@ import {
 } from "lightweight-charts";
 import { TokenCacheData } from "@repo/tokens";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { 
+    calculateResilientRatioData, 
+    enhanceSparseTokenData, 
+    isValidDataPoint,
+    getDefaultTimeRange,
+    type ChartDataPoint 
+} from "@/lib/chart-data-utils";
+import { useBlaze } from 'blaze-sdk/realtime';
+import { useWallet } from '@/contexts/wallet-context';
+import { usePriceSeriesService } from '@/lib/price-series-service';
 
 interface Props {
     token: TokenCacheData;
@@ -22,42 +32,20 @@ interface Props {
     colour?: string;
 }
 
-// Utility functions
-function calculateRatioData(tokenData: LineData[], baseData: LineData[]): LineData[] {
-    const ratioData: LineData[] = [];
-    let baseIdx = 0;
-    let currentBase: number | null = null;
-
-    for (const point of tokenData) {
-        const timeNum = Number(point.time);
-        if (isNaN(timeNum)) continue;
-
-        while (baseIdx < baseData.length && Number(baseData[baseIdx].time) <= timeNum) {
-            if (isValidDataPoint(baseData[baseIdx])) {
-                currentBase = baseData[baseIdx].value;
-            }
-            baseIdx++;
-        }
-
-        if (currentBase && currentBase !== 0 && !isNaN(currentBase)) {
-            ratioData.push({
-                time: point.time,
-                value: point.value / currentBase
-            });
-        }
-    }
-
-    return ratioData;
+// Convert LineData to ChartDataPoint format
+function convertToChartDataPoint(data: LineData[]): ChartDataPoint[] {
+    return data.map(point => ({
+        time: Number(point.time),
+        value: point.value
+    }));
 }
 
-function isValidDataPoint(point: LineData): boolean {
-    return !!(
-        point &&
-        typeof point.time !== 'undefined' &&
-        typeof point.value === 'number' &&
-        !isNaN(point.value) &&
-        isFinite(point.value)
-    );
+// Convert ChartDataPoint back to LineData format
+function convertToLineData(data: ChartDataPoint[]): LineData[] {
+    return data.map(point => ({
+        time: point.time as any,
+        value: point.value
+    }));
 }
 
 function formatPrice(price: number): string {
@@ -73,7 +61,7 @@ function formatPrice(price: number): string {
 // UI Components
 function ChartSkeleton() {
     return (
-        <div className="w-full h-[220px] bg-muted/20 rounded-lg flex items-center justify-center">
+        <div className="w-full h-[220px] bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg flex items-center justify-center">
             <div className="flex items-center space-x-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm">Loading chart data...</span>
@@ -84,7 +72,7 @@ function ChartSkeleton() {
 
 function ChartError({ error, onRetry }: { error: string; onRetry: () => void }) {
     return (
-        <div className="w-full h-[220px] bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col items-center justify-center space-y-3">
+        <div className="w-full h-[220px] bg-white/[0.03] border border-red-500/[0.15] rounded-lg flex flex-col items-center justify-center space-y-3">
             <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <span className="text-sm font-medium">Failed to load chart</span>
@@ -105,7 +93,7 @@ function ChartError({ error, onRetry }: { error: string; onRetry: () => void }) 
 
 function EmptyChart({ token }: { token: TokenCacheData }) {
     return (
-        <div className="w-full h-[220px] bg-muted/10 border border-muted/30 rounded-lg flex flex-col items-center justify-center space-y-2">
+        <div className="w-full h-[220px] bg-white/[0.03] border border-white/[0.08] rounded-lg flex flex-col items-center justify-center space-y-2">
             <div className="text-muted-foreground text-sm">No price data available</div>
             <div className="text-xs text-muted-foreground/70">
                 No historical data found for {token.symbol}
@@ -130,6 +118,17 @@ export default function ConditionTokenChart({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<LineData[] | null>(null);
+    const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+
+    // Real-time price data
+    const { address } = useWallet();
+    const { prices } = useBlaze({ userId: address });
+    const priceSeriesService = usePriceSeriesService();
+    const currentTokenPrice = prices[token?.contractId ?? ''];
+    const currentBasePrice = baseToken ? prices[baseToken.contractId ?? ''] : null;
+
+    // Ref to track last prices to avoid duplicate updates
+    const lastPricesRef = useRef<{ token: number | null, base: number | null }>({ token: null, base: null });
 
     // Fetch data and initialize chart
     const loadChart = useCallback(async () => {
@@ -139,19 +138,13 @@ export default function ConditionTokenChart({
         setError(null);
 
         try {
-            // Fetch data
-            const [tokenResponse, baseResponse] = await Promise.all([
-                fetch(`/api/price-series?contractId=${encodeURIComponent(token.contractId)}`),
-                baseToken?.contractId
-                    ? fetch(`/api/price-series?contractId=${encodeURIComponent(baseToken.contractId)}`)
-                    : Promise.resolve(null)
-            ]);
+            // Use bulk fetching for efficiency
+            const contractIds = baseToken?.contractId 
+                ? [token.contractId, baseToken.contractId]
+                : [token.contractId];
 
-            if (!tokenResponse.ok) {
-                throw new Error(`Failed to fetch price data: ${tokenResponse.status}`);
-            }
-
-            const tokenData: LineData[] = await tokenResponse.json();
+            const bulkData = await priceSeriesService.fetchBulkPriceSeries(contractIds);
+            const tokenData = bulkData[token.contractId] || [];
 
             if (!Array.isArray(tokenData)) {
                 throw new Error("Invalid price data format");
@@ -160,14 +153,27 @@ export default function ConditionTokenChart({
             let processedData = tokenData;
 
             // Process ratio data if base token exists
-            if (baseResponse?.ok && baseToken?.contractId) {
-                const baseData: LineData[] = await baseResponse.json();
+            if (baseToken?.contractId && bulkData[baseToken.contractId]) {
+                const baseData = bulkData[baseToken.contractId];
                 if (Array.isArray(baseData)) {
-                    processedData = calculateRatioData(tokenData, baseData);
+                    // Convert to ChartDataPoint format and use resilient ratio calculation
+                    const tokenChartData = convertToChartDataPoint(tokenData);
+                    const baseChartData = convertToChartDataPoint(baseData);
+                    
+                    const ratioChartData = calculateResilientRatioData(tokenChartData, baseChartData);
+                    processedData = convertToLineData(ratioChartData);
                 }
+            } else {
+                // For single token data, apply resilience if needed
+                const tokenChartData = convertToChartDataPoint(tokenData);
+                const enhancedData = enhanceSparseTokenData(tokenChartData, getDefaultTimeRange());
+                processedData = convertToLineData(enhancedData);
             }
 
-            const validData = processedData.filter(isValidDataPoint);
+            const validData = processedData.filter((point): point is LineData => isValidDataPoint({
+                time: Number(point.time),
+                value: point.value
+            }));
             setData(validData);
 
         } catch (err) {
@@ -177,7 +183,42 @@ export default function ConditionTokenChart({
         } finally {
             setLoading(false);
         }
-    }, [token.contractId, baseToken?.contractId]);
+    }, [token.contractId, baseToken?.contractId, priceSeriesService]);
+
+    // Effect to handle real-time price updates from useBlaze
+    useEffect(() => {
+        if (!seriesRef.current || !currentTokenPrice || currentTokenPrice <= 0) return;
+
+        // Check if prices have actually changed
+        const hasTokenPriceChanged = lastPricesRef.current.token !== currentTokenPrice;
+        const hasBasePriceChanged = lastPricesRef.current.base !== currentBasePrice;
+        
+        if (!hasTokenPriceChanged && !hasBasePriceChanged) return;
+
+        const now = Math.floor(Date.now() / 1000); // Convert to seconds for lightweight-charts
+        let newPrice = currentTokenPrice;
+
+        // If we have a base token, calculate the ratio
+        if (baseToken && currentBasePrice && currentBasePrice > 0) {
+            newPrice = currentTokenPrice / currentBasePrice;
+        }
+
+        try {
+            // Use the update API to add the new data point
+            seriesRef.current.update({
+                time: now as any,
+                value: newPrice
+            });
+
+            // Update our refs
+            lastPricesRef.current = { token: currentTokenPrice, base: currentBasePrice };
+            setLastUpdateTime(now);
+            
+            console.log(`[real-time update] Chart updated: ${newPrice} at ${now}`);
+        } catch (error) {
+            console.warn('[real-time update] Failed to update chart:', error);
+        }
+    }, [currentTokenPrice, currentBasePrice, baseToken]);
 
     // Initialize chart when container and data are ready
     useEffect(() => {

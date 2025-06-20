@@ -53,79 +53,62 @@ export default function TokenFilters({
     };
 
     return (
-        <div className={cn("space-y-4", className)}>
-            <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-                {/* Category Filters */}
+        <div className={cn("", className)}>
+            <div className="flex flex-col lg:flex-row gap-6 lg:items-center lg:justify-between">
+                {/* Clean category filters - no heavy borders */}
                 <div className="flex flex-wrap gap-2">
                     {categories.map((category) => (
                         <button
                             key={category.id}
                             onClick={() => setCategoryFilter(category.id)}
                             className={cn(
-                                "inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors",
+                                "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                                 categoryFilter === category.id
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "bg-card border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                                    ? "bg-white/[0.08] text-white border border-white/[0.2]"
+                                    : "text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent"
                             )}
                         >
-                            <span>{category.icon}</span>
+                            <span className="text-xs">{category.icon}</span>
                             {category.label}
                         </button>
                     ))}
                 </div>
 
-                {/* Sort & Actions */}
-                <div className="flex items-center gap-3">
-                    {/* Sort Dropdown */}
-                    <div className="flex items-center gap-2">
-                        <Filter className="h-4 w-4 text-muted-foreground" />
+                {/* Minimal sort & actions */}
+                <div className="flex items-center gap-4">
+                    {/* Clean sort selector */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-white/40">Sort by</span>
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            className="bg-transparent border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/[0.3] transition-colors duration-200"
                         >
                             {sortOptions.map((option) => (
-                                <option key={option.id} value={option.id}>
-                                    Sort by {option.label}
+                                <option key={option.id} value={option.id} className="bg-black text-white">
+                                    {option.label}
                                 </option>
                             ))}
                         </select>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Subtle action buttons */}
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleExport}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted/50 text-sm font-medium transition-colors"
+                            className="p-2 rounded-xl hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
                             title="Export data"
                         >
                             <Download className="h-4 w-4" />
-                            <span className="hidden sm:inline">Export</span>
                         </button>
 
                         <button
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-muted/50 text-sm font-medium transition-colors"
+                            className="p-2 rounded-xl hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
                             title="Watchlist"
                         >
                             <Heart className="h-4 w-4" />
-                            <span className="hidden sm:inline">Watchlist</span>
                         </button>
                     </div>
-                </div>
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/20 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                    <Info className="h-3 w-3" />
-                    <span>Legend:</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <Flame className="h-3 w-3 text-red-500" />
-                    <span>Subnet Available (in Subnets column)</span>
-                </div>
-                <div className="text-xs">
-                    • Filtered: Tokens without images and SUBNET wrapper tokens are hidden
                 </div>
             </div>
         </div>
