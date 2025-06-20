@@ -11,6 +11,14 @@ import { saveSwapPreferences, loadBasicPreferences, loadTokenPreferences as load
 import { listTokens as fetchAllTokensServerAction } from '../app/actions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 
+interface ValidationAlert {
+  id: string;
+  type: 'swap' | 'order';
+  message: string;
+  requirements: string[];
+  timestamp: number;
+}
+
 interface SwapTokensContextType {
   // Current token state
   selectedTokens: TokenCacheData[];
@@ -66,10 +74,9 @@ interface SwapTokensContextType {
   // Price management functions
   handleBumpPrice: (percent: number) => void;
 
-  // Token mapping helpers
+  // Simplified token helpers
   displayTokens: TokenCacheData[];
   subnetDisplayTokens: TokenCacheData[];
-  tokenCounterparts: Map<string, { mainnet: TokenCacheData | null; subnet: TokenCacheData | null }>;
   hasBothVersions: (token: TokenCacheData | null) => boolean;
   setSelectedFromTokenSafe: (token: TokenCacheData) => void;
 
@@ -79,6 +86,12 @@ interface SwapTokensContextType {
 
   // Error handling
   setError: (error: string | null) => void;
+
+  // Validation alerts
+  validationAlert: ValidationAlert | null;
+  setValidationAlert: (alert: ValidationAlert | null) => void;
+  clearValidationAlert: () => void;
+  triggerValidationAlert: (type: 'swap' | 'order') => void;
 }
 
 const SwapTokensContext = createContext<SwapTokensContextType | undefined>(undefined);
@@ -119,6 +132,9 @@ export function SwapTokensProvider({
   const [isInitializing, setIsInitializing] = useState(true);
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Validation alert state
+  const [validationAlert, setValidationAlert] = useState<ValidationAlert | null>(null);
 
   // Ref to track previous mode for order mode defaults
   const prevModeRef = useRef<string>(mode);
@@ -366,14 +382,29 @@ export function SwapTokensProvider({
     setTargetPrice(updated.toPrecision(9));
   }, [targetPrice, setTargetPrice]);
 
-  // ---------------------- Token Mapping Logic ----------------------
-  // Token mapping helpers (mainnet vs. subnet versions)
-  const { displayTokens, subnetDisplayTokens, tokenCounterparts } = useMemo(() => {
+  // ---------------------- Validation Alert Functions ----------------------
+  const clearValidationAlert = useCallback(() => {
+    setValidationAlert(null);
+  }, []);
+
+  const triggerValidationAlert = useCallback((type: 'swap' | 'order') => {
+    const alert: ValidationAlert = {
+      id: `validation-${Date.now()}`,
+      type,
+      message: type === 'swap' ? 'Cannot execute swap' : 'Cannot create order',
+      requirements: [],
+      timestamp: Date.now()
+    };
+    setValidationAlert(alert);
+  }, []);
+
+  // ---------------------- Simplified Token Logic ----------------------
+  // Simple token filtering - no complex mapping needed since BlazeProvider handles balance data
+  const { displayTokens, subnetDisplayTokens } = useMemo(() => {
     if (!selectedTokens || selectedTokens.length === 0) {
       return {
         displayTokens: [],
-        subnetDisplayTokens: [],
-        tokenCounterparts: new Map<string, { mainnet: TokenCacheData | null; subnet: TokenCacheData | null }>()
+        subnetDisplayTokens: []
       };
     }
 
@@ -382,41 +413,26 @@ export function SwapTokensProvider({
     // Subnet tokens: type === 'SUBNET'
     const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
 
-    // Map base contractId to { mainnet, subnet }
-    const tokenCounterparts = new Map<string, { mainnet: TokenCacheData | null; subnet: TokenCacheData | null }>();
-    for (const mainnet of mainnetTokens) {
-      tokenCounterparts.set(mainnet.contractId, { mainnet, subnet: null });
-    }
-    for (const subnet of subnetTokens) {
-      if (!subnet.base) continue; // Skip if base is undefined
-      const baseId = subnet.base;
-      if (!tokenCounterparts.has(baseId)) {
-        tokenCounterparts.set(baseId, { mainnet: null, subnet });
-      } else {
-        tokenCounterparts.get(baseId)!.subnet = subnet;
-      }
-    }
-
     const sortedDisplayTokens = mainnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
     const sortedSubnetTokens = subnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
 
     return {
       displayTokens: sortedDisplayTokens,
-      subnetDisplayTokens: sortedSubnetTokens,
-      tokenCounterparts
+      subnetDisplayTokens: sortedSubnetTokens
     };
   }, [selectedTokens]);
 
   const hasBothVersions = useCallback((token: TokenCacheData | null): boolean => {
     if (!token) return false;
+    
     if (token.type === 'SUBNET') {
-      // Subnet token: check if mainnet exists
-      return !!(token.base && tokenCounterparts.get(token.base)?.mainnet);
+      // Subnet token: check if mainnet version exists
+      return !!(token.base && selectedTokens.find(t => t.contractId === token.base && t.type !== 'SUBNET'));
     } else {
-      // Mainnet token: check if subnet exists
-      return !!tokenCounterparts.get(token.contractId)?.subnet;
+      // Mainnet token: check if subnet version exists
+      return !!selectedTokens.find(t => t.base === token.contractId && t.type === 'SUBNET');
     }
-  }, [tokenCounterparts]);
+  }, [selectedTokens]);
 
   // Safe setter that optionally forces subnet version if in order mode
   const setSelectedFromTokenSafe = useCallback((t: TokenCacheData) => {
@@ -436,29 +452,25 @@ export function SwapTokensProvider({
   }, [mode, hasBothVersions]);
 
   // ---------------------- UI Helper Logic ----------------------
-  // Determine which tokens are currently displayed in dropdowns (could be base or subnet)
+  // Determine which tokens are currently displayed in dropdowns (show base/mainnet versions for dropdowns)
   const displayedFromToken = useMemo(() => {
-    if (!selectedFromToken || !displayTokens.length) return null;
-
-    return displayTokens.find(dt => {
-      const baseId = dt.type === 'SUBNET' ? dt.base! : dt.contractId;
-      const selectedBaseId = selectedFromToken.type === 'SUBNET'
-        ? selectedFromToken.base!
-        : selectedFromToken.contractId;
-      return baseId === selectedBaseId;
-    }) || null;
+    if (!selectedFromToken) return null;
+    
+    // If it's already a mainnet token, return it
+    if (selectedFromToken.type !== 'SUBNET') return selectedFromToken;
+    
+    // If it's a subnet token, find the mainnet version
+    return displayTokens.find(dt => dt.contractId === selectedFromToken.base) || selectedFromToken;
   }, [selectedFromToken, displayTokens]);
 
   const displayedToToken = useMemo(() => {
-    if (!selectedToToken || !displayTokens.length) return null;
-
-    return displayTokens.find(dt => {
-      const baseId = dt.type === 'SUBNET' ? dt.base! : dt.contractId;
-      const selectedBaseId = selectedToToken.type === 'SUBNET'
-        ? selectedToToken.base!
-        : selectedToToken.contractId;
-      return baseId === selectedBaseId;
-    }) || null;
+    if (!selectedToToken) return null;
+    
+    // If it's already a mainnet token, return it
+    if (selectedToToken.type !== 'SUBNET') return selectedToToken;
+    
+    // If it's a subnet token, find the mainnet version
+    return displayTokens.find(dt => dt.contractId === selectedToToken.base) || selectedToToken;
   }, [selectedToToken, displayTokens]);
 
   // ---------------------- Effects ----------------------
@@ -478,6 +490,20 @@ export function SwapTokensProvider({
       saveTokenPreferences();
     }
   }, [selectedFromToken, selectedToToken, conditionToken, baseToken, mode, useSubnetFrom, useSubnetTo, initDone, selectedTokens.length, saveTokenPreferences]);
+
+  // Auto-dismiss validation alert when requirements are satisfied
+  useEffect(() => {
+    if (!validationAlert) return;
+
+    const hasSelectedTokens = selectedFromToken && selectedToToken;
+    const hasAmount = displayAmount && displayAmount !== "0" && displayAmount.trim() !== "";
+    const hasTargetPrice = validationAlert.type === 'swap' || (targetPrice && targetPrice !== '');
+
+    // If all requirements are now satisfied, dismiss the alert
+    if (hasSelectedTokens && hasAmount && hasTargetPrice) {
+      clearValidationAlert();
+    }
+  }, [validationAlert, selectedFromToken, selectedToToken, displayAmount, targetPrice, clearValidationAlert]);
 
   // Load preferences after tokens are loaded and URL params are processed
   useEffect(() => {
@@ -547,13 +573,13 @@ export function SwapTokensProvider({
       // 2. Enable subnet mode for FROM token
       setUseSubnetFrom(true);
 
-      // 3. Set the condition token to sBTC
-      const counterparts = tokenCounterparts.get(sbtcBase.contractId);
-      const sbtcToSet = counterparts?.subnet ?? sbtcBase;
+      // 3. Set the condition token to sBTC (prefer subnet version if available)
+      const sbtcSubnet = subnetDisplayTokens.find(t => t.base === sbtcBase.contractId);
+      const sbtcToSet = sbtcSubnet ?? sbtcBase;
       setConditionToken(sbtcToSet);
     }
     // No else needed - we don't want to interfere if the mode is not 'order' or if a token is already selected
-  }, [mode, conditionToken, displayTokens, tokenCounterparts, setSelectedFromTokenSafe, urlParams.fromSymbol, urlParams.toSymbol]);
+  }, [mode, conditionToken, displayTokens, subnetDisplayTokens, setSelectedFromTokenSafe, urlParams.fromSymbol, urlParams.toSymbol]);
 
   // ---------------------- Context Value ----------------------
   const contextValue: SwapTokensContextType = {
@@ -611,10 +637,9 @@ export function SwapTokensProvider({
     // Price management functions
     handleBumpPrice,
 
-    // Token mapping helpers
+    // Simplified token helpers
     displayTokens,
     subnetDisplayTokens,
-    tokenCounterparts,
     hasBothVersions,
     setSelectedFromTokenSafe,
 
@@ -624,6 +649,12 @@ export function SwapTokensProvider({
 
     // Error handling
     setError,
+
+    // Validation alerts
+    validationAlert,
+    setValidationAlert,
+    clearValidationAlert,
+    triggerValidationAlert,
   };
 
   return (

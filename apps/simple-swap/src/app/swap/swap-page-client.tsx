@@ -11,6 +11,7 @@ import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import TokenLogo from '@/components/TokenLogo';
 import { Menu, X, BarChart3, Info, ArrowRight, Zap, TrendingUp, Shield, Clock } from 'lucide-react';
 import ErrorAlert from '@/components/swap-interface/error-alert';
+import ValidationAlert from '@/components/swap-interface/validation-alert';
 import { formatTokenAmount } from '@/lib/swap-utils';
 
 interface SwapPageClientProps {
@@ -187,6 +188,9 @@ function SwapInformationSidebar() {
                 </div>
             )}
 
+            {/* Validation Alert */}
+            <ValidationAlert />
+            
             {/* Error Alert */}
             <ErrorAlert />
         </div>

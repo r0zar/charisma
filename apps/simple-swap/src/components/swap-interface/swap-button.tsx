@@ -18,6 +18,7 @@ export default function SwapButton() {
         selectedFromToken,
         selectedToToken,
         displayAmount,
+        triggerValidationAlert,
     } = useSwapTokens();
 
     const isDisabled = !quote || isLoadingQuote || swapping;
@@ -104,12 +105,19 @@ export default function SwapButton() {
         );
     }
 
+    const handleClick = () => {
+        if (isDisabled) {
+            triggerValidationAlert('swap');
+            return;
+        }
+        handleSwap();
+    };
+
     return (
         <Button
-            disabled={isDisabled}
-            onClick={handleSwap}
+            onClick={handleClick}
             className={`w-full py-3.5 rounded-xl font-medium text-white shadow-lg transition-all transform relative overflow-hidden ${isDisabled
-                ? 'bg-primary/60 cursor-not-allowed opacity-70'
+                ? 'bg-primary/60 cursor-pointer opacity-70 hover:opacity-80'
                 : isSubnetShift
                     ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-600 hover:to-purple-600 active:scale-[0.99]'
                     : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary hover:to-primary/80 active:scale-[0.99]'

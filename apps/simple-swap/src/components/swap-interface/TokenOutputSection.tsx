@@ -28,7 +28,6 @@ export default function TokenOutputSection() {
         setUseSubnetTo,
         setSelectedToToken,
         setBaseSelectedToToken,
-        tokenCounterparts,
     } = useSwapTokens();
 
     const { quote, isLoadingQuote, totalPriceImpact, toLabel } = useRouterTrading();

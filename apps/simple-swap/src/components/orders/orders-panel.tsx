@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../ui/dialog";
 import TokenLogo from "../TokenLogo";
-import { ClipboardList, Copy, Check, Zap, Trash2, Search } from "lucide-react";
+import { ClipboardList, Copy, Check, Zap, Trash2, Search, ExternalLink } from "lucide-react";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../ui/tooltip";
@@ -511,20 +511,52 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                 </div>
 
                                 {/* Transaction Details */}
-                                {o.status === "filled" && o.txid && (
+                                {o.txid && (
                                     <div>
                                         <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Transaction</h4>
                                         <div className="flex justify-between items-center">
                                             <span className="text-white/60">TxID:</span>
-                                            <a
-                                                href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-400 hover:text-blue-300 transition-colors duration-200 font-mono text-xs truncate max-w-[150px]"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                {o.txid.substring(0, 10)}...
-                                            </a>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-white/90 font-mono text-xs truncate max-w-[120px]" title={o.txid}>
+                                                    {o.txid.substring(0, 8)}...
+                                                </span>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <a
+                                                            href={`https://explorer.stacks.co/txid/${o.txid}?chain=mainnet`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="p-1 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400 transition-all duration-200"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <ExternalLink className="h-3 w-3" />
+                                                        </a>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        View transaction on Stacks Explorer
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                copyToClipboard(o.txid!, `txid-${o.uuid}`);
+                                                            }}
+                                                            className="p-1 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+                                                        >
+                                                            {copiedId === `txid-${o.uuid}` ? (
+                                                                <Check className="h-3 w-3 text-emerald-400" />
+                                                            ) : (
+                                                                <Copy className="h-3 w-3" />
+                                                            )}
+                                                        </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        Copy transaction ID
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </div>
                                         </div>
                                     </div>
                                 )}

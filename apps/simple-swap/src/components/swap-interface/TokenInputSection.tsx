@@ -30,7 +30,6 @@ export default function TokenInputSection() {
         setUseSubnetFrom,
         setSelectedFromTokenSafe,
         setBaseSelectedFromToken,
-        tokenCounterparts,
     } = useSwapTokens();
 
     const { address } = useWallet();
