@@ -17,14 +17,18 @@ import {
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { PoolEdge } from '@/lib/pricing/price-graph';
+import {
+  formatTokenReserve,
+  calculateTokenSharePercentage,
+  calculateDecimalAwareUIExchangeRate,
+  formatNumber,
+  formatPercentage,
+  getTokenDecimalsFromMeta,
+  type TokenMeta as UITokenMeta
+} from '@/lib/ui-decimal-utils';
 
-interface TokenMeta {
-  contractId: string;
-  symbol: string;
-  name: string;
-  decimals: number;
-  image?: string;
-}
+// Use the TokenMeta from ui-decimal-utils
+type TokenMeta = UITokenMeta;
 
 interface PoolBreakdownTableProps {
   tokenId: string;
@@ -47,18 +51,7 @@ interface EnhancedPoolData {
 type SortField = 'liquidity' | 'tokenReserve' | 'share' | 'rate' | 'updated';
 type SortDirection = 'asc' | 'desc';
 
-const formatNumber = (value: number, precision: number = 2): string => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(precision)}M`;
-  } else if (value >= 1000) {
-    return `${(value / 1000).toFixed(precision)}K`;
-  }
-  return value.toFixed(precision);
-};
-
-const formatPercentage = (value: number): string => {
-  return `${value.toFixed(2)}%`;
-};
+// formatNumber and formatPercentage are now imported from ui-decimal-utils
 
 const getTimeAgo = (timestamp: number): string => {
   const now = Date.now();
@@ -109,13 +102,29 @@ export default function PoolBreakdownTable({
       const pairedTokenId = isTokenA ? pool.tokenB : pool.tokenA;
       const pairedToken = allTokens.find(t => t.contractId === pairedTokenId) || null;
       
-      const tokenReserve = isTokenA ? pool.reserveA : pool.reserveB;
-      const pairedReserve = isTokenA ? pool.reserveB : pool.reserveA;
+      // Get raw atomic reserves
+      const tokenReserveAtomic = isTokenA ? pool.reserveA : pool.reserveB;
+      const pairedReserveAtomic = isTokenA ? pool.reserveB : pool.reserveA;
       
+      // Get token decimals
+      const tokenDecimals = getTokenDecimalsFromMeta(tokenId, allTokens);
+      const pairedDecimals = getTokenDecimalsFromMeta(pairedTokenId, allTokens);
+      
+      // Convert to decimal format for calculations
+      const tokenReserve = formatTokenReserve(tokenReserveAtomic, tokenDecimals);
+      const pairedReserve = formatTokenReserve(pairedReserveAtomic, pairedDecimals);
+      
+      // Calculate decimal-aware metrics
       const totalLiquidity = pool.liquidityUsd || Math.sqrt(tokenReserve * pairedReserve);
-      const tokenShare = totalLiquidity > 0 ? (tokenReserve / totalLiquidity) * 100 : 0;
+      const tokenShare = calculateTokenSharePercentage(
+        tokenReserveAtomic, tokenDecimals,
+        pairedReserveAtomic, pairedDecimals
+      );
       
-      const exchangeRate = pairedReserve > 0 ? tokenReserve / pairedReserve : 0;
+      const exchangeRate = calculateDecimalAwareUIExchangeRate(
+        tokenReserveAtomic, tokenDecimals,
+        pairedReserveAtomic, pairedDecimals
+      );
       
       // Calculate liquidity score (0-1)
       const liquidityScore = Math.min(1, totalLiquidity / 100000); // Normalize to $100k max

@@ -17,6 +17,11 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import {
+  formatTokenReserve,
+  getTokenDecimalsFromMeta,
+  formatNumber
+} from '@/lib/ui-decimal-utils';
 
 interface TokenPriceDetailProps {
   tokenData: {
@@ -197,7 +202,7 @@ export default function TokenPriceDetail({ tokenData }: TokenPriceDetailProps) {
                     </div>
                     <div>
                       <div className="text-lg font-semibold">
-                        ${tokenData.primaryPath.totalLiquidity.toLocaleString()}
+                        ${formatNumber(tokenData.primaryPath.totalLiquidity)}
                       </div>
                       <div className="text-xs text-muted-foreground">Total Liquidity</div>
                     </div>
@@ -231,7 +236,7 @@ export default function TokenPriceDetail({ tokenData }: TokenPriceDetailProps) {
                               </div>
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
-                              Reserves: {pool.reserveA.toLocaleString()} / {pool.reserveB.toLocaleString()}
+                              Reserves: {formatNumber(formatTokenReserve(pool.reserveA, tokenData.decimals || 6))} / {formatNumber(formatTokenReserve(pool.reserveB, 8))}
                             </div>
                           </div>
                         ))}
@@ -273,7 +278,7 @@ export default function TokenPriceDetail({ tokenData }: TokenPriceDetailProps) {
                         {path.tokens.map(token => token.split('.')[1] || token).join(' → ')}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Liquidity: ${path.totalLiquidity.toLocaleString()}
+                        Liquidity: ${formatNumber(path.totalLiquidity)}
                       </div>
                     </div>
                   ))}
