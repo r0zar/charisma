@@ -68,30 +68,30 @@ export const StatCard: React.FC<StatCardProps> = ({
         lg: 'p-5'
     }
 
-    // Color-based styles
+    // Color-based styles - using card background with subtle colored borders
     const colorStyles = {
-        default: 'text-foreground bg-card',
-        primary: 'bg-primary/10 border-primary/20',
-        secondary: 'bg-secondary/10 border-secondary/20',
-        success: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800',
-        warning: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
-        danger: 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
+        default: 'bg-card text-card-foreground border-border',
+        primary: 'bg-card text-card-foreground border-primary/20',
+        secondary: 'bg-card text-card-foreground border-secondary/20',
+        success: 'bg-card text-card-foreground border-emerald-500/20',
+        warning: 'bg-card text-card-foreground border-amber-500/20',
+        danger: 'bg-card text-card-foreground border-rose-500/20'
     }
 
     // Icon color based on color scheme
     const iconColors = {
-        default: 'text-background',
-        primary: 'text-background',
-        secondary: 'text-background',
-        success: 'text-emerald-500 dark:text-emerald-400',
-        warning: 'text-amber-500 dark:text-amber-400',
-        danger: 'text-rose-500 dark:text-rose-400'
+        default: 'text-muted-foreground',
+        primary: 'text-primary',
+        secondary: 'text-secondary',
+        success: 'text-emerald-400',
+        warning: 'text-amber-400',
+        danger: 'text-rose-400'
     }
 
     // Change colors
     const changeColors = {
-        up: 'text-emerald-600 dark:text-emerald-400',
-        down: 'text-rose-600 dark:text-rose-400',
+        up: 'text-emerald-400',
+        down: 'text-rose-400',
         neutral: 'text-muted-foreground'
     }
 
@@ -176,7 +176,12 @@ export const StatCard: React.FC<StatCardProps> = ({
 
                 <div className={cn(
                     "rounded-full p-2",
-                    `bg-opacity-10 bg-${colorScheme === 'default' ? 'primary' : colorScheme}`
+                    colorScheme === 'default' ? 'bg-primary/10' :
+                    colorScheme === 'primary' ? 'bg-primary/10' :
+                    colorScheme === 'secondary' ? 'bg-secondary/10' :
+                    colorScheme === 'success' ? 'bg-emerald-500/10' :
+                    colorScheme === 'warning' ? 'bg-amber-500/10' :
+                    colorScheme === 'danger' ? 'bg-rose-500/10' : 'bg-primary/10'
                 )}>
                     <IconComponent className={cn(
                         "h-5 w-5",

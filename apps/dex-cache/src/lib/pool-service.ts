@@ -48,6 +48,7 @@ export interface Vault {
 export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
 export const VAULT_BLACKLIST_KEY = "vault-blacklist:dex"; // Blacklist key for vaults
 const RESERVE_CACHE_DURATION_MS = 30 * 1000; // 30 seconds
+const PRICING_RESERVE_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes for pricing calculations
 const MIN_RESERVE_VALUE_TO_BE_VALID = 1; // Minimum value for a reserve to be considered valid
 
 // Define an extended Vault type for internal use with timestamp
@@ -160,13 +161,22 @@ export const getCacheKey = (contractId: string): string => `${VAULT_CACHE_KEY_PR
 
 
 // Helper to fetch and update reserves, trying primary then backup method
-async function fetchAndUpdateReserves(cachedVault: CachedVault): Promise<CachedVault> {
+async function fetchAndUpdateReserves(cachedVault: CachedVault, forPricing = false): Promise<CachedVault> {
     const now = Date.now();
+    const cacheDuration = forPricing ? PRICING_RESERVE_CACHE_DURATION_MS : RESERVE_CACHE_DURATION_MS;
 
     if (cachedVault.reservesLastUpdatedAt &&
-        (now - cachedVault.reservesLastUpdatedAt < RESERVE_CACHE_DURATION_MS) &&
+        (now - cachedVault.reservesLastUpdatedAt < cacheDuration) &&
         (cachedVault.reservesA !== undefined && cachedVault.reservesA >= MIN_RESERVE_VALUE_TO_BE_VALID && cachedVault.reservesB !== undefined && cachedVault.reservesB >= MIN_RESERVE_VALUE_TO_BE_VALID)
     ) {
+        cachedVault.reservesA = Number(cachedVault.reservesA || 0);
+        cachedVault.reservesB = Number(cachedVault.reservesB || 0);
+        return cachedVault;
+    }
+
+    // For pricing calculations, don't make on-chain calls - use cached data even if stale
+    if (forPricing) {
+        console.log(`[PoolService] Using potentially stale reserve data for pricing: ${cachedVault.contractId}`);
         cachedVault.reservesA = Number(cachedVault.reservesA || 0);
         cachedVault.reservesB = Number(cachedVault.reservesB || 0);
         return cachedVault;
@@ -368,15 +378,73 @@ export const getVaultData = async (contractId: string): Promise<Vault | null> =>
             return null;
         }
 
-        if ((cachedVault.type === 'POOL' || cachedVault.type === 'SUBLINK') && cachedVault.tokenA && cachedVault.tokenB) {
-            return await fetchAndUpdateReserves(cachedVault);
+        // Only return cached data - no on-chain calls for pricing
+        console.log(`[PoolService] Returning cached vault data for ${contractId} (cache-only mode)`);
+        cachedVault.reservesA = Number(cachedVault.reservesA || 0);
+        cachedVault.reservesB = Number(cachedVault.reservesB || 0);
+        return cachedVault;
+
+    } catch (error) {
+        console.error(`[getVaultData] Error processing for ${contractId}:`, error);
+        return null;
+    }
+};
+
+/**
+ * Get vault data WITH reserve updates (for cron jobs only)
+ * This function makes on-chain calls and should only be used by background processes
+ */
+export const getVaultDataWithReserveUpdate = async (contractId: string): Promise<Vault | null> => {
+    const isSpecialToken = contractId === '.stx';
+    if (!contractId || (!isSpecialToken && !contractId.includes('.'))) {
+        console.warn(`[PoolService] Invalid contractId format for getVaultDataWithReserveUpdate: ${contractId}`);
+        return null;
+    }
+
+    // Check if vault is blacklisted
+    if (await isVaultBlacklisted(contractId)) {
+        console.log(`Vault ${contractId} is blacklisted, returning null`);
+        return null;
+    }
+
+    const cacheKey = getCacheKey(contractId);
+
+    try {
+        const rawCachedData = await kv.get<string | CachedVault>(cacheKey);
+        let cachedVault: CachedVault | null = null;
+
+        if (typeof rawCachedData === 'string') {
+            try {
+                cachedVault = JSON.parse(rawCachedData) as CachedVault;
+            } catch (parseError) {
+                console.error(`[getVaultDataWithReserveUpdate] Failed to parse cached data for ${contractId}:`, parseError);
+                return null;
+            }
+        } else if (typeof rawCachedData === 'object' && rawCachedData !== null) {
+            cachedVault = rawCachedData as CachedVault;
         } else {
-            console.log(`[PoolService] Returning vault ${contractId} without reserve refresh (type: ${cachedVault.type}, tokens missing or not applicable).`);
+            console.log(`[getVaultDataWithReserveUpdate] No cached data found for ${contractId}`);
+            return null;
+        }
+
+        if (!cachedVault) {
+            console.warn(`[PoolService] Vault data is null for ${contractId}`);
+            return null;
+        }
+
+        // Update reserves if it's a pool/sublink
+        if ((cachedVault.type === 'POOL' || cachedVault.type === 'SUBLINK') && cachedVault.tokenA && cachedVault.tokenB) {
+            const updatedVault = await fetchAndUpdateReserves(cachedVault, false);
+            // Save updated data back to cache
+            await saveVaultData(updatedVault);
+            return updatedVault;
+        } else {
+            console.log(`[PoolService] Returning vault ${contractId} without reserve refresh (type: ${cachedVault.type})`);
             return cachedVault;
         }
 
     } catch (error) {
-        console.error(`[getVaultData] Error processing for ${contractId}:`, error);
+        console.error(`[getVaultDataWithReserveUpdate] Error processing for ${contractId}:`, error);
         return null;
     }
 };
@@ -449,6 +517,62 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
     }
 };
 
+/**
+ * Update reserves for all CHARISMA pools (for cron jobs only)
+ * This function makes on-chain calls and should only be used by background processes
+ */
+export const updateAllPoolReserves = async (): Promise<{ updated: number; errors: number }> => {
+    console.log('[PoolService] Starting bulk reserve update for CHARISMA pools...');
+    const startTime = Date.now();
+    
+    try {
+        const [vaultIds, blacklistedIds] = await Promise.all([
+            getManagedVaultIds(),
+            getBlacklistedVaultIds()
+        ]);
+
+        const validVaultIds = vaultIds.filter(id => !blacklistedIds.includes(id));
+        console.log(`[PoolService] Updating reserves for ${validVaultIds.length} vaults`);
+
+        let updated = 0;
+        let errors = 0;
+
+        // Process in smaller batches to avoid overwhelming the system
+        const batchSize = 5;
+        for (let i = 0; i < validVaultIds.length; i += batchSize) {
+            const batch = validVaultIds.slice(i, i + batchSize);
+            
+            const promises = batch.map(async (vaultId) => {
+                try {
+                    const vault = await getVaultDataWithReserveUpdate(vaultId);
+                    if (vault && (vault.type === 'POOL' || vault.type === 'SUBLINK') && vault.protocol === 'CHARISMA') {
+                        updated++;
+                        console.log(`[PoolService] Updated reserves for ${vault.symbol} (${vaultId})`);
+                    }
+                } catch (error) {
+                    errors++;
+                    console.error(`[PoolService] Failed to update reserves for ${vaultId}:`, error);
+                }
+            });
+
+            await Promise.all(promises);
+            
+            // Small delay between batches
+            if (i + batchSize < validVaultIds.length) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        const duration = Date.now() - startTime;
+        console.log(`[PoolService] Bulk reserve update completed in ${duration}ms: ${updated} updated, ${errors} errors`);
+        
+        return { updated, errors };
+    } catch (error) {
+        console.error('[PoolService] Failed to update pool reserves:', error);
+        return { updated: 0, errors: 1 };
+    }
+};
+
 // Get all vault data from KV
 export const getAllVaultData = async ({ protocol, type }: { protocol?: string, type?: string } = {}): Promise<Vault[]> => {
     try {
@@ -508,7 +632,10 @@ export const listVaultTokens = async (): Promise<Token[]> => {
     const vaults = await getAllVaultData();
     const tokenMap = new Map<string, Token>(); // Key: contractId, Value: Token object
 
-    const filteredVaults = vaults.filter(v => v.type === 'POOL' || v.type === 'SUBLINK');
+    const filteredVaults = vaults.filter(v => 
+        (v.type === 'POOL' || v.type === 'SUBLINK') && 
+        v.protocol === 'CHARISMA'
+    );
 
     for (const vault of filteredVaults) {
         // Process tokenA if it exists

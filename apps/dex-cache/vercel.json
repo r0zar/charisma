@@ -3,6 +3,14 @@
         {
             "path": "/api/v1/cron/energy-data",
             "schedule": "0 * * * *"
+        },
+        {
+            "path": "/api/cron/update-reserves",
+            "schedule": "*/5 * * * *"
+        },
+        {
+            "path": "/api/cron/warm-prices",
+            "schedule": "*/6 * * * *"
         }
     ]
 }

@@ -20,6 +20,7 @@ const navigationLinks = [
     { href: "/pools", label: "Liquidity Pools" },
     { href: "/sublinks", label: "Subnets" },
     { href: "/energy", label: "Hold-to-Earn" },
+    { href: "/prices", label: "Prices" },
 ];
 
 export default function Header() {
