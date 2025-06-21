@@ -187,7 +187,7 @@ export default function PriceDiscoveryInfo() {
             <div className="font-medium text-foreground">Multi-Pass Price Discovery:</div>
             <div className="ml-2 space-y-1">
               <div>1. <span className="font-medium">Path Analysis:</span> Calculate price for each route</div>
-              <div>2. <span className="font-medium">Outlier Removal:</span> Filter prices >50% from median</div>
+              <div>2. <span className="font-medium">Outlier Removal:</span> Filter prices &gt;50% from median</div>
               <div>3. <span className="font-medium">Weighted Average:</span> Combine remaining paths by weight</div>
               <div>4. <span className="font-medium">Confidence Scoring:</span> Price consistency + liquidity + path count</div>
             </div>

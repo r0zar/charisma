@@ -201,7 +201,7 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault, forPricing = fal
             const reservesResult = await callReadOnlyFunction(
                 contractAddress, contractName,
                 'quote',
-                [uintCV(0), opcodeCV(OPCODES.OP_LOOKUP_RESERVES)]
+                [uintCV(0), opcodeCV(OPCODES.LOOKUP_RESERVES)]
             );
 
             // Using dx/dy as fallback if reserve-a/reserve-b not present
@@ -524,7 +524,7 @@ export const saveVaultData = async (vault: CachedVault): Promise<boolean> => { /
 export const updateAllPoolReserves = async (): Promise<{ updated: number; errors: number }> => {
     console.log('[PoolService] Starting bulk reserve update for CHARISMA pools...');
     const startTime = Date.now();
-    
+
     try {
         const [vaultIds, blacklistedIds] = await Promise.all([
             getManagedVaultIds(),
@@ -541,7 +541,7 @@ export const updateAllPoolReserves = async (): Promise<{ updated: number; errors
         const batchSize = 5;
         for (let i = 0; i < validVaultIds.length; i += batchSize) {
             const batch = validVaultIds.slice(i, i + batchSize);
-            
+
             const promises = batch.map(async (vaultId) => {
                 try {
                     const vault = await getVaultDataWithReserveUpdate(vaultId);
@@ -556,7 +556,7 @@ export const updateAllPoolReserves = async (): Promise<{ updated: number; errors
             });
 
             await Promise.all(promises);
-            
+
             // Small delay between batches
             if (i + batchSize < validVaultIds.length) {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -565,7 +565,7 @@ export const updateAllPoolReserves = async (): Promise<{ updated: number; errors
 
         const duration = Date.now() - startTime;
         console.log(`[PoolService] Bulk reserve update completed in ${duration}ms: ${updated} updated, ${errors} errors`);
-        
+
         return { updated, errors };
     } catch (error) {
         console.error('[PoolService] Failed to update pool reserves:', error);
@@ -632,8 +632,8 @@ export const listVaultTokens = async (): Promise<Token[]> => {
     const vaults = await getAllVaultData();
     const tokenMap = new Map<string, Token>(); // Key: contractId, Value: Token object
 
-    const filteredVaults = vaults.filter(v => 
-        (v.type === 'POOL' || v.type === 'SUBLINK') && 
+    const filteredVaults = vaults.filter(v =>
+        (v.type === 'POOL' || v.type === 'SUBLINK') &&
         v.protocol === 'CHARISMA'
     );
 

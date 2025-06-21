@@ -1,5 +1,10 @@
 import { getAllVaultData, type Vault } from '../pool-service';
 import { SBTC_CONTRACT_ID } from './btc-oracle';
+import {
+    calculateDecimalAwareLiquidity,
+    getTokenDecimals,
+    isValidDecimalConversion
+} from './decimal-utils';
 
 export interface TokenNode {
     contractId: string;
@@ -134,7 +139,7 @@ export class PriceGraph {
                     });
                 }
 
-                // Calculate pool liquidity (we'll estimate USD value later in second pass)
+                // Calculate pool liquidity using decimal-aware conversion
                 let reserveA = vault.reservesA || 0;
                 let reserveB = vault.reservesB || 0;
                 
@@ -142,15 +147,25 @@ export class PriceGraph {
                 reserveA = typeof reserveA === 'string' ? parseFloat(reserveA) : reserveA;
                 reserveB = typeof reserveB === 'string' ? parseFloat(reserveB) : reserveB;
                 
-                console.log(`[PriceGraph] Reserves: ${vault.tokenA.symbol}=${reserveA}, ${vault.tokenB.symbol}=${reserveB}`);
+                console.log(`[PriceGraph] Atomic reserves: ${vault.tokenA.symbol}=${reserveA}, ${vault.tokenB.symbol}=${reserveB}`);
                 
                 if (!isFinite(reserveA) || !isFinite(reserveB) || reserveA <= 0 || reserveB <= 0) {
-                    console.warn(`[PriceGraph] Invalid reserves for ${vault.symbol}: A=${reserveA}, B=${reserveB}`);
+                    console.warn(`[PriceGraph] Invalid atomic reserves for ${vault.symbol}: A=${reserveA}, B=${reserveB}`);
                     continue;
                 }
                 
-                // Basic liquidity weight based on geometric mean of reserves
-                const liquidityWeight = Math.sqrt(reserveA * reserveB);
+                // Calculate decimal-aware liquidity weight
+                const liquidityWeight = calculateDecimalAwareLiquidity(
+                    reserveA, vault.tokenA.decimals,
+                    reserveB, vault.tokenB.decimals
+                );
+                
+                console.log(`[PriceGraph] Decimal-aware liquidity weight: ${liquidityWeight}`);
+                
+                if (liquidityWeight <= 0 || !isFinite(liquidityWeight)) {
+                    console.warn(`[PriceGraph] Invalid liquidity weight for ${vault.symbol}: ${liquidityWeight}`);
+                    continue;
+                }
                 
                 // Calculate edge weight for pathfinding
                 // Higher liquidity = lower cost for pathfinding
@@ -164,7 +179,7 @@ export class PriceGraph {
                     reserveB,
                     liquidityUsd: 0, // Will be calculated in second pass
                     weight: edgeWeight,
-                    lastUpdated: vault.reservesLastUpdatedAt || Date.now(),
+                    lastUpdated: Date.now(),
                     fee: 0 // Fee not used in pricing calculations
                 };
 
@@ -197,25 +212,35 @@ export class PriceGraph {
     }
 
     private async calculateLiquidityValues(): Promise<void> {
-        // For now, we'll use a simple approach where we try to estimate USD values
-        // This will be improved once we have the price calculator working
+        console.log('[PriceGraph] Calculating decimal-aware liquidity values for edges and nodes...');
         
-        console.log('[PriceGraph] Calculating liquidity values for edges and nodes...');
-        
-        // First, update edge liquidity values using geometric mean of reserves
-        for (const [poolId, edge] of this.pools) {
-            // Use geometric mean as a proxy for pool liquidity
-            const geometricMean = Math.sqrt(edge.reserveA * edge.reserveB);
+        // Update edge liquidity values using decimal-aware calculations
+        for (const [poolId, edge] of Array.from(this.pools.entries())) {
+            // Get token nodes for decimal information
+            const tokenANode = this.nodes.get(edge.tokenA);
+            const tokenBNode = this.nodes.get(edge.tokenB);
             
-            // Set a reasonable USD estimate - for now we'll use the geometric mean directly
-            // This isn't accurate USD but gives us relative liquidity for scoring
-            edge.liquidityUsd = geometricMean;
+            if (!tokenANode || !tokenBNode) {
+                console.warn(`[PriceGraph] Missing token nodes for pool ${poolId}`);
+                edge.liquidityUsd = 0;
+                continue;
+            }
             
-            console.log(`[PriceGraph] Pool ${poolId}: reserves(${edge.reserveA}, ${edge.reserveB}) -> liquidityUsd=${geometricMean}`);
+            // Calculate decimal-aware geometric mean
+            const decimalAwareLiquidity = calculateDecimalAwareLiquidity(
+                edge.reserveA, tokenANode.decimals,
+                edge.reserveB, tokenBNode.decimals
+            );
+            
+            // This gives us relative liquidity in decimal terms
+            // Still not accurate USD but much better scaling than atomic units
+            edge.liquidityUsd = decimalAwareLiquidity;
+            
+            console.log(`[PriceGraph] Pool ${poolId}: atomic(${edge.reserveA}, ${edge.reserveB}) -> decimal-aware liquidityUsd=${decimalAwareLiquidity}`);
         }
         
         // Update node statistics
-        for (const [tokenId, node] of this.nodes) {
+        for (const [tokenId, node] of Array.from(this.nodes.entries())) {
             const tokenEdges = this.edges.get(tokenId) || [];
             node.poolCount = tokenEdges.length;
             

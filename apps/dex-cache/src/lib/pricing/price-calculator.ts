@@ -1,6 +1,11 @@
 import { kv } from "@vercel/kv";
 import { getBtcPrice, SBTC_CONTRACT_ID, isStablecoin, type BtcPriceData } from './btc-oracle';
 import { getPriceGraph, type PricePath, type PoolEdge } from './price-graph';
+import {
+    calculateDecimalAwareExchangeRate,
+    getTokenDecimals,
+    isValidDecimalConversion
+} from './decimal-utils';
 
 // Cache keys
 const TOKEN_PRICE_CACHE_PREFIX = 'token-price:';
@@ -191,7 +196,7 @@ export class PriceCalculator {
 
         // Calculate price for each path
         for (const path of paths) {
-            const pathPrice = this.calculatePathPrice(path);
+            const pathPrice = await this.calculatePathPrice(path);
             if (pathPrice !== null && pathPrice > 0 && isFinite(pathPrice)) {
                 const weight = this.calculatePathWeight(path);
                 pathPrices.push({
@@ -300,15 +305,20 @@ export class PriceCalculator {
     }
 
     /**
-     * Calculate the price ratio for a single path
+     * Calculate the price ratio for a single path using proper decimal conversion
      */
-    private calculatePathPrice(path: PricePath): number | null {
+    private async calculatePathPrice(path: PricePath): Promise<number | null> {
         if (path.pools.length === 0) return null;
+
+        // Get price graph to access token decimal information
+        const graph = await getPriceGraph();
+        const tokenNodes = new Map();
+        graph.getAllTokens().forEach(token => tokenNodes.set(token.contractId, token));
 
         let currentRatio = 1;
         let currentToken = path.tokens[0];
 
-        console.log(`[PriceCalculator] Calculating path price for ${path.tokens.join(' -> ')}`);
+        console.log(`[PriceCalculator] Calculating decimal-aware path price for ${path.tokens.join(' -> ')}`);
 
         for (let i = 0; i < path.pools.length; i++) {
             const pool = path.pools[i];
@@ -316,6 +326,8 @@ export class PriceCalculator {
 
             // Determine which token we're converting from/to
             const isTokenAInput = pool.tokenA === currentToken;
+            const inputToken = isTokenAInput ? pool.tokenA : pool.tokenB;
+            const outputToken = isTokenAInput ? pool.tokenB : pool.tokenA;
             let inputReserve = isTokenAInput ? pool.reserveA : pool.reserveB;
             let outputReserve = isTokenAInput ? pool.reserveB : pool.reserveA;
 
@@ -323,18 +335,33 @@ export class PriceCalculator {
             inputReserve = typeof inputReserve === 'string' ? parseFloat(inputReserve) : inputReserve;
             outputReserve = typeof outputReserve === 'string' ? parseFloat(outputReserve) : outputReserve;
 
-            console.log(`[PriceCalculator] Pool ${i + 1}: ${currentToken} -> ${nextToken}, reserves: ${inputReserve} -> ${outputReserve}`);
+            // Get token decimals
+            const inputDecimals = getTokenDecimals(inputToken, tokenNodes);
+            const outputDecimals = getTokenDecimals(outputToken, tokenNodes);
 
-            if (!inputReserve || !outputReserve || inputReserve <= 0 || outputReserve <= 0 || !isFinite(inputReserve) || !isFinite(outputReserve)) {
-                console.log(`[PriceCalculator] Invalid reserves detected: input=${inputReserve}, output=${outputReserve}`);
+            console.log(`[PriceCalculator] Pool ${i + 1}: ${currentToken} -> ${nextToken}`);
+            console.log(`[PriceCalculator] Atomic reserves: ${inputReserve} -> ${outputReserve}`);
+            console.log(`[PriceCalculator] Decimals: ${inputDecimals} -> ${outputDecimals}`);
+
+            // Validate conversion parameters
+            if (!isValidDecimalConversion(inputReserve, inputDecimals) || 
+                !isValidDecimalConversion(outputReserve, outputDecimals)) {
+                console.log(`[PriceCalculator] Invalid conversion parameters`);
                 return null;
             }
 
-            // Calculate exchange rate for this hop
-            // Using constant product formula: price = outputReserve / inputReserve
-            const exchangeRate = outputReserve / inputReserve;
+            if (!inputReserve || !outputReserve || inputReserve <= 0 || outputReserve <= 0) {
+                console.log(`[PriceCalculator] Invalid atomic reserves: input=${inputReserve}, output=${outputReserve}`);
+                return null;
+            }
 
-            console.log(`[PriceCalculator] Exchange rate: ${exchangeRate}`);
+            // Calculate decimal-aware exchange rate
+            const exchangeRate = calculateDecimalAwareExchangeRate(
+                inputReserve, inputDecimals,
+                outputReserve, outputDecimals
+            );
+
+            console.log(`[PriceCalculator] Decimal-aware exchange rate: ${exchangeRate}`);
 
             if (!isFinite(exchangeRate) || exchangeRate <= 0) {
                 console.log(`[PriceCalculator] Invalid exchange rate: ${exchangeRate}`);
@@ -347,7 +374,7 @@ export class PriceCalculator {
             console.log(`[PriceCalculator] Current ratio after hop ${i + 1}: ${currentRatio}`);
         }
 
-        console.log(`[PriceCalculator] Final path ratio: ${currentRatio}`);
+        console.log(`[PriceCalculator] Final decimal-aware path ratio: ${currentRatio}`);
         
         if (!isFinite(currentRatio) || currentRatio <= 0) {
             console.log(`[PriceCalculator] Invalid final ratio: ${currentRatio}`);
@@ -378,17 +405,15 @@ export class PriceCalculator {
         console.log(`[PriceCalculator] Weight after path length penalty (/${pathPenalty}): ${weight}`);
 
         // Boost based on minimum liquidity in path (bottleneck)
+        // Note: Path liquidity is now calculated using decimal-aware values in price-graph
         if (path.pools && path.pools.length > 0) {
-            const liquidities = path.pools.map(p => {
-                const reserveA = typeof p.reserveA === 'string' ? parseFloat(p.reserveA) : p.reserveA;
-                const reserveB = typeof p.reserveB === 'string' ? parseFloat(p.reserveB) : p.reserveB;
-                return Math.sqrt(reserveA * reserveB);
-            });
+            // Use the liquidityUsd values that are now properly calculated with decimal conversion
+            const liquidities = path.pools.map(p => p.liquidityUsd || 0);
             const minLiquidity = Math.min(...liquidities);
             const liquidityBoost = Math.min(2, minLiquidity / 10000); // Max 2x boost at $10k liquidity
             weight *= (1 + liquidityBoost);
             
-            console.log(`[PriceCalculator] Min liquidity: ${minLiquidity}, boost: ${liquidityBoost}, weight after boost: ${weight}`);
+            console.log(`[PriceCalculator] Min liquidity (decimal-aware): ${minLiquidity}, boost: ${liquidityBoost}, weight after boost: ${weight}`);
         }
 
         // Boost recent data
@@ -492,7 +517,7 @@ export class PriceCalculator {
     private async cacheBulkPrices(priceMap: Map<string, TokenPriceData>): Promise<void> {
         try {
             const priceData = {
-                prices: Array.from(priceMap.entries()).map(([tokenId, data]) => ({ tokenId, ...data })),
+                prices: Array.from(priceMap.entries()).map(([tokenId, data]) => ({ ...data, tokenId })),
                 lastUpdated: Date.now(),
                 count: priceMap.size
             };
