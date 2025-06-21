@@ -6,12 +6,16 @@ export const SBTC_CONTRACT_ID = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-
 // Stablecoin symbols for $1 pricing (useful for arbitrage analysis)
 export const STABLECOIN_SYMBOLS = [
     'USDC', 'USDT', 'DAI', 'FRAX', 'SUSD', 'USDD', 'BUSD',
-    'SUSDH', 'AEUSD', 'AEUSDC', 'USDH', 'USD'
+    'AEUSD', 'AEUSDC', 'USDH', 'USD'
 ];
 
 // Function to detect if a token is a stablecoin
 export function isStablecoin(symbol: string): boolean {
     const upperSymbol = symbol.toUpperCase();
+    
+    // Explicit exclusions for yield-bearing tokens that contain USD
+    if (upperSymbol === 'SUSDH') return false;
+    
     return STABLECOIN_SYMBOLS.some(stableSymbol => 
         upperSymbol === stableSymbol || 
         upperSymbol.includes('USD') || 

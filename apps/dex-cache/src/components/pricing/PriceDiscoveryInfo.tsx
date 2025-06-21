@@ -164,24 +164,42 @@ export default function PriceDiscoveryInfo() {
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center">
             <TrendingUp className="h-5 w-5 mr-2 text-primary" />
-            Liquidity Weighting
+            Liquidity Weighting System
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Prices are weighted by pool liquidity depth and trading volume. Deeper pools 
-          have greater influence, reducing manipulation risk and improving accuracy.
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <p>
+            Each price path receives a dynamic weight based on multiple factors, creating 
+            manipulation-resistant pricing through liquidity-weighted averages.
+          </p>
+          
+          <div className="space-y-2">
+            <div className="font-medium text-foreground">Weight Calculation Components:</div>
+            <div className="ml-2 space-y-1">
+              <div>• <span className="font-medium">Base Score:</span> Path reliability × confidence</div>
+              <div>• <span className="font-medium">Path Length Penalty:</span> Longer paths get reduced weight</div>
+              <div>• <span className="font-medium">Liquidity Boost:</span> Up to 2x boost based on minimum pool liquidity</div>
+              <div>• <span className="font-medium">Recency Factor:</span> Recent data gets higher priority</div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="font-medium text-foreground">Multi-Pass Price Discovery:</div>
+            <div className="ml-2 space-y-1">
+              <div>1. <span className="font-medium">Path Analysis:</span> Calculate price for each route</div>
+              <div>2. <span className="font-medium">Outlier Removal:</span> Filter prices >50% from median</div>
+              <div>3. <span className="font-medium">Weighted Average:</span> Combine remaining paths by weight</div>
+              <div>4. <span className="font-medium">Confidence Scoring:</span> Price consistency + liquidity + path count</div>
+            </div>
+          </div>
+          
+          <p className="text-xs">
+            This system means that as more passes occur and paths are discovered, 
+            both prices and confidence scores become more accurate through better 
+            outlier detection and more comprehensive liquidity weighting.
+          </p>
         </CardContent>
       </Card>
-
-      {/* Information Alert */}
-      <Alert variant="default" className="bg-primary/5 border-primary/20">
-        <Info className="h-4 w-4 text-primary" />
-        <AlertTitle className="text-primary">Real-Time Pricing</AlertTitle>
-        <AlertDescription className="text-sm text-muted-foreground">
-          Prices update every 30 seconds using live liquidity pool reserves. 
-          This ensures accurate, manipulation-resistant pricing for all supported tokens.
-        </AlertDescription>
-      </Alert>
     </>
   );
 }

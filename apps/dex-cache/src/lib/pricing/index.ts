@@ -1,6 +1,7 @@
 // Main pricing system exports
 
 // Core pricing functionality
+import { priceCalculator } from './price-calculator';
 export { 
     priceCalculator, 
     getTokenPrice, 
@@ -21,13 +22,16 @@ export {
 
 // Price Graph
 export { 
-    getPriceGraph, 
-    refreshPriceGraph,
+    getPriceGraph,
     PriceGraph,
     type TokenNode,
     type PoolEdge,
     type PricePath
 } from './price-graph';
+
+// Import refreshPriceGraph separately to avoid potential circular dependency issues
+import { refreshPriceGraph } from './price-graph';
+export { refreshPriceGraph };
 
 // Utility functions for common pricing operations
 export async function initializePricingSystem(): Promise<void> {

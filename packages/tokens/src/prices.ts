@@ -2,6 +2,7 @@ import { listTokens } from "./token-cache-client";
 
 const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
 const STXTOOLS_API_URL = 'https://api.stxtools.io/tokens?page=0&size=10000';
+const INTERNAL_API_URL = process.env.INTERNAL_PRICE_API_URL || 'https://invest.charisma.rocks/api/v1/prices';
 
 // Restore manual subnet contract mappings
 export const CHARISMA_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
@@ -85,13 +86,14 @@ export interface TokenWithSubnetInfo {
 export interface PriceSourceConfig {
     kraxel: boolean;
     stxtools: boolean;
+    internal: boolean;
 }
 
 /**
  * Configuration for price aggregation strategy
  */
 export interface PriceAggregationConfig {
-    strategy: 'fallback' | 'average' | 'kraxel-primary' | 'stxtools-primary';
+    strategy: 'fallback' | 'average' | 'kraxel-primary' | 'stxtools-primary' | 'internal-primary';
     timeout: number;
     sources: PriceSourceConfig;
 }
@@ -100,11 +102,12 @@ export interface PriceAggregationConfig {
  * Default configuration for price aggregation
  */
 const DEFAULT_CONFIG: PriceAggregationConfig = {
-    strategy: 'stxtools-primary',
+    strategy: 'average',
     timeout: 5000,
     sources: {
         kraxel: false,
-        stxtools: true
+        stxtools: true,
+        internal: true
     }
 };
 
@@ -191,51 +194,102 @@ async function fetchSTXToolsPrices(): Promise<KraxelPriceData> {
 }
 
 /**
+ * Response format from our internal price API
+ */
+interface InternalPriceResponse {
+    status: 'success' | 'error';
+    data: Array<{
+        tokenId: string;
+        symbol: string;
+        usdPrice: number;
+        confidence: number;
+    }>;
+}
+
+/**
+ * Fetches token prices from our internal price API and converts to our format
+ */
+async function fetchInternalPrices(): Promise<KraxelPriceData> {
+    const response = await fetch(`${INTERNAL_API_URL}?limit=100`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch prices from Internal API: ${response.statusText}`);
+    }
+
+    const apiResponse = await response.json() as InternalPriceResponse;
+
+    if (apiResponse.status !== 'success') {
+        throw new Error('Internal API returned error status');
+    }
+
+    const priceData: KraxelPriceData = {};
+
+    // Convert internal API format to our format
+    apiResponse.data.forEach(token => {
+        if (token.tokenId && token.usdPrice !== null && token.confidence > 0.1) {
+            priceData[token.tokenId] = token.usdPrice;
+        }
+
+        // Handle STX specifically if present
+        if (token.symbol === 'STX' || token.tokenId === '.stx') {
+            priceData['.stx'] = token.usdPrice;
+            priceData['stx'] = token.usdPrice;
+        }
+    });
+
+    return priceData;
+}
+
+/**
  * Merges price data from multiple sources using the specified strategy
  */
 function mergePriceData(
     kraxelPrices: KraxelPriceData | null,
     stxToolsPrices: KraxelPriceData | null,
+    internalPrices: KraxelPriceData | null,
     strategy: PriceAggregationConfig['strategy']
 ): KraxelPriceData {
     const merged: KraxelPriceData = {};
 
     switch (strategy) {
+        case 'internal-primary':
+            // Internal API takes precedence, STXTools and Kraxel fill gaps
+            Object.assign(merged, kraxelPrices || {}, stxToolsPrices || {}, internalPrices || {});
+            break;
+
         case 'kraxel-primary':
-            // Kraxel takes precedence, STXTools fills gaps
-            Object.assign(merged, stxToolsPrices || {}, kraxelPrices || {});
+            // Kraxel takes precedence, Internal and STXTools fill gaps
+            Object.assign(merged, stxToolsPrices || {}, internalPrices || {}, kraxelPrices || {});
             break;
 
         case 'stxtools-primary':
-            // STXTools takes precedence, Kraxel fills gaps
-            Object.assign(merged, kraxelPrices || {}, stxToolsPrices || {});
+            // STXTools takes precedence, Internal and Kraxel fill gaps
+            Object.assign(merged, kraxelPrices || {}, internalPrices || {}, stxToolsPrices || {});
             break;
 
         case 'average':
-            // Average prices where both sources have data
+            // Average prices where sources have data
             const allKeys = new Set([
                 ...Object.keys(kraxelPrices || {}),
-                ...Object.keys(stxToolsPrices || {})
+                ...Object.keys(stxToolsPrices || {}),
+                ...Object.keys(internalPrices || {})
             ]);
 
             allKeys.forEach(key => {
                 const kraxelPrice = kraxelPrices?.[key];
                 const stxToolsPrice = stxToolsPrices?.[key];
+                const internalPrice = internalPrices?.[key];
+                const prices = [kraxelPrice, stxToolsPrice, internalPrice].filter(p => p !== undefined) as number[];
 
-                if (kraxelPrice !== undefined && stxToolsPrice !== undefined) {
-                    merged[key] = (kraxelPrice + stxToolsPrice) / 2;
-                } else if (kraxelPrice !== undefined) {
-                    merged[key] = kraxelPrice;
-                } else if (stxToolsPrice !== undefined) {
-                    merged[key] = stxToolsPrice;
+                if (prices.length > 0) {
+                    merged[key] = prices.reduce((sum, price) => sum + price, 0) / prices.length;
                 }
             });
             break;
 
         case 'fallback':
         default:
-            // Use Kraxel, fallback to STXTools for missing data
-            Object.assign(merged, stxToolsPrices || {}, kraxelPrices || {});
+            // Use Internal API first, fallback to STXTools, then Kraxel
+            Object.assign(merged, kraxelPrices || {}, stxToolsPrices || {}, internalPrices || {});
             break;
     }
 
@@ -249,7 +303,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
     // Validate that at least one source is enabled
-    if (!finalConfig.sources.kraxel && !finalConfig.sources.stxtools) {
+    if (!finalConfig.sources.kraxel && !finalConfig.sources.stxtools && !finalConfig.sources.internal) {
         throw new Error('At least one price source must be enabled');
     }
 
@@ -263,6 +317,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
 
     let kraxelPrices: KraxelPriceData | null = null;
     let stxToolsPrices: KraxelPriceData | null = null;
+    let internalPrices: KraxelPriceData | null = null;
 
     // Create promises array based on enabled sources
     const promises: Promise<KraxelPriceData>[] = [];
@@ -276,6 +331,11 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     if (finalConfig.sources.stxtools) {
         promises.push(Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
         sourceNames.push('stxtools');
+    }
+
+    if (finalConfig.sources.internal) {
+        promises.push(Promise.race([fetchInternalPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
+        sourceNames.push('internal');
     }
 
     // Fetch from enabled APIs concurrently
@@ -305,19 +365,36 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
             const reason = (results[resultIndex] as PromiseRejectedResult).reason;
             console.error('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
         }
+        resultIndex++;
     } else {
         console.log('STXTools API disabled');
     }
 
+    if (finalConfig.sources.internal) {
+        if (results[resultIndex].status === 'fulfilled') {
+            internalPrices = (results[resultIndex] as PromiseFulfilledResult<KraxelPriceData>).value;
+            console.log(`Successfully fetched ${Object.keys(internalPrices).length} prices from Internal API`);
+        } else {
+            const reason = (results[resultIndex] as PromiseRejectedResult).reason;
+            console.error('Failed to fetch from Internal API:', reason && reason.message ? reason.message : reason);
+        }
+    } else {
+        console.log('Internal API disabled');
+    }
+
     // If all enabled APIs failed, return empty object
-    if ((!kraxelPrices || !finalConfig.sources.kraxel) && (!stxToolsPrices || !finalConfig.sources.stxtools)) {
+    const hasKraxelData = kraxelPrices && finalConfig.sources.kraxel;
+    const hasStxToolsData = stxToolsPrices && finalConfig.sources.stxtools;
+    const hasInternalData = internalPrices && finalConfig.sources.internal;
+
+    if (!hasKraxelData && !hasStxToolsData && !hasInternalData) {
         const enabledSources = sourceNames.join(', ');
         console.error(`All enabled price APIs (${enabledSources}) failed, returning empty price object.`);
         return {};
     }
 
     // Merge the price data according to strategy
-    const mergedPrices = mergePriceData(kraxelPrices, stxToolsPrices, finalConfig.strategy);
+    const mergedPrices = mergePriceData(kraxelPrices, stxToolsPrices, internalPrices, finalConfig.strategy);
 
     // Apply subnet token processing
     try {
@@ -337,7 +414,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
 export async function listPricesKraxel(): Promise<KraxelPriceData> {
     return listPrices({
         strategy: 'kraxel-primary',
-        sources: { kraxel: true, stxtools: false }
+        sources: { kraxel: true, stxtools: false, internal: false }
     });
 }
 
@@ -347,6 +424,16 @@ export async function listPricesKraxel(): Promise<KraxelPriceData> {
 export async function listPricesSTXTools(): Promise<KraxelPriceData> {
     return listPrices({
         strategy: 'stxtools-primary',
-        sources: { kraxel: false, stxtools: true }
+        sources: { kraxel: false, stxtools: true, internal: false }
+    });
+}
+
+/**
+ * Fetches prices from Internal API only
+ */
+export async function listPricesInternal(): Promise<KraxelPriceData> {
+    return listPrices({
+        strategy: 'internal-primary',
+        sources: { kraxel: false, stxtools: false, internal: true }
     });
 }
