@@ -205,9 +205,15 @@ importers:
       '@repo/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@stacks/connect':
+        specifier: ^8.1.9
+        version: 8.1.9
       blaze-sdk:
         specifier: workspace:*
         version: link:../../packages/blaze-sdk
+      lucide-react:
+        specifier: ^0.522.0
+        version: 0.522.0(react@18.3.1)
       partysocket:
         specifier: ^1.0.2
         version: 1.1.4
@@ -9778,8 +9784,8 @@ packages:
       '@stacks/connect-ui': 8.0.0
       '@stacks/network': 7.0.2
       '@stacks/network-v6': /@stacks/network@6.17.0
-      '@stacks/profile': 7.0.5
-      '@stacks/transactions': 7.0.6
+      '@stacks/profile': 7.0.6
+      '@stacks/transactions': 7.1.0
       '@stacks/transactions-v6': /@stacks/transactions@6.17.0
     transitivePeerDependencies:
       - encoding
@@ -9914,6 +9920,19 @@ packages:
 
   /@stacks/transactions@7.0.6:
     resolution: {integrity: sha512-qRGo4tNwOh+avUv/u4JGqqUWQ8xW/iUWtJV0o3BxpMyRxqDXmj+m+yeAEVYf9jRDouOo+NaWmwtRmWc0URZPdw==}
+    dependencies:
+      '@noble/hashes': 1.1.5
+      '@noble/secp256k1': 1.7.1
+      '@stacks/common': 7.0.2
+      '@stacks/network': 7.0.2
+      c32check: 2.0.0
+      lodash.clonedeep: 4.5.0
+    transitivePeerDependencies:
+      - encoding
+    dev: false
+
+  /@stacks/transactions@7.1.0:
+    resolution: {integrity: sha512-/4n5h+ka5N3mq16f1Zo0O0g2gyOYhaXFdGN8ifLz38NJmkjnCDXqi/ogB6NFNpSKGonyqyF5Vz1UPaQHwO8+IA==}
     dependencies:
       '@noble/hashes': 1.1.5
       '@noble/secp256k1': 1.7.1
@@ -16906,6 +16925,14 @@ packages:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
       react: 19.1.0
+    dev: false
+
+  /lucide-react@0.522.0(react@18.3.1):
+    resolution: {integrity: sha512-jnJbw974yZ7rQHHEFKJOlWAefG3ATSCZHANZxIdx8Rk/16siuwjgA4fBULpXEAWx/RlTs3FzmKW/udWUuO0aRw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    dependencies:
+      react: 18.3.1
     dev: false
 
   /magic-string@0.30.17:

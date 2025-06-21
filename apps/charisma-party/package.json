@@ -11,10 +11,12 @@
     "build": "vite build"
   },
   "dependencies": {
-    "blaze-sdk": "workspace:*",
-    "partysocket": "^1.0.2",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
+    "@stacks/connect": "^8.1.9",
+    "blaze-sdk": "workspace:*",
+    "lucide-react": "^0.522.0",
+    "partysocket": "^1.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

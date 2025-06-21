@@ -49,28 +49,38 @@ export async function GET(request: Request) {
 
         // Validate contractIds
         if (!contractIdsParam) {
-            return NextResponse.json({ error: 'Missing "contractIds" query param' }, { status: 400 });
+            const errorRes = NextResponse.json({ error: 'Missing "contractIds" query param' }, { status: 400 });
+            errorRes.headers.set('Access-Control-Allow-Origin', '*');
+            return errorRes;
         }
 
         const contractIds = contractIdsParam.split(',').map(s => s.trim()).filter(Boolean);
         if (contractIds.length === 0) {
-            return NextResponse.json({ error: 'Empty "contractIds" list' }, { status: 400 });
+            const errorRes = NextResponse.json({ error: 'Empty "contractIds" list' }, { status: 400 });
+            errorRes.headers.set('Access-Control-Allow-Origin', '*');
+            return errorRes;
         }
 
         // Validate from and to parameters
         if (!fromParam || !toParam) {
-            return NextResponse.json({ error: 'Missing "from" or "to" query parameters' }, { status: 400 });
+            const errorRes = NextResponse.json({ error: 'Missing "from" or "to" query parameters' }, { status: 400 });
+            errorRes.headers.set('Access-Control-Allow-Origin', '*');
+            return errorRes;
         }
 
         const fromNum = Number(fromParam) * 1000;
         const toNum = Number(toParam) * 1000;
 
         if (isNaN(fromNum) || isNaN(toNum)) {
-            return NextResponse.json({ error: 'Invalid "from" or "to" parameters - must be numbers' }, { status: 400 });
+            const errorRes = NextResponse.json({ error: 'Invalid "from" or "to" parameters - must be numbers' }, { status: 400 });
+            errorRes.headers.set('Access-Control-Allow-Origin', '*');
+            return errorRes;
         }
 
         if (fromNum >= toNum) {
-            return NextResponse.json({ error: '"from" must be less than "to"' }, { status: 400 });
+            const errorRes = NextResponse.json({ error: '"from" must be less than "to"' }, { status: 400 });
+            errorRes.headers.set('Access-Control-Allow-Origin', '*');
+            return errorRes;
         }
 
         // Validate period parameter (optional)
@@ -78,7 +88,9 @@ export async function GET(request: Request) {
         if (periodParam) {
             periodSec = Number(periodParam);
             if (isNaN(periodSec) || periodSec <= 0) {
-                return NextResponse.json({ error: 'Invalid "period" parameter - must be a positive number' }, { status: 400 });
+                const errorRes = NextResponse.json({ error: 'Invalid "period" parameter - must be a positive number' }, { status: 400 });
+                errorRes.headers.set('Access-Control-Allow-Origin', '*');
+                return errorRes;
             }
         }
 
@@ -135,18 +147,44 @@ export async function GET(request: Request) {
             avgPointsPerToken: Math.round(results.totalPoints / results.processed)
         });
         
-        return NextResponse.json(result);
+        const response = NextResponse.json(result);
+        
+        // Add CORS headers
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        return response;
 
     } catch (err) {
         console.error('[ERROR] /api/price-series/bulk', err);
 
         // Don't expose internal error details in production
         const isDevelopment = process.env.NODE_ENV === 'development';
-        const errorResponse = {
+        const errorBody = {
             error: 'Server error occurred while processing request',
             ...(isDevelopment && { details: err instanceof Error ? err.message : String(err) })
         };
 
-        return NextResponse.json(errorResponse, { status: 500 });
+        const errorResponse = NextResponse.json(errorBody, { status: 500 });
+        
+        // Add CORS headers to error response
+        errorResponse.headers.set('Access-Control-Allow-Origin', '*');
+        errorResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        errorResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        return errorResponse;
     }
+}
+
+// Handle preflight OPTIONS requests
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
 }

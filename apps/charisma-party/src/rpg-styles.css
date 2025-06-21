@@ -93,6 +93,38 @@
   box-sizing: border-box;
 }
 
+/* Custom scrollbar styles for the main page */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--guild-bg);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, var(--magic-gold), var(--magic-ruby));
+  border-radius: 6px;
+  border: 2px solid var(--guild-bg);
+  box-shadow: var(--glow-small) var(--magic-gold);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, var(--magic-ruby), var(--magic-gold));
+  box-shadow: var(--glow-medium) var(--magic-ruby);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--guild-bg);
+}
+
+/* Firefox scrollbar */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--magic-gold) var(--guild-bg);
+}
+
 body {
   font-family: 'Ysabeau Infant', sans-serif;
   color: var(--foreground);
@@ -346,6 +378,12 @@ h1, h2, h3, h4, h5, h6, p, span, div {
   min-height: 80vh;
 }
 
+.main-content-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 @media (max-width: 1024px) {
   .price-party-layout {
     grid-template-columns: 1fr;
@@ -448,9 +486,66 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 /* Removed broken hover animation */
 
 .activity-score {
+  font-size: 11px;
+  color: var(--magic-gold);
+  font-weight: 700;
+  background: rgba(193, 18, 31, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--magic-gold);
+}
+
+.token-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.market-cap {
+  font-size: 10px;
+  color: var(--magic-silver);
+  font-weight: 500;
+}
+
+.battle-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.category-emoji {
+  font-size: 16px;
+}
+
+.trend-emoji {
+  font-size: 14px;
+}
+
+.change-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.change-24h, .change-1h {
   font-size: 12px;
-  color: var(--magic-emerald);
   font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.change-24h.up, .change-1h.up {
+  color: var(--victory-green);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.change-24h.down, .change-1h.down {
+  color: var(--defeat-red);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Side Layout */
@@ -484,11 +579,11 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 }
 
 .roster-list::-webkit-scrollbar-track {
-  background: var(--guild-surface);
+  background: transparent;
 }
 
 .roster-list::-webkit-scrollbar-thumb {
-  background: var(--magic-gold);
+  background: var(--guild-border);
   border-radius: 3px;
 }
 
@@ -627,16 +722,16 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 }
 
 .log-list::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .log-list::-webkit-scrollbar-track {
-  background: var(--guild-surface);
+  background: transparent;
 }
 
 .log-list::-webkit-scrollbar-thumb {
-  background: var(--magic-silver);
-  border-radius: 2px;
+  background: var(--guild-border);
+  border-radius: 3px;
 }
 
 .log-item {
@@ -1160,10 +1255,28 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 .status-left {
   color: var(--magic-emerald);
   text-shadow: var(--glow-small) var(--magic-emerald);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-summary {
+  font-size: 11px;
+  color: var(--magic-silver);
+  font-weight: 500;
 }
 
 .status-right {
   color: var(--magic-silver);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-indicator {
+  font-size: 11px;
+  color: var(--magic-gold);
+  animation: pulse 1s ease-in-out infinite;
 }
 
 /* Mobile Responsive */
@@ -1339,3 +1452,370 @@ h1, h2, h3, h4, h5, h6, p, span, div {
 .particle-5 { --tw-translate-x: -25px; --tw-translate-y: 0px; }
 .particle-6 { --tw-translate-x: 0px; --tw-translate-y: 25px; }
 .particle-7 { --tw-translate-x: 0px; --tw-translate-y: -25px; }
+
+/* ===============================
+   WALLET CONNECT COMPONENTS
+   =============================== */
+
+/* Wallet Connect Button */
+.wallet-connect-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--guild-surface);
+  border: 2px solid var(--guild-border);
+  border-radius: 8px;
+  color: var(--foreground) !important;
+  font-family: 'Ysabeau Infant', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all var(--spell-duration) ease;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  margin-right: 12px;
+}
+
+.wallet-connect-btn:hover {
+  background: var(--guild-surface-hover);
+  border-color: var(--magic-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(193, 18, 31, 0.3);
+}
+
+.wallet-connect-btn.connected {
+  border-color: var(--victory-green);
+  background: linear-gradient(135deg, var(--guild-surface) 0%, rgba(16, 185, 129, 0.1) 100%);
+}
+
+.wallet-connect-btn.connected:hover {
+  border-color: var(--victory-green);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.wallet-connect-btn.connecting {
+  border-color: var(--magic-silver);
+  background: linear-gradient(135deg, var(--guild-surface) 0%, rgba(141, 153, 174, 0.1) 100%);
+  cursor: not-allowed;
+}
+
+.wallet-icon {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wallet-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.connecting-text {
+  color: var(--magic-silver);
+  font-size: 0.85rem;
+}
+
+.address-text {
+  color: var(--victory-green);
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.connect-text {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* Personal Treasury */
+.personal-treasury {
+  background: var(--guild-surface);
+  border: 2px solid var(--guild-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.personal-treasury .section-title {
+  margin-bottom: 16px;
+  color: var(--magic-gold) !important;
+  font-weight: 800;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.treasury-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--guild-border) transparent;
+}
+
+.treasury-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.treasury-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.treasury-list::-webkit-scrollbar-thumb {
+  background: var(--guild-border);
+  border-radius: 3px;
+}
+
+.treasury-empty {
+  text-align: center;
+  color: var(--muted-foreground);
+  font-style: italic;
+  padding: 32px 16px;
+}
+
+.treasury-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--guild-border);
+  border-radius: 8px;
+  transition: all var(--spell-duration) ease;
+  cursor: pointer;
+}
+
+.treasury-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--magic-gold);
+  transform: translateX(4px);
+}
+
+.treasury-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.treasury-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--guild-border);
+}
+
+.treasury-symbol {
+  width: 32px;
+  height: 32px;
+  background: var(--guild-surface-hover);
+  border: 1px solid var(--guild-border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--foreground);
+  text-transform: uppercase;
+}
+
+.treasury-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.treasury-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--foreground) !important;
+}
+
+.treasury-contract {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  font-family: 'Courier New', monospace;
+}
+
+.treasury-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.treasury-balance {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--foreground) !important;
+  font-family: 'Courier New', monospace;
+}
+
+.treasury-value {
+  font-size: 0.75rem;
+  color: var(--victory-green);
+  font-weight: 600;
+}
+
+/* Personal Treasury Wide Layout */
+.personal-treasury-wide {
+  background: var(--guild-surface);
+  border: 2px solid var(--guild-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 100%;
+}
+
+.personal-treasury-wide .section-title {
+  margin-bottom: 16px;
+  color: var(--magic-gold) !important;
+  font-weight: 800;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.treasury-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--guild-border) transparent;
+}
+
+.treasury-grid::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.treasury-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.treasury-grid::-webkit-scrollbar-thumb {
+  background: var(--guild-border);
+  border-radius: 3px;
+}
+
+.treasury-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--guild-border);
+  border-radius: 8px;
+  padding: 12px;
+  transition: all var(--spell-duration) ease;
+  cursor: pointer;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.treasury-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--magic-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(193, 18, 31, 0.2);
+}
+
+.treasury-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.treasury-card .treasury-image {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid var(--guild-border);
+}
+
+.treasury-card .treasury-symbol {
+  width: 24px;
+  height: 24px;
+  background: var(--guild-surface-hover);
+  border: 1px solid var(--guild-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.65rem;
+  color: var(--foreground);
+  text-transform: uppercase;
+}
+
+.treasury-card .treasury-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.treasury-card .treasury-name {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--foreground) !important;
+  line-height: 1.2;
+}
+
+.treasury-card .treasury-contract {
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  font-family: 'Courier New', monospace;
+  line-height: 1.2;
+}
+
+.treasury-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.treasury-card .treasury-balance {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--foreground) !important;
+  font-family: 'Courier New', monospace;
+  line-height: 1.2;
+}
+
+.treasury-card .treasury-value {
+  font-size: 0.7rem;
+  color: var(--victory-green);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Responsive adjustments for treasury grid */
+@media (max-width: 1200px) {
+  .treasury-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .treasury-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  
+  .treasury-card {
+    padding: 10px;
+    min-height: 70px;
+  }
+}

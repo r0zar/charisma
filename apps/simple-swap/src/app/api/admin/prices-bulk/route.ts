@@ -174,14 +174,21 @@ export async function GET(request: NextRequest) {
             pagedStats = filteredStats.slice(start, start + limit);
         }
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             tokens: pagedStats,
             hasMore: page * limit < totalFiltered,
             total: totalFiltered,
             totalRecords
         });
+
+        // Add CORS headers
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        return response;
     } catch (error) {
-        return NextResponse.json(
+        const errorResponse = NextResponse.json(
             {
                 error: 'Failed to fetch price data (bulk)',
                 details: error instanceof Error ? error.message : 'Unknown error',
@@ -192,5 +199,24 @@ export async function GET(request: NextRequest) {
             },
             { status: 500 }
         );
+
+        // Add CORS headers to error response
+        errorResponse.headers.set('Access-Control-Allow-Origin', '*');
+        errorResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        errorResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        return errorResponse;
     }
+}
+
+// Handle preflight OPTIONS requests
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
 } 

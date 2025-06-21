@@ -17,7 +17,7 @@ const ReactJson = dynamic(() => import('react-json-view'), {
 });
 
 // Helper: detect contract id
-const looksLikeContractId = (id: string) => id.includes('.') && id.length > 10;
+const looksLikeContractId = (id: string) => id.includes('.') && id.length > 3;
 
 interface InspectionResult {
     contractId: string;

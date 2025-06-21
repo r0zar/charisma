@@ -11,4 +11,9 @@ export default defineConfig({
             input: './index.html'
         }
     },
+    define: {
+        'process.env.NEXT_PUBLIC_TOKEN_CACHE_URL': JSON.stringify(process.env.NEXT_PUBLIC_TOKEN_CACHE_URL || 'https://tokens.charisma.rocks'),
+        'process.env.TOKEN_CACHE_URL': JSON.stringify(process.env.TOKEN_CACHE_URL || 'https://tokens.charisma.rocks'),
+        'process.env': {}
+    }
 }); 
