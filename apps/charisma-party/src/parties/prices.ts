@@ -92,17 +92,17 @@ export default class PricesParty implements Party.Server {
     }
 
     private startNoiseInterval() {
-        console.log('🎲 Starting price noise interval (every 100ms - 10x faster)');
+        console.log('🎲 Starting price noise interval (every 1 second)');
 
         // Clear any existing noise interval
         if (this.noiseInterval) {
             clearInterval(this.noiseInterval);
         }
 
-        // Add noise every 100ms (10x faster than 1 second)
+        // Add noise every 1 second
         this.noiseInterval = setInterval(() => {
             this.addPriceNoise();
-        }, 100);
+        }, 1000);
     }
 
     private addPriceNoise() {
