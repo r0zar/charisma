@@ -1,40 +1,10 @@
 import React from 'react';
 import { ArrowRight, Sparkles, RefreshCw, Shield, Coins, Layers, Wallet, Activity, Twitter, Github, MessageSquare, Mail, ExternalLink } from 'lucide-react';
-import { listTokens, getQuote } from "./actions";
 import { Header } from "../components/layout/header";
 import Link from 'next/link';
 import CharismaQuote from "../components/charisma-quote";
 
-export default async function SwapHomePage() {
-  // Prefetch tokens on the server
-  const { success, tokens = [] } = await listTokens();
-
-
-  // Get real-time CHARISMA quote server-side
-  let charismaExchangeRate: string | null = null;
-
-  const chaContractId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
-
-  try {
-    // Get quote for 1 STX (1000000 microSTX) to CHARISMA
-    const quoteResult = await getQuote(
-      '.stx',                   // STX contract ID
-      chaContractId, // CHARISMA contract ID
-      '1000000'                 // 1 STX in micro units
-    );
-
-    if (quoteResult.success && quoteResult.data) {
-      // Determine decimals from token metadata (default to 6)
-      const chaToken = tokens.find(t => t.contractId === chaContractId);
-      const decimals = chaToken?.decimals ?? 6;
-      const chaAmount = Number(quoteResult.data.amountOut) / 10 ** decimals; // Convert from micro units
-      const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(chaAmount);
-      charismaExchangeRate = `1 STX = ${formatted} CHA`;
-    }
-  } catch (error) {
-    console.error("Error fetching CHARISMA quote:", error);
-    charismaExchangeRate = null;
-  }
+export default function SwapHomePage() {
 
   return (
     <div className="relative flex flex-col min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">

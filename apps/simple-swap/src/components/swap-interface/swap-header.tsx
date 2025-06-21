@@ -159,11 +159,9 @@ export default function SwapHeader() {
                                 }`} />
                             <span className="text-sm font-medium text-white/90">
                                 {securityLevel === 'high' ? 'Direct Route' :
-                                    securityLevel === 'medium' ? 'Optimized Path' : 'Advanced Routing'}
+                                    securityLevel === 'medium' ? 'Optimized Path' : 'Smart Routing'}
                             </span>
                         </div>
-                        <div className="h-3 w-px bg-white/[0.15]" />
-                        <span className="text-xs text-white/60 font-medium">LIVE</span>
                     </div>
                 )}
             </div>

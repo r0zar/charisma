@@ -245,8 +245,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                     <div className="text-sm text-white/90 font-medium">Route Efficiency</div>
                     <div className="text-xs text-white/60 mt-1">
                         {isSubnetShift
-                            ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from subnet')
-                            : (securityLevel === 'high' ? 'Direct route' : securityLevel === 'medium' ? 'Optimized path' : 'Advanced routing')
+                            ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from suburb')
+                            : (securityLevel === 'high' ? 'Direct route' : securityLevel === 'medium' ? 'Optimized path' : 'Smart routing')
                         }
                     </div>
                 </div>

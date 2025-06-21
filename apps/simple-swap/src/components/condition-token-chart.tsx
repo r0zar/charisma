@@ -23,6 +23,7 @@ import {
 import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
 import { usePriceSeriesService } from '@/lib/price-series-service';
+import { perfMonitor } from '@/lib/performance-monitor';
 
 interface Props {
     token: TokenCacheData;
@@ -134,6 +135,7 @@ export default function ConditionTokenChart({
     const loadChart = useCallback(async () => {
         if (!token?.contractId) return;
 
+        const timer = perfMonitor.startTiming('condition-chart-load-data');
         setLoading(true);
         setError(null);
 
@@ -160,13 +162,16 @@ export default function ConditionTokenChart({
                     const tokenChartData = convertToChartDataPoint(tokenData);
                     const baseChartData = convertToChartDataPoint(baseData);
                     
-                    const ratioChartData = calculateResilientRatioData(tokenChartData, baseChartData);
+                    const ratioChartData = calculateResilientRatioData(tokenChartData, baseChartData, {
+                        minPoints: 15, // Match token chart for better extrapolation
+                        defaultTimeRangeMs: 30 * 24 * 60 * 60 * 1000 // 30 days
+                    });
                     processedData = convertToLineData(ratioChartData);
                 }
             } else {
                 // For single token data, apply resilience if needed
                 const tokenChartData = convertToChartDataPoint(tokenData);
-                const enhancedData = enhanceSparseTokenData(tokenChartData, getDefaultTimeRange());
+                const enhancedData = enhanceSparseTokenData(tokenChartData, getDefaultTimeRange(), 15); // Match token chart
                 processedData = convertToLineData(enhancedData);
             }
 
@@ -176,8 +181,23 @@ export default function ConditionTokenChart({
             }));
             setData(validData);
 
+            timer.end({ 
+                success: true, 
+                dataPoints: validData.length,
+                hasBaseToken: !!baseToken?.contractId,
+                tokenId: token.contractId.substring(0, 10)
+            });
+
+            console.log('[CONDITION-CHART] Data loaded successfully:', {
+                points: validData.length,
+                hasBaseToken: !!baseToken?.contractId,
+                tokenId: token.contractId.substring(0, 10)
+            });
+
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to load chart data";
+            timer.end({ success: false, error: message });
+            console.error('[CONDITION-CHART] Failed to load data:', err);
             setError(message);
             setData(null);
         } finally {
@@ -185,15 +205,16 @@ export default function ConditionTokenChart({
         }
     }, [token.contractId, baseToken?.contractId, priceSeriesService]);
 
-    // Effect to handle real-time price updates from useBlaze
+    // Effect to handle real-time price updates from useBlaze - improved to match token chart
     useEffect(() => {
-        if (!seriesRef.current || !currentTokenPrice || currentTokenPrice <= 0) return;
+        if (!seriesRef.current) return;
 
-        // Check if prices have actually changed
+        // Check if prices have actually changed (similar to token chart pattern)
         const hasTokenPriceChanged = lastPricesRef.current.token !== currentTokenPrice;
         const hasBasePriceChanged = lastPricesRef.current.base !== currentBasePrice;
         
         if (!hasTokenPriceChanged && !hasBasePriceChanged) return;
+        if (!currentTokenPrice || currentTokenPrice <= 0) return;
 
         const now = Math.floor(Date.now() / 1000); // Convert to seconds for lightweight-charts
         let newPrice = currentTokenPrice;
@@ -204,7 +225,7 @@ export default function ConditionTokenChart({
         }
 
         try {
-            // Use the update API to add the new data point
+            // Use the update API to add the new data point (same as token chart)
             seriesRef.current.update({
                 time: now as any,
                 value: newPrice
@@ -214,9 +235,9 @@ export default function ConditionTokenChart({
             lastPricesRef.current = { token: currentTokenPrice, base: currentBasePrice };
             setLastUpdateTime(now);
             
-            console.log(`[real-time update] Chart updated: ${newPrice} at ${now}`);
+            console.log(`[CONDITION-CHART] Real-time update: ${newPrice.toFixed(6)} at ${now}`);
         } catch (error) {
-            console.warn('[real-time update] Failed to update chart:', error);
+            console.warn('[CONDITION-CHART] Failed to update real-time price:', error);
         }
     }, [currentTokenPrice, currentBasePrice, baseToken]);
 
@@ -227,6 +248,8 @@ export default function ConditionTokenChart({
         let handleKeyDown: ((event: KeyboardEvent) => void) | null = null;
         let handleResize: (() => void) | null = null;
 
+        const chartTimer = perfMonitor.startTiming('condition-chart-initialization');
+        
         try {
             // Clean up existing chart
             if (chartRef.current) {
@@ -253,11 +276,11 @@ export default function ConditionTokenChart({
                     borderVisible: false,
                     rightOffset: 12,
                     barSpacing: 3,
-                    fixLeftEdge: true,  // Prevent zooming before first data point
-                    fixRightEdge: true, // Prevent zooming after last data point
+                    fixLeftEdge: false, // Allow showing recent data like token chart
+                    fixRightEdge: false, // Allow flexible zoom like token chart
                     lockVisibleTimeRangeOnResize: false,
                     rightBarStaysOnScroll: false,
-                    shiftVisibleRangeOnNewBar: false,
+                    shiftVisibleRangeOnNewBar: true, // Follow new data like token chart
                 },
                 leftPriceScale: {
                     visible: true,
@@ -296,40 +319,20 @@ export default function ConditionTokenChart({
             // Set data
             seriesRef.current.setData(data);
 
-            // Set proper boundaries - allow zoom out within data range but not beyond
-            const firstTime = data[0].time;
-            const lastTime = data[data.length - 1].time;
-
-            // Set the chart to show recent data initially, but allow zooming out to see all data
+            // Set initial visible range to show recent data, similar to token chart
             const recentStartIndex = Math.max(0, data.length - Math.floor(data.length * 0.6));
             const recentStartTime = data[recentStartIndex].time;
+            const lastTime = data[data.length - 1].time;
 
-            // Set initial visible range to recent data
-            chartRef.current.timeScale().setVisibleRange({
-                from: recentStartTime,
-                to: lastTime,
-            });
-
-            // Add debugging for zoom events
-            chartRef.current.timeScale().subscribeVisibleTimeRangeChange((timeRange) => {
-                if (timeRange) {
-                    // Prevent zooming beyond data boundaries
-                    const clampedFrom = Math.max(Number(firstTime), Number(timeRange.from));
-                    const clampedTo = Math.min(Number(lastTime), Number(timeRange.to));
-
-                    // Only adjust if we're actually outside bounds
-                    if (Number(timeRange.from) < Number(firstTime) || Number(timeRange.to) > Number(lastTime)) {
-                        setTimeout(() => {
-                            if (chartRef.current) {
-                                chartRef.current.timeScale().setVisibleRange({
-                                    from: clampedFrom as any,
-                                    to: clampedTo as any,
-                                });
-                            }
-                        }, 0);
-                    }
+            // Set initial visible range to recent data without restrictive boundaries
+            setTimeout(() => {
+                if (chartRef.current) {
+                    chartRef.current.timeScale().setVisibleRange({
+                        from: recentStartTime,
+                        to: lastTime,
+                    });
                 }
-            });
+            }, 100); // Small delay like token chart
 
             // Handle clicks
             const handleClick = (param: any) => {
@@ -385,8 +388,12 @@ export default function ConditionTokenChart({
             window.addEventListener("resize", handleResize);
             handleResize();
 
+            chartTimer.end({ success: true, dataPoints: data.length });
+            console.log('[CONDITION-CHART] Chart initialized successfully');
+
         } catch (error) {
-            console.error("Chart initialization failed:", error);
+            chartTimer.end({ success: false, error: String(error) });
+            console.error('[CONDITION-CHART] Chart initialization failed:', error);
         }
 
         return () => {

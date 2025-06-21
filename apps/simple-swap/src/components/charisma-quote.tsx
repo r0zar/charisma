@@ -1,27 +1,27 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
+import { useBlaze } from 'blaze-sdk/realtime';
+
+const CHA_CONTRACT_ID = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
 
 export default function CharismaQuote() {
-    const [rate, setRate] = useState<string>('');
+    const { prices } = useBlaze({});
 
-    useEffect(() => {
-        async function fetchRate() {
-            try {
-                const res = await fetch('/api/quote');
-                const json = await res.json();
-                if (json.success) {
-                    const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(json.rate);
-                    setRate(`1 STX = ${formatted} CHA`);
-                } else {
-                    setRate('');
-                }
-            } catch {
-                setRate('');
-            }
+    const rate = useMemo(() => {
+        const stxPrice = prices['stx']?.price;
+        const chaPrice = prices[CHA_CONTRACT_ID]?.price;
+        
+        if (!stxPrice || !chaPrice || stxPrice === 0) {
+            return '';
         }
-        fetchRate();
-    }, []);
+
+        // Calculate how many CHA tokens you get for 1 STX
+        const chaPerStx = stxPrice / chaPrice;
+        const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(chaPerStx);
+        
+        return `1 STX = ${formatted} CHA`;
+    }, [prices]);
 
     return <span className="font-medium">{rate}</span>;
 } 

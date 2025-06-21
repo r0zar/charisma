@@ -13,31 +13,14 @@ export function RouteIntelligenceSidebar() {
     const { selectedFromToken, selectedToToken, displayAmount, mode } = useSwapTokens();
     const { address: walletAddress } = useWallet();
 
-    if (!quote || isLoadingQuote) {
-        return (
-            <div className="space-y-4">
-                {/* Loading State */}
-                <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="h-3 w-3 bg-blue-400 rounded-full animate-pulse" />
-                        <div className="text-sm font-medium text-white/90">Analyzing Routes...</div>
-                    </div>
-                    <div className="space-y-3">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="h-4 bg-white/[0.05] rounded animate-pulse" />
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const showRouteDetails = quote && !isLoadingQuote;
 
-    const routeHops = quote.path || [];
+    const routeHops = quote?.path || [];
     const totalHops = routeHops.length - 1;
 
     return (
         <div className="space-y-4">
-            {/* Router Information */}
+            {/* Router Information - Always show since it's mode-based */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] transition-all duration-200">
                 <div className="flex items-center space-x-2 mb-3">
                     <div className="h-6 w-6 rounded bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0">
@@ -115,7 +98,23 @@ export function RouteIntelligenceSidebar() {
                 </div>
             </div>
 
-            {/* Route Overview */}
+            {/* Loading State - Show when analyzing routes */}
+            {!showRouteDetails && (
+                <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+                    <div className="flex items-center space-x-3 mb-4">
+                        <div className="h-3 w-3 bg-blue-400 rounded-full animate-pulse" />
+                        <div className="text-sm font-medium text-white/90">Analyzing Routes...</div>
+                    </div>
+                    <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="h-4 bg-white/[0.05] rounded animate-pulse" />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Route Overview - Only show when route details are available */}
+            {showRouteDetails && (
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] transition-all duration-200">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
@@ -156,9 +155,10 @@ export function RouteIntelligenceSidebar() {
                     )}
                 </div>
             </div>
+            )}
 
-            {/* Post Conditions */}
-            {postConditionsData && (
+            {/* Post Conditions - Only show when route details are available */}
+            {showRouteDetails && postConditionsData && (
                 <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] transition-all duration-200">
                     <div className="flex items-center space-x-2 mb-4">
                         <Shield className="w-4 h-4 text-green-400" />
@@ -241,8 +241,8 @@ export function RouteIntelligenceSidebar() {
                 </div>
             )}
 
-            {/* Route Analysis */}
-            {quote.hops && quote.hops.length > 0 && (
+            {/* Route Analysis - Only show when route details are available */}
+            {showRouteDetails && quote?.hops && quote.hops.length > 0 && (
                 <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] transition-all duration-200">
                     <div className="flex items-center space-x-2 mb-4">
                         <Clock className="w-4 h-4 text-orange-400" />
@@ -250,7 +250,7 @@ export function RouteIntelligenceSidebar() {
                     </div>
                     
                     <div className="space-y-2">
-                        {quote.hops.map((hop, index) => (
+                        {quote?.hops?.map((hop, index) => (
                             <div key={index} className="bg-white/[0.02] rounded-lg p-3">
                                 <div className="flex items-center space-x-3 mb-2">
                                     {hop.vault?.image && (
