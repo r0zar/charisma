@@ -41,9 +41,9 @@ export class MarketDiscoveryService {
 
     private readonly DEFAULT_CONFIG: DiscoveryConfig = {
         arenaSize: 8,
-        rosterSize: 50,
+        rosterSize: 200, // Increased from 50 to show more tokens
         refreshInterval: 60 * 1000, // 1 minute
-        minActivityThreshold: 10,
+        minActivityThreshold: 5, // Reduced from 10 to include more tokens
         includeEmergingTokens: true,
     };
 
@@ -131,6 +131,9 @@ export class MarketDiscoveryService {
                 
                 // Strategy 2: Top by market cap (for stability)
                 tokenRankingService.getTopTokensByMarketCap(config.rosterSize),
+                
+                // Strategy 3: All available tokens (broader scope)
+                tokenRankingService.getAllAvailableTokens(config.rosterSize * 2),
             ];
 
             const results = await Promise.all(strategies);
