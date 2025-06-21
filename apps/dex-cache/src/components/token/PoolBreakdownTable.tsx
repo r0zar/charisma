@@ -317,7 +317,7 @@ export default function PoolBreakdownTable({
                   </td>
 
                   {/* Pool Liquidity */}
-                  <td className="p-4 whitespace-nowrap">
+                  <td className="p-4 whitespace-nowrap relative">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-green-500" />
                       <span className="font-semibold">
@@ -327,10 +327,19 @@ export default function PoolBreakdownTable({
                     <div className={cn("text-xs", getLiquidityColor(item.liquidityScore))}>
                       Score: {(item.liquidityScore * 100).toFixed(0)}%
                     </div>
+                    
+                    {/* Coming Soon Overlay */}
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Coming Soon
+                        </div>
+                      </div>
+                    </div>
                   </td>
 
                   {/* Token Share */}
-                  <td className="p-4 whitespace-nowrap">
+                  <td className="p-4 whitespace-nowrap relative">
                     <div className="flex items-center gap-2">
                       <div className="w-12 bg-muted rounded-full h-2">
                         <div 
@@ -341,6 +350,15 @@ export default function PoolBreakdownTable({
                       <span className="text-sm font-medium">
                         {formatPercentage(item.tokenShare)}
                       </span>
+                    </div>
+                    
+                    {/* Coming Soon Overlay */}
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Coming Soon
+                        </div>
+                      </div>
                     </div>
                   </td>
 
@@ -355,13 +373,22 @@ export default function PoolBreakdownTable({
                   </td>
 
                   {/* Risk Level */}
-                  <td className="p-4 whitespace-nowrap">
+                  <td className="p-4 whitespace-nowrap relative">
                     <Badge 
                       variant="outline" 
                       className={cn("text-xs", getRiskBadgeColor(item.riskLevel))}
                     >
                       {item.riskLevel}
                     </Badge>
+                    
+                    {/* Coming Soon Overlay */}
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          Coming Soon
+                        </div>
+                      </div>
+                    </div>
                   </td>
 
                   {/* Last Updated */}

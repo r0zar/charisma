@@ -163,6 +163,7 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               pools={tokenPools}
               tokenNode={tokenNode}
               totalLiquidity={priceData?.calculationDetails?.totalLiquidity || 0}
+              allTokenNodes={graph.getAllTokens()}
             />
 
             {/* Technical Information Card */}

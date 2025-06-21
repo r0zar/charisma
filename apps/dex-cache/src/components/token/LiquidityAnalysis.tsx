@@ -16,12 +16,18 @@ import {
 import { cn } from '@/lib/utils';
 import { PoolEdge } from '@/lib/pricing/price-graph';
 import { TokenNode } from '@/lib/pricing/price-graph';
+import {
+  calculateDecimalAwareLiquidity,
+  getTokenDecimals,
+  convertAtomicToDecimal
+} from '@/lib/pricing/decimal-utils';
 
 interface LiquidityAnalysisProps {
   tokenSymbol: string;
   pools: PoolEdge[];
   tokenNode: TokenNode | null;
   totalLiquidity: number;
+  allTokenNodes: TokenNode[]; // Added to get decimal information
 }
 
 interface PoolLiquidityData {
@@ -154,25 +160,46 @@ export default function LiquidityAnalysis({
   tokenSymbol, 
   pools, 
   tokenNode, 
-  totalLiquidity 
+  totalLiquidity,
+  allTokenNodes 
 }: LiquidityAnalysisProps) {
-  // Process pool data for analysis
+  // Process pool data for analysis with decimal-aware calculations
   const poolData: PoolLiquidityData[] = React.useMemo(() => {
-    const totalPoolLiquidity = pools.reduce((sum, pool) => sum + (pool.liquidityUsd || 0), 0);
+    // Calculate decimal-aware liquidity for each pool
+    const poolsWithDecimalLiquidity = pools.map(pool => {
+      // Get token nodes for decimal information
+      const tokenANode = allTokenNodes.find(t => t.contractId === pool.tokenA);
+      const tokenBNode = allTokenNodes.find(t => t.contractId === pool.tokenB);
+      
+      if (!tokenANode || !tokenBNode) {
+        console.warn(`[LiquidityAnalysis] Missing token nodes for pool ${pool.poolId}`);
+        return { ...pool, decimalAwareLiquidity: 0 };
+      }
+      
+      // Calculate decimal-aware geometric mean
+      const decimalAwareLiquidity = calculateDecimalAwareLiquidity(
+        pool.reserveA, tokenANode.decimals,
+        pool.reserveB, tokenBNode.decimals
+      );
+      
+      return { ...pool, decimalAwareLiquidity };
+    });
     
-    return pools
+    const totalPoolLiquidity = poolsWithDecimalLiquidity.reduce((sum, pool) => sum + pool.decimalAwareLiquidity, 0);
+    
+    return poolsWithDecimalLiquidity
       .map(pool => {
-        const liquidityUsd = pool.liquidityUsd || 0;
+        const liquidityUsd = pool.decimalAwareLiquidity;
         const percentage = totalPoolLiquidity > 0 ? (liquidityUsd / totalPoolLiquidity) * 100 : 0;
         
         // Determine paired token
         const pairedTokenId = pool.tokenA === tokenNode?.contractId ? pool.tokenB : pool.tokenA;
         const pairedToken = getTokenSymbol(pairedTokenId);
         
-        // Calculate risk level
+        // Calculate risk level using decimal-aware liquidity
         const dataAge = Date.now() - pool.lastUpdated;
         const ageHours = dataAge / (1000 * 60 * 60);
-        const liquidityScore = Math.min(1, liquidityUsd / 100000);
+        const liquidityScore = Math.min(1, liquidityUsd / 100000); // Using decimal-aware value
         
         let riskLevel: 'low' | 'medium' | 'high' = 'low';
         if (liquidityScore < 0.3 || ageHours > 24) {
@@ -190,7 +217,7 @@ export default function LiquidityAnalysis({
         };
       })
       .sort((a, b) => b.liquidityUsd - a.liquidityUsd);
-  }, [pools, tokenNode]);
+  }, [pools, tokenNode, allTokenNodes]);
 
   // Calculate analysis metrics
   const analysisMetrics = React.useMemo(() => {
@@ -240,7 +267,7 @@ export default function LiquidityAnalysis({
   return (
     <div className="space-y-6">
       {/* Liquidity Distribution */}
-      <Card>
+      <Card className="relative">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChart className="h-5 w-5" />
@@ -253,6 +280,19 @@ export default function LiquidityAnalysis({
         <CardContent>
           <LiquidityDistributionChart data={poolData} />
         </CardContent>
+        
+        {/* Coming Soon Overlay */}
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+          <div className="text-center p-6">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+              <PieChart className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Enhanced liquidity distribution analysis is being validated and will be available soon.
+            </p>
+          </div>
+        </div>
       </Card>
 
       {/* Key Metrics */}
