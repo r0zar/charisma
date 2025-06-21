@@ -10,7 +10,7 @@ import { request } from '@stacks/connect';
 import { TransactionResult } from '@stacks/connect/dist/types/methods';
 import { TokenCacheData } from '@repo/tokens';
 import { signTriggeredSwap } from 'blaze-sdk';
-import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf, bufferCV, Pc } from '@stacks/transactions';
+import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf, bufferCV, Pc, PostConditionMode } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useBlaze } from 'blaze-sdk/realtime';
@@ -78,13 +78,13 @@ export function useRouterTrading() {
   // Helper function to get the contract ID to use for a token based on subnet toggle
   const getContractIdForToken = useCallback((token: TokenCacheData | null, useSubnet: boolean): string | null => {
     if (!token) return null;
-    
+
     // If we want subnet and token is mainnet, find subnet version
     if (useSubnet && token.type !== 'SUBNET') {
       const subnetVersion = subnetDisplayTokens.find(t => t.base === token.contractId);
       return subnetVersion?.contractId || token.contractId;
     }
-    
+
     // Always use the mainnet version for consistency (token should already be mainnet)
     return token.contractId;
   }, [subnetDisplayTokens]);
@@ -96,10 +96,10 @@ export function useRouterTrading() {
       if (!token) return null;
       return token.type === 'SUBNET' && token.base ? token.base : token.contractId;
     };
-    
+
     const fromBaseContractId = getBaseContractId(selectedFromToken);
     const toBaseContractId = getBaseContractId(selectedToToken);
-    
+
     console.log('🔍 useRouterTrading - Debug balances:', {
       walletAddress,
       balancesCount: Object.keys(balances).length,
@@ -112,11 +112,11 @@ export function useRouterTrading() {
       toTokenBalance: toBaseContractId ? balances[`${walletAddress}:${toBaseContractId}`] : null,
       charismaKeys: Object.keys(balances).filter(key => key.includes('charisma'))
     });
-    
+
     // Log tokens being used for routing
     const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
     const toContractId = getContractIdForToken(selectedToToken, useSubnetTo);
-    
+
     console.log('🎯 Routing tokens:', {
       useSubnetFrom,
       useSubnetTo,
@@ -190,7 +190,7 @@ export function useRouterTrading() {
 
     const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
     const toContractId = getContractIdForToken(selectedToToken, useSubnetTo);
-    
+
     if (!fromContractId || !toContractId) return;
 
     console.log('💱 Fetching quote with tokens:', {
@@ -249,7 +249,6 @@ export function useRouterTrading() {
         return;
       }
 
-      // Clear balance cache after successful swap
       setSwapSuccessInfo(res);
     } catch (err) {
       console.error('Swap failed:', err);
@@ -274,14 +273,6 @@ export function useRouterTrading() {
     }
   }, []);
 
-  // Helper function to build swap transaction for a given route
-  const buildSwapTransactionForRoute = useCallback(async (
-    route: Route,
-    userAddress: string
-  ) => {
-    return await buildSwapTransaction(router.current, route, userAddress);
-  }, []);
-
   // ===================== ORDER CREATION FUNCTIONALITY =====================
 
   /**
@@ -297,19 +288,19 @@ export function useRouterTrading() {
     validTo?: string;
   }) => {
     console.log('📝 createTriggeredSwap called with:', opts);
-    
+
     if (!walletAddress) throw new Error('Connect wallet');
     if (!selectedFromToken || !selectedToToken) throw new Error('Select tokens');
 
     const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
     const toContractId = getContractIdForToken(selectedToToken, useSubnetTo);
-    
+
     if (!fromContractId || !toContractId) throw new Error('Unable to determine contract IDs');
 
     console.log('🔢 Generating UUID and micro amount...');
     const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
     const micro = convertToMicroUnits(opts.amountDisplay, selectedFromToken.decimals || 6);
-    
+
     console.log('📝 Order details:', {
       uuid,
       micro,
@@ -365,7 +356,7 @@ export function useRouterTrading() {
         console.error('❌ API error:', j);
         throw new Error(j.error || 'Order create failed');
       }
-      
+
       console.log('✅ Order creation API call successful');
       setOrderSuccessInfo({ success: true });
 
@@ -423,7 +414,7 @@ export function useRouterTrading() {
     // For subnet tokens, we need to look up the base token's balance data
     const baseContractId = token.type === 'SUBNET' && token.base ? token.base : token.contractId;
     const balanceData = balances[`${userAddress}:${baseContractId}`];
-    
+
     console.log('🔍 Balance lookup in checkBalanceForOrder:', {
       tokenContract: token.contractId,
       tokenType: token.type,
@@ -656,7 +647,7 @@ export function useRouterTrading() {
     try {
       // Execute the swap using the provided route
       if (swapOption.route) {
-        const txCfg = await buildSwapTransactionForRoute(swapOption.route, walletAddress);
+        const txCfg = await buildSwapTransaction(router.current, swapOption.route, walletAddress);
         const res = await request('stx_callContract', txCfg);
 
         if (res && res.txid) {
@@ -667,7 +658,7 @@ export function useRouterTrading() {
       console.error('Swap for order failed:', err);
     }
     return false;
-  }, [walletAddress, selectedFromToken, balanceCheckResult, buildSwapTransactionForRoute]);
+  }, [walletAddress, selectedFromToken, balanceCheckResult, router.current]);
 
   // ---------------------- Price Impact Calculations ----------------------
   const { priceImpacts, totalPriceImpact } = useMemo(() => {
@@ -799,7 +790,6 @@ export function useRouterTrading() {
     fetchQuote,
     handleSwap,
     getQuoteForTokens,
-    buildSwapTransactionForRoute,
 
     // Order actions
     createTriggeredSwap,

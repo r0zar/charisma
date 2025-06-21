@@ -21,6 +21,7 @@ import {
   Pc,
   FungiblePostCondition,
   ClarityValue,
+  PostConditionModeName,
 } from '@stacks/transactions';
 
 /*************  Domain models  *************/
@@ -329,9 +330,6 @@ export class Router {
     const delta = await quoteVault(vault, amount, opcode);
     if (delta) {
       this.quoteCache.set(key, { delta, timestamp: Date.now() });
-      if (this.config.debug) {
-        console.log(`[cache] miss for ${key}, fetched and cached`);
-      }
     }
 
     return delta;
@@ -672,8 +670,10 @@ export const buildSwapTransaction = async (
     functionName: `swap-${route.hops.length}`,
     functionArgs: fnArgs,
     postConditions: Array.from(pcMap.values()),
+    postConditionMode: 'deny' as PostConditionModeName,
     network: 'mainnet',
-  } as const;
+    clarityVersion: 3,
+  };
 };
 
 /**

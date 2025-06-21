@@ -18,40 +18,18 @@ import {
     ClarityValue,
     PostCondition,
     TxBroadcastResult,
-    Pc,
 } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { STACKS_MAINNET } from '@stacks/network';
-import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../constants';
-import { recoverSigner } from '../core';
-import { ContractCallTxOptions } from './types';
+import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../../constants';
+import { recoverSigner } from '../../core';
+import { ContractCallTxOptions } from '../types';
+import { buildPostConditions, Token, Hop, Route } from './utils/postconditions';
 
 // ====== Types and Interfaces ======
 
-export interface Token {
-    contractId: string;    // Format: "address.contract-name"
-    identifier?: string;   // Optional token identifier for FTs
-    type: string;
-}
-
-export interface Hop {
-    tokenIn: Token;        // Input token for this hop
-    tokenOut: Token;       // Output token for this hop
-    vault: {               // Vault contract that performs the swap
-        contractId: string;
-        type: string;
-    };
-    opcode: number;        // Opcode for the vault operation
-    quote?: {              // Optional quote information
-        amountIn: string | number;
-        amountOut: string | number;
-    };
-}
-
-export interface Route {
-    path: Token[];         // Complete token path (including intermediaries)
-    hops: Hop[];           // Swap hops in the route
-}
+// Re-export types from postconditions module
+export type { Token, Hop, Route } from './utils/postconditions';
 
 export interface SwapMetadata {
     amountIn: number | string;
@@ -82,16 +60,6 @@ export type TokenOptionalParams = {
 };
 
 // ====== Helper Functions ======
-
-/**
- * Gets the asset ID for a token
- * 
- * @param token - The token to get the asset ID for
- * @returns The asset ID
- */
-function getAssetId(token: Token): string {
-    return `${token.contractId}${token.identifier ? '::' + token.identifier : ''}`;
-}
 
 /**
  * Splits a contract ID into address and name
@@ -129,7 +97,7 @@ export function buildInputTuple(
     if (contractId === STX_CONTRACT_ID) {
         contractId = WRAPPED_STX_CONTRACT_ID;
     }
-    
+
     const [addr, name] = splitContractId(contractId);
 
     return tupleCV({
@@ -147,16 +115,13 @@ export function buildInputTuple(
  * @param recipient - The recipient of the swapped tokens
  * @returns The output tuple as a Clarity value
  */
-export function buildOutputTuple(
-    outputToken: Token,
-    recipient: string
-): ClarityValue {
+export function buildOutputTuple(outputToken: Token, recipient: string): ClarityValue {
     // Special case: Replace STX with wrapped STX for x-multihop compatibility
     let contractId = outputToken.contractId;
     if (contractId === STX_CONTRACT_ID) {
         contractId = WRAPPED_STX_CONTRACT_ID;
     }
-    
+
     const [addr, name] = splitContractId(contractId);
 
     return tupleCV({
@@ -166,88 +131,20 @@ export function buildOutputTuple(
 }
 
 /**
- * Builds the hop tuples for a swap transaction
+ * Builds the hop tuple for a swap transaction
  * 
- * @param hops - The hops in the route
- * @returns The hop tuples as Clarity values
+ * @param hop - The hop to build the tuple for
+ * @returns The hop tuple as a Clarity value
  */
-export async function buildHopTuples(hops: Hop[]): Promise<ClarityValue[]> {
-    return Promise.all(
-        hops.map(async (hop: Hop) => {
-            const [addr, name] = splitContractId(hop.vault.contractId);
-            const opcodeHex = hop.opcode.toString(16).padStart(2, '0');
-
-            return tupleCV({
-                vault: contractPrincipalCV(addr, name),
-                opcode: bufferFromHex(opcodeHex),
-            });
-        })
-    );
-}
-
-// ====== Post Condition Building ======
-
-/**
- * Builds post conditions for a swap transaction
- * 
- * @param route - The route to execute
- * @param routerCID - The contract ID of the router
- * @returns The post conditions
- */
-export function buildPostConditions(route: Route, routerCID: string): PostCondition[] {
-    // Aggregate post conditions by principal|token
-    const pcMap = new Map<string, bigint>();
-
-    // Helper function to add to the map
-    const add = (principal: string, tokenId: string, amt: bigint) => {
-        const key = `${principal}|${tokenId}`;
-        pcMap.set(key, (pcMap.get(key) ?? BigInt(0)) + amt);
-    };
-
-    // Use hop.quote amounts if present or calculate based on meta.amountIn cascade
-    route.hops.forEach((hop) => {
-        const amtIn = BigInt(hop.quote?.amountIn ?? 0);
-        const amtOut = BigInt(hop.quote?.amountOut ?? 0);
-
-        // Only add non-subnet tokens to post conditions
-        if (hop.tokenIn.type !== 'SUBNET') {
-            add(routerCID, getAssetId(hop.tokenIn), amtIn);
-        }
-
-        if (hop.tokenOut.type !== 'SUBNET') {
-            // If the vault is a sub-link vault, use the tokenIn contractId as the principal
-            const contractOut = hop.vault.type === 'SUBLINK'
-                ? hop.tokenIn.contractId
-                : hop.vault.contractId;
-
-            add(contractOut, getAssetId(hop.tokenOut), amtOut);
-        }
-    });
-
-    // Add the multihop withdraw post condition
-    const transferToken = route.path[route.path.length - 1];
-
-    // Only add non-subnet tokens to post conditions
-    if (transferToken.type !== 'SUBNET') {
-        const lastHop = route.hops[route.hops.length - 1];
-        const finalAmountOut = BigInt(lastHop.quote?.amountOut ?? 0);
-        add(routerCID, getAssetId(transferToken), finalAmountOut);
-    }
-
-    // Create post conditions from the aggregated map
-    return Array.from(pcMap.entries()).map(([key, amount]) => {
-        const [principal, tokenId] = key.split('|');
-
-        console.log('Post condition:', principal, tokenId, amount);
-
-        if (tokenId === '.stx::stx' || tokenId === '.stx') {
-            return Pc.principal(principal).willSendEq(amount).ustx();
-        }
-
-        const [contractPart, identPart] = tokenId.split('::');
-        return Pc.principal(principal).willSendEq(amount).ft(contractPart as any, identPart);
+function buildHopTuple(hop: Hop): ClarityValue {
+    const [addr, name] = splitContractId(hop.vault.contractId);
+    const opcodeHex = hop.opcode.toString(16).padStart(2, '0');
+    return tupleCV({
+        vault: contractPrincipalCV(addr, name),
+        opcode: bufferFromHex(opcodeHex),
     });
 }
+
 
 // ====== Main Transaction Building Function ======
 
@@ -259,11 +156,11 @@ export function buildPostConditions(route: Route, routerCID: string): PostCondit
  * @param config - Router configuration (optional)
  * @returns Transaction configuration with native Clarity values
  */
-export async function buildXSwapTransaction(
+export function buildXSwapTransaction(
     route: Route,
     meta: SwapMetadata,
     config: RouterConfig = DEFAULT_ROUTER_CONFIG
-): Promise<TransactionConfig> {
+): TransactionConfig {
     // Ensure router configured
     if (!config.routerAddress || !config.routerName) {
         throw new Error('Router address/name not configured');
@@ -277,7 +174,7 @@ export async function buildXSwapTransaction(
         meta.uuid
     );
 
-    const hopCVs = await buildHopTuples(route.hops);
+    const hopCVs = route.hops.map(buildHopTuple);
 
     const outCV = buildOutputTuple(
         route.path[route.path.length - 1],
@@ -298,6 +195,8 @@ export async function buildXSwapTransaction(
         functionName: `x-swap-${route.hops.length}`,
         functionArgs,
         postConditions,
+        // postConditions: [],
+        // postConditionMode: PostConditionMode.Allow,
     };
 }
 
