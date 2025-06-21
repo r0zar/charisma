@@ -320,6 +320,29 @@ export class TokenRankingService {
     }
 
     /**
+     * Get all available tokens with relaxed filters to capture broader universe
+     */
+    async getAllAvailableTokens(limit: number = 400): Promise<EnhancedTokenData[]> {
+        try {
+            const { tokens } = await this.getBulkTokenData(limit, 'change24h', 'desc', true); // Include inactive tokens
+
+            // Very relaxed filtering - just need basic price data
+            const availableTokens = tokens.filter(token => {
+                const hasPrice = token.priceStats?.price !== null && !isNaN(token.priceStats.price) && token.priceStats.price > 0;
+                const hasValidContract = token.contractId && token.contractId.length > 0;
+                
+                return hasPrice && hasValidContract;
+            });
+
+            console.log(`[TokenRanking] Found ${availableTokens.length} available tokens with relaxed filters`);
+            return availableTokens;
+        } catch (error) {
+            console.error('[TokenRanking] Error getting all available tokens:', error);
+            return [];
+        }
+    }
+
+    /**
      * Cache management
      */
     private getFromCache(key: string): any | null {
