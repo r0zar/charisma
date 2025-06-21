@@ -15,14 +15,24 @@ import {
   Activity,
   AlertTriangle
 } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { PricePath } from '@/lib/pricing/price-graph';
+
+interface TokenMeta {
+  contractId: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  image?: string;
+}
 
 interface PricePathVisualizerProps {
   tokenSymbol: string;
   paths: PricePath[];
   primaryPath?: PricePath;
   alternativePaths: PricePath[];
+  allTokens: TokenMeta[];
 }
 
 interface PathDisplayData {
@@ -83,7 +93,7 @@ const getTokenSymbol = (tokenId: string): string => {
   return lastPart.slice(0, 4).toUpperCase();
 };
 
-const PathVisualization = ({ pathData }: { pathData: PathDisplayData }) => {
+const PathVisualization = ({ pathData, allTokens }: { pathData: PathDisplayData; allTokens: TokenMeta[] }) => {
   const { path, isPrimary, steps } = pathData;
   const pathType = getPathTypeLabel(path.pathLength);
   
@@ -125,14 +135,28 @@ const PathVisualization = ({ pathData }: { pathData: PathDisplayData }) => {
             {/* Token */}
             <div className="flex flex-col items-center gap-1 min-w-0">
               <div className={cn(
-                "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold",
+                "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold overflow-hidden",
                 token.includes('sbtc') 
                   ? "border-orange-500/30 bg-orange-500/10 text-orange-400"
                   : index === 0
                   ? "border-primary/30 bg-primary/10 text-primary"
                   : "border-border bg-muted text-muted-foreground"
               )}>
-                {getTokenSymbol(token).slice(0, 2)}
+                {(() => {
+                  const tokenMeta = allTokens.find(t => t.contractId === token);
+                  if (tokenMeta?.image) {
+                    return (
+                      <Image
+                        src={tokenMeta.image}
+                        alt={`${getTokenSymbol(token)} logo`}
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                      />
+                    );
+                  }
+                  return getTokenSymbol(token).slice(0, 2);
+                })()}
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {getTokenSymbol(token)}
@@ -177,7 +201,8 @@ export default function PricePathVisualizer({
   tokenSymbol, 
   paths, 
   primaryPath, 
-  alternativePaths 
+  alternativePaths,
+  allTokens 
 }: PricePathVisualizerProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
@@ -256,7 +281,7 @@ export default function PricePathVisualizer({
               <Target className="h-4 w-4 text-primary" />
               Primary Price Path
             </h4>
-            <PathVisualization pathData={primaryPathData} />
+            <PathVisualization pathData={primaryPathData} allTokens={allTokens} />
           </div>
         )}
 
@@ -294,6 +319,7 @@ export default function PricePathVisualizer({
                   <PathVisualization 
                     key={pathData.path.tokens.join('-')} 
                     pathData={pathData} 
+                    allTokens={allTokens}
                   />
                 ))}
                 

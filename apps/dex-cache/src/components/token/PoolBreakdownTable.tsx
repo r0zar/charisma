@@ -252,16 +252,38 @@ export default function PoolBreakdownTable({
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-primary/10 border border-border flex items-center justify-center">
-                          <span className="text-xs font-bold text-primary">
-                            {tokenSymbol.slice(0, 1)}
-                          </span>
+                        {/* Current Token Image */}
+                        <div className="w-6 h-6 rounded-full bg-primary/10 border border-border flex items-center justify-center overflow-hidden">
+                          {currentToken?.image ? (
+                            <Image
+                              src={currentToken.image}
+                              alt={`${tokenSymbol} logo`}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-primary">
+                              {tokenSymbol.slice(0, 1)}
+                            </span>
+                          )}
                         </div>
                         <span>/</span>
-                        <div className="w-6 h-6 rounded-full bg-secondary/10 border border-border flex items-center justify-center">
-                          <span className="text-xs font-bold text-secondary">
-                            {item.pairedToken?.symbol.slice(0, 1) || '?'}
-                          </span>
+                        {/* Paired Token Image */}
+                        <div className="w-6 h-6 rounded-full bg-secondary/10 border border-border flex items-center justify-center overflow-hidden">
+                          {item.pairedToken?.image ? (
+                            <Image
+                              src={item.pairedToken.image}
+                              alt={`${item.pairedToken.symbol} logo`}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-bold text-secondary">
+                              {item.pairedToken?.symbol.slice(0, 1) || '?'}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div>

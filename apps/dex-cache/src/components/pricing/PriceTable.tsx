@@ -23,6 +23,7 @@ interface PriceTableData {
   symbol: string;
   name: string;
   decimals: number;
+  image?: string;
   usdPrice: number;
   sbtcRatio: number;
   confidence: number;
@@ -179,10 +180,20 @@ export default function PriceTable({
                   {/* Token Info */}
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 border border-border flex items-center justify-center">
-                        <span className="text-xs font-bold text-primary">
-                          {item.symbol.slice(0, 2).toUpperCase()}
-                        </span>
+                      <div className="w-8 h-8 rounded-full bg-primary/10 border border-border flex items-center justify-center overflow-hidden">
+                        {item.image ? (
+                          <Image
+                            src={item.image}
+                            alt={`${item.symbol} logo`}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-primary">
+                            {item.symbol.slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <div className="font-semibold text-foreground">{item.symbol}</div>

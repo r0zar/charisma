@@ -10,6 +10,7 @@ interface TokenMeta {
   symbol: string;
   name: string;
   decimals: number;
+  image?: string;
 }
 
 interface TokenMetricsProps {

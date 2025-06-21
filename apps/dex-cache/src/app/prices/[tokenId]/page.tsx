@@ -152,6 +152,7 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               paths={pathsToSbtc}
               primaryPath={priceData?.primaryPath}
               alternativePaths={priceData?.alternativePaths || []}
+              allTokens={allTokens}
             />
           </div>
 
