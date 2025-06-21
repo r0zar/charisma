@@ -127,13 +127,13 @@ export class MarketDiscoveryService {
             // Fetch tokens with multiple strategies to ensure good coverage
             const strategies = [
                 // Strategy 1: Top by recent activity
-                tokenRankingService.getTopTokensByActivity(config.rosterSize),
+                tokenRankingService.getTopTokensByActivity(config.rosterSize * 2),
                 
                 // Strategy 2: Top by market cap (for stability)
-                tokenRankingService.getTopTokensByMarketCap(config.rosterSize),
+                tokenRankingService.getTopTokensByMarketCap(config.rosterSize * 2),
                 
                 // Strategy 3: All available tokens (broader scope)
-                tokenRankingService.getAllAvailableTokens(config.rosterSize * 2),
+                tokenRankingService.getAllAvailableTokens(config.rosterSize * 3),
             ];
 
             const results = await Promise.all(strategies);
@@ -151,11 +151,13 @@ export class MarketDiscoveryService {
 
             const allTokens = Array.from(tokenMap.values());
             
-            // Filter for quality tokens (temporarily relaxed filters for debugging)
+            // Filter for basic valid tokens (very relaxed filters)
             const qualityTokens = allTokens.filter(token => {
-                const hasPrice = token.priceStats?.price !== null && token.priceStats?.price > 0;
-                console.log(`[MarketDiscovery] Token ${token.contractId.slice(0, 8)}... - hasPrice: ${hasPrice}, price: ${token.priceStats?.price}`);
-                return hasPrice;
+                const hasPrice = token.priceStats?.price !== null && !isNaN(token.priceStats.price) && token.priceStats.price > 0;
+                const hasValidContract = token.contractId && token.contractId.length > 0;
+                const hasMetadata = token.metadata !== null; // Allow tokens even if metadata is minimal
+                
+                return hasPrice && hasValidContract;
             });
 
             console.log(`[MarketDiscovery] Filtered ${qualityTokens.length} quality tokens from ${allTokens.length} total`);

@@ -272,16 +272,13 @@ export class TokenRankingService {
             // Fetch tokens sorted by recent activity indicators
             const { tokens } = await this.getBulkTokenData(limit, 'change24h', 'desc', false);
 
-            // Filter for tokens with good data quality and recent activity
+            // Filter for tokens with basic price data (relaxed filtering)
             const activeTokens = tokens.filter(token => {
-                const hasGoodData = token.dataInsights?.dataQuality === 'good';
-                const hasPrice = token.priceStats?.price !== null;
-                const hasActivity = Math.abs(token.priceStats.change1h || 0) > 0.1 || Math.abs(token.priceStats.change24h || 0) > 0.5;
+                const hasPrice = token.priceStats?.price !== null && !isNaN(token.priceStats.price) && token.priceStats.price > 0;
+                const hasValidContract = token.contractId && token.contractId.length > 0;
                 
-                console.log(`[TokenRanking] Active filter for ${token.contractId.slice(0, 8)}... - goodData: ${hasGoodData}, hasPrice: ${hasPrice}, hasActivity: ${hasActivity}`);
-                
-                // Temporarily accept all tokens with price for debugging
-                return hasPrice;
+                // Very permissive - just need price and valid contract ID
+                return hasPrice && hasValidContract;
             });
 
             console.log(`[TokenRanking] Found ${activeTokens.length} active tokens out of ${tokens.length} total`);
