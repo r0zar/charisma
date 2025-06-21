@@ -179,6 +179,28 @@ export async function monitorOrderTransaction(
             result.orderUpdated = true;
 
             console.log(`[TX-MONITOR] ✅ Order ${orderId} confirmed on blockchain at block ${txInfo.blockHeight}`);
+
+            // Trigger system-wide balance refresh after successful transaction
+            // Note: This refreshes balances for all users, not just the order owner
+            try {
+                const response = await fetch('/api/blaze/balances', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: order.owner
+                    })
+                });
+
+                if (response.ok) {
+                    console.log(`[TX-MONITOR] ✅ System-wide balance refresh triggered by order ${orderId} (owner: ${order.owner})`);
+                } else {
+                    console.warn(`[TX-MONITOR] ⚠️ Balance refresh failed for order ${orderId}: HTTP ${response.status}`);
+                }
+            } catch (balanceError) {
+                console.error(`[TX-MONITOR] ❌ Error triggering balance refresh for order ${orderId}:`, balanceError);
+            }
         } else {
             // Still pending
             console.log(`[TX-MONITOR] ⏳ Order ${orderId} transaction ${order.txid} still pending`);

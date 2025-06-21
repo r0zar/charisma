@@ -10,11 +10,13 @@ import { request } from '@stacks/connect';
 import { TransactionResult } from '@stacks/connect/dist/types/methods';
 import { TokenCacheData } from '@repo/tokens';
 import { signTriggeredSwap } from 'blaze-sdk';
-import { tupleCV, stringAsciiCV, uintCV, principalCV, noneCV, optionalCVOf, bufferCV, Pc, PostConditionMode } from '@stacks/transactions';
+import { uintCV, noneCV, Pc } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
+import { buildPostConditions } from 'blaze-sdk';
+import { buildSwapPostConditions } from 'dexterity-sdk';
 
 interface BalanceCheckResult {
   hasEnoughSubnet: boolean;
@@ -70,10 +72,17 @@ export function useRouterTrading() {
     subnetDisplayTokens,
     useSubnetFrom,
     useSubnetTo,
+    mode,
   } = useSwapTokens();
 
   // Get prices from BlazeProvider
   const { prices, balances } = useBlaze({ userId: walletAddress });
+
+  // Router config for post conditions
+  const routerConfig = useMemo(() => ({
+    routerAddress: process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
+    routerName: process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop'
+  }), []);
 
   // Helper function to get the contract ID to use for a token based on subnet toggle
   const getContractIdForToken = useCallback((token: TokenCacheData | null, useSubnet: boolean): string | null => {
@@ -231,6 +240,101 @@ export function useRouterTrading() {
     }
     fetchQuote();
   }, [selectedFromToken, selectedToToken, microAmount, useSubnetFrom, useSubnetTo, fetchQuote]);
+
+  // Generate post conditions data when quote is available
+  const postConditionsData = useMemo(() => {
+    if (!quote || !quote.hops || !walletAddress) return null;
+
+    try {
+      const inputToken = quote.path[0];
+      const outputToken = quote.path[quote.path.length - 1];
+      const inputAmount = BigInt(quote.amountIn);
+      const outputAmount = BigInt(quote.amountOut);
+      const minOutputWithSlippage = (outputAmount * BigInt(99)) / BigInt(100); // 1% slippage protection
+      
+      if (mode === 'swap') {
+        // For swap mode: simple dexterity multihop router
+        // Users care about: input amount, guaranteed output, wallet protection
+        const operations = [
+          {
+            type: 'input',
+            description: 'You will send exactly',
+            principal: walletAddress,
+            token: inputToken,
+            amount: inputAmount,
+            condition: 'eq',
+            category: 'send'
+          },
+          {
+            type: 'output',
+            description: 'You will receive at least',
+            principal: walletAddress,
+            token: outputToken,
+            amount: minOutputWithSlippage,
+            condition: 'gte',
+            category: 'receive'
+          },
+          {
+            type: 'protection',
+            description: 'No other tokens can leave your address',
+            principal: walletAddress,
+            token: null,
+            amount: BigInt(0),
+            condition: 'protection',
+            category: 'security'
+          }
+        ];
+        
+        return { operations, mode: 'swap', contractType: 'Dexterity Multihop Router' };
+      } else {
+        // For order mode: x-multihop flow (subnet-based)
+        // Users care about: input amount, guaranteed output, subnet protection
+        const operations = [
+          {
+            type: 'input',
+            description: 'You will send exactly',
+            principal: walletAddress,
+            token: inputToken,
+            amount: inputAmount,
+            condition: 'eq',
+            category: 'send'
+          },
+          {
+            type: 'output',
+            description: 'You will receive at least',
+            principal: walletAddress,
+            token: outputToken,
+            amount: minOutputWithSlippage,
+            condition: 'gte',
+            category: 'receive'
+          },
+          {
+            type: 'subnet-protection',
+            description: 'No tokens can leave your wallet address at all',
+            principal: walletAddress,
+            token: inputToken,
+            amount: BigInt(0),
+            condition: 'subnet-isolation',
+            category: 'subnet-security'
+          },
+          {
+            type: 'protection',
+            description: 'Only the specified subnet token can be moved',
+            principal: walletAddress,
+            token: null,
+            amount: BigInt(0),
+            condition: 'protection',
+            category: 'security'
+          }
+        ];
+
+        return { operations, mode: 'order', contractType: 'X-Multihop Subnet Router' };
+      }
+    } catch (error) {
+      console.error('Failed to generate post conditions:', error);
+      return null;
+    }
+  }, [quote, mode, walletAddress]);
 
   // Execute swap transaction
   const handleSwap = useCallback(async () => {
@@ -804,6 +908,9 @@ export function useRouterTrading() {
     // Price impact calculations
     priceImpacts,
     totalPriceImpact,
+
+    // Post conditions data
+    postConditionsData,
 
     // Security level
     securityLevel,
