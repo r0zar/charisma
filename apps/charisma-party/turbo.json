@@ -6,7 +6,8 @@
     "build": {
       "dependsOn": [
         "@repo/tokens#build",
-        "@repo/polyglot#build"
+        "@repo/polyglot#build",
+        "blaze-sdk#build"
       ],
       "outputs": [
         "dist/**"
@@ -19,7 +20,8 @@
     "dev": {
       "dependsOn": [
         "@repo/tokens#build",
-        "@repo/polyglot#build"
+        "@repo/polyglot#build",
+        "blaze-sdk#build"
       ]
     }
   }
