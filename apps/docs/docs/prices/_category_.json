@@ -1,0 +1,10 @@
+{
+    "label": "Pricing System",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "title": "Charisma Pricing System",
+        "slug": "/prices/overview",
+        "description": "Multi-path price discovery system with sBTC anchoring, liquidity analysis, and decimal-aware calculations for accurate token pricing."
+    }
+}

@@ -99,6 +99,12 @@ const config: Config = {
           label: 'Tokenomics',
         },
         {
+          type: 'docSidebar',
+          sidebarId: 'pricesSidebar',
+          position: 'left',
+          label: 'Pricing',
+        },
+        {
           href: 'https://github.com/r0zar/charisma',
           label: 'GitHub',
           position: 'right',
@@ -118,6 +124,10 @@ const config: Config = {
             {
               label: 'Blaze',
               to: '/docs/blaze-api/overview',
+            },
+            {
+              label: 'Pricing',
+              to: '/docs/prices/overview',
             },
           ],
         },
