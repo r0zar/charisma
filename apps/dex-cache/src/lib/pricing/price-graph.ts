@@ -21,7 +21,8 @@ export interface PoolEdge {
     tokenB: string;
     reserveA: number;
     reserveB: number;
-    liquidityUsd: number;
+    liquidityUsd: number; // Deprecated: This is actually relative liquidity, not USD
+    liquidityRelative: number; // Geometric mean of decimal-converted reserves (for display)
     weight: number; // Calculated weight for pathfinding
     lastUpdated: number;
     fee: number;
@@ -41,6 +42,7 @@ export class PriceGraph {
     private edges = new Map<string, PoolEdge[]>(); // tokenId -> array of connected edges
     private pools = new Map<string, PoolEdge>();
     private lastUpdated = 0;
+    private globalMaxLiquidity = 0; // Cache for performance optimization
 
     constructor() {
         // Initialize sBTC as the base node
@@ -61,19 +63,19 @@ export class PriceGraph {
         try {
             // Get all vault/pool data - only CHARISMA protocol
             const vaults = await getAllVaultData();
-            const liquidityPools = vaults.filter(v => 
-                v.type === 'POOL' && 
+            const liquidityPools = vaults.filter(v =>
+                v.type === 'POOL' &&
                 v.protocol === 'CHARISMA' &&
-                v.tokenA && 
-                v.tokenB && 
-                v.reservesA !== undefined && 
+                v.tokenA &&
+                v.tokenB &&
+                v.reservesA !== undefined &&
                 v.reservesB !== undefined &&
                 v.reservesA > 0 &&
                 v.reservesB > 0
             );
 
             console.log(`[PriceGraph] Processing ${liquidityPools.length} CHARISMA liquidity pools`);
-            
+
             if (liquidityPools.length === 0) {
                 console.warn('[PriceGraph] No CHARISMA liquidity pools found! Check protocol filtering.');
                 // Log sample vault for debugging
@@ -110,7 +112,7 @@ export class PriceGraph {
                     console.log(`[PriceGraph] Skipping vault ${vault.symbol} - missing tokens`);
                     continue;
                 }
-                
+
                 console.log(`[PriceGraph] Processing pool: ${vault.tokenA.symbol}/${vault.tokenB.symbol} (${vault.symbol})`);
 
                 const tokenAId = vault.tokenA.contractId;
@@ -142,31 +144,33 @@ export class PriceGraph {
                 // Calculate pool liquidity using decimal-aware conversion
                 let reserveA = vault.reservesA || 0;
                 let reserveB = vault.reservesB || 0;
-                
+
                 // Convert to numbers if they're strings
                 reserveA = typeof reserveA === 'string' ? parseFloat(reserveA) : reserveA;
                 reserveB = typeof reserveB === 'string' ? parseFloat(reserveB) : reserveB;
-                
+
                 console.log(`[PriceGraph] Atomic reserves: ${vault.tokenA.symbol}=${reserveA}, ${vault.tokenB.symbol}=${reserveB}`);
-                
-                if (!isFinite(reserveA) || !isFinite(reserveB) || reserveA <= 0 || reserveB <= 0) {
+
+                // Enhanced validation to prevent calculation errors
+                if (!isFinite(reserveA) || !isFinite(reserveB) || reserveA <= 0 || reserveB <= 0 || 
+                    isNaN(reserveA) || isNaN(reserveB) || reserveA > Number.MAX_SAFE_INTEGER || reserveB > Number.MAX_SAFE_INTEGER) {
                     console.warn(`[PriceGraph] Invalid atomic reserves for ${vault.symbol}: A=${reserveA}, B=${reserveB}`);
                     continue;
                 }
-                
+
                 // Calculate decimal-aware liquidity weight
                 const liquidityWeight = calculateDecimalAwareLiquidity(
                     reserveA, vault.tokenA.decimals,
                     reserveB, vault.tokenB.decimals
                 );
-                
+
                 console.log(`[PriceGraph] Decimal-aware liquidity weight: ${liquidityWeight}`);
-                
+
                 if (liquidityWeight <= 0 || !isFinite(liquidityWeight)) {
                     console.warn(`[PriceGraph] Invalid liquidity weight for ${vault.symbol}: ${liquidityWeight}`);
                     continue;
                 }
-                
+
                 // Calculate edge weight for pathfinding
                 // Higher liquidity = lower cost for pathfinding
                 const edgeWeight = liquidityWeight > 0 ? 1 / liquidityWeight : Infinity;
@@ -177,7 +181,8 @@ export class PriceGraph {
                     tokenB: tokenBId,
                     reserveA,
                     reserveB,
-                    liquidityUsd: 0, // Will be calculated in second pass
+                    liquidityUsd: 0, // Will be calculated in second pass (deprecated)
+                    liquidityRelative: 0, // Will be calculated in second pass
                     weight: edgeWeight,
                     lastUpdated: Date.now(),
                     fee: 0 // Fee not used in pricing calculations
@@ -194,7 +199,7 @@ export class PriceGraph {
             await this.calculateLiquidityValues();
 
             this.lastUpdated = Date.now();
-            
+
             const buildTime = Date.now() - startTime;
             console.log(`[PriceGraph] Graph built in ${buildTime}ms: ${this.nodes.size} tokens, ${this.pools.size} pools`);
 
@@ -213,49 +218,110 @@ export class PriceGraph {
 
     private async calculateLiquidityValues(): Promise<void> {
         console.log('[PriceGraph] Calculating decimal-aware liquidity values for edges and nodes...');
-        
+
         // Update edge liquidity values using decimal-aware calculations
         for (const [poolId, edge] of Array.from(this.pools.entries())) {
             // Get token nodes for decimal information
             const tokenANode = this.nodes.get(edge.tokenA);
             const tokenBNode = this.nodes.get(edge.tokenB);
-            
+
             if (!tokenANode || !tokenBNode) {
                 console.warn(`[PriceGraph] Missing token nodes for pool ${poolId}`);
                 edge.liquidityUsd = 0;
                 continue;
             }
-            
-            // Calculate decimal-aware geometric mean
-            const decimalAwareLiquidity = calculateDecimalAwareLiquidity(
-                edge.reserveA, tokenANode.decimals,
-                edge.reserveB, tokenBNode.decimals
-            );
-            
-            // This gives us relative liquidity in decimal terms
-            // Still not accurate USD but much better scaling than atomic units
-            edge.liquidityUsd = decimalAwareLiquidity;
-            
-            console.log(`[PriceGraph] Pool ${poolId}: atomic(${edge.reserveA}, ${edge.reserveB}) -> decimal-aware liquidityUsd=${decimalAwareLiquidity}`);
+
+            // Calculate atomic liquidity using geometric mean of atomic reserves
+            // This eliminates decimal scaling bugs by using raw atomic values
+            // Add validation to prevent calculation errors
+            if (edge.reserveA > 0 && edge.reserveB > 0 && isFinite(edge.reserveA) && isFinite(edge.reserveB)) {
+                const atomicLiquidity = Math.sqrt(edge.reserveA * edge.reserveB);
+                
+                // Validate the result
+                if (isFinite(atomicLiquidity) && atomicLiquidity > 0) {
+                    edge.liquidityUsd = atomicLiquidity;
+                } else {
+                    console.warn(`[PriceGraph] Invalid calculated liquidity for pool ${poolId}: ${atomicLiquidity}`);
+                    edge.liquidityUsd = 0;
+                }
+            } else {
+                console.warn(`[PriceGraph] Invalid reserves for liquidity calculation in pool ${poolId}`);
+                edge.liquidityUsd = 0;
+            }
+
+            console.log(`[PriceGraph] Pool ${poolId}: ${tokenANode.symbol}(${edge.reserveA} atomic) / ${tokenBNode.symbol}(${edge.reserveB} atomic) -> atomic liquidity=${edge.liquidityUsd}`);
+        }
+
+        // Simple approach: Calculate global relative liquidity scores
+        console.log(`[PriceGraph] === CALCULATING GLOBAL LIQUIDITY PERCENTAGES ===`);
+        
+        // Step 1: Find the global maximum atomic liquidity across ALL pools
+        this.globalMaxLiquidity = 0;
+        let maxPoolInfo = '';
+        
+        for (const [poolId, edge] of this.pools.entries()) {
+            if (edge.liquidityUsd > this.globalMaxLiquidity) {
+                this.globalMaxLiquidity = edge.liquidityUsd;
+                const tokenANode = this.nodes.get(edge.tokenA);
+                const tokenBNode = this.nodes.get(edge.tokenB);
+                maxPoolInfo = `${tokenANode?.symbol || '?'}/${tokenBNode?.symbol || '?'} (${poolId})`;
+            }
         }
         
+        console.log(`[PriceGraph] 🔍 GLOBAL MAXIMUM: ${this.globalMaxLiquidity.toExponential(2)}`);
+        console.log(`[PriceGraph] Maximum pool: ${maxPoolInfo}`);
+        
+        // Step 2: Calculate relative percentages against global maximum
+        if (this.globalMaxLiquidity > 0) {
+            for (const [poolId, edge] of this.pools.entries()) {
+                const relativePercentage = (edge.liquidityUsd / this.globalMaxLiquidity) * 100;
+                edge.liquidityRelative = relativePercentage;
+                
+                // Enhanced logging for debugging significant pools
+                if (relativePercentage > 1 || (edge.tokenA.includes('CHA') || edge.tokenB.includes('CHA'))) {
+                    const tokenANode = this.nodes.get(edge.tokenA);
+                    const tokenBNode = this.nodes.get(edge.tokenB);
+                    console.log(`[PriceGraph] Pool ${poolId} (${tokenANode?.symbol}/${tokenBNode?.symbol}): atomic=${edge.liquidityUsd.toExponential(2)} -> ${relativePercentage.toFixed(3)}%`);
+                }
+            }
+        } else {
+            for (const edge of this.pools.values()) {
+                edge.liquidityRelative = 0;
+            }
+        }
+
         // Update node statistics
+        console.log(`[PriceGraph] === UPDATING NODE STATISTICS ===`);
         for (const [tokenId, node] of Array.from(this.nodes.entries())) {
             const tokenEdges = this.edges.get(tokenId) || [];
             node.poolCount = tokenEdges.length;
-            
+
             // Calculate total liquidity for this token across all pools
             let totalLiquidity = 0;
             for (const edge of tokenEdges) {
-                // Sum up the liquidity from all pools this token participates in
                 totalLiquidity += edge.liquidityUsd;
             }
             node.totalLiquidity = totalLiquidity;
-            
-            console.log(`[PriceGraph] Token ${tokenId}: ${tokenEdges.length} pools, totalLiquidity=${totalLiquidity}`);
+
+            console.log(`[PriceGraph] Token ${tokenId} (${node.symbol}): ${tokenEdges.length} pools, total liquidity=${totalLiquidity.toFixed(2)}`);
+
+            // Special logging for sBTC to verify the fix
+            if (tokenId.includes('sbtc') || tokenId.includes('sBTC') || node.symbol === 'sBTC') {
+                console.log(`[PriceGraph] 🔍 sBTC TOKEN ANALYSIS (AFTER FIX):`);
+                console.log(`[PriceGraph]   Contract: ${tokenId}`);
+                console.log(`[PriceGraph]   Symbol: ${node.symbol}`);
+                console.log(`[PriceGraph]   Pool count: ${tokenEdges.length}`);
+
+                // Show all pool details for sBTC with new global scores
+                tokenEdges.forEach((edge, index) => {
+                    const pairedTokenId = edge.tokenA === tokenId ? edge.tokenB : edge.tokenA;
+                    const pairedNode = this.nodes.get(pairedTokenId);
+                    console.log(`[PriceGraph]     Pool ${index + 1}: ${edge.poolId} (${node.symbol}/${pairedNode?.symbol || '?'}) -> GLOBAL SCORE: ${edge.liquidityRelative?.toFixed(1)}%`);
+                });
+            }
         }
-        
-        console.log(`[PriceGraph] Updated liquidity values for ${this.pools.size} pools and ${this.nodes.size} tokens`);
+
+        console.log(`[PriceGraph] Updated liquidity values for ${this.pools.size} pools and ${this.nodes.size} tokens with GLOBAL scoring`);
     }
 
     /**
@@ -271,11 +337,11 @@ export class PriceGraph {
 
         const paths: PricePath[] = [];
         const visited = new Set<string>();
-        
+
         this.dfsPathFind(sourceToken, SBTC_CONTRACT_ID, [], [], visited, paths, maxPathLength);
-        
+
         console.log(`[PriceGraph] Found ${paths.length} paths to sBTC`);
-        
+
         // Sort paths by confidence/reliability
         paths.sort((a, b) => {
             // Prefer shorter paths with higher liquidity
@@ -305,12 +371,12 @@ export class PriceGraph {
             const totalLiquidity = currentPools.reduce((sum, pool) => sum + pool.liquidityUsd, 0);
             const minLiquidity = Math.min(...currentPools.map(p => p.liquidityUsd));
             const avgAge = currentPools.reduce((sum, pool) => sum + (Date.now() - pool.lastUpdated), 0) / currentPools.length;
-            
+
             // Calculate reliability based on liquidity and recency
             const liquidityScore = Math.min(1, minLiquidity / 10000); // Normalize to max at $10k
             const recencyScore = Math.max(0, 1 - (avgAge / (24 * 60 * 60 * 1000))); // Decay over 24 hours
             const pathLengthPenalty = 1 / Math.pow(currentPath.length, 0.5);
-            
+
             const reliability = liquidityScore * recencyScore * pathLengthPenalty;
             const confidence = Math.min(1, totalLiquidity / 50000); // Confidence based on total liquidity
 
@@ -330,7 +396,7 @@ export class PriceGraph {
         const edges = this.edges.get(current) || [];
         for (const edge of edges) {
             const nextToken = edge.tokenA === current ? edge.tokenB : edge.tokenA;
-            
+
             if (!visited.has(nextToken)) {
                 this.dfsPathFind(
                     nextToken,
@@ -383,13 +449,29 @@ export class PriceGraph {
     }
 
     /**
+     * Force rebuild the graph with current data
+     */
+    async forceRebuild(): Promise<void> {
+        console.log('[PriceGraph] 🔄 FORCE REBUILDING GRAPH WITH CURRENT DATA');
+        this.lastUpdated = 0; // Force rebuild by making it stale
+        await this.buildGraph();
+    }
+
+    /**
+     * Get the cached global maximum liquidity value
+     */
+    getGlobalMaxLiquidity(): number {
+        return this.globalMaxLiquidity;
+    }
+
+    /**
      * Get graph statistics
      */
     getStats() {
         const totalPools = this.pools.size;
         const totalTokens = this.nodes.size;
         const avgPoolsPerToken = totalTokens > 0 ? totalPools * 2 / totalTokens : 0;
-        
+
         const sbtcNode = this.nodes.get(SBTC_CONTRACT_ID);
         const sbtcPairCount = sbtcNode ? sbtcNode.poolCount : 0;
 
@@ -398,6 +480,7 @@ export class PriceGraph {
             totalPools,
             avgPoolsPerToken: Number(avgPoolsPerToken.toFixed(2)),
             sbtcPairCount,
+            globalMaxLiquidity: this.globalMaxLiquidity,
             lastUpdated: this.lastUpdated,
             ageMs: Date.now() - this.lastUpdated
         };
@@ -407,15 +490,18 @@ export class PriceGraph {
 // Singleton instance
 let priceGraphInstance: PriceGraph | null = null;
 
-export async function getPriceGraph(): Promise<PriceGraph> {
+export async function getPriceGraph(forceRebuild: boolean = false): Promise<PriceGraph> {
     if (!priceGraphInstance) {
         priceGraphInstance = new PriceGraph();
         await priceGraphInstance.buildGraph();
+    } else if (forceRebuild) {
+        console.log('[PriceGraph] 🔄 FORCE REBUILDING requested');
+        await priceGraphInstance.forceRebuild();
     } else if (priceGraphInstance.needsRebuild()) {
         console.log('[PriceGraph] Rebuilding stale graph');
         await priceGraphInstance.buildGraph();
     }
-    
+
     return priceGraphInstance;
 }
 

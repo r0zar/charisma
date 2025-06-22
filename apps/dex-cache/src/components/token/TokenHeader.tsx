@@ -4,15 +4,21 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Bitcoin, 
-  DollarSign, 
-  ExternalLink, 
-  TrendingUp, 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Bitcoin,
+  DollarSign,
+  ExternalLink,
+  TrendingUp,
   TrendingDown,
   Star,
   Copy,
-  CheckCircle
+  CheckCircle,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
+  Plus
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -35,7 +41,7 @@ const formatPrice = (price: number | null | undefined): string => {
   if (price === null || price === undefined || isNaN(price)) {
     return '—';
   }
-  
+
   if (price >= 1000) {
     return `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   } else if (price >= 1) {
@@ -51,7 +57,7 @@ const formatSbtcRatio = (ratio: number | null | undefined): string => {
   if (ratio === null || ratio === undefined || isNaN(ratio)) {
     return '—';
   }
-  
+
   if (ratio >= 0.0001) {
     return ratio.toFixed(8);
   } else {
@@ -75,6 +81,15 @@ const getConfidenceLabel = (confidence: number | null): string => {
   return 'Very Low';
 };
 
+const getConfidenceIcon = (confidence: number | null): React.ComponentType<any> => {
+  if (confidence === null || confidence === undefined) return ShieldQuestion;
+  if (confidence >= 0.9) return ShieldCheck; // Very High - solid shield
+  if (confidence >= 0.8) return Shield; // High - regular shield
+  if (confidence >= 0.6) return ShieldAlert; // Medium - alert shield
+  if (confidence >= 0.4) return ShieldAlert; // Low - alert shield
+  return ShieldAlert; // Very Low - alert shield
+};
+
 export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) {
   const [copied, setCopied] = React.useState(false);
 
@@ -91,6 +106,7 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
   const confidenceScore = priceData?.confidence || 0;
   const confidenceColor = getConfidenceColor(confidenceScore);
   const confidenceLabel = getConfidenceLabel(confidenceScore);
+  const ConfidenceIcon = getConfidenceIcon(confidenceScore);
 
   return (
     <Card className="mb-8">
@@ -127,28 +143,64 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-bold">{tokenMeta.symbol}</h1>
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "text-xs",
-                    confidenceColor === 'success' && 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10',
-                    confidenceColor === 'warning' && 'border-amber-500/30 text-amber-400 bg-amber-500/10',
-                    confidenceColor === 'danger' && 'border-rose-500/30 text-rose-400 bg-rose-500/10',
-                    confidenceColor === 'secondary' && 'border-border text-muted-foreground'
-                  )}
-                >
-                  {confidenceLabel} Confidence
-                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help">
+                        <ConfidenceIcon className={cn(
+                          "h-4 w-4",
+                          confidenceColor === 'success' && 'text-emerald-400',
+                          confidenceColor === 'warning' && 'text-amber-400',
+                          confidenceColor === 'danger' && 'text-rose-400',
+                          confidenceColor === 'secondary' && 'text-muted-foreground'
+                        )} />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-md p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <ConfidenceIcon className={cn(
+                            "h-4 w-4",
+                            confidenceColor === 'success' && 'text-emerald-400',
+                            confidenceColor === 'warning' && 'text-amber-400',
+                            confidenceColor === 'danger' && 'text-rose-400',
+                            confidenceColor === 'secondary' && 'text-muted-foreground'
+                          )} />
+                          <h4 className="font-semibold text-sm">{confidenceLabel} Confidence ({(confidenceScore * 100).toFixed(1)}%)</h4>
+                        </div>
+                        <div className="text-xs text-muted-foreground leading-relaxed space-y-2">
+                          <p>
+                            <strong className="text-foreground">Price Confidence Algorithm:</strong> Our multi-factor scoring system evaluates price reliability using three key components:
+                          </p>
+                          <div className="space-y-1.5">
+                            <div>
+                              <strong className="text-foreground">• Price Consistency (40%):</strong> How closely prices agree across different trading paths. Lower variation = higher confidence.
+                            </div>
+                            <div>
+                              <strong className="text-foreground">• Liquidity Depth (40%):</strong> Total liquidity backing the price discovery. Deeper pools provide more reliable pricing.
+                            </div>
+                            <div>
+                              <strong className="text-foreground">• Path Diversity (20%):</strong> Number of independent trading routes found. Multiple paths reduce single-point-of-failure risk.
+                            </div>
+                          </div>
+                          <div className="border-t border-border pt-2 mt-2">
+                            <p>
+                              <strong className="text-foreground">Score Range:</strong> Very High (≥90%), High (≥80%), Medium (≥60%), Low (≥40%), Very Low (&lt;40%)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              
+
               <p className="text-xl text-muted-foreground">{tokenMeta.name}</p>
-              
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <code className="bg-muted px-2 py-1 rounded text-xs">
-                  {tokenMeta.contractId.length > 30 
-                    ? `${tokenMeta.contractId.slice(0, 30)}...` 
-                    : tokenMeta.contractId
-                  }
+
+              {/* Contract ID - Large screens only */}
+              <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
+                <code className="bg-muted px-2 py-1 rounded text-xs break-all">
+                  {tokenMeta.contractId}
                 </code>
                 <Button
                   variant="ghost"
@@ -166,6 +218,42 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
             </div>
           </div>
 
+          {/* Contract ID - Small screens full width */}
+          <div className="lg:hidden flex items-center gap-2 text-sm text-muted-foreground">
+            <code className="bg-muted px-2 py-1 rounded text-xs break-all flex-1">
+              {tokenMeta.contractId.length > 40 ? (
+                (() => {
+                  const parts = tokenMeta.contractId.split('.');
+                  if (parts.length === 2) {
+                    // Format: ADDRESS.CONTRACT-NAME
+                    const address = parts[0];
+                    const contractName = parts[1];
+                    // Keep first 8 and last 4 chars of address, preserve full contract name
+                    const truncatedAddress = address.length > 12
+                      ? `${address.slice(0, 8)}...${address.slice(-4)}`
+                      : address;
+                    return `${truncatedAddress}.${contractName}`;
+                  } else {
+                    // Fallback for other formats
+                    return `${tokenMeta.contractId.slice(0, 20)}...${tokenMeta.contractId.slice(-10)}`;
+                  }
+                })()
+              ) : tokenMeta.contractId}
+            </code>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyContract}
+              className="h-6 w-6 p-0 flex-shrink-0"
+            >
+              {copied ? (
+                <CheckCircle className="h-3 w-3 text-green-500" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+
           {/* Right Side - Price Information */}
           <div className="flex flex-col lg:items-end gap-4">
             {/* Price Display */}
@@ -176,7 +264,7 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
                   {formatPrice(priceData?.usdPrice)}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2 mt-2 lg:justify-end">
                 <Bitcoin className="h-4 w-4 text-orange-500" />
                 <span className="text-lg text-muted-foreground">
@@ -191,15 +279,17 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
                 <Star className="h-4 w-4" />
                 Watch
               </Button>
-              
+
               <Button variant="outline" size="sm" className="gap-2">
                 <ExternalLink className="h-4 w-4" />
                 Explorer
               </Button>
-              
-              <Button size="sm" className="gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Trade
+
+              <Button size="sm" className="gap-2" asChild>
+                <a href={`/pools?tokenA=${encodeURIComponent(tokenMeta.contractId)}&tokenB=.stx#add`}>
+                  <Plus className="h-4 w-4" />
+                  Add Liquidity
+                </a>
               </Button>
             </div>
           </div>
@@ -212,7 +302,7 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
               <span className="text-sm text-muted-foreground">Confidence:</span>
               <div className="flex items-center gap-2">
                 <div className="w-16 bg-muted rounded-full h-2">
-                  <div 
+                  <div
                     className={cn(
                       "h-2 rounded-full transition-all",
                       confidenceColor === 'success' && 'bg-emerald-500',

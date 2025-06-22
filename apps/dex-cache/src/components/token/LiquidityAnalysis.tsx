@@ -21,6 +21,10 @@ import {
   getTokenDecimals,
   convertAtomicToDecimal
 } from '@/lib/pricing/decimal-utils';
+import {
+  type TokenMeta as UITokenMeta,
+  getTokenDecimalsFromMeta
+} from '@/lib/ui-decimal-utils';
 
 interface LiquidityAnalysisProps {
   tokenSymbol: string;
@@ -28,6 +32,7 @@ interface LiquidityAnalysisProps {
   tokenNode: TokenNode | null;
   totalLiquidity: number;
   allTokenNodes: TokenNode[]; // Added to get decimal information
+  allTokens: UITokenMeta[]; // Add token metadata for proper symbol resolution
 }
 
 interface PoolLiquidityData {
@@ -39,12 +44,21 @@ interface PoolLiquidityData {
 }
 
 const formatLiquidity = (liquidity: number): string => {
-  if (liquidity >= 1000000) {
-    return `$${(liquidity / 1000000).toFixed(2)}M`;
+  // Format atomic liquidity values for display
+  if (liquidity >= 1e18) {
+    return `${(liquidity / 1e18).toFixed(2)}E18`;
+  } else if (liquidity >= 1e15) {
+    return `${(liquidity / 1e15).toFixed(2)}E15`;
+  } else if (liquidity >= 1e12) {
+    return `${(liquidity / 1e12).toFixed(2)}E12`;
+  } else if (liquidity >= 1e9) {
+    return `${(liquidity / 1e9).toFixed(2)}E9`;
+  } else if (liquidity >= 1e6) {
+    return `${(liquidity / 1e6).toFixed(2)}E6`;
   } else if (liquidity >= 1000) {
-    return `$${(liquidity / 1000).toFixed(1)}K`;
+    return `${(liquidity / 1000).toFixed(1)}K`;
   }
-  return `$${liquidity.toFixed(0)}`;
+  return liquidity.toFixed(0);
 };
 
 const getRiskColor = (risk: string): string => {
@@ -56,7 +70,14 @@ const getRiskColor = (risk: string): string => {
   }
 };
 
-const getTokenSymbol = (tokenId: string): string => {
+const getTokenSymbol = (tokenId: string, allTokens: UITokenMeta[]): string => {
+  // First try to find the token in metadata
+  const token = allTokens.find(t => t.contractId === tokenId);
+  if (token?.symbol) {
+    return token.symbol;
+  }
+  
+  // Fallback to hardcoded values for known tokens
   if (tokenId === '.stx') return 'STX';
   if (tokenId.includes('sbtc-token')) return 'sBTC';
   if (tokenId.includes('charisma-token')) return 'CHA';
@@ -161,45 +182,34 @@ export default function LiquidityAnalysis({
   pools, 
   tokenNode, 
   totalLiquidity,
-  allTokenNodes 
+  allTokenNodes,
+  allTokens 
 }: LiquidityAnalysisProps) {
-  // Process pool data for analysis with decimal-aware calculations
+  // Process pool data for analysis using atomic liquidity (consistent with new architecture)
   const poolData: PoolLiquidityData[] = React.useMemo(() => {
-    // Calculate decimal-aware liquidity for each pool
-    const poolsWithDecimalLiquidity = pools.map(pool => {
-      // Get token nodes for decimal information
-      const tokenANode = allTokenNodes.find(t => t.contractId === pool.tokenA);
-      const tokenBNode = allTokenNodes.find(t => t.contractId === pool.tokenB);
+    // Use atomic liquidity values that are now calculated in price-graph
+    const poolsWithAtomicLiquidity = pools.map(pool => {
+      // Use the atomic liquidity from liquidityRelative or liquidityUsd
+      const atomicLiquidity = pool.liquidityRelative || pool.liquidityUsd || 0;
       
-      if (!tokenANode || !tokenBNode) {
-        console.warn(`[LiquidityAnalysis] Missing token nodes for pool ${pool.poolId}`);
-        return { ...pool, decimalAwareLiquidity: 0 };
-      }
-      
-      // Calculate decimal-aware geometric mean
-      const decimalAwareLiquidity = calculateDecimalAwareLiquidity(
-        pool.reserveA, tokenANode.decimals,
-        pool.reserveB, tokenBNode.decimals
-      );
-      
-      return { ...pool, decimalAwareLiquidity };
+      return { ...pool, atomicLiquidity };
     });
     
-    const totalPoolLiquidity = poolsWithDecimalLiquidity.reduce((sum, pool) => sum + pool.decimalAwareLiquidity, 0);
+    const totalPoolLiquidity = poolsWithAtomicLiquidity.reduce((sum, pool) => sum + pool.atomicLiquidity, 0);
     
-    return poolsWithDecimalLiquidity
+    return poolsWithAtomicLiquidity
       .map(pool => {
-        const liquidityUsd = pool.decimalAwareLiquidity;
+        const liquidityUsd = pool.atomicLiquidity;
         const percentage = totalPoolLiquidity > 0 ? (liquidityUsd / totalPoolLiquidity) * 100 : 0;
         
         // Determine paired token
         const pairedTokenId = pool.tokenA === tokenNode?.contractId ? pool.tokenB : pool.tokenA;
-        const pairedToken = getTokenSymbol(pairedTokenId);
+        const pairedToken = getTokenSymbol(pairedTokenId, allTokens);
         
-        // Calculate risk level using decimal-aware liquidity
+        // Calculate risk level using atomic liquidity
         const dataAge = Date.now() - pool.lastUpdated;
         const ageHours = dataAge / (1000 * 60 * 60);
-        const liquidityScore = Math.min(1, liquidityUsd / 100000); // Using decimal-aware value
+        const liquidityScore = Math.min(1, liquidityUsd / 100000000000000); // Using atomic value threshold
         
         let riskLevel: 'low' | 'medium' | 'high' = 'low';
         if (liquidityScore < 0.3 || ageHours > 24) {
@@ -267,7 +277,7 @@ export default function LiquidityAnalysis({
   return (
     <div className="space-y-6">
       {/* Liquidity Distribution */}
-      <Card className="relative">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChart className="h-5 w-5" />
@@ -280,19 +290,6 @@ export default function LiquidityAnalysis({
         <CardContent>
           <LiquidityDistributionChart data={poolData} />
         </CardContent>
-        
-        {/* Coming Soon Overlay */}
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-          <div className="text-center p-6">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <PieChart className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Enhanced liquidity distribution analysis is being validated and will be available soon.
-            </p>
-          </div>
-        </div>
       </Card>
 
       {/* Key Metrics */}

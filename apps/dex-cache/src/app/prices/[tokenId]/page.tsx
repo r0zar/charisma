@@ -9,7 +9,7 @@ import TokenMetrics from '@/components/token/TokenMetrics';
 import PoolBreakdownTable from '@/components/token/PoolBreakdownTable';
 import PricePathVisualizer from '@/components/token/PricePathVisualizer';
 import LiquidityAnalysis from '@/components/token/LiquidityAnalysis';
-import { getTokenPrice } from '@/lib/pricing/price-calculator';
+import { getTokenPrice, PriceCalculator } from '@/lib/pricing/price-calculator';
 import { getPriceGraph } from '@/lib/pricing/price-graph';
 import { listVaultTokens } from '@/lib/pool-service';
 
@@ -79,11 +79,18 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
   
   try {
     // Get all required data in parallel
+    // Force rebuild graph for CHA token to clear stale outlier pool data
+    const forceRebuild = tokenId === 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
+    
     const [allTokens, priceData, graph] = await Promise.all([
       listVaultTokens(),
       getTokenPrice(tokenId),
-      getPriceGraph()
+      getPriceGraph(forceRebuild)
     ]);
+
+    if (forceRebuild) {
+      console.log('[TokenDetailPage] 🔄 FORCED GRAPH REBUILD for CHA token to clear stale data');
+    }
 
     // Find token metadata
     const tokenMeta = allTokens.find(t => t.contractId === tokenId);
@@ -101,6 +108,31 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
     const tokenPools = allPools.filter(pool => 
       pool.tokenA === tokenId || pool.tokenB === tokenId
     );
+
+    // Get unique token IDs from all pools for price calculation
+    const poolTokenIds = new Set<string>();
+    tokenPools.forEach(pool => {
+      poolTokenIds.add(pool.tokenA);
+      poolTokenIds.add(pool.tokenB);
+    });
+
+    // Fetch prices for all tokens in pools
+    let tokenPricesMap: Map<string, { usdPrice: number; }> | undefined;
+    try {
+      const calculator = PriceCalculator.getInstance();
+      const priceResults = await calculator.calculateMultipleTokenPrices(Array.from(poolTokenIds));
+      
+      // Convert to the format expected by PoolBreakdownTable
+      tokenPricesMap = new Map();
+      priceResults.forEach((priceData, tokenId) => {
+        tokenPricesMap!.set(tokenId, { usdPrice: priceData.usdPrice });
+      });
+      
+      console.log(`[TokenDetailPage] Fetched prices for ${tokenPricesMap.size} pool tokens`);
+    } catch (error) {
+      console.error('[TokenDetailPage] Failed to fetch pool token prices:', error);
+      // Continue without prices - table will show atomic values
+    }
 
     return (
       <main className="flex-1 container py-8">
@@ -145,6 +177,7 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               tokenSymbol={tokenMeta.symbol}
               pools={tokenPools}
               allTokens={allTokens}
+              tokenPrices={tokenPricesMap}
             />
             
             <PricePathVisualizer 
@@ -164,18 +197,16 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               tokenNode={tokenNode}
               totalLiquidity={priceData?.calculationDetails?.totalLiquidity || 0}
               allTokenNodes={graph.getAllTokens()}
+              allTokens={allTokens}
             />
 
             {/* Technical Information Card */}
             <div className="bg-card rounded-lg border p-6">
               <h3 className="font-semibold mb-4">Technical Information</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Contract ID:</span>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs bg-muted px-2 py-1 rounded">
-                      {tokenId.length > 20 ? `${tokenId.slice(0, 20)}...` : tokenId}
-                    </code>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-muted-foreground">Contract ID:</span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -184,6 +215,29 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
                       <ExternalLink className="h-3 w-3" />
                     </Button>
                   </div>
+                  <code className="text-xs bg-muted px-2 py-1 rounded block break-all">
+                    <span className="hidden xl:inline">{tokenId}</span>
+                    <span className="xl:hidden">
+                      {tokenId.length > 30 ? (
+                        (() => {
+                          const parts = tokenId.split('.');
+                          if (parts.length === 2) {
+                            // Format: ADDRESS.CONTRACT-NAME
+                            const address = parts[0];
+                            const contractName = parts[1];
+                            // Keep first 8 and last 4 chars of address, preserve full contract name
+                            const truncatedAddress = address.length > 12 
+                              ? `${address.slice(0, 8)}...${address.slice(-4)}`
+                              : address;
+                            return `${truncatedAddress}.${contractName}`;
+                          } else {
+                            // Fallback for other formats
+                            return `${tokenId.slice(0, 15)}...${tokenId.slice(-10)}`;
+                          }
+                        })()
+                      ) : tokenId}
+                    </span>
+                  </code>
                 </div>
                 
                 <div className="flex justify-between">

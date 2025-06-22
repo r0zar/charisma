@@ -28,12 +28,13 @@ export function formatTokenReserve(atomicReserve: number, tokenDecimals: number)
 }
 
 /**
- * Calculate correct token share percentage in a pool
+ * Calculate approximate token share percentage in a pool
+ * Note: This is a rough estimate without USD prices and should be used with caution
  * @param tokenReserveAtomic - Token reserve in atomic units
  * @param tokenDecimals - Token decimals
  * @param pairedReserveAtomic - Paired token reserve in atomic units  
  * @param pairedDecimals - Paired token decimals
- * @returns Share percentage (0-100)
+ * @returns Estimated share percentage (0-50), capped to reasonable values
  */
 export function calculateTokenSharePercentage(
   tokenReserveAtomic: number,
@@ -44,13 +45,18 @@ export function calculateTokenSharePercentage(
   const tokenDecimal = convertAtomicToDecimal(tokenReserveAtomic, tokenDecimals);
   const pairedDecimal = convertAtomicToDecimal(pairedReserveAtomic, pairedDecimals);
   
-  // Calculate total pool value in token units (assuming 1:1 ratio for simplicity)
-  // This is a rough estimate since we'd need USD prices for exact calculation
-  const totalValue = tokenDecimal + pairedDecimal;
+  if (tokenDecimal <= 0 || pairedDecimal <= 0) return 0;
   
-  if (totalValue <= 0) return 0;
+  // For pools, each token typically represents roughly 50% of the value
+  // Without USD prices, we can't calculate exact percentages
+  // Return a conservative estimate based on reserve balance
+  const ratio = tokenDecimal / (tokenDecimal + pairedDecimal);
   
-  return (tokenDecimal / totalValue) * 100;
+  // Cap between 10% and 50% for reasonable display
+  // This prevents unrealistic percentages when token values differ greatly
+  const cappedRatio = Math.max(0.1, Math.min(0.5, ratio));
+  
+  return cappedRatio * 100;
 }
 
 /**
@@ -76,12 +82,40 @@ export function calculateDecimalAwareUIExchangeRate(
 }
 
 /**
- * Format number for display with appropriate units (K, M, B)
+ * Format number for display with appropriate units (K, M, B) and dynamic precision
  * @param value - Decimal value to format
- * @param precision - Number of decimal places
+ * @param precision - Number of decimal places (optional, will be calculated dynamically if not provided)
  * @returns Formatted string
  */
-export function formatNumber(value: number, precision: number = 2): string {
+export function formatNumber(value: number, precision?: number): string {
+  // Handle very large numbers (like exchange rates) with comma formatting instead of K/M/B
+  if (value >= 100000) {
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  }
+
+  // If precision is not provided, calculate it dynamically
+  if (precision === undefined) {
+    if (value >= 1000000000) {
+      precision = 2;
+    } else if (value >= 1000000) {
+      precision = 2;
+    } else if (value >= 1000) {
+      precision = 1;
+    } else if (value >= 1) {
+      precision = Math.max(0, 4 - Math.floor(Math.log10(value)));
+    } else if (value > 0) {
+      // For small values, show enough decimals to capture meaningful digits
+      precision = Math.max(2, 6 - Math.floor(Math.log10(value)));
+    } else {
+      precision = 2;
+    }
+    // Cap precision at 8 to avoid excessive decimal places
+    precision = Math.min(8, precision);
+  }
+
   if (value >= 1000000000) {
     return `${(value / 1000000000).toFixed(precision)}B`;
   } else if (value >= 1000000) {

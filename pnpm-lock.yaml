@@ -366,6 +366,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      colorthief:
+        specifier: ^2.6.0
+        version: 2.6.0
       dexterity-sdk:
         specifier: workspace:*
         version: link:../../packages/dexterity
@@ -13338,6 +13341,7 @@ packages:
     resolution: {integrity: sha512-bwy0MGW55bG41VqxxypOsdSdGqLwXPI/focwgTYCFMbdUiBAxLg9CFzG08sz2aqzknwiX7Hkl0bQENjg8iLByw==}
     engines: {node: '>=8'}
     requiresBuild: true
+    dev: true
 
   /detect-libc@2.0.4:
     resolution: {integrity: sha512-3UDv+G9CsCKO1WKMGw9fwq/SWJYbI0c5Y7LU1AXYoDdbhE2AHQ6N6Nb34sG8Fj7T5APy8qXDCKuuIHd1BR0tVA==}
@@ -20979,8 +20983,8 @@ packages:
     requiresBuild: true
     dependencies:
       color: 4.2.3
-      detect-libc: 2.0.3
-      semver: 7.7.1
+      detect-libc: 2.0.4
+      semver: 7.7.2
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.33.5
       '@img/sharp-darwin-x64': 0.33.5

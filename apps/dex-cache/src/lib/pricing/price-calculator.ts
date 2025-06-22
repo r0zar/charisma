@@ -269,7 +269,8 @@ export class PriceCalculator {
         const priceVariation = this.calculatePriceVariation(filteredPrices);
         const totalLiquidity = filteredPrices.reduce((sum, p) => sum + p.path.totalLiquidity, 0);
         const consistencyScore = Math.max(0, 1 - priceVariation);
-        const liquidityScore = Math.min(1, totalLiquidity / 100000); // Normalize to $100k
+        // Adjust liquidity threshold for atomic values (use much higher threshold)
+        const liquidityScore = Math.min(1, totalLiquidity / 100000000000000); // Normalize to 100T atomic units
         const pathCountScore = Math.min(1, filteredPrices.length / 3); // Prefer multiple paths
         
         const confidence = (consistencyScore * 0.4 + liquidityScore * 0.4 + pathCountScore * 0.2) * btcPrice.confidence;
@@ -355,26 +356,23 @@ export class PriceCalculator {
                 return null;
             }
 
-            // Calculate decimal-aware exchange rate
-            const exchangeRate = calculateDecimalAwareExchangeRate(
-                inputReserve, inputDecimals,
-                outputReserve, outputDecimals
-            );
+            // Calculate atomic exchange rate (eliminates decimal scaling issues)
+            const atomicExchangeRate = outputReserve / inputReserve;
 
-            console.log(`[PriceCalculator] Decimal-aware exchange rate: ${exchangeRate}`);
+            console.log(`[PriceCalculator] Atomic exchange rate: ${atomicExchangeRate} (${outputReserve}/${inputReserve})`);
 
-            if (!isFinite(exchangeRate) || exchangeRate <= 0) {
-                console.log(`[PriceCalculator] Invalid exchange rate: ${exchangeRate}`);
+            if (!isFinite(atomicExchangeRate) || atomicExchangeRate <= 0) {
+                console.log(`[PriceCalculator] Invalid atomic exchange rate: ${atomicExchangeRate}`);
                 return null;
             }
 
-            currentRatio *= exchangeRate;
+            currentRatio *= atomicExchangeRate;
             currentToken = nextToken;
 
             console.log(`[PriceCalculator] Current ratio after hop ${i + 1}: ${currentRatio}`);
         }
 
-        console.log(`[PriceCalculator] Final decimal-aware path ratio: ${currentRatio}`);
+        console.log(`[PriceCalculator] Final atomic path ratio: ${currentRatio}`);
         
         if (!isFinite(currentRatio) || currentRatio <= 0) {
             console.log(`[PriceCalculator] Invalid final ratio: ${currentRatio}`);
@@ -405,15 +403,16 @@ export class PriceCalculator {
         console.log(`[PriceCalculator] Weight after path length penalty (/${pathPenalty}): ${weight}`);
 
         // Boost based on minimum liquidity in path (bottleneck)
-        // Note: Path liquidity is now calculated using decimal-aware values in price-graph
+        // Note: Path liquidity is now calculated using atomic values in price-graph
         if (path.pools && path.pools.length > 0) {
-            // Use the liquidityUsd values that are now properly calculated with decimal conversion
+            // Use atomic liquidity values (geometric mean of atomic reserves)
             const liquidities = path.pools.map(p => p.liquidityUsd || 0);
             const minLiquidity = Math.min(...liquidities);
-            const liquidityBoost = Math.min(2, minLiquidity / 10000); // Max 2x boost at $10k liquidity
+            // Scale atomic liquidity appropriately - use larger threshold since atomic values are bigger
+            const liquidityBoost = Math.min(2, minLiquidity / 1000000000000); // Max 2x boost at 1T atomic units
             weight *= (1 + liquidityBoost);
             
-            console.log(`[PriceCalculator] Min liquidity (decimal-aware): ${minLiquidity}, boost: ${liquidityBoost}, weight after boost: ${weight}`);
+            console.log(`[PriceCalculator] Min liquidity (atomic): ${minLiquidity}, boost: ${liquidityBoost}, weight after boost: ${weight}`);
         }
 
         // Boost recent data
