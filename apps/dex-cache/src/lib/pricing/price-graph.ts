@@ -63,6 +63,22 @@ export class PriceGraph {
         try {
             // Get all vault/pool data - only CHARISMA protocol
             const vaults = await getAllVaultData();
+            console.log(`[PriceGraph] 🔍 POOL DETECTION DEBUG - Total vaults found: ${vaults.length}`);
+            
+            // Debug: Check for specific pools we're looking for
+            const debugPools = vaults.filter(v => 
+                v.tokenA?.symbol === 'CHA' || v.tokenB?.symbol === 'CHA' ||
+                v.tokenA?.symbol === 'B' || v.tokenB?.symbol === 'B' ||
+                v.contractId?.includes('beri')
+            );
+            
+            if (debugPools.length > 0) {
+                console.log(`[PriceGraph] 🔍 Found ${debugPools.length} CHA or B related pools for debugging:`);
+                debugPools.forEach(pool => {
+                    console.log(`[PriceGraph]   ${pool.contractId}: ${pool.tokenA?.symbol}/${pool.tokenB?.symbol} - Type: ${pool.type}, Protocol: ${pool.protocol}, Reserves: ${pool.reservesA}/${pool.reservesB}`);
+                });
+            }
+            
             const liquidityPools = vaults.filter(v =>
                 v.type === 'POOL' &&
                 v.protocol === 'CHARISMA' &&
@@ -74,7 +90,30 @@ export class PriceGraph {
                 v.reservesB > 0
             );
 
-            console.log(`[PriceGraph] Processing ${liquidityPools.length} CHARISMA liquidity pools`);
+            console.log(`[PriceGraph] After filtering: ${liquidityPools.length} valid CHARISMA liquidity pools`);
+            
+            // Debug: Check if any CHA/B pools were filtered out
+            const filteredOutChaB = vaults.filter(v => 
+                (v.tokenA?.symbol === 'CHA' && v.tokenB?.symbol === 'B') ||
+                (v.tokenA?.symbol === 'B' && v.tokenB?.symbol === 'CHA')
+            ).filter(v => !liquidityPools.includes(v));
+            
+            if (filteredOutChaB.length > 0) {
+                console.warn(`[PriceGraph] ⚠️  Found ${filteredOutChaB.length} CHA/B pools that were filtered out:`);
+                filteredOutChaB.forEach(pool => {
+                    const reasons = [];
+                    if (pool.type !== 'POOL') reasons.push(`type=${pool.type}`);
+                    if (pool.protocol !== 'CHARISMA') reasons.push(`protocol=${pool.protocol}`);
+                    if (!pool.tokenA) reasons.push('no tokenA');
+                    if (!pool.tokenB) reasons.push('no tokenB');
+                    if (pool.reservesA === undefined) reasons.push('reservesA undefined');
+                    if (pool.reservesB === undefined) reasons.push('reservesB undefined');
+                    if (pool.reservesA <= 0) reasons.push(`reservesA=${pool.reservesA}`);
+                    if (pool.reservesB <= 0) reasons.push(`reservesB=${pool.reservesB}`);
+                    
+                    console.warn(`[PriceGraph]   ${pool.contractId}: Filtered because: ${reasons.join(', ')}`);
+                });
+            }
 
             if (liquidityPools.length === 0) {
                 console.warn('[PriceGraph] No CHARISMA liquidity pools found! Check protocol filtering.');
@@ -107,13 +146,15 @@ export class PriceGraph {
             });
 
             // First pass: Create nodes and edges
+            console.log(`[PriceGraph] 🔍 PROCESSING ${liquidityPools.length} POOLS:`);
+            
             for (const vault of liquidityPools) {
                 if (!vault.tokenA || !vault.tokenB) {
                     console.log(`[PriceGraph] Skipping vault ${vault.symbol} - missing tokens`);
                     continue;
                 }
 
-                console.log(`[PriceGraph] Processing pool: ${vault.tokenA.symbol}/${vault.tokenB.symbol} (${vault.symbol})`);
+                console.log(`[PriceGraph] ✅ Processing pool: ${vault.tokenA.symbol}/${vault.tokenB.symbol} (${vault.symbol}) - Contract: ${vault.contractId}`);
 
                 const tokenAId = vault.tokenA.contractId;
                 const tokenBId = vault.tokenB.contractId;
@@ -152,10 +193,16 @@ export class PriceGraph {
                 console.log(`[PriceGraph] Atomic reserves: ${vault.tokenA.symbol}=${reserveA}, ${vault.tokenB.symbol}=${reserveB}`);
 
                 // Enhanced validation to prevent calculation errors
+                // Use BigInt for very large numbers to avoid precision loss
                 if (!isFinite(reserveA) || !isFinite(reserveB) || reserveA <= 0 || reserveB <= 0 || 
-                    isNaN(reserveA) || isNaN(reserveB) || reserveA > Number.MAX_SAFE_INTEGER || reserveB > Number.MAX_SAFE_INTEGER) {
+                    isNaN(reserveA) || isNaN(reserveB)) {
                     console.warn(`[PriceGraph] Invalid atomic reserves for ${vault.symbol}: A=${reserveA}, B=${reserveB}`);
                     continue;
+                }
+                
+                // Log warning for very large numbers but don't exclude them
+                if (reserveA > Number.MAX_SAFE_INTEGER || reserveB > Number.MAX_SAFE_INTEGER) {
+                    console.warn(`[PriceGraph] Very large reserves detected for ${vault.symbol}: A=${reserveA.toExponential(2)}, B=${reserveB.toExponential(2)} - proceeding with calculation`);
                 }
 
                 // Calculate decimal-aware liquidity weight
@@ -233,9 +280,25 @@ export class PriceGraph {
 
             // Calculate atomic liquidity using geometric mean of atomic reserves
             // This eliminates decimal scaling bugs by using raw atomic values
-            // Add validation to prevent calculation errors
+            // Handle very large numbers safely
             if (edge.reserveA > 0 && edge.reserveB > 0 && isFinite(edge.reserveA) && isFinite(edge.reserveB)) {
-                const atomicLiquidity = Math.sqrt(edge.reserveA * edge.reserveB);
+                let atomicLiquidity;
+                
+                // For very large numbers, use logarithmic calculation to avoid overflow
+                if (edge.reserveA > Number.MAX_SAFE_INTEGER || edge.reserveB > Number.MAX_SAFE_INTEGER || 
+                    edge.reserveA * edge.reserveB > Number.MAX_SAFE_INTEGER) {
+                    
+                    // Use log space: log(sqrt(a*b)) = 0.5 * (log(a) + log(b))
+                    const logA = Math.log(edge.reserveA);
+                    const logB = Math.log(edge.reserveB);
+                    const logLiquidity = 0.5 * (logA + logB);
+                    atomicLiquidity = Math.exp(logLiquidity);
+                    
+                    console.log(`[PriceGraph] Large number calculation for ${poolId}: Using log space -> ${atomicLiquidity.toExponential(2)}`);
+                } else {
+                    // Standard calculation for normal-sized numbers
+                    atomicLiquidity = Math.sqrt(edge.reserveA * edge.reserveB);
+                }
                 
                 // Validate the result
                 if (isFinite(atomicLiquidity) && atomicLiquidity > 0) {

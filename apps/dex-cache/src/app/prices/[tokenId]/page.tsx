@@ -79,18 +79,11 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
   
   try {
     // Get all required data in parallel
-    // Force rebuild graph for CHA token to clear stale outlier pool data
-    const forceRebuild = tokenId === 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
-    
     const [allTokens, priceData, graph] = await Promise.all([
       listVaultTokens(),
       getTokenPrice(tokenId),
-      getPriceGraph(forceRebuild)
+      getPriceGraph()
     ]);
-
-    if (forceRebuild) {
-      console.log('[TokenDetailPage] 🔄 FORCED GRAPH REBUILD for CHA token to clear stale data');
-    }
 
     // Find token metadata
     const tokenMeta = allTokens.find(t => t.contractId === tokenId);
