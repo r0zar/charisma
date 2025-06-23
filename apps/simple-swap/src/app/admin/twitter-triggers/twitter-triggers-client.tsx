@@ -170,17 +170,36 @@ export default function TwitterTriggersClient() {
     
     const loadSystemStatus = async () => {
         try {
-            // TODO: Implement status endpoint
-            // const response = await fetch('/api/v1/twitter-triggers/status');
-            // For now, set mock status
+            // Get Twitter triggers cron status
+            const response = await fetch('/api/cron/twitter-triggers');
+            
+            if (response.ok) {
+                const data = await response.json();
+                const cronData = data.data || {};
+                
+                setSystemStatus({
+                    cronRunning: cronData.status === 'ready',
+                    lastCronRun: cronData.lastExecution || undefined,
+                    nextCronRun: undefined, // Vercel cron doesn't provide next run time
+                    processingCount: cronData.activeTriggers || 0
+                });
+            } else {
+                console.error('Failed to load cron status:', response.status);
+                setSystemStatus({
+                    cronRunning: false,
+                    lastCronRun: undefined,
+                    nextCronRun: undefined,
+                    processingCount: 0
+                });
+            }
+        } catch (error) {
+            console.error('Error loading system status:', error);
             setSystemStatus({
-                cronRunning: false, // Unknown until endpoint is implemented
+                cronRunning: false,
                 lastCronRun: undefined,
                 nextCronRun: undefined,
                 processingCount: 0
             });
-        } catch (error) {
-            console.error('Error loading system status:', error);
         }
     };
 
