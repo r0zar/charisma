@@ -4,11 +4,12 @@ import { processTwitterTriggers } from '@/lib/twitter-triggers/processor';
 // POST /api/cron/twitter-triggers - Process Twitter triggers (cron job)
 export async function POST(request: NextRequest) {
     try {
-        // Verify cron token if configured
+        // Verify cron token if configured (skip for Vercel internal cron)
         const cronToken = request.headers.get('authorization');
         const expectedToken = process.env.CRON_SECRET;
+        const isVercelCron = request.headers.get('user-agent')?.includes('vercel');
         
-        if (expectedToken && cronToken !== `Bearer ${expectedToken}`) {
+        if (expectedToken && !isVercelCron && cronToken !== `Bearer ${expectedToken}`) {
             return NextResponse.json({
                 success: false,
                 error: 'Unauthorized'
@@ -16,6 +17,11 @@ export async function POST(request: NextRequest) {
         }
         
         console.log('[Twitter Cron] Starting Twitter triggers processing job');
+        
+        // Check if we have any triggers to process
+        const { getTriggersToCheck } = await import('@/lib/twitter-triggers/store');
+        const triggersToCheck = await getTriggersToCheck();
+        console.log(`[Twitter Cron] Found ${triggersToCheck.length} active triggers to process`);
         
         const startTime = Date.now();
         const results = await processTwitterTriggers();

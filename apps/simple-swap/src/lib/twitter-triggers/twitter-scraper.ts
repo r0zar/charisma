@@ -106,9 +106,13 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
         } catch (scraperError) {
             console.error(`[Twitter Scraper] Scraper error for tweet ${tweetId}:`, scraperError);
             
-            // Fall back to mock data if scraper fails
-            console.log(`[Twitter Scraper] Falling back to mock data due to scraper error`);
-            return getMockReplies(tweetId, sinceId);
+            // Return error instead of falling back to mock data
+            return {
+                success: false,
+                replies: [],
+                error: scraperError instanceof Error ? scraperError.message : 'Twitter scraping failed',
+                lastScrapedAt: new Date().toISOString(),
+            };
         }
         
     } catch (error) {
@@ -126,49 +130,10 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
  * Mock replies for testing when Twitter API is not available
  */
 function getMockReplies(tweetId: string, sinceId?: string): TwitterScrapingResult {
-    const mockReplies: TwitterReply[] = [
-        {
-            id: '1234567891',
-            text: 'Great project! My handle is @alice.btc',
-            authorHandle: 'alice_crypto',
-            authorDisplayName: 'Alice.btc 🎯',
-            createdAt: new Date().toISOString(),
-            inReplyToTweetId: tweetId,
-        },
-        {
-            id: '1234567892', 
-            text: 'Interesting! Contact me at bob.btc',
-            authorHandle: 'bob_trader',
-            authorDisplayName: 'Bob Smith (bob.btc)',
-            createdAt: new Date(Date.now() - 60000).toISOString(), // 1 minute ago
-            inReplyToTweetId: tweetId,
-        },
-        {
-            id: '1234567893',
-            text: 'Love this! charlie.btc here 🚀',
-            authorHandle: 'charlie_defi',
-            authorDisplayName: 'Charlie (charlie.btc)',
-            createdAt: new Date(Date.now() - 120000).toISOString(), // 2 minutes ago
-            inReplyToTweetId: tweetId,
-        },
-        {
-            id: '1234567894',
-            text: 'This is amazing! satoshi.btc checking in',
-            authorHandle: 'satoshi_nakamoto',
-            authorDisplayName: 'Satoshi (satoshi.btc)',
-            createdAt: new Date(Date.now() - 180000).toISOString(), // 3 minutes ago
-            inReplyToTweetId: tweetId,
-        }
-    ];
-    
-    // Filter replies newer than sinceId if provided
-    const filteredReplies = sinceId ? 
-        mockReplies.filter(reply => reply.id > sinceId) : 
-        mockReplies;
-    
+    // Return empty replies when Twitter scraper is disabled
     return {
         success: true,
-        replies: filteredReplies,
+        replies: [],
         lastScrapedAt: new Date().toISOString(),
     };
 }
