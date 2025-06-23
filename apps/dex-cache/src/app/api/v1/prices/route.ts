@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPriceGraph } from '@/lib/pricing/price-graph';
-import { getMultipleTokenPrices } from '@/lib/pricing/price-calculator';
+import { getMultipleTokenPrices, getTokenPrice } from '@/lib/pricing/price-calculator';
 import { listVaultTokens } from '@/lib/pool-service';
 
 const headers = {
@@ -78,13 +78,32 @@ export async function GET(request: Request) {
                 // Include detailed path information if requested
                 if (includeDetails) {
                     response.calculationDetails = priceData.calculationDetails;
-                    response.primaryPath = priceData.primaryPath ? {
-                        tokens: priceData.primaryPath.tokens,
-                        poolCount: priceData.primaryPath.pools.length,
-                        totalLiquidity: priceData.primaryPath.totalLiquidity,
-                        reliability: priceData.primaryPath.reliability,
-                        confidence: priceData.primaryPath.confidence
-                    } : null;
+                    
+                    // Match single endpoint structure for primaryPath
+                    if (priceData.primaryPath) {
+                        response.primaryPath = {
+                            tokens: priceData.primaryPath.tokens,
+                            poolCount: priceData.primaryPath.pools?.length || 0,
+                            totalLiquidity: priceData.primaryPath.totalLiquidity,
+                            reliability: priceData.primaryPath.reliability,
+                            confidence: priceData.primaryPath.confidence,
+                            pathLength: priceData.primaryPath.pathLength
+                        };
+                    } else {
+                        response.primaryPath = null;
+                    }
+                    
+                    // Include alternative paths like single endpoint
+                    if (priceData.alternativePaths && priceData.alternativePaths.length > 0) {
+                        response.alternativePaths = priceData.alternativePaths.map(path => ({
+                            tokens: path.tokens,
+                            poolCount: path.pools?.length || 0,
+                            totalLiquidity: path.totalLiquidity,
+                            reliability: path.reliability,
+                            confidence: path.confidence,
+                            pathLength: path.pathLength
+                        }));
+                    }
                     response.alternativePathCount = priceData.alternativePaths?.length || 0;
                 }
 

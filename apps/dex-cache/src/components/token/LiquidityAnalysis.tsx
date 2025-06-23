@@ -4,14 +4,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  BarChart2, 
   PieChart,
-  TrendingUp,
   AlertTriangle,
-  Droplets,
-  Target,
-  Activity,
-  Zap
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PoolEdge } from '@/lib/pricing/price-graph';
@@ -97,6 +92,17 @@ const getTokenSymbol = (tokenId: string, allTokens: UITokenMeta[]): string => {
 
 const LiquidityDistributionChart = ({ data }: { data: PoolLiquidityData[] }) => {
   const colors = [
+    '#3b82f6', // blue-500
+    '#10b981', // emerald-500
+    '#f59e0b', // amber-500
+    '#8b5cf6', // purple-500
+    '#ec4899', // pink-500
+    '#06b6d4', // cyan-500
+    '#f97316', // orange-500
+    '#ef4444'  // red-500
+  ];
+
+  const colorClasses = [
     'bg-blue-500',
     'bg-emerald-500', 
     'bg-amber-500',
@@ -107,77 +113,130 @@ const LiquidityDistributionChart = ({ data }: { data: PoolLiquidityData[] }) => 
     'bg-red-500'
   ];
 
+  // Calculate pie chart segments
+  const centerX = 120;
+  const centerY = 120;
+  const radius = 100;
+  
+  let cumulativePercentage = 0;
+  const segments = data.map((pool, index) => {
+    const startAngle = (cumulativePercentage / 100) * 2 * Math.PI - Math.PI / 2;
+    const endAngle = ((cumulativePercentage + pool.percentage) / 100) * 2 * Math.PI - Math.PI / 2;
+    
+    const x1 = centerX + radius * Math.cos(startAngle);
+    const y1 = centerY + radius * Math.sin(startAngle);
+    const x2 = centerX + radius * Math.cos(endAngle);
+    const y2 = centerY + radius * Math.sin(endAngle);
+    
+    const largeArcFlag = pool.percentage > 50 ? 1 : 0;
+    
+    const pathData = [
+      `M ${centerX} ${centerY}`,
+      `L ${x1} ${y1}`,
+      `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+      'Z'
+    ].join(' ');
+    
+    cumulativePercentage += pool.percentage;
+    
+    return {
+      pathData,
+      color: colors[index % colors.length],
+      pool,
+      index
+    };
+  });
+
   return (
-    <div className="space-y-3">
-      {data.map((pool, index) => (
-        <div key={pool.poolId} className="flex items-center gap-3">
-          <div 
-            className={cn("w-3 h-3 rounded-full", colors[index % colors.length])}
-          />
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium">{pool.pairedToken}</span>
-              <span className="text-sm text-muted-foreground">
-                {pool.percentage.toFixed(1)}%
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div 
-                className={cn("h-2 rounded-full", colors[index % colors.length])}
-                style={{ width: `${pool.percentage}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-muted-foreground">
-                {formatLiquidity(pool.liquidityUsd)}
-              </span>
-              <Badge 
-                variant="outline" 
-                className={cn("text-xs", getRiskColor(pool.riskLevel))}
+    <div className="space-y-4">
+      {/* Pie Chart */}
+      <div className="flex items-center justify-center">
+        <svg width="240" height="240" className="overflow-visible">
+          {segments.map((segment, index) => (
+            <g key={segment.pool.poolId}>
+              <path
+                d={segment.pathData}
+                fill={segment.color}
+                stroke="hsl(var(--card))"
+                strokeWidth="2"
+                className="hover:opacity-80 transition-opacity cursor-pointer"
+                style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}
               >
-                {pool.riskLevel}
-              </Badge>
+                <title>{segment.pool.pairedToken}: {segment.pool.percentage.toFixed(1)}%</title>
+              </path>
+            </g>
+          ))}
+          
+        </svg>
+      </div>
+
+      {/* Analysis Insights */}
+      <div className="space-y-3 mt-6">
+        {/* Dominant Pool Warning */}
+        {(() => {
+          const dominantPool = data[0];
+          const isDominant = dominantPool && dominantPool.percentage > 60;
+          return isDominant && (
+            <div className="flex items-start gap-3 p-3 border border-amber-500/30 bg-amber-500/10 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+              <div className="text-sm">
+                <div className="font-semibold text-amber-400">Liquidity Concentration Risk</div>
+                <div className="text-amber-300">
+                  {dominantPool.percentage.toFixed(1)}% of liquidity is in the {dominantPool.pairedToken} pool. 
+                  Consider diversification across multiple pools.
+                </div>
+              </div>
             </div>
-          </div>
+          );
+        })()}
+
+        {/* Low Liquidity Warning */}
+        {(() => {
+          const totalLiquidity = data.reduce((sum, p) => sum + p.liquidityUsd, 0);
+          return totalLiquidity < 10000 && (
+            <div className="flex items-start gap-3 p-3 border border-rose-500/30 bg-rose-500/10 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-rose-500 mt-0.5" />
+              <div className="text-sm">
+                <div className="font-semibold text-rose-400">Low Liquidity</div>
+                <div className="text-rose-300">
+                  Total liquidity below $10K may result in high slippage for larger trades.
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Good Diversification */}
+        {(() => {
+          const dominantPool = data[0];
+          const isDominant = dominantPool && dominantPool.percentage > 60;
+          return data.length >= 3 && !isDominant && (
+            <div className="flex items-start gap-3 p-3 border border-emerald-500/30 bg-emerald-500/10 rounded-lg">
+              <Target className="h-4 w-4 text-emerald-500 mt-0.5" />
+              <div className="text-sm">
+                <div className="font-semibold text-emerald-400">Well Diversified</div>
+                <div className="text-emerald-300">
+                  Good liquidity distribution across {data.length} pools provides multiple trading options.
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Trading Recommendations */}
+        <div className="text-sm text-muted-foreground">
+          <div className="font-medium mb-2">Trading Recommendations:</div>
+          <ul className="space-y-1 text-xs">
+            <li>• Best liquidity: {data[0]?.pairedToken} pool ({formatLiquidity(data[0]?.liquidityUsd || 0)})</li>
+            <li>• Lowest risk: {data.filter(p => p.riskLevel === 'low')[0]?.pairedToken || 'None available'}</li>
+            <li>• For large trades: Consider splitting across multiple pools</li>
+          </ul>
         </div>
-      ))}
-    </div>
-  );
-};
-
-const MetricCard = ({ 
-  icon: Icon, 
-  title, 
-  value, 
-  description, 
-  colorScheme = 'default' 
-}: {
-  icon: React.ComponentType<any>;
-  title: string;
-  value: string;
-  description: string;
-  colorScheme?: 'default' | 'success' | 'warning' | 'danger';
-}) => {
-  const colors = {
-    default: 'text-primary bg-primary/10',
-    success: 'text-emerald-500 bg-emerald-500/10',
-    warning: 'text-amber-500 bg-amber-500/10',
-    danger: 'text-rose-500 bg-rose-500/10'
-  };
-
-  return (
-    <div className="flex items-start gap-3 p-3 border border-border rounded-lg">
-      <div className={cn("p-2 rounded-lg", colors[colorScheme])}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="flex-1">
-        <div className="font-semibold">{value}</div>
-        <div className="text-sm text-muted-foreground">{title}</div>
-        <div className="text-xs text-muted-foreground mt-1">{description}</div>
       </div>
     </div>
   );
 };
+
 
 export default function LiquidityAnalysis({ 
   tokenSymbol, 
@@ -231,30 +290,6 @@ export default function LiquidityAnalysis({
       .sort((a, b) => b.liquidityUsd - a.liquidityUsd);
   }, [pools, tokenNode, allTokenNodes]);
 
-  // Calculate analysis metrics
-  const analysisMetrics = React.useMemo(() => {
-    const totalPoolLiquidity = poolData.reduce((sum, p) => sum + p.liquidityUsd, 0);
-    const avgLiquidity = poolData.length > 0 ? totalPoolLiquidity / poolData.length : 0;
-    
-    const diversificationScore = poolData.length >= 3 ? 'Good' : poolData.length >= 2 ? 'Fair' : 'Poor';
-    const riskDistribution = {
-      low: poolData.filter(p => p.riskLevel === 'low').length,
-      medium: poolData.filter(p => p.riskLevel === 'medium').length,
-      high: poolData.filter(p => p.riskLevel === 'high').length
-    };
-    
-    const dominantPool = poolData[0];
-    const isDominant = dominantPool && dominantPool.percentage > 60;
-    
-    return {
-      totalPoolLiquidity,
-      avgLiquidity,
-      diversificationScore,
-      riskDistribution,
-      isDominant,
-      dominantPool
-    };
-  }, [poolData]);
 
   if (pools.length === 0) {
     return (
@@ -294,115 +329,7 @@ export default function LiquidityAnalysis({
         </CardContent>
       </Card>
 
-      {/* Key Metrics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart2 className="h-5 w-5" />
-            Key Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <MetricCard
-            icon={Droplets}
-            title="Total Liquidity"
-            value={formatLiquidity(analysisMetrics.totalPoolLiquidity)}
-            description={`Across ${pools.length} active pools`}
-            colorScheme="default"
-          />
-          
-          <MetricCard
-            icon={Target}
-            title="Average Pool Size"
-            value={formatLiquidity(analysisMetrics.avgLiquidity)}
-            description="Mean liquidity per pool"
-            colorScheme="default"
-          />
-          
-          <MetricCard
-            icon={Activity}
-            title="Diversification"
-            value={analysisMetrics.diversificationScore}
-            description={`${pools.length} trading pairs available`}
-            colorScheme={
-              analysisMetrics.diversificationScore === 'Good' ? 'success' :
-              analysisMetrics.diversificationScore === 'Fair' ? 'warning' : 'danger'
-            }
-          />
-          
-          <MetricCard
-            icon={Zap}
-            title="Risk Profile"
-            value={`${analysisMetrics.riskDistribution.low}L/${analysisMetrics.riskDistribution.medium}M/${analysisMetrics.riskDistribution.high}H`}
-            description="Low/Medium/High risk pools"
-            colorScheme={
-              analysisMetrics.riskDistribution.high > analysisMetrics.riskDistribution.low ? 'danger' :
-              analysisMetrics.riskDistribution.medium > 0 ? 'warning' : 'success'
-            }
-          />
-        </CardContent>
-      </Card>
 
-      {/* Analysis Insights */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Analysis Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Dominant Pool Warning */}
-          {analysisMetrics.isDominant && analysisMetrics.dominantPool && (
-            <div className="flex items-start gap-3 p-3 border border-amber-500/30 bg-amber-500/10 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
-              <div className="text-sm">
-                <div className="font-semibold text-amber-400">Liquidity Concentration Risk</div>
-                <div className="text-amber-300">
-                  {analysisMetrics.dominantPool.percentage.toFixed(1)}% of liquidity is in the {analysisMetrics.dominantPool.pairedToken} pool. 
-                  Consider diversification across multiple pools.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Low Liquidity Warning */}
-          {analysisMetrics.totalPoolLiquidity < 10000 && (
-            <div className="flex items-start gap-3 p-3 border border-rose-500/30 bg-rose-500/10 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-rose-500 mt-0.5" />
-              <div className="text-sm">
-                <div className="font-semibold text-rose-400">Low Liquidity</div>
-                <div className="text-rose-300">
-                  Total liquidity below $10K may result in high slippage for larger trades.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Good Diversification */}
-          {pools.length >= 3 && !analysisMetrics.isDominant && (
-            <div className="flex items-start gap-3 p-3 border border-emerald-500/30 bg-emerald-500/10 rounded-lg">
-              <Target className="h-4 w-4 text-emerald-500 mt-0.5" />
-              <div className="text-sm">
-                <div className="font-semibold text-emerald-400">Well Diversified</div>
-                <div className="text-emerald-300">
-                  Good liquidity distribution across {pools.length} pools provides multiple trading options.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Trading Recommendations */}
-          <div className="text-sm text-muted-foreground">
-            <div className="font-medium mb-2">Trading Recommendations:</div>
-            <ul className="space-y-1 text-xs">
-              <li>• Best liquidity: {poolData[0]?.pairedToken} pool ({formatLiquidity(poolData[0]?.liquidityUsd || 0)})</li>
-              <li>• Lowest risk: {poolData.filter(p => p.riskLevel === 'low')[0]?.pairedToken || 'None available'}</li>
-              <li>• For large trades: Consider splitting across multiple pools</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

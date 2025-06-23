@@ -19,9 +19,10 @@ import {
   AlertTriangle,
   Info
 } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { TokenPriceData } from '@/lib/pricing/price-calculator';
-import { TokenNode } from '@/lib/pricing/price-graph';
+import { TokenNode, PricePath } from '@/lib/pricing/price-graph';
 import { SBTC_CONTRACT_ID, isStablecoin } from '@/lib/pricing/btc-oracle';
 
 interface TokenMeta {
@@ -37,6 +38,7 @@ interface PriceExplanationProps {
   priceData: TokenPriceData | null;
   tokenNode: TokenNode | null;
   allTokens: TokenMeta[];
+  pathsToSbtc?: PricePath[]; // Additional paths from graph for technical analysis
 }
 
 const formatPrice = (price: number | null | undefined): string => {
@@ -102,10 +104,12 @@ export default function PriceExplanation({
   tokenMeta, 
   priceData, 
   tokenNode, 
-  allTokens 
+  allTokens,
+  pathsToSbtc = []
 }: PriceExplanationProps) {
   const [showCalculation, setShowCalculation] = useState(false);
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [showTechnicalPaths, setShowTechnicalPaths] = useState(false);
 
   // Handle missing price data
   if (!priceData) {
@@ -576,32 +580,169 @@ export default function PriceExplanation({
           </div>
         )}
 
-        {/* Key Factors */}
-        <div className="bg-muted/50 border border-info/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Info className="w-4 h-4 text-info" />
-            <h4 className="font-semibold text-foreground">Key Factors</h4>
+        {/* Technical Path Analysis - Enhanced from PricePathVisualizer */}
+        {!isTokenSbtc && !isTokenStablecoin && pathsToSbtc.length > 0 && (
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTechnicalPaths(!showTechnicalPaths)}
+              className="w-full justify-between"
+            >
+              <span>Technical Path Analysis ({pathsToSbtc.length} paths)</span>
+              {showTechnicalPaths ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+            
+            {showTechnicalPaths && (
+              <div className="mt-4 space-y-3">
+                <div className="text-xs text-muted-foreground mb-3 p-2 bg-muted/20 rounded">
+                  <span className="font-medium">All discovered paths</span> from the liquidity graph with detailed pool-level information and reliability metrics.
+                </div>
+                
+                {pathsToSbtc.slice(0, 5).map((path, index) => {
+                  const isPrimary = priceData.primaryPath && 
+                    JSON.stringify(path.tokens) === JSON.stringify(priceData.primaryPath.tokens);
+                  
+                  return (
+                    <div key={index} className={cn(
+                      "bg-muted/30 border rounded-lg overflow-hidden",
+                      isPrimary ? "border-primary/40 bg-primary/5" : "border-border"
+                    )}>
+                      {/* Path Header */}
+                      <div className={cn(
+                        "px-4 py-2 flex items-center justify-between",
+                        isPrimary ? "bg-primary/10" : "bg-muted/50"
+                      )}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Path {index + 1} {isPrimary && <span className="text-primary">(Primary)</span>}
+                          </span>
+                          <Badge variant="outline" className="text-xs">
+                            {path.tokens.length - 1} hop{path.tokens.length > 2 ? 's' : ''}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          <div className="text-xs text-muted-foreground">
+                            Reliability: {(path.reliability * 100).toFixed(1)}%
+                          </div>
+                          <div className="text-xs font-medium">
+                            {formatLiquidity(path.totalLiquidity)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Path Visualization */}
+                      <div className="px-4 py-3">
+                        <div className="flex items-center gap-2 flex-wrap mb-3">
+                          {path.tokens.map((tokenId, tokenIndex) => {
+                            const token = allTokens.find(t => t.contractId === tokenId);
+                            const isFirst = tokenIndex === 0;
+                            const isLast = tokenIndex === path.tokens.length - 1;
+                            
+                            return (
+                              <React.Fragment key={tokenId}>
+                                <div className={cn(
+                                  "flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium border",
+                                  isFirst ? "bg-accent/10 border-accent/30 text-accent-foreground" :
+                                  isLast ? "bg-primary/10 border-primary/30 text-primary" :
+                                  "bg-muted/20 border-border text-foreground"
+                                )}>
+                                  {token?.image && (
+                                    <Image
+                                      src={token.image}
+                                      alt={token.symbol}
+                                      width={14}
+                                      height={14}
+                                      className="rounded-full"
+                                    />
+                                  )}
+                                  <span>{token?.symbol || 'Unknown'}</span>
+                                </div>
+                                
+                                {tokenIndex < path.tokens.length - 1 && (
+                                  <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Pool Details */}
+                        {path.pools && path.pools.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium text-foreground mb-2">Pool Details:</div>
+                            {path.pools.map((pool, poolIndex) => (
+                              <div key={poolIndex} className="bg-background/50 p-2 rounded text-xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">
+                                    Step {poolIndex + 1}: {pool.poolId.split('.').pop()}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    {formatLiquidity(pool.liquidityUsd || 0)}
+                                  </span>
+                                </div>
+                                <div className="text-muted-foreground mt-1">
+                                  Reserves: {pool.reserveA?.toLocaleString() || 0} / {pool.reserveB?.toLocaleString() || 0}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Path Quality Indicators */}
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Confidence:</span>
+                              <span className={cn(
+                                "font-medium",
+                                path.confidence >= 0.8 ? "text-success" :
+                                path.confidence >= 0.6 ? "text-warning" : "text-destructive"
+                              )}>
+                                {(path.confidence * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Path Length:</span>
+                              <span className="font-medium">
+                                {path.pathLength || path.tokens.length - 1} hops
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Reliability:</span>
+                              <span className={cn(
+                                "font-medium",
+                                path.reliability >= 0.5 ? "text-success" :
+                                path.reliability >= 0.2 ? "text-warning" : "text-destructive"
+                              )}>
+                                {(path.reliability * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total Liquidity:</span>
+                              <span className="font-medium">
+                                {formatLiquidity(path.totalLiquidity)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {pathsToSbtc.length > 5 && (
+                  <div className="text-center text-xs text-muted-foreground">
+                    And {pathsToSbtc.length - 5} more paths discovered...
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div>
-              <strong className="text-foreground">Anchor:</strong> All prices trace back to Bitcoin 
-              {priceData.calculationDetails && (
-                <span> (${priceData.calculationDetails.btcPrice.toLocaleString()} via oracle)</span>
-              )}
-            </div>
-            <div>
-              <strong className="text-foreground">Update Frequency:</strong> Prices refresh every 30 seconds
-            </div>
-            <div>
-              <strong className="text-foreground">Backing Liquidity:</strong> {formatLiquidity(
-                tokenNode?.totalLiquidity || 
-                priceData.calculationDetails?.totalLiquidity || 
-                0
-              )}
-            </div>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,13 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import TokenHeader from '@/components/token/TokenHeader';
 import TokenMetrics from '@/components/token/TokenMetrics';
 import PoolBreakdownTable from '@/components/token/PoolBreakdownTable';
-import PricePathVisualizer from '@/components/token/PricePathVisualizer';
 import LiquidityAnalysis from '@/components/token/LiquidityAnalysis';
 import PriceExplanation from '@/components/token/PriceExplanation';
 import { getTokenPrice, PriceCalculator } from '@/lib/pricing/price-calculator';
@@ -173,14 +172,6 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               allTokens={allTokens}
               tokenPrices={tokenPricesMap}
             />
-            
-            <PricePathVisualizer 
-              tokenSymbol={tokenMeta.symbol}
-              paths={pathsToSbtc}
-              primaryPath={priceData?.primaryPath}
-              alternativePaths={priceData?.alternativePaths || []}
-              allTokens={allTokens}
-            />
           </div>
 
           {/* Right Column - Analysis & Information */}
@@ -190,6 +181,7 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               priceData={priceData}
               tokenNode={tokenNode}
               allTokens={allTokens}
+              pathsToSbtc={pathsToSbtc}
             />
 
             <LiquidityAnalysis 
@@ -201,78 +193,6 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
               allTokens={allTokens}
             />
 
-            {/* Technical Information Card */}
-            <div className="bg-card rounded-lg border p-6">
-              <h3 className="font-semibold mb-4">Technical Information</h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-muted-foreground">Contract ID:</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <code className="text-xs bg-muted px-2 py-1 rounded block break-all">
-                    <span className="hidden xl:inline">{tokenId}</span>
-                    <span className="xl:hidden">
-                      {tokenId.length > 30 ? (
-                        (() => {
-                          const parts = tokenId.split('.');
-                          if (parts.length === 2) {
-                            // Format: ADDRESS.CONTRACT-NAME
-                            const address = parts[0];
-                            const contractName = parts[1];
-                            // Keep first 8 and last 4 chars of address, preserve full contract name
-                            const truncatedAddress = address.length > 12 
-                              ? `${address.slice(0, 8)}...${address.slice(-4)}`
-                              : address;
-                            return `${truncatedAddress}.${contractName}`;
-                          } else {
-                            // Fallback for other formats
-                            return `${tokenId.slice(0, 15)}...${tokenId.slice(-10)}`;
-                          }
-                        })()
-                      ) : tokenId}
-                    </span>
-                  </code>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Decimals:</span>
-                  <span>{tokenMeta.decimals}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Active Pools:</span>
-                  <span>{tokenPools.length}</span>
-                </div>
-                
-                {priceData?.calculationDetails && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Paths Used:</span>
-                      <span>{priceData.calculationDetails.pathsUsed}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">BTC Anchor:</span>
-                      <span>${priceData.calculationDetails.btcPrice.toLocaleString()}</span>
-                    </div>
-                  </>
-                )}
-                
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last Updated:</span>
-                  <span>
-                    {priceData ? new Date(priceData.lastUpdated).toLocaleTimeString() : 'N/A'}
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
