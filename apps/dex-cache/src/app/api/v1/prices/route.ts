@@ -77,7 +77,13 @@ export async function GET(request: Request) {
 
                 // Include detailed path information if requested
                 if (includeDetails) {
-                    response.calculationDetails = priceData.calculationDetails;
+                    // Clean up calculationDetails to remove misleading totalLiquidity
+                    response.calculationDetails = {
+                        btcPrice: priceData.calculationDetails?.btcPrice,
+                        pathsUsed: priceData.calculationDetails?.pathsUsed,
+                        priceVariation: priceData.calculationDetails?.priceVariation
+                        // Note: Removed totalLiquidity as it was the sum of all paths, not token liquidity
+                    };
                     
                     // Match single endpoint structure for primaryPath
                     if (priceData.primaryPath) {

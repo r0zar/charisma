@@ -19,6 +19,21 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 
+interface CalculationDetails {
+  btcPrice: number;
+  pathsUsed: number;
+  priceVariation: number;
+}
+
+interface PrimaryPath {
+  tokens: string[];
+  poolCount: number;
+  totalLiquidity: number;
+  reliability: number;
+  confidence: number;
+  pathLength: number;
+}
+
 interface PriceTableData {
   tokenId: string;
   symbol: string;
@@ -30,19 +45,8 @@ interface PriceTableData {
   confidence: number;
   lastUpdated: number;
   totalLiquidity?: number; // Total USD liquidity across all pools for this token
-  calculationDetails?: {
-    btcPrice: number;
-    pathsUsed: number;
-    totalLiquidity: number;
-    priceVariation: number;
-  };
-  primaryPath?: {
-    tokens: string[];
-    poolCount: number;
-    totalLiquidity: number;
-    reliability: number;
-    confidence: number;
-  };
+  calculationDetails?: CalculationDetails;
+  primaryPath?: PrimaryPath;
   alternativePathCount?: number;
 }
 
@@ -214,7 +218,6 @@ export default function PriceTable({
             <SortHeader column="confidence">Confidence</SortHeader>
             <th className="p-4 font-semibold text-muted-foreground">Path Type</th>
             <SortHeader column="lastUpdated">Last Updated</SortHeader>
-            {showDetails && <th className="p-4 font-semibold text-muted-foreground">Details</th>}
             <th className="p-4 font-semibold text-muted-foreground">Actions</th>
           </tr>
         </thead>
@@ -266,7 +269,7 @@ export default function PriceTable({
                     <div className="flex items-center gap-1">
                       <Activity className="w-3 h-3 text-blue-500" />
                       <span className="font-semibold text-foreground">
-                        {formatLiquidity(item.totalLiquidity || item.calculationDetails?.totalLiquidity)}
+                        {formatLiquidity(item.totalLiquidity)}
                       </span>
                     </div>
                   </td>
@@ -297,18 +300,6 @@ export default function PriceTable({
                     </div>
                   </td>
 
-                  {/* Details */}
-                  {showDetails && (
-                    <td className="p-4 whitespace-nowrap">
-                      {item.calculationDetails && (
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div>{item.calculationDetails.pathsUsed} paths</div>
-                          <div>${(item.calculationDetails.totalLiquidity || 0).toLocaleString()} TVL</div>
-                        </div>
-                      )}
-                    </td>
-                  )}
-
                   {/* Actions */}
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -337,7 +328,7 @@ export default function PriceTable({
                 {/* Expanded Details Row */}
                 {isExpanded && showDetails && item.primaryPath && (
                   <tr className="bg-muted/10">
-                    <td colSpan={showDetails ? 7 : 6} className="p-4">
+                    <td colSpan={6} className="p-4">
                       <div className="bg-card border border-border rounded-lg p-4 space-y-4">
                         <h4 className="font-semibold text-foreground mb-3">Price Discovery Details</h4>
                         
@@ -366,9 +357,10 @@ export default function PriceTable({
                               <h5 className="text-sm font-medium text-foreground mb-2">Calculation</h5>
                               <div className="text-xs text-muted-foreground space-y-1">
                                 <div>BTC Price: ${item.calculationDetails.btcPrice?.toLocaleString() || 'N/A'}</div>
-                                <div>Paths Used: {item.calculationDetails.pathsUsed}</div>
+                                <div>Paths Analyzed: {item.calculationDetails.pathsUsed}</div>
                                 <div>Price Variation: {((item.calculationDetails.priceVariation || 0) * 100).toFixed(2)}%</div>
                                 <div>Alternative Paths: {item.alternativePathCount || 0}</div>
+                                <div>Total Liquidity: {formatLiquidity(item.totalLiquidity)}</div>
                               </div>
                             </div>
                           )}

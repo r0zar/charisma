@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   PieChart,
   AlertTriangle,
-  Target
+  Target,
+  Droplets
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PoolEdge } from '@/lib/pricing/price-graph';

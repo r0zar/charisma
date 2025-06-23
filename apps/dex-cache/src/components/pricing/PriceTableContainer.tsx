@@ -27,22 +27,40 @@ interface PriceFilters {
   priceDisplay: 'usd' | 'sat';
 }
 
+interface CalculationDetails {
+  btcPrice: number;
+  pathsUsed: number;
+  priceVariation: number;
+}
+
+interface PrimaryPath {
+  tokens: string[];
+  poolCount: number;
+  totalLiquidity: number;
+  reliability: number;
+  confidence: number;
+  pathLength: number;
+}
+
+interface TokenData {
+  tokenId: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  image?: string;
+  usdPrice: number;
+  sbtcRatio: number;
+  confidence: number;
+  lastUpdated: number;
+  totalLiquidity?: number; // Total USD liquidity across all pools for this token
+  calculationDetails?: CalculationDetails;
+  primaryPath?: PrimaryPath;
+  alternativePathCount?: number;
+}
+
 interface ApiResponse {
   status: string;
-  data: Array<{
-    tokenId: string;
-    symbol: string;
-    name: string;
-    decimals: number;
-    usdPrice: number;
-    sbtcRatio: number;
-    confidence: number;
-    lastUpdated: number;
-    totalLiquidity?: number; // Total USD liquidity across all pools for this token
-    calculationDetails?: any;
-    primaryPath?: any;
-    alternativePathCount?: number;
-  }>;
+  data: TokenData[];
   metadata: {
     count: number;
     totalTokensAvailable: number;
@@ -197,8 +215,8 @@ export default function PriceTableContainer() {
           break;
         case 'liquidity':
           // Handle N/A values (null, undefined, or 0) - always put them at the bottom
-          const aLiquidity = a.totalLiquidity || a.calculationDetails?.totalLiquidity || 0;
-          const bLiquidity = b.totalLiquidity || b.calculationDetails?.totalLiquidity || 0;
+          const aLiquidity = a.totalLiquidity || 0;
+          const bLiquidity = b.totalLiquidity || 0;
           
           // If both are 0/null, treat as equal
           if (aLiquidity === 0 && bLiquidity === 0) {
