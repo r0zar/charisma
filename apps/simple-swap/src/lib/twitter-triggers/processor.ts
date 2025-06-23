@@ -270,6 +270,7 @@ async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: 
 
         // Execute the order directly by calling the execution function
         const { executeTrade } = await import('../orders/executor');
+        const { fillOrder } = await import('../orders/store');
 
         const txid = await executeTrade(updatedOrder);
 
@@ -279,6 +280,9 @@ async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: 
                 error: 'Order execution failed - no transaction ID returned'
             };
         }
+
+        // Mark the order as filled to prevent reuse
+        await fillOrder(nextOrderUuid, txid);
 
         console.log(`[Twitter Processor] Successfully executed order ${nextOrderUuid} for recipient ${recipientAddress}, txid: ${txid}`);
 
