@@ -27,8 +27,9 @@ The pricing infrastructure analyzes multiple trading routes through liquidity po
 ### Specialized Token Handling
 - **Stablecoin Pricing**: Fixed $1.00 pricing for optimal trading experience
 - **Decimal-Aware Math**: Proper conversion between atomic units and decimal values
-- **Exchange Rate Accuracy**: Ensures correct price ratios between tokens
+- **Exchange Rate Accuracy**: Ensures correct price ratios between tokens (fixed 100x inflation bug)
 - **Precision Maintenance**: Maintains calculation accuracy across token scales
+- **Atomic Reserve Handling**: Converts reserves to decimal values before exchange rate calculations
 
 ### Liquidity Analysis
 - **Pool Distribution**: Analyzes liquidity spread across trading pairs
@@ -46,11 +47,13 @@ The system constructs a graph of all available tokens and their trading relation
 - **Liquidity Weighting**: Routes prioritized by available liquidity
 
 ### Calculation Engine
-Advanced algorithms process pricing data:
-- **Exchange Rate Math**: Constant product formula calculations
-- **Path Aggregation**: Combines multiple routes for final prices
-- **Confidence Metrics**: Statistical reliability measures
-- **Alternative Analysis**: Backup route evaluation
+Advanced algorithms process pricing data with recent improvements:
+- **Decimal-Aware Exchange Rates**: Proper atomic-to-decimal conversion before calculations
+- **Outlier Filtering**: Removes prices >50% from median for accuracy
+- **Weighted Path Aggregation**: Combines multiple routes using liquidity-based weights
+- **Confidence Metrics**: Statistical reliability measures with consistency scoring
+- **Alternative Analysis**: Backup route evaluation with theoretical pricing
+- **Stablecoin Pool Handling**: Skips constant product for stablecoin/stablecoin pairs
 
 ### Cache System
 Performance optimization through intelligent caching:

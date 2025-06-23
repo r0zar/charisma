@@ -187,11 +187,18 @@ async function fetchBtcPriceFromSources(): Promise<BtcPriceData | null> {
 
     // Use the primary source name for attribution
     const primarySource = results[0].source;
+    const otherSourcesCount = results.length - 1;
+    
+    // Format source display string
+    let sourceDisplay = primarySource;
+    if (otherSourcesCount > 0) {
+        sourceDisplay = `${primarySource} +${otherSourcesCount} other${otherSourcesCount === 1 ? '' : 's'}`;
+    }
 
     return {
         price: averagePrice,
         timestamp: now,
-        source: `${primarySource}+${results.length - 1}others`,
+        source: sourceDisplay,
         confidence
     };
 }

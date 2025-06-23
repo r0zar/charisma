@@ -81,10 +81,13 @@ The system automatically identifies stablecoins using symbol pattern matching:
 export function isStablecoin(symbol: string): boolean {
   const upperSymbol = symbol.toUpperCase();
   
+  // Explicit exclusions for yield-bearing tokens that contain USD
+  if (upperSymbol === 'SUSDH') return false;
+  
   // Core stablecoin symbols
   const STABLECOIN_SYMBOLS = [
     'USDC', 'USDT', 'DAI', 'FRAX', 'TUSD', 'BUSD',
-    'LUSD', 'SUSD', 'GUSD', 'HUSD', 'DUSD', 'OUSD'
+    'LUSD', 'SUSD', 'GUSD', 'HUSD', 'DUSD', 'OUSD', 'USD'
   ];
   
   // Pattern matching for USD-denominated tokens

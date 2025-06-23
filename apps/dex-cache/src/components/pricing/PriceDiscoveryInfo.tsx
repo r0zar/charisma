@@ -169,34 +169,52 @@ export default function PriceDiscoveryInfo() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-3">
           <p>
-            Each price path receives a dynamic weight based on multiple factors, creating 
-            manipulation-resistant pricing through liquidity-weighted averages.
+            Advanced price discovery system using decimal-aware calculations and dynamic 
+            weighting to provide accurate, manipulation-resistant token pricing.
           </p>
           
           <div className="space-y-2">
-            <div className="font-medium text-foreground">Weight Calculation Components:</div>
+            <div className="font-medium text-foreground">Decimal-Aware Pricing:</div>
             <div className="ml-2 space-y-1">
-              <div>• <span className="font-medium">Base Score:</span> Path reliability × confidence</div>
-              <div>• <span className="font-medium">Path Length Penalty:</span> Longer paths get reduced weight</div>
-              <div>• <span className="font-medium">Liquidity Boost:</span> Up to 2x boost based on minimum pool liquidity</div>
-              <div>• <span className="font-medium">Recency Factor:</span> Recent data gets higher priority</div>
+              <div>• <span className="font-medium">Proper Conversion:</span> Atomic reserves converted to decimal values</div>
+              <div>• <span className="font-medium">Accurate Ratios:</span> Exchange rates calculated with correct decimals</div>
+              <div>• <span className="font-medium">Cross-Pool Consistency:</span> Unified decimal handling across all pools</div>
             </div>
           </div>
           
           <div className="space-y-2">
-            <div className="font-medium text-foreground">Multi-Pass Price Discovery:</div>
+            <div className="font-medium text-foreground">Dynamic Path Weighting:</div>
             <div className="ml-2 space-y-1">
-              <div>1. <span className="font-medium">Path Analysis:</span> Calculate price for each route</div>
-              <div>2. <span className="font-medium">Outlier Removal:</span> Filter prices &gt;50% from median</div>
-              <div>3. <span className="font-medium">Weighted Average:</span> Combine remaining paths by weight</div>
-              <div>4. <span className="font-medium">Confidence Scoring:</span> Price consistency + liquidity + path count</div>
+              <div>• <span className="font-medium">Base Score:</span> Path reliability × confidence (min 1%)</div>
+              <div>• <span className="font-medium">Length Penalty:</span> 10% reduction per additional hop</div>
+              <div>• <span className="font-medium">Liquidity Boost:</span> Up to 2x multiplier based on minimum pool size</div>
+              <div>• <span className="font-medium">Recency Factor:</span> Age penalty for stale pool data</div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="font-medium text-foreground">Price Discovery Process:</div>
+            <div className="ml-2 space-y-1">
+              <div>1. <span className="font-medium">Path Discovery:</span> Find all viable routes to sBTC</div>
+              <div>2. <span className="font-medium">Decimal Calculation:</span> Compute exchange rates with proper decimals</div>
+              <div>3. <span className="font-medium">Outlier Filtering:</span> Remove prices &gt;50% from median</div>
+              <div>4. <span className="font-medium">Weighted Average:</span> Combine paths by dynamic weights</div>
+              <div>5. <span className="font-medium">Confidence Scoring:</span> Based on consistency, liquidity, and path count</div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="font-medium text-foreground">Special Handling:</div>
+            <div className="ml-2 space-y-1">
+              <div>• <span className="font-medium">Stablecoin Anchoring:</span> USD-pegged tokens use $1.00 reference</div>
+              <div>• <span className="font-medium">sBTC Oracle:</span> Direct Bitcoin price feed integration</div>
+              <div>• <span className="font-medium">Pool Skipping:</span> Stablecoin/stablecoin pairs bypass constant product</div>
             </div>
           </div>
           
           <p className="text-xs">
-            This system means that as more passes occur and paths are discovered, 
-            both prices and confidence scores become more accurate through better 
-            outlier detection and more comprehensive liquidity weighting.
+            Recent improvements include fixing decimal conversion bugs that were causing 
+            100x price inflation and implementing proper atomic-to-decimal reserve calculations.
           </p>
         </CardContent>
       </Card>

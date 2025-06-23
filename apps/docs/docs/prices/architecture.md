@@ -130,8 +130,8 @@ interface TokenPriceData {
 6. **Price Aggregation**: Weighted median approach with confidence scoring
 7. **USD Conversion**: Apply current BTC price with oracle confidence adjustment
 
-#### Decimal Utilities (`decimal-utils.ts`)
-Comprehensive decimal precision handling across different token scales:
+#### Decimal Utilities (`ui-decimal-utils.ts`)
+Comprehensive decimal precision handling across different token scales with critical bug fixes:
 
 ```typescript
 // Atomic to decimal conversion with validation
@@ -144,11 +144,13 @@ function convertAtomicToDecimal(atomicValue: number, decimals: number): number {
   return atomicValue / divisor;
 }
 
-// Decimal-aware exchange rate calculation
+// Decimal-aware exchange rate calculation (CRITICAL BUG FIX)
 function calculateDecimalAwareExchangeRate(
   inputReserve: number, inputDecimals: number,
   outputReserve: number, outputDecimals: number
 ): number {
+  // Convert atomic reserves to decimal values BEFORE calculating exchange rates
+  // This fixes the 100x price inflation bug
   const inputDecimal = convertAtomicToDecimal(inputReserve, inputDecimals);
   const outputDecimal = convertAtomicToDecimal(outputReserve, outputDecimals);
   return outputDecimal / inputDecimal;
@@ -172,6 +174,7 @@ function isValidDecimalConversion(atomicValue: number, decimals: number): boolea
 ```
 
 **Key Features:**
+- **Critical Bug Fix**: Resolved 100x price inflation by ensuring atomic-to-decimal conversion before exchange rate calculations
 - **Input Validation**: Comprehensive parameter checking and bounds validation
 - **Error Handling**: Graceful fallbacks for invalid conversions
 - **Precision Control**: Handles tokens with 0-18 decimal places
@@ -194,11 +197,14 @@ Provides reliable Bitcoin price feeds:
 - **Backup Storage**: Fallback to last known good price
 - **Health Monitoring**: Track oracle reliability
 
-**Stablecoin Detection:**
+**Stablecoin Detection and Source Display:**
 ```typescript
 function isStablecoin(symbol: string): boolean {
   const upperSymbol = symbol.toUpperCase();
-  // Note: sUSDh is a yield-bearing token but should still be priced through normal paths
+  
+  // Explicit exclusions for yield-bearing tokens that contain USD
+  if (upperSymbol === 'SUSDH') return false;
+  
   return STABLECOIN_SYMBOLS.some(stableSymbol => 
     upperSymbol === stableSymbol || 
     upperSymbol.includes('USD') || 
@@ -214,23 +220,30 @@ if (tokenNode && isStablecoin(tokenNode.symbol)) {
     confidence: 1.0
   };
 }
+
+// Source display formatting (fixed kraken+0others bug)
+let sourceDisplay = primarySource;
+if (otherSourcesCount > 0) {
+  sourceDisplay = `${primarySource} +${otherSourcesCount} other${otherSourcesCount === 1 ? '' : 's'}`;
+}
 ```
 
 ### 5. API Layer
 
 #### REST Endpoints
 **`/api/v1/prices`**
-- Bulk token pricing with filtering
+- Bulk token pricing with filtering and improved data structure
 - Configurable limits and confidence thresholds
-- Optional detailed path information
+- Optional detailed path information (always enabled)
+- Cleaned up response format without misleading fields
 
 **Query Parameters:**
 - `limit` - Maximum tokens to return
-- `details` - Include calculation details
+- `details` - Include calculation details (always 'true')
 - `minConfidence` - Filter by confidence threshold
 - `symbols` - Specific token symbols to price
 
-**Response Format:**
+**Response Format (Updated):**
 ```json
 {
   "status": "success",
@@ -243,7 +256,14 @@ if (tokenNode && isStablecoin(tokenNode.symbol)) {
       "usdPrice": 98432.15,
       "sbtcRatio": 1.0023,
       "confidence": 0.95,
-      "lastUpdated": 1703123456789
+      "lastUpdated": 1703123456789,
+      "totalLiquidity": 45000.32,
+      "primaryPath": {
+        "tokens": ["aBTC", "sBTC"],
+        "pathLength": 2,
+        "reliability": 0.98
+      },
+      "alternativePaths": [...]
     }
   ],
   "metadata": {
@@ -253,6 +273,12 @@ if (tokenNode && isStablecoin(tokenNode.symbol)) {
   }
 }
 ```
+
+**Recent API Improvements:**
+- Removed misleading `calculationDetails.totalLiquidity` field
+- Exposed actual token liquidity through `totalLiquidity` field
+- Added proper TypeScript interfaces for all response types
+- Cleaned up unused fields to improve data integrity
 
 ### 6. Cache Architecture
 

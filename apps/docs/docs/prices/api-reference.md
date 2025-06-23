@@ -41,7 +41,7 @@ Retrieve pricing data for multiple tokens with filtering and sorting options.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `limit` | integer | `50` | Maximum number of tokens to return (max: 100) |
-| `details` | boolean | `false` | Include detailed calculation information |
+| `details` | boolean | `true` | Include detailed calculation information (always enabled) |
 | `minConfidence` | number | `0` | Minimum confidence threshold (0-1) |
 | `symbols` | string | - | Comma-separated list of token symbols to filter |
 
@@ -73,11 +73,11 @@ curl "https://invest.charisma.rocks/api/v1/prices?limit=10&details=true&minConfi
       "confidence": 0.9699320418391625,
       "lastUpdated": 1750625214265,
       
-      // Optional: included when details=true
+      // Always included (details parameter always true)
+      "totalLiquidity": 1522682.35, // Actual token liquidity (not sum of paths)
       "calculationDetails": {
         "btcPrice": 99095.63333333335,
         "pathsUsed": 10,
-        "totalLiquidity": 1522682.348582441,
         "priceVariation": 0.02029004135102099
       },
       "primaryPath": {
@@ -121,8 +121,9 @@ curl "https://invest.charisma.rocks/api/v1/prices?limit=10&details=true&minConfi
 - `confidence` - Calculation confidence (0-1)
 - `lastUpdated` - Timestamp of last price update
 
-**Calculation Details** (when `details=true`):
-- `calculationDetails` - BTC price, paths used, total liquidity, price variation
+**Calculation Details** (always included):
+- `totalLiquidity` - Actual token liquidity (not sum of paths) 
+- `calculationDetails` - BTC price, paths used, price variation
 - `primaryPath` - Main trading route with tokens, pools, and metrics
 - `alternativePaths` - Array of alternative trading routes with reliability metrics
 
@@ -174,11 +175,11 @@ curl "https://invest.charisma.rocks/api/v1/prices/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWC
     "confidence": 0.9844320140756163,
     "lastUpdated": 1750625520714,
     
-    // Optional: included when details=true
+    // Always included (details parameter always true)
+    "totalLiquidity": 1522682.35, // Actual token liquidity (not sum of paths)
     "calculationDetails": {
       "btcPrice": 99095.63333333335,
       "pathsUsed": 10,
-      "totalLiquidity": 1522682.348582441,
       "priceVariation": 0.02029004135102099
     },
     "primaryPath": {
@@ -501,7 +502,7 @@ prices = get_token_prices(limit=20, details=True, minConfidence=0.8)
 
 ### Performance
 - Use appropriate `limit` values to avoid large responses (max 100)
-- Only request `details=true` when you need path analysis
+- Details are always included (parameter is always enabled for transparency)
 - Implement client-side caching (30 seconds recommended)
 - Respect Vercel WAF rate limits (100 requests per 60 seconds for all pricing endpoints)
 
