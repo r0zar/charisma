@@ -114,7 +114,7 @@ export default function SwapHeader() {
     const isOrderModeDisabled = !hasBothVersions(selectedFromToken);
 
     return (
-        <div className="relative px-4 py-2 flex items-center justify-between overflow-hidden">
+        <div className="relative flex items-center justify-between overflow-hidden">
             {/* Left Side - Mode Selection & Status */}
             <div className="flex items-center space-x-4">
                 {/* Compact Mode Toggle */}

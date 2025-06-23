@@ -25,8 +25,6 @@
     "@react-spring/web": "^10.0.0",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
-    "@sentry/nextjs": "^9.20.0",
-    "@sentry/profiling-node": "^9.20.0",
     "@stacks/connect": "latest",
     "@stacks/encryption": "latest",
     "@stacks/network": "latest",

@@ -1,4 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs';
 import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -16,19 +15,6 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  webpack: (config, { dev, isServer }) => {
-    // Suppress warnings from Sentry/OpenTelemetry dependencies
-    if (!dev) {
-      config.ignoreWarnings = [
-        /Critical dependency: the request of a dependency is an expression/,
-        /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
-        /require-in-the-middle/,
-        /@opentelemetry/,
-        /@sentry/
-      ];
-    }
-    return config;
   },
   images: {
     dangerouslyAllowSVG: true,

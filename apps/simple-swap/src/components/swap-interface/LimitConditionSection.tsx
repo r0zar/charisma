@@ -17,10 +17,10 @@ export default function LimitConditionSection() {
         const num = parseFloat(price);
         if (isNaN(num)) return price;
         if (num === 0) return '0';
-        
+
         // Use 4-5 significant digits, but ensure we show meaningful precision
         const magnitude = Math.floor(Math.log10(Math.abs(num)));
-        
+
         if (num >= 1) {
             // For values >= 1, show 2-4 decimal places max
             return num.toFixed(Math.min(4, Math.max(2, 4 - magnitude)));
@@ -92,7 +92,7 @@ export default function LimitConditionSection() {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
-                    <h3 className="text-sm font-medium text-white/95">Order Triggers</h3>
+                    <h3 className="text-sm font-medium text-white/95">Swap Triggers</h3>
                     <Dialog>
                         <DialogTrigger asChild>
                             <button className="h-5 w-5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center">
@@ -102,15 +102,15 @@ export default function LimitConditionSection() {
                         <DialogContent className="max-w-2xl bg-background border border-border backdrop-blur-xl">
                             <DialogHeader className="space-y-3">
                                 <DialogTitle className="text-xl font-semibold text-white/95">
-                                    How Triggered Orders Work
+                                    How Triggered Swaps Work
                                 </DialogTitle>
                             </DialogHeader>
-                            
+
                             <div className="space-y-6 text-sm text-white/80">
                                 <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
-                                    <h4 className="font-semibold text-white/95">What are Triggered Orders?</h4>
+                                    <h4 className="font-semibold text-white/95">What are Triggered Swaps?</h4>
                                     <p className="text-white/70 leading-relaxed">
-                                        Triggered orders allow you to automate your trading strategy with intelligent execution conditions. Unlike instant swaps that execute immediately, triggered orders wait patiently until your specified conditions are met, then execute automatically.
+                                        Triggered swaps allow you to automate your trading strategy with intelligent execution conditions. Unlike instant swaps that execute immediately, triggered swaps wait patiently until your specified conditions are met, then execute automatically.
                                     </p>
                                 </div>
 
@@ -128,7 +128,7 @@ export default function LimitConditionSection() {
                                                 <div>• <span className="text-white/80">vs Token:</span> "when WELSH ≥ 0.05 sUSDT"</div>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="bg-green-500/[0.05] border border-green-500/[0.1] rounded-lg p-3">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <div className="w-2 h-2 rounded-full bg-green-400"></div>
@@ -136,14 +136,7 @@ export default function LimitConditionSection() {
                                             </div>
                                             <p className="text-xs text-white/70">Execute orders at specific times or within time windows</p>
                                         </div>
-                                        
-                                        <div className="bg-purple-500/[0.05] border border-purple-500/[0.1] rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                                                <span className="font-medium text-purple-400">Split Swap</span>
-                                            </div>
-                                            <p className="text-xs text-white/70">Break large orders into smaller chunks over time for dollar-cost averaging</p>
-                                        </div>
+
                                     </div>
                                 </div>
 
@@ -176,7 +169,7 @@ export default function LimitConditionSection() {
                                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
                                                 <span className="font-medium text-white/90">24/7 Monitoring</span>
                                             </div>
-                                            <p className="text-xs text-white/70 pl-3.5">Orders execute around the clock without supervision</p>
+                                            <p className="text-xs text-white/70 pl-3.5">Swaps execute around the clock without supervision</p>
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2 text-xs">
@@ -194,7 +187,7 @@ export default function LimitConditionSection() {
                                         <h4 className="font-medium text-blue-400">Pro Strategy</h4>
                                     </div>
                                     <p className="text-xs text-blue-300 leading-relaxed">
-                                        Layer multiple triggered orders at different price levels to create a comprehensive trading ladder. This approach helps you systematically capture both market dips and profit opportunities while maintaining disciplined risk management.
+                                        Layer multiple triggered swaps at different price levels to create a comprehensive trading ladder. This approach helps you systematically capture both market dips and profit opportunities while maintaining disciplined risk management.
                                     </p>
                                 </div>
 
@@ -233,35 +226,34 @@ export default function LimitConditionSection() {
                 {/* Price and Time Trigger Toggles - Side by Side */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Unified Price Trigger Toggle */}
-                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${
-                        (hasPriceTrigger || hasRatioTrigger) ? 'ring-1 ring-blue-500/20' : ''
-                    }`}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const currentPriceEnabled = hasPriceTrigger || hasRatioTrigger;
-                        
-                        if (currentPriceEnabled) {
-                            // Disabling price triggers - clear all price-related fields
-                            setHasPriceTrigger(false);
-                            setHasRatioTrigger(false);
-                            setPriceTriggerToken(null);
-                            setPriceTargetPrice('');
-                            setRatioTriggerToken(null);
-                            setRatioBaseToken(null);
-                            setRatioTargetPrice('');
-                        } else {
-                            // Enabling price trigger - just enable it, don't affect other triggers
-                            setHasPriceTrigger(true);
-                        }
-                    }}
+                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${(hasPriceTrigger || hasRatioTrigger) ? 'ring-1 ring-blue-500/20' : ''
+                        }`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const currentPriceEnabled = hasPriceTrigger || hasRatioTrigger;
+
+                            if (currentPriceEnabled) {
+                                // Disabling price triggers - clear all price-related fields
+                                setHasPriceTrigger(false);
+                                setHasRatioTrigger(false);
+                                setPriceTriggerToken(null);
+                                setPriceTargetPrice('');
+                                setRatioTriggerToken(null);
+                                setRatioBaseToken(null);
+                                setRatioTargetPrice('');
+                            } else {
+                                // Enabling price trigger - just enable it, don't affect other triggers
+                                setHasPriceTrigger(true);
+                            }
+                        }}
                     >
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
                                 <div className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${(hasPriceTrigger || hasRatioTrigger)
-                                        ? 'bg-blue-500 border-blue-500 text-white'
-                                        : 'border-white/[0.15]'
+                                    ? 'bg-blue-500 border-blue-500 text-white'
+                                    : 'border-white/[0.15]'
                                     }`}>
                                     {(hasPriceTrigger || hasRatioTrigger) && (
                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -291,32 +283,31 @@ export default function LimitConditionSection() {
                     </div>
 
                     {/* Time Trigger Toggle */}
-                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${
-                        hasTimeTrigger ? 'ring-1 ring-green-500/20' : ''
-                    }`}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        const currentTimeTrigger = hasTimeTrigger;
-                        const newState = !currentTimeTrigger;
-                        
-                        if (newState) {
-                            // Enabling Time trigger - just enable it, don't affect other triggers
-                            setHasTimeTrigger(true);
-                        } else {
-                            // Disabling Time trigger - only clear time-related fields
-                            setHasTimeTrigger(false);
-                            setTimeStartTime('');
-                            setTimeEndTime('');
-                        }
-                    }}
+                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${hasTimeTrigger ? 'ring-1 ring-green-500/20' : ''
+                        }`}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const currentTimeTrigger = hasTimeTrigger;
+                            const newState = !currentTimeTrigger;
+
+                            if (newState) {
+                                // Enabling Time trigger - just enable it, don't affect other triggers
+                                setHasTimeTrigger(true);
+                            } else {
+                                // Disabling Time trigger - only clear time-related fields
+                                setHasTimeTrigger(false);
+                                setTimeStartTime('');
+                                setTimeEndTime('');
+                            }
+                        }}
                     >
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
                                 <div className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${hasTimeTrigger
-                                        ? 'bg-green-500 border-green-500 text-white'
-                                        : 'border-white/[0.15]'
+                                    ? 'bg-green-500 border-green-500 text-white'
+                                    : 'border-white/[0.15]'
                                     }`}>
                                     {hasTimeTrigger && (
                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -388,8 +379,8 @@ export default function LimitConditionSection() {
                             <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-lg p-0.5">
                                 <button
                                     className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${hasPriceTrigger
-                                            ? 'bg-white/[0.1] text-white/95 shadow-sm'
-                                            : 'text-white/60 hover:text-white/80'
+                                        ? 'bg-white/[0.1] text-white/95 shadow-sm'
+                                        : 'text-white/60 hover:text-white/80'
                                         }`}
                                     onClick={() => {
                                         setHasPriceTrigger(true);
@@ -405,8 +396,8 @@ export default function LimitConditionSection() {
                                 </button>
                                 <button
                                     className={`px-2 py-1 text-xs font-medium rounded transition-all duration-200 ${hasRatioTrigger
-                                            ? 'bg-white/[0.1] text-white/95 shadow-sm'
-                                            : 'text-white/60 hover:text-white/80'
+                                        ? 'bg-white/[0.1] text-white/95 shadow-sm'
+                                        : 'text-white/60 hover:text-white/80'
                                         }`}
                                     onClick={() => {
                                         setHasPriceTrigger(false);
@@ -458,8 +449,8 @@ export default function LimitConditionSection() {
                                             key={key}
                                             title={tooltip}
                                             className={`px-2 sm:px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${(hasPriceTrigger ? priceDirection : ratioDirection) === key
-                                                    ? 'bg-white/[0.1] text-white/95 shadow-sm'
-                                                    : 'text-white/60 hover:text-white/80 hover:bg-white/[0.05]'
+                                                ? 'bg-white/[0.1] text-white/95 shadow-sm'
+                                                : 'text-white/60 hover:text-white/80 hover:bg-white/[0.05]'
                                                 }`}
                                             onClick={() => {
                                                 if (hasPriceTrigger) {
@@ -569,7 +560,7 @@ export default function LimitConditionSection() {
                 {hasTimeTrigger && (
                     <div className="mb-4">
                         <h5 className="text-sm font-medium text-green-400 mb-3">Time Trigger Configuration</h5>
-                        
+
                         {/* Time inputs - side by side on larger screens */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Start Time */}
@@ -628,7 +619,7 @@ export default function LimitConditionSection() {
                                 </p>
                             </div>
                         </div>
-                        
+
                         {/* Shared help text */}
                         <div className="mt-3 pt-3 border-t border-white/[0.06]">
                             <p className="text-xs text-white/50">
