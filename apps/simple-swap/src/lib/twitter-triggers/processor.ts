@@ -188,6 +188,9 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 
             console.log(`[Twitter Processor] ✅ Successfully executed order ${orderResult.orderUuid} for BNS ${bnsResult.bnsName} (${recipientAddress})`);
             
+            // Twitter reply notifications temporarily disabled
+            // TODO: Re-enable when Twitter authentication issues are resolved
+            /*
             // Send Twitter reply notification (fire-and-forget)
             try {
                 const { getTwitterReplyService } = await import('./twitter-reply-service');
@@ -238,6 +241,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
             } catch (error) {
                 console.error(`[Twitter Processor] Error setting up Twitter reply notification:`, error);
             }
+            */
             
             return true;
         } else if (orderResult.error === 'No available orders - all pre-signed orders have been used') {
