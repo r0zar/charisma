@@ -177,9 +177,10 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
         const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id);
 
         if (orderResult.success) {
-            // Update execution with order details
+            // Update execution with order details including txid
             await updateTwitterExecution(execution.id, {
                 orderUuid: orderResult.orderUuid,
+                txid: orderResult.txid,
                 status: 'order_created',
             });
 

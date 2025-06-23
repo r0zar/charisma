@@ -41,6 +41,7 @@ export interface TwitterTriggerExecution {
     bnsName: string; // extracted .btc name from handle/display name
     recipientAddress?: string; // resolved BNS -> Stacks address (if successful)
     orderUuid?: string; // created order UUID (if successful)
+    txid?: string; // transaction ID for blockchain explorer link
     executedAt: string; // ISO timestamp
     status: 'pending' | 'bns_resolved' | 'order_created' | 'failed' | 'overflow';
     error?: string; // error message if failed

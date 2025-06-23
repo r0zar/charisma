@@ -34,6 +34,7 @@ interface TwitterExecution {
     bnsName: string;
     recipientAddress?: string;
     orderUuid?: string;
+    txid?: string; // Transaction ID for explorer link
     status: 'pending' | 'bns_resolved' | 'order_created' | 'failed' | 'overflow' | 
             'test_run' | 'test_would_execute' | 'test_failed' | 'test_limited' | 'test_no_orders' | 'test_overflow';
     executedAt: string;
@@ -93,6 +94,9 @@ export default function TwitterTriggersClient() {
     
     // Manual test states
     const [testingTriggers, setTestingTriggers] = useState<Set<string>>(new Set());
+    
+    // Manual cron run states
+    const [runningCron, setRunningCron] = useState(false);
     
     // System status
     const [systemStatus, setSystemStatus] = useState<{
@@ -270,6 +274,38 @@ export default function TwitterTriggersClient() {
             toast.error('BNS resolution test failed');
         } finally {
             setBnsTestLoading(false);
+        }
+    };
+
+    const runCronManually = async () => {
+        setRunningCron(true);
+        
+        try {
+            const response = await fetch('/api/cron/twitter-triggers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success(`Cron job completed: ${data.data.triggersChecked} triggers checked, ${data.data.ordersCreated} orders created`);
+                if (data.data.errors && data.data.errors.length > 0) {
+                    toast.warning(`${data.data.errors.length} errors occurred during processing`);
+                }
+                // Refresh data after successful run
+                loadData();
+                loadSystemStatus();
+            } else {
+                toast.error(`Cron job failed: ${data.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Manual cron run error:', error);
+            toast.error('Failed to run cron job manually');
+        } finally {
+            setRunningCron(false);
         }
     };
 
@@ -826,6 +862,12 @@ export default function TwitterTriggersClient() {
         ).length;
     };
 
+    // Get transaction explorer link
+    const getTransactionExplorerLink = (txid?: string) => {
+        if (!txid) return null;
+        return `https://explorer.stacks.co/txid/${txid}?chain=mainnet`;
+    };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'order_created':
@@ -866,16 +908,30 @@ export default function TwitterTriggersClient() {
             <div className="bg-card rounded-lg border border-border p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-foreground">System Status</h3>
-                    <button
-                        onClick={() => {
-                            loadData();
-                            loadSystemStatus();
-                        }}
-                        className="inline-flex items-center space-x-2 px-3 py-1 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors text-sm"
-                    >
-                        <RefreshCw className="w-4 h-4" />
-                        <span>Refresh</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={runCronManually}
+                            disabled={runningCron}
+                            className="inline-flex items-center space-x-2 px-3 py-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                        >
+                            {runningCron ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Play className="w-4 h-4" />
+                            )}
+                            <span>{runningCron ? 'Running...' : 'Run Now'}</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                loadData();
+                                loadSystemStatus();
+                            }}
+                            className="inline-flex items-center space-x-2 px-3 py-1 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors text-sm"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            <span>Refresh</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1341,6 +1397,7 @@ export default function TwitterTriggersClient() {
                                         <th className="text-left py-3 px-4 font-medium text-foreground">BNS Name</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Address</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Order</th>
+                                        <th className="text-left py-3 px-4 font-medium text-foreground">Transaction</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Status</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Reply</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Executed</th>
@@ -1361,6 +1418,21 @@ export default function TwitterTriggersClient() {
                                             <td className="py-3 px-4 text-sm">
                                                 {execution.orderUuid ? (
                                                     <span className="font-mono">{execution.orderUuid.slice(-8)}</span>
+                                                ) : (
+                                                    '-'
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-4 text-sm">
+                                                {execution.txid ? (
+                                                    <a 
+                                                        href={getTransactionExplorerLink(execution.txid)!}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-500 hover:text-blue-600 flex items-center font-mono"
+                                                    >
+                                                        {execution.txid.slice(0, 8)}...{execution.txid.slice(-6)}
+                                                        <ExternalLink className="w-3 h-3 ml-1" />
+                                                    </a>
                                                 ) : (
                                                     '-'
                                                 )}

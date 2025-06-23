@@ -39,68 +39,100 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
         }
         
         try {
-            // Use twitter-api-v2 for more reliable API access
-            const { TwitterApi } = await import('twitter-api-v2');
+            // Use @the-convocation/twitter-scraper (original working version)
+            const { Scraper, SearchMode } = await import('@the-convocation/twitter-scraper');
             
-            // Initialize Twitter API client with credentials
-            const client = new TwitterApi({
-                appKey: process.env.TWITTER_API_KEY!,
-                appSecret: process.env.TWITTER_API_SECRET!,
-                accessToken: process.env.TWITTER_ACCESS_TOKEN!,
-                accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET!,
+            console.log(`[Twitter Scraper] Using @the-convocation/twitter-scraper for tweet ${tweetId}`);
+            
+            // Initialize scraper
+            const scraper = new Scraper();
+            
+            // Check credentials
+            const username = process.env.TWITTER_USERNAME;
+            const password = process.env.TWITTER_PASSWORD;
+            
+            console.log(`[Twitter Scraper] Checking credentials:`, {
+                hasUsername: !!username,
+                hasPassword: !!password,
+                usernameLength: username?.length || 0,
+                passwordLength: password?.length || 0
             });
             
-            console.log(`[Twitter Scraper] Using Twitter API v2 to get replies for tweet ${tweetId}`);
-            
-            // Get the original tweet to find its conversation ID
-            const originalTweet = await client.v2.singleTweet(tweetId, {
-                'tweet.fields': ['conversation_id', 'created_at', 'author_id']
-            });
-            
-            if (!originalTweet.data) {
-                throw new Error('Original tweet not found');
+            // Optional: Login with credentials if available
+            if (username && password) {
+                console.log(`[Twitter Scraper] Logging in with credentials for user: ${username}`);
+                try {
+                    await scraper.login(username, password);
+                    console.log(`[Twitter Scraper] Login successful`);
+                } catch (loginError) {
+                    console.error(`[Twitter Scraper] Login failed:`, loginError);
+                    // Continue without login - some scraping might still work
+                }
+            } else {
+                console.log(`[Twitter Scraper] No credentials provided, proceeding without login`);
             }
             
-            const conversationId = originalTweet.data.conversation_id || tweetId;
-            
-            // Search for tweets in the conversation (replies)
-            console.log(`[Twitter Scraper] Searching conversation ${conversationId} for replies`);
-            
-            const searchQuery = `conversation_id:${conversationId} -from:${originalTweet.data.author_id}`;
-            const searchResults = await client.v2.search(searchQuery, {
-                'tweet.fields': ['created_at', 'conversation_id', 'in_reply_to_user_id'],
-                'user.fields': ['username', 'name'],
-                expansions: ['author_id'],
-                max_results: 100,
-                sort_order: 'recency'
-            });
+            // Search for replies to the specific tweet using conversation search
+            console.log(`[Twitter Scraper] Searching for replies to tweet ${tweetId}`);
+            const searchQuery = `conversation_id:${tweetId}`;
+            console.log(`[Twitter Scraper] Search query: "${searchQuery}"`);
             
             const formattedReplies: TwitterReply[] = [];
+            let processedCount = 0;
             
-            if (searchResults.data) {
-                for (const tweet of searchResults.data.data || []) {
-                    // Skip if we have a sinceId and this reply is older
-                    if (sinceId && tweet.id <= sinceId) {
-                        continue;
-                    }
+            // Search for tweets in the conversation (replies)
+            console.log(`[Twitter Scraper] Starting search with max 100 results`);
+            const tweets = scraper.searchTweets(searchQuery, 100, SearchMode.Latest);
+            
+            let tweetCount = 0;
+            for await (const tweet of tweets) {
+                tweetCount++;
+                console.log(`[Twitter Scraper] Processing tweet ${tweetCount}:`, {
+                    id: tweet.id,
+                    username: tweet.username,
+                    isReply: tweet.isReply,
+                    inReplyToStatusId: tweet.inReplyToStatusId,
+                    text: tweet.text?.substring(0, 50) + '...'
+                });
+                
+                // Skip if we have a sinceId and this reply is older
+                if (sinceId && tweet.id && tweet.id <= sinceId) {
+                    console.log(`[Twitter Scraper] Skipping tweet ${tweet.id} - older than sinceId ${sinceId}`);
+                    continue;
+                }
+                
+                // Skip the original tweet (it won't be a reply)
+                if (tweet.id === tweetId) {
+                    console.log(`[Twitter Scraper] Skipping original tweet ${tweet.id}`);
+                    continue;
+                }
+                
+                // Only include actual replies
+                if (tweet.isReply && tweet.inReplyToStatusId) {
+                    console.log(`[Twitter Scraper] Found valid reply ${tweet.id} from @${tweet.username}`);
                     
-                    // Find the user data for this tweet
-                    const author = searchResults.data.includes?.users?.find(user => user.id === tweet.author_id);
+                    formattedReplies.push({
+                        id: tweet.id || `reply_${processedCount}`,
+                        text: tweet.text || '',
+                        authorHandle: tweet.username || 'unknown',
+                        authorDisplayName: tweet.name || 'Unknown User',
+                        createdAt: tweet.timeParsed?.toISOString() || new Date().toISOString(),
+                        inReplyToTweetId: tweetId,
+                    });
                     
-                    if (author) {
-                        formattedReplies.push({
-                            id: tweet.id,
-                            text: tweet.text || '',
-                            authorHandle: author.username || 'unknown',
-                            authorDisplayName: author.name || 'Unknown User',
-                            createdAt: tweet.created_at || new Date().toISOString(),
-                            inReplyToTweetId: tweetId,
-                        });
+                    processedCount++;
+                    
+                    // Limit results to prevent excessive processing
+                    if (processedCount >= 100) {
+                        console.log(`[Twitter Scraper] Reached processing limit of 100 replies`);
+                        break;
                     }
+                } else {
+                    console.log(`[Twitter Scraper] Skipping tweet ${tweet.id} - not a reply (isReply: ${tweet.isReply}, inReplyToStatusId: ${tweet.inReplyToStatusId})`);
                 }
             }
             
-            console.log(`[Twitter Scraper] Found ${formattedReplies.length} replies for tweet ${tweetId}`);
+            console.log(`[Twitter Scraper] Search completed. Processed ${tweetCount} total tweets, found ${formattedReplies.length} valid replies`);
             
             return {
                 success: true,
