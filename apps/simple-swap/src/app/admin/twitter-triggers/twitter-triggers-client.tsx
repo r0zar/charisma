@@ -38,6 +38,9 @@ interface TwitterExecution {
             'test_run' | 'test_would_execute' | 'test_failed' | 'test_limited' | 'test_no_orders' | 'test_overflow';
     executedAt: string;
     error?: string;
+    twitterReplyId?: string;
+    twitterReplyStatus?: 'sent' | 'failed' | 'disabled';
+    twitterReplyError?: string;
 }
 
 interface BNSTestResult {
@@ -1320,6 +1323,7 @@ export default function TwitterTriggersClient() {
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Address</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Order</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Status</th>
+                                        <th className="text-left py-3 px-4 font-medium text-foreground">Reply</th>
                                         <th className="text-left py-3 px-4 font-medium text-foreground">Executed</th>
                                     </tr>
                                 </thead>
@@ -1364,6 +1368,34 @@ export default function TwitterTriggersClient() {
                                                     <div className="mt-1 text-xs text-red-500" title={execution.error}>
                                                         {execution.error.length > 50 ? `${execution.error.substring(0, 50)}...` : execution.error}
                                                     </div>
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-4 text-sm">
+                                                {execution.twitterReplyStatus === 'sent' && (
+                                                    <div className="flex items-center text-green-600">
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        <span className="text-xs">Replied</span>
+                                                    </div>
+                                                )}
+                                                {execution.twitterReplyStatus === 'failed' && (
+                                                    <div className="flex items-center text-red-600" title={execution.twitterReplyError || 'Reply failed'}>
+                                                        <XCircle className="w-3 h-3 mr-1" />
+                                                        <span className="text-xs">Failed</span>
+                                                    </div>
+                                                )}
+                                                {execution.twitterReplyStatus === 'disabled' && (
+                                                    <div className="flex items-center text-gray-500">
+                                                        <span className="text-xs">Disabled</span>
+                                                    </div>
+                                                )}
+                                                {!execution.twitterReplyStatus && execution.status === 'order_created' && (
+                                                    <div className="flex items-center text-yellow-600">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        <span className="text-xs">Pending</span>
+                                                    </div>
+                                                )}
+                                                {!execution.twitterReplyStatus && execution.status !== 'order_created' && (
+                                                    <span className="text-xs text-gray-400">-</span>
                                                 )}
                                             </td>
                                             <td className="py-3 px-4 text-sm text-muted-foreground">

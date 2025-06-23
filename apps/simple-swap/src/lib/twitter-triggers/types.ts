@@ -48,6 +48,11 @@ export interface TwitterTriggerExecution {
     // Twitter reply metadata
     replyText: string; // content of the reply
     replyCreatedAt: string; // when the reply was posted
+    
+    // Twitter notification tracking (optional)
+    twitterReplyId?: string; // ID of the reply tweet we sent (if any)
+    twitterReplyStatus?: 'sent' | 'failed' | 'disabled'; // Status of our reply notification
+    twitterReplyError?: string; // Error message if reply failed
 }
 
 export interface BNSResolutionResult {

@@ -187,6 +187,58 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
             await incrementTriggerCount(trigger.id);
 
             console.log(`[Twitter Processor] ✅ Successfully executed order ${orderResult.orderUuid} for BNS ${bnsResult.bnsName} (${recipientAddress})`);
+            
+            // Send Twitter reply notification (fire-and-forget)
+            try {
+                const { getTwitterReplyService } = await import('./twitter-reply-service');
+                const twitterReplyService = getTwitterReplyService();
+                
+                // Get token info for the notification
+                const { getTokenMetadataCached } = await import('@repo/tokens');
+                const inputTokenMeta = await getTokenMetadataCached(trigger.inputToken);
+                const outputTokenMeta = await getTokenMetadataCached(trigger.outputToken);
+                
+                // Format amount for display
+                const decimals = inputTokenMeta.decimals || 6;
+                const amountFormatted = (parseInt(trigger.amountIn) / Math.pow(10, decimals)).toFixed(6).replace(/\.?0+$/, '');
+                const tokenSymbol = outputTokenMeta.symbol || 'tokens';
+                
+                // Send notification and track result
+                twitterReplyService.notifyOrderExecution(execution, orderResult.txid!, tokenSymbol, amountFormatted)
+                    .then(result => {
+                        if (result.success) {
+                            // Update execution with reply success
+                            updateTwitterExecution(execution.id, {
+                                twitterReplyId: result.tweetId,
+                                twitterReplyStatus: 'sent'
+                            }).catch(updateError => {
+                                console.error(`[Twitter Processor] Failed to update execution with reply status:`, updateError);
+                            });
+                        } else {
+                            // Update execution with reply failure
+                            updateTwitterExecution(execution.id, {
+                                twitterReplyStatus: 'failed',
+                                twitterReplyError: result.error
+                            }).catch(updateError => {
+                                console.error(`[Twitter Processor] Failed to update execution with reply error:`, updateError);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`[Twitter Processor] Twitter reply notification failed for execution ${execution.id}:`, error);
+                        // Update execution with reply failure
+                        updateTwitterExecution(execution.id, {
+                            twitterReplyStatus: 'failed',
+                            twitterReplyError: error instanceof Error ? error.message : 'Unknown error'
+                        }).catch(updateError => {
+                            console.error(`[Twitter Processor] Failed to update execution with reply error:`, updateError);
+                        });
+                    });
+                    
+            } catch (error) {
+                console.error(`[Twitter Processor] Error setting up Twitter reply notification:`, error);
+            }
+            
             return true;
         } else if (orderResult.error === 'No available orders - all pre-signed orders have been used') {
             // This is an overflow execution - log it but don't fail
@@ -220,6 +272,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: string, executionId: string): Promise<{
     success: boolean;
     orderUuid?: string;
+    txid?: string;
     error?: string;
 }> {
     try {
@@ -288,7 +341,8 @@ async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: 
 
         return {
             success: true,
-            orderUuid: nextOrderUuid
+            orderUuid: nextOrderUuid,
+            txid: txid
         };
 
     } catch (error) {
