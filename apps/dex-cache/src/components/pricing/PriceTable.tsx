@@ -158,7 +158,7 @@ export default function PriceTable({
 }: PriceTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const SortHeader = ({ column, children }: { column: string; children: React.ReactNode }) => (
+  const SortHeader = ({ column, children }: { column: 'symbol' | 'price' | 'confidence' | 'liquidity' | 'lastUpdated'; children: React.ReactNode }) => (
     <th 
       className="p-4 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
       onClick={() => onSort(column)}

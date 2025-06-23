@@ -13,9 +13,9 @@ const BULK_PRICE_CACHE_KEY = 'bulk-token-prices';
 const PRICE_CALCULATION_CACHE_PREFIX = 'price-calc:';
 
 // Cache durations
-const TOKEN_PRICE_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-const BULK_PRICE_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes  
-const PRICE_CALCULATION_CACHE_DURATION_MS = 60 * 1000; // 1 minute
+const TOKEN_PRICE_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 10 * 1000 : 5 * 60 * 1000; // 10 seconds in dev, 5 minutes in prod
+const BULK_PRICE_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 10 * 1000 : 5 * 60 * 1000; // 10 seconds in dev, 5 minutes in prod  
+const PRICE_CALCULATION_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 5 * 1000 : 60 * 1000; // 5 seconds in dev, 1 minute in prod
 
 export interface TokenPriceData {
     tokenId: string;
@@ -403,16 +403,15 @@ export class PriceCalculator {
         console.log(`[PriceCalculator] Weight after path length penalty (/${pathPenalty}): ${weight}`);
 
         // Boost based on minimum liquidity in path (bottleneck)
-        // Note: Path liquidity is now calculated using atomic values in price-graph
         if (path.pools && path.pools.length > 0) {
-            // Use atomic liquidity values (geometric mean of atomic reserves)
+            // Use USD liquidity values 
             const liquidities = path.pools.map(p => p.liquidityUsd || 0);
             const minLiquidity = Math.min(...liquidities);
-            // Scale atomic liquidity appropriately - use larger threshold since atomic values are bigger
-            const liquidityBoost = Math.min(2, minLiquidity / 1000000000000); // Max 2x boost at 1T atomic units
+            // Scale USD liquidity appropriately - max 3x boost at $100K liquidity
+            const liquidityBoost = Math.min(3, minLiquidity / 100000); // Max 3x boost at $100K USD
             weight *= (1 + liquidityBoost);
             
-            console.log(`[PriceCalculator] Min liquidity (atomic): ${minLiquidity}, boost: ${liquidityBoost}, weight after boost: ${weight}`);
+            console.log(`[PriceCalculator] Min liquidity (USD): $${minLiquidity.toFixed(2)}, boost: ${liquidityBoost.toFixed(4)}, weight after boost: ${weight}`);
         }
 
         // Boost recent data

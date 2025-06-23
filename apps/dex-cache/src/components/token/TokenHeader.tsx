@@ -53,15 +53,20 @@ const formatPrice = (price: number | null | undefined): string => {
   }
 };
 
-const formatSbtcRatio = (ratio: number | null | undefined): string => {
+const formatSatoshis = (ratio: number | null | undefined): string => {
   if (ratio === null || ratio === undefined || isNaN(ratio)) {
     return '—';
   }
 
-  if (ratio >= 0.0001) {
-    return ratio.toFixed(8);
+  // Convert sBTC ratio to satoshis (1 sBTC = 100,000,000 sats)
+  const satoshis = ratio * 100000000;
+
+  if (satoshis >= 1000) {
+    return `${satoshis.toLocaleString(undefined, { maximumFractionDigits: 0 })} sats`;
+  } else if (satoshis >= 1) {
+    return `${satoshis.toFixed(2)} sats`;
   } else {
-    return ratio.toExponential(4);
+    return `${satoshis.toFixed(6)} sats`;
   }
 };
 
@@ -268,7 +273,7 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
               <div className="flex items-center gap-2 mt-2 lg:justify-end">
                 <Bitcoin className="h-4 w-4 text-orange-500" />
                 <span className="text-lg text-muted-foreground">
-                  {formatSbtcRatio(priceData?.sbtcRatio)} sBTC
+                  {formatSatoshis(priceData?.sbtcRatio)}
                 </span>
               </div>
             </div>

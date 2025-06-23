@@ -9,6 +9,7 @@ import TokenMetrics from '@/components/token/TokenMetrics';
 import PoolBreakdownTable from '@/components/token/PoolBreakdownTable';
 import PricePathVisualizer from '@/components/token/PricePathVisualizer';
 import LiquidityAnalysis from '@/components/token/LiquidityAnalysis';
+import PriceExplanation from '@/components/token/PriceExplanation';
 import { getTokenPrice, PriceCalculator } from '@/lib/pricing/price-calculator';
 import { getPriceGraph } from '@/lib/pricing/price-graph';
 import { listVaultTokens } from '@/lib/pool-service';
@@ -182,8 +183,15 @@ export default async function TokenDetailPage({ params }: TokenDetailPageProps) 
             />
           </div>
 
-          {/* Right Column - Liquidity Analysis */}
+          {/* Right Column - Analysis & Information */}
           <div className="space-y-6">
+            <PriceExplanation 
+              tokenMeta={tokenMeta}
+              priceData={priceData}
+              tokenNode={tokenNode}
+              allTokens={allTokens}
+            />
+
             <LiquidityAnalysis 
               tokenSymbol={tokenMeta.symbol}
               pools={tokenPools}
