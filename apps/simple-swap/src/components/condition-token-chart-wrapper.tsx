@@ -10,10 +10,11 @@ interface Props {
     token: TokenCacheData;
     baseToken?: TokenCacheData | null;
     targetPrice: string;
+    direction?: 'lt' | 'gt';
     onTargetPriceChange: (p: string) => void;
 }
 
-function ConditionTokenChartWrapper({ token, baseToken, targetPrice, onTargetPriceChange }: Props) {
+function ConditionTokenChartWrapper({ token, baseToken, targetPrice, direction, onTargetPriceChange }: Props) {
     if (!token) return null;
     
     const domColour = useDominantColor(token?.image);
@@ -29,6 +30,7 @@ function ConditionTokenChartWrapper({ token, baseToken, targetPrice, onTargetPri
             token={token} 
             baseToken={baseToken} 
             targetPrice={targetPrice} 
+            direction={direction}
             onTargetPriceChange={handleTargetPriceChange} 
             colour={colour} 
         />
@@ -41,6 +43,7 @@ export default memo(ConditionTokenChartWrapper, (prevProps, nextProps) => {
         prevProps.token?.contractId === nextProps.token?.contractId &&
         prevProps.baseToken?.contractId === nextProps.baseToken?.contractId &&
         prevProps.targetPrice === nextProps.targetPrice &&
+        prevProps.direction === nextProps.direction &&
         prevProps.token?.image === nextProps.token?.image
     );
 }); 

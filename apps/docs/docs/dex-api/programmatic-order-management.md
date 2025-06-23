@@ -96,11 +96,94 @@ The flexibility of specifying a `recipient` and programmatically controlling the
     *   Crucial if your oracle system determines that the conditions for a previously created order are no longer valid or optimal (e.g., arbitrage opportunity vanished, trigger event for a reward was invalidated, user requests cancellation via your app).
     *   Allows your application to adapt to changing market conditions or user needs.
 
+## Authentication Options
+
+The Charisma DEX API supports two authentication methods for order operations:
+
+### API Key Authentication (Recommended for Automation)
+
+API keys provide secure, automated access without requiring wallet signatures for each operation. Perfect for trading bots and automated systems.
+
+**Key Features:**
+- **Wallet-scoped**: Each API key is owned by a specific wallet and can only operate on orders created by that wallet
+- **Self-service**: Create and manage keys through signed messages - no approval process needed
+- **Granular permissions**: Keys can have `execute` and/or `cancel` permissions
+- **Rate limiting**: Built-in rate limits prevent abuse
+- **Usage tracking**: Monitor your automation with detailed analytics
+
+**Creating an API Key:**
+```typescript
+const message = {
+  action: 'create_api_key',
+  keyName: 'Trading Bot v1',
+  permissions: ['execute', 'cancel'],
+  timestamp: Date.now()
+};
+
+const signature = await signMessage(JSON.stringify(message));
+
+const response = await fetch('/api/v1/api-keys', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    message: JSON.stringify(message),
+    signature,
+    walletAddress: 'SP1ABC123...'
+  })
+});
+
+const { apiKey } = await response.json();
+// Store securely - only shown once!
+```
+
+**Using API Keys:**
+```typescript
+// Execute an order you created
+await fetch('/api/v1/orders/uuid_123/execute', {
+  method: 'POST',
+  headers: { 'X-API-Key': 'ck_live_abc123...' }
+});
+
+// Cancel an order you created
+await fetch('/api/v1/orders/uuid_123/cancel', {
+  method: 'PATCH',
+  headers: { 'X-API-Key': 'ck_live_abc123...' }
+});
+```
+
+### Signature Authentication (Manual Operations)
+
+For manual trading or one-off operations, you can authenticate each request with a wallet signature.
+
+```typescript
+const message = orderUuid; // Simple message for execute/cancel
+const signature = await signMessage(message);
+
+await fetch('/api/v1/orders/uuid_123/execute', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    message,
+    signature,
+    walletAddress: 'SP1ABC123...'
+  })
+});
+```
+
+**When to Use Each Method:**
+- **API Keys**: Trading bots, scheduled operations, automated strategies
+- **Signatures**: Manual trading, testing, one-off operations
+
+For comprehensive API key documentation, see [API Key Management](./api-keys.md).
+
 ## Key Technical Considerations
 
 *   **Authentication & Security:**
-    *   Safeguard your API keys if using API key-based authentication for `cancel` or `execute` endpoints.
-    *   Implement robust signature generation for `POST /orders/new` and for signature-based authentication on other endpoints. Ensure message payloads are correctly stringified and hashed before signing. Refer to the API's general authentication guide.
+    *   **API Keys**: Store keys securely using environment variables. Never commit to version control. Rotate regularly.
+    *   **Signatures**: Implement robust signature generation for `POST /orders/new` and signature-based authentication. Ensure message payloads are correctly stringified and hashed before signing.
+    *   **Rate Limits**: API keys have built-in rate limiting (100/min by default). Monitor usage and implement backoff strategies.
 *   **Idempotency:**
     *   When creating orders (`POST /orders/new`), your application should handle retries carefully to avoid duplicate order submissions. Consider using a client-generated unique ID that you can check against your own database before attempting to create an order. Check the specific `orders-new.md` documentation for any server-side idempotency key support.
 *   **Error Handling & Retries:**

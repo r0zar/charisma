@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from '@/components/ui/sonner';
-import { ClientProviders } from '@/components/providers/client-providers';
+import { ClientProviders } from '@/contexts/client-providers';
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',

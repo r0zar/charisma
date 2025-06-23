@@ -69,8 +69,26 @@ export class PriceSeriesService {
     try {
       const result = await requestPromise;
       
+      console.log('[BULK-PRICE-SERVICE] Returning processed data to chart:', {
+        requestedTokens: contractIds.length,
+        resultKeys: Object.keys(result),
+        resultSummary: Object.entries(result).reduce((acc, [contractId, data]) => {
+          acc[contractId.substring(0, 12) + '...'] = {
+            isArray: Array.isArray(data),
+            length: Array.isArray(data) ? data.length : 'N/A',
+            samplePoint: Array.isArray(data) && data.length > 0 ? data[0] : null,
+            timeRange: Array.isArray(data) && data.length > 1 ? {
+              first: data[0]?.time,
+              last: data[data.length - 1]?.time
+            } : null
+          };
+          return acc;
+        }, {} as any)
+      });
+      
       // Cache individual results with timestamp
       const now = Date.now();
+      let cachedTokens = 0;
       Object.entries(result).forEach(([contractId, data]) => {
         if (Array.isArray(data)) {
           this.cache.set(contractId, {
@@ -78,7 +96,13 @@ export class PriceSeriesService {
             timestamp: now,
             lastUpdate: now
           });
+          cachedTokens++;
         }
+      });
+
+      console.log('[BULK-PRICE-SERVICE] Caching complete:', {
+        cachedTokens,
+        totalRequested: contractIds.length
       });
 
       return result;
@@ -140,25 +164,103 @@ export class PriceSeriesService {
       to: (to || now).toString(),
     });
 
+    console.log('[BULK-PRICE-API] Requesting bulk price series:', {
+      tokens: contractIds.length,
+      contractIds: contractIds.map(id => id.substring(0, 12) + '...'),
+      timeRange: {
+        from: from || thirtyDaysAgo,
+        to: to || now,
+        daysAgo: Math.round((now - (from || thirtyDaysAgo)) / (24 * 60 * 60))
+      },
+      url: `/api/price-series/bulk?${params.toString()}`
+    });
+
     const response = await fetch(`/api/price-series/bulk?${params.toString()}`);
     
     if (!response.ok) {
+      console.error('[BULK-PRICE-API] Request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
       throw new Error(`Failed to fetch bulk price series: ${response.status}`);
     }
 
     const data = await response.json();
     
+    console.log('[BULK-PRICE-API] Raw response received:', {
+      responseKeys: Object.keys(data),
+      responseStructure: Object.entries(data).reduce((acc, [contractId, seriesData]) => {
+        acc[contractId.substring(0, 12) + '...'] = {
+          isArray: Array.isArray(seriesData),
+          length: Array.isArray(seriesData) ? seriesData.length : 'N/A',
+          samplePoint: Array.isArray(seriesData) && seriesData.length > 0 ? seriesData[0] : null
+        };
+        return acc;
+      }, {} as any)
+    });
+    
     // Convert the response to the expected format
     const result: PriceSeriesData = {};
+    let totalPointsProcessed = 0;
+    let conversionIssues = 0;
     
     Object.entries(data).forEach(([contractId, seriesData]) => {
       if (Array.isArray(seriesData)) {
         // Convert to LineData format if needed
-        result[contractId] = seriesData.map((point: any) => ({
-          time: point.time || point.start,
-          value: point.value || point.average,
-        }));
+        const convertedData = seriesData.map((point: any, index: number) => {
+          const time = point.time || point.start;
+          const value = point.value || point.average;
+          
+          // Validate conversion
+          if (!time || !value || isNaN(Number(time)) || isNaN(Number(value))) {
+            if (index < 3) { // Only log first few issues to avoid spam
+              console.warn('[BULK-PRICE-API] Data conversion issue:', {
+                contractId: contractId.substring(0, 12) + '...',
+                pointIndex: index,
+                originalPoint: point,
+                convertedTime: time,
+                convertedValue: value
+              });
+            }
+            conversionIssues++;
+          }
+          
+          return {
+            time: time,
+            value: value,
+          };
+        });
+        
+        result[contractId] = convertedData;
+        totalPointsProcessed += convertedData.length;
+        
+        console.log('[BULK-PRICE-API] Converted data for token:', {
+          contractId: contractId.substring(0, 12) + '...',
+          originalPoints: seriesData.length,
+          convertedPoints: convertedData.length,
+          sampleOriginal: seriesData[0],
+          sampleConverted: convertedData[0],
+          timeRange: convertedData.length > 1 ? {
+            first: convertedData[0]?.time,
+            last: convertedData[convertedData.length - 1]?.time
+          } : null
+        });
+      } else {
+        console.warn('[BULK-PRICE-API] Non-array data received for token:', {
+          contractId: contractId.substring(0, 12) + '...',
+          dataType: typeof seriesData,
+          data: seriesData
+        });
       }
+    });
+
+    console.log('[BULK-PRICE-API] Bulk conversion complete:', {
+      tokensRequested: contractIds.length,
+      tokensReceived: Object.keys(result).length,
+      totalPointsProcessed,
+      conversionIssues,
+      avgPointsPerToken: totalPointsProcessed / Math.max(Object.keys(result).length, 1)
     });
 
     return result;

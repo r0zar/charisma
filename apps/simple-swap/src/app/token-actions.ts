@@ -15,11 +15,9 @@ export type TokenSummary = TokenCacheData & PriceStats & {
  */
 export async function listTokenSummaries(): Promise<TokenSummary[]> {
     const startTime = Date.now();
-    console.log('[TOKEN-SUMMARIES] Starting Redis-based token summary generation');
 
     // Step 1: Get all tokens that have price data in Redis
     const trackedTokens = await getAllTrackedTokens();
-    console.log('[TOKEN-SUMMARIES] Found', trackedTokens.length, 'tokens with price data in Redis');
 
     if (trackedTokens.length === 0) {
         console.log('[TOKEN-SUMMARIES] No tokens with price data found in Redis');
@@ -29,7 +27,6 @@ export async function listTokenSummaries(): Promise<TokenSummary[]> {
     // Step 2: Get current prices for all tracked tokens
     const currentPrices = await getBulkLatestPrices(trackedTokens);
     const contractIds = Object.keys(currentPrices);
-    console.log('[TOKEN-SUMMARIES] Found current prices for', contractIds.length, '/', trackedTokens.length, 'tokens');
 
     if (contractIds.length === 0) {
         console.log('[TOKEN-SUMMARIES] No current prices available');
@@ -45,10 +42,10 @@ export async function listTokenSummaries(): Promise<TokenSummary[]> {
 
     // Step 5: Process results and calculate market caps
     const summaries: TokenSummary[] = [];
-    
+
     for (const contractId of contractIds) {
-        let meta: TokenCacheData = metaMap.get(contractId);
-        
+        let meta: TokenCacheData | undefined = metaMap.get(contractId);
+
         // If no metadata available, create default metadata to avoid token-cache API calls
         if (!meta) {
             meta = {
@@ -78,7 +75,7 @@ export async function listTokenSummaries(): Promise<TokenSummary[]> {
         }
 
         // Calculate market cap
-        const marketCap = calculateMarketCap(stats.price, meta.total_supply, meta.decimals);
+        const marketCap = calculateMarketCap(stats.price, meta.total_supply || null, meta.decimals || null);
 
         const summary: TokenSummary = {
             ...meta,
@@ -105,18 +102,18 @@ export async function listTokenSummaries(): Promise<TokenSummary[]> {
  */
 function calculateMarketCap(price: number, total_supply: string | null, decimals: number | null): number | null {
     if (!price || !total_supply || decimals === null) return null;
-    
+
     try {
         const supply = parseFloat(total_supply);
         const adjustedDecimals = decimals || 6;
         const adjustedSupply = supply / Math.pow(10, adjustedDecimals);
         const marketCap = price * adjustedSupply;
-        
+
         // Validate result
         if (isNaN(marketCap) || !isFinite(marketCap) || marketCap <= 0) {
             return null;
         }
-        
+
         return marketCap;
     } catch (error) {
         console.warn('Failed to calculate market cap:', { price, total_supply, decimals, error });
@@ -130,16 +127,16 @@ function calculateMarketCap(price: number, total_supply: string | null, decimals
  */
 export async function getTokenDetail(contractId: string): Promise<TokenSummary> {
     console.log('[GET-TOKEN-DETAIL] Fetching details for', contractId.substring(0, 10) + '...');
-    
+
     const startTime = Date.now();
-    
+
     // Step 1: Get price stats from Redis (this includes current price)
     const stats = await getPriceStats(contractId);
-    
+
     // Step 2: Try to get metadata from cached list first
     const metaList = await listMetadata();
-    let meta: TokenCacheData = metaList.find(m => m.contractId === contractId);
-    
+    let meta: TokenCacheData | undefined = metaList.find(m => m.contractId === contractId);
+
     // Step 3: If no metadata available, create default metadata (avoid token-cache API calls)
     if (!meta) {
         console.log('[GET-TOKEN-DETAIL] No cached metadata found, using defaults for', contractId.substring(0, 10) + '...');
@@ -163,10 +160,10 @@ export async function getTokenDetail(contractId: string): Promise<TokenSummary> 
             base: null,
         };
     }
-    
+
     // Step 4: Calculate market cap
-    const marketCap = calculateMarketCap(stats.price, meta.total_supply, meta.decimals);
-    
+    const marketCap = calculateMarketCap(stats.price!, meta.total_supply || null, meta.decimals || null);
+
     const duration = Date.now() - startTime;
     console.log('[GET-TOKEN-DETAIL] Completed for', contractId.substring(0, 10) + '...', {
         hasPrice: stats.price !== null,
@@ -174,7 +171,7 @@ export async function getTokenDetail(contractId: string): Promise<TokenSummary> 
         marketCap: marketCap ? `$${marketCap.toLocaleString()}` : null,
         duration: `${duration}ms`
     });
-    
+
     return { ...meta, ...stats, marketCap } as TokenSummary;
 }
 
@@ -188,7 +185,7 @@ export async function preloadPriceSeriesData(contractIds: string[]) {
     try {
         // Use the internal price store directly instead of making HTTP request
         const { getPricesInRange } = await import('@/lib/price/store');
-        
+
         // Calculate time range (last 30 days)
         const now = Date.now(); // milliseconds
         const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
@@ -202,7 +199,7 @@ export async function preloadPriceSeriesData(contractIds: string[]) {
         await Promise.all(contractIds.map(async (contractId: string) => {
             try {
                 const raw = await getPricesInRange(contractId, thirtyDaysAgo, now);
-                
+
                 // Convert to LineData format
                 const series = raw
                     .filter(item => Array.isArray(item) && item.length >= 2)
@@ -216,7 +213,7 @@ export async function preloadPriceSeriesData(contractIds: string[]) {
                 stats.processed++;
                 stats.totalPoints += series.length;
             } catch (error) {
-                console.warn(`Failed to preload price series for token ${contractId.substring(0, 10)}...:`, error.message);
+                console.warn(`Failed to preload price series for token ${contractId.substring(0, 10)}...:`, (error as Error).message);
                 result[contractId] = [];
                 stats.errors++;
             }

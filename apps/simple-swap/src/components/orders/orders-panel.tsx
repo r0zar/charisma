@@ -15,6 +15,12 @@ import { signedFetch } from "blaze-sdk";
 import { useTransactionStatus } from "@/hooks/useTransactionStatus";
 import PremiumPagination, { type PaginationInfo } from "./premium-pagination";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { groupOrdersByStrategy, StrategyDisplayData } from "@/lib/orders/strategy-formatter";
+import { formatOrderCondition } from "@/lib/orders/condition-formatter";
+import { CompactOrderCard, StrategyProgressBar, ConditionStatusIndicator, PriceProgressBar } from "./order-progress-indicators";
+import { getLatestPrice } from "@/lib/price/store";
+import { EnhancedStrategyCard } from "./enhanced-strategy-card";
+import { truncateAddress } from "@/lib/address-utils";
 
 interface BadgeProps {
     status: LimitOrder["status"];
@@ -25,7 +31,7 @@ interface BadgeProps {
 interface DisplayOrder extends LimitOrder {
     inputTokenMeta: TokenCacheData;
     outputTokenMeta: TokenCacheData;
-    conditionTokenMeta: TokenCacheData;
+    conditionTokenMeta?: TokenCacheData;
     baseAssetMeta?: TokenCacheData | null;
 }
 
@@ -103,7 +109,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
 };
 
 // Premium Status Badge with Apple/Tesla design
-const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string }> = ({ status, txid, failureReason }) => {
+export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string }> = ({ status, txid, failureReason }) => {
     const statusConfig: Record<LimitOrder["status"], { color: string, bgColor: string, borderColor: string, label: string, indicatorColor: string }> = {
         open: {
             color: "text-blue-400",
@@ -289,7 +295,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                     e.stopPropagation();
                                     copyToClipboard(o.uuid, o.uuid);
                                 }}
-                                className="p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
+                                className="p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200 cursor-pointer"
                                 title="Copy order ID"
                             >
                                 {copiedId === o.uuid ? (
@@ -394,7 +400,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                             e.stopPropagation();
                                             executeNow(o.uuid);
                                         }}
-                                        className="p-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] text-emerald-400 hover:bg-emerald-500/[0.15] hover:border-emerald-400/[0.3] transition-all duration-200 backdrop-blur-sm"
+                                        className="p-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] text-emerald-400 hover:bg-emerald-500/[0.15] hover:border-emerald-400/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer"
                                     >
                                         <Zap className="h-4 w-4" />
                                     </button>
@@ -411,7 +417,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                             e.stopPropagation();
                                             setConfirmUuid(o.uuid);
                                         }}
-                                        className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400 transition-all duration-200 backdrop-blur-sm"
+                                        className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400 transition-all duration-200 backdrop-blur-sm cursor-pointer"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -448,7 +454,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                                         e.stopPropagation();
                                                         copyToClipboard(o.uuid, o.uuid);
                                                     }}
-                                                    className="p-1 rounded-lg hover:bg-white/[0.05]"
+                                                    className="p-1 rounded-lg hover:bg-white/[0.05] cursor-pointer"
                                                 >
                                                     {copiedId === o.uuid ? (
                                                         <Check className="h-3 w-3 text-emerald-400" />
@@ -518,7 +524,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                             <span className="text-white/60">TxID:</span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-white/90 font-mono text-xs truncate max-w-[120px]" title={o.txid}>
-                                                    {o.txid.substring(0, 8)}...
+                                                    {truncateAddress(o.txid)}
                                                 </span>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
@@ -617,6 +623,11 @@ export default function OrdersPanel() {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [recentlyUpdatedOrders, setRecentlyUpdatedOrders] = useState<Set<string>>(new Set());
+    
+    // Strategy grouping state
+    const [strategyGroups, setStrategyGroups] = useState<StrategyDisplayData[]>([]);
+    const [currentPrices, setCurrentPrices] = useState<Map<string, number>>(new Map());
+    const [expandedStrategies, setExpandedStrategies] = useState<Set<string>>(new Set());
     
     // URL state management
     const router = useRouter();
@@ -803,11 +814,14 @@ export default function OrdersPanel() {
                         currentMetaCache.set(baseId, baseMeta);
                     }
 
-                    // Fetch condition token meta (might duplicate output token)
-                    let conditionMeta = currentMetaCache.get(order.conditionToken);
-                    if (!conditionMeta) {
-                        conditionMeta = await getTokenMetadataCached(order.conditionToken);
-                        currentMetaCache.set(order.conditionToken, conditionMeta);
+                    // Fetch condition token meta (skip for wildcards and undefined)
+                    let conditionMeta: TokenCacheData | undefined;
+                    if (order.conditionToken && order.conditionToken !== '*') {
+                        conditionMeta = currentMetaCache.get(order.conditionToken);
+                        if (!conditionMeta) {
+                            conditionMeta = await getTokenMetadataCached(order.conditionToken);
+                            currentMetaCache.set(order.conditionToken, conditionMeta);
+                        }
                     }
 
                     newDisplayOrders.push({
@@ -836,6 +850,56 @@ export default function OrdersPanel() {
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+
+    // Group orders into strategies when displayOrders changes
+    useEffect(() => {
+        if (displayOrders.length === 0) {
+            setStrategyGroups([]);
+            return;
+        }
+
+        // Create token metadata map
+        const tokenMetaMap = new Map<string, TokenCacheData>();
+        displayOrders.forEach(order => {
+            tokenMetaMap.set(order.inputToken, order.inputTokenMeta);
+            tokenMetaMap.set(order.outputToken, order.outputTokenMeta);
+            if (order.conditionToken) {
+                tokenMetaMap.set(order.conditionToken, order.conditionTokenMeta);
+            }
+            if (order.baseAssetMeta) {
+                tokenMetaMap.set(order.baseAsset || 'USD', order.baseAssetMeta);
+            }
+        });
+
+        // Group orders into strategies
+        const grouped = groupOrdersByStrategy(displayOrders, tokenMetaMap);
+        setStrategyGroups(grouped);
+        
+        // Fetch current prices for condition tokens
+        const fetchCurrentPrices = async () => {
+            const priceMap = new Map<string, number>();
+            const uniqueConditionTokens = new Set(
+                displayOrders
+                    .filter(order => order.conditionToken)
+                    .map(order => order.conditionToken!)
+            );
+
+            for (const token of uniqueConditionTokens) {
+                try {
+                    const price = await getLatestPrice(token);
+                    if (price !== undefined) {
+                        priceMap.set(token, price);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to fetch price for ${token}:`, error);
+                }
+            }
+            
+            setCurrentPrices(priceMap);
+        };
+
+        fetchCurrentPrices();
+    }, [displayOrders]);
 
     // Order status polling for real-time updates
     useEffect(() => {
@@ -911,22 +975,23 @@ export default function OrdersPanel() {
                     order.uuid === uuid ? { ...order, status: 'filled', txid: j.txid } : order
                 )
             );
-            toast.success(`Order Submitted`, {
+            toast.success(`Order Executed`, {
                 description: (
-                    <div>
-                        <div className="text-green-800 font-medium">Transaction submitted successfully</div>
+                    <div className="space-y-2">
+                        <div className="text-white/90 font-medium">Transaction submitted successfully</div>
                         <a
                             href={`https://explorer.hiro.so/txid/${j.txid}?chain=mainnet`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline text-sm font-mono"
+                            className="text-emerald-400 hover:text-emerald-300 underline text-sm font-mono inline-flex items-center gap-1"
                         >
                             View on Explorer
+                            <ExternalLink className="h-3 w-3" />
                         </a>
                     </div>
                 ),
-                duration: 10000,
-                className: "border-green-200 bg-green-50 text-green-900",
+                duration: 8000,
+                className: "bg-emerald-950/20 border-emerald-500/20 text-white backdrop-blur-sm",
             });
         } catch (err) {
             // Revert optimistic update on error
@@ -955,6 +1020,19 @@ export default function OrdersPanel() {
     // Handle row click to expand/collapse details
     const toggleRowExpansion = (uuid: string) => {
         setExpandedRow(expandedRow === uuid ? null : uuid);
+    };
+
+    // Handle strategy expansion/collapse
+    const toggleStrategyExpansion = (strategyId: string) => {
+        setExpandedStrategies(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(strategyId)) {
+                newSet.delete(strategyId);
+            } else {
+                newSet.add(strategyId);
+            }
+            return newSet;
+        });
     };
 
     // Pagination handlers
@@ -1038,7 +1116,10 @@ export default function OrdersPanel() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-6 text-sm text-white/40">
-                                <span>{pagination.total} {activeFilter === 'all' ? 'total' : activeFilter} orders</span>
+                                <span>
+                                    {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'} 
+                                    ({pagination.total} {activeFilter === 'all' ? 'total' : activeFilter} orders)
+                                </span>
                                 <span>Page {pagination.page} of {pagination.totalPages}</span>
                                 <div className="flex items-center gap-2">
                                     <div className="relative">
@@ -1073,7 +1154,7 @@ export default function OrdersPanel() {
                                     key={value}
                                     onClick={() => handleFilterChange(value)}
                                     disabled={loading || paginationLoading}
-                                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 ${
+                                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 cursor-pointer ${
                                         activeFilter === value
                                             ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
                                             : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
@@ -1141,7 +1222,7 @@ export default function OrdersPanel() {
 
                 {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
-                {!loading && (filteredOrders.length === 0 ? (
+                {!loading && (strategyGroups.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-white/40">
                         <div className="relative mb-6">
                             <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
@@ -1158,21 +1239,26 @@ export default function OrdersPanel() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {filteredOrders.map((o) => {
-                            // Check if this order was recently updated
-                            const isRecentlyUpdated = recentlyUpdatedOrders.has(o.uuid);
+                        {strategyGroups.map((strategyData) => {
+                            // Check if any order in this strategy was recently updated
+                            const isRecentlyUpdated = strategyData.orders.some(order => 
+                                recentlyUpdatedOrders.has(order.uuid)
+                            );
                             
                             return (
-                                <PremiumOrderCard 
-                                    key={o.uuid}
-                                    order={o}
+                                <EnhancedStrategyCard
+                                    key={strategyData.id}
+                                    strategyData={strategyData}
+                                    currentPrices={currentPrices}
                                     isRecentlyUpdated={isRecentlyUpdated}
+                                    expandedStrategies={expandedStrategies}
                                     expandedRow={expandedRow}
-                                    toggleRowExpansion={toggleRowExpansion}
-                                    copyToClipboard={copyToClipboard}
+                                    onToggleExpansion={toggleStrategyExpansion}
+                                    onToggleRowExpansion={toggleRowExpansion}
+                                    onCopyToClipboard={copyToClipboard}
+                                    onExecuteNow={executeNow}
+                                    onCancelOrder={(uuid) => setConfirmUuid(uuid)}
                                     copiedId={copiedId}
-                                    executeNow={executeNow}
-                                    setConfirmUuid={setConfirmUuid}
                                     formatTokenAmount={formatTokenAmount}
                                     formatRelativeTime={formatRelativeTime}
                                     formatExecWindow={formatExecWindow}

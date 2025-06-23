@@ -11,9 +11,23 @@ import { executeMultihopSwap } from 'blaze-sdk';
  * The ratio is calculated as price(conditionToken) / price(baseAsset).
  * If baseAsset is not defined or is a known stablecoin (like sUSDT),
  * it effectively compares the conditionToken's price against a USD target.
+ * Special case: if conditionToken is '*', return 1 for immediate execution.
  */
 async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefined> {
     const conditionTokenContract = order.conditionToken;
+    
+    // Safety check - this function should only be called for conditional orders
+    if (!conditionTokenContract) {
+        console.log({ orderUuid: order.uuid }, 'getCurrentPriceRatio called for manual order - this should not happen');
+        return undefined;
+    }
+    
+    // Handle wildcard immediate execution
+    if (conditionTokenContract === '*') {
+        console.log({ orderUuid: order.uuid }, 'Wildcard immediate execution detected - returning ratio 1');
+        return 1; // Any positive number that will satisfy the condition
+    }
+    
     // Default to sUSDT if baseAsset is not specified, effectively making it a USD price comparison.
     const baseAssetContract = order.baseAsset || 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
 
@@ -43,9 +57,15 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
  */
 export async function executeTrade(order: LimitOrder): Promise<string> {
     // get quote for multi-hop swap
+    console.log({ orderUuid: order.uuid, inputToken: order.inputToken, outputToken: order.outputToken, amountIn: order.amountIn }, 'Fetching quote for order execution');
     const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn);
+    console.log({ orderUuid: order.uuid, quoteRes }, 'Quote result');
 
-    if (!quoteRes.success || !quoteRes.data) throw new Error('Route fetch failed');
+    if (!quoteRes.success || !quoteRes.data) {
+        const errorMessage = `Route fetch failed: ${quoteRes.error || 'No route data returned'}`;
+        console.error({ orderUuid: order.uuid, error: errorMessage, quoteRes }, 'Failed to get quote for order execution');
+        throw new Error(errorMessage);
+    }
 
     const result = await executeMultihopSwap(
         quoteRes.data,
@@ -64,9 +84,21 @@ export async function executeTrade(order: LimitOrder): Promise<string> {
 /**
  * Determines whether an order should be filled based on current price.
  * Currently supports simple >= comparison; extend as needed.
+ * Note: This function should only be called for conditional orders.
  */
 function shouldFill(order: LimitOrder, currentPrice: number): boolean {
+    // Safety check - this function should only be called for conditional orders
+    if (order.targetPrice === undefined || order.targetPrice === null || !order.direction) {
+        console.log({ orderUuid: order.uuid }, 'shouldFill called for manual order - this should not happen');
+        return false;
+    }
+    
     const target = Number(order.targetPrice);
+    if (isNaN(target)) {
+        console.log({ orderUuid: order.uuid, targetPrice: order.targetPrice }, 'Invalid target price in shouldFill');
+        return false;
+    }
+    
     if (order.direction === 'lt') {
         return currentPrice <= target;
     }
@@ -134,36 +166,67 @@ export async function processOpenOrders(): Promise<string[]> {
         }
 
         try {
-            console.log({ orderUuid: order.uuid, conditionToken: order.conditionToken, baseAsset: order.baseAsset }, 'Fetching current price ratio');
-            const currentMarketRatio = await getCurrentPriceRatio(order);
-
-            if (currentMarketRatio === undefined) {
-                console.log({ orderUuid: order.uuid, conditionToken: order.conditionToken, baseAsset: order.baseAsset }, 'Could not determine current market ratio. Skipping order.');
-                await releaseLock(order.uuid);
-                continue; // Skip to next order
-            }
-
-            console.log({ orderUuid: order.uuid, currentMarketRatio, targetPrice: order.targetPrice, direction: order.direction }, 'Checking fill condition with ratio');
-            if (!shouldFill(order, currentMarketRatio)) {
-                console.log({ orderUuid: order.uuid, currentMarketRatio }, 'Fill condition (ratio) not met, releasing lock.');
-                // release lock early if condition not met
+            // -------------------------------------------------------------
+            // 2. Check if this is a manual order (no conditions) or wildcard order
+            // -------------------------------------------------------------
+            
+            // Check for wildcard immediate execution first
+            if (order.conditionToken === '*') {
+                console.log({ orderUuid: order.uuid }, 'Wildcard immediate execution order detected - processing immediately');
+                // Skip ratio fetching for wildcard orders, go straight to execution
+            } else if (!order.conditionToken || order.targetPrice === undefined || order.targetPrice === null || !order.direction) {
+                console.log({ orderUuid: order.uuid }, 'Manual order detected (no conditions). Skipping automated processing - must be executed manually via API.');
                 await releaseLock(order.uuid);
                 continue;
             }
 
-            console.log({ orderUuid: order.uuid }, 'Fill condition (ratio) met. Attempting to execute trade.');
-            const txid = await executeTrade(order);
-            console.log({ orderUuid: order.uuid, txid }, 'Trade executed successfully. Marking order as filled.');
-            await fillOrder(order.uuid, txid);
+            // -------------------------------------------------------------
+            // 3. Process conditional order or execute wildcard immediately
+            // -------------------------------------------------------------
+            
+            let shouldExecute = false;
+            
+            if (order.conditionToken === '*') {
+                // Wildcard immediate execution - always execute
+                console.log({ orderUuid: order.uuid }, 'Wildcard order - executing immediately without condition checks');
+                shouldExecute = true;
+            } else {
+                // Regular conditional order - check price conditions
+                console.log({ orderUuid: order.uuid, conditionToken: order.conditionToken, baseAsset: order.baseAsset }, 'Fetching current price ratio for conditional order');
+                const currentMarketRatio = await getCurrentPriceRatio(order);
 
-            // Send notification (fire-and-forget style, errors handled within the function)
-            sendOrderExecutedNotification(order, txid).catch(err => {
-                console.log({ orderUuid: order.uuid, error: err }, 'Failed to dispatch order execution notification task.');
-            });
+                if (currentMarketRatio === undefined) {
+                    console.log({ orderUuid: order.uuid, conditionToken: order.conditionToken, baseAsset: order.baseAsset }, 'Could not determine current market ratio. Skipping order.');
+                    await releaseLock(order.uuid);
+                    continue; // Skip to next order
+                }
 
-            filled.push(order.uuid);
-            // lock will expire; no need manual release
-            console.log({ orderUuid: order.uuid }, 'Order processed and filled. Lock will auto-expire.');
+                console.log({ orderUuid: order.uuid, currentMarketRatio, targetPrice: order.targetPrice, direction: order.direction }, 'Checking fill condition with ratio');
+                shouldExecute = shouldFill(order, currentMarketRatio);
+                
+                if (!shouldExecute) {
+                    console.log({ orderUuid: order.uuid, currentMarketRatio }, 'Fill condition (ratio) not met, releasing lock.');
+                    // release lock early if condition not met
+                    await releaseLock(order.uuid);
+                    continue;
+                }
+            }
+            
+            if (shouldExecute) {
+                console.log({ orderUuid: order.uuid }, 'Condition met or wildcard order. Attempting to execute trade.');
+                const txid = await executeTrade(order);
+                console.log({ orderUuid: order.uuid, txid }, 'Trade executed successfully. Marking order as filled.');
+                await fillOrder(order.uuid, txid);
+
+                // Send notification (fire-and-forget style, errors handled within the function)
+                sendOrderExecutedNotification(order, txid).catch(err => {
+                    console.log({ orderUuid: order.uuid, error: err }, 'Failed to dispatch order execution notification task.');
+                });
+
+                filled.push(order.uuid);
+                // lock will expire; no need manual release
+                console.log({ orderUuid: order.uuid }, 'Order processed and filled. Lock will auto-expire.');
+            }
         } catch (err) {
             console.log({ orderUuid: order.uuid, error: err }, `Failed to process order ${order.uuid}. Releasing lock.`);
             // release lock to allow retry

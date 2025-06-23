@@ -73,6 +73,21 @@ interface DisplayOrder {
     failureReason?: string;
 }
 
+// Helper function to get condition token from order structure
+function getConditionTokenContract(order: LimitOrder): string {
+    if (order.conditions) {
+        if (order.conditions.type === 'price' || order.conditions.type === 'ratio') {
+            return order.conditions.params.conditionToken;
+        } else if (order.conditions.type === 'dca') {
+            return order.conditions.params.conditionToken || order.inputToken; // Fallback to input token for market DCA
+        } else if (order.conditions.type === 'manual') {
+            return order.inputToken; // Manual orders use input token as condition token
+        }
+    }
+    // Legacy order support
+    return (order as any).conditionToken || order.inputToken;
+}
+
 // Convert EnrichedOrder to DisplayOrder for admin interface
 function convertToDisplayOrder(
     enrichedOrder: EnrichedOrder, 
@@ -87,8 +102,21 @@ function convertToDisplayOrder(
     
     // Use amountIn from LimitOrder (not inputAmount)
     const inputAmount = parseFloat(order.amountIn || '0') / Math.pow(10, inputDecimals);
-    // targetPrice is already in decimal format, don't divide by decimals
-    const targetPrice = parseFloat(order.targetPrice || '0');
+    
+    // Get targetPrice from conditions structure
+    let targetPrice = 0;
+    if (order.conditions) {
+        if (order.conditions.type === 'price' || order.conditions.type === 'ratio') {
+            targetPrice = parseFloat(order.conditions.params.targetPrice || '0');
+        } else if (order.conditions.type === 'dca') {
+            targetPrice = parseFloat(order.conditions.params.targetPrice || '0');
+        } else if (order.conditions.type === 'manual') {
+            targetPrice = 0; // Manual orders don't have target prices
+        }
+    } else {
+        // Legacy order support
+        targetPrice = parseFloat((order as any).targetPrice || '0');
+    }
     
     // Calculate volume in output tokens
     let volumeInOutputTokens = 0;
@@ -118,11 +146,23 @@ function convertToDisplayOrder(
         ? `${order.owner.slice(0, 8)}...${order.owner.slice(-4)}`
         : order.owner;
     
-    // Determine direction based on LimitOrder.direction field
-    const direction = order.direction === 'gt' ? 'sell' : 'buy'; // gt = greater than = sell, lt = less than = buy
+    // Determine direction based on conditions structure
+    let direction: 'buy' | 'sell' | 'long' | 'short' = 'buy';
+    if (order.conditions) {
+        if (order.conditions.type === 'price' || order.conditions.type === 'ratio') {
+            direction = order.conditions.params.direction === 'gt' ? 'sell' : 'buy';
+        } else if (order.conditions.type === 'dca') {
+            direction = order.conditions.params.direction === 'gt' ? 'sell' : 'buy';
+        } else if (order.conditions.type === 'manual') {
+            direction = 'buy'; // Default to buy for manual orders since no direction specified
+        }
+    } else {
+        // Legacy order support
+        direction = (order as any).direction === 'gt' ? 'sell' : 'buy';
+    }
     
     // Handle legacy 'filled' status for migration
-    const displayStatus = order.status === 'filled' ? 'broadcasted' : order.status;
+    const displayStatus = (order.status as any) === 'filled' ? 'broadcasted' : order.status;
     
     // Classify order type using the classification utility
     const allOrdersWithMeta = allEnrichedOrders.map(e => ({
@@ -226,10 +266,11 @@ async function fetchAndEnrichOrders(
         
         for (const order of orders) {
             try {
+                const conditionTokenContract = getConditionTokenContract(order);
                 const [inputTokenMeta, outputTokenMeta, conditionTokenMeta] = await Promise.all([
                     getTokenMetadataCached(order.inputToken),
                     getTokenMetadataCached(order.outputToken),
-                    getTokenMetadataCached(order.conditionToken)
+                    getTokenMetadataCached(conditionTokenContract)
                 ]);
                 
                 enrichedOrders.push({
@@ -251,12 +292,13 @@ async function fetchAndEnrichOrders(
                     identifier: ''
                 };
                 
+                const conditionTokenContract = getConditionTokenContract(order);
                 enrichedOrders.push({
                     id: order.uuid,
                     order,
                     inputTokenMeta: { ...fallbackMeta, contractId: order.inputToken },
                     outputTokenMeta: { ...fallbackMeta, contractId: order.outputToken },
-                    conditionTokenMeta: { ...fallbackMeta, contractId: order.conditionToken }
+                    conditionTokenMeta: { ...fallbackMeta, contractId: conditionTokenContract }
                 });
             }
         }

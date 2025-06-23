@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { useOrderConditions } from '@/contexts/order-conditions-context';
 import { X } from 'lucide-react';
 
 interface ValidationAlert {
@@ -19,9 +20,10 @@ export default function ValidationAlert() {
         selectedFromToken,
         selectedToToken,
         displayAmount,
-        targetPrice,
         mode
     } = useSwapTokens();
+    
+    const { validateTriggers } = useOrderConditions();
 
     if (!validationAlert) {
         return null;
@@ -42,8 +44,11 @@ export default function ValidationAlert() {
             requirements.push("Enter an amount to trade");
         }
         
-        if (validationAlert.type === 'order' && (!targetPrice || targetPrice === '')) {
-            requirements.push("Set a target price for your order");
+        if (validationAlert.type === 'order') {
+            const triggerValidation = validateTriggers();
+            if (!triggerValidation.isValid) {
+                requirements.push(...triggerValidation.errors);
+            }
         }
         
         return requirements;

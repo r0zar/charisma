@@ -4,7 +4,7 @@ import { listTokenSummaries, preloadPriceSeriesData } from "../token-actions";
 import TokensPageClient from "@/components/tokens/tokens-page-client";
 import { Suspense } from 'react';
 import { TokenTableSkeleton } from '@/components/tokens/token-table-skeleton';
-import { PriceSeriesProvider } from '@/components/providers/price-series-provider';
+import { PriceSeriesProvider } from '@/contexts/price-series-provider';
 import { withMonitoring } from '@/lib/performance-monitor';
 
 export const dynamic = 'force-dynamic';

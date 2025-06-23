@@ -344,3 +344,78 @@ export async function getBulkPricesInRange(
 
     return result;
 }
+
+/**
+ * Snapshot prices for all available tokens using oracle data
+ * This function replicates the logic from the cron/price route
+ */
+export async function snapshotPricesFromOracle(): Promise<{
+    status: 'success' | 'error';
+    count: number;
+    timestamp: number;
+    charismaTokenIncluded: boolean;
+    tokens: string[];
+}> {
+    const now = Date.now();
+    
+    try {
+        // Import functions dynamically to avoid circular dependencies
+        const { listPrices } = await import('@repo/tokens');
+        const { listTokens } = await import('dexterity-sdk');
+        
+        // Fetch all token prices (USD values) from the source
+        const oraclePrices = await listPrices();
+        const dexTokens = await listTokens();
+
+        console.log(`[snapshotPricesFromOracle] Oracle returned ${Object.keys(oraclePrices).length} prices`);
+        console.log(`[snapshotPricesFromOracle] Dex tokens count: ${dexTokens.length}`);
+
+        // Filter out tokens that are not in the dexTokens list
+        const oraclePricesFiltered = Object.fromEntries(
+            Object.entries(oraclePrices).filter(([contractId]) =>
+                dexTokens.some(token => token.contractId === contractId)
+            )
+        );
+
+        console.log(`[snapshotPricesFromOracle] Filtered prices count: ${Object.keys(oraclePricesFiltered).length}`);
+        console.log(`[snapshotPricesFromOracle] Filtered tokens:`, Object.keys(oraclePricesFiltered));
+
+        const snapshots: { contractId: string, price: number, timestamp: number }[] = [];
+        const tokenList: string[] = [];
+        
+        for (const [contractId, price] of Object.entries(oraclePricesFiltered)) {
+            if (typeof price === 'number' && !isNaN(price)) {
+                // Add tiny random noise to price (0.0000001% of value)
+                const noise = price * 0.0000001 * (Math.random() - 0.5); // ±0.00000005%
+                const noisyPrice = price + noise;
+                snapshots.push({ contractId, price: noisyPrice, timestamp: now });
+                tokenList.push(contractId);
+            }
+        }
+
+        await addPriceSnapshotsBulk(snapshots);
+        
+        // Check if .charisma-token is included
+        const charismaTokenIncluded = tokenList.includes('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token');
+        
+        console.log(`[snapshotPricesFromOracle] Successfully stored ${snapshots.length} price snapshots`);
+        console.log(`[snapshotPricesFromOracle] Charisma token included: ${charismaTokenIncluded}`);
+
+        return {
+            status: 'success',
+            count: snapshots.length,
+            timestamp: now,
+            charismaTokenIncluded,
+            tokens: tokenList
+        };
+    } catch (error) {
+        console.error('[snapshotPricesFromOracle] Failed to snapshot prices:', error);
+        return {
+            status: 'error',
+            count: 0,
+            timestamp: now,
+            charismaTokenIncluded: false,
+            tokens: []
+        };
+    }
+}

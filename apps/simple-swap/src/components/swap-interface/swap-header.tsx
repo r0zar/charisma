@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback } from 'react';
-import { Share2, Repeat, TrendingUp, Monitor } from 'lucide-react';
+import { Share2, Repeat, TrendingUp, Monitor, AlarmCheck } from 'lucide-react';
 import { Button } from '../ui/button';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
@@ -114,21 +114,21 @@ export default function SwapHeader() {
     const isOrderModeDisabled = !hasBothVersions(selectedFromToken);
 
     return (
-        <div className="relative px-6 py-4 flex items-center justify-between overflow-hidden">
+        <div className="relative px-4 py-2 flex items-center justify-between overflow-hidden">
             {/* Left Side - Mode Selection & Status */}
             <div className="flex items-center space-x-4">
                 {/* Compact Mode Toggle */}
                 <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-xl p-1">
                     <button
                         onClick={() => setMode('swap')}
-                        className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${mode === 'swap'
+                        className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 cursor-pointer ${mode === 'swap'
                             ? 'bg-white/[0.1] text-white'
                             : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05]'
                             }`}
                     >
                         <div className={`h-2 w-2 rounded-full transition-all duration-300 ${mode === 'swap' ? 'bg-blue-400' : 'bg-white/40'}`} />
-                        <TrendingUp className="w-4 h-4" />
-                        <span>Instant Swap</span>
+                        <Repeat className="w-4 h-4" />
+                        <span>Instant Swaps</span>
                     </button>
                     <button
                         onClick={() => !isOrderModeDisabled && setMode('order')}
@@ -140,30 +140,15 @@ export default function SwapHeader() {
                         className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${isOrderModeDisabled
                             ? 'text-white/30 cursor-not-allowed opacity-50'
                             : mode === 'order'
-                                ? 'bg-white/[0.1] text-white'
-                                : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05]'
+                                ? 'bg-white/[0.1] text-white cursor-pointer'
+                                : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] cursor-pointer'
                             }`}
                     >
                         <div className={`h-2 w-2 rounded-full transition-all duration-300 ${mode === 'order' && !isOrderModeDisabled ? 'bg-purple-400' : 'bg-white/40'}`} />
-                        <Repeat className="w-4 h-4" />
-                        <span>Limit Orders</span>
+                        <AlarmCheck className="w-4 h-4" />
+                        <span>Triggered Swaps</span>
                     </button>
                 </div>
-
-                {/* Premium Security & Route Intelligence Indicator - Only on XL screens */}
-                {securityLevel && (
-                    <div className="hidden 2xl:flex items-center space-x-3 bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg px-3 py-2">
-                        <div className="flex items-center space-x-2">
-                            <div className={`h-2 w-2 rounded-full ${securityLevel === 'high' ? 'bg-green-400' :
-                                securityLevel === 'medium' ? 'bg-blue-400' : 'bg-purple-400'
-                                }`} />
-                            <span className="text-sm font-medium text-white/90">
-                                {securityLevel === 'high' ? 'Direct Route' :
-                                    securityLevel === 'medium' ? 'Optimized Path' : 'Smart Routing'}
-                            </span>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Right Side - Premium Action Controls */}
@@ -186,7 +171,7 @@ export default function SwapHeader() {
                 {/* Share - Simplified Button */}
                 <button
                     onClick={handleShare}
-                    className="h-10 w-10 bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 flex items-center justify-center"
+                    className="h-10 w-10 bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 flex items-center justify-center cursor-pointer"
                     title="Share this swap configuration"
                 >
                     <Share2 className="w-4 h-4 text-white/80 hover:text-white/95 transition-colors duration-300" />

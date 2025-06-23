@@ -18,8 +18,14 @@ const router = new Router({
     routerContractId: `${routerAddress}.${routerName}`,
 });
 
-loadVaults(router).catch(err => {
-    console.error('Error loading vaults:', err);
+let vaultsLoaded = false;
+
+loadVaults(router).then(() => {
+    console.log('✅ Vaults loaded successfully');
+    vaultsLoaded = true;
+}).catch(err => {
+    console.error('❌ Error loading vaults:', err);
+    vaultsLoaded = false;
 });
 
 /**
@@ -31,15 +37,40 @@ export async function getQuote(
     amount: string | number,
 ) {
     console.log(`[Server] Getting quote for ${fromTokenId} -> ${toTokenId} with amount ${amount}`);
-    const route = await router.findBestRoute(fromTokenId, toTokenId, Number(amount));
-
-    if (route instanceof Error) {
-        return { success: false, error: route.message };
+    console.log(`[Server] Vaults loaded: ${vaultsLoaded}`);
+    
+    if (!vaultsLoaded) {
+        console.log(`[Server] Vaults not loaded, attempting to load...`);
+        try {
+            await loadVaults(router);
+            vaultsLoaded = true;
+            console.log(`[Server] ✅ Vaults loaded successfully on demand`);
+        } catch (err) {
+            console.error(`[Server] ❌ Failed to load vaults on demand:`, err);
+            return { success: false, error: 'Failed to load vault data' };
+        }
     }
+    
+    try {
+        const route = await router.findBestRoute(fromTokenId, toTokenId, Number(amount));
+        console.log(`[Server] Route result:`, { route, isError: route instanceof Error });
 
-    return { success: true, data: route };
+        if (route instanceof Error) {
+            console.error(`[Server] Route error:`, route.message);
+            return { success: false, error: route.message };
+        }
 
+        if (!route) {
+            console.error(`[Server] No route found for ${fromTokenId} -> ${toTokenId}`);
+            return { success: false, error: 'No route found' };
+        }
 
+        console.log(`[Server] Found valid route:`, route);
+        return { success: true, data: route };
+    } catch (error) {
+        console.error(`[Server] Exception in getQuote:`, error);
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
 }
 
 /**

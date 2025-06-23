@@ -23,9 +23,13 @@ const schema: z.ZodType<NewOrderRequest> = z.object({
     targetPrice: z
         .string()
         .regex(/^\d+(?:\.\d{1,18})?$/i, { message: 'targetPrice must be numeric with up to 18 decimals' })
-        .refine((v) => Number(v) > 0, { message: 'targetPrice must be positive' }),
-    direction: z.enum(['lt', 'gt']),
-    conditionToken: z.string().includes('.'),
+        .refine((v) => Number(v) >= 0, { message: 'targetPrice must be non-negative' })
+        .optional(),
+    direction: z.enum(['lt', 'gt']).optional(),
+    conditionToken: z.string().refine(
+        (val) => val === '*' || val.includes('.'), 
+        { message: 'conditionToken must be a contract ID (contains ".") or "*" for immediate execution' }
+    ).optional(),
     recipient: z.string().min(3),
     signature: z.string().length(130),
     uuid: z.string().uuid(),
@@ -34,8 +38,9 @@ const schema: z.ZodType<NewOrderRequest> = z.object({
     validTo: z.string().datetime().optional(),
 }).passthrough();
 
-// Ensure validFrom < validTo when both provided
+// Ensure validFrom < validTo when both provided, and validate condition fields consistency
 const validatedSchema = schema.superRefine((data, ctx) => {
+    // Validate time range
     if (data.validFrom && data.validTo) {
         const fromTs = Date.parse(data.validFrom);
         const toTs = Date.parse(data.validTo);
@@ -47,6 +52,36 @@ const validatedSchema = schema.superRefine((data, ctx) => {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: 'validTo must be later than validFrom',
+            });
+        }
+    }
+
+    // Validate condition fields consistency
+    const hasConditionToken = !!data.conditionToken;
+    const hasTargetPrice = !!data.targetPrice;
+    const hasDirection = !!data.direction;
+
+    // If any condition field is provided, all required condition fields must be provided
+    if (hasConditionToken || hasTargetPrice || hasDirection) {
+        if (!hasConditionToken) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'conditionToken is required when targetPrice or direction is provided',
+                path: ['conditionToken']
+            });
+        }
+        if (!hasTargetPrice) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'targetPrice is required when conditionToken or direction is provided',
+                path: ['targetPrice']
+            });
+        }
+        if (!hasDirection) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'direction is required when conditionToken or targetPrice is provided',
+                path: ['direction']
             });
         }
     }

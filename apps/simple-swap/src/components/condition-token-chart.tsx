@@ -29,34 +29,49 @@ interface Props {
     token: TokenCacheData;
     baseToken?: TokenCacheData | null;
     targetPrice: string;
+    direction?: 'lt' | 'gt';
     onTargetPriceChange: (price: string) => void;
     colour?: string;
 }
 
-// Convert LineData to ChartDataPoint format
+// Convert LineData to ChartDataPoint format - detect time format automatically
 function convertToChartDataPoint(data: LineData[]): ChartDataPoint[] {
-    return data.map(point => ({
-        time: Number(point.time),
-        value: point.value
-    }));
+    return data.map(point => {
+        const timeValue = Number(point.time);
+        // Detect if time is already in milliseconds (> year 2000 in seconds = 946684800)
+        // If it's a large number, it's likely milliseconds; if small, it's seconds
+        const isMilliseconds = timeValue > 946684800000;
+        return {
+            time: isMilliseconds ? timeValue : timeValue * 1000,
+            value: point.value
+        };
+    });
 }
 
-// Convert ChartDataPoint back to LineData format
+// Convert ChartDataPoint back to LineData format - lightweight-charts expects seconds
 function convertToLineData(data: ChartDataPoint[]): LineData[] {
     return data.map(point => ({
-        time: point.time as any,
+        time: Math.floor(point.time / 1000), // Always convert to seconds for lightweight-charts
         value: point.value
     }));
 }
 
 function formatPrice(price: number): string {
-    if (price === 0) return '0.00';
-    const absPrice = Math.abs(price);
-    let decimals = 2;
-    if (absPrice < 0.0001) decimals = 8;
-    else if (absPrice < 0.01) decimals = 6;
-    else if (absPrice < 1) decimals = 4;
-    return price.toFixed(decimals);
+    if (price === 0) return '0';
+    if (isNaN(price)) return '0';
+    
+    // Use 4-5 significant digits, but ensure we show meaningful precision
+    const magnitude = Math.floor(Math.log10(Math.abs(price)));
+    
+    if (price >= 1) {
+        // For values >= 1, show 2-4 decimal places max
+        return price.toFixed(Math.min(4, Math.max(2, 4 - magnitude)));
+    } else {
+        // For values < 1, ensure we show at least 4 significant digits
+        const significantDigits = 4;
+        const decimalPlaces = significantDigits - magnitude - 1;
+        return price.toFixed(Math.min(8, Math.max(2, decimalPlaces)));
+    }
 }
 
 // UI Components
@@ -108,6 +123,7 @@ export default function ConditionTokenChart({
     token,
     baseToken,
     targetPrice,
+    direction = 'gt',
     onTargetPriceChange,
     colour = "#3b82f6"
 }: Props) {
@@ -125,8 +141,20 @@ export default function ConditionTokenChart({
     const { address } = useWallet();
     const { prices } = useBlaze({ userId: address });
     const priceSeriesService = usePriceSeriesService();
-    const currentTokenPrice = prices[token?.contractId ?? ''];
-    const currentBasePrice = baseToken ? prices[baseToken.contractId ?? ''] : null;
+    
+    // For subnet tokens, use their base token's price for real-time updates
+    const getTokenPriceFromFeed = useCallback((tokenData: TokenCacheData) => {
+        // If it's a subnet token, use the base token's price
+        if (tokenData.type === 'SUBNET' && tokenData.base) {
+            return prices[tokenData.base];
+        }
+        // Otherwise use the token's own price
+        return prices[tokenData.contractId];
+    }, [prices]);
+    
+    const currentTokenPrice = getTokenPriceFromFeed(token);
+    const currentBasePrice = baseToken ? getTokenPriceFromFeed(baseToken) : null;
+
 
     // Ref to track last prices to avoid duplicate updates
     const lastPricesRef = useRef<{ token: number | null, base: number | null }>({ token: null, base: null });
@@ -169,9 +197,9 @@ export default function ConditionTokenChart({
                     processedData = convertToLineData(ratioChartData);
                 }
             } else {
-                // For single token data, apply resilience if needed
+                // For single token data, apply resilience if needed (match token chart exactly)
                 const tokenChartData = convertToChartDataPoint(tokenData);
-                const enhancedData = enhanceSparseTokenData(tokenChartData, getDefaultTimeRange(), 15); // Match token chart
+                const enhancedData = enhanceSparseTokenData(tokenChartData, undefined, 15); // Match token chart
                 processedData = convertToLineData(enhancedData);
             }
 
@@ -179,19 +207,30 @@ export default function ConditionTokenChart({
                 time: Number(point.time),
                 value: point.value
             }));
-            setData(validData);
+            
+            // Sort by time and remove duplicates (required by lightweight-charts)
+            const sortedData = validData.sort((a, b) => Number(a.time) - Number(b.time));
+            const deduplicatedData = sortedData.filter((point, index) => {
+                if (index === 0) return true;
+                return Number(point.time) !== Number(sortedData[index - 1].time);
+            });
+            
+            setData(deduplicatedData);
 
             timer.end({ 
                 success: true, 
-                dataPoints: validData.length,
+                dataPoints: deduplicatedData.length,
                 hasBaseToken: !!baseToken?.contractId,
                 tokenId: token.contractId.substring(0, 10)
             });
 
             console.log('[CONDITION-CHART] Data loaded successfully:', {
-                points: validData.length,
-                hasBaseToken: !!baseToken?.contractId,
-                tokenId: token.contractId.substring(0, 10)
+                token: token.symbol,
+                baseToken: baseToken?.symbol || null,
+                mode: baseToken ? 'ratio' : 'single',
+                originalPoints: validData.length,
+                finalPoints: deduplicatedData.length,
+                duplicatesRemoved: validData.length - deduplicatedData.length
             });
 
         } catch (err) {
@@ -207,24 +246,88 @@ export default function ConditionTokenChart({
 
     // Effect to handle real-time price updates from useBlaze - improved to match token chart
     useEffect(() => {
-        if (!seriesRef.current) return;
+        console.log('[REAL-TIME] Price update triggered:', {
+            token: token.symbol,
+            baseToken: baseToken?.symbol || null,
+            hasSeriesRef: !!seriesRef.current,
+            currentTokenPrice,
+            currentBasePrice,
+            lastTokenPrice: lastPricesRef.current.token,
+            lastBasePrice: lastPricesRef.current.base
+        });
 
-        // Check if prices have actually changed (similar to token chart pattern)
-        const hasTokenPriceChanged = lastPricesRef.current.token !== currentTokenPrice;
-        const hasBasePriceChanged = lastPricesRef.current.base !== currentBasePrice;
+        if (!seriesRef.current) {
+            console.log('[REAL-TIME] No series ref, skipping update');
+            return;
+        }
+
+        // Extract price values from price objects
+        const tokenPriceValue = typeof currentTokenPrice === 'object' && currentTokenPrice?.price ? currentTokenPrice.price : currentTokenPrice;
+        const basePriceValue = typeof currentBasePrice === 'object' && currentBasePrice?.price ? currentBasePrice.price : currentBasePrice;
         
-        if (!hasTokenPriceChanged && !hasBasePriceChanged) return;
-        if (!currentTokenPrice || currentTokenPrice <= 0) return;
+        // Check if prices have actually changed (similar to token chart pattern)
+        const hasTokenPriceChanged = lastPricesRef.current.token !== tokenPriceValue;
+        const hasBasePriceChanged = lastPricesRef.current.base !== basePriceValue;
+        
+        console.log('[REAL-TIME] Price change analysis:', {
+            hasTokenPriceChanged,
+            hasBasePriceChanged,
+            tokenChange: hasTokenPriceChanged ? `${lastPricesRef.current.token} → ${tokenPriceValue}` : 'no change',
+            baseChange: hasBasePriceChanged ? `${lastPricesRef.current.base} → ${basePriceValue}` : 'no change',
+            tokenPriceObject: currentTokenPrice,
+            basePriceObject: currentBasePrice
+        });
+        
+        if (!hasTokenPriceChanged && !hasBasePriceChanged) {
+            console.log('[REAL-TIME] No price changes detected, skipping update');
+            return;
+        }
+        
+        if (!tokenPriceValue || typeof tokenPriceValue !== 'number' || tokenPriceValue <= 0) {
+            console.log('[REAL-TIME] Invalid token price, skipping update:', {
+                tokenPriceValue,
+                currentTokenPrice,
+                isNumber: typeof tokenPriceValue === 'number',
+                isPositive: tokenPriceValue > 0
+            });
+            return;
+        }
 
         const now = Math.floor(Date.now() / 1000); // Convert to seconds for lightweight-charts
-        let newPrice = currentTokenPrice;
+        let newPrice = tokenPriceValue;
 
         // If we have a base token, calculate the ratio
-        if (baseToken && currentBasePrice && currentBasePrice > 0) {
-            newPrice = currentTokenPrice / currentBasePrice;
+        if (baseToken && basePriceValue && typeof basePriceValue === 'number' && basePriceValue > 0) {
+            const oldPrice = newPrice;
+            newPrice = tokenPriceValue / basePriceValue;
+            console.log('[REAL-TIME] Ratio calculation:', {
+                tokenPrice: tokenPriceValue,
+                basePrice: basePriceValue,
+                calculatedRatio: newPrice,
+                ratioChange: `${oldPrice.toFixed(6)} → ${newPrice.toFixed(6)}`
+            });
+        } else if (baseToken) {
+            console.log('[REAL-TIME] Base token mode but invalid base price:', {
+                baseToken: baseToken.symbol,
+                basePriceValue,
+                currentBasePrice,
+                isNumber: typeof basePriceValue === 'number',
+                isPositive: basePriceValue > 0
+            });
+        } else {
+            console.log('[REAL-TIME] Single token mode, using raw price:', {
+                rawPrice: tokenPriceValue
+            });
         }
 
         try {
+            console.log('[REAL-TIME] Updating chart with:', {
+                time: now,
+                value: newPrice,
+                formattedValue: newPrice.toFixed(8),
+                timestamp: new Date(now * 1000).toISOString()
+            });
+
             // Use the update API to add the new data point (same as token chart)
             seriesRef.current.update({
                 time: now as any,
@@ -232,18 +335,29 @@ export default function ConditionTokenChart({
             });
 
             // Update our refs
-            lastPricesRef.current = { token: currentTokenPrice, base: currentBasePrice };
+            lastPricesRef.current = { token: tokenPriceValue, base: basePriceValue };
             setLastUpdateTime(now);
             
-            console.log(`[CONDITION-CHART] Real-time update: ${newPrice.toFixed(6)} at ${now}`);
+            console.log('[REAL-TIME] Chart update successful:', {
+                newPrice: newPrice.toFixed(6),
+                timestamp: now,
+                mode: baseToken ? 'ratio' : 'single'
+            });
         } catch (error) {
-            console.warn('[CONDITION-CHART] Failed to update real-time price:', error);
+            console.error('[REAL-TIME] Chart update failed:', {
+                error: error instanceof Error ? error.message : error,
+                time: now,
+                value: newPrice,
+                seriesExists: !!seriesRef.current
+            });
         }
-    }, [currentTokenPrice, currentBasePrice, baseToken]);
+    }, [currentTokenPrice, currentBasePrice, baseToken, token.symbol]);
 
     // Initialize chart when container and data are ready
     useEffect(() => {
-        if (!containerRef.current || !data || data.length === 0) return;
+        if (!containerRef.current || !data || data.length === 0) {
+            return;
+        }
 
         let handleKeyDown: ((event: KeyboardEvent) => void) | null = null;
         let handleResize: (() => void) | null = null;
@@ -280,7 +394,8 @@ export default function ConditionTokenChart({
                     fixRightEdge: false, // Allow flexible zoom like token chart
                     lockVisibleTimeRangeOnResize: false,
                     rightBarStaysOnScroll: false,
-                    shiftVisibleRangeOnNewBar: true, // Follow new data like token chart
+                    shiftVisibleRangeOnNewBar: false, // Don't auto-follow to allow free zoom
+                    allowShiftVisibleRangeOnWhitespaceClick: true, // Allow clicking to move
                 },
                 leftPriceScale: {
                     visible: true,
@@ -319,27 +434,23 @@ export default function ConditionTokenChart({
             // Set data
             seriesRef.current.setData(data);
 
-            // Set initial visible range to show recent data, similar to token chart
-            const recentStartIndex = Math.max(0, data.length - Math.floor(data.length * 0.6));
-            const recentStartTime = data[recentStartIndex].time;
-            const lastTime = data[data.length - 1].time;
-
-            // Set initial visible range to recent data without restrictive boundaries
+            // Set initial view to show all data without restrictions
             setTimeout(() => {
-                if (chartRef.current) {
-                    chartRef.current.timeScale().setVisibleRange({
-                        from: recentStartTime,
-                        to: lastTime,
-                    });
+                if (chartRef.current && data.length > 0) {
+                    // First reset any potential range locks
+                    chartRef.current.timeScale().resetTimeScale();
+                    // Then fit all content
+                    chartRef.current.timeScale().fitContent();
                 }
-            }, 100); // Small delay like token chart
+            }, 100);
 
             // Handle clicks
             const handleClick = (param: any) => {
                 if (!param.point || !seriesRef.current) return;
                 const price = seriesRef.current.coordinateToPrice(param.point.y);
                 if (price && !isNaN(price)) {
-                    onTargetPriceChange(price.toPrecision(9));
+                    // Use toString() to avoid scientific notation from toPrecision()
+                    onTargetPriceChange(price.toString());
                 }
             };
 
@@ -380,6 +491,23 @@ export default function ConditionTokenChart({
                         }
                         event.preventDefault();
                         break;
+                    case 'z':
+                    case 'Z':
+                        // Force unlock zoom by resetting visible range to full data
+                        if (data.length > 0) {
+                            chartRef.current.timeScale().setVisibleRange({
+                                from: data[0].time,
+                                to: data[data.length - 1].time,
+                            });
+                            // Then immediately fit content to allow free zooming
+                            setTimeout(() => {
+                                if (chartRef.current) {
+                                    chartRef.current.timeScale().fitContent();
+                                }
+                            }, 10);
+                        }
+                        event.preventDefault();
+                        break;
                 }
             };
 
@@ -389,7 +517,6 @@ export default function ConditionTokenChart({
             handleResize();
 
             chartTimer.end({ success: true, dataPoints: data.length });
-            console.log('[CONDITION-CHART] Chart initialized successfully');
 
         } catch (error) {
             chartTimer.end({ success: false, error: String(error) });
@@ -426,19 +553,20 @@ export default function ConditionTokenChart({
             // Add new price line if valid price
             const price = parseFloat(targetPrice);
             if (!isNaN(price) && price > 0) {
+                const directionSymbol = direction === 'gt' ? '≥' : '≤';
                 priceLineRef.current = seriesRef.current.createPriceLine({
                     price,
                     color: "#f97316",
                     lineWidth: 2,
                     lineStyle: LineStyle.Solid,
                     axisLabelVisible: true,
-                    title: "Target",
+                    title: `Target ${directionSymbol}`,
                 });
             }
         } catch (error) {
             console.warn("Failed to update price line:", error);
         }
-    }, [targetPrice]);
+    }, [targetPrice, direction]);
 
     // Load data on mount and when dependencies change
     useEffect(() => {

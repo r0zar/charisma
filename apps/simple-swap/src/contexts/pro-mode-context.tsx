@@ -1259,23 +1259,35 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
 
                     // Update with transaction ID if successful
                     updateOrderStatus(orderId, 'broadcasted', j.txid);
-                    toast.success(`Order Executed`, {
-                        description: (
-                            <div>
-                                <div className="text-green-800 font-medium">Transaction submitted successfully</div>
+                    toast.success(
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="flex flex-col gap-2 flex-1 min-w-0">
+                                <div>
+                                    <div className="font-semibold text-foreground text-sm">Order Executed Successfully</div>
+                                    <div className="text-muted-foreground text-xs mt-0.5">
+                                        Your order has been executed and the transaction was submitted to the blockchain.
+                                    </div>
+                                </div>
                                 <a
                                     href={`https://explorer.hiro.so/txid/${j.txid}?chain=mainnet`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline text-sm font-mono"
+                                    className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
                                 >
-                                    View on Explorer
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    View on Hiro Explorer
                                 </a>
                             </div>
-                        ),
-                        duration: 10000,
-                        className: "border-green-200 bg-green-50 text-green-900",
-                    });
+                        </div>,
+                        { duration: 10000 }
+                    );
                 } catch (err) {
                     // Revert optimistic update on error
                     updateOrderStatus(orderId, originalStatusForExecute);

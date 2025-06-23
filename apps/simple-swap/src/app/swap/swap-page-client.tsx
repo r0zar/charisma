@@ -6,6 +6,7 @@ import SwapInterfaceContent from '@/components/swap-interface/swap-interface-con
 import SwapDetails from '@/components/swap-interface/swap-details';
 import { Header } from '@/components/layout/header';
 import { SwapTokensProvider } from '@/contexts/swap-tokens-context';
+import { OrderConditionsProvider } from '@/contexts/order-conditions-context';
 import { SwapInformationSidebar } from '@/components/swap-interface/swap-information-sidebar';
 import { RouteIntelligenceSidebar } from '@/components/swap-interface/route-intelligence-sidebar';
 import { Menu, X, BarChart3, Info } from 'lucide-react';
@@ -102,18 +103,8 @@ export default function SwapPageClient({ tokens, searchParams }: SwapPageClientP
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col min-h-0">
                         {/* Full-Width Swap Header */}
-                        <div className="relative backdrop-blur-xl overflow-hidden border-b border-white/[0.08]">
-                            {/* Premium Background with Gradient */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/30 to-black/40" />
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-purple-500/[0.02]" />
-                            
-                            {/* Glass Morphism Effect */}
-                            <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-xl" />
-                            
-                            {/* Content - No Container Constraints */}
-                            <div className="relative z-10 w-full">
-                                <SwapInterface headerOnly={true} />
-                            </div>
+                        <div className="w-full">
+                            <SwapInterface headerOnly={true} />
                         </div>
                         
                         {/* Main Swap Interface */}

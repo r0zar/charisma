@@ -233,12 +233,25 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                     }
                 }
                 
+                // Sort by time and remove duplicates (required by lightweight-charts)
+                const sortedData = primaryData.sort((a, b) => Number(a.time) - Number(b.time));
+                const deduplicatedData = sortedData.filter((point, index) => {
+                    if (index === 0) return true;
+                    return Number(point.time) !== Number(sortedData[index - 1].time);
+                });
+                
                 if (primarySeriesRef.current) {
-                    primarySeriesRef.current.setData(primaryData);
-                    setPrimaryDataCount(primaryData.length);
+                    primarySeriesRef.current.setData(deduplicatedData);
+                    setPrimaryDataCount(deduplicatedData.length);
+                    
+                    console.log('[TOKEN-CHART] Data deduplication:', {
+                        originalPoints: primaryData.length,
+                        finalPoints: deduplicatedData.length,
+                        duplicatesRemoved: primaryData.length - deduplicatedData.length
+                    });
                     
                     // Set initial time range to show recent data
-                    if (chartRef.current && primaryData.length > 0) {
+                    if (chartRef.current && deduplicatedData.length > 0) {
                         setTimeout(() => {
                             if (chartRef.current) {
                                 // Apply the default 7D time range

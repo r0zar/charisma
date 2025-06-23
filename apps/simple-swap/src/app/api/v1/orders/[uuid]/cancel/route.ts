@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { cancelOrder, getOrder } from '@/lib/orders/store';
-import { verifySignedRequest } from 'blaze-sdk';
-
-const ORDERS_API_KEY = process.env.ORDERS_API_KEY || process.env.METADATA_API_KEY; // fallback to same var
+import { 
+  authenticateOrderOperation,
+  createErrorResponse
+} from '@/lib/api-keys/middleware';
 
 export async function PATCH(req: NextRequest, { params }: { params: { uuid: string } }) {
     const { uuid } = params;
@@ -12,22 +13,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { uuid: stri
     if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     /* ────────────────── Authorization ────────────────── */
-    if (ORDERS_API_KEY) {
-        const apiKey = req.headers.get('x-api-key');
-        if (apiKey === ORDERS_API_KEY) {
-            // privileged key, skip signature validation
-        } else {
-            // fall through to signature validation
-            const authRes = await verifySignedRequest(req, { message: uuid, expectedAddress: order.owner });
-            if (!authRes.ok) {
-                return NextResponse.json({ error: authRes.error }, { status: authRes.status });
-            }
+    const authResult = await authenticateOrderOperation(
+        req,
+        order.owner,
+        'cancel',
+        uuid
+    );
+
+    if (!authResult.success) {
+        const status = authResult.error?.includes('rate limit') ? 429 : 401;
+        const response = createErrorResponse(authResult.error!, status);
+        
+        // Add rate limit headers if available
+        if (authResult.rateLimitHeaders) {
+            Object.entries(authResult.rateLimitHeaders).forEach(([key, value]) => {
+                response.headers.set(key, value);
+            });
         }
-    } else {
-        const authRes = await verifySignedRequest(req, { message: uuid, expectedAddress: order.owner });
-        if (!authRes.ok) {
-            return NextResponse.json({ error: authRes.error }, { status: authRes.status });
-        }
+        
+        return response;
     }
 
     /* ─────────────── Cancel the order ─────────────── */

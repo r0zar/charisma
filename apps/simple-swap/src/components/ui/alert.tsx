@@ -20,7 +20,7 @@ const Alert = React.forwardRef<
             ref={ref}
             role="alert"
             className={cn(
-                "relative w-full rounded-lg border p-4 flex items-center",
+                "relative w-full rounded-xl border p-4 flex items-center transition-all duration-200",
                 variantClasses[variant],
                 className
             )}

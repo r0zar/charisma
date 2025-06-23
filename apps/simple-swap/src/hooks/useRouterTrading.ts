@@ -13,6 +13,7 @@ import { signTriggeredSwap } from 'blaze-sdk';
 import { uintCV, noneCV, Pc } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 import { useSwapTokens } from '../contexts/swap-tokens-context';
+import { useOrderConditions } from '../contexts/order-conditions-context';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
 import { buildPostConditions } from 'blaze-sdk';
@@ -63,10 +64,6 @@ export function useRouterTrading() {
   const {
     selectedFromToken,
     selectedToToken,
-    conditionToken,
-    baseToken,
-    targetPrice,
-    conditionDir,
     displayAmount,
     displayTokens,
     subnetDisplayTokens,
@@ -74,6 +71,28 @@ export function useRouterTrading() {
     useSubnetTo,
     mode,
   } = useSwapTokens();
+
+  // Get trigger state from order conditions context
+  const {
+    hasPriceTrigger,
+    priceTriggerToken,
+    priceTargetPrice,
+    priceDirection,
+    
+    hasRatioTrigger,
+    ratioTriggerToken,
+    ratioBaseToken,
+    ratioTargetPrice,
+    ratioDirection,
+
+    hasTimeTrigger,
+    timeStartTime,
+    timeEndTime,
+
+    manualDescription,
+    isManualOrder,
+    validateTriggers,
+  } = useOrderConditions();
 
   // Get prices from BlazeProvider
   const { prices, balances } = useBlaze({ userId: walletAddress });
@@ -97,46 +116,6 @@ export function useRouterTrading() {
     // Always use the mainnet version for consistency (token should already be mainnet)
     return token.contractId;
   }, [subnetDisplayTokens]);
-
-  // Debug logging for balances
-  useEffect(() => {
-    // Helper to get base contract ID
-    const getBaseContractId = (token: any) => {
-      if (!token) return null;
-      return token.type === 'SUBNET' && token.base ? token.base : token.contractId;
-    };
-
-    const fromBaseContractId = getBaseContractId(selectedFromToken);
-    const toBaseContractId = getBaseContractId(selectedToToken);
-
-    console.log('🔍 useRouterTrading - Debug balances:', {
-      walletAddress,
-      balancesCount: Object.keys(balances).length,
-      selectedFromToken: selectedFromToken?.contractId,
-      selectedFromTokenType: selectedFromToken?.type,
-      selectedFromTokenBase: selectedFromToken?.base,
-      fromBaseContractId,
-      selectedToToken: selectedToToken?.contractId,
-      fromTokenBalance: fromBaseContractId ? balances[`${walletAddress}:${fromBaseContractId}`] : null,
-      toTokenBalance: toBaseContractId ? balances[`${walletAddress}:${toBaseContractId}`] : null,
-      charismaKeys: Object.keys(balances).filter(key => key.includes('charisma'))
-    });
-
-    // Log tokens being used for routing
-    const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
-    const toContractId = getContractIdForToken(selectedToToken, useSubnetTo);
-
-    console.log('🎯 Routing tokens:', {
-      useSubnetFrom,
-      useSubnetTo,
-      selectedFrom: selectedFromToken?.contractId,
-      routingFrom: fromContractId,
-      selectedTo: selectedToToken?.contractId,
-      routingTo: toContractId,
-      fromTokenChanged: selectedFromToken?.contractId !== fromContractId,
-      toTokenChanged: selectedToToken?.contractId !== toContractId
-    });
-  }, [balances, walletAddress, selectedFromToken, selectedToToken, useSubnetFrom, useSubnetTo, getContractIdForToken]);
 
   // Derive microAmount from displayAmount (use selected token for decimals)
   const microAmount = displayAmount && selectedFromToken ?
@@ -251,7 +230,7 @@ export function useRouterTrading() {
       const inputAmount = BigInt(quote.amountIn);
       const outputAmount = BigInt(quote.amountOut);
       const minOutputWithSlippage = (outputAmount * BigInt(99)) / BigInt(100); // 1% slippage protection
-      
+
       if (mode === 'swap') {
         // For swap mode: simple dexterity multihop router
         // Users care about: input amount, guaranteed output, wallet protection
@@ -284,7 +263,7 @@ export function useRouterTrading() {
             category: 'security'
           }
         ];
-        
+
         return { operations, mode: 'swap', contractType: 'Dexterity Multihop Router' };
       } else {
         // For order mode: x-multihop flow (subnet-based)
@@ -383,13 +362,15 @@ export function useRouterTrading() {
    * Create a triggered swap order (off-chain limit order)
    */
   const createTriggeredSwap = useCallback(async (opts: {
-    conditionToken: TokenCacheData;
-    baseToken: TokenCacheData | null;
-    targetPrice: string;
-    direction: 'lt' | 'gt';
+    conditionToken?: TokenCacheData;
+    baseToken?: TokenCacheData | null;
+    targetPrice?: string;
+    direction?: 'lt' | 'gt';
     amountDisplay: string;
     validFrom?: string;
     validTo?: string;
+    // Manual-specific options
+    manualDescription?: string;
   }) => {
     console.log('📝 createTriggeredSwap called with:', opts);
 
@@ -428,22 +409,51 @@ export function useRouterTrading() {
       console.log('✅ Signature received:', signature);
 
       console.log('📦 Building payload...');
+      
+      // Build payload with simpler structure based on enabled triggers
+      let conditionToken, baseAsset, targetPrice, direction;
+      
+      if (hasPriceTrigger && hasRatioTrigger) {
+        throw new Error('Cannot have both price and ratio triggers enabled simultaneously');
+      }
+      
+      if (hasPriceTrigger) {
+        if (!priceTriggerToken || !priceTargetPrice) {
+          throw new Error('Price trigger requires trigger token and target price');
+        }
+        conditionToken = priceTriggerToken.contractId;
+        targetPrice = priceTargetPrice;
+        direction = priceDirection;
+        // No baseAsset for price triggers (undefined = USD)
+      } else if (hasRatioTrigger) {
+        if (!ratioTriggerToken || !ratioBaseToken || !ratioTargetPrice) {
+          throw new Error('Ratio trigger requires trigger token, base token, and target price');
+        }
+        conditionToken = ratioTriggerToken.contractId;
+        baseAsset = ratioBaseToken.contractId;
+        targetPrice = ratioTargetPrice;
+        direction = ratioDirection;
+      }
+      // For manual orders, all trigger fields remain undefined
+
       const payload: Record<string, unknown> = {
         owner: walletAddress,
         inputToken: fromContractId,
         outputToken: toContractId,
         amountIn: micro,
-        targetPrice: opts.targetPrice,
-        direction: opts.direction,
-        conditionToken: opts.conditionToken.contractId,
-        baseAsset: opts.baseToken ? opts.baseToken.contractId : 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt',
+        conditionToken,
+        baseAsset,
+        targetPrice,
+        direction,
         recipient: walletAddress,
         signature,
         uuid,
       };
-
-      if (opts.validFrom) payload.validFrom = opts.validFrom;
-      if (opts.validTo) payload.validTo = opts.validTo;
+      
+      // Add manual description if it's a manual order
+      if (isManualOrder && manualDescription) {
+        payload.description = manualDescription;
+      }
 
       console.log('📤 Sending order to API:', payload);
 
@@ -471,7 +481,7 @@ export function useRouterTrading() {
       console.error('❌ Error in createTriggeredSwap:', err);
       throw err;
     }
-  }, [walletAddress, selectedFromToken, selectedToToken, useSubnetFrom, useSubnetTo, getContractIdForToken]);
+  }, [walletAddress, selectedFromToken, selectedToToken, useSubnetFrom, useSubnetTo, getContractIdForToken, hasPriceTrigger, hasRatioTrigger, priceTriggerToken, priceTargetPrice, priceDirection, ratioTriggerToken, ratioBaseToken, ratioTargetPrice, ratioDirection, isManualOrder, manualDescription]);
 
   // Callback for DcaDialog to create a single slice order
   const createSingleOrder = useCallback(async ({ amountDisplay, validFrom, validTo }: {
@@ -479,18 +489,19 @@ export function useRouterTrading() {
     validFrom: string;
     validTo: string
   }) => {
-    if (!conditionToken || !selectedToToken) throw new Error('Missing condition or target token');
+    const activeTriggerToken = priceTriggerToken || ratioTriggerToken || selectedToToken;
+    if (!activeTriggerToken || !selectedToToken) throw new Error('Missing trigger or target token');
 
     await createTriggeredSwap({
-      conditionToken: conditionToken || selectedToToken,
-      baseToken,
-      targetPrice,
-      direction: conditionDir,
+      conditionToken: activeTriggerToken,
+      baseToken: ratioBaseToken,
+      targetPrice: priceTargetPrice || ratioTargetPrice,
+      direction: priceDirection || ratioDirection,
       amountDisplay,
       validFrom,
       validTo,
     });
-  }, [conditionToken, selectedToToken, baseToken, targetPrice, conditionDir, createTriggeredSwap]);
+  }, [priceTriggerToken, ratioTriggerToken, selectedToToken, ratioBaseToken, priceTargetPrice, ratioTargetPrice, priceDirection, ratioDirection, createTriggeredSwap]);
 
   // ===================== BALANCE CHECKING FUNCTIONALITY =====================
 
@@ -667,18 +678,36 @@ export function useRouterTrading() {
       selectedToToken: selectedToToken?.contractId,
       displayAmount,
       walletAddress,
-      conditionToken: conditionToken?.contractId,
-      baseToken: baseToken?.contractId,
-      targetPrice,
-      conditionDir
+      hasPriceTrigger,
+      hasRatioTrigger,
+      hasTimeTrigger,
+      isManualOrder,
+      priceTriggerToken: priceTriggerToken?.contractId,
+      ratioBaseToken: ratioBaseToken?.contractId,
+      priceTargetPrice,
+      ratioTargetPrice,
+      timeStartTime,
+      timeEndTime
     });
 
+    // Basic validation
     if (!selectedFromToken || !selectedToToken) {
-      console.error('❌ Order creation failed: Missing tokens');
+      setError('Please select both tokens for your swap');
       return;
     }
     if (!walletAddress) {
-      console.error('❌ Order creation failed: No wallet address');
+      setError('Please connect your wallet');
+      return;
+    }
+    if (!displayAmount || parseFloat(displayAmount) <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+
+    // Trigger validation using the context's validation function
+    const triggerValidation = validateTriggers();
+    if (!triggerValidation.isValid) {
+      setError(triggerValidation.errors[0]); // Show the first error
       return;
     }
 
@@ -692,11 +721,12 @@ export function useRouterTrading() {
       console.log('✅ User has enough subnet balance, creating order...');
       try {
         await createTriggeredSwap({
-          conditionToken: conditionToken || selectedToToken,
-          baseToken,
-          targetPrice,
-          direction: conditionDir,
+          conditionToken: priceTriggerToken || ratioTriggerToken || selectedToToken,
+          baseToken: ratioBaseToken,
+          targetPrice: priceTargetPrice || ratioTargetPrice,
+          direction: priceDirection || ratioDirection,
           amountDisplay: displayAmount,
+          manualDescription,
         });
         console.log('✅ Order created successfully');
       } catch (err) {
@@ -707,7 +737,7 @@ export function useRouterTrading() {
       console.log('⚠️ User does not have enough subnet balance, showing balance check dialog');
     }
     // If not enough balance, the balance check dialog will show via balanceCheckResult
-  }, [selectedFromToken, selectedToToken, displayAmount, targetPrice, conditionToken, baseToken, conditionDir, checkBalanceForOrder, createTriggeredSwap, walletAddress]);
+  }, [selectedFromToken, selectedToToken, displayAmount, hasPriceTrigger, hasRatioTrigger, hasTimeTrigger, priceTriggerToken, priceTargetPrice, priceDirection, ratioTriggerToken, ratioBaseToken, ratioTargetPrice, ratioDirection, timeStartTime, timeEndTime, manualDescription, validateTriggers, checkBalanceForOrder, createTriggeredSwap, walletAddress]);
 
   // ===================== DEPOSIT FUNCTIONALITY =====================
 
@@ -858,6 +888,17 @@ export function useRouterTrading() {
     return 'You receive';
   }, [isSubnetShift, shiftDirection]);
 
+  // Order creation validation
+  const canCreateOrder = useMemo(() => {
+    // Basic requirements
+    if (!selectedFromToken || !selectedToToken || !walletAddress) return false;
+    if (!displayAmount || parseFloat(displayAmount) <= 0) return false;
+    
+    // Trigger validation
+    const triggerValidation = validateTriggers();
+    return triggerValidation.isValid;
+  }, [selectedFromToken, selectedToToken, walletAddress, displayAmount, validateTriggers]);
+
   return {
     // Router instance (for advanced usage)
     router: router.current,
@@ -919,6 +960,9 @@ export function useRouterTrading() {
     isSubnetShift,
     shiftDirection,
     toLabel,
+
+    // Order validation
+    canCreateOrder,
 
     // Pro mode
     isProMode,

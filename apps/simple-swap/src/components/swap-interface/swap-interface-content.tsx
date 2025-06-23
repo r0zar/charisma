@@ -14,7 +14,9 @@ import BalanceCheckDialog from './balance-check-dialog';
 import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@repo/tokens";
 import { useSwapTokens } from "../../contexts/swap-tokens-context";
+import { OrderConditionsProvider } from "../../contexts/order-conditions-context";
 import { useRouterTrading } from "../../hooks/useRouterTrading";
+import { useOrderConditions } from "../../contexts/order-conditions-context";
 import { toast } from '@/components/ui/sonner';
 
 interface SwapInterfaceContentProps {
@@ -39,54 +41,64 @@ function SwapInterfaceContentInner() {
     setBalanceCheckResult,
     swapSuccessInfo,
     clearSwapSuccessInfo,
-    orderSuccessInfo,
-    clearOrderSuccessInfo,
   } = useRouterTrading();
+
+  // Get order functionality (separate from router trading)
+  const {
+    orderSuccessInfo,
+    clearOrderState,
+  } = useOrderConditions();
 
   useEffect(() => {
     if (orderSuccessInfo) {
       toast.success(
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <div className="font-semibold text-foreground">Order Created</div>
-            <div className="text-muted-foreground text-sm">
-              You can view and manage your orders on the Orders page.
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="font-semibold text-white text-sm">Order Created Successfully</div>
+            <div className="text-white/80 text-xs mt-0.5">
+              Your triggered order has been submitted and is now active.
             </div>
-            <a
-              href="/orders"
-              className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
-            >
-              View Orders
-            </a>
           </div>
+          <a
+            href="/orders"
+            className="inline-flex items-center gap-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 hover:text-green-300 border border-green-500/20 hover:border-green-500/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            View Orders
+          </a>
         </div>,
-        { duration: 7000 }
+        { duration: 8000 }
       );
-      clearOrderSuccessInfo();
+      clearOrderState();
     }
     if (swapSuccessInfo && swapSuccessInfo.txid) {
       toast.success(
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <div className="font-semibold text-foreground">Swap Successful</div>
-            <div className="text-muted-foreground text-sm">
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="font-semibold text-white text-sm">Swap Transaction Submitted</div>
+            <div className="text-white/80 text-xs mt-0.5">
               Your transaction has been broadcast to the Stacks blockchain.
             </div>
-            <a
-              href={`https://explorer.stacks.co/txid/${swapSuccessInfo.txid}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
-            >
-              View on explorer
-            </a>
           </div>
+          <a
+            href={`https://explorer.hiro.so/txid/${swapSuccessInfo.txid}?chain=mainnet`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            View on Hiro Explorer
+          </a>
         </div>,
-        { duration: 7000 }
+        { duration: 10000 }
       );
       clearSwapSuccessInfo();
     }
-  }, [orderSuccessInfo, swapSuccessInfo, toast, clearOrderSuccessInfo, clearSwapSuccessInfo]);
+  }, [orderSuccessInfo, swapSuccessInfo, clearOrderState, clearSwapSuccessInfo]);
 
   // Enhanced loading animation - Use LoadingState component
   if (isInitializing || isLoadingTokens) {
@@ -200,5 +212,15 @@ function SwapInterfaceContentInner() {
 
 // Main component that uses the existing swap context
 export default function SwapInterfaceContent({ initialTokens = [], searchParams }: SwapInterfaceContentProps) {
-  return <SwapInterfaceContentInner />;
+  // Get tokens from swap context to pass to order conditions provider
+  const { displayTokens } = useSwapTokens();
+  
+  return (
+    <OrderConditionsProvider 
+      availableTokens={displayTokens}
+      defaultBaseTokenId="SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt"
+    >
+      <SwapInterfaceContentInner />
+    </OrderConditionsProvider>
+  );
 }

@@ -12,9 +12,15 @@ Create a **limit / triggered order** that will execute on-chain once its price c
 
 ## Authorization
 
-This route is **public** but requires a **signature** in the request body.  No `x-api-key` header is accepted.
+This route supports two authentication methods:
 
-Include the 65-byte compressed signature (hex, no `0x`) in the `signature` field of the JSON payload.
+1. **Signature only** (original method): Include the 65-byte compressed signature (hex, no `0x`) in the `signature` field of the JSON payload.
+
+2. **API key + signature** (for automated systems): Include both:
+   - `X-API-Key` header with an API key that has `create` permission
+   - Valid signature in the `signature` field (always required for security)
+
+The signature is always required regardless of authentication method to ensure transaction integrity.
 
 ## Request body
 
@@ -36,7 +42,7 @@ All fields are strings unless noted.
 | `validFrom` | ISO-8601 | No | Earliest timestamp at which the order may fill. |
 | `validTo` | ISO-8601 | No | Expiration time; after this the order is auto-cancelled.
 
-### Example
+### Example (Signature only)
 
 ```bash
 curl -X POST https://swap.charisma.rocks/api/v1/orders/new \
@@ -51,7 +57,27 @@ curl -X POST https://swap.charisma.rocks/api/v1/orders/new \
     "conditionToken": ".stx",
     "recipient": "SP3FBR2…ZY6",
     "uuid": "669e8e74-6b2b-477e-9e4d-cd1399a0ef20",
-    "signature": "2b7c…9e"
+    "signature": "3045022100e8f2a8c4b1d7e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1b4d7e0f3a6b9c2d5e8f1b4d7e0f3a6b9c2d5e8f1b4d7e0f3a6b9c2d5e"
+  }'
+```
+
+### Example (API key + signature)
+
+```bash
+curl -X POST https://swap.charisma.rocks/api/v1/orders/new \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ck_live_abc123def456..." \
+  -d '{
+    "owner": "SP3FBR2…ZY6",
+    "inputToken": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1",
+    "outputToken": ".stx",
+    "amountIn": "1000000",
+    "targetPrice": "0.30",
+    "direction": "gt",
+    "conditionToken": ".stx",
+    "recipient": "SP3FBR2…ZY6",
+    "uuid": "669e8e74-6b2b-477e-9e4d-cd1399a0ef20",
+    "signature": "3045022100e8f2a8c4b1d7e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1b4d7e0f3a6b9c2d5e8f1b4d7e0f3a6b9c2d5e8f1b4d7e0f3a6b9c2d5e"
   }'
 ```
 

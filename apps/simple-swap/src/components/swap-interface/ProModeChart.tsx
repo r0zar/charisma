@@ -369,9 +369,21 @@ const ProModeChart = React.memo(function ProModeChart({
             // Bulk data update (used for initial load and major refreshes)
             if (chartType === 'candles') {
                 const candlestickData = convertToCandlestickData(newData as LineData[]);
-                seriesRef.current.setData(candlestickData);
+                // Sort by time and remove duplicates (required by lightweight-charts)
+                const sortedCandleData = candlestickData.sort((a, b) => Number(a.time) - Number(b.time));
+                const deduplicatedCandleData = sortedCandleData.filter((point, index) => {
+                    if (index === 0) return true;
+                    return Number(point.time) !== Number(sortedCandleData[index - 1].time);
+                });
+                seriesRef.current.setData(deduplicatedCandleData);
             } else {
-                seriesRef.current.setData(newData as LineData[]);
+                // Sort by time and remove duplicates (required by lightweight-charts)
+                const sortedData = (newData as LineData[]).sort((a, b) => Number(a.time) - Number(b.time));
+                const deduplicatedData = sortedData.filter((point, index) => {
+                    if (index === 0) return true;
+                    return Number(point.time) !== Number(sortedData[index - 1].time);
+                });
+                seriesRef.current.setData(deduplicatedData);
             }
 
             // Restore view for non-real-time bulk updates
@@ -737,6 +749,12 @@ const ProModeChart = React.memo(function ProModeChart({
             // Create series based on chart type
             if (chartType === 'candles') {
                 const candlestickData = convertToCandlestickData(data);
+                // Sort by time and remove duplicates (required by lightweight-charts)
+                const sortedCandleData = candlestickData.sort((a, b) => Number(a.time) - Number(b.time));
+                const deduplicatedCandleData = sortedCandleData.filter((point, index) => {
+                    if (index === 0) return true;
+                    return Number(point.time) !== Number(sortedCandleData[index - 1].time);
+                });
                 seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
                     upColor: '#22c55e',
                     downColor: '#ef4444',
@@ -746,15 +764,21 @@ const ProModeChart = React.memo(function ProModeChart({
                     priceLineVisible: false,
                     lastValueVisible: true,
                 });
-                seriesRef.current.setData(candlestickData);
+                seriesRef.current.setData(deduplicatedCandleData);
             } else {
+                // Sort by time and remove duplicates (required by lightweight-charts)
+                const sortedData = data.sort((a, b) => Number(a.time) - Number(b.time));
+                const deduplicatedData = sortedData.filter((point, index) => {
+                    if (index === 0) return true;
+                    return Number(point.time) !== Number(sortedData[index - 1].time);
+                });
                 seriesRef.current = chartRef.current.addSeries(LineSeries, {
                     color: '#3b82f6',
                     lineWidth: 2,
                     priceLineVisible: false,
                     lastValueVisible: true,
                 });
-                seriesRef.current.setData(data);
+                seriesRef.current.setData(deduplicatedData);
             }
 
             // Mark as no longer initial load after first chart creation

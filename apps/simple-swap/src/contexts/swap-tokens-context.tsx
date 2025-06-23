@@ -35,6 +35,7 @@ interface SwapTokensContextType {
   useSubnetTo: boolean;
   targetPrice: string;
   conditionDir: 'lt' | 'gt';
+  conditionType: 'price' | 'ratio';
   displayAmount: string;
 
   // Loading states
@@ -55,6 +56,7 @@ interface SwapTokensContextType {
   setUseSubnetTo: (use: boolean) => void;
   setTargetPrice: (price: string) => void;
   setConditionDir: (dir: 'lt' | 'gt') => void;
+  setConditionType: (type: 'price' | 'ratio') => void;
   setDisplayAmount: (amount: string) => void;
 
   // URL params and initialization
@@ -127,6 +129,7 @@ export function SwapTokensProvider({
   const [useSubnetTo, setUseSubnetTo] = useState(false);
   const [targetPrice, setTargetPrice] = useState('');
   const [conditionDir, setConditionDir] = useState<'lt' | 'gt'>('gt');
+  const [conditionType, setConditionType] = useState<'price' | 'ratio'>('price');
   const [displayAmount, setDisplayAmount] = useState('');
 
   // Initialization tracking
@@ -605,6 +608,7 @@ export function SwapTokensProvider({
     useSubnetTo,
     targetPrice,
     conditionDir,
+    conditionType,
     displayAmount,
 
     // Setters
@@ -620,6 +624,7 @@ export function SwapTokensProvider({
     setUseSubnetTo,
     setTargetPrice,
     setConditionDir,
+    setConditionType,
     setDisplayAmount,
 
     // URL params and initialization

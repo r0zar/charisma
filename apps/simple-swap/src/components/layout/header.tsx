@@ -54,7 +54,7 @@ export function Header() {
 
                 <div className="flex items-center gap-3">
                     {connected && (
-                        <Link href="/notifications" aria-label="Notification Settings" className="hidden md:inline-flex">
+                        <Link href="/settings" aria-label="Settings" className="hidden md:inline-flex">
                             <div className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-sm">
                                 <Settings className="h-4 w-4" />
                             </div>
@@ -84,7 +84,7 @@ export function Header() {
                             Tokens
                         </Link>
                         {connected && (
-                            <Link href="/notifications" className="px-4 py-3 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200" onClick={toggleMobileMenu}>
+                            <Link href="/settings" className="px-4 py-3 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all duration-200" onClick={toggleMobileMenu}>
                                 Settings
                             </Link>
                         )}

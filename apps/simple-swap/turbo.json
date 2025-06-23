@@ -28,6 +28,13 @@
         "STRIPE_WEBHOOK_SECRET",
         "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
       ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@repo/tokens#build",
+        "@repo/polyglot#build",
+        "blaze-sdk#build"
+      ]
     }
   }
 }
