@@ -356,17 +356,22 @@ export class PriceCalculator {
                 return null;
             }
 
-            // Calculate atomic exchange rate (eliminates decimal scaling issues)
-            const atomicExchangeRate = outputReserve / inputReserve;
+            // Convert to decimal values for proper exchange rate calculation
+            const inputDecimalReserve = inputReserve / Math.pow(10, inputDecimals);
+            const outputDecimalReserve = outputReserve / Math.pow(10, outputDecimals);
+            
+            // Calculate decimal exchange rate (decimal output per decimal input)
+            const decimalExchangeRate = outputDecimalReserve / inputDecimalReserve;
 
-            console.log(`[PriceCalculator] Atomic exchange rate: ${atomicExchangeRate} (${outputReserve}/${inputReserve})`);
+            console.log(`[PriceCalculator] Decimal reserves: ${inputDecimalReserve} -> ${outputDecimalReserve}`);
+            console.log(`[PriceCalculator] Decimal exchange rate: ${decimalExchangeRate} (${outputDecimalReserve}/${inputDecimalReserve})`);
 
-            if (!isFinite(atomicExchangeRate) || atomicExchangeRate <= 0) {
-                console.log(`[PriceCalculator] Invalid atomic exchange rate: ${atomicExchangeRate}`);
+            if (!isFinite(decimalExchangeRate) || decimalExchangeRate <= 0) {
+                console.log(`[PriceCalculator] Invalid decimal exchange rate: ${decimalExchangeRate}`);
                 return null;
             }
 
-            currentRatio *= atomicExchangeRate;
+            currentRatio *= decimalExchangeRate;
             currentToken = nextToken;
 
             console.log(`[PriceCalculator] Current ratio after hop ${i + 1}: ${currentRatio}`);
