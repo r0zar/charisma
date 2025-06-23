@@ -18,14 +18,14 @@ export async function createTwitterTrigger(trigger: Omit<TwitterTrigger, 'id' | 
         createdAt: new Date().toISOString(),
         triggeredCount: 0,
     };
-    
+
     // Store the trigger
     await kv.set(`${TRIGGER_PREFIX}${id}`, newTrigger);
-    
+
     // Add to list of all triggers
     const existingTriggers = await kv.smembers(TRIGGER_LIST_KEY) || [];
     await kv.sadd(TRIGGER_LIST_KEY, id);
-    
+
     console.log(`[Twitter Store] Created trigger ${id} for tweet ${trigger.tweetId}`);
     return newTrigger;
 }
@@ -43,29 +43,31 @@ export async function getTwitterTrigger(id: string): Promise<TwitterTrigger | nu
  */
 export async function listTwitterTriggers(activeOnly: boolean = false): Promise<TwitterTrigger[]> {
     const triggerIds = await kv.smembers(TRIGGER_LIST_KEY) || [];
-    
+
     if (triggerIds.length === 0) {
         return [];
     }
-    
+
     // Batch get all triggers
     const pipeline = kv.pipeline();
     for (const id of triggerIds) {
         pipeline.get(`${TRIGGER_PREFIX}${id}`);
     }
     const triggers = await pipeline.exec() as TwitterTrigger[];
-    
+
     // Filter out null values and optionally inactive triggers
-    const validTriggers = triggers.filter(trigger => 
+    const validTriggers = triggers.filter(trigger =>
         trigger && (!activeOnly || trigger.isActive)
     );
-    
+
     // Update available orders for triggers that have pre-signed orders
     const triggersWithUpdatedCounts = await Promise.all(
         validTriggers.map(async (trigger) => {
             if (trigger.orderIds && trigger.orderIds.length > 0) {
                 const availableOrders = await checkAvailableOrders(trigger.orderIds);
-                
+
+                console.log(`[Twitter Store] Trigger ${trigger.id} has ${availableOrders} available orders`);
+
                 // Update cached count if needed
                 if (trigger.availableOrders !== availableOrders) {
                     await updateTwitterTrigger(trigger.id, { availableOrders });
@@ -75,7 +77,7 @@ export async function listTwitterTriggers(activeOnly: boolean = false): Promise<
             return trigger;
         })
     );
-    
+
     return triggersWithUpdatedCounts;
 }
 
@@ -87,10 +89,10 @@ export async function updateTwitterTrigger(id: string, updates: Partial<TwitterT
     if (!existing) {
         return null;
     }
-    
+
     const updated: TwitterTrigger = { ...existing, ...updates };
     await kv.set(`${TRIGGER_PREFIX}${id}`, updated);
-    
+
     console.log(`[Twitter Store] Updated trigger ${id}`);
     return updated;
 }
@@ -103,13 +105,13 @@ export async function deleteTwitterTrigger(id: string): Promise<boolean> {
     if (!existing) {
         return false;
     }
-    
+
     // Remove from storage
     await kv.del(`${TRIGGER_PREFIX}${id}`);
-    
+
     // Remove from list
     await kv.srem(TRIGGER_LIST_KEY, id);
-    
+
     console.log(`[Twitter Store] Deleted trigger ${id}`);
     return true;
 }
@@ -122,12 +124,12 @@ export async function incrementTriggerCount(id: string): Promise<boolean> {
     if (!trigger) {
         return false;
     }
-    
+
     const updated = await updateTwitterTrigger(id, {
         triggeredCount: trigger.triggeredCount + 1,
         lastChecked: new Date().toISOString(),
     });
-    
+
     return !!updated;
 }
 
@@ -140,13 +142,13 @@ export async function createTwitterExecution(execution: Omit<TwitterTriggerExecu
         ...execution,
         id,
     };
-    
+
     // Store the execution
     await kv.set(`${EXECUTION_PREFIX}${id}`, newExecution);
-    
+
     // Add to list of all executions
     await kv.sadd(EXECUTION_LIST_KEY, id);
-    
+
     console.log(`[Twitter Store] Created execution ${id} for trigger ${execution.triggerId}`);
     return newExecution;
 }
@@ -159,10 +161,10 @@ export async function updateTwitterExecution(id: string, updates: Partial<Twitte
     if (!existing) {
         return null;
     }
-    
+
     const updated: TwitterTriggerExecution = { ...existing as TwitterTriggerExecution, ...updates };
     await kv.set(`${EXECUTION_PREFIX}${id}`, updated);
-    
+
     console.log(`[Twitter Store] Updated execution ${id}`);
     return updated;
 }
@@ -172,24 +174,24 @@ export async function updateTwitterExecution(id: string, updates: Partial<Twitte
  */
 export async function getTwitterExecutions(triggerId: string, limit: number = 50): Promise<TwitterTriggerExecution[]> {
     const allExecutionIds = await kv.smembers(EXECUTION_LIST_KEY) || [];
-    
+
     if (allExecutionIds.length === 0) {
         return [];
     }
-    
+
     // Batch get all executions
     const pipeline = kv.pipeline();
     for (const id of allExecutionIds) {
         pipeline.get(`${EXECUTION_PREFIX}${id}`);
     }
     const executions = await pipeline.exec() as TwitterTriggerExecution[];
-    
+
     // Filter by triggerId and sort by executedAt (newest first)
     const filtered = executions
         .filter(exec => exec && exec.triggerId === triggerId)
         .sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime())
         .slice(0, limit);
-    
+
     return filtered;
 }
 
@@ -198,23 +200,23 @@ export async function getTwitterExecutions(triggerId: string, limit: number = 50
  */
 export async function listAllTwitterExecutions(limit: number = 100): Promise<TwitterTriggerExecution[]> {
     const allExecutionIds = await kv.smembers(EXECUTION_LIST_KEY) || [];
-    
+
     if (allExecutionIds.length === 0) {
         return [];
     }
-    
+
     // Batch get all executions
     const pipeline = kv.pipeline();
     for (const id of allExecutionIds.slice(0, limit)) {
         pipeline.get(`${EXECUTION_PREFIX}${id}`);
     }
     const executions = await pipeline.exec() as TwitterTriggerExecution[];
-    
+
     // Sort by executedAt (newest first)
     const sorted = executions
         .filter(exec => exec)
         .sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime());
-    
+
     return sorted;
 }
 
@@ -226,21 +228,21 @@ export async function getTwitterTriggerWithStats(id: string): Promise<TwitterTri
     if (!trigger) {
         return null;
     }
-    
+
     const recentExecutions = await getTwitterExecutions(id, 10);
     const totalExecutions = trigger.triggeredCount;
-    
+
     // Update available orders count by checking order status
     let availableOrders = 0;
     if (trigger.orderIds && trigger.orderIds.length > 0) {
         availableOrders = await checkAvailableOrders(trigger.orderIds);
-        
+
         // Update the cached count if it's different
         if (trigger.availableOrders !== availableOrders) {
             await updateTwitterTrigger(id, { availableOrders });
         }
     }
-    
+
     return {
         ...trigger,
         availableOrders,
@@ -256,13 +258,13 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
     if (!orderIds || orderIds.length === 0) {
         return 0;
     }
-    
+
     try {
         // Import order checking function
         const { getOrder } = await import('../orders/store');
-        
+
         let availableCount = 0;
-        
+
         // Check each order's status
         for (const orderId of orderIds) {
             const order = await getOrder(orderId);
@@ -270,7 +272,7 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
                 availableCount++;
             }
         }
-        
+
         return availableCount;
     } catch (error) {
         console.error('[Twitter Store] Error checking order availability:', error);
@@ -284,26 +286,26 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
 export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
     const allTriggers = await listTwitterTriggers(true); // active only
     const now = Date.now();
-    
+
     return allTriggers.filter(trigger => {
         // Check if within time bounds
         if (trigger.validFrom && new Date(trigger.validFrom).getTime() > now) {
             return false; // not yet active
         }
-        
+
         if (trigger.validTo && new Date(trigger.validTo).getTime() < now) {
             // Mark as inactive if expired
             updateTwitterTrigger(trigger.id, { isActive: false });
             return false;
         }
-        
+
         // Check if max triggers reached
         if (trigger.maxTriggers && trigger.triggeredCount >= trigger.maxTriggers) {
             // Mark as inactive if max reached
             updateTwitterTrigger(trigger.id, { isActive: false });
             return false;
         }
-        
+
         return true;
     });
 }
@@ -314,9 +316,9 @@ export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
 export async function cleanupOldExecutions(olderThanDays: number = 30): Promise<number> {
     const cutoffDate = new Date(Date.now() - (olderThanDays * 24 * 60 * 60 * 1000));
     const allExecutions = await listAllTwitterExecutions(1000); // Get more for cleanup
-    
+
     let deletedCount = 0;
-    
+
     for (const execution of allExecutions) {
         if (new Date(execution.executedAt) < cutoffDate) {
             await kv.del(`${EXECUTION_PREFIX}${execution.id}`);
@@ -324,7 +326,7 @@ export async function cleanupOldExecutions(olderThanDays: number = 30): Promise<
             deletedCount++;
         }
     }
-    
+
     console.log(`[Twitter Store] Cleaned up ${deletedCount} old execution records`);
     return deletedCount;
 }
