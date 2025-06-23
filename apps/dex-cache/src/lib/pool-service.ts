@@ -379,7 +379,6 @@ export const getVaultData = async (contractId: string): Promise<Vault | null> =>
         }
 
         // Only return cached data - no on-chain calls for pricing
-        console.log(`[PoolService] Returning cached vault data for ${contractId} (cache-only mode)`);
         cachedVault.reservesA = Number(cachedVault.reservesA || 0);
         cachedVault.reservesB = Number(cachedVault.reservesB || 0);
         return cachedVault;

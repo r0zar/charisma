@@ -156,11 +156,22 @@ export function calculateDecimalAwareLiquidity(
  * @returns Whether the parameters are valid
  */
 export function isValidDecimalConversion(atomicValue: number, decimals: number): boolean {
-    return (
-        isFinite(atomicValue) &&
-        atomicValue >= 0 &&
-        Number.isInteger(decimals) &&
-        decimals >= 0 &&
-        decimals <= 18
-    );
+    const isFiniteCheck = isFinite(atomicValue);
+    const isPositive = atomicValue >= 0;
+    // Fix: Handle floating-point decimals (8.0) by checking if it's a whole number
+    const isIntegerCheck = decimals % 1 === 0;
+    const decimalsRangeCheck = decimals >= 0 && decimals <= 18;
+    
+    const isValid = isFiniteCheck && isPositive && isIntegerCheck && decimalsRangeCheck;
+    
+    // Debug logging for failed validations (remove after fix is confirmed)
+    if (!isValid) {
+        console.warn(`[DecimalUtils] Validation failed for atomicValue=${atomicValue}, decimals=${decimals}:`);
+        console.warn(`[DecimalUtils]   isFinite(${atomicValue}): ${isFiniteCheck}`);
+        console.warn(`[DecimalUtils]   atomicValue >= 0: ${isPositive}`);
+        console.warn(`[DecimalUtils]   decimals % 1 === 0: ${isIntegerCheck} (was Number.isInteger: ${Number.isInteger(decimals)})`);
+        console.warn(`[DecimalUtils]   decimals in range [0,18]: ${decimalsRangeCheck}`);
+    }
+    
+    return isValid;
 }

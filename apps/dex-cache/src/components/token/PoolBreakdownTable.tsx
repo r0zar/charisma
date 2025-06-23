@@ -10,13 +10,8 @@ import {
   ArrowDown,
   ExternalLink,
   Activity,
-  DollarSign,
-  TrendingUp,
   AlertCircle,
-  Zap,
   Info,
-  ToggleLeft,
-  ToggleRight,
   Plus
 } from 'lucide-react';
 import Image from 'next/image';
@@ -160,19 +155,21 @@ export default function PoolBreakdownTable({
 
   // Helper function to format atomic liquidity for display
   const formatAtomicLiquidity = (atomicValue: number): string => {
-    // Convert large atomic numbers to readable format
+    // Convert large atomic numbers to readable format using standard abbreviations
     if (atomicValue >= 1e18) {
-      return `${(atomicValue / 1e18).toFixed(2)}E18`;
+      return `${(atomicValue / 1e18).toFixed(2)}E`;
     } else if (atomicValue >= 1e15) {
-      return `${(atomicValue / 1e15).toFixed(2)}E15`;
+      return `${(atomicValue / 1e15).toFixed(2)}P`;
     } else if (atomicValue >= 1e12) {
-      return `${(atomicValue / 1e12).toFixed(2)}E12`;
+      return `${(atomicValue / 1e12).toFixed(2)}T`;
     } else if (atomicValue >= 1e9) {
-      return `${(atomicValue / 1e9).toFixed(2)}E9`;
+      return `${(atomicValue / 1e9).toFixed(2)}B`;
     } else if (atomicValue >= 1e6) {
-      return `${(atomicValue / 1e6).toFixed(2)}E6`;
+      return `${(atomicValue / 1e6).toFixed(2)}M`;
+    } else if (atomicValue >= 1e3) {
+      return `${(atomicValue / 1e3).toFixed(2)}K`;
     } else {
-      return formatNumber(atomicValue);
+      return atomicValue.toFixed(2);
     }
   };
 
@@ -303,11 +300,6 @@ export default function PoolBreakdownTable({
     });
   }, [pools, allTokens, tokenId, tokenPrices]);
 
-  // Check if we have USD data available for any pools
-  const hasUsdData = enhancedPools.some(pool => pool.liquidityUsd !== undefined);
-
-  // Default to USD view when available, atomic view otherwise
-  const [showUsdLiquidity, setShowUsdLiquidity] = useState(hasUsdData);
 
   // Sort pools
   const sortedPools = React.useMemo(() => {
@@ -388,28 +380,9 @@ export default function PoolBreakdownTable({
             {pools.length} pools
           </Badge>
         </CardTitle>
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {tokenSymbol} liquidity and trading pairs across all active pools
-          </p>
-          {hasUsdData && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Toggle USD values</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setShowUsdLiquidity(!showUsdLiquidity)}
-              >
-                {showUsdLiquidity ? (
-                  <ToggleRight className="h-4 w-4 text-green-500" />
-                ) : (
-                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {tokenSymbol} liquidity and trading pairs across all active pools
+        </p>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
@@ -420,40 +393,38 @@ export default function PoolBreakdownTable({
                 <SortHeader field="tokenReserve">{tokenSymbol} Reserve</SortHeader>
                 <SortHeader field="liquidity">
                   <div className="flex items-center gap-1">
-                    {showUsdLiquidity && hasUsdData ? 'USD Liquidity' : 'Atomic Liquidity'}
+                    Atomic Liquidity
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-md p-3">
-                          <div className="space-y-3">
-                            <h4 className="font-semibold text-sm">
-                              {showUsdLiquidity && hasUsdData ? 'USD Liquidity' : 'Atomic Liquidity'}
-                            </h4>
-                            <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-                              <p>
-                                {showUsdLiquidity && hasUsdData
-                                  ? "Total USD value of both tokens in the pool, calculated using current token prices."
-                                  : "Pool liquidity calculated as geometric mean of raw atomic reserves (√(tokenA × tokenB)). Uses atomic units to eliminate decimal scaling bias."
-                                }
-                              </p>
-                              <div>
-                                <p className="font-medium text-foreground mb-1">Liquidity Score:</p>
-                                <p>Relative score (0-100%) comparing this pool's liquidity to the highest liquidity pool for this token. Higher scores indicate better trading conditions.</p>
-                              </div>
-                              <div>
-                                <p className="font-medium text-foreground mb-1">Why it matters:</p>
-                                <p>Higher liquidity means lower slippage and better prices for trades. Pools with scores above 80% offer the best trading experience.</p>
-                              </div>
-                            </div>
+                          <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                            <p>Pool liquidity calculated as geometric mean of raw atomic reserves (√(tokenA × tokenB)). Uses atomic units to eliminate decimal scaling bias.</p>
                           </div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
                 </SortHeader>
-                <th className="p-4 font-semibold text-muted-foreground">Pool Type</th>
+                <th className="p-4 font-semibold text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    Liquidity Score
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-md p-3">
+                          <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                            <p>Relative score (0-100%) comparing this pool's liquidity to the highest liquidity pool globally. Higher scores indicate better trading conditions and lower slippage.</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </th>
                 <SortHeader field="rate">Exchange Rate</SortHeader>
                 <th className="p-4 font-semibold text-muted-foreground">Risk</th>
                 <SortHeader field="updated">Last Updated</SortHeader>
@@ -526,48 +497,20 @@ export default function PoolBreakdownTable({
                     </div>
                   </td>
 
-                  {/* Pool Liquidity */}
+                  {/* Atomic Liquidity */}
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      {showUsdLiquidity && hasUsdData ? (
-                        <DollarSign className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Activity className="h-4 w-4 text-blue-500" />
-                      )}
+                      <Activity className="h-4 w-4 text-blue-500" />
                       <span className="font-semibold">
-                        {showUsdLiquidity && item.liquidityUsd !== undefined
-                          ? `$${formatNumber(item.liquidityUsd)}`
-                          : formatAtomicLiquidity(item.pool.liquidityRelative || item.pool.liquidityUsd || 0)
-                        }
+                        {formatAtomicLiquidity(item.pool.liquidityUsd || 0)}
                       </span>
-                    </div>
-                    <div className={cn("text-xs", getLiquidityColor(item.liquidityScore))}>
-                      {showUsdLiquidity && item.liquidityUsd !== undefined
-                        ? `Liquidity Score: ${(item.liquidityScore * 100).toFixed(0)}%`
-                        : `Atomic Score: ${(item.liquidityScore * 100).toFixed(0)}%`
-                      }
                     </div>
                   </td>
 
-                  {/* Pool Type */}
+                  {/* Liquidity Score */}
                   <td className="p-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {(() => {
-                          // Use USD liquidity if available, otherwise fall back to atomic liquidity scaling
-                          const usdValue = item.liquidityUsd;
-                          if (usdValue !== undefined) {
-                            if (usdValue > 1000000) return 'Major';
-                            if (usdValue > 100000) return 'Medium';
-                            return 'Small';
-                          }
-                          // Fallback for atomic liquidity (rough scaling)
-                          const atomicValue = item.pool.liquidityUsd || 0;
-                          if (atomicValue > 1e15) return 'Major';
-                          if (atomicValue > 1e14) return 'Medium';
-                          return 'Small';
-                        })()}
-                      </Badge>
+                    <div className={cn("text-lg font-semibold", getLiquidityColor(item.liquidityScore))}>
+                      {(item.liquidityScore * 100).toFixed(3)}%
                     </div>
                   </td>
 
@@ -632,14 +575,9 @@ export default function PoolBreakdownTable({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">
-                {showUsdLiquidity && hasUsdData ? 'Total USD Liquidity:' : 'Total Atomic Liquidity:'}
-              </span>
+              <span className="text-muted-foreground">Total Atomic Liquidity:</span>
               <span className="font-semibold">
-                {showUsdLiquidity && hasUsdData
-                  ? `$${formatNumber(sortedPools.reduce((sum, p) => sum + (p.liquidityUsd || 0), 0))}`
-                  : formatAtomicLiquidity(sortedPools.reduce((sum, p) => sum + (p.pool.liquidityRelative || p.pool.liquidityUsd || 0), 0))
-                }
+                {formatAtomicLiquidity(sortedPools.reduce((sum, p) => sum + (p.pool.liquidityUsd || 0), 0))}
               </span>
             </div>
             <div className="flex items-center gap-2">
