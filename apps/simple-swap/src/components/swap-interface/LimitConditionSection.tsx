@@ -295,6 +295,12 @@ export default function LimitConditionSection() {
                             if (newState) {
                                 // Enabling Time trigger - just enable it, don't affect other triggers
                                 setHasTimeTrigger(true);
+                                
+                                // Default start time to current time if not already set
+                                if (!timeStartTime) {
+                                    const now = new Date();
+                                    setTimeStartTime(now.toISOString());
+                                }
                             } else {
                                 // Disabling Time trigger - only clear time-related fields
                                 setHasTimeTrigger(false);

@@ -362,7 +362,7 @@ export function useRouterTrading() {
    * Create a triggered swap order (off-chain limit order)
    */
   const createTriggeredSwap = useCallback(async (opts: {
-    conditionToken?: TokenCacheData;
+    conditionToken?: TokenCacheData | '*';
     baseToken?: TokenCacheData | null;
     targetPrice?: string;
     direction?: 'lt' | 'gt';
@@ -371,6 +371,11 @@ export function useRouterTrading() {
     validTo?: string;
     // Manual-specific options
     manualDescription?: string;
+    // Strategy-specific options
+    strategyId?: string;
+    strategyType?: 'dca' | 'split' | 'batch';
+    strategySize?: number;
+    strategyPosition?: number;
   }) => {
     console.log('📝 createTriggeredSwap called with:', opts);
 
@@ -410,31 +415,40 @@ export function useRouterTrading() {
 
       console.log('📦 Building payload...');
       
-      // Build payload with simpler structure based on enabled triggers
+      // Build payload - use passed options or fall back to context state
       let conditionToken, baseAsset, targetPrice, direction;
       
-      if (hasPriceTrigger && hasRatioTrigger) {
-        throw new Error('Cannot have both price and ratio triggers enabled simultaneously');
-      }
-      
-      if (hasPriceTrigger) {
-        if (!priceTriggerToken || !priceTargetPrice) {
-          throw new Error('Price trigger requires trigger token and target price');
+      // If specific condition is passed in opts, use it (for DCA)
+      if (opts.conditionToken !== undefined) {
+        conditionToken = typeof opts.conditionToken === 'string' ? opts.conditionToken : opts.conditionToken.contractId;
+        baseAsset = opts.baseToken?.contractId;
+        targetPrice = opts.targetPrice;
+        direction = opts.direction;
+      } else {
+        // Otherwise use context state (for regular orders)
+        if (hasPriceTrigger && hasRatioTrigger) {
+          throw new Error('Cannot have both price and ratio triggers enabled simultaneously');
         }
-        conditionToken = priceTriggerToken.contractId;
-        targetPrice = priceTargetPrice;
-        direction = priceDirection;
-        // No baseAsset for price triggers (undefined = USD)
-      } else if (hasRatioTrigger) {
-        if (!ratioTriggerToken || !ratioBaseToken || !ratioTargetPrice) {
-          throw new Error('Ratio trigger requires trigger token, base token, and target price');
+        
+        if (hasPriceTrigger) {
+          if (!priceTriggerToken || !priceTargetPrice) {
+            throw new Error('Price trigger requires trigger token and target price');
+          }
+          conditionToken = priceTriggerToken.contractId;
+          targetPrice = priceTargetPrice;
+          direction = priceDirection;
+          // No baseAsset for price triggers (undefined = USD)
+        } else if (hasRatioTrigger) {
+          if (!ratioTriggerToken || !ratioBaseToken || !ratioTargetPrice) {
+            throw new Error('Ratio trigger requires trigger token, base token, and target price');
+          }
+          conditionToken = ratioTriggerToken.contractId;
+          baseAsset = ratioBaseToken.contractId;
+          targetPrice = ratioTargetPrice;
+          direction = ratioDirection;
         }
-        conditionToken = ratioTriggerToken.contractId;
-        baseAsset = ratioBaseToken.contractId;
-        targetPrice = ratioTargetPrice;
-        direction = ratioDirection;
+        // For manual orders, all trigger fields remain undefined
       }
-      // For manual orders, all trigger fields remain undefined
 
       const payload: Record<string, unknown> = {
         owner: walletAddress,
@@ -450,9 +464,31 @@ export function useRouterTrading() {
         uuid,
       };
       
+      // Add time window constraints if provided
+      if (opts.validFrom) {
+        payload.validFrom = opts.validFrom;
+      }
+      if (opts.validTo) {
+        payload.validTo = opts.validTo;
+      }
+      
       // Add manual description if it's a manual order
-      if (isManualOrder && manualDescription) {
-        payload.description = manualDescription;
+      if (isManualOrder && opts.manualDescription) {
+        payload.description = opts.manualDescription;
+      }
+      
+      // Add strategy metadata for DCA/batch orders
+      if (opts.strategyId) {
+        payload.strategyId = opts.strategyId;
+      }
+      if (opts.strategyType) {
+        payload.strategyType = opts.strategyType;
+      }
+      if (opts.strategySize) {
+        payload.strategySize = opts.strategySize;
+      }
+      if (opts.strategyPosition !== undefined) {
+        payload.strategyPosition = opts.strategyPosition;
       }
 
       console.log('📤 Sending order to API:', payload);
@@ -484,24 +520,32 @@ export function useRouterTrading() {
   }, [walletAddress, selectedFromToken, selectedToToken, useSubnetFrom, useSubnetTo, getContractIdForToken, hasPriceTrigger, hasRatioTrigger, priceTriggerToken, priceTargetPrice, priceDirection, ratioTriggerToken, ratioBaseToken, ratioTargetPrice, ratioDirection, isManualOrder, manualDescription]);
 
   // Callback for DcaDialog to create a single slice order
-  const createSingleOrder = useCallback(async ({ amountDisplay, validFrom, validTo }: {
+  const createSingleOrder = useCallback(async ({ amountDisplay, validFrom, validTo, strategyId, strategyPosition, strategySize }: {
     amountDisplay: string;
     validFrom: string;
-    validTo: string
+    validTo: string;
+    strategyId?: string;
+    strategyPosition?: number;
+    strategySize?: number;
   }) => {
-    const activeTriggerToken = priceTriggerToken || ratioTriggerToken || selectedToToken;
-    if (!activeTriggerToken || !selectedToToken) throw new Error('Missing trigger or target token');
+    if (!selectedToToken) throw new Error('Missing target token');
 
     await createTriggeredSwap({
-      conditionToken: activeTriggerToken,
-      baseToken: ratioBaseToken,
-      targetPrice: priceTargetPrice || ratioTargetPrice,
-      direction: priceDirection || ratioDirection,
+      // For DCA orders, use wildcard condition for time-based execution
+      conditionToken: '*',
+      baseToken: undefined,
+      targetPrice: '0',
+      direction: 'gt',
       amountDisplay,
       validFrom,
       validTo,
+      // Add strategy metadata for DCA grouping
+      strategyId,
+      strategyType: 'dca',
+      strategySize,
+      strategyPosition,
     });
-  }, [priceTriggerToken, ratioTriggerToken, selectedToToken, ratioBaseToken, priceTargetPrice, ratioTargetPrice, priceDirection, ratioDirection, createTriggeredSwap]);
+  }, [selectedToToken, createTriggeredSwap]);
 
   // ===================== BALANCE CHECKING FUNCTIONALITY =====================
 

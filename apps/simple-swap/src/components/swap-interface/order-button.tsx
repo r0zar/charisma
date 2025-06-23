@@ -37,15 +37,23 @@ export default function OrderButton() {
         return token.contractId;
     };
 
-    // Button should be disabled if creating order, no required data, or invalid triggers
+    // Button should be disabled if creating order, no required data
     const isDisabled = isCreatingOrder || 
                       !displayAmount || 
                       displayAmount === "0" || 
                       displayAmount.trim() === "" ||
                       !selectedFromToken ||
                       !selectedToToken ||
-                      !walletAddress ||
-                      (mode === 'order' && !isValidTriggers);
+                      !walletAddress;
+
+    // For DCA dialog, only check basic requirements (not trigger validation)
+    const isDcaDisabled = isCreatingOrder || 
+                         !displayAmount || 
+                         displayAmount === "0" || 
+                         displayAmount.trim() === "" ||
+                         !selectedFromToken ||
+                         !selectedToToken ||
+                         !walletAddress;
 
     const handleClick = async () => {
         if (isDisabled) {
@@ -107,7 +115,7 @@ export default function OrderButton() {
     };
 
     const handleDcaClick = () => {
-        if (isDisabled) {
+        if (isDcaDisabled) {
             triggerValidationAlert('order');
             return;
         }
@@ -144,7 +152,7 @@ export default function OrderButton() {
                 {/* DCA trigger button */}
                 <Button
                     className={`relative w-12 h-auto rounded-l-none bg-gradient-to-r from-purple-700 to-purple-800 text-white overflow-hidden transition-transform focus:outline-none rounded-r-xl border-l border-white/20 ${
-                        isDisabled
+                        isDcaDisabled
                             ? 'opacity-70 cursor-pointer hover:opacity-80'
                             : 'hover:brightness-110 active:scale-95'
                     }`}

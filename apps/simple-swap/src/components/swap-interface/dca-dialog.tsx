@@ -28,6 +28,9 @@ export const DcaDialog: React.FC = () => {
         baseToken,
         targetPrice,
         conditionDir,
+        hasTimeTrigger,
+        timeStartTime,
+        timeEndTime,
     } = useOrderConditions();
 
     const {
@@ -46,25 +49,62 @@ export const DcaDialog: React.FC = () => {
     const [intervalOption, setIntervalOption] = useState<'hourly' | 'daily' | 'weekly' | 'custom'>('daily');
     const [slices, setSlices] = useState<number>(12);
     const [intervalHours, setIntervalHours] = useState<number>(24); // custom input fallback
+    const [splitMode, setSplitMode] = useState<'by-count' | 'by-interval'>('by-count'); // For fixed time window
     const [phase, setPhase] = useState<'setup' | 'processing' | 'complete'>('setup');
     const [statuses, setStatuses] = useState<Array<'pending' | 'signing' | 'done' | 'error'>>(() => Array(slices).fill('pending'));
 
-    const hours = intervalOption === 'hourly' ? 1 : intervalOption === 'daily' ? 24 : intervalOption === 'weekly' ? 24 * 7 : intervalHours;
+    // Check if we have a fixed time window (has time trigger enabled and end time set)
+    const hasFixedTimeWindow = hasTimeTrigger && timeEndTime;
+    const startTime = timeStartTime ? new Date(timeStartTime).getTime() : Date.now();
+    const endTime = timeEndTime ? new Date(timeEndTime).getTime() : null;
+    const totalWindowMs = endTime ? endTime - startTime : null;
+    
+    // For display purposes, use actual start time or current time
+    const displayStartTime = timeStartTime ? new Date(timeStartTime) : new Date();
 
-    const perSliceAmount = parseFloat(defaultAmount || '0') / slices;
+    // Calculate interval and slices based on mode
+    let hours: number;
+    let finalSlices: number;
+
+    if (hasFixedTimeWindow && totalWindowMs && totalWindowMs > 0) {
+        if (splitMode === 'by-count') {
+            // User specifies number of slices, we calculate interval
+            finalSlices = Math.max(1, slices);
+            hours = totalWindowMs / (1000 * 60 * 60 * finalSlices);
+        } else {
+            // User specifies interval, we calculate number of slices
+            hours = Math.max(0.1, intervalHours);
+            finalSlices = Math.max(1, Math.floor(totalWindowMs / (hours * 60 * 60 * 1000)));
+        }
+    } else {
+        // No fixed window - use original logic
+        hours = intervalOption === 'hourly' ? 1 : intervalOption === 'daily' ? 24 : intervalOption === 'weekly' ? 24 * 7 : Math.max(0.1, intervalHours);
+        finalSlices = Math.max(1, slices);
+    }
+
+    const perSliceAmount = parseFloat(defaultAmount || '0') / finalSlices;
 
     const startProcessing = async () => {
         if (phase !== 'setup') return;
         setPhase('processing');
-        const nowMs = Date.now();
         const intervalMs = hours * 60 * 60 * 1000;
+        
+        // Generate a shared strategy ID for all orders in this DCA batch
+        const strategyId = globalThis.crypto?.randomUUID() ?? Date.now().toString();
 
-        for (let i = 0; i < slices; i++) {
+        for (let i = 0; i < finalSlices; i++) {
             setStatuses((prev) => prev.map((s, idx) => (idx === i ? 'signing' : s)));
-            const validFrom = new Date(nowMs + i * intervalMs).toISOString();
-            const validTo = new Date(nowMs + (i + 1) * intervalMs).toISOString();
+            const validFrom = new Date(startTime + i * intervalMs).toISOString();
+            const validTo = new Date(startTime + (i + 1) * intervalMs).toISOString();
             try {
-                await createOrder({ amountDisplay: perSliceAmount.toString(), validFrom, validTo });
+                await createOrder({ 
+                    amountDisplay: perSliceAmount.toString(), 
+                    validFrom, 
+                    validTo,
+                    strategyId,
+                    strategyPosition: i,
+                    strategySize: finalSlices
+                });
                 setStatuses((prev) => prev.map((s, idx) => (idx === i ? 'done' : s)));
             } catch (err) {
                 console.error('slice error', err);
@@ -80,19 +120,18 @@ export const DcaDialog: React.FC = () => {
     const preview = (() => {
         const out: { idx: number; window: string; amount: string }[] = [];
         const total = parseFloat(defaultAmount || '0');
-        if (isNaN(total) || slices <= 0) return out;
-        const per = total / slices;
-        const nowMs = Date.now();
+        if (isNaN(total) || finalSlices <= 0) return out;
+        const per = total / finalSlices;
         const intervalMs = hours * 60 * 60 * 1000;
-        for (let i = 0; i < slices; i++) {
-            const start = new Date(nowMs + i * intervalMs);
-            const end = new Date(nowMs + (i + 1) * intervalMs);
+        for (let i = 0; i < finalSlices; i++) {
+            const start = new Date(startTime + i * intervalMs);
+            const end = new Date(startTime + (i + 1) * intervalMs);
             const monthDay = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            const endTime = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const startTimeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const endTimeStr = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
             out.push({
                 idx: i + 1,
-                window: `${monthDay} at ${startTime}`,
+                window: `${monthDay} at ${startTimeStr}`,
                 amount: per.toLocaleString(undefined, { maximumFractionDigits: 6 }),
             });
         }
@@ -103,9 +142,11 @@ export const DcaDialog: React.FC = () => {
     useEffect(() => {
         if (open) {
             setPhase('setup');
-            setStatuses(Array(slices).fill('pending'));
+            // Ensure finalSlices is a valid positive integer
+            const validSlices = Math.max(1, Math.min(100, Math.floor(finalSlices) || 1));
+            setStatuses(Array(validSlices).fill('pending'));
         }
-    }, [open, slices]);
+    }, [open, finalSlices]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,54 +158,152 @@ export const DcaDialog: React.FC = () => {
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Frequency selector */}
-                <div className="space-y-3">
-                    <label className="text-sm font-medium text-white/90">Interval Frequency</label>
-                    <div className="grid grid-cols-4 gap-2">
-                        {(['hourly', 'daily', 'weekly', 'custom'] as const).map(opt => (
+                {/* Time Window Info */}
+                {hasFixedTimeWindow && (
+                    <div className="bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-xl p-4 space-y-2">
+                        <h4 className="text-sm font-medium text-blue-400">Fixed Time Window</h4>
+                        <div className="text-xs text-white/70">
+                            <div>Start: {displayStartTime.toLocaleString()}</div>
+                            <div>End: {new Date(timeEndTime!).toLocaleString()}</div>
+                            <div>Duration: {totalWindowMs ? Math.round(totalWindowMs / (1000 * 60 * 60)) : 0} hours</div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Split Mode Selector (only for fixed time windows) */}
+                {hasFixedTimeWindow ? (
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-white/90">Split Method</label>
+                        <div className="grid grid-cols-2 gap-2">
                             <button
-                                key={opt}
-                                onClick={() => setIntervalOption(opt)}
+                                onClick={() => setSplitMode('by-count')}
                                 className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                    intervalOption === opt 
+                                    splitMode === 'by-count' 
                                         ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
                                         : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
                                 }`}
                             >
-                                {opt === 'custom' ? 'Custom' : opt.charAt(0).toUpperCase() + opt.slice(1)}
+                                By Count
                             </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Slices + custom interval */}
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label htmlFor="slices" className="text-sm font-medium text-white/90">Number of orders</label>
-                            <input
-                                id="slices"
-                                type="number"
-                                min={1}
-                                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
-                                value={slices}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlices(Number(e.target.value))}
-                            />
+                            <button
+                                onClick={() => setSplitMode('by-interval')}
+                                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                    splitMode === 'by-interval' 
+                                        ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
+                                        : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                }`}
+                            >
+                                By Interval
+                            </button>
                         </div>
-                        {intervalOption === 'custom' && (
+                    </div>
+                ) : (
+                    /* Frequency selector for open-ended time windows */
+                    <div className="space-y-3">
+                        <label className="text-sm font-medium text-white/90">Interval Frequency</label>
+                        <div className="grid grid-cols-4 gap-2">
+                            {(['hourly', 'daily', 'weekly', 'custom'] as const).map(opt => (
+                                <button
+                                    key={opt}
+                                    onClick={() => setIntervalOption(opt)}
+                                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                        intervalOption === opt 
+                                            ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
+                                            : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                    }`}
+                                >
+                                    {opt === 'custom' ? 'Custom' : opt.charAt(0).toUpperCase() + opt.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Input Controls */}
+                <div className="space-y-4">
+                        {/* Show slice count input for: no fixed window, or fixed window with by-count mode */}
+                        {(!hasFixedTimeWindow || splitMode === 'by-count') && (
                             <div className="space-y-2">
-                                <label htmlFor="interval" className="text-sm font-medium text-white/90">Interval (hours)</label>
-                                <input
-                                    id="interval"
-                                    type="number"
-                                    min={1}
-                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
-                                    value={intervalHours}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIntervalHours(Number(e.target.value))}
-                                />
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="slices" className="text-sm font-medium text-white/90">
+                                        Number of orders
+                                    </label>
+                                    {hasFixedTimeWindow && splitMode === 'by-count' && (
+                                        <span className="text-xs text-white/60">Interval: {hours.toFixed(1)}h each</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        id="slices"
+                                        type="number"
+                                        min={1}
+                                        className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
+                                        value={slices}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlices(Number(e.target.value))}
+                                    />
+                                    <span className="text-sm text-white/60">orders</span>
+                                </div>
                             </div>
                         )}
-                    </div>
+
+                        {/* Show interval input for: custom mode (no fixed window), or fixed window with by-interval mode */}
+                        {(!hasFixedTimeWindow && intervalOption === 'custom') || (hasFixedTimeWindow && splitMode === 'by-interval') ? (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="interval" className="text-sm font-medium text-white/90">
+                                        Interval
+                                    </label>
+                                    {hasFixedTimeWindow && splitMode === 'by-interval' && (
+                                        <span className="text-xs text-white/60">Orders: {finalSlices}</span>
+                                    )}
+                                </div>
+                                {hasFixedTimeWindow && splitMode === 'by-interval' ? (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[1, 24, 24 * 7].map(hrs => (
+                                                <button
+                                                    key={hrs}
+                                                    onClick={() => setIntervalHours(hrs)}
+                                                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                                        intervalHours === hrs 
+                                                            ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
+                                                            : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                                    }`}
+                                                >
+                                                    {hrs === 1 ? 'Hourly' : hrs === 24 ? 'Daily' : 'Weekly'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                id="interval"
+                                                type="number"
+                                                min={0.1}
+                                                step={0.1}
+                                                placeholder="Custom"
+                                                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
+                                                value={intervalHours}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIntervalHours(Number(e.target.value))}
+                                            />
+                                            <span className="text-sm text-white/60">hours</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            id="interval"
+                                            type="number"
+                                            min={0.1}
+                                            step={0.1}
+                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
+                                            value={intervalHours}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIntervalHours(Number(e.target.value))}
+                                        />
+                                        <span className="text-sm text-white/60">hours</span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
                 </div>
 
                 {/* Order summary */}
@@ -189,6 +328,25 @@ export const DcaDialog: React.FC = () => {
                         )}
                     </div>
                 )}
+
+                {/* Summary of calculated values */}
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-2">
+                    <h4 className="text-sm font-medium text-white/90">Split Summary</h4>
+                    <div className="grid grid-cols-3 gap-4 text-xs">
+                        <div>
+                            <span className="text-white/60">Orders:</span>
+                            <div className="text-white/90 font-medium">{finalSlices}</div>
+                        </div>
+                        <div>
+                            <span className="text-white/60">Interval:</span>
+                            <div className="text-white/90 font-medium">{hours < 1 ? `${Math.round(hours * 60)}m` : `${hours.toFixed(1)}h`}</div>
+                        </div>
+                        <div>
+                            <span className="text-white/60">Per Order:</span>
+                            <div className="text-white/90 font-medium">{perSliceAmount.toFixed(6)} {fromToken?.symbol}</div>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Preview */}
                 {preview.length > 0 && (

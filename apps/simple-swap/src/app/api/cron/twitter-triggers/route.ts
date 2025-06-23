@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('[Twitter Cron] Starting Twitter triggers processing job');
+
         // wait 2 seconds
         await new Promise(resolve => setTimeout(resolve, 2000));
 
