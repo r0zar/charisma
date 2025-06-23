@@ -87,6 +87,7 @@ export const StrategyProgressBar: React.FC<StrategyProgressBarProps> = ({ strate
             case 'split': return '🔀';
             case 'dca': return '📈';
             case 'batch': return '📦';
+            case 'twitter': return '🐦';
             default: return '⚡';
         }
     };

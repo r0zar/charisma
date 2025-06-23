@@ -56,7 +56,7 @@ export interface LimitOrder {
     /**
      * Type of order strategy for UI display purposes.
      */
-    strategyType?: 'split' | 'dca' | 'batch';
+    strategyType?: 'split' | 'dca' | 'batch' | 'twitter';
     
     /**
      * Position within the strategy (1-based index) for ordering and progress tracking.
@@ -73,6 +73,11 @@ export interface LimitOrder {
      * e.g., "Split $1000 into 4 orders", "DCA $100 weekly for 10 weeks"
      */
     strategyDescription?: string;
+    
+    /**
+     * Optional metadata for additional order information.
+     */
+    metadata?: Record<string, any>;
 }
 
 export type NewOrderRequest = Omit<LimitOrder, 'status' | 'createdAt' | 'txid' | 'id'>; 

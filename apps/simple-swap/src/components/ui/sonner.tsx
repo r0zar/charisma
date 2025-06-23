@@ -10,7 +10,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast: "group toast glass-card rounded-xl border border-border bg-card text-foreground flex overflow-hidden gap-2 p-4 items-start shadow-lg",
           title: "text-foreground font-display font-semibold tracking-tight",
-          description: "text-muted-foreground text-sm mt-1",
+          description: "text-foreground/80 text-sm mt-1",
           actionButton: "button-primary shadow-none px-3 py-1.5 text-xs rounded-lg",
           cancelButton: "bg-muted text-muted-foreground hover:bg-muted/80 shadow-none px-3 py-1.5 text-xs rounded-lg",
           success: "!bg-green-500/15 !border-green-500/50 !text-green-700 dark:!text-green-400",

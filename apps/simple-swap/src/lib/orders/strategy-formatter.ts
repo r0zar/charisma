@@ -3,7 +3,7 @@ import { TokenCacheData } from '@repo/tokens';
 
 export interface StrategyDisplayData {
     id: string;
-    type: 'split' | 'dca' | 'batch' | 'single';
+    type: 'split' | 'dca' | 'batch' | 'twitter' | 'single';
     description: string;
     orders: LimitOrder[];
     totalOrders: number;
@@ -178,7 +178,7 @@ function determineStrategyStatus(orders: LimitOrder[]): StrategyDisplayData['sta
  * Generates human-readable description for strategy types
  */
 function generateStrategyDescription(
-    type: 'split' | 'dca' | 'batch',
+    type: 'split' | 'dca' | 'batch' | 'twitter',
     orders: LimitOrder[],
     totalValue: string,
     tokenSymbol: string
@@ -192,6 +192,12 @@ function generateStrategyDescription(
             return `DCA ${totalValue} ${tokenSymbol} over ${orderCount} orders`;
         case 'batch':
             return `Batch of ${orderCount} orders (${totalValue} ${tokenSymbol})`;
+        case 'twitter':
+            // Extract tweet URL from metadata if available
+            const firstOrder = orders[0];
+            const tweetUrl = firstOrder.metadata?.tweetUrl;
+            const tweetDisplay = tweetUrl ? ` for Tweet` : '';
+            return `Twitter Triggers: ${orderCount} orders (${totalValue} ${tokenSymbol})${tweetDisplay}`;
         default:
             return `${orderCount} related orders`;
     }
@@ -202,7 +208,7 @@ function generateStrategyDescription(
  */
 function estimateStrategyCompletion(
     orders: LimitOrder[],
-    type: 'split' | 'dca' | 'batch'
+    type: 'split' | 'dca' | 'batch' | 'twitter'
 ): string | undefined {
     if (type === 'dca') {
         // For DCA, estimate based on validTo times

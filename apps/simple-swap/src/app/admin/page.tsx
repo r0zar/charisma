@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { TrendingUp, Settings, Database, Activity, BarChart3 } from 'lucide-react';
+import { TrendingUp, Settings, Database, Activity, BarChart3, Twitter } from 'lucide-react';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
 
 export const metadata: Metadata = {
@@ -44,6 +44,13 @@ const adminActions = [
         description: 'View and manage limit orders and perpetual positions',
         href: '/admin/orders',
         icon: <Database className="w-6 h-6" />,
+        color: 'blue',
+    },
+    {
+        title: 'Twitter Triggers',
+        description: 'Manage Twitter-triggered orders and BNS social trading',
+        href: '/admin/twitter-triggers',
+        icon: <Twitter className="w-6 h-6" />,
         color: 'blue',
     },
     {
