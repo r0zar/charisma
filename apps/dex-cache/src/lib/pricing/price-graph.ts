@@ -1,7 +1,6 @@
 import { getAllVaultData, type Vault } from '../pool-service';
-import { SBTC_CONTRACT_ID } from './btc-oracle';
+import { SBTC_CONTRACT_ID, isStablecoin } from './btc-oracle';
 import {
-    calculateDecimalAwareLiquidity,
     getTokenDecimals,
     isValidDecimalConversion,
     convertAtomicToDecimal
@@ -205,22 +204,21 @@ export class PriceGraph {
                     console.warn(`[PriceGraph] Very large atomic reserves detected for ${vault.symbol}: A=${reserveA.toExponential(2)}, B=${reserveB.toExponential(2)} - proceeding with calculation`);
                 }
 
-                // Calculate decimal-aware liquidity weight
-                const liquidityWeight = calculateDecimalAwareLiquidity(
-                    reserveA, vault.tokenA.decimals,
-                    reserveB, vault.tokenB.decimals
-                );
+                // Calculate simple liquidity weight for pathfinding
+                // Since we're now USD-only, we'll calculate this during the second pass
+                // For now, use a simple approach based on reserve sizes
+                const simpleWeight = Math.sqrt(reserveA * reserveB);
+                
+                console.log(`[PriceGraph] Simple liquidity weight: ${simpleWeight}`);
 
-                console.log(`[PriceGraph] Decimal-aware liquidity weight: ${liquidityWeight}`);
-
-                if (liquidityWeight <= 0 || !isFinite(liquidityWeight)) {
-                    console.warn(`[PriceGraph] Invalid liquidity weight for ${vault.symbol}: ${liquidityWeight}`);
+                if (simpleWeight <= 0 || !isFinite(simpleWeight)) {
+                    console.warn(`[PriceGraph] Invalid liquidity weight for ${vault.symbol}: ${simpleWeight}`);
                     continue;
                 }
 
                 // Calculate edge weight for pathfinding
                 // Higher liquidity = lower cost for pathfinding
-                const edgeWeight = liquidityWeight > 0 ? 1 / liquidityWeight : Infinity;
+                const edgeWeight = simpleWeight > 0 ? 1 / simpleWeight : Infinity;
 
                 const poolEdge: PoolEdge = {
                     poolId: vault.contractId,
@@ -288,19 +286,11 @@ export class PriceGraph {
         }
 
         // Step 2: Add known stablecoin anchors
-        const stablecoinAnchors = new Map([
-            ['USDA', 1.00],
-            ['aeUSDC', 1.00], 
-            ['USDh', 1.00],
-            ['sUSDh', 1.00]
-        ]);
-
         for (const [tokenId, node] of this.nodes.entries()) {
-            const stablecoinPrice = stablecoinAnchors.get(node.symbol);
-            if (stablecoinPrice !== undefined) {
-                discoveredPrices.set(tokenId, stablecoinPrice);
+            if (isStablecoin(node.symbol)) {
+                discoveredPrices.set(tokenId, 1.00);
                 priceConfidence.set(tokenId, 0.95); // High confidence for stablecoins
-                console.log(`[PriceDiscovery] 🔧 Stablecoin anchor: ${node.symbol} = $${stablecoinPrice} (confidence: 95%)`);
+                console.log(`[PriceDiscovery] 🔧 Stablecoin anchor: ${node.symbol} = $1.00 (confidence: 95%)`);
             }
         }
 
@@ -322,6 +312,13 @@ export class PriceGraph {
                 const tokenBNode = this.nodes.get(edge.tokenB);
                 
                 if (!tokenANode || !tokenBNode) continue;
+                
+                // Skip pools with two stablecoins - they shouldn't be used for price discovery
+                // since both tokens should be ~$1.00 and constant product doesn't apply
+                if (isStablecoin(tokenANode.symbol) && isStablecoin(tokenBNode.symbol)) {
+                    console.log(`[PriceDiscovery] 🚫 Skipping stablecoin/stablecoin pool: ${tokenANode.symbol}/${tokenBNode.symbol} (both should be ~$1.00)`);
+                    continue;
+                }
                 
                 const priceA = discoveredPrices.get(edge.tokenA);
                 const priceB = discoveredPrices.get(edge.tokenB);

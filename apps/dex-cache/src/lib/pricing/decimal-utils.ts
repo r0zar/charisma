@@ -113,41 +113,6 @@ export function calculateDecimalAwareExchangeRate(
     return exchangeRate;
 }
 
-/**
- * Calculate geometric mean liquidity using decimal-converted reserves
- * @param reserveA - Token A reserve in atomic units
- * @param decimalsA - Token A decimals
- * @param reserveB - Token B reserve in atomic units
- * @param decimalsB - Token B decimals
- * @returns Geometric mean of decimal-converted reserves
- */
-export function calculateDecimalAwareLiquidity(
-    reserveA: number,
-    decimalsA: number,
-    reserveB: number,
-    decimalsB: number
-): number {
-    if (!reserveA || !reserveB || reserveA <= 0 || reserveB <= 0) {
-        return 0;
-    }
-    
-    const decimalA = convertAtomicToDecimal(reserveA, decimalsA);
-    const decimalB = convertAtomicToDecimal(reserveB, decimalsB);
-    
-    if (decimalA <= 0 || decimalB <= 0) {
-        console.warn(`[DecimalUtils] Invalid decimal reserves: A=${decimalA}, B=${decimalB}`);
-        return 0;
-    }
-    
-    const geometricMean = Math.sqrt(decimalA * decimalB);
-    
-    if (!isFinite(geometricMean)) {
-        console.warn(`[DecimalUtils] Invalid geometric mean: sqrt(${decimalA} * ${decimalB})`);
-        return 0;
-    }
-    
-    return geometricMean;
-}
 
 /**
  * Validate that decimal conversion parameters are reasonable

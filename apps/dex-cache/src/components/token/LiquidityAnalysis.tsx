@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 import { PoolEdge } from '@/lib/pricing/price-graph';
 import { TokenNode } from '@/lib/pricing/price-graph';
 import {
-  calculateDecimalAwareLiquidity,
   getTokenDecimals,
   convertAtomicToDecimal
 } from '@/lib/pricing/decimal-utils';
@@ -44,21 +43,24 @@ interface PoolLiquidityData {
 }
 
 const formatLiquidity = (liquidity: number): string => {
-  // Format atomic liquidity values for display
-  if (liquidity >= 1e18) {
-    return `${(liquidity / 1e18).toFixed(2)}E18`;
-  } else if (liquidity >= 1e15) {
-    return `${(liquidity / 1e15).toFixed(2)}E15`;
-  } else if (liquidity >= 1e12) {
-    return `${(liquidity / 1e12).toFixed(2)}E12`;
-  } else if (liquidity >= 1e9) {
-    return `${(liquidity / 1e9).toFixed(2)}E9`;
-  } else if (liquidity >= 1e6) {
-    return `${(liquidity / 1e6).toFixed(2)}E6`;
-  } else if (liquidity >= 1000) {
-    return `${(liquidity / 1000).toFixed(1)}K`;
+  // Format USD liquidity values for display
+  if (liquidity === 0) {
+    return 'N/A';
   }
-  return liquidity.toFixed(0);
+  
+  if (liquidity >= 1e9) {
+    return `$${(liquidity / 1e9).toFixed(2)}B`;
+  } else if (liquidity >= 1e6) {
+    return `$${(liquidity / 1e6).toFixed(2)}M`;
+  } else if (liquidity >= 1e3) {
+    return `$${(liquidity / 1e3).toFixed(1)}K`;
+  } else if (liquidity >= 1) {
+    return `$${liquidity.toFixed(2)}`;
+  } else if (liquidity >= 0.01) {
+    return `$${liquidity.toFixed(4)}`;
+  } else {
+    return `$${liquidity.toExponential(2)}`;
+  }
 };
 
 const getRiskColor = (risk: string): string => {

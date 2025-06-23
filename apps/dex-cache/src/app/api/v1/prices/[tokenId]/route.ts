@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getTokenPrice } from '@/lib/pricing/price-calculator';
 import { listVaultTokens } from '@/lib/pool-service';
+import { getPriceGraph } from '@/lib/pricing/price-graph';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -71,6 +72,11 @@ export async function GET(
             });
         }
 
+        // Get node-level total liquidity from the price graph
+        const graph = await getPriceGraph();
+        const tokenNode = graph.getNode(tokenId);
+        const nodeTotalLiquidity = tokenNode?.totalLiquidity || 0;
+
         // Build response
         const response: any = {
             tokenId,
@@ -82,7 +88,8 @@ export async function GET(
             usdPrice: priceData.usdPrice,
             sbtcRatio: priceData.sbtcRatio,
             confidence: priceData.confidence,
-            lastUpdated: priceData.lastUpdated
+            lastUpdated: priceData.lastUpdated,
+            totalLiquidity: nodeTotalLiquidity
         };
 
         // Include detailed information if requested

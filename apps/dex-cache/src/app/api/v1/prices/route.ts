@@ -45,6 +45,9 @@ export async function GET(request: Request) {
         // Calculate prices for all tokens
         const priceMap = await getMultipleTokenPrices(tokenIds);
         
+        // Get the price graph to access node-level total liquidity
+        const graph = await getPriceGraph();
+        
         // Build response data
         const pricesData = Array.from(priceMap.entries())
             .map(([tokenId, priceData]) => {
@@ -55,6 +58,10 @@ export async function GET(request: Request) {
                     return null;
                 }
 
+                // Get node-level total liquidity from the price graph
+                const tokenNode = graph.getNode(tokenId);
+                const nodeTotalLiquidity = tokenNode?.totalLiquidity || 0;
+
                 const response: any = {
                     tokenId,
                     symbol: tokenMeta.symbol,
@@ -64,7 +71,8 @@ export async function GET(request: Request) {
                     usdPrice: priceData.usdPrice,
                     sbtcRatio: priceData.sbtcRatio,
                     confidence: priceData.confidence,
-                    lastUpdated: priceData.lastUpdated
+                    lastUpdated: priceData.lastUpdated,
+                    totalLiquidity: nodeTotalLiquidity
                 };
 
                 // Include detailed path information if requested
@@ -86,7 +94,6 @@ export async function GET(request: Request) {
             .sort((a, b) => b.confidence - a.confidence); // Sort by confidence descending
 
         // Get graph statistics
-        const graph = await getPriceGraph();
         const graphStats = graph.getStats();
 
         const processingTime = Date.now() - startTime;

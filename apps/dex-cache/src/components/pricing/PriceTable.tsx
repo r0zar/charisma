@@ -13,7 +13,8 @@ import {
   Clock,
   Activity,
   Coins,
-  ExternalLink
+  ExternalLink,
+  DollarSign
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,6 +29,7 @@ interface PriceTableData {
   sbtcRatio: number;
   confidence: number;
   lastUpdated: number;
+  totalLiquidity?: number; // Total USD liquidity across all pools for this token
   calculationDetails?: {
     btcPrice: number;
     pathsUsed: number;
@@ -48,9 +50,11 @@ interface PriceTableProps {
   data: PriceTableData[];
   sortBy: string;
   sortDir: 'asc' | 'desc';
-  onSort: (column: string) => void;
+  onSort: (column: 'symbol' | 'price' | 'confidence' | 'liquidity' | 'lastUpdated') => void;
   showDetails: boolean;
   isRefreshing: boolean;
+  priceDisplay: 'usd' | 'sat';
+  onPriceDisplayToggle: () => void;
 }
 
 // Utility functions
@@ -70,15 +74,44 @@ const formatPrice = (price: number | null | undefined): string => {
   }
 };
 
-const formatSbtcRatio = (ratio: number | null | undefined): string => {
-  if (ratio === null || ratio === undefined || isNaN(ratio)) {
+const formatSatoshis = (usdPrice: number | null | undefined, btcPrice: number = 100000): string => {
+  if (usdPrice === null || usdPrice === undefined || isNaN(usdPrice) || btcPrice === 0) {
     return '—';
   }
   
-  if (ratio >= 0.0001) {
-    return ratio.toFixed(8);
+  // Convert USD to satoshis: (USD price / BTC price) * 100,000,000 sats per BTC
+  const satoshis = (usdPrice / btcPrice) * 100000000;
+  
+  if (satoshis >= 1000) {
+    return `${satoshis.toLocaleString(undefined, { maximumFractionDigits: 0 })} sats`;
+  } else if (satoshis >= 1) {
+    return `${satoshis.toFixed(2)} sats`;
   } else {
-    return ratio.toExponential(4);
+    return `${satoshis.toFixed(6)} sats`;
+  }
+};
+
+const formatUnifiedPrice = (usdPrice: number | null | undefined, priceDisplay: 'usd' | 'sat', btcPrice: number = 100000): string => {
+  if (priceDisplay === 'usd') {
+    return formatPrice(usdPrice);
+  } else {
+    return formatSatoshis(usdPrice, btcPrice);
+  }
+};
+
+const formatLiquidity = (liquidity: number | null | undefined): string => {
+  if (liquidity === null || liquidity === undefined || isNaN(liquidity) || liquidity === 0) {
+    return 'N/A';
+  }
+  
+  if (liquidity >= 1e9) {
+    return `$${(liquidity / 1e9).toFixed(2)}B`;
+  } else if (liquidity >= 1e6) {
+    return `$${(liquidity / 1e6).toFixed(2)}M`;
+  } else if (liquidity >= 1e3) {
+    return `$${(liquidity / 1e3).toFixed(1)}K`;
+  } else {
+    return `$${liquidity.toFixed(2)}`;
   }
 };
 
@@ -119,7 +152,9 @@ export default function PriceTable({
   sortDir, 
   onSort, 
   showDetails, 
-  isRefreshing 
+  isRefreshing,
+  priceDisplay,
+  onPriceDisplayToggle 
 }: PriceTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -159,8 +194,23 @@ export default function PriceTable({
         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
           <tr>
             <SortHeader column="symbol">Token</SortHeader>
-            <SortHeader column="price">USD Price</SortHeader>
-            <th className="p-4 font-semibold text-muted-foreground">sBTC Ratio</th>
+            <th className="p-4 font-semibold text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onPriceDisplayToggle}
+                  className="h-6 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  {priceDisplay === 'usd' ? (
+                    <><DollarSign className="w-3 h-3 mr-1" />USD Price</>
+                  ) : (
+                    <><Bitcoin className="w-3 h-3 mr-1" />SAT Price</>
+                  )}
+                </Button>
+              </div>
+            </th>
+            <SortHeader column="liquidity">Total Liquidity</SortHeader>
             <SortHeader column="confidence">Confidence</SortHeader>
             <th className="p-4 font-semibold text-muted-foreground">Path Type</th>
             <SortHeader column="lastUpdated">Last Updated</SortHeader>
@@ -204,18 +254,20 @@ export default function PriceTable({
                     </div>
                   </td>
 
-                  {/* USD Price */}
+                  {/* Unified Price */}
                   <td className="p-4 whitespace-nowrap">
                     <div className="text-lg font-bold text-foreground">
-                      {formatPrice(item.usdPrice)}
+                      {formatUnifiedPrice(item.usdPrice, priceDisplay)}
                     </div>
                   </td>
 
-                  {/* sBTC Ratio */}
+                  {/* Total Liquidity */}
                   <td className="p-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Bitcoin className="w-3 h-3" />
-                      {formatSbtcRatio(item.sbtcRatio)}
+                    <div className="flex items-center gap-1">
+                      <Activity className="w-3 h-3 text-blue-500" />
+                      <span className="font-semibold text-foreground">
+                        {formatLiquidity(item.totalLiquidity || item.calculationDetails?.totalLiquidity)}
+                      </span>
                     </div>
                   </td>
 
@@ -285,7 +337,7 @@ export default function PriceTable({
                 {/* Expanded Details Row */}
                 {isExpanded && showDetails && item.primaryPath && (
                   <tr className="bg-muted/10">
-                    <td colSpan={showDetails ? 8 : 7} className="p-4">
+                    <td colSpan={showDetails ? 7 : 6} className="p-4">
                       <div className="bg-card border border-border rounded-lg p-4 space-y-4">
                         <h4 className="font-semibold text-foreground mb-3">Price Discovery Details</h4>
                         

@@ -13,9 +13,7 @@ import {
   RefreshCw, 
   Loader2,
   TrendingUp,
-  AlertTriangle,
-  Eye,
-  EyeOff
+  AlertTriangle
 } from 'lucide-react';
 import PriceTable from './PriceTable';
 import { TokenPriceData } from '@/lib/pricing/price-calculator';
@@ -24,9 +22,9 @@ interface PriceFilters {
   search: string;
   minConfidence: number;
   pathType: 'all' | 'direct' | 'single-hop' | 'multi-hop';
-  sortBy: 'symbol' | 'price' | 'confidence' | 'lastUpdated';
+  sortBy: 'symbol' | 'price' | 'confidence' | 'liquidity' | 'lastUpdated';
   sortDir: 'asc' | 'desc';
-  showDetails: boolean;
+  priceDisplay: 'usd' | 'sat';
 }
 
 interface ApiResponse {
@@ -40,6 +38,7 @@ interface ApiResponse {
     sbtcRatio: number;
     confidence: number;
     lastUpdated: number;
+    totalLiquidity?: number; // Total USD liquidity across all pools for this token
     calculationDetails?: any;
     primaryPath?: any;
     alternativePathCount?: number;
@@ -62,9 +61,9 @@ export default function PriceTableContainer() {
     search: '',
     minConfidence: 0,
     pathType: 'all',
-    sortBy: 'confidence',
+    sortBy: 'liquidity',
     sortDir: 'desc',
-    showDetails: false
+    priceDisplay: 'usd'
   });
 
   const fetchPriceData = async (showRefreshIndicator = false) => {
@@ -84,7 +83,7 @@ export default function PriceTableContainer() {
 
       const params = new URLSearchParams({
         limit: '100',
-        details: filters.showDetails ? 'true' : 'false',
+        details: 'true',
         minConfidence: filters.minConfidence.toString()
       });
 
@@ -128,7 +127,7 @@ export default function PriceTableContainer() {
 
   useEffect(() => {
     fetchPriceData();
-  }, [filters.showDetails, filters.minConfidence]);
+  }, [filters.minConfidence]);
 
   // Auto-refresh every 5 minutes
   useEffect(() => {
@@ -137,7 +136,7 @@ export default function PriceTableContainer() {
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [filters.showDetails, filters.minConfidence]);
+  }, [filters.minConfidence]);
 
   // Filter and sort the price data
   const filteredAndSortedData = useMemo(() => {
@@ -196,6 +195,30 @@ export default function PriceTableContainer() {
         case 'confidence':
           compareValue = a.confidence - b.confidence;
           break;
+        case 'liquidity':
+          // Handle N/A values (null, undefined, or 0) - always put them at the bottom
+          const aLiquidity = a.totalLiquidity || a.calculationDetails?.totalLiquidity || 0;
+          const bLiquidity = b.totalLiquidity || b.calculationDetails?.totalLiquidity || 0;
+          
+          // If both are 0/null, treat as equal
+          if (aLiquidity === 0 && bLiquidity === 0) {
+            compareValue = 0;
+          }
+          // If only a is 0/null, put it after b (bottom regardless of sort direction)
+          else if (aLiquidity === 0) {
+            // Return early to avoid sort direction flip - always put N/A at bottom
+            return 1;
+          }
+          // If only b is 0/null, put it after a (bottom regardless of sort direction)
+          else if (bLiquidity === 0) {
+            // Return early to avoid sort direction flip - always put N/A at bottom
+            return -1;
+          }
+          // Both have valid values, sort normally
+          else {
+            compareValue = aLiquidity - bLiquidity;
+          }
+          break;
         case 'lastUpdated':
           compareValue = a.lastUpdated - b.lastUpdated;
           break;
@@ -217,6 +240,13 @@ export default function PriceTableContainer() {
 
   const handleRefresh = () => {
     fetchPriceData(true);
+  };
+
+  const handlePriceDisplayToggle = () => {
+    setFilters(prev => ({
+      ...prev,
+      priceDisplay: prev.priceDisplay === 'usd' ? 'sat' : 'usd'
+    }));
   };
 
   if (isLoading && !priceData) {
@@ -278,15 +308,6 @@ export default function PriceTableContainer() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setFilters(prev => ({ ...prev, showDetails: !prev.showDetails }))}
-            >
-              {filters.showDetails ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-              {filters.showDetails ? 'Hide Details' : 'Show Details'}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
@@ -342,8 +363,10 @@ export default function PriceTableContainer() {
           sortBy={filters.sortBy}
           sortDir={filters.sortDir}
           onSort={handleSort}
-          showDetails={filters.showDetails}
+          showDetails={true}
           isRefreshing={isRefreshing}
+          priceDisplay={filters.priceDisplay}
+          onPriceDisplayToggle={handlePriceDisplayToggle}
         />
       </CardContent>
     </Card>

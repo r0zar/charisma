@@ -153,23 +153,25 @@ export default function PoolBreakdownTable({
     return tokenValue + pairedValue;
   };
 
-  // Helper function to format atomic liquidity for display
-  const formatAtomicLiquidity = (atomicValue: number): string => {
-    // Convert large atomic numbers to readable format using standard abbreviations
-    if (atomicValue >= 1e18) {
-      return `${(atomicValue / 1e18).toFixed(2)}E`;
-    } else if (atomicValue >= 1e15) {
-      return `${(atomicValue / 1e15).toFixed(2)}P`;
-    } else if (atomicValue >= 1e12) {
-      return `${(atomicValue / 1e12).toFixed(2)}T`;
-    } else if (atomicValue >= 1e9) {
-      return `${(atomicValue / 1e9).toFixed(2)}B`;
-    } else if (atomicValue >= 1e6) {
-      return `${(atomicValue / 1e6).toFixed(2)}M`;
-    } else if (atomicValue >= 1e3) {
-      return `${(atomicValue / 1e3).toFixed(2)}K`;
+  // Helper function to format USD liquidity for display
+  const formatUsdLiquidity = (usdValue: number): string => {
+    if (usdValue === 0) {
+      return 'N/A';
+    }
+    
+    // Format USD values with appropriate abbreviations
+    if (usdValue >= 1e9) {
+      return `$${(usdValue / 1e9).toFixed(2)}B`;
+    } else if (usdValue >= 1e6) {
+      return `$${(usdValue / 1e6).toFixed(2)}M`;
+    } else if (usdValue >= 1e3) {
+      return `$${(usdValue / 1e3).toFixed(1)}K`;
+    } else if (usdValue >= 1) {
+      return `$${usdValue.toFixed(2)}`;
+    } else if (usdValue >= 0.01) {
+      return `$${usdValue.toFixed(4)}`;
     } else {
-      return atomicValue.toFixed(2);
+      return `$${usdValue.toExponential(2)}`;
     }
   };
 
@@ -207,11 +209,8 @@ export default function PoolBreakdownTable({
       const tokenReserve = formatTokenReserve(tokenReserveAtomic, tokenDecimals);
       const pairedReserve = formatTokenReserve(pairedReserveAtomic, pairedDecimals);
 
-      // Calculate decimal-aware metrics
-      // Use liquidityRelative if it exists (percentage), otherwise fall back to atomic liquidity for display
-      const relativeLiquidity = (pool.liquidityRelative !== undefined && pool.liquidityRelative !== null)
-        ? pool.liquidityRelative  // This is now a percentage (0-100)
-        : (pool.liquidityUsd || Math.sqrt(tokenReserve * pairedReserve)); // Fallback to atomic liquidity
+      // Use USD-based liquidity metrics from iterative price discovery
+      // liquidityRelative is a percentage (0-100) calculated from USD liquidity in price-graph
 
       const exchangeRate = calculateDecimalAwareUIExchangeRate(
         tokenReserveAtomic, tokenDecimals,
@@ -226,18 +225,11 @@ export default function PoolBreakdownTable({
         pairedTokenId
       );
 
-      // Use the relative liquidity score directly (already calculated as percentage in price-graph)
-      // If liquidityRelative exists, it's already a percentage (0-100), convert to 0-1 scale
-      // If not, fall back to atomic liquidity comparison for backward compatibility
+      // Use the relative liquidity score from USD-based calculations in price-graph
+      // liquidityRelative is already a percentage (0-100) calculated from USD liquidity
       const liquidityScore = (pool.liquidityRelative !== undefined && pool.liquidityRelative !== null)
-        ? pool.liquidityRelative / 100  // Convert percentage to 0-1 scale
-        : (() => {
-          // Fallback: calculate relative score from atomic values
-          const atomicLiquidity = pool.liquidityUsd || 0;
-          const maxAtomicLiquidityInSet = pools.reduce((max, p) =>
-            Math.max(max, p.liquidityUsd || 0), 0);
-          return maxAtomicLiquidityInSet > 0 ? Math.min(1, atomicLiquidity / maxAtomicLiquidityInSet) : 0;
-        })();
+        ? pool.liquidityRelative / 100  // Convert percentage to 0-1 scale for display
+        : 0; // No fallback needed - either discovered via USD or 0
 
       // Enhanced debug logging for liquidity scores
       if (pool.liquidityRelative !== undefined && pool.liquidityRelative !== null) {
@@ -262,30 +254,24 @@ export default function PoolBreakdownTable({
         }
       }
 
-      // Calculate risk level based on liquidity and age (improved logic)
+      // Calculate risk level based on USD liquidity and age
       const dataAge = Date.now() - pool.lastUpdated;
       const ageHours = dataAge / (1000 * 60 * 60);
 
       let riskLevel: 'low' | 'medium' | 'high' = 'low';
 
-      // Use USD liquidity for risk assessment when available (more meaningful than global %)
-      if (liquidityUsd !== undefined) {
-        // USD-based risk assessment
-        if (liquidityUsd < 10000 || ageHours > 72) { // <$10K or very stale
-          riskLevel = 'high';
-        } else if (liquidityUsd < 100000 || ageHours > 48) { // <$100K or stale
-          riskLevel = 'medium';
-        }
-      } else {
-        // Fallback to global percentage for risk assessment
-        if (liquidityScore < 0.01 || ageHours > 72) { // <1% of global max or very stale
-          riskLevel = 'high';
-        } else if (liquidityScore < 0.05 || ageHours > 48) { // <5% of global max or stale
-          riskLevel = 'medium';
-        }
+      const usdLiquidity = pool.liquidityUsd || 0;
+      
+      // USD-based risk assessment (no fallbacks needed)
+      if (usdLiquidity === 0 || usdLiquidity < 1000 || ageHours > 72) {
+        // No USD data, very low liquidity, or very stale data
+        riskLevel = 'high';
+      } else if (usdLiquidity < 10000 || ageHours > 48) {
+        // Low liquidity or stale data
+        riskLevel = 'medium';
       }
 
-      console.log(`[PoolBreakdown]   Risk calculation: USD=${liquidityUsd?.toFixed(0)}, score=${liquidityScore.toFixed(4)}, age=${ageHours.toFixed(1)}h -> ${riskLevel}`);
+      console.log(`[PoolBreakdown]   Risk calculation: USD=${usdLiquidity.toFixed(0)}, score=${liquidityScore.toFixed(4)}, age=${ageHours.toFixed(1)}h -> ${riskLevel}`);
 
       return {
         pool,
@@ -308,7 +294,7 @@ export default function PoolBreakdownTable({
 
       switch (sortField) {
         case 'liquidity':
-          compareValue = (a.pool.liquidityRelative || a.pool.liquidityUsd) - (b.pool.liquidityRelative || b.pool.liquidityUsd);
+          compareValue = (a.pool.liquidityUsd || 0) - (b.pool.liquidityUsd || 0);
           break;
         case 'tokenReserve':
           compareValue = a.tokenReserve - b.tokenReserve;
@@ -393,7 +379,7 @@ export default function PoolBreakdownTable({
                 <SortHeader field="tokenReserve">{tokenSymbol} Reserve</SortHeader>
                 <SortHeader field="liquidity">
                   <div className="flex items-center gap-1">
-                    Atomic Liquidity
+                    USD Liquidity
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -401,7 +387,7 @@ export default function PoolBreakdownTable({
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-md p-3">
                           <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-                            <p>Pool liquidity calculated as geometric mean of raw atomic reserves (√(tokenA × tokenB)). Uses atomic units to eliminate decimal scaling bias.</p>
+                            <p>Pool liquidity in USD calculated using iterative price discovery from sBTC oracle. Represents the geometric mean of both token sides valued in USD (√(tokenA_USD × tokenB_USD)).</p>
                           </div>
                         </TooltipContent>
                       </Tooltip>
@@ -418,7 +404,7 @@ export default function PoolBreakdownTable({
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-md p-3">
                           <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-                            <p>Relative score (0-100%) comparing this pool's liquidity to the highest liquidity pool globally. Higher scores indicate better trading conditions and lower slippage.</p>
+                            <p>Relative score (0-100%) comparing this pool's USD liquidity to the highest liquidity pool globally. Based on iterative price discovery from sBTC oracle anchor.</p>
                           </div>
                         </TooltipContent>
                       </Tooltip>
@@ -497,12 +483,12 @@ export default function PoolBreakdownTable({
                     </div>
                   </td>
 
-                  {/* Atomic Liquidity */}
+                  {/* USD Liquidity */}
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-blue-500" />
+                      <Activity className="h-4 w-4 text-green-500" />
                       <span className="font-semibold">
-                        {formatAtomicLiquidity(item.pool.liquidityUsd || 0)}
+                        {formatUsdLiquidity(item.pool.liquidityUsd || 0)}
                       </span>
                     </div>
                   </td>
@@ -575,9 +561,9 @@ export default function PoolBreakdownTable({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Total Atomic Liquidity:</span>
+              <span className="text-muted-foreground">Total USD Liquidity:</span>
               <span className="font-semibold">
-                {formatAtomicLiquidity(sortedPools.reduce((sum, p) => sum + (p.pool.liquidityUsd || 0), 0))}
+                {formatUsdLiquidity(sortedPools.reduce((sum, p) => sum + (p.pool.liquidityUsd || 0), 0))}
               </span>
             </div>
             <div className="flex items-center gap-2">

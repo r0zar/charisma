@@ -170,17 +170,17 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
                         </div>
                         <div className="text-xs text-muted-foreground leading-relaxed space-y-2">
                           <p>
-                            <strong className="text-foreground">Price Confidence Algorithm:</strong> Our multi-factor scoring system evaluates price reliability using three key components:
+                            <strong className="text-foreground">Iterative Price Discovery:</strong> Prices discovered through multi-cycle algorithm starting from sBTC oracle anchor and expanding through liquidity graph:
                           </p>
                           <div className="space-y-1.5">
                             <div>
-                              <strong className="text-foreground">• Price Consistency (40%):</strong> How closely prices agree across different trading paths. Lower variation = higher confidence.
+                              <strong className="text-foreground">• Oracle Anchoring:</strong> Starts with sBTC price from BTC oracle and known stablecoin values ($1.00).
                             </div>
                             <div>
-                              <strong className="text-foreground">• Liquidity Depth (40%):</strong> Total liquidity backing the price discovery. Deeper pools provide more reliable pricing.
+                              <strong className="text-foreground">• Graph Expansion:</strong> Discovers prices through actual pool exchange rates, expanding outward each cycle.
                             </div>
                             <div>
-                              <strong className="text-foreground">• Path Diversity (20%):</strong> Number of independent trading routes found. Multiple paths reduce single-point-of-failure risk.
+                              <strong className="text-foreground">• Confidence Decay:</strong> Each hop from anchor reduces confidence but increases coverage. Shorter paths = higher confidence.
                             </div>
                           </div>
                           <div className="border-t border-border pt-2 mt-2">
@@ -329,7 +329,7 @@ export default function TokenHeader({ tokenMeta, priceData }: TokenHeaderProps) 
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Total Liquidity:</span>
+                  <span className="text-sm text-muted-foreground">Total USD Liquidity:</span>
                   <span className="text-sm font-medium">
                     ${priceData.calculationDetails.totalLiquidity.toLocaleString()}
                   </span>
