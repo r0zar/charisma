@@ -1,301 +1,316 @@
-# Charisma: Next Generation DeFi Platform
+# Charisma DeFi Platform
 
-A comprehensive DeFi ecosystem built on Stacks with advanced trading features, sophisticated glass morphism design, and professional-grade tools for token swapping and portfolio management.
+A comprehensive monorepo for decentralized finance applications built on Stacks, featuring advanced trading tools, token infrastructure, and real-time data services.
 
-## 🚀 Overview
+## Monorepo Structure
 
-Charisma is a modern decentralized exchange (DEX) platform that provides:
-
-- **Advanced Token Swapping** with optimal routing across liquidity pools
-- **Professional Trading Tools** including limit orders, DCA, and strategy management
-- **Glass Morphism Design System** inspired by Apple and Tesla aesthetics
-- **Real-time Analytics** and comprehensive token exploration
-- **Security-First Architecture** with isolated vault contracts
-
-## 📁 Project Structure
-
-This monorepo contains multiple applications and shared packages:
+This repository contains multiple interconnected applications and shared packages for the Charisma ecosystem.
 
 ### Applications
 
-- **`simple-swap`**: Main DEX interface with glass morphism design
-  - Next.js 15 with App Router
-  - Advanced order types (limit orders, DCA, sandwich trades)
-  - Real-time price charts and analytics
-  - Professional responsive design system
-  - Comprehensive admin panel
+#### Core Trading Platform
+- **`simple-swap`**: Main DEX interface with limit orders, DCA strategies, and advanced trading features
+- **`pro-interface`**: Professional trading tools with charts and analytics
+- **`dex-cache`**: Price discovery, liquidity analysis, and market data caching
+
+#### Infrastructure Services  
+- **`blaze-signer`**: Transaction signing, verification, and intent management
+- **`token-cache`**: Token metadata caching and validation service
+- **`metadata`**: Token and contract metadata management
+- **`charisma-party`**: Real-time data feeds powered by PartyKit
+
+#### Developer Tools
+- **`contract-search`**: Smart contract discovery and analysis
+- **`launchpad`**: Token creation and contract deployment tools
+- **`docs`**: Technical documentation and API references
+
+#### Applications
+- **`meme-roulette`**: Gaming application with token mechanics
 
 ### Shared Packages
 
-- **`@repo/tokens`**: Token metadata and caching system
-- **`@repo/eslint-config`**: Shared ESLint configurations
-- **`@repo/typescript-config`**: TypeScript configurations across packages
-- **`@repo/ui`**: Shared UI components library
+- **`@repo/tokens`**: Token metadata library and caching utilities
+- **`@repo/ui`**: Shared UI component library
+- **`@repo/eslint-config`**: ESLint configurations across packages
+- **`@repo/typescript-config`**: TypeScript configurations
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Frontend
 - **Framework**: Next.js 15 with App Router
-- **Styling**: Tailwind CSS with custom glass morphism design system
-- **UI Components**: shadcn/ui with custom enhancements
-- **Charts**: Lightweight Charts for real-time price visualization
-- **Icons**: Lucide React
-- **State Management**: React Context with optimized performance
+- **Language**: TypeScript with strict typing
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui with custom extensions
+- **Charts**: Lightweight Charts for trading interfaces
+- **State Management**: React Context with optimized patterns
 
-### Backend & Integration
-- **Blockchain**: Stacks blockchain integration
-- **SDK**: Blaze SDK for real-time data and transactions
-- **Database**: PostgreSQL for analytics and caching
-- **Real-time**: WebSocket connections for live price updates
+### Backend & Data
+- **Database**: Vercel KV (Redis-compatible key-value store)
+- **File Storage**: Vercel Blob for large assets and logs
+- **Real-time**: PartyKit for WebSocket connections and live updates
+- **Blockchain**: Stacks integration via Blaze SDK
+- **APIs**: RESTful endpoints with Next.js API routes
 
-### Development Tools
-- **Monorepo**: Turborepo for optimized builds and caching
-- **Package Manager**: pnpm for efficient dependency management
-- **Type Safety**: TypeScript with strict configurations
-- **Code Quality**: ESLint, Prettier, and comprehensive testing
-- **Performance**: Advanced caching and optimization strategies
+### Infrastructure
+- **Monorepo**: Turborepo for build optimization and caching
+- **Package Manager**: pnpm with workspaces
+- **Deployment**: Vercel for all applications
+- **CI/CD**: Automated builds and testing pipelines
 
-## 🎨 Design System
-
-### Glass Morphism Implementation
-- **Philosophy**: Seamless interaction principles with invisible-until-hover patterns
-- **Visual Hierarchy**: Single-layer depth with consistent elevation
-- **Opacity Hierarchy**: Structured from 0.02 (base) to 0.12 (active borders)
-- **Color System**: Comprehensive text hierarchy and status colors
-- **Responsive Design**: Mobile-first with custom breakpoints
-
-### Key Design Principles
-- **Premium Aesthetic**: Inspired by Apple and Tesla design languages
-- **Progressive Disclosure**: Information architecture that reveals complexity gradually
-- **Smooth Transitions**: All interactions use consistent 200ms timing
-- **Accessibility**: Proper focus states and screen reader support
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
 - pnpm (recommended package manager)
 - Git
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and setup**
    ```bash
    git clone <repository-url>
    cd charisma
-   ```
-
-2. **Install dependencies**
-   ```bash
    pnpm install
    ```
 
-3. **Environment Setup**
+2. **Environment configuration**
    ```bash
-   # Copy environment template
+   # Copy environment templates for required apps
    cp apps/simple-swap/.env.example apps/simple-swap/.env.local
-   # Configure your environment variables
+   cp apps/dex-cache/.env.example apps/dex-cache/.env.local
+   # Configure environment variables for each app
    ```
 
-4. **Development**
+3. **Development**
    ```bash
    # Start all development servers
    pnpm dev
    
-   # Or start specific app
-   cd apps/simple-swap
-   pnpm dev
+   # Or start specific applications
+   pnpm dev --filter=simple-swap
+   pnpm dev --filter=dex-cache
    ```
 
-### Available Commands
+### Monorepo Commands
 
-#### Global Commands
 ```bash
-pnpm build        # Build all packages and applications
-pnpm dev          # Start all development servers
-pnpm lint         # Run linting across all packages
-pnpm test         # Run all tests
-pnpm clean        # Clean all build artifacts
+# Development
+pnpm dev                    # Start all applications
+pnpm dev --filter=<app>     # Start specific application
+pnpm build                  # Build all packages and applications
+pnpm test                   # Run all tests
+pnpm lint                   # Lint all packages
+pnpm clean                  # Clean all build artifacts
+
+# Package management
+pnpm install                # Install all dependencies
+pnpm install <pkg>          # Add dependency to root
+pnpm add <pkg> --filter=<app>  # Add dependency to specific app
 ```
 
-#### Application-Specific Commands
+## Architecture
+
+### Inter-App Communication
+
+- **simple-swap** ↔ **dex-cache**: Price data and liquidity information
+- **simple-swap** ↔ **blaze-signer**: Transaction signing and execution
+- **token-cache** → **All Apps**: Centralized token metadata
+- **charisma-party** → **All Apps**: Real-time updates via WebSocket
+
+### Shared Services
+
+#### Token Infrastructure
+- Centralized token metadata in `@repo/tokens`
+- Caching layer via `token-cache` application
+- Validation and enrichment in `metadata` service
+
+#### Real-time Data
+- PartyKit servers for live price feeds
+- WebSocket connections for order updates
+- Shared state management across applications
+
+#### Development Tools
+- Shared TypeScript configurations
+- Common ESLint rules and Prettier setup
+- UI component library for consistent interfaces
+
+## Environment Configuration
+
+### Core Variables (All Apps)
 ```bash
-# Within apps/simple-swap
-pnpm dev          # Start development server
-pnpm build        # Build for production
-pnpm start        # Start production server
-pnpm lint         # Run linting
-pnpm check-types  # TypeScript type checking
-pnpm test         # Run tests with coverage
-```
+# Vercel KV
+KV_REST_API_URL=           # Vercel KV REST API URL
+KV_REST_API_TOKEN=         # Vercel KV authentication token
 
-## 🏗️ Architecture
+# Vercel Blob  
+BLOB_READ_WRITE_TOKEN=     # Blob storage access token
 
-### Simple Swap Application
-
-#### Core Features
-- **Token Swapping**: Multi-hop routing with up to 9-hop paths
-- **Limit Orders**: Advanced order types with condition-based execution
-- **DCA Strategies**: Automated dollar-cost averaging with flexible scheduling
-- **Sandwich Trading**: Sophisticated arbitrage strategies
-- **Real-time Analytics**: Live price charts and portfolio tracking
-
-#### Key Components
-- **Swap Interface**: Main trading interface with responsive design
-- **Order Management**: Professional order book and strategy tracking
-- **Token Explorer**: Comprehensive token information and analytics
-- **Pro Mode**: Advanced features for sophisticated traders
-- **Admin Panel**: Complete system monitoring and management
-
-#### Security Features
-- **Isolated Vaults**: Each pool uses separate Clarity contracts
-- **Non-custodial**: Users maintain control of their private keys
-- **Transaction Monitoring**: Real-time transaction status tracking
-- **Error Handling**: Comprehensive error recovery and user feedback
-
-## 📊 Features
-
-### Trading Features
-- ✅ **Instant Swaps** with optimal routing
-- ✅ **Limit Orders** with flexible conditions
-- ✅ **DCA Strategies** with customizable intervals
-- ✅ **Sandwich Trading** for advanced users
-- ✅ **Real-time Price Charts** with technical analysis
-- ✅ **Portfolio Tracking** and performance analytics
-
-### User Experience
-- ✅ **Glass Morphism Design** with premium aesthetics
-- ✅ **Responsive Interface** optimized for all devices
-- ✅ **Progressive Web App** capabilities
-- ✅ **Dark Mode** with sophisticated visual hierarchy
-- ✅ **Accessibility** with keyboard navigation and screen readers
-
-### Technical Features
-- ✅ **TypeScript** with strict type safety
-- ✅ **Real-time Updates** via WebSocket connections
-- ✅ **Advanced Caching** for optimal performance
-- ✅ **Error Boundaries** with graceful degradation
-- ✅ **Performance Monitoring** and analytics
-
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Database
-DATABASE_URL=postgresql://...
+# PartyKit
+PARTYKIT_HOST=             # PartyKit host for real-time features
 
 # Stacks Network
-NEXT_PUBLIC_STACKS_API_URL=https://api.mainnet.hiro.so
-NEXT_PUBLIC_NETWORK=mainnet
-
-# Application
-NEXT_PUBLIC_APP_URL=https://swap.charisma.rocks
-NEXTAUTH_SECRET=your-secret-key
+NEXT_PUBLIC_STACKS_API_URL=# Stacks API endpoint
+NEXT_PUBLIC_NETWORK=       # mainnet/testnet
 ```
 
-### Turborepo Configuration
-The project uses Turborepo for optimized builds and caching. Key configuration includes:
-- **Pipeline**: Optimized build and development workflows
-- **Remote Caching**: Shared cache for faster CI/CD
-- **Dependency Management**: Automatic dependency tracking
+### App-Specific Variables
+Each application has additional environment requirements documented in their respective README files.
 
-## 🚀 Deployment
+## Development Workflow
 
-### Production Build
+### Working with Multiple Apps
+
+1. **Local Development**
+   ```bash
+   # Terminal 1: Start shared services
+   pnpm dev --filter=token-cache --filter=charisma-party
+   
+   # Terminal 2: Start main applications  
+   pnpm dev --filter=simple-swap --filter=dex-cache
+   ```
+
+2. **Testing Changes**
+   ```bash
+   # Test specific app
+   pnpm test --filter=simple-swap
+   
+   # Test affected packages
+   pnpm test --filter=...@repo/tokens
+   ```
+
+3. **Building for Production**
+   ```bash
+   # Build all packages first, then applications
+   pnpm build --filter=@repo/*
+   pnpm build --filter=simple-swap
+   ```
+
+### Code Organization
+
+- **Shared logic**: Place in `packages/` directory
+- **App-specific code**: Keep within respective `apps/` directory
+- **Cross-app utilities**: Use `@repo/` scoped packages
+- **API integrations**: Centralize in shared packages when possible
+
+## Data Flow
+
+### Price Data Pipeline
+1. **dex-cache**: Fetches and processes market data
+2. **Vercel KV**: Caches processed price information
+3. **charisma-party**: Broadcasts real-time updates
+4. **simple-swap**: Consumes data for trading interface
+
+### Order Management
+1. **simple-swap**: User creates orders
+2. **blaze-signer**: Signs and validates transactions
+3. **Vercel KV**: Stores order state and history
+4. **charisma-party**: Real-time order status updates
+
+### Token Information
+1. **token-cache**: Maintains metadata cache
+2. **metadata**: Enriches token information
+3. **@repo/tokens**: Provides typed interfaces
+4. **All Apps**: Consume consistent token data
+
+## API Documentation
+
+### Internal APIs
+- **Token Cache API**: `/api/v1/tokens/*` - Token metadata and validation
+- **Price API**: `/api/v1/prices/*` - Real-time and historical pricing
+- **Order API**: `/api/v1/orders/*` - Order management and execution
+
+### External Integrations
+- **Stacks API**: Blockchain data and transaction broadcasting
+- **PartyKit**: Real-time WebSocket connections
+- **Vercel Storage**: KV and Blob storage operations
+
+## Deployment
+
+### Application Deployment
+Each application deploys independently to Vercel:
+
 ```bash
-# Build all applications
-pnpm build
-
-# Deploy simple-swap
+# Deploy specific application
 cd apps/simple-swap
-pnpm build
-pnpm start
+vercel deploy
+
+# Deploy with environment variables
+vercel deploy --env ENVIRONMENT=production
 ```
 
-### Docker Support
+### Shared Dependencies
+- Packages are built automatically during application deployment
+- Turborepo handles build optimization and caching
+- Dependencies are resolved across the entire monorepo
+
+### Environment Management
+- Production variables configured in Vercel dashboard
+- Staging environments use separate KV and Blob instances
+- PartyKit environments isolated per deployment
+
+## Testing
+
+### Test Strategy
+- **Unit Tests**: Individual component and utility testing
+- **Integration Tests**: Cross-package functionality
+- **E2E Tests**: Full application workflows
+- **API Tests**: Backend service validation
+
+### Running Tests
 ```bash
-# Build Docker image
-docker build -t charisma-swap .
+# All tests
+pnpm test
 
-# Run container
-docker run -p 3000:3000 charisma-swap
+# Specific application tests
+pnpm test --filter=simple-swap
+
+# Shared package tests
+pnpm test --filter=@repo/tokens
+
+# Watch mode for development
+pnpm test:watch --filter=simple-swap
 ```
 
-## 📝 Development Guidelines
+## Contributing
 
-### Code Style
-- **TypeScript**: Strict typing with explicit annotations
-- **Components**: Functional React components with hooks
-- **Naming**: PascalCase for components, camelCase for functions
-- **Error Handling**: Structured try/catch with proper logging
-- **Documentation**: JSDoc comments for public APIs
+### Development Guidelines
+1. Follow TypeScript strict typing
+2. Use shared UI components from `@repo/ui`
+3. Maintain test coverage for new features
+4. Update documentation for API changes
+5. Follow conventional commit messages
 
-### Commit Conventions
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation updates
-- `style:` Code style changes
-- `refactor:` Code refactoring
-- `test:` Test additions or updates
-- `chore:` Maintenance tasks
+### Pull Request Process
+1. Create feature branch from `main`
+2. Implement changes with tests
+3. Run `pnpm lint` and `pnpm test`
+4. Update relevant documentation
+5. Submit PR with clear description
 
-### Testing Strategy
-- **Unit Tests**: Component and utility testing
-- **Integration Tests**: API and workflow testing
-- **E2E Tests**: Complete user journey testing
-- **Performance Tests**: Load and stress testing
+### Code Quality
+- ESLint and Prettier enforce consistent formatting
+- TypeScript ensures type safety across packages
+- Automated testing validates functionality
+- Performance monitoring tracks application health
 
-## 🤝 Contributing
+## Documentation
 
-### Development Workflow
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'feat: add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
+- **Application READMEs**: Each app has specific setup instructions
+- **API Documentation**: Available in `/docs` application
+- **Component Library**: Documented in `packages/ui`
+- **Technical Guides**: Located in `/docs` for complex integrations
 
-### Code Review Process
-- All changes require code review
-- Automated testing must pass
-- Design system compliance required
-- Performance impact assessment
+## Troubleshooting
 
-## 📚 Documentation
+### Common Issues
+- **Build Errors**: Run `pnpm clean` then `pnpm install`
+- **Type Errors**: Ensure shared packages are built first
+- **Environment Variables**: Check all required variables are set
+- **Port Conflicts**: Applications use different ports by default
 
-- **Design System**: `/apps/simple-swap/DESIGN_SYSTEM.md`
-- **API Documentation**: `/docs/api/`
-- **Component Library**: `/packages/ui/README.md`
-- **Deployment Guide**: `/docs/deployment.md`
-
-## 🔗 Links
-
-- **Website**: [https://charisma.rocks](https://charisma.rocks)
-- **Swap Interface**: [https://swap.charisma.rocks](https://swap.charisma.rocks)
-- **Documentation**: [https://docs.charisma.rocks](https://docs.charisma.rocks)
-- **GitHub**: [https://github.com/pointblankdev/charisma-web](https://github.com/pointblankdev/charisma-web)
-- **Twitter**: [@charisma_btc](https://twitter.com/charisma_btc)
-- **Discord**: [Join Community](https://discord.gg/charisma)
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🎯 Roadmap
-
-### Q1 2024
-- ✅ Advanced order types implementation
-- ✅ Glass morphism design system
-- ✅ Real-time analytics dashboard
-- 🔄 Pro mode features
-- 🔄 Mobile app development
-
-### Q2 2024
-- 📋 Cross-chain bridge integration
-- 📋 Advanced portfolio management
-- 📋 Social trading features
-- 📋 API marketplace
-- 📋 Institutional tools
+### Debug Mode
+Set `DEBUG=true` in environment variables for detailed logging across all applications.
 
 ---
 
-Built with ❤️ by the Charisma team. Powered by Stacks blockchain.
+Built by the Charisma team for the Stacks ecosystem.
