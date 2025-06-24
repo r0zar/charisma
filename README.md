@@ -14,10 +14,12 @@ This repository contains multiple interconnected applications and shared package
 - **`dex-cache`**: Price discovery, liquidity analysis, and market data caching
 
 #### Infrastructure Services  
-- **`blaze-signer`**: Transaction signing, verification, and intent management
 - **`token-cache`**: Token metadata caching and validation service
 - **`metadata`**: Token and contract metadata management
 - **`charisma-party`**: Real-time data feeds powered by PartyKit
+
+#### Experimental/Labs
+- **`blaze-signer`**: Experimental playground for transaction signing, verification, and intent management concepts
 
 #### Developer Tools
 - **`contract-search`**: Smart contract discovery and analysis
@@ -113,9 +115,9 @@ pnpm add <pkg> --filter=<app>  # Add dependency to specific app
 ### Inter-App Communication
 
 - **simple-swap** ↔ **dex-cache**: Price data and liquidity information
-- **simple-swap** ↔ **blaze-signer**: Transaction signing and execution
 - **token-cache** → **All Apps**: Centralized token metadata
 - **charisma-party** → **All Apps**: Real-time updates via WebSocket
+- **blaze-signer**: Standalone experimental environment (not integrated with production apps)
 
 ### Shared Services
 
@@ -201,10 +203,9 @@ Each application has additional environment requirements documented in their res
 4. **simple-swap**: Consumes data for trading interface
 
 ### Order Management
-1. **simple-swap**: User creates orders
-2. **blaze-signer**: Signs and validates transactions
-3. **Vercel KV**: Stores order state and history
-4. **charisma-party**: Real-time order status updates
+1. **simple-swap**: User creates orders with built-in signing
+2. **Vercel KV**: Stores order state and history
+3. **charisma-party**: Real-time order status updates
 
 ### Token Information
 1. **token-cache**: Maintains metadata cache
