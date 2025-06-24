@@ -474,7 +474,7 @@ export default function LimitConditionSection() {
 
                             {/* Price Input Section */}
                             <div className="flex-1 min-w-0 w-full sm:w-auto">
-                                <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 sm:px-4 py-3 w-full">
+                                <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2.5 w-full">
                                     <input
                                         value={hasPriceTrigger ? priceTargetPrice : ratioTargetPrice}
                                         onChange={(e) => {
@@ -499,18 +499,19 @@ export default function LimitConditionSection() {
                                             }
                                         }}
                                         placeholder="0.00"
-                                        className="bg-transparent border-none text-base sm:text-lg font-medium focus:outline-none placeholder:text-white/40 text-white/95 flex-1 min-w-0"
+                                        className="bg-transparent border-none text-base font-medium focus:outline-none placeholder:text-white/40 text-white/95 flex-1 min-w-0"
                                     />
-                                    <div className="flex items-center space-x-1 ml-1 sm:ml-2 flex-shrink-0">
+                                    {/* +/- buttons - only show on large screens */}
+                                    <div className="hidden lg:flex items-center space-x-1 ml-2 flex-shrink-0">
                                         <button
                                             onClick={() => handleBumpPrice(-0.01)}
-                                            className="w-7 h-7 sm:w-6 sm:h-6 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center text-xs font-medium"
+                                            className="w-6 h-6 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center text-xs font-medium"
                                         >
                                             −
                                         </button>
                                         <button
                                             onClick={() => handleBumpPrice(0.01)}
-                                            className="w-7 h-7 sm:w-6 sm:h-6 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center text-xs font-medium"
+                                            className="w-6 h-6 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center text-xs font-medium"
                                         >
                                             +
                                         </button>
@@ -567,8 +568,8 @@ export default function LimitConditionSection() {
                     <div className="mb-4">
                         <h5 className="text-sm font-medium text-green-400 mb-3">Time Trigger Configuration</h5>
 
-                        {/* Time inputs - stacked on small screens, side by side on larger screens */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Time inputs - side by side on larger screens */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Start Time */}
                             <div>
                                 <label className="text-xs text-white/60 mb-2 block">Start Time (Optional)</label>

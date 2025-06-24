@@ -201,6 +201,16 @@
     text-wrap: balance;
   }
   
+  /* Custom 3xl breakpoint classes for debugging */
+  @media (min-width: 1920px) {
+    .\33xl\:grid {
+      display: grid;
+    }
+    .\33xl\:hidden {
+      display: none;
+    }
+  }
+  
   .safe-area {
     padding-inline: max(env(safe-area-inset-left), 1rem)
                     max(env(safe-area-inset-right), 1rem);
