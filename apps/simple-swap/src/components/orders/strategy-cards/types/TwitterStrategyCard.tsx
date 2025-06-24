@@ -10,6 +10,7 @@ import { formatExecWindowHuman, getOrderTimestamps } from '@/lib/date-utils';
 import { truncateAddress, truncateSmartContract } from '@/lib/address-utils';
 import TokenLogo from '../../../TokenLogo';
 import { ChevronDown, ChevronUp, ExternalLink, Copy, Check, Zap, Trash2, MessageCircle, Users, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /**
  * Component for displaying Twitter-triggered strategies
@@ -159,22 +160,35 @@ export const TwitterStrategyCard: React.FC<TwitterStrategyCardProps> = (props) =
             <div className="flex items-center justify-center pt-2">
                 <button
                     onClick={handleCardClick}
-                    className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-white/60 hover:text-white/80 transition-all duration-200 text-xs"
+                    className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-white/60 hover:text-white/80 transition-all duration-200 text-xs hover:transform hover:scale-105"
                 >
                     <span>{isExpanded ? 'Hide Details' : 'Show Details'}</span>
-                    {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    <div className={cn(
+                        "transition-transform duration-300 ease-in-out",
+                        isExpanded ? "rotate-180" : "rotate-0"
+                    )}>
+                        <ChevronDown className="h-3 w-3" />
+                    </div>
                 </button>
             </div>
 
             {/* Expanded Individual Orders (when expanded) */}
-            {isExpanded && (
-                <div className="mt-4 space-y-2 border-t border-white/[0.08] pt-4">
+            <div className={cn(
+                "overflow-hidden transition-all duration-500 ease-in-out border-t border-white/[0.08]",
+                isExpanded 
+                    ? "max-h-[2000px] opacity-100 mt-4 pt-4" 
+                    : "max-h-0 opacity-0 mt-0 pt-0"
+            )}>
+                <div className={cn(
+                    "space-y-2 transition-all duration-300 ease-in-out",
+                    isExpanded ? "transform translate-y-0" : "transform -translate-y-4"
+                )}>
                     <div className="text-xs font-medium text-white/70 mb-3">Individual Orders ({orders.length})</div>
                     {orders.map((order, index) => {
                         const isOrderExpanded = expandedRow === order.uuid;
                         
                         return (
-                            <div key={order.uuid} className="relative rounded-2xl border border-white/[0.05] bg-white/[0.01] hover:bg-white/[0.02] transition-all duration-200">
+                            <div key={order.uuid} className="relative rounded-2xl border border-white/[0.05] bg-white/[0.01] hover:bg-white/[0.02] transition-all duration-200 hover:shadow-lg hover:shadow-white/[0.02]">
                                 {/* Order Header */}
                                 <div 
                                     className="p-4 cursor-pointer"
@@ -201,8 +215,16 @@ export const TwitterStrategyCard: React.FC<TwitterStrategyCardProps> = (props) =
                                 </div>
 
                                 {/* Expanded Order Details */}
-                                {isOrderExpanded && (
-                                    <div className="px-4 pb-4 space-y-4">
+                                <div className={cn(
+                                    "overflow-hidden transition-all duration-400 ease-in-out",
+                                    isOrderExpanded 
+                                        ? "max-h-[1500px] opacity-100" 
+                                        : "max-h-0 opacity-0"
+                                )}>
+                                    <div className={cn(
+                                        "px-4 pb-4 space-y-4 transition-all duration-300 ease-in-out",
+                                        isOrderExpanded ? "transform translate-y-0 pt-0" : "transform -translate-y-4 pt-0"
+                                    )}>
                                         <div className="space-y-4 lg:grid lg:gap-4 lg:grid-cols-2 lg:space-y-0">
                                             {/* Technical Parameters */}
                                             <div className="space-y-3">
@@ -467,12 +489,12 @@ export const TwitterStrategyCard: React.FC<TwitterStrategyCardProps> = (props) =
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                </div>
                             </div>
                         );
                     })}
                 </div>
-            )}
+            </div>
         </BaseStrategyCard>
     );
 };

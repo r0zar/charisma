@@ -255,30 +255,35 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                 e.stopPropagation();
                                 onToggleRowExpansion(id);
                             }}
-                            className="flex items-center gap-2 text-xs text-white/60 hover:text-white/90 transition-colors cursor-pointer"
+                            className="flex items-center gap-2 text-xs text-white/60 hover:text-white/90 transition-all duration-200 cursor-pointer hover:transform hover:scale-105"
                         >
-                            {isDetailExpanded ? (
-                                <>
-                                    <ChevronUp className="h-4 w-4" />
-                                    Hide details
-                                </>
-                            ) : (
-                                <>
-                                    <ChevronDown className="h-4 w-4" />
-                                    Show details
-                                </>
-                            )}
+                            <span>{isDetailExpanded ? 'Hide details' : 'Show details'}</span>
+                            <div className={cn(
+                                "transition-transform duration-300 ease-in-out",
+                                isDetailExpanded ? "rotate-180" : "rotate-0"
+                            )}>
+                                <ChevronDown className="h-4 w-4" />
+                            </div>
                         </button>
                     </div>
                 )}
 
                 {/* Expanded Strategy Details */}
-                {!isSingleOrder && isExpanded && (
-                    <div className="pt-4 border-t border-white/[0.08] space-y-3">
+                {!isSingleOrder && (
+                    <div className={cn(
+                        "overflow-hidden transition-all duration-500 ease-in-out border-t border-white/[0.08]",
+                        isExpanded 
+                            ? "max-h-[2000px] opacity-100 pt-4" 
+                            : "max-h-0 opacity-0 pt-0"
+                    )}>
+                        <div className={cn(
+                            "space-y-3 transition-all duration-300 ease-in-out",
+                            isExpanded ? "transform translate-y-0" : "transform -translate-y-4"
+                        )}>
                         {orders.map((order, index) => {
                             const isOrderExpanded = expandedRow === order.uuid;
                             return (
-                                <div key={order.uuid} className="rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                                <div key={order.uuid} className="rounded-xl bg-white/[0.02] border border-white/[0.05] transition-all duration-200 hover:shadow-lg hover:shadow-white/[0.02]">
                                     <div 
                                         className="flex items-center justify-between p-3 cursor-pointer hover:bg-white/[0.02] transition-all duration-200"
                                         onClick={(e) => {
@@ -337,15 +342,28 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                     </button>
                                                 </div>
                                             )}
-                                            <div className="p-1 rounded-lg text-white/40 transition-all duration-200 pointer-events-none">
-                                                {isOrderExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                            <div className="p-1 rounded-lg text-white/40 transition-all duration-300 pointer-events-none">
+                                                <div className={cn(
+                                                    "transition-transform duration-300 ease-in-out",
+                                                    isOrderExpanded ? "rotate-180" : "rotate-0"
+                                                )}>
+                                                    <ChevronDown className="h-3 w-3" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Individual Order Detailed View */}
-                                    {isOrderExpanded && (
-                                        <div className="px-3 pb-3 border-t border-white/[0.05] space-y-4">
+                                    <div className={cn(
+                                        "overflow-hidden transition-all duration-400 ease-in-out border-t border-white/[0.05]",
+                                        isOrderExpanded 
+                                            ? "max-h-[1500px] opacity-100" 
+                                            : "max-h-0 opacity-0"
+                                    )}>
+                                        <div className={cn(
+                                            "px-3 pb-3 space-y-4 transition-all duration-300 ease-in-out",
+                                            isOrderExpanded ? "transform translate-y-0 pt-3" : "transform -translate-y-4 pt-0"
+                                        )}>
                                             <div className="grid gap-4 md:grid-cols-2 pt-3">
                                                 {/* Technical Parameters */}
                                                 <div className="space-y-3">
@@ -513,16 +531,25 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                 </div>
                                             )}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             );
                         })}
+                        </div>
                     </div>
                 )}
 
                 {/* Detailed Technical View - Strategy-level details only */}
-                {isDetailExpanded && (
-                    <div className="pt-6 border-t border-white/[0.08] space-y-6">
+                <div className={cn(
+                    "overflow-hidden transition-all duration-500 ease-in-out border-t border-white/[0.08]",
+                    isDetailExpanded 
+                        ? "max-h-[2000px] opacity-100 pt-6" 
+                        : "max-h-0 opacity-0 pt-0"
+                )}>
+                    <div className={cn(
+                        "space-y-6 transition-all duration-300 ease-in-out",
+                        isDetailExpanded ? "transform translate-y-0" : "transform -translate-y-4"
+                    )}>
                         {!isSingleOrder ? (
                             // Strategy Details View
                             <div className="space-y-6">
@@ -836,7 +863,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                             <span className="text-xs text-white/40">Click to collapse details</span>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
