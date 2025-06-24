@@ -19,7 +19,7 @@ export async function processTwitterTriggers(): Promise<{
         errors: [] as string[],
     };
 
-    console.warn('[Twitter Processor] Starting Twitter trigger processing');
+    console.log('[Twitter Processor] Starting Twitter trigger processing');
 
     // Get all active triggers that need checking
     const triggers = await listTwitterTriggers(true);
@@ -62,7 +62,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
     errors: string[];
 }> {
 
-    console.warn(`[Twitter Processor] Processing trigger ${trigger.id} for tweet ${trigger.tweetId}`);
+    console.log(`[Twitter Processor] Processing trigger ${trigger.id} for tweet ${trigger.tweetId}`);
     const results = {
         newReplies: 0,
         ordersCreated: 0,
@@ -75,7 +75,6 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
 
         // Scrape new replies
         const scrapingResult = await scrapeTwitterReplies(trigger.tweetId, lastReplyId);
-        console.error(`[Twitter Processor] Scraping result:`, scrapingResult);
 
         if (!scrapingResult.success) {
             throw new Error(`Twitter scraping failed: ${scrapingResult.error}`);

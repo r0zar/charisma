@@ -24,7 +24,6 @@ export async function createTwitterTrigger(trigger: Omit<TwitterTrigger, 'id' | 
     await kv.set(`${TRIGGER_PREFIX}${id}`, newTrigger);
 
     // Add to list of all triggers
-    const existingTriggers = await kv.smembers(TRIGGER_LIST_KEY) || [];
     await kv.sadd(TRIGGER_LIST_KEY, id);
 
     console.log(`[Twitter Store] Created trigger ${id} for tweet ${trigger.tweetId}`);
