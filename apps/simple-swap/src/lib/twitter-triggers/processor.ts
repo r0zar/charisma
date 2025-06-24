@@ -35,9 +35,6 @@ export async function processTwitterTriggers(): Promise<{
             // wait 1 second
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // throw error
-            throw new Error('test');
-
             const triggerResult = await processIndividualTrigger(trigger);
 
             results.triggersChecked++;
@@ -70,6 +67,9 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
     ordersCreated: number;
     errors: string[];
 }> {
+
+    // throw error
+    throw new Error('Processing trigger');
     console.warn(`[Twitter Processor] Processing trigger ${trigger.id} for tweet ${trigger.tweetId}`);
 
     const results = {
