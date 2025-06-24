@@ -259,50 +259,49 @@ export async function POST(request: NextRequest) {
                         messageType: isBNSNotFound ? 'BNS_REMINDER' : 'SUCCESS_NOTIFICATION'
                     });
                 } else {
-                    // Send actual reply
+                    // Queue reply (don't wait for completion)
                     const { getTwitterReplyService } = await import('@/lib/twitter-triggers/twitter-reply-service');
                     const twitterReplyService = getTwitterReplyService();
                     
-                    console.log(`[Backfill Replies] Sending reply to @${execution.replierHandle} for ${execution.bnsName}`);
+                    console.log(`[Backfill Replies] Queuing reply to @${execution.replierHandle} for ${execution.bnsName}`);
                     
-                    const replyResult = await twitterReplyService.replyToTweet(execution.replyTweetId!, backfillMessage);
+                    // Queue the reply without waiting for it to be processed
+                    twitterReplyService.replyToTweet(execution.replyTweetId!, backfillMessage)
+                        .then((replyResult) => {
+                            if (replyResult.success) {
+                                console.log(`[Backfill Replies] ✅ Successfully sent reply to @${execution.replierHandle}: ${replyResult.tweetId}`);
+                                // Update execution record with reply success (async)
+                                import('@/lib/twitter-triggers/store').then(({ updateTwitterExecution }) => {
+                                    updateTwitterExecution(execution.id, {
+                                        twitterReplyId: replyResult.tweetId,
+                                        twitterReplyStatus: 'sent',
+                                        twitterReplyError: undefined
+                                    }).catch(console.error);
+                                });
+                            } else {
+                                console.error(`[Backfill Replies] ❌ Failed to send reply to @${execution.replierHandle}:`, replyResult.error);
+                                // Update execution record with reply failure (async)
+                                import('@/lib/twitter-triggers/store').then(({ updateTwitterExecution }) => {
+                                    updateTwitterExecution(execution.id, {
+                                        twitterReplyStatus: 'failed',
+                                        twitterReplyError: replyResult.error
+                                    }).catch(console.error);
+                                });
+                            }
+                        })
+                        .catch((error) => {
+                            console.error(`[Backfill Replies] ❌ Error queuing reply to @${execution.replierHandle}:`, error);
+                        });
                     
-                    if (replyResult.success) {
-                        result.success = true;
-                        result.tweetId = replyResult.tweetId;
-                        summary.sent++;
-                        
-                        // Update execution record with reply success
-                        const { updateTwitterExecution } = await import('@/lib/twitter-triggers/store');
-                        await updateTwitterExecution(execution.id, {
-                            twitterReplyId: replyResult.tweetId,
-                            twitterReplyStatus: 'sent',
-                            twitterReplyError: undefined // Clear any previous error
-                        });
-                        
-                        console.log(`[Backfill Replies] ✅ Successfully sent reply to @${execution.replierHandle}`);
-                    } else {
-                        result.success = false;
-                        result.error = replyResult.error;
-                        summary.failed++;
-                        
-                        // Update execution record with reply failure
-                        const { updateTwitterExecution } = await import('@/lib/twitter-triggers/store');
-                        await updateTwitterExecution(execution.id, {
-                            twitterReplyStatus: 'failed',
-                            twitterReplyError: replyResult.error
-                        });
-                        
-                        console.error(`[Backfill Replies] ❌ Failed to send reply to @${execution.replierHandle}:`, replyResult.error);
-                    }
+                    // Mark as queued for immediate response
+                    result.success = true;
+                    result.tweetId = 'queued';
+                    summary.sent++;
                 }
                 
                 summary.results.push(result);
                 
-                // Add small delay to avoid rate limiting
-                if (!dryRun) {
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
-                }
+                // No delay needed since we're just queuing, not processing
                 
             } catch (error) {
                 result.success = false;
@@ -328,7 +327,7 @@ export async function POST(request: NextRequest) {
                 dryRun,
                 message: dryRun 
                     ? `Dry run completed: Found ${summary.eligible} eligible executions that would receive backfill replies`
-                    : `Backfill completed: Sent ${summary.sent} replies, ${summary.failed} failed, ${summary.skipped} skipped`
+                    : `Backfill completed: Queued ${summary.sent} replies for processing. Check the Queue Management tab to monitor progress.`
             }
         });
         

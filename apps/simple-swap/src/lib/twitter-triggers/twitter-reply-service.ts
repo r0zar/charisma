@@ -1,4 +1,25 @@
 import { TwitterTriggerExecution } from './types';
+// @ts-ignore: vercel/kv runtime import without types
+import { kv } from '@vercel/kv';
+
+interface QueuedReply {
+    id: string;
+    tweetId: string;
+    message: string;
+    attempts: number;
+    lastAttempt?: number;
+    resolve: (result: { success: boolean; tweetId?: string; error?: string }) => void;
+    reject: (error: Error) => void;
+}
+
+interface PersistedQueuedReply {
+    id: string;
+    tweetId: string;
+    message: string;
+    attempts: number;
+    lastAttempt?: number;
+    createdAt: number;
+}
 
 /**
  * Twitter reply service for sending notifications when orders are executed
@@ -7,9 +28,137 @@ export class TwitterReplyService {
     private client: any; // TwitterApi instance
     private isLoggedIn = false;
     private loginPromise: Promise<void> | null = null;
+    private replyQueue: QueuedReply[] = [];
+    private isProcessingQueue = false;
+    private rateLimitReset = 0;
+    private requestCount = 0;
+    private readonly maxRequestsPer24Hours = 17; // Twitter API v2 free tier limit
+    private readonly maxRetries = 3;
+    private readonly baseDelay = 1000; // 1 second base delay
+    private readonly queueKey = 'twitter:reply:queue';
+    private readonly rateLimitKey = 'twitter:reply:ratelimit';
+    private isInitialized = false;
 
     constructor() {
         this.client = null;
+        // Initialize from KV and start processing queue
+        this.initializeFromKV();
+    }
+
+    /**
+     * Initialize the service from KV storage
+     */
+    private async initializeFromKV(): Promise<void> {
+        if (this.isInitialized) return;
+        
+        try {
+            // Load rate limit state from KV
+            const rateLimitData = await kv.get(this.rateLimitKey) as { requestCount: number; rateLimitReset: number } | null;
+            if (rateLimitData) {
+                this.requestCount = rateLimitData.requestCount;
+                this.rateLimitReset = rateLimitData.rateLimitReset;
+                console.log(`[Twitter Reply] Loaded rate limit state: ${this.requestCount}/${this.maxRequestsPer24Hours}, reset at ${new Date(this.rateLimitReset).toISOString()}`);
+            } else {
+                // Initialize rate limit reset time to 24 hours from now
+                this.rateLimitReset = Date.now() + 24 * 60 * 60 * 1000;
+                await this.saveRateLimitState();
+            }
+
+            // Load queue from KV
+            const persistedQueue = await kv.lrange(this.queueKey, 0, -1) as PersistedQueuedReply[];
+            console.log(`[Twitter Reply] Loading ${persistedQueue.length} items from persisted queue`);
+            
+            // Convert persisted queue items to in-memory queue items
+            for (const persistedItem of persistedQueue) {
+                this.replyQueue.push({
+                    ...persistedItem,
+                    resolve: () => {}, // Will be overwritten when processing
+                    reject: () => {}   // Will be overwritten when processing
+                });
+            }
+
+            this.isInitialized = true;
+            console.log(`[Twitter Reply] Initialized with ${this.replyQueue.length} queued items`);
+            
+            // Start processing queue
+            this.startQueueProcessor();
+        } catch (error) {
+            console.error('[Twitter Reply] Failed to initialize from KV:', error);
+            // Fallback to default initialization
+            this.rateLimitReset = Date.now() + 24 * 60 * 60 * 1000;
+            this.isInitialized = true;
+            this.startQueueProcessor();
+        }
+    }
+
+    /**
+     * Save rate limit state to KV
+     */
+    private async saveRateLimitState(): Promise<void> {
+        try {
+            await kv.set(this.rateLimitKey, {
+                requestCount: this.requestCount,
+                rateLimitReset: this.rateLimitReset
+            });
+        } catch (error) {
+            console.error('[Twitter Reply] Failed to save rate limit state:', error);
+        }
+    }
+
+    /**
+     * Save queue item to KV
+     */
+    private async saveQueueItem(item: QueuedReply): Promise<void> {
+        try {
+            const persistedItem: PersistedQueuedReply = {
+                id: item.id,
+                tweetId: item.tweetId,
+                message: item.message,
+                attempts: item.attempts,
+                lastAttempt: item.lastAttempt,
+                createdAt: Date.now()
+            };
+            await kv.rpush(this.queueKey, persistedItem);
+        } catch (error) {
+            console.error('[Twitter Reply] Failed to save queue item:', error);
+        }
+    }
+
+    /**
+     * Remove queue item from KV
+     */
+    private async removeQueueItem(itemId: string): Promise<void> {
+        try {
+            // Get all items from the queue
+            const queue = await kv.lrange(this.queueKey, 0, -1) as PersistedQueuedReply[];
+            // Find the index of the item to remove
+            const index = queue.findIndex(item => item.id === itemId);
+            if (index >= 0) {
+                // Remove the item by setting it to a placeholder and then removing the placeholder
+                await kv.lset(this.queueKey, index, '__DELETE_MARKER__');
+                await kv.lrem(this.queueKey, 1, '__DELETE_MARKER__');
+            }
+        } catch (error) {
+            console.error('[Twitter Reply] Failed to remove queue item:', error);
+        }
+    }
+
+    /**
+     * Update queue item attempts in KV
+     */
+    private async updateQueueItemAttempts(itemId: string, attempts: number, lastAttempt?: number): Promise<void> {
+        try {
+            // Get all items from the queue
+            const queue = await kv.lrange(this.queueKey, 0, -1) as PersistedQueuedReply[];
+            // Find the index of the item to update
+            const index = queue.findIndex(item => item.id === itemId);
+            if (index >= 0) {
+                const updatedItem = { ...queue[index], attempts, lastAttempt };
+                await kv.lset(this.queueKey, index, updatedItem);
+            }
+        } catch (error) {
+            console.error('[Twitter Reply] Failed to update queue item attempts:', error);
+        }
     }
 
     /**
@@ -67,17 +216,103 @@ export class TwitterReplyService {
     }
 
     /**
-     * Send a reply to a specific tweet
+     * Start the queue processor that handles rate limiting
      */
-    async replyToTweet(tweetId: string, message: string): Promise<{ success: boolean; tweetId?: string; error?: string }> {
-        try {
-            // Check if replies are enabled
-            const repliesEnabled = process.env.TWITTER_REPLIES_ENABLED !== 'false';
-            if (!repliesEnabled) {
-                console.log('[Twitter Reply] Replies disabled via TWITTER_REPLIES_ENABLED env var');
-                return { success: false, error: 'Twitter replies disabled' };
+    private startQueueProcessor(): void {
+        if (this.isProcessingQueue) return;
+        
+        this.isProcessingQueue = true;
+        this.processQueue();
+    }
+
+    /**
+     * Process the reply queue with rate limiting
+     */
+    private async processQueue(): Promise<void> {
+        while (this.isProcessingQueue) {
+            if (this.replyQueue.length === 0) {
+                // Wait a bit before checking again
+                await this.delay(5000); // 5 seconds
+                continue;
             }
 
+            // Check if we've hit the daily rate limit
+            if (this.requestCount >= this.maxRequestsPer24Hours) {
+                const now = Date.now();
+                const timeUntilReset = this.rateLimitReset - now;
+                
+                if (timeUntilReset > 0) {
+                    console.log(`[Twitter Reply] Rate limit reached (${this.requestCount}/${this.maxRequestsPer24Hours}). Queue size: ${this.replyQueue.length}. Waiting ${Math.round(timeUntilReset / 1000 / 60)} minutes until reset`);
+                    await this.delay(Math.min(timeUntilReset, 300000)); // Wait max 5 minutes at a time
+                    continue;
+                } else {
+                    // Reset counter if 24 hours have passed
+                    console.log(`[Twitter Reply] Rate limit period expired. Resetting counter from ${this.requestCount} to 0`);
+                    this.requestCount = 0;
+                    this.rateLimitReset = now + 24 * 60 * 60 * 1000; // 24 hours from now
+                    await this.saveRateLimitState();
+                }
+            }
+
+            const queuedReply = this.replyQueue.shift();
+            if (!queuedReply) continue;
+
+            console.log(`[Twitter Reply] Processing queued reply ${queuedReply.id}. Queue size: ${this.replyQueue.length}. Rate limit: ${this.requestCount}/${this.maxRequestsPer24Hours}`);
+
+            try {
+                const result = await this.sendReplyDirect(queuedReply.tweetId, queuedReply.message);
+                this.requestCount++;
+                await this.saveRateLimitState();
+                
+                if (result.success) {
+                    // Remove from KV queue on success
+                    await this.removeQueueItem(queuedReply.id);
+                    if (queuedReply.resolve) queuedReply.resolve(result);
+                } else {
+                    // Handle retry logic
+                    await this.handleRetry(queuedReply, result.error || 'Unknown error');
+                }
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                await this.handleRetry(queuedReply, errorMsg);
+            }
+
+            // Add a small delay between requests to be respectful
+            await this.delay(2000); // 2 seconds between requests
+        }
+    }
+
+    /**
+     * Handle retry logic with exponential backoff
+     */
+    private async handleRetry(queuedReply: QueuedReply, error: string): Promise<void> {
+        queuedReply.attempts++;
+        queuedReply.lastAttempt = Date.now();
+
+        if (queuedReply.attempts >= this.maxRetries) {
+            // Remove from KV queue on max retries
+            await this.removeQueueItem(queuedReply.id);
+            if (queuedReply.resolve) queuedReply.resolve({ success: false, error: `Max retries exceeded: ${error}` });
+            return;
+        }
+
+        // Update the item in KV with new attempt count
+        await this.updateQueueItemAttempts(queuedReply.id, queuedReply.attempts, queuedReply.lastAttempt);
+
+        // Exponential backoff: 1s, 4s, 10s
+        const delay = this.baseDelay * Math.pow(4, queuedReply.attempts - 1);
+        console.log(`[Twitter Reply] Retry ${queuedReply.attempts}/${this.maxRetries} for ${queuedReply.id} in ${delay}ms`);
+        
+        setTimeout(() => {
+            this.replyQueue.unshift(queuedReply); // Add back to front of queue
+        }, delay);
+    }
+
+    /**
+     * Send a reply to a specific tweet (direct implementation)
+     */
+    private async sendReplyDirect(tweetId: string, message: string): Promise<{ success: boolean; tweetId?: string; error?: string }> {
+        try {
             // Ensure we're logged in
             await this.login();
 
@@ -108,6 +343,53 @@ export class TwitterReplyService {
                 error: errorMsg 
             };
         }
+    }
+
+    /**
+     * Send a reply to a specific tweet (queued)
+     */
+    async replyToTweet(tweetId: string, message: string): Promise<{ success: boolean; tweetId?: string; error?: string }> {
+        // Ensure initialization
+        await this.ensureInitialized();
+
+        // Check if replies are enabled
+        const repliesEnabled = process.env.TWITTER_REPLIES_ENABLED !== 'false';
+        if (!repliesEnabled) {
+            console.log('[Twitter Reply] Replies disabled via TWITTER_REPLIES_ENABLED env var');
+            return { success: false, error: 'Twitter replies disabled' };
+        }
+
+        return new Promise(async (resolve, reject) => {
+            const queuedReply: QueuedReply = {
+                id: `${tweetId}_${Date.now()}`,
+                tweetId,
+                message,
+                attempts: 0,
+                resolve,
+                reject
+            };
+
+            this.replyQueue.push(queuedReply);
+            // Save to KV
+            await this.saveQueueItem(queuedReply);
+            console.log(`[Twitter Reply] Queued reply to tweet ${tweetId}. Queue size: ${this.replyQueue.length}. Rate limit: ${this.requestCount}/${this.maxRequestsPer24Hours}`);
+        });
+    }
+
+    /**
+     * Ensure the service is initialized
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (!this.isInitialized) {
+            await this.initializeFromKV();
+        }
+    }
+
+    /**
+     * Utility function for delays
+     */
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
@@ -223,16 +505,42 @@ export class TwitterReplyService {
     }
 
     /**
+     * Get queue status for monitoring
+     */
+    async getQueueStatus(): Promise<{ queueSize: number; requestCount: number; maxRequests: number; rateLimitReset: number }> {
+        await this.ensureInitialized();
+        return {
+            queueSize: this.replyQueue.length,
+            requestCount: this.requestCount,
+            maxRequests: this.maxRequestsPer24Hours,
+            rateLimitReset: this.rateLimitReset
+        };
+    }
+
+    /**
      * Clean up resources
      */
     async cleanup(): Promise<void> {
         try {
+            this.isProcessingQueue = false;
+            
+            // Reject any pending queued replies
+            while (this.replyQueue.length > 0) {
+                const queuedReply = this.replyQueue.shift();
+                if (queuedReply) {
+                    queuedReply.resolve({ 
+                        success: false, 
+                        error: 'Service shutting down' 
+                    });
+                }
+            }
+
             if (this.client && typeof this.client.destroy === 'function') {
                 await this.client.destroy();
             }
             this.isLoggedIn = false;
             this.loginPromise = null;
-            console.log('[Twitter Reply] Cleaned up Twitter client');
+            console.log('[Twitter Reply] Cleaned up Twitter client and queue');
         } catch (error) {
             console.error('[Twitter Reply] Error during cleanup:', error);
         }

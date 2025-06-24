@@ -342,8 +342,8 @@ export default function BackfillManager() {
                     <div className="flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                         <div className="text-sm">
-                            <strong>Important:</strong> Backfill will send real Twitter replies to users. 
-                            Always run a dry run first to verify the selection.
+                            <strong>Important:</strong> Backfill will queue real Twitter replies to users. 
+                            Always run a dry run first to verify the selection. Check the Queue Management tab to monitor processing.
                         </div>
                     </div>
                 </div>
@@ -401,7 +401,7 @@ export default function BackfillManager() {
                             </div>
                             <div className="text-center">
                                 <div className="text-lg font-semibold text-green-600">{backfillResult.summary.sent}</div>
-                                <div className="text-muted-foreground">Sent</div>
+                                <div className="text-muted-foreground">{backfillResult.dryRun ? 'Would Send' : 'Queued'}</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-lg font-semibold text-red-600">{backfillResult.summary.failed}</div>
@@ -441,7 +441,7 @@ export default function BackfillManager() {
                                                             {expandedMessages.has(result.executionId) ? 'Hide Tweet' : 'Preview Tweet'}
                                                         </button>
                                                     )}
-                                                    {result.success && result.tweetId ? (
+                                                    {result.success && result.tweetId && result.tweetId !== 'queued' ? (
                                                         <a
                                                             href={`https://twitter.com/twitter/status/${result.tweetId}`}
                                                             target="_blank"
@@ -451,6 +451,11 @@ export default function BackfillManager() {
                                                             View Reply
                                                             <ExternalLink className="w-3 h-3" />
                                                         </a>
+                                                    ) : result.success && result.tweetId === 'queued' ? (
+                                                        <span className="text-blue-600 text-xs inline-flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            Queued for Processing
+                                                        </span>
                                                     ) : result.error ? (
                                                         <span className="text-red-600 text-xs" title={result.error}>
                                                             {result.error.substring(0, 30)}...
