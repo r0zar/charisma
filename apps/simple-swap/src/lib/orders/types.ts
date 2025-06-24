@@ -56,7 +56,7 @@ export interface LimitOrder {
     /**
      * Type of order strategy for UI display purposes.
      */
-    strategyType?: 'split' | 'dca' | 'batch' | 'twitter';
+    strategyType?: 'dca' | 'twitter';
     
     /**
      * Position within the strategy (1-based index) for ordering and progress tracking.

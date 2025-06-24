@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTwitterTrigger, updateTwitterTrigger } from '@/lib/twitter-triggers/store';
+import { getTwitterTrigger, updateTwitterTrigger, createTwitterExecution, updateTwitterExecution, incrementTriggerCount, getExecutionByTriggerAndBNS } from '@/lib/twitter-triggers/store';
 
 // POST /api/v1/twitter-triggers/[id]/test - Manually test a trigger
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -27,17 +27,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             lastChecked: new Date().toISOString()
         });
         
-        // Implement actual Twitter checking logic
+        // Implement actual Twitter checking and execution logic
         let repliesFound = 0;
         let bnsNamesFound = 0;
         let ordersExecuted = 0;
         let status = 'No new replies with .btc names found';
-        let mockExecutions = [];
+        let realExecutions = [];
         
         try {
             // Import required functions
             const { scrapeTwitterReplies } = await import('@/lib/twitter-triggers/twitter-scraper');
             const { processBNSFromReply } = await import('@/lib/twitter-triggers/bns-resolver');
+            const { executePreSignedOrder } = await import('@/lib/twitter-triggers/processor');
             
             // Scrape Twitter replies
             console.log(`[Test API] Scraping replies for tweet ${trigger.tweetId}`);
@@ -47,8 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                 repliesFound = scrapingResult.replies.length;
                 console.log(`[Test API] Found ${repliesFound} replies`);
                 
-                // Check each reply for BNS names with real resolution
-                const bnsReplies = [];
+                // Process each reply for BNS resolution and actual order execution
                 for (const reply of scrapingResult.replies) {
                     try {
                         // Use the full BNS processing pipeline like the real system
@@ -58,45 +58,114 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                             bnsNamesFound++;
                             console.log(`[Test API] Found BNS name: ${bnsResult.bnsName} from @${reply.authorHandle}`);
                             
-                            let recipientAddress: string | undefined;
-                            let resolutionStatus = 'pending';
-                            let resolutionError: string | undefined;
+                            // Check if we already have an execution for this trigger + BNS combination (idempotent processing)
+                            const existingExecution = await getExecutionByTriggerAndBNS(id, bnsResult.bnsName);
                             
-                            // Attempt BNS resolution
-                            if (bnsResult.resolution && bnsResult.resolution.success) {
-                                recipientAddress = bnsResult.resolution.address;
-                                resolutionStatus = 'resolved';
-                                console.log(`[Test API] BNS ${bnsResult.bnsName} resolved to: ${recipientAddress}`);
+                            let execution;
+                            
+                            if (existingExecution) {
+                                console.log(`[Test API] Found existing execution ${existingExecution.id} for BNS ${bnsResult.bnsName} with status: ${existingExecution.status}`);
+                                
+                                // Decide what to do based on existing execution status
+                                if (existingExecution.status === 'order_broadcasted' || existingExecution.status === 'order_confirmed') {
+                                    console.log(`[Test API] ✅ Skipping BNS ${bnsResult.bnsName} - already processed successfully`);
+                                    realExecutions.push(existingExecution);
+                                    continue; // Skip to next reply
+                                }
+                                
+                                // For failed, pending, or bns_resolved statuses, we'll retry the execution
+                                console.log(`[Test API] 🔄 Retrying execution for BNS ${bnsResult.bnsName} - previous status: ${existingExecution.status}`);
+                                execution = existingExecution;
+                                
+                                // Reset status to pending for retry
+                                await updateTwitterExecution(execution.id, {
+                                    status: 'pending',
+                                    error: undefined, // Clear any previous error
+                                    executedAt: new Date().toISOString(), // Update timestamp for retry
+                                });
                             } else {
-                                resolutionStatus = 'failed';
-                                resolutionError = bnsResult.resolution?.error || 'Resolution failed';
-                                console.log(`[Test API] BNS resolution failed for ${bnsResult.bnsName}: ${resolutionError}`);
+                                // No existing execution, create a new one
+                                console.log(`[Test API] 🆕 Creating new execution for BNS ${bnsResult.bnsName}`);
+                                execution = await createTwitterExecution({
+                                    triggerId: id,
+                                    replyTweetId: reply.id,
+                                    replierHandle: reply.authorHandle,
+                                    replierDisplayName: reply.authorDisplayName || '',
+                                    bnsName: bnsResult.bnsName,
+                                    executedAt: new Date().toISOString(),
+                                    status: 'pending',
+                                    replyText: reply.text ? reply.text.substring(0, 200) + (reply.text.length > 200 ? '...' : '') : '',
+                                    replyCreatedAt: reply.createdAt,
+                                });
                             }
+
+                            realExecutions.push(execution);
                             
-                            bnsReplies.push({
-                                ...reply,
-                                bnsName: bnsResult.bnsName,
+                            // Check if BNS resolution was successful
+                            if (!bnsResult.resolution || !bnsResult.resolution.success) {
+                                const error = bnsResult.resolution?.error || 'BNS resolution failed';
+                                console.log(`[Test API] BNS resolution failed for ${bnsResult.bnsName}: ${error}`);
+
+                                await updateTwitterExecution(execution.id, {
+                                    status: 'failed',
+                                    error: `BNS resolution failed: ${error}`,
+                                });
+
+                                continue;
+                            }
+
+                            const recipientAddress = bnsResult.resolution.address;
+                            console.log(`[Test API] BNS ${bnsResult.bnsName} resolved to address: ${recipientAddress}`);
+
+                            // Update execution with resolved address
+                            await updateTwitterExecution(execution.id, {
                                 recipientAddress,
-                                resolutionStatus,
-                                resolutionError
+                                status: 'bns_resolved',
                             });
-                            
-                            // Create detailed mock execution entry with real data
-                            mockExecutions.push({
-                                id: `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                                triggerId: id,
-                                replyTweetId: reply.id,
-                                replierHandle: reply.authorHandle,
-                                replierDisplayName: reply.authorDisplayName || '',
-                                bnsName: bnsResult.bnsName,
-                                recipientAddress,
-                                orderUuid: undefined, // Would be assigned in real execution
-                                executedAt: new Date().toISOString(),
-                                status: resolutionStatus === 'resolved' ? 'test_run' as any : 'test_failed' as any,
-                                replyText: reply.text ? reply.text.substring(0, 200) + (reply.text.length > 200 ? '...' : '') : '',
-                                replyCreatedAt: reply.createdAt,
-                                error: resolutionError
-                            });
+
+                            // Try to execute a pre-signed order
+                            try {
+                                const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id);
+
+                                if (orderResult.success) {
+                                    // Update execution with order details including txid
+                                    await updateTwitterExecution(execution.id, {
+                                        orderUuid: orderResult.orderUuid,
+                                        txid: orderResult.txid,
+                                        status: 'order_broadcasted',
+                                    });
+
+                                    // Increment trigger count
+                                    await incrementTriggerCount(trigger.id);
+                                    ordersExecuted++;
+
+                                    console.log(`[Test API] ✅ Successfully executed order ${orderResult.orderUuid} for BNS ${bnsResult.bnsName} (${recipientAddress})`);
+                                    
+                                } else if (orderResult.error === 'No available orders - all pre-signed orders have been used') {
+                                    // Handle overflow - mark as overflow execution
+                                    await updateTwitterExecution(execution.id, {
+                                        status: 'overflow',
+                                        error: 'No available pre-signed orders remaining',
+                                    });
+
+                                    console.log(`[Test API] ⚠️ Overflow execution for BNS ${bnsResult.bnsName} - no available orders`);
+                                } else {
+                                    // Order execution failed
+                                    await updateTwitterExecution(execution.id, {
+                                        status: 'failed',
+                                        error: `Order execution failed: ${orderResult.error}`,
+                                    });
+
+                                    console.log(`[Test API] ❌ Order execution failed for BNS ${bnsResult.bnsName}: ${orderResult.error}`);
+                                }
+                            } catch (orderError) {
+                                await updateTwitterExecution(execution.id, {
+                                    status: 'failed',
+                                    error: `Order execution error: ${orderError instanceof Error ? orderError.message : 'Unknown error'}`,
+                                });
+
+                                console.error(`[Test API] Order execution error for BNS ${bnsResult.bnsName}:`, orderError);
+                            }
                         }
                     } catch (bnsError) {
                         console.warn(`[Test API] Error processing BNS for reply ${reply.id}:`, bnsError);
@@ -104,63 +173,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                     }
                 }
                 
+                // Build status message
                 if (bnsNamesFound > 0) {
-                    const resolvedCount = bnsReplies.filter(r => r.resolutionStatus === 'resolved').length;
-                    const failedCount = bnsReplies.filter(r => r.resolutionStatus === 'failed').length;
+                    const successfulExecutions = realExecutions.filter(e => e.status === 'order_broadcasted').length;
+                    const overflowExecutions = realExecutions.filter(e => e.status === 'overflow').length;
+                    const failedExecutions = realExecutions.filter(e => e.status === 'failed').length;
                     
                     status = `Found ${bnsNamesFound} reply${bnsNamesFound > 1 ? 'ies' : ''} with .btc names from ${repliesFound} total replies`;
-                    if (resolvedCount > 0) {
-                        status += ` (${resolvedCount} resolved`;
-                        if (failedCount > 0) {
-                            status += `, ${failedCount} failed to resolve`;
-                        }
-                        status += ')';
-                    } else if (failedCount > 0) {
-                        status += ` (all ${failedCount} failed to resolve)`;
+                    
+                    if (ordersExecuted > 0) {
+                        status += ` - Successfully executed ${ordersExecuted} order${ordersExecuted > 1 ? 's' : ''}`;
                     }
                     
-                    // In test mode, we don't actually execute orders, just report what would happen
-                    const availableOrders = trigger.availableOrders || 0;
-                    const executableCount = resolvedCount; // Only resolved BNS names can execute
-                    const maxExecutions = Math.min(executableCount, availableOrders);
-                    const overflowCount = Math.max(0, executableCount - availableOrders);
+                    if (overflowExecutions > 0) {
+                        status += ` - ${overflowExecutions} overflow execution${overflowExecutions > 1 ? 's' : ''} (need${overflowExecutions > 1 ? '' : 's'} additional order${overflowExecutions > 1 ? 's' : ''})`;
+                    }
                     
-                    if (maxExecutions > 0) {
-                        status += ` - Would execute ${maxExecutions} order${maxExecutions > 1 ? 's' : ''}`;
-                        if (overflowCount > 0) {
-                            status += ` + ${overflowCount} overflow execution${overflowCount > 1 ? 's' : ''} (need${overflowCount > 1 ? '' : 's'} additional order${overflowCount > 1 ? 's' : ''})`;
-                        }
-                        
-                        // Update mock executions to reflect what would actually execute vs overflow
-                        mockExecutions = mockExecutions.map((exec, index) => {
-                            if (exec.status === 'test_run' && index < maxExecutions) {
-                                return {
-                                    ...exec,
-                                    status: 'test_would_execute' as any
-                                };
-                            } else if (exec.status === 'test_run' && index < executableCount) {
-                                return {
-                                    ...exec,
-                                    status: 'test_overflow' as any,
-                                    error: 'Overflow execution - needs additional signed order'
-                                };
-                            } else if (exec.status === 'test_run') {
-                                return {
-                                    ...exec,
-                                    status: 'test_limited' as any,
-                                    error: 'Would not execute - BNS resolution failed'
-                                };
-                            }
-                            return exec;
-                        });
-                    } else if (executableCount > 0) {
-                        status += ` - All ${executableCount} execution${executableCount > 1 ? 's' : ''} would be overflow (need${executableCount > 1 ? '' : 's'} signed order${executableCount > 1 ? 's' : ''})`;
-                        // Mark all resolved ones as overflow
-                        mockExecutions = mockExecutions.map(exec => ({
-                            ...exec,
-                            status: exec.status === 'test_run' ? 'test_overflow' as any : exec.status,
-                            error: exec.status === 'test_run' ? 'Overflow execution - needs additional signed order' : exec.error
-                        }));
+                    if (failedExecutions > 0) {
+                        status += ` - ${failedExecutions} failed execution${failedExecutions > 1 ? 's' : ''}`;
                     }
                 } else {
                     status = `Found ${repliesFound} reply${repliesFound > 1 ? 'ies' : ''} but no .btc names detected`;
@@ -173,13 +203,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             }
             
         } catch (error) {
-            console.error(`[Test API] Error during Twitter scraping test:`, error);
+            console.error(`[Test API] Error during Twitter trigger test:`, error);
             status = `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
         }
 
         const testResult = {
             success: true,
-            message: 'Manual test completed successfully',
+            message: 'Manual test completed successfully - REAL EXECUTIONS',
             data: {
                 triggerId: id,
                 tweetId: trigger.tweetId,
@@ -187,10 +217,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                 lastChecked: new Date().toISOString(),
                 repliesFound,
                 bnsNamesFound,
-                ordersExecuted, // Always 0 in test mode
+                ordersExecuted, // Actual orders executed
                 availableOrders: trigger.availableOrders || 0,
                 status,
-                mockExecutions // Include the test execution results
+                realExecutions, // Include the actual execution results
+                executionSummary: {
+                    total: realExecutions.length,
+                    successful: realExecutions.filter(e => e.status === 'order_broadcasted').length,
+                    overflow: realExecutions.filter(e => e.status === 'overflow').length,
+                    failed: realExecutions.filter(e => e.status === 'failed').length
+                }
             }
         };
         

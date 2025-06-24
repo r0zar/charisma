@@ -4,7 +4,56 @@ import { getLatestPrice } from '@/lib/price/store';
 import { getQuote } from '@/app/actions';
 import { kv } from '@vercel/kv';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
-import { executeMultihopSwap } from 'blaze-sdk';
+import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
+import { fetchNonce } from '@stacks/transactions';
+import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
+
+/**
+ * Helper function to get the current nonce for the blaze solver address
+ */
+async function getCurrentNonce(): Promise<number> {
+    try {
+        const nonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
+        return Number(nonce);
+    } catch (error) {
+        console.error('[Nonce] Error fetching nonce for blaze solver:', error);
+        throw new Error('Failed to fetch current nonce');
+    }
+}
+
+/**
+ * Enhanced executeMultihopSwap with intelligent nonce management
+ * This version fetches the current nonce and uses it to prevent ConflictingNonceInMempool errors
+ */
+async function executeMultihopSwapWithNonce(
+    route: any,
+    meta: any,
+    privateKey: string,
+    config?: any
+): Promise<any> {
+    try {
+        console.log('[Nonce] Fetching current nonce for intelligent transaction broadcasting');
+        const currentNonce = await getCurrentNonce();
+        console.log('[Nonce] Using nonce:', currentNonce);
+
+        // Build transaction config with explicit nonce
+        const txConfig = await buildXSwapTransaction(route, meta, config);
+        txConfig.nonce = currentNonce;
+
+        console.log('[Nonce] Broadcasting multihop transaction with explicit nonce:', currentNonce);
+        const result = await broadcastMultihopTransaction(txConfig, privateKey);
+
+        console.log('[Nonce] Transaction broadcast result:', result);
+        return result;
+
+    } catch (error) {
+        console.error('[Nonce] Error in nonce-managed multihop swap:', error);
+
+        // If nonce management fails, fall back to original function
+        console.log('[Nonce] Falling back to original executeMultihopSwap without nonce management');
+        return executeMultihopSwap(route, meta, privateKey, config);
+    }
+}
 
 /**
  * Fetches the current price ratio for a given order.
@@ -15,19 +64,19 @@ import { executeMultihopSwap } from 'blaze-sdk';
  */
 async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefined> {
     const conditionTokenContract = order.conditionToken;
-    
+
     // Safety check - this function should only be called for conditional orders
     if (!conditionTokenContract) {
         console.log({ orderUuid: order.uuid }, 'getCurrentPriceRatio called for manual order - this should not happen');
         return undefined;
     }
-    
+
     // Handle wildcard immediate execution
     if (conditionTokenContract === '*') {
         console.log({ orderUuid: order.uuid }, 'Wildcard immediate execution detected - returning ratio 1');
         return 1; // Any positive number that will satisfy the condition
     }
-    
+
     // Default to sUSDT if baseAsset is not specified, effectively making it a USD price comparison.
     const baseAssetContract = order.baseAsset || 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
 
@@ -55,7 +104,14 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
  * Executes the trade on-chain via the signer API and returns the txid.
  * You can point SIGNER_URL env var at the blaze-signer instance.
  */
-export async function executeTrade(order: LimitOrder): Promise<string> {
+export interface TradeExecutionResult {
+    txid: string;
+    success: boolean;
+    response: any;
+    error?: string;
+}
+
+export async function executeTrade(order: LimitOrder): Promise<TradeExecutionResult> {
     // get quote for multi-hop swap
     console.log({ orderUuid: order.uuid, inputToken: order.inputToken, outputToken: order.outputToken, amountIn: order.amountIn }, 'Fetching quote for order execution');
     const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn);
@@ -67,7 +123,9 @@ export async function executeTrade(order: LimitOrder): Promise<string> {
         throw new Error(errorMessage);
     }
 
-    const result = await executeMultihopSwap(
+    console.log({ orderUuid: order.uuid, route: quoteRes.data }, 'Executing multihop swap with route');
+
+    const result = await executeMultihopSwapWithNonce(
         quoteRes.data,
         {
             amountIn: order.amountIn,
@@ -75,10 +133,56 @@ export async function executeTrade(order: LimitOrder): Promise<string> {
             uuid: order.uuid,
             recipient: order.recipient,
         },
-        process.env.PRIVATE_KEY!
+        BLAZE_SIGNER_PRIVATE_KEY!
     );
 
-    return result.txid;
+    // Log the complete response for debugging
+    console.log({ orderUuid: order.uuid, fullSwapResult: result }, 'Complete executeMultihopSwap response');
+
+    // Validate the response
+    if (!result) {
+        const errorMessage = 'executeMultihopSwap returned null/undefined response';
+        console.error({ orderUuid: order.uuid, result }, errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    if (!result.txid) {
+        const errorMessage = `Swap execution failed: No transaction ID returned. Response: ${JSON.stringify(result)}`;
+        console.error({ orderUuid: order.uuid, result }, errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    // Check for any error indicators in the response
+    if (result.error) {
+        const errorMessage = `Swap execution failed: ${result.error}`;
+        console.error({ orderUuid: order.uuid, result }, errorMessage);
+
+        // Handle specific error types more gracefully
+        if (result.reason === 'ConflictingNonceInMempool') {
+            return {
+                txid: result.txid || '', // Sometimes we still get a txid even with nonce conflicts
+                success: false,
+                response: result,
+                error: `Transaction submitted but conflicting nonce in mempool. Reason: ${result.reason}. This may resolve automatically.`
+            };
+        }
+
+        return {
+            txid: '',
+            success: false,
+            response: result,
+            error: errorMessage
+        };
+    }
+
+    // Success case
+    console.log({ orderUuid: order.uuid, txid: result.txid }, '✅ Trade execution successful');
+
+    return {
+        txid: result.txid,
+        success: true,
+        response: result,
+    };
 }
 
 /**
@@ -92,13 +196,13 @@ function shouldFill(order: LimitOrder, currentPrice: number): boolean {
         console.log({ orderUuid: order.uuid }, 'shouldFill called for manual order - this should not happen');
         return false;
     }
-    
+
     const target = Number(order.targetPrice);
     if (isNaN(target)) {
         console.log({ orderUuid: order.uuid, targetPrice: order.targetPrice }, 'Invalid target price in shouldFill');
         return false;
     }
-    
+
     if (order.direction === 'lt') {
         return currentPrice <= target;
     }
@@ -169,7 +273,7 @@ export async function processOpenOrders(): Promise<string[]> {
             // -------------------------------------------------------------
             // 2. Check if this is a manual order (no conditions) or wildcard order
             // -------------------------------------------------------------
-            
+
             // Check for wildcard immediate execution first
             if (order.conditionToken === '*') {
                 console.log({ orderUuid: order.uuid }, 'Wildcard immediate execution order detected - processing immediately');
@@ -183,9 +287,9 @@ export async function processOpenOrders(): Promise<string[]> {
             // -------------------------------------------------------------
             // 3. Process conditional order or execute wildcard immediately
             // -------------------------------------------------------------
-            
+
             let shouldExecute = false;
-            
+
             if (order.conditionToken === '*') {
                 // Wildcard immediate execution - always execute
                 console.log({ orderUuid: order.uuid }, 'Wildcard order - executing immediately without condition checks');
@@ -203,7 +307,7 @@ export async function processOpenOrders(): Promise<string[]> {
 
                 console.log({ orderUuid: order.uuid, currentMarketRatio, targetPrice: order.targetPrice, direction: order.direction }, 'Checking fill condition with ratio');
                 shouldExecute = shouldFill(order, currentMarketRatio);
-                
+
                 if (!shouldExecute) {
                     console.log({ orderUuid: order.uuid, currentMarketRatio }, 'Fill condition (ratio) not met, releasing lock.');
                     // release lock early if condition not met
@@ -211,15 +315,22 @@ export async function processOpenOrders(): Promise<string[]> {
                     continue;
                 }
             }
-            
+
             if (shouldExecute) {
                 console.log({ orderUuid: order.uuid }, 'Condition met or wildcard order. Attempting to execute trade.');
-                const txid = await executeTrade(order);
-                console.log({ orderUuid: order.uuid, txid }, 'Trade executed successfully. Marking order as filled.');
-                await fillOrder(order.uuid, txid);
+                const executionResult = await executeTrade(order);
+                console.log({ orderUuid: order.uuid, executionResult }, 'Trade execution completed.');
+
+                if (!executionResult.success || !executionResult.txid) {
+                    console.error({ orderUuid: order.uuid, executionResult }, 'Trade execution failed');
+                    continue; // Skip to next order
+                }
+
+                console.log({ orderUuid: order.uuid, txid: executionResult.txid }, 'Trade executed successfully. Marking order as filled.');
+                await fillOrder(order.uuid, executionResult.txid);
 
                 // Send notification (fire-and-forget style, errors handled within the function)
-                sendOrderExecutedNotification(order, txid).catch(err => {
+                sendOrderExecutedNotification(order, executionResult.txid).catch(err => {
                     console.log({ orderUuid: order.uuid, error: err }, 'Failed to dispatch order execution notification task.');
                 });
 

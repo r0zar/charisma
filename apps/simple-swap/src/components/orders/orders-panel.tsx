@@ -19,7 +19,7 @@ import { groupOrdersByStrategy, StrategyDisplayData } from "@/lib/orders/strateg
 import { formatOrderCondition } from "@/lib/orders/condition-formatter";
 import { CompactOrderCard, StrategyProgressBar, ConditionStatusIndicator, PriceProgressBar } from "./order-progress-indicators";
 import { getLatestPrice } from "@/lib/price/store";
-import { EnhancedStrategyCard } from "./enhanced-strategy-card";
+import { StrategyCardFactory } from "./strategy-cards";
 import { truncateAddress } from "@/lib/address-utils";
 import { formatOrderDate, formatRelativeTime, formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
 
@@ -1199,50 +1199,64 @@ export default function OrdersPanel() {
 
                 {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
-                {!loading && (strategyGroups.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-white/40">
-                        <div className="relative mb-6">
-                            <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
-                                <ClipboardList className="h-8 w-8 text-white/30" />
+                {/* Content area with loading overlay support */}
+                <div className="relative">
+                    {!loading && (strategyGroups.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                            <div className="relative mb-6">
+                                <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
+                                    <ClipboardList className="h-8 w-8 text-white/30" />
+                                </div>
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
                             </div>
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                            <h3 className="text-lg font-medium text-white/70 mb-2">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</h3>
+                            <p className="text-sm text-center max-w-md leading-relaxed">
+                                {displayOrders.length === 0
+                                    ? 'Create your first smart limit order from the Swap tab and it will appear here for real-time monitoring and management.'
+                                    : `No ${activeFilter === 'all' ? '' : activeFilter} orders found. Try adjusting your filter or create new orders to get started.`}
+                            </p>
                         </div>
-                        <h3 className="text-lg font-medium text-white/70 mb-2">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</h3>
-                        <p className="text-sm text-center max-w-md leading-relaxed">
-                            {displayOrders.length === 0
-                                ? 'Create your first smart limit order from the Swap tab and it will appear here for real-time monitoring and management.'
-                                : `No ${activeFilter === 'all' ? '' : activeFilter} orders found. Try adjusting your filter or create new orders to get started.`}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {strategyGroups.map((strategyData) => {
-                            // Check if any order in this strategy was recently updated
-                            const isRecentlyUpdated = strategyData.orders.some(order => 
-                                recentlyUpdatedOrders.has(order.uuid)
-                            );
-                            
-                            return (
-                                <EnhancedStrategyCard
-                                    key={strategyData.id}
-                                    strategyData={strategyData}
-                                    currentPrices={currentPrices}
-                                    isRecentlyUpdated={isRecentlyUpdated}
-                                    expandedStrategies={expandedStrategies}
-                                    expandedRow={expandedRow}
-                                    onToggleExpansion={toggleStrategyExpansion}
-                                    onToggleRowExpansion={toggleRowExpansion}
-                                    onCopyToClipboard={copyToClipboard}
-                                    onExecuteNow={executeNow}
-                                    onCancelOrder={(uuid) => setConfirmUuid(uuid)}
-                                    copiedId={copiedId}
-                                    formatTokenAmount={formatTokenAmount}
-                                />
-                            );
-                        })}
-                    </div>
-                ))}
+                    ) : (
+                        <div className="space-y-6">
+                            {strategyGroups.map((strategyData) => {
+                                // Check if any order in this strategy was recently updated
+                                const isRecentlyUpdated = strategyData.orders.some(order => 
+                                    recentlyUpdatedOrders.has(order.uuid)
+                                );
+                                
+                                return (
+                                    <StrategyCardFactory
+                                        key={strategyData.id}
+                                        strategyData={strategyData}
+                                        currentPrices={currentPrices}
+                                        isRecentlyUpdated={isRecentlyUpdated}
+                                        expandedStrategies={expandedStrategies}
+                                        expandedRow={expandedRow}
+                                        onToggleExpansion={toggleStrategyExpansion}
+                                        onToggleRowExpansion={toggleRowExpansion}
+                                        onCopyToClipboard={copyToClipboard}
+                                        onExecuteNow={executeNow}
+                                        onCancelOrder={(uuid) => setConfirmUuid(uuid)}
+                                        copiedId={copiedId}
+                                        formatTokenAmount={formatTokenAmount}
+                                    />
+                                );
+                            })}
+                        </div>
+                    ))}
+
+                    {/* Loading overlay during filter changes */}
+                    {paginationLoading && (
+                        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10">
+                            <div className="flex items-center gap-3 text-sm text-white/70">
+                                <div className="h-5 w-5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                                <span>Updating orders...</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
+
 
             {/* Premium cancel confirmation dialog */}
             {confirmUuid && (

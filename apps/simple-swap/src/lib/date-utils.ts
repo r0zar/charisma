@@ -134,6 +134,76 @@ export function formatExecWindowCompact(validFrom?: string, validTo?: string): s
 }
 
 /**
+ * Formats an execution window in a human-readable way for DCA strategies
+ * Uses more natural language for time ranges
+ */
+export function formatExecWindowHuman(validFrom?: string, validTo?: string, orderStatus?: string): string {
+    const from = validFrom ? new Date(validFrom) : null;
+    const to = validTo ? new Date(validTo) : null;
+    const now = new Date();
+
+    // Validate dates
+    if (from && isNaN(from.getTime())) return 'Invalid date range';
+    if (to && isNaN(to.getTime())) return 'Invalid date range';
+
+    // For confirmed orders, show past tense
+    if (orderStatus === 'confirmed') {
+        if (!from && !to) return 'Executed (no time constraints)';
+        
+        if (from && !to) {
+            return `Executed (valid from ${formatRelativeTime(from)})`;
+        }
+        
+        if (!from && to) {
+            return `Executed (valid until ${formatRelativeTime(to)})`;
+        }
+        
+        if (from && to) {
+            return `Executed (valid ${formatRelativeTime(from)} to ${formatRelativeTime(to)})`;
+        }
+    }
+
+    // For non-confirmed orders, show future tense
+    if (!from && !to) return 'Execute anytime';
+    
+    if (from && !to) {
+        // Only start time
+        if (from <= now) {
+            return 'Execute now or later';
+        } else {
+            return `Execute starting ${formatRelativeTime(from)}`;
+        }
+    }
+    
+    if (!from && to) {
+        // Only end time
+        return `Execute before ${formatRelativeTime(to)}`;
+    }
+    
+    if (from && to) {
+        // Both times specified
+        if (from <= now) {
+            return `Execute before ${formatRelativeTime(to)}`;
+        } else {
+            const fromRelative = formatRelativeTime(from);
+            const toRelative = formatRelativeTime(to);
+            
+            // If both are less than a day away, show more specific timing
+            const fromDiffHours = Math.abs(from.getTime() - now.getTime()) / (1000 * 60 * 60);
+            const toDiffHours = Math.abs(to.getTime() - now.getTime()) / (1000 * 60 * 60);
+            
+            if (fromDiffHours < 24 && toDiffHours < 24) {
+                return `Execute between ${formatTime(from)} and ${formatTime(to)}`;
+            } else {
+                return `Execute between ${fromRelative} and ${toRelative}`;
+            }
+        }
+    }
+    
+    return 'Execute anytime';
+}
+
+/**
  * Interface for order-like objects with status and timestamps
  */
 interface OrderLike {
@@ -336,10 +406,15 @@ interface OrderConditionInfo {
  */
 export function getConditionIcon(
     order: OrderConditionInfo, 
-    strategyType?: 'split' | 'dca' | 'batch' | 'twitter' | 'single'
+    strategyType?: 'dca' | 'single' | 'twitter'
 ): string | null {
-    // For strategy orders (DCA, split), prioritize time-based execution
-    if (strategyType && (strategyType === 'dca' || strategyType === 'split')) {
+    // For Twitter strategy orders, prioritize Twitter-based execution
+    if (strategyType === 'twitter') {
+        return '🐦';
+    }
+    
+    // For DCA strategy orders, prioritize time-based execution
+    if (strategyType === 'dca') {
         return '⏰';
     }
     

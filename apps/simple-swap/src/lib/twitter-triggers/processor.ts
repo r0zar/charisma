@@ -1,4 +1,4 @@
-import { getTriggersToCheck, createTwitterExecution, updateTwitterExecution, incrementTriggerCount } from './store';
+import { getTriggersToCheck, createTwitterExecution, updateTwitterExecution, incrementTriggerCount, getExecutionByTriggerAndBNS } from './store';
 import { scrapeTwitterReplies, TwitterRateLimiter } from './twitter-scraper';
 import { processBNSFromReply } from './bns-resolver';
 import { TwitterTrigger, TwitterTriggerExecution } from './types';
@@ -137,18 +137,45 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 
     console.log(`[Twitter Processor] Found BNS name: ${bnsResult.bnsName} in reply ${reply.id}`);
 
-    // Create execution record (initially pending)
-    const execution = await createTwitterExecution({
-        triggerId: trigger.id,
-        replyTweetId: reply.id,
-        replierHandle: reply.authorHandle,
-        replierDisplayName: reply.authorDisplayName,
-        bnsName: bnsResult.bnsName,
-        executedAt: new Date().toISOString(),
-        status: 'pending',
-        replyText: reply.text,
-        replyCreatedAt: reply.createdAt,
-    });
+    // Check if we already have an execution for this trigger + BNS combination (idempotent processing)
+    const existingExecution = await getExecutionByTriggerAndBNS(trigger.id, bnsResult.bnsName);
+    
+    let execution: TwitterTriggerExecution;
+    
+    if (existingExecution) {
+        console.log(`[Twitter Processor] Found existing execution ${existingExecution.id} for BNS ${bnsResult.bnsName} with status: ${existingExecution.status}`);
+        
+        // Decide what to do based on existing execution status
+        if (existingExecution.status === 'order_broadcasted' || existingExecution.status === 'order_confirmed') {
+            console.log(`[Twitter Processor] ✅ Skipping BNS ${bnsResult.bnsName} - already processed successfully`);
+            return true; // Consider this a success since user already got their order
+        }
+        
+        // For failed, pending, or bns_resolved statuses, we'll retry the execution
+        console.log(`[Twitter Processor] 🔄 Retrying execution for BNS ${bnsResult.bnsName} - previous status: ${existingExecution.status}`);
+        execution = existingExecution;
+        
+        // Reset status to pending for retry
+        await updateTwitterExecution(execution.id, {
+            status: 'pending',
+            error: undefined, // Clear any previous error
+            executedAt: new Date().toISOString(), // Update timestamp for retry
+        });
+    } else {
+        // No existing execution, create a new one
+        console.log(`[Twitter Processor] 🆕 Creating new execution for BNS ${bnsResult.bnsName}`);
+        execution = await createTwitterExecution({
+            triggerId: trigger.id,
+            replyTweetId: reply.id,
+            replierHandle: reply.authorHandle,
+            replierDisplayName: reply.authorDisplayName,
+            bnsName: bnsResult.bnsName,
+            executedAt: new Date().toISOString(),
+            status: 'pending',
+            replyText: reply.text,
+            replyCreatedAt: reply.createdAt,
+        });
+    }
 
     // Check if BNS resolution was successful
     if (!bnsResult.resolution || !bnsResult.resolution.success) {
@@ -172,6 +199,9 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
         status: 'bns_resolved',
     });
 
+    // Get the updated execution record to pass to order metadata update
+    const updatedExecution = { ...execution, recipientAddress, status: 'bns_resolved' as const };
+
     // Try to execute a pre-signed order, or create overflow execution if none available
     try {
         const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id);
@@ -181,8 +211,17 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
             await updateTwitterExecution(execution.id, {
                 orderUuid: orderResult.orderUuid,
                 txid: orderResult.txid,
-                status: 'order_created',
+                status: 'order_broadcasted',
             });
+
+            // Update the order metadata with Twitter execution information
+            const finalExecution = { 
+                ...updatedExecution, 
+                orderUuid: orderResult.orderUuid,
+                txid: orderResult.txid,
+                status: 'order_broadcasted' as const
+            };
+            await updateOrderWithExecutionMetadata(orderResult.orderUuid!, finalExecution, recipientAddress!);
 
             // Increment trigger count
             await incrementTriggerCount(trigger.id);
@@ -274,7 +313,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 /**
  * Execute a pre-signed order from a Twitter trigger
  */
-async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: string, executionId: string): Promise<{
+export async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: string, executionId: string): Promise<{
     success: boolean;
     orderUuid?: string;
     txid?: string;
@@ -290,7 +329,7 @@ async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: 
         }
 
         // Import order functions
-        const { getOrder } = await import('../orders/store');
+        const { getOrder, updateOrder } = await import('../orders/store');
 
         // Find the next available (open) order
         let nextOrderUuid: string | null = null;
@@ -328,26 +367,32 @@ async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: 
 
         // Execute the order directly by calling the execution function
         const { executeTrade } = await import('../orders/executor');
-        const { fillOrder } = await import('../orders/store');
+        const { broadcastOrder } = await import('../orders/store');
 
-        const txid = await executeTrade(updatedOrder);
+        const executionResult = await executeTrade(updatedOrder);
 
-        if (!txid) {
+        console.log(`[Twitter Processor] Trade execution result for order ${nextOrderUuid}:`, {
+            orderUuid: nextOrderUuid,
+            recipient: recipientAddress,
+            executionResult
+        });
+
+        if (!executionResult.success || !executionResult.txid) {
             return {
                 success: false,
-                error: 'Order execution failed - no transaction ID returned'
+                error: `Order execution failed: ${executionResult.error || 'No transaction ID returned'}`
             };
         }
 
-        // Mark the order as filled to prevent reuse
-        await fillOrder(nextOrderUuid, txid);
+        // Mark the order as broadcasted to prevent reuse
+        await broadcastOrder(nextOrderUuid, executionResult.txid);
 
-        console.log(`[Twitter Processor] Successfully executed order ${nextOrderUuid} for recipient ${recipientAddress}, txid: ${txid}`);
+        console.log(`[Twitter Processor] ✅ Successfully executed order ${nextOrderUuid} for recipient ${recipientAddress}, txid: ${executionResult.txid}`);
 
         return {
             success: true,
             orderUuid: nextOrderUuid,
-            txid: txid
+            txid: executionResult.txid
         };
 
     } catch (error) {
@@ -383,4 +428,49 @@ async function updateLastProcessedReplyId(triggerId: string, replies: any[]): Pr
     await kv.set(`twitter_last_reply:${triggerId}`, maxReplyId);
 
     console.log(`[Twitter Processor] Updated last processed reply ID for trigger ${triggerId}: ${maxReplyId}`);
+}
+
+/**
+ * Updates an order's metadata with Twitter execution information
+ */
+async function updateOrderWithExecutionMetadata(
+    orderUuid: string,
+    execution: TwitterTriggerExecution,
+    recipientAddress: string
+): Promise<void> {
+    try {
+        const { getOrder, updateOrder } = await import('../orders/store');
+        const order = await getOrder(orderUuid);
+        
+        if (!order) {
+            console.error(`[Twitter Processor] Order ${orderUuid} not found when trying to update metadata`);
+            return;
+        }
+
+        // Create or update the metadata.execution field
+        const updatedOrder = {
+            ...order,
+            recipient: recipientAddress,
+            metadata: {
+                ...order.metadata,
+                execution: {
+                    replierHandle: execution.replierHandle,
+                    replierDisplayName: execution.replierDisplayName,
+                    bnsName: execution.bnsName,
+                    replyTweetId: execution.replyTweetId,
+                    replyText: execution.replyText,
+                    replyCreatedAt: execution.replyCreatedAt,
+                    executedAt: execution.executedAt,
+                    status: execution.status,
+                    error: execution.error
+                }
+            }
+        };
+
+        await updateOrder(updatedOrder);
+        console.log(`[Twitter Processor] Updated order ${orderUuid} with execution metadata`);
+        
+    } catch (error) {
+        console.error(`[Twitter Processor] Failed to update order ${orderUuid} with execution metadata:`, error);
+    }
 }

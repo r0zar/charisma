@@ -435,13 +435,13 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                         ) : (
                                                             <div className="p-2 rounded-lg bg-amber-500/[0.08] border border-amber-500/[0.15]">
                                                                 <div className="text-amber-400 text-xs font-medium mb-1">
-                                                                    {order.conditionToken === '*' && (type === 'dca' || type === 'split') ? 
+                                                                    {order.conditionToken === '*' && type === 'dca' ? 
                                                                         'Time-triggered Execution' :
                                                                         order.conditionToken === '*' ? 'Immediate Execution' : 'Execute on Command'
                                                                     }
                                                                 </div>
                                                                 <div className="text-white/70 text-xs">
-                                                                    {order.conditionToken === '*' && (type === 'dca' || type === 'split') ? 
+                                                                    {order.conditionToken === '*' && type === 'dca' ? 
                                                                         'This order will execute automatically within its scheduled time window' :
                                                                         order.conditionToken === '*' ? 
                                                                             'This order will be executed automatically right away' : 
@@ -732,13 +732,13 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                         ) : (
                                             <div className="p-2 rounded-lg bg-amber-500/[0.08] border border-amber-500/[0.15]">
                                                 <div className="text-amber-400 text-xs font-medium mb-1">
-                                                    {firstOrder.conditionToken === '*' && !isSingleOrder && (type === 'dca' || type === 'split') ? 
+                                                    {firstOrder.conditionToken === '*' && !isSingleOrder && type === 'dca' ? 
                                                         'Time-triggered Execution' :
                                                         firstOrder.conditionToken === '*' ? 'Immediate Execution' : 'Execute on Command'
                                                     }
                                                 </div>
                                                 <div className="text-white/70 text-xs">
-                                                    {firstOrder.conditionToken === '*' && !isSingleOrder && (type === 'dca' || type === 'split') ? 
+                                                    {firstOrder.conditionToken === '*' && !isSingleOrder && type === 'dca' ? 
                                                         'This order will execute automatically within its scheduled time window' :
                                                         firstOrder.conditionToken === '*' ? 
                                                             'This order will be executed automatically right away' : 

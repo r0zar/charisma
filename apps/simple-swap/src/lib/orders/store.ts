@@ -47,15 +47,15 @@ export async function listOrdersPaginated(
 ): Promise<PaginatedOrdersResult> {
     const map = await kv.hgetall<Record<string, unknown>>(HASH_KEY);
     const all: LimitOrder[] = map ? Object.values(map).map((v) => (typeof v === 'string' ? JSON.parse(v) : v) as LimitOrder) : [];
-    
+
     // Filter by owner if specified
     let filtered = owner ? all.filter((o) => o.owner === owner) : all;
-    
+
     // Filter by status if specified
     if (statusFilter && statusFilter !== 'all') {
         filtered = filtered.filter((o) => o.status === statusFilter);
     }
-    
+
     // Filter by search query if specified
     if (searchQuery && searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
@@ -65,12 +65,12 @@ export async function listOrdersPaginated(
                 o.owner.toLowerCase().includes(query) ||
                 o.inputToken.toLowerCase().includes(query) ||
                 o.outputToken.toLowerCase().includes(query) ||
-                o.conditionToken.toLowerCase().includes(query) ||
+                (o.conditionToken && o.conditionToken.toLowerCase().includes(query)) ||
                 (o.txid && o.txid.toLowerCase().includes(query))
             );
         });
     }
-    
+
     // Sort orders
     const sorted = filtered.sort((a, b) => {
         if (sortBy === 'createdAt') {
@@ -92,14 +92,14 @@ export async function listOrdersPaginated(
         }
         return 0;
     });
-    
+
     // Pagination calculation
     const total = sorted.length;
     const totalPages = Math.ceil(total / limit);
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const orders = sorted.slice(startIndex, endIndex);
-    
+
     return {
         orders,
         total,
@@ -138,8 +138,9 @@ export async function confirmOrder(uuid: string, blockHeight?: number, blockTime
         console.warn(`[ORDERS] confirmOrder: Order ${uuid} not found`);
         return undefined;
     }
-    
+
     // Handle both 'broadcasted' and legacy 'filled' statuses
+    // @ts-ignore: legacy filled status
     if (order.status === 'broadcasted' || order.status === 'filled') {
         console.log(`[ORDERS] Confirming order ${uuid}: ${order.status} -> confirmed`);
         order.status = 'confirmed';
@@ -160,8 +161,9 @@ export async function failOrder(uuid: string, reason: string): Promise<LimitOrde
         console.warn(`[ORDERS] failOrder: Order ${uuid} not found`);
         return undefined;
     }
-    
+
     // Handle both 'broadcasted' and legacy 'filled' statuses
+    // @ts-ignore: legacy filled status
     if (order.status === 'broadcasted' || order.status === 'filled') {
         console.log(`[ORDERS] Failing order ${uuid}: ${order.status} -> failed (${reason})`);
         order.status = 'failed';

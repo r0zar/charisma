@@ -1,4 +1,5 @@
 import { BNSResolutionResult } from './types';
+import { resolveBnsNameToAddress } from '@repo/polyglot';
 
 /**
  * Extracts BNS names from Twitter handles and display names
@@ -29,7 +30,7 @@ export function extractBNSName(handle: string, displayName: string): string | nu
 }
 
 /**
- * Resolves a BNS name to a Stacks address using the Stacks API
+ * Resolves a BNS name to a Stacks address using the shared polyglot BNS function
  */
 export async function resolveBNSToAddress(bnsName: string): Promise<BNSResolutionResult> {
     try {
@@ -43,115 +44,36 @@ export async function resolveBNSToAddress(bnsName: string): Promise<BNSResolutio
             return getMockBNSResolution(bnsName);
         }
         
-        // Use the Stacks API endpoints for BNS resolution
-        const stacksApiUrl = process.env.STACKS_API_URL || 'https://stacks-node-api.mainnet.stacks.co';
+        // Use the shared resolveBnsNameToAddress function from @repo/polyglot
+        console.log(`[BNS Resolver] Using shared resolveBnsNameToAddress for: ${bnsName}`);
         
-        try {
-            // First try the v1 names endpoint
-            const v1ApiUrl = `${stacksApiUrl}/v1/names/${bnsName}`;
-            console.log(`[BNS Resolver] Trying v1 API: ${v1ApiUrl}`);
-            
-            const v1Response = await fetch(v1ApiUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                // Add timeout
-                signal: AbortSignal.timeout(10000), // 10 second timeout
-            });
-            
-            if (v1Response.ok) {
-                const v1Data = await v1Response.json();
-                console.log(`[BNS Resolver] v1 API response:`, v1Data);
-                
-                if (v1Data && v1Data.address) {
-                    return {
-                        bnsName,
-                        address: v1Data.address,
-                        success: true
-                    };
-                }
-            }
-            
-            // If v1 fails, try v2 names endpoint
-            const v2ApiUrl = `${stacksApiUrl}/v2/names/${bnsName}`;
-            console.log(`[BNS Resolver] Trying v2 API: ${v2ApiUrl}`);
-            
-            const v2Response = await fetch(v2ApiUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                signal: AbortSignal.timeout(10000),
-            });
-            
-            if (v2Response.ok) {
-                const v2Data = await v2Response.json();
-                console.log(`[BNS Resolver] v2 API response:`, v2Data);
-                
-                if (v2Data && v2Data.address) {
-                    return {
-                        bnsName,
-                        address: v2Data.address,
-                        success: true
-                    };
-                }
-            }
-            
-            // If both APIs fail to find the name, try alternate approach
-            // Some BNS names might be in different formats
-            const nameWithoutBtc = bnsName.replace('.btc', '');
-            const alternateApiUrl = `${stacksApiUrl}/v1/names/${nameWithoutBtc}.id.blockstack`;
-            
-            console.log(`[BNS Resolver] Trying alternate format: ${alternateApiUrl}`);
-            
-            const altResponse = await fetch(alternateApiUrl, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                signal: AbortSignal.timeout(10000),
-            });
-            
-            if (altResponse.ok) {
-                const altData = await altResponse.json();
-                console.log(`[BNS Resolver] Alternate API response:`, altData);
-                
-                if (altData && altData.address) {
-                    return {
-                        bnsName,
-                        address: altData.address,
-                        success: true
-                    };
-                }
-            }
-            
-            // If all attempts fail
-            console.log(`[BNS Resolver] All resolution attempts failed for ${bnsName}`);
+        const address = await resolveBnsNameToAddress(bnsName);
+        
+        if (address) {
+            console.log(`[BNS Resolver] Successfully resolved ${bnsName} to address: ${address}`);
             return {
                 bnsName,
-                success: false,
-                error: 'BNS name not found in Stacks registry'
+                address,
+                success: true
             };
-            
-        } catch (apiError) {
-            console.error(`[BNS Resolver] API error for ${bnsName}:`, apiError);
-            
-            // Fall back to mock data for development
-            if (process.env.NODE_ENV === 'development') {
-                console.log(`[BNS Resolver] Falling back to mock data in development`);
-                return getMockBNSResolution(bnsName);
-            }
-            
+        } else {
+            console.log(`[BNS Resolver] BNS name ${bnsName} not found`);
             return {
                 bnsName,
                 success: false,
-                error: `BNS resolution API error: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`
+                error: 'BNS name not found in registry'
             };
         }
         
     } catch (error) {
         console.error(`[BNS Resolver] Error resolving ${bnsName}:`, error);
+        
+        // Fall back to mock data for development
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[BNS Resolver] Falling back to mock data in development`);
+            return getMockBNSResolution(bnsName);
+        }
+        
         return {
             bnsName,
             success: false,

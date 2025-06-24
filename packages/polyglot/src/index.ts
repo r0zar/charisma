@@ -75,6 +75,17 @@ export interface BnsNamesResponse {
 }
 
 /**
+ * Interface for BNS name resolution response
+ */
+export interface BnsNameResolutionResponse {
+  address: string;
+  zonefile_hash?: string;
+  zonefile?: string;
+  expire_block?: number;
+  grace_period?: boolean;
+}
+
+/**
  * Fetches the interface for a specified smart contract.
  * @param contractAddress The Stacks address of the contract.
  * @param contractName The name of the contract.
@@ -404,6 +415,26 @@ export async function getPrimaryBnsName(
     return names.length > 0 ? names[0] : null;
   } catch (error) {
     console.error(`Error fetching primary BNS name for ${address}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Resolves a BNS name to its associated Stacks address
+ * @param name The BNS name to resolve (e.g., "username.btc")
+ * @returns A promise that resolves to the Stacks address or null if not found
+ */
+export async function resolveBnsNameToAddress(name: string): Promise<string | null> {
+  try {
+    const { data } = await apiClient.GET(`/v1/names/${name}` as any);
+    const resolutionData = data as BnsNameResolutionResponse;
+    return resolutionData?.address || null;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      console.warn(`BNS name not found: ${name}`);
+      return null;
+    }
+    console.error(`Error resolving BNS name ${name}:`, error);
     return null;
   }
 }

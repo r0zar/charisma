@@ -193,7 +193,6 @@ async function processAndBroadcastBlazeIntent(
             functionArgs,
             senderKey: BLAZE_SIGNER_PRIVATE_KEY,
             network: networkInstance,
-            fee: BigInt(1000),
             postConditionMode: PostConditionMode.Deny,
         };
 

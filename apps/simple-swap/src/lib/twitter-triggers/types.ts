@@ -43,7 +43,7 @@ export interface TwitterTriggerExecution {
     orderUuid?: string; // created order UUID (if successful)
     txid?: string; // transaction ID for blockchain explorer link
     executedAt: string; // ISO timestamp
-    status: 'pending' | 'bns_resolved' | 'order_created' | 'failed' | 'overflow';
+    status: 'pending' | 'bns_resolved' | 'order_broadcasted' | 'order_confirmed' | 'failed' | 'overflow';
     error?: string; // error message if failed
     
     // Twitter reply metadata

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
+import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle, TestTube } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import TokenDropdown from '@/components/TokenDropdown';
 import { TokenCacheData } from '@repo/tokens';
@@ -35,7 +36,7 @@ interface TwitterExecution {
     recipientAddress?: string;
     orderUuid?: string;
     txid?: string; // Transaction ID for explorer link
-    status: 'pending' | 'bns_resolved' | 'order_created' | 'failed' | 'overflow' | 
+    status: 'pending' | 'bns_resolved' | 'order_broadcasted' | 'order_confirmed' | 'failed' | 'overflow' | 
             'test_run' | 'test_would_execute' | 'test_failed' | 'test_limited' | 'test_no_orders' | 'test_overflow';
     executedAt: string;
     error?: string;
@@ -44,12 +45,6 @@ interface TwitterExecution {
     twitterReplyError?: string;
 }
 
-interface BNSTestResult {
-    bnsName: string;
-    address?: string;
-    success: boolean;
-    error?: string;
-}
 
 export default function TwitterTriggersClient() {
     const [triggers, setTriggers] = useState<TwitterTrigger[]>([]);
@@ -84,10 +79,6 @@ export default function TwitterTriggersClient() {
     const [selectedTriggerId, setSelectedTriggerId] = useState<string | null>(null);
     const [additionalOrdersCount, setAdditionalOrdersCount] = useState('');
     
-    // BNS testing states
-    const [bnsTestName, setBnsTestName] = useState('');
-    const [bnsTestResult, setBnsTestResult] = useState<BNSTestResult | null>(null);
-    const [bnsTestLoading, setBnsTestLoading] = useState(false);
     
     // Delete states
     const [deletingTriggers, setDeletingTriggers] = useState<Set<string>>(new Set());
@@ -239,43 +230,6 @@ export default function TwitterTriggersClient() {
         }
     };
 
-    const testBNSResolution = async () => {
-        if (!bnsTestName.trim()) {
-            toast.error('Please enter a BNS name to test');
-            return;
-        }
-
-        setBnsTestLoading(true);
-        setBnsTestResult(null);
-
-        try {
-            const response = await fetch('/api/v1/twitter-triggers/resolve-bns', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ bnsName: bnsTestName.trim() }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setBnsTestResult(data.data);
-                if (data.data.success) {
-                    toast.success(`BNS resolved: ${data.data.address}`);
-                } else {
-                    toast.error(`BNS resolution failed: ${data.data.error}`);
-                }
-            } else {
-                toast.error(`Test failed: ${data.error}`);
-            }
-        } catch (error) {
-            console.error('BNS test error:', error);
-            toast.error('BNS resolution test failed');
-        } finally {
-            setBnsTestLoading(false);
-        }
-    };
 
     const runCronManually = async () => {
         setRunningCron(true);
@@ -784,26 +738,34 @@ export default function TwitterTriggersClient() {
             const data = await response.json();
             
             if (data.success) {
-                toast.success(`Test completed: ${data.message || 'Trigger test executed'}`, {
-                    description: data.data?.status || 'Manual trigger test executed successfully'
-                });
+                const summary = data.data?.executionSummary;
+                const ordersExecuted = data.data?.ordersExecuted || 0;
                 
-                // Add mock executions to the executions list if any were found
-                if (data.data?.mockExecutions && data.data.mockExecutions.length > 0) {
-                    setExecutions(prev => [
-                        ...data.data.mockExecutions, // Add test results at the top
-                        ...prev
-                    ]);
+                // Build detailed toast message
+                let toastMessage = `Real execution test completed`;
+                let toastDescription = data.data?.status || 'Manual trigger test executed successfully';
+                
+                if (summary) {
+                    if (summary.successful > 0) {
+                        toastMessage = `✅ ${summary.successful} order${summary.successful > 1 ? 's' : ''} executed successfully`;
+                    } else if (summary.overflow > 0) {
+                        toastMessage = `⚠️ ${summary.overflow} overflow execution${summary.overflow > 1 ? 's' : ''} (need more orders)`;
+                    } else if (summary.failed > 0) {
+                        toastMessage = `❌ ${summary.failed} execution${summary.failed > 1 ? 's' : ''} failed`;
+                    }
                     
-                    // Auto-clear mock executions after 30 seconds
-                    setTimeout(() => {
-                        setExecutions(prev => prev.filter(exec => 
-                            !exec.status || !exec.status.startsWith('test_')
-                        ));
-                    }, 30000);
+                    if (summary.total > 0) {
+                        toastDescription = `Found ${data.data.bnsNamesFound} BNS names from ${data.data.repliesFound} replies`;
+                    }
                 }
                 
-                loadData(true); // Reload to see any updates, but preserve mock executions
+                toast.success(toastMessage, {
+                    description: toastDescription,
+                    duration: 8000 // Longer duration for important real execution results
+                });
+                
+                // Always reload data since real executions were created
+                loadData(); // Full reload to see all real execution results
             } else {
                 toast.error(`Test failed: ${data.error}`);
             }
@@ -868,9 +830,30 @@ export default function TwitterTriggersClient() {
         return `https://explorer.stacks.co/txid/${txid}?chain=mainnet`;
     };
 
+    const getStatusDisplay = (status: string) => {
+        switch (status) {
+            case 'order_broadcasted':
+                return { text: 'Broadcasted', color: 'text-yellow-600' };
+            case 'order_confirmed':
+                return { text: 'Confirmed', color: 'text-green-600' };
+            case 'failed':
+                return { text: 'Failed', color: 'text-red-600' };
+            case 'overflow':
+                return { text: 'Overflow', color: 'text-orange-600' };
+            case 'pending':
+                return { text: 'Pending', color: 'text-gray-600' };
+            case 'bns_resolved':
+                return { text: 'BNS Resolved', color: 'text-blue-600' };
+            default:
+                return { text: status, color: 'text-gray-600' };
+        }
+    };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'order_created':
+            case 'order_broadcasted':
+                return <Clock className="w-4 h-4 text-yellow-500" />;
+            case 'order_confirmed':
                 return <CheckCircle className="w-4 h-4 text-green-500" />;
             case 'failed':
             case 'test_failed':
@@ -1031,9 +1014,32 @@ export default function TwitterTriggersClient() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Create New Trigger */}
-                <div className="bg-card rounded-lg border border-border p-6">
+            {/* Testing Dashboard Link */}
+            <div className="bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-start gap-3">
+                        <TestTube className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
+                                Advanced Testing Dashboard
+                            </h3>
+                            <p className="text-sm text-purple-800 dark:text-purple-200">
+                                Access comprehensive testing tools for Twitter scraping, BNS resolution, flow simulation, and data inspection.
+                            </p>
+                        </div>
+                    </div>
+                    <Link 
+                        href="/admin/twitter-triggers/testing"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                    >
+                        <TestTube className="w-4 h-4" />
+                        Open Testing Dashboard
+                    </Link>
+                </div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Create New Trigger</h3>
                     <h3 className="text-lg font-semibold text-foreground mb-4">Create New Trigger</h3>
                     <div className="space-y-4">
                         <div>
@@ -1143,69 +1149,6 @@ export default function TwitterTriggersClient() {
                         </button>
                     </div>
                 </div>
-
-                {/* BNS Testing */}
-                <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold text-foreground mb-4">BNS Resolution Testing</h3>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-foreground mb-2">
-                                Test BNS Name
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="username.btc"
-                                value={bnsTestName}
-                                onChange={(e) => setBnsTestName(e.target.value)}
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-                        </div>
-                        
-                        <button 
-                            onClick={testBNSResolution}
-                            disabled={bnsTestLoading}
-                            className="w-full bg-secondary text-secondary-foreground py-2 px-4 rounded-lg font-medium hover:bg-secondary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                        >
-                            {bnsTestLoading ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Resolving...
-                                </>
-                            ) : (
-                                'Resolve Address'
-                            )}
-                        </button>
-                        
-                        <div className="bg-muted rounded-lg p-4">
-                            <div className="text-sm text-muted-foreground mb-2">Resolution Result:</div>
-                            <div className="font-mono text-sm text-foreground bg-background rounded px-2 py-1">
-                                {bnsTestResult ? (
-                                    bnsTestResult.success ? (
-                                        <span className="text-green-600">
-                                            ✅ {bnsTestResult.address}
-                                        </span>
-                                    ) : (
-                                        <span className="text-red-600">
-                                            ❌ {bnsTestResult.error}
-                                        </span>
-                                    )
-                                ) : (
-                                    'Click "Resolve Address" to test'
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 pt-6 border-t border-border">
-                        <h4 className="font-medium text-foreground mb-3">Supported BNS Formats</h4>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                            <li>• <code>@username.btc</code> - Twitter handle format</li>
-                            <li>• <code>username.btc</code> - Direct BNS name</li>
-                            <li>• <code>@alice.btc 🎯</code> - With emojis/text</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
 
             {/* Active Triggers Table */}
             <div className="bg-card rounded-lg border border-border">
@@ -1324,8 +1267,8 @@ export default function TwitterTriggersClient() {
                                                     <button
                                                         onClick={() => testTrigger(trigger.id)}
                                                         disabled={testingTriggers.has(trigger.id)}
-                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        title="Test trigger now"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        title="Run trigger now (REAL EXECUTION - will create actual orders)"
                                                     >
                                                         {testingTriggers.has(trigger.id) ? (
                                                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -1440,14 +1383,15 @@ export default function TwitterTriggersClient() {
                                             <td className="py-3 px-4">
                                                 <div className="flex items-center">
                                                     {getStatusIcon(execution.status)}
-                                                    <span className="ml-2 text-sm capitalize">
+                                                    <span className={`ml-2 text-sm ${getStatusDisplay(execution.status).color}`}>
                                                         {execution.status === 'test_run' ? 'Test Run' :
                                                          execution.status === 'test_would_execute' ? 'Would Execute' :
                                                          execution.status === 'test_failed' ? 'Test Failed' :
                                                          execution.status === 'test_limited' ? 'Test (Limited)' :
                                                          execution.status === 'test_no_orders' ? 'Test (No Orders)' :
                                                          execution.status === 'test_overflow' ? 'Overflow' :
-                                                         execution.status.replace('_', ' ')}
+                                                         execution.status.startsWith('test_') ? execution.status.replace('_', ' ') :
+                                                         getStatusDisplay(execution.status).text}
                                                     </span>
                                                     {execution.status.startsWith('test_') && (
                                                         <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs rounded-full">
@@ -1479,13 +1423,13 @@ export default function TwitterTriggersClient() {
                                                         <span className="text-xs">Disabled</span>
                                                     </div>
                                                 )}
-                                                {!execution.twitterReplyStatus && execution.status === 'order_created' && (
+                                                {!execution.twitterReplyStatus && (execution.status === 'order_broadcasted' || execution.status === 'order_confirmed') && (
                                                     <div className="flex items-center text-yellow-600">
                                                         <Clock className="w-3 h-3 mr-1" />
                                                         <span className="text-xs">Pending</span>
                                                     </div>
                                                 )}
-                                                {!execution.twitterReplyStatus && execution.status !== 'order_created' && (
+                                                {!execution.twitterReplyStatus && (execution.status !== 'order_broadcasted' && execution.status !== 'order_confirmed') && (
                                                     <span className="text-xs text-gray-400">-</span>
                                                 )}
                                             </td>

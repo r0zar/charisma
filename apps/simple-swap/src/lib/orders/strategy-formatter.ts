@@ -1,17 +1,33 @@
 import { LimitOrder } from './types';
 import { TokenCacheData } from '@repo/tokens';
 
+// Enriched order type with token metadata for display
+export interface DisplayOrder extends LimitOrder {
+    inputTokenMeta: TokenCacheData;
+    outputTokenMeta: TokenCacheData;
+    conditionTokenMeta?: TokenCacheData;
+    baseAssetMeta?: TokenCacheData | null;
+}
+
 export interface StrategyDisplayData {
     id: string;
-    type: 'split' | 'dca' | 'batch' | 'twitter' | 'single';
+    type: 'dca' | 'single' | 'twitter';
     description: string;
-    orders: LimitOrder[];
+    orders: DisplayOrder[];
     totalOrders: number;
     completedOrders: number;
     progressPercent: number;
     totalValue: string;
     status: 'active' | 'completed' | 'partially_filled' | 'cancelled';
     estimatedCompletion?: string;
+    // Twitter-specific metadata
+    twitterMetadata?: {
+        tweetUrl?: string;
+        tweetId?: string;
+        maxTriggers?: number;
+        triggeredCount?: number;
+        recentReplies?: any[];
+    };
 }
 
 /**
@@ -67,7 +83,7 @@ function createStrategyDisplayData(
     tokenMetadata: Map<string, TokenCacheData>
 ): StrategyDisplayData {
     const firstOrder = orders[0];
-    const strategyType = firstOrder.strategyType || 'batch';
+    const strategyType = firstOrder.strategyType || 'dca';
     
     // Sort orders by position
     const sortedOrders = orders.sort((a, b) => (a.strategyPosition || 0) - (b.strategyPosition || 0));
@@ -102,6 +118,15 @@ function createStrategyDisplayData(
     // Estimate completion for active strategies
     const estimatedCompletion = estimateStrategyCompletion(orders, strategyType);
 
+    // Extract Twitter metadata if this is a Twitter strategy
+    const twitterMetadata = strategyType === 'twitter' ? {
+        tweetUrl: firstOrder.metadata?.tweetUrl,
+        tweetId: firstOrder.metadata?.tweetId,
+        maxTriggers: firstOrder.metadata?.maxTriggers,
+        triggeredCount: firstOrder.metadata?.triggeredCount,
+        recentReplies: firstOrder.metadata?.recentReplies || []
+    } : undefined;
+
     return {
         id: strategyId,
         type: strategyType,
@@ -112,7 +137,8 @@ function createStrategyDisplayData(
         progressPercent,
         totalValue,
         status,
-        estimatedCompletion
+        estimatedCompletion,
+        twitterMetadata
     };
 }
 
@@ -178,7 +204,7 @@ function determineStrategyStatus(orders: LimitOrder[]): StrategyDisplayData['sta
  * Generates human-readable description for strategy types
  */
 function generateStrategyDescription(
-    type: 'split' | 'dca' | 'batch' | 'twitter',
+    type: 'dca' | 'twitter',
     orders: LimitOrder[],
     totalValue: string,
     tokenSymbol: string
@@ -186,18 +212,14 @@ function generateStrategyDescription(
     const orderCount = orders.length;
     
     switch (type) {
-        case 'split':
-            return `Split ${totalValue} ${tokenSymbol} into ${orderCount} orders`;
         case 'dca':
             return `DCA ${totalValue} ${tokenSymbol} over ${orderCount} orders`;
-        case 'batch':
-            return `Batch of ${orderCount} orders (${totalValue} ${tokenSymbol})`;
         case 'twitter':
-            // Extract tweet URL from metadata if available
-            const firstOrder = orders[0];
-            const tweetUrl = firstOrder.metadata?.tweetUrl;
-            const tweetDisplay = tweetUrl ? ` for Tweet` : '';
-            return `Twitter Triggers: ${orderCount} orders (${totalValue} ${tokenSymbol})${tweetDisplay}`;
+            const tweetUrl = orders[0]?.metadata?.tweetUrl;
+            if (tweetUrl) {
+                return `Twitter trigger for ${totalValue} ${tokenSymbol} (${orderCount} orders)`;
+            }
+            return `Tweet-triggered strategy (${orderCount} orders)`;
         default:
             return `${orderCount} related orders`;
     }
@@ -208,7 +230,7 @@ function generateStrategyDescription(
  */
 function estimateStrategyCompletion(
     orders: LimitOrder[],
-    type: 'split' | 'dca' | 'batch' | 'twitter'
+    type: 'dca' | 'twitter'
 ): string | undefined {
     if (type === 'dca') {
         // For DCA, estimate based on validTo times
@@ -225,6 +247,19 @@ function estimateStrategyCompletion(
                 year: 'numeric'
             });
         }
+    }
+    
+    if (type === 'twitter') {
+        // For Twitter strategies, completion depends on replies and max triggers
+        const metadata = orders[0]?.metadata;
+        if (metadata?.maxTriggers && metadata?.triggeredCount) {
+            const remaining = metadata.maxTriggers - metadata.triggeredCount;
+            if (remaining <= 0) {
+                return 'Complete';
+            }
+            return `${remaining} triggers remaining`;
+        }
+        return 'Waiting for replies';
     }
     
     return undefined;

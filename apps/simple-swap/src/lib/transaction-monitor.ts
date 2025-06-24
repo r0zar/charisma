@@ -173,6 +173,7 @@ export async function monitorOrderTransaction(
             result.orderUpdated = true;
 
             console.log(`[TX-MONITOR] ❌ Order ${orderId} marked as 'failed' due to transaction failure ${order.txid} (${txInfo.status})`);
+            
         } else if (txInfo.status === 'success') {
             // Transaction confirmed - update to 'confirmed' status
             await confirmOrder(orderId, txInfo.blockHeight, txInfo.blockTime);
