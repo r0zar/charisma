@@ -6,6 +6,7 @@ import { sendOrderExecutedNotification } from '@/lib/notifications/order-execute
 import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
 import { fetchNonce, makeSTXTokenTransfer, broadcastTransaction, AnchorMode, PostConditionMode } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
+import { kv } from '@vercel/kv';
 
 /**
  * Nonce management following meme-roulette's proven approach
@@ -18,12 +19,12 @@ const NONCE_CACHE_TTL = 30000; // 30 seconds
 async function getNextNonce(useBlockchainNonce: boolean = false): Promise<number> {
     try {
         const now = Date.now();
-        
+
         // For first transaction or when cache expires, fetch fresh nonce
         if (currentNonce === null || useBlockchainNonce || (now - lastNonceFetch) > NONCE_CACHE_TTL) {
             console.log(`[Nonce] Fetching fresh blockchain nonce`);
             const blockchainNonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
-            currentNonce = Number(blockchainNonce) + 1;
+            currentNonce = Number(blockchainNonce);
             lastNonceFetch = now;
             console.log(`[Nonce] Using fresh blockchain nonce: ${currentNonce}`);
         } else {
@@ -31,7 +32,7 @@ async function getNextNonce(useBlockchainNonce: boolean = false): Promise<number
             currentNonce++;
             console.log(`[Nonce] Using sequential nonce: ${currentNonce}`);
         }
-        
+
         return currentNonce;
 
     } catch (error) {
@@ -108,11 +109,11 @@ async function executeMultihopSwapWithNonce(
             const result = await broadcastMultihopTransaction(txConfig, privateKey);
 
             console.log('[Nonce] Transaction broadcast successful:', result);
-            
+
             // Add delay after successful broadcast (following meme-roulette pattern)
             console.log('[Nonce] Adding 3-second delay after transaction broadcast...');
             await delay(3000);
-            
+
             return result;
 
         } catch (error) {

@@ -6,7 +6,7 @@ import { ADMIN_ADDRESS, BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@
 // POST /api/admin/nonce/fill-gap - Submit a transaction with specific nonce to fill gap
 export async function POST(request: NextRequest) {
     // Only allow in development environment
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV !== 'development') {
         return NextResponse.json({
             success: false,
             error: 'This endpoint is only available in development mode'

@@ -1,6 +1,5 @@
 import { TwitterReply, TwitterScrapingResult } from './types';
-import { Scraper, SearchMode, ErrorRateLimitStrategy } from '@the-convocation/twitter-scraper';
-
+import { ApifyClient } from 'apify-client';
 
 /**
  * Extracts tweet ID from various Twitter URL formats
@@ -26,7 +25,8 @@ export function extractTweetId(tweetUrl: string): string | null {
 }
 
 /**
- * Scrapes replies to a tweet using @the-convocation/twitter-scraper
+ * Scrapes replies to a tweet using Apify's Web Harvester Twitter scraper
+ * Note: sinceId parameter is kept for compatibility but not used - returns all replies for safety
  */
 export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): Promise<TwitterScrapingResult> {
     const maxRetries = 2;
@@ -34,14 +34,9 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`[Twitter Scraper] Scraping replies for tweet ${tweetId}${sinceId ? ` since ${sinceId}` : ''} (attempt ${attempt}/${maxRetries})`);
+            console.log(`[Twitter Scraper] Scraping all replies for tweet ${tweetId} (attempt ${attempt}/${maxRetries})`);
 
-            const result = await Promise.race([
-                scrapeWithTimeout(tweetId, sinceId, 30000), // 30 second timeout
-                new Promise<TwitterScrapingResult>((_, reject) =>
-                    setTimeout(() => reject(new Error('Scraping timeout after 30 seconds')), 30000)
-                )
-            ]);
+            const result = await scrapeWithApify(tweetId);
 
             if (result.success) {
                 return result;
@@ -57,8 +52,8 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
 
             return result;
 
-        } catch (timeoutError) {
-            console.warn(`[Twitter Scraper] Attempt ${attempt} timed out for tweet ${tweetId}`);
+        } catch (error) {
+            console.warn(`[Twitter Scraper] Attempt ${attempt} failed for tweet ${tweetId}:`, error);
 
             if (attempt < maxRetries) {
                 const delay = baseDelay * Math.pow(2, attempt - 1);
@@ -70,7 +65,7 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
             return {
                 success: false,
                 replies: [],
-                error: 'Scraping timed out after multiple attempts',
+                error: 'Scraping failed after multiple attempts',
                 lastScrapedAt: new Date().toISOString(),
             };
         }
@@ -85,118 +80,108 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
 }
 
 /**
- * Internal scraping function with timeout
+ * Internal scraping function using Apify
  */
-async function scrapeWithTimeout(tweetId: string, sinceId?: string, timeoutMs: number = 30000): Promise<TwitterScrapingResult> {
+async function scrapeWithApify(tweetId: string): Promise<TwitterScrapingResult> {
     try {
-        console.log(`[Twitter Scraper] Using @the-convocation/twitter-scraper for tweet ${tweetId}`);
+        console.log(`[Twitter Scraper] Using Apify Web Harvester for tweet ${tweetId}`);
 
-        // Initialize scraper with CORS proxy (only in production) and rate limiting
-        const isProduction = process.env.NODE_ENV === 'production';
-        const scraper = new Scraper({
-            // Add CORS proxy for serverless environments (production only)
-            ...(isProduction && {
-                transform: {
-                    request(input: RequestInfo | URL, init?: RequestInit) {
-                        if (input instanceof URL) {
-                            const proxy = "https://crossorigin.me/" +
-                                encodeURIComponent(input.toString());
-                            return [proxy, init];
-                        } else if (typeof input === "string") {
-                            const proxy = "https://crossorigin.me/" +
-                                encodeURIComponent(input);
-                            return [proxy, init];
-                        }
-                        return [input, init];
-                    },
-                }
-            }),
-            // Use error strategy instead of waiting up to 13 minutes for rate limits
-            rateLimitStrategy: new ErrorRateLimitStrategy(),
-        });
-
-        // Check credentials
-        const USERNAME = process.env.TWITTER_USERNAME;
-        const PASSWORD = process.env.TWITTER_PASSWORD;
-
-        console.log(`[Twitter Scraper] Checking credentials:`, {
-            hasUsername: !!USERNAME,
-            hasPassword: !!PASSWORD,
-            usernameLength: USERNAME?.length || 0,
-            passwordLength: PASSWORD?.length || 0
-        });
-
-        // Optional: Login with credentials if available
-        if (USERNAME && PASSWORD) {
-            console.log(`[Twitter Scraper] Logging in with credentials for user: ${USERNAME}`);
-            try {
-                await scraper.login(USERNAME, PASSWORD);
-                console.log(`[Twitter Scraper] Login successful`);
-            } catch (loginError) {
-                console.error(`[Twitter Scraper] Login failed:`, loginError);
-
-                // Check for specific error types
-                const errorMessage = loginError instanceof Error ? loginError.message : 'Unknown login error';
-                if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
-                    console.warn(`[Twitter Scraper] Rate limited during login. Will retry without authentication.`);
-                } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
-                    console.warn(`[Twitter Scraper] Authentication failed. Check credentials. Will proceed without login.`);
-                } else if (errorMessage.includes('Missing data')) {
-                    console.warn(`[Twitter Scraper] Twitter API returned missing data error. This may indicate rate limiting or credential issues.`);
-                }
-
-                // Continue without login - some scraping might still work in guest mode
-                console.log(`[Twitter Scraper] Proceeding without authentication`);
-            }
-        } else {
-            console.log(`[Twitter Scraper] No credentials provided, proceeding without login`);
+        // Check for Apify token
+        const APIFY_TOKEN = process.env.APIFY_TOKEN;
+        if (!APIFY_TOKEN) {
+            throw new Error('APIFY_TOKEN environment variable is required');
         }
 
-        // Search for replies to the specific tweet using conversation search
-        console.log(`[Twitter Scraper] Searching for replies to tweet ${tweetId}`);
-        const searchQuery = `conversation_id:${tweetId}`;
-        console.log(`[Twitter Scraper] Search query: "${searchQuery}"`);
+        // Initialize Apify client
+        const client = new ApifyClient({
+            token: APIFY_TOKEN,
+        });
 
+        // Construct the tweet URL for Apify
+        const tweetUrl = `https://x.com/tweet/status/${tweetId}`;
+        
+        // Configure Apify scraper for this specific tweet's replies
+        const twitterConfig = {
+            "includeUserInfo": true,
+            "profilesDesired": 0, // We don't need user profiles
+            "proxyConfig": {
+                "useApifyProxy": true,
+                "apifyProxyGroups": [
+                    "RESIDENTIAL"
+                ]
+            },
+            "repliesDepth": 1, // Only direct replies
+            "startUrls": [
+                {
+                    "url": tweetUrl,
+                    "method": "GET"
+                }
+            ],
+            "storeUserIfNoTweets": false,
+            "tweetsDesired": 100, // Match current behavior
+            "withReplies": true // This is key - we want the replies
+        };
+
+        console.log(`[Twitter Scraper] Starting Apify scraper for URL: ${tweetUrl}`);
+
+        // Run the Web Harvester Twitter scraper
+        const run = await client.actor('web.harvester/twitter-scraper').call(twitterConfig);
+        
+        console.log(`[Twitter Scraper] Apify run completed with status: ${run.status}, ID: ${run.id}`);
+
+        if (run.status !== 'SUCCEEDED') {
+            throw new Error(`Apify run failed with status: ${run.status}`);
+        }
+
+        // Get the results from the dataset
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        
+        console.log(`[Twitter Scraper] Retrieved ${items.length} items from Apify`);
+        console.log(`[Twitter Scraper] Raw Apify Response:`, JSON.stringify(items, null, 2));
+
+        // Filter and format the replies
         const formattedReplies: TwitterReply[] = [];
         let processedCount = 0;
 
-        // Search for tweets in the conversation (replies)
-        console.log(`[Twitter Scraper] Starting search with max 100 results`);
-        const tweets = scraper.searchTweets(searchQuery, 100, SearchMode.Latest);
-
-        let tweetCount = 0;
-        for await (const tweet of tweets) {
-            tweetCount++;
-            console.log(`[Twitter Scraper] Processing tweet ${tweetCount}:`, {
+        for (const item of items) {
+            // Type assertion for the item - Apify returns unknown
+            const tweet = item as any;
+            
+            console.log(`[Twitter Scraper] Processing item:`, {
                 id: tweet.id,
-                username: tweet.username,
                 isReply: tweet.isReply,
-                inReplyToStatusId: tweet.inReplyToStatusId,
-                text: tweet.text?.substring(0, 50) + '...'
+                username: tweet.username,
+                fullname: tweet.fullname,
+                text: tweet.text?.substring(0, 100),
+                timestamp: tweet.timestamp,
+                mainTweetUrl: tweet.mainTweetUrl
             });
-
-            // Skip if we have a sinceId and this reply is older
-            if (sinceId && tweet.id && tweet.id <= sinceId) {
-                console.log(`[Twitter Scraper] Skipping tweet ${tweet.id} - older than sinceId ${sinceId}`);
-                continue;
-            }
-
-            // Skip the original tweet (it won't be a reply)
+            
+            // Skip the original tweet
             if (tweet.id === tweetId) {
                 console.log(`[Twitter Scraper] Skipping original tweet ${tweet.id}`);
                 continue;
             }
 
-            // Only include actual replies
-            if (tweet.isReply && tweet.inReplyToStatusId) {
-                console.log(`[Twitter Scraper] Found valid reply ${tweet.id} from @${tweet.username}`);
+            // Note: We now get all replies instead of filtering by sinceId for safety
+            // This ensures we don't miss any replies due to ID comparison issues
+
+            // Check if this is a reply based on Apify's structure
+            const isValidReply = tweet.isReply === true || 
+                                (tweet.mainTweetUrl && tweet.mainTweetUrl.includes(tweetId)) ||
+                                (tweet.replyToTweet && tweet.replyToTweet.id === tweetId);
+
+            if (isValidReply) {
+                console.log(`[Twitter Scraper] Found valid reply ${tweet.id} from ${tweet.username}`);
+                console.log(`[Twitter Scraper] Reply text: "${tweet.text}"`);
+                console.log(`[Twitter Scraper] Author fullname: "${tweet.fullname}"`);
 
                 formattedReplies.push({
-                    id: tweet.id || `reply_${processedCount}`,
-                    text: tweet.text || '',
-                    authorHandle: tweet.username || 'unknown',
-                    authorDisplayName: tweet.name || 'Unknown User',
-                    createdAt: tweet.timeParsed?.toISOString() || new Date().toISOString(),
+                    id: String(tweet.id || `reply_${processedCount}`),
+                    text: String(tweet.text || ''),
+                    authorHandle: String(tweet.username || 'unknown').replace('@', ''), // Remove @ prefix
+                    authorDisplayName: String(tweet.fullname || 'Unknown User'),
+                    createdAt: String(tweet.timestamp || new Date().toISOString()),
                     inReplyToTweetId: tweetId,
                 });
 
@@ -208,11 +193,11 @@ async function scrapeWithTimeout(tweetId: string, sinceId?: string, timeoutMs: n
                     break;
                 }
             } else {
-                console.log(`[Twitter Scraper] Skipping tweet ${tweet.id} - not a reply (isReply: ${tweet.isReply}, inReplyToStatusId: ${tweet.inReplyToStatusId})`);
+                console.log(`[Twitter Scraper] Skipping item ${tweet.id} - not a reply (isReply: ${tweet.isReply}, mainTweetUrl: ${tweet.mainTweetUrl})`);
             }
         }
 
-        console.log(`[Twitter Scraper] Search completed. Processed ${tweetCount} total tweets, found ${formattedReplies.length} valid replies`);
+        console.log(`[Twitter Scraper] Apify scraping completed. Found ${formattedReplies.length} valid replies`);
 
         return {
             success: true,
@@ -221,7 +206,7 @@ async function scrapeWithTimeout(tweetId: string, sinceId?: string, timeoutMs: n
         };
 
     } catch (scraperError) {
-        console.error(`[Twitter Scraper] Scraper error for tweet ${tweetId}:`, scraperError);
+        console.error(`[Twitter Scraper] Apify scraper error for tweet ${tweetId}:`, scraperError);
 
         // Enhanced error handling for different types of failures
         const errorMessage = scraperError instanceof Error ? scraperError.message : 'Twitter scraping failed';
@@ -230,18 +215,18 @@ async function scrapeWithTimeout(tweetId: string, sinceId?: string, timeoutMs: n
         if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
             enhancedError = 'Twitter rate limit exceeded. Please wait before retrying.';
             console.warn(`[Twitter Scraper] Rate limit encountered for tweet ${tweetId}`);
-        } else if (errorMessage.includes('not logged-in') || errorMessage.includes('AuthenticationError')) {
-            enhancedError = 'Twitter authentication required for this operation.';
-            console.warn(`[Twitter Scraper] Authentication required for tweet ${tweetId}`);
+        } else if (errorMessage.includes('APIFY_TOKEN')) {
+            enhancedError = 'Apify authentication failed. Check APIFY_TOKEN environment variable.';
+            console.warn(`[Twitter Scraper] Apify authentication failed for tweet ${tweetId}`);
         } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
             enhancedError = 'Access forbidden. Tweet may be private or account suspended.';
             console.warn(`[Twitter Scraper] Access forbidden for tweet ${tweetId}`);
         } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
             enhancedError = 'Tweet not found. It may have been deleted.';
             console.warn(`[Twitter Scraper] Tweet ${tweetId} not found`);
-        } else if (errorMessage.includes('Missing data')) {
-            enhancedError = 'Twitter API returned incomplete data. This may indicate rate limiting.';
-            console.warn(`[Twitter Scraper] Incomplete data for tweet ${tweetId}`);
+        } else if (errorMessage.includes('FAILED') || errorMessage.includes('failed')) {
+            enhancedError = 'Apify scraper run failed. This may indicate rate limiting or temporary issues.';
+            console.warn(`[Twitter Scraper] Apify run failed for tweet ${tweetId}`);
         }
 
         return {
