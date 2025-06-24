@@ -567,8 +567,8 @@ export default function LimitConditionSection() {
                     <div className="mb-4">
                         <h5 className="text-sm font-medium text-green-400 mb-3">Time Trigger Configuration</h5>
 
-                        {/* Time inputs - side by side on larger screens */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Time inputs - stacked on small screens, side by side on larger screens */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Start Time */}
                             <div>
                                 <label className="text-xs text-white/60 mb-2 block">Start Time (Optional)</label>
