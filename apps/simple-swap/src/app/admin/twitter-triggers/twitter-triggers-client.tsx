@@ -346,18 +346,25 @@ export default function TwitterTriggersClient() {
                 const uuid = globalThis.crypto?.randomUUID() ?? `${Date.now()}_${i}`;
                 
                 // Create structured data for signing (matching wallet flow)
+                const domain = tupleCV({
+                    name: stringAsciiCV('BLAZE_PROTOCOL'),
+                    version: stringAsciiCV('v1.0'),
+                    'chain-id': uintCV(1),
+                });
+                
                 const message = tupleCV({
+                    contract: principalCV(selectedInputToken!.contractId),
+                    intent: stringAsciiCV('TRANSFER_TOKENS'),
+                    opcode: noneCV(),
+                    amount: optionalCVOf(uintCV(BigInt(amountMicro))),
+                    target: optionalCVOf(principalCV('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9')),
                     uuid: stringAsciiCV(uuid),
-                    inputToken: principalCV(selectedInputToken!.contractId),
-                    outputToken: principalCV(selectedOutputToken!.contractId),
-                    amountIn: uintCV(amountMicro),
-                    deadline: uintCV(Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)) // 7 days
                 });
 
                 // Sign with private key
                 const signature = signStructuredData({
                     message,
-                    domain: stringAsciiCV('Twitter Triggers'),
+                    domain,
                     privateKey
                 });
 
