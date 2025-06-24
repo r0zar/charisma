@@ -36,29 +36,6 @@ interface DisplayOrder extends LimitOrder {
     baseAssetMeta?: TokenCacheData | null;
 }
 
-// Filter strategies based on status
-function filterStrategiesByStatus(
-    strategies: StrategyDisplayData[], 
-    activeFilter: string
-): StrategyDisplayData[] {
-    if (activeFilter === 'all') {
-        return strategies;
-    }
-    
-    return strategies.filter(strategy => {
-        // Check if strategy has any orders matching the filter criteria
-        const hasMatchingOrders = strategy.orders.some(order => {
-            if (activeFilter === 'open') {
-                // 'open' filter includes open and broadcasted orders (actively in progress)
-                return order.status === 'open' || order.status === 'broadcasted';
-            } else {
-                return order.status === activeFilter;
-            }
-        });
-        
-        return hasMatchingOrders;
-    });
-}
 
 // Transaction Status Indicator for filled orders
 const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ txid }) => {
@@ -702,10 +679,14 @@ export default function OrdersPanel() {
             
             if (usePagination) {
                 params.append('page', '1');
-                params.append('limit', '100'); // Get recent orders for strategy grouping
+                params.append('limit', '50'); // Get recent orders for strategy grouping
                 params.append('sortBy', 'createdAt');
                 params.append('sortOrder', 'desc');
-                // Don't filter by status at API level - we'll filter strategies instead
+                
+                // Use server-side filtering for individual order status
+                if (activeFilter !== 'all') {
+                    params.append('status', activeFilter);
+                }
                 
                 if (searchQuery && searchQuery.trim()) {
                     params.append('search', searchQuery.trim());
@@ -871,10 +852,7 @@ export default function OrdersPanel() {
 
         // Group orders into strategies
         const grouped = groupOrdersByStrategy(displayOrders, tokenMetaMap);
-        
-        // Filter strategies based on active filter
-        const filteredStrategies = filterStrategiesByStatus(grouped, activeFilter);
-        setStrategyGroups(filteredStrategies);
+        setStrategyGroups(grouped);
         
         // Fetch current prices for condition tokens using useBlaze
         const priceMap = new Map<string, number>();
@@ -892,7 +870,7 @@ export default function OrdersPanel() {
         });
         
         setCurrentPrices(priceMap);
-    }, [displayOrders, activeFilter, getPrice]);
+    }, [displayOrders, getPrice]);
 
     // Order status polling for real-time updates
     useEffect(() => {

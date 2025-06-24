@@ -28,8 +28,8 @@ export async function GET(req: Request) {
             if (isNaN(page) || page < 1) {
                 return NextResponse.json({ error: 'Invalid page parameter' }, { status: 400 });
             }
-            if (isNaN(limit) || limit < 1 || limit > 100) {
-                return NextResponse.json({ error: 'Invalid limit parameter (1-100)' }, { status: 400 });
+            if (isNaN(limit) || limit < 1 || limit > 50) {
+                return NextResponse.json({ error: 'Invalid limit parameter (1-50)' }, { status: 400 });
             }
             
             const result = await listOrdersPaginated(owner, page, limit, sortBy, sortOrder, statusFilter, searchQuery);
