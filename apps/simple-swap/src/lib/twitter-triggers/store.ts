@@ -398,20 +398,10 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
  */
 export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
     const allTriggers = await listTwitterTriggers(true); // active only
-    const now = Date.now();
+
+    console.log(`[Twitter Store] All triggers:`, allTriggers);
 
     return allTriggers.filter(trigger => {
-        // Check if within time bounds
-        if (trigger.validFrom && new Date(trigger.validFrom).getTime() > now) {
-            return false; // not yet active
-        }
-
-        if (trigger.validTo && new Date(trigger.validTo).getTime() < now) {
-            // Mark as inactive if expired
-            updateTwitterTrigger(trigger.id, { isActive: false });
-            return false;
-        }
-
         // Check if max triggers reached
         if (trigger.maxTriggers && trigger.triggeredCount >= trigger.maxTriggers) {
             // Mark as inactive if max reached

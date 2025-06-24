@@ -3,7 +3,7 @@ export interface TwitterTrigger {
     owner: string; // wallet address of trigger creator
     tweetUrl: string; // the tweet to monitor  
     tweetId: string; // extracted tweet ID
-    
+
     // Order details (similar to LimitOrder)
     inputToken: string; // token contract id
     outputToken: string; // token contract id  
@@ -12,20 +12,16 @@ export interface TwitterTrigger {
     direction?: 'lt' | 'gt'; // direction of price comparison
     conditionToken?: string; // token whose price to watch, optional for immediate execution
     baseAsset?: string; // optional base asset contract id or 'USD'
-    
+
     // Pre-signed order management
     orderIds?: string[]; // UUIDs of pre-signed manual orders
     availableOrders?: number; // cached count of unused orders
-    
+
     // Twitter-specific settings
     isActive: boolean;
     maxTriggers?: number; // limit how many times it can trigger (null = unlimited)
     triggeredCount: number; // how many times it has been triggered
-    
-    // Time bounds
-    validFrom?: string; // ISO timestamp when trigger becomes active
-    validTo?: string; // ISO timestamp when trigger expires
-    
+
     // Metadata
     createdAt: string; // ISO timestamp
     lastChecked?: string; // ISO timestamp of last Twitter check
@@ -45,11 +41,11 @@ export interface TwitterTriggerExecution {
     executedAt: string; // ISO timestamp
     status: 'pending' | 'bns_resolved' | 'order_broadcasted' | 'order_confirmed' | 'failed' | 'overflow';
     error?: string; // error message if failed
-    
+
     // Twitter reply metadata
     replyText: string; // content of the reply
     replyCreatedAt: string; // when the reply was posted
-    
+
     // Twitter notification tracking (optional)
     twitterReplyId?: string; // ID of the reply tweet we sent (if any)
     twitterReplyStatus?: 'sent' | 'failed' | 'disabled'; // Status of our reply notification
