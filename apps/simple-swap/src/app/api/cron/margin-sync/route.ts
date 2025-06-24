@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { syncAllMarginAccountPnL } from '@/lib/margin/sync';
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
     try {
         console.log('🔄 Starting scheduled margin account P&L sync...');
 

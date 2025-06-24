@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { perpsMonitor } from '@/lib/perps/monitor';
 
 // This endpoint can be called by a cron job or manually to start monitoring
-export async function POST(req: Request) {
+export async function GET(req: Request) {
     try {
         await perpsMonitor.start();
         return NextResponse.json({
@@ -32,11 +32,3 @@ export async function DELETE(req: Request) {
         }, { status: 500 });
     }
 }
-
-// Get monitor status
-export async function GET(req: Request) {
-    return NextResponse.json({
-        status: 'success',
-        message: 'Perpetual positions monitor endpoint available'
-    });
-} 
