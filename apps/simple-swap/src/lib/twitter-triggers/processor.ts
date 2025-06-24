@@ -68,10 +68,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
     errors: string[];
 }> {
 
-    // throw error
-    throw new Error('Processing trigger');
     console.warn(`[Twitter Processor] Processing trigger ${trigger.id} for tweet ${trigger.tweetId}`);
-
     const results = {
         newReplies: 0,
         ordersCreated: 0,

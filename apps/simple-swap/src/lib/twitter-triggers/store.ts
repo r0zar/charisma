@@ -78,8 +78,6 @@ export async function listTwitterTriggers(activeOnly: boolean = false): Promise<
         }
     }
 
-    console.log(`[Twitter Store] Triggers with updated counts:`, triggersWithUpdatedCounts);
-
     return triggersWithUpdatedCounts;
 }
 
