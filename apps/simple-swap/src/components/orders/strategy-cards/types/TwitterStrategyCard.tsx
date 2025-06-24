@@ -309,7 +309,16 @@ export const TwitterStrategyCard: React.FC<TwitterStrategyCardProps> = (props) =
                                                             <div className="flex justify-between items-center">
                                                                 <span className="text-white/60">Twitter User:</span>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="text-white/80">@{order.metadata.execution.replierHandle}</span>
+                                                                    <a
+                                                                        href={`https://twitter.com/${order.metadata.execution.replierHandle}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        className="text-white/80 hover:text-blue-400 transition-colors hover:underline"
+                                                                        title={`View @${order.metadata.execution.replierHandle}'s Twitter profile`}
+                                                                    >
+                                                                        @{order.metadata.execution.replierHandle}
+                                                                    </a>
                                                                     {order.metadata.execution.replyTweetId && (
                                                                         <a
                                                                             href={`https://twitter.com/twitter/status/${order.metadata.execution.replyTweetId}`}

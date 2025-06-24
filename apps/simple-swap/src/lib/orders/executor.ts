@@ -126,10 +126,33 @@ export async function executeTrade(order: LimitOrder, slippage?: number): Promis
         throw new Error(errorMessage);
     }
 
-    console.log({ orderUuid: order.uuid, route: quoteRes.data }, 'Executing multihop swap with route');
+    const route = quoteRes.data;
+    console.log({ orderUuid: order.uuid, route }, 'Executing multihop swap with route');
+
+    // Store quote data in order metadata for display purposes
+    try {
+        const { updateOrder } = await import('./store');
+        const updatedOrderWithQuote = {
+            ...order,
+            metadata: {
+                ...order.metadata,
+                quote: {
+                    amountIn: route.amountIn,
+                    amountOut: route.amountOut,
+                    path: route.path,
+                    timestamp: new Date().toISOString(),
+                    slippage: slippage || 0.01 // Default 1% if not specified
+                }
+            }
+        };
+        await updateOrder(updatedOrderWithQuote);
+        console.log({ orderUuid: order.uuid, quoteData: updatedOrderWithQuote.metadata.quote }, 'Stored quote data in order metadata');
+    } catch (error) {
+        console.error({ orderUuid: order.uuid, error }, 'Failed to store quote data in order metadata - continuing execution');
+    }
 
     const result = await executeMultihopSwapWithNonce(
-        quoteRes.data,
+        route,
         {
             amountIn: order.amountIn,
             signature: order.signature,

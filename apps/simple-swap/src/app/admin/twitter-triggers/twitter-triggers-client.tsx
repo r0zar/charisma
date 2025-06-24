@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle, TestTube } from 'lucide-react';
+import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle, TestTube, FileSignature, Key, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import TokenDropdown from '@/components/TokenDropdown';
 import { TokenCacheData } from '@repo/tokens';
 import { useWallet } from '@/contexts/wallet-context';
 import { request } from '@stacks/connect';
-import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
+import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV, signStructuredData, getAddressFromPrivateKey } from '@stacks/transactions';
+import { STACKS_MAINNET } from '@stacks/network';
 
 interface TwitterTrigger {
     id: string;
@@ -66,6 +67,13 @@ export default function TwitterTriggersClient() {
     const [amount, setAmount] = useState('');
     const [maxTriggers, setMaxTriggers] = useState('');
     const [creating, setCreating] = useState(false);
+    
+    // Signing mode states
+    const [signingMode, setSigningMode] = useState<'wallet' | 'bulk'>('wallet');
+    const [privateKey, setPrivateKey] = useState('');
+    const [privateKeyError, setPrivateKeyError] = useState<string | null>(null);
+    const [signerAddress, setSignerAddress] = useState<string | null>(null);
+    const [bulkCount, setBulkCount] = useState('10');
     
     // Signing flow states
     const [showSigningDialog, setShowSigningDialog] = useState(false);
@@ -263,17 +271,49 @@ export default function TwitterTriggersClient() {
         }
     };
 
+    // Handle private key input
+    const handlePrivateKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.trim();
+        setPrivateKey(value);
+        setPrivateKeyError(null);
+        setSignerAddress(null);
+
+        if (!value) return;
+
+        try {
+            const addr = getAddressFromPrivateKey(value);
+            setSignerAddress(addr);
+        } catch (error) {
+            setPrivateKeyError('Invalid private key format');
+        }
+    };
+
     const createTrigger = async () => {
         if (!tweetUrl || !selectedInputToken || !selectedOutputToken || !amount) {
             toast.error('Please fill in all required fields');
             return;
         }
         
-        if (!address) {
+        if (signingMode === 'wallet' && !address) {
             toast.error('Please connect your wallet first');
             return;
         }
+        
+        if (signingMode === 'bulk' && !signerAddress) {
+            toast.error('Please provide a valid private key');
+            return;
+        }
 
+        if (signingMode === 'wallet') {
+            // Existing wallet signing flow
+            await createTriggerWithWallet();
+        } else {
+            // New bulk signing flow
+            await createTriggerWithBulkSigning();
+        }
+    };
+
+    const createTriggerWithWallet = async () => {
         // Prepare signing flow
         const maxTriggersNum = maxTriggers ? parseInt(maxTriggers) : 5; // Default to 5 if not specified
         const orderSigningList = Array.from({ length: maxTriggersNum }, (_, i) => ({
@@ -286,6 +326,92 @@ export default function TwitterTriggersClient() {
         setSignedOrders(orderSigningList);
         setSigningPhase('preview');
         setShowSigningDialog(true);
+    };
+
+    const createTriggerWithBulkSigning = async () => {
+        if (!privateKey || !signerAddress) {
+            toast.error('Private key is required for bulk signing');
+            return;
+        }
+
+        setCreating(true);
+
+        try {
+            const count = parseInt(bulkCount);
+            const amountMicro = (parseFloat(amount) * Math.pow(10, selectedInputToken!.decimals || 6)).toString();
+            const signatures = [];
+
+            // Generate signatures in bulk
+            for (let i = 0; i < count; i++) {
+                const uuid = globalThis.crypto?.randomUUID() ?? `${Date.now()}_${i}`;
+                
+                // Create structured data for signing (matching wallet flow)
+                const message = tupleCV({
+                    uuid: stringAsciiCV(uuid),
+                    inputToken: principalCV(selectedInputToken!.contractId),
+                    outputToken: principalCV(selectedOutputToken!.contractId),
+                    amountIn: uintCV(amountMicro),
+                    deadline: uintCV(Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60)) // 7 days
+                });
+
+                // Sign with private key
+                const signature = signStructuredData({
+                    message,
+                    domain: stringAsciiCV('Twitter Triggers'),
+                    privateKey
+                });
+
+                signatures.push({
+                    uuid,
+                    signature,
+                    inputToken: selectedInputToken!.contractId,
+                    outputToken: selectedOutputToken!.contractId,
+                    amountIn: amountMicro
+                });
+            }
+
+            // Create trigger with bulk signatures
+            const triggerPayload = {
+                tweetUrl,
+                inputToken: selectedInputToken!.contractId,
+                outputToken: selectedOutputToken!.contractId,
+                amountIn: amountMicro,
+                signatures
+            };
+
+            const response = await fetch('/api/admin/twitter-triggers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(triggerPayload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                toast.success(`Twitter trigger created with ${count} pre-signed orders!`);
+                
+                // Reset form
+                setTweetUrl('');
+                setSelectedInputToken(null);
+                setSelectedOutputToken(null);
+                setAmount('');
+                setPrivateKey('');
+                setSignerAddress(null);
+                
+                // Refresh data
+                loadData();
+            } else {
+                const errorData = await response.json();
+                toast.error(`Failed to create trigger: ${errorData.error || 'Unknown error'}`);
+            }
+
+        } catch (error) {
+            console.error('Bulk signing error:', error);
+            toast.error('Failed to create trigger with bulk signing');
+        } finally {
+            setCreating(false);
+        }
     };
     
     // Sign individual order (similar to DCA)
@@ -1040,8 +1166,45 @@ export default function TwitterTriggersClient() {
 
             <div className="bg-card rounded-lg border border-border p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Create New Trigger</h3>
-                    <h3 className="text-lg font-semibold text-foreground mb-4">Create New Trigger</h3>
-                    <div className="space-y-4">
+                <div className="space-y-4">
+                    {/* Signing Mode Toggle */}
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium text-foreground">
+                            Signing Method
+                        </label>
+                        <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setSigningMode('wallet')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                                    signingMode === 'wallet'
+                                        ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                        : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                                }`}
+                            >
+                                <Wallet className="w-4 h-4" />
+                                Wallet Signing
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSigningMode('bulk')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                                    signingMode === 'bulk'
+                                        ? 'bg-orange-50 border-orange-200 text-orange-700'
+                                        : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                                }`}
+                            >
+                                <Key className="w-4 h-4" />
+                                Bulk Signing
+                            </button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {signingMode === 'wallet' 
+                                ? 'Sign each order individually with your connected wallet' 
+                                : 'Generate multiple pre-signed orders using a private key'
+                            }
+                        </p>
+                    </div>
                         <div>
                             <label className="block text-sm font-medium text-foreground mb-2">
                                 Tweet URL
@@ -1117,23 +1280,78 @@ export default function TwitterTriggersClient() {
                             </p>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-foreground mb-2">
-                                Max Triggers (optional)
-                            </label>
-                            <input
-                                type="number"
-                                placeholder="Leave blank for unlimited"
-                                value={maxTriggers}
-                                onChange={(e) => setMaxTriggers(e.target.value)}
-                                min="1"
-                                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-                        </div>
+                        {/* Conditional fields based on signing mode */}
+                        {signingMode === 'wallet' ? (
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-2">
+                                    Max Triggers (optional)
+                                </label>
+                                <input
+                                    type="number"
+                                    placeholder="Leave blank for unlimited"
+                                    value={maxTriggers}
+                                    onChange={(e) => setMaxTriggers(e.target.value)}
+                                    min="1"
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Number of orders to pre-sign with your wallet
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Private Key Input */}
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">
+                                        Private Key
+                                    </label>
+                                    <input
+                                        type="password"
+                                        placeholder="Enter private key..."
+                                        value={privateKey}
+                                        onChange={handlePrivateKeyChange}
+                                        className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
+                                            privateKeyError ? 'border-red-500' : 'border-border'
+                                        }`}
+                                    />
+                                    {privateKeyError && (
+                                        <p className="text-sm text-red-500 mt-1">{privateKeyError}</p>
+                                    )}
+                                    {signerAddress && (
+                                        <div className="flex items-center gap-2 text-sm text-green-600 mt-1">
+                                            <CheckCircle className="w-4 h-4" />
+                                            Address: {signerAddress}
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Private key used to generate pre-signed orders
+                                    </p>
+                                </div>
+
+                                {/* Bulk Count */}
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground mb-2">
+                                        Number of Orders to Generate
+                                    </label>
+                                    <input
+                                        type="number"
+                                        placeholder="10"
+                                        value={bulkCount}
+                                        onChange={(e) => setBulkCount(e.target.value)}
+                                        min="1"
+                                        max="100"
+                                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Maximum 100 orders per trigger
+                                    </p>
+                                </div>
+                            </>
+                        )}
 
                         <button 
                             onClick={createTrigger}
-                            disabled={creating || !address}
+                            disabled={creating || (signingMode === 'wallet' && !address) || (signingMode === 'bulk' && !signerAddress)}
                             className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {creating ? (
@@ -1141,10 +1359,10 @@ export default function TwitterTriggersClient() {
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                     Creating...
                                 </>
-                            ) : !address ? (
-                                'Connect Wallet to Create Trigger'
+                            ) : signingMode === 'wallet' ? (
+                                !address ? 'Connect Wallet to Create Trigger' : 'Create Trigger & Sign Orders'
                             ) : (
-                                'Create Trigger & Sign Orders'
+                                !signerAddress ? 'Enter Valid Private Key' : `Create Trigger with ${bulkCount} Orders`
                             )}
                         </button>
                     </div>

@@ -111,16 +111,30 @@ export class TwitterReplyService {
     }
 
     /**
-     * Format the order execution notification message
+     * Format the order execution notification message with randomized variations
      */
     formatExecutionMessage(execution: TwitterTriggerExecution, txid: string, tokenSymbol: string, amount: string): string {
         const explorerUrl = `https://explorer.hiro.so/txid/${txid}?chain=mainnet`;
         
-        return `Hey @${execution.replierHandle}! 🎯\n\n` +
-               `✅ Your Twitter trigger order executed successfully!\n` +
-               `💰 Sent ${amount} ${tokenSymbol} to ${execution.bnsName}\n` +
-               `🔗 View transaction: ${explorerUrl}\n\n` +
-               `Thanks for using our Twitter triggers! 🚀`;
+        // 10 different message variations with the same direct, cool tone
+        const messageVariations = [
+            `hey @${execution.replierHandle} - i just sent you ${amount} ${tokenSymbol} to your bns at ${execution.bnsName} for replying to this post`,
+            `@${execution.replierHandle} just sent you ${amount} ${tokenSymbol} to ${execution.bnsName} for the reply`,
+            `hey @${execution.replierHandle} - you got ${amount} ${tokenSymbol} for replying. sent to ${execution.bnsName}`,
+            `@${execution.replierHandle} sent ${amount} ${tokenSymbol} to your bns at ${execution.bnsName} for replying to this post`,
+            `hey @${execution.replierHandle} - ${amount} ${tokenSymbol} sent to ${execution.bnsName} for the reply`,
+            `@${execution.replierHandle} you got ${amount} ${tokenSymbol} at ${execution.bnsName} for replying to this`,
+            `hey @${execution.replierHandle} - just sent ${amount} ${tokenSymbol} to ${execution.bnsName} for replying`,
+            `@${execution.replierHandle} ${amount} ${tokenSymbol} sent to your bns at ${execution.bnsName} for the reply`,
+            `hey @${execution.replierHandle} - sent you ${amount} ${tokenSymbol} at ${execution.bnsName} for replying to this post`,
+            `@${execution.replierHandle} just dropped ${amount} ${tokenSymbol} to ${execution.bnsName} for the reply`
+        ];
+        
+        // Use a deterministic random selection based on execution ID for consistency
+        const messageIndex = parseInt(execution.id.slice(-2), 16) % messageVariations.length;
+        const selectedMessage = messageVariations[messageIndex];
+        
+        return `${selectedMessage}\n\n${explorerUrl}`;
     }
 
     /**

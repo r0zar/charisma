@@ -7,15 +7,17 @@ import {
     Search, 
     CheckCircle, 
     Settings,
-    ArrowLeft
+    ArrowLeft,
+    RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 import ComponentTester from './components/ComponentTester';
 import FlowTester from './components/FlowTester';
 import DataInspector from './components/DataInspector';
 import ValidationTester from './components/ValidationTester';
+import BackfillManager from './components/BackfillManager';
 
-type TestingTab = 'components' | 'flow' | 'data' | 'validation';
+type TestingTab = 'components' | 'flow' | 'data' | 'validation' | 'backfill';
 
 export default function TwitterTriggersTestingClient() {
     const [activeTab, setActiveTab] = useState<TestingTab>('components');
@@ -44,6 +46,12 @@ export default function TwitterTriggersTestingClient() {
             name: 'Validation Testing',
             icon: CheckCircle,
             description: 'Test edge cases and validation scenarios'
+        },
+        {
+            id: 'backfill' as TestingTab,
+            name: 'Reply Backfill',
+            icon: RotateCcw,
+            description: 'Send retroactive reply notifications to existing successful executions'
         }
     ];
 
@@ -57,6 +65,8 @@ export default function TwitterTriggersTestingClient() {
                 return <DataInspector />;
             case 'validation':
                 return <ValidationTester />;
+            case 'backfill':
+                return <BackfillManager />;
             default:
                 return <ComponentTester />;
         }

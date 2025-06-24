@@ -291,6 +291,11 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                             <div>
                                                 <div className="text-xs text-white/80 font-mono">
                                                     {formatTokenAmount(order.amountIn, order.inputTokenMeta.decimals!)} {order.inputTokenMeta.symbol}
+                                                    {order.metadata?.quote && (
+                                                        <span className="text-white/60 ml-1">
+                                                            → {formatTokenAmount(order.metadata.quote.amountOut, order.outputTokenMeta.decimals!)} {order.outputTokenMeta.symbol}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="text-xs text-white/40">
                                                     {order.uuid.substring(0, 8)}
@@ -671,6 +676,26 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                             <span className="text-white/60">Amount (micro units):</span>
                                             <span className="font-mono text-white/80">{firstOrder.amountIn}</span>
                                         </div>
+                                        {firstOrder.metadata?.quote && (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Quote Input:</span>
+                                                    <span className="font-mono text-white/80">
+                                                        {formatTokenAmount(firstOrder.metadata.quote.amountIn, firstOrder.inputTokenMeta.decimals!)} {firstOrder.inputTokenMeta.symbol}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Quote Output:</span>
+                                                    <span className="font-mono text-white/80">
+                                                        {formatTokenAmount(firstOrder.metadata.quote.amountOut, firstOrder.outputTokenMeta.decimals!)} {firstOrder.outputTokenMeta.symbol}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Quote Slippage:</span>
+                                                    <span className="font-mono text-white/80">{(firstOrder.metadata.quote.slippage * 100).toFixed(1)}%</span>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="flex justify-between">
                                             <span className="text-white/60">Recipient:</span>
                                             <span className="font-mono text-white/80">{truncateAddress(firstOrder.recipient)}</span>

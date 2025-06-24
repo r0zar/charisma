@@ -207,6 +207,27 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             status = `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
         }
 
+        // Also retry any previously failed executions for this trigger
+        try {
+            console.log(`[Test API] Checking for failed executions to retry for trigger ${id}`);
+            const { retryFailedExecutions } = await import('@/lib/twitter-triggers/processor');
+            const retryResult = await retryFailedExecutions(trigger);
+            
+            if (retryResult.ordersCreated > 0) {
+                ordersExecuted += retryResult.ordersCreated;
+                status += ` | Retried and created ${retryResult.ordersCreated} additional order${retryResult.ordersCreated > 1 ? 's' : ''}`;
+            }
+            
+            if (retryResult.errors.length > 0) {
+                console.warn(`[Test API] Retry errors:`, retryResult.errors);
+                status += ` | ${retryResult.errors.length} retry error${retryResult.errors.length > 1 ? 's' : ''}`;
+            }
+            
+        } catch (retryError) {
+            console.error(`[Test API] Error during retry of failed executions:`, retryError);
+            status += ` | Retry failed: ${retryError instanceof Error ? retryError.message : 'Unknown error'}`;
+        }
+
         const testResult = {
             success: true,
             message: 'Manual test completed successfully - REAL EXECUTIONS',
