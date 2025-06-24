@@ -683,6 +683,7 @@ export const buildSwapPostConditions = async (
   hop: Hop,
   cfg: RouterConfig,
   sender: string,
+  slippage?: number,
 ) => {
   const mk = (
     t: Token,
@@ -712,8 +713,9 @@ export const buildSwapPostConditions = async (
   // TODO: fix sublink data for externalPoolId - bit of a hack to use tokenB.contractId
   if (opcode === OPCODES.OP_WITHDRAW) return [mk(tokenOut, amtOut, vault.externalPoolId || vault.tokenB.contractId || vault.contractId, 'eq')];
 
-  const maxIn = BigInt(Math.floor(Number(amtIn) * (1 + cfg.defaultSlippage)));
-  const minOut = BigInt(Math.floor(Number(amtOut) * (1 - cfg.defaultSlippage)));
+  const effectiveSlippage = slippage !== undefined ? slippage / 100 : cfg.defaultSlippage;
+  const maxIn = BigInt(Math.floor(Number(amtIn) * (1 + effectiveSlippage)));
+  const minOut = BigInt(Math.floor(Number(amtOut) * (1 - effectiveSlippage)));
 
   return [
     mk(tokenIn, maxIn, sender, 'lte'),

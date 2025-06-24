@@ -303,6 +303,35 @@ export async function listAllTwitterExecutions(limit: number = 100): Promise<Twi
 }
 
 /**
+ * Get all executions with resolved statuses (for admin dashboard)
+ */
+export async function listAllTwitterExecutionsWithResolvedStatus(limit: number = 100): Promise<TwitterTriggerExecution[]> {
+    // Get base executions
+    const executions = await listAllTwitterExecutions(limit);
+    
+    if (executions.length === 0) {
+        return [];
+    }
+    
+    try {
+        // Use status resolver to get current statuses
+        const { resolveMultipleExecutionStatuses } = await import('./status-resolver');
+        const resolvedExecutions = await resolveMultipleExecutionStatuses(executions);
+        
+        // Return the resolved executions (status resolver updates the records automatically)
+        return resolvedExecutions.map(resolved => ({
+            ...resolved,
+            // Use the resolved status as the main status
+            status: resolved.resolvedStatus
+        }));
+        
+    } catch (error) {
+        console.error('[Twitter Store] Error resolving all execution statuses, returning base executions:', error);
+        return executions;
+    }
+}
+
+/**
  * Get trigger with execution statistics and order status
  */
 export async function getTwitterTriggerWithStats(id: string): Promise<TwitterTriggerWithStats | null> {

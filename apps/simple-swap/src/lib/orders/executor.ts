@@ -29,15 +29,17 @@ async function executeMultihopSwapWithNonce(
     route: any,
     meta: any,
     privateKey: string,
-    config?: any
+    config?: any,
+    slippage?: number
 ): Promise<any> {
     try {
         console.log('[Nonce] Fetching current nonce for intelligent transaction broadcasting');
         const currentNonce = await getCurrentNonce();
         console.log('[Nonce] Using nonce:', currentNonce);
 
-        // Build transaction config with explicit nonce
-        const txConfig = await buildXSwapTransaction(route, meta, config);
+        // Build transaction config with explicit nonce and slippage
+        const metaWithSlippage = slippage !== undefined ? { ...meta, slippage } : meta;
+        const txConfig = await buildXSwapTransaction(route, metaWithSlippage, config);
         txConfig.nonce = currentNonce;
 
         console.log('[Nonce] Broadcasting multihop transaction with explicit nonce:', currentNonce);
@@ -51,7 +53,8 @@ async function executeMultihopSwapWithNonce(
 
         // If nonce management fails, fall back to original function
         console.log('[Nonce] Falling back to original executeMultihopSwap without nonce management');
-        return executeMultihopSwap(route, meta, privateKey, config);
+        const metaWithSlippage = slippage !== undefined ? { ...meta, slippage } : meta;
+        return executeMultihopSwap(route, metaWithSlippage, privateKey, config);
     }
 }
 
@@ -111,7 +114,7 @@ export interface TradeExecutionResult {
     error?: string;
 }
 
-export async function executeTrade(order: LimitOrder): Promise<TradeExecutionResult> {
+export async function executeTrade(order: LimitOrder, slippage?: number): Promise<TradeExecutionResult> {
     // get quote for multi-hop swap
     console.log({ orderUuid: order.uuid, inputToken: order.inputToken, outputToken: order.outputToken, amountIn: order.amountIn }, 'Fetching quote for order execution');
     const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn);
@@ -133,7 +136,9 @@ export async function executeTrade(order: LimitOrder): Promise<TradeExecutionRes
             uuid: order.uuid,
             recipient: order.recipient,
         },
-        BLAZE_SIGNER_PRIVATE_KEY!
+        BLAZE_SIGNER_PRIVATE_KEY!,
+        undefined, // config
+        slippage
     );
 
     // Log the complete response for debugging

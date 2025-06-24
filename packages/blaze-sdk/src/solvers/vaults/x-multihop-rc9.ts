@@ -36,6 +36,7 @@ export interface SwapMetadata {
     signature: string;     // 65-byte hex (no 0x)
     uuid: string;
     recipient: string;     // Principal string
+    slippage?: number;     // Optional slippage percentage (e.g., 3 for 3%)
 }
 
 export interface RouterConfig {
@@ -186,7 +187,7 @@ export function buildXSwapTransaction(
 
     // 3. Build the post conditions
     const routerCID = `${config.routerAddress}.${config.routerName}`;
-    const postConditions = buildPostConditions(route, routerCID);
+    const postConditions = buildPostConditions(route, routerCID, meta.slippage);
 
     // 4. Return the complete transaction config
     return {
@@ -195,8 +196,6 @@ export function buildXSwapTransaction(
         functionName: `x-swap-${route.hops.length}`,
         functionArgs,
         postConditions,
-        // postConditions: [],
-        // postConditionMode: PostConditionMode.Allow,
     };
 }
 

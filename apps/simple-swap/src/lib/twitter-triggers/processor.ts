@@ -369,7 +369,10 @@ export async function executePreSignedOrder(trigger: TwitterTrigger, recipientAd
         const { executeTrade } = await import('../orders/executor');
         const { broadcastOrder } = await import('../orders/store');
 
-        const executionResult = await executeTrade(updatedOrder);
+        // Use higher slippage for Twitter triggers to handle simultaneous executions
+        const twitterSlippage = 5; // 5% slippage for Twitter triggers
+        console.log(`[Twitter Processor] Using ${twitterSlippage}% slippage for Twitter trigger execution`);
+        const executionResult = await executeTrade(updatedOrder, twitterSlippage);
 
         console.log(`[Twitter Processor] Trade execution result for order ${nextOrderUuid}:`, {
             orderUuid: nextOrderUuid,
