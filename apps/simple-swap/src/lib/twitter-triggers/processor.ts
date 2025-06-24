@@ -21,44 +21,39 @@ export async function processTwitterTriggers(): Promise<{
         errors: [] as string[],
     };
 
-    try {
-        // Get all active triggers that need checking
-        const triggers = await getTriggersToCheck();
-        console.log(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
+    // Get all active triggers that need checking
+    const triggers = await getTriggersToCheck();
+    console.log(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
 
-        if (triggers.length === 0) {
-            return results;
-        }
-
-        // Process each trigger
-        for (const trigger of triggers) {
-            try {
-                const triggerResult = await processIndividualTrigger(trigger);
-
-                results.triggersChecked++;
-                results.newReplies += triggerResult.newReplies;
-                results.ordersCreated += triggerResult.ordersCreated;
-
-                if (triggerResult.errors.length > 0) {
-                    results.errors.push(...triggerResult.errors);
-                }
-
-            } catch (error) {
-                const errorMsg = `Error processing trigger ${trigger.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-                console.error(`[Twitter Processor] ${errorMsg}`);
-                results.errors.push(errorMsg);
-            }
-        }
-
-        console.log(`[Twitter Processor] Completed. Results:`, results);
-        return results;
-
-    } catch (error) {
-        const errorMsg = `Fatal error in Twitter trigger processing: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        console.error(`[Twitter Processor] ${errorMsg}`);
-        results.errors.push(errorMsg);
+    if (triggers.length === 0) {
         return results;
     }
+
+    // Process each trigger
+    for (const trigger of triggers) {
+        try {
+            const triggerResult = await processIndividualTrigger(trigger);
+
+            results.triggersChecked++;
+            results.newReplies += triggerResult.newReplies;
+            results.ordersCreated += triggerResult.ordersCreated;
+
+            if (triggerResult.errors.length > 0) {
+                results.errors.push(...triggerResult.errors);
+            }
+
+            // wait 1 second
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+        } catch (error) {
+            const errorMsg = `Error processing trigger ${trigger.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            console.error(`[Twitter Processor] ${errorMsg}`);
+            results.errors.push(errorMsg);
+        }
+    }
+
+    console.log(`[Twitter Processor] Completed. Results:`, results);
+    return results;
 }
 
 /**
