@@ -28,32 +28,23 @@ export async function POST(request: NextRequest) {
             dryRun = true, 
             limit = 50, 
             onlyRecentDays = 7,
-            skipExistingReplies = true 
+            skipExistingReplies = true,
+            includeBNSReminders = false  // New option for BNS not found reminders
         } = await request.json();
         
-        console.log(`[Backfill Replies] Starting backfill - dryRun: ${dryRun}, limit: ${limit}, recentDays: ${onlyRecentDays}`);
+        console.log(`[Backfill Replies] Starting backfill - dryRun: ${dryRun}, limit: ${limit}, recentDays: ${onlyRecentDays}, includeBNSReminders: ${includeBNSReminders}`);
         
-        // Get successful executions that don't have replies yet
+        // Get executions that don't have replies yet
         const { listAllTwitterExecutions } = await import('@/lib/twitter-triggers/store');
         const allExecutions = await listAllTwitterExecutions(500); // Get more to filter from
         
-        // Filter for successful executions that need replies
+        // Filter for executions that need replies
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - onlyRecentDays);
         
         const eligibleExecutions = allExecutions.filter(execution => {
-            // Must have successful order
-            if (execution.status !== 'order_broadcasted' && execution.status !== 'order_confirmed') {
-                return false;
-            }
-            
-            // Must have transaction ID
-            if (!execution.txid) {
-                return false;
-            }
-            
             // Must have reply information
-            if (!execution.replyTweetId || !execution.replierHandle || !execution.bnsName) {
+            if (!execution.replyTweetId || !execution.replierHandle) {
                 return false;
             }
             
@@ -68,6 +59,32 @@ export async function POST(request: NextRequest) {
             // Skip if already has reply (unless specifically requested)
             if (skipExistingReplies && execution.twitterReplyStatus === 'sent') {
                 return false;
+            }
+            
+            // Filter by execution type
+            if (includeBNSReminders) {
+                // Include both successful orders AND BNS not found cases
+                const isSuccessful = (execution.status === 'order_broadcasted' || execution.status === 'order_confirmed') && execution.txid;
+                const isBNSNotFound = execution.status === 'failed' && 
+                                    execution.error?.includes('BNS') && 
+                                    (execution.error.includes('not found') || execution.error.includes('resolution failed'));
+                
+                return isSuccessful || isBNSNotFound;
+            } else {
+                // Original behavior - only successful executions
+                if (execution.status !== 'order_broadcasted' && execution.status !== 'order_confirmed') {
+                    return false;
+                }
+                
+                // Must have transaction ID for successful executions
+                if (!execution.txid) {
+                    return false;
+                }
+                
+                // Must have BNS name for successful executions
+                if (!execution.bnsName) {
+                    return false;
+                }
             }
             
             return true;
@@ -106,98 +123,121 @@ export async function POST(request: NextRequest) {
                     continue;
                 }
                 
-                // Get trigger information to build proper reply message
-                const { getTwitterTrigger } = await import('@/lib/twitter-triggers/store');
-                const trigger = await getTwitterTrigger(execution.triggerId);
+                // Determine if this is a BNS not found case or successful execution
+                const isBNSNotFound = execution.status === 'failed' && 
+                                    execution.error?.includes('BNS') && 
+                                    (execution.error.includes('not found') || execution.error.includes('resolution failed'));
                 
-                if (!trigger) {
-                    result.skipped = true;
-                    result.skipReason = 'Trigger not found';
-                    summary.skipped++;
-                    summary.results.push(result);
-                    continue;
-                }
+                let backfillMessage: string;
                 
-                // Get token information for the reply message
-                const { getTokenMetadataCached } = await import('@repo/tokens');
-                const outputTokenMeta = await getTokenMetadataCached(trigger.outputToken);
-                const tokenSymbol = outputTokenMeta.symbol || 'tokens';
-                
-                // Get the actual output amount from the order's quote metadata
-                const { getOrder } = await import('@/lib/orders/store');
-                const orderWithQuote = execution.orderUuid ? await getOrder(execution.orderUuid) : null;
-                let amountFormatted = '0';
-                
-                if (orderWithQuote?.metadata?.quote?.amountOut) {
-                    const outputDecimals = outputTokenMeta.decimals || 6;
-                    const actualOutputAmount = orderWithQuote.metadata.quote.amountOut;
-                    amountFormatted = (actualOutputAmount / Math.pow(10, outputDecimals)).toFixed(6).replace(/\.?0+$/, '');
-                    console.log(`[Backfill Debug] Using actual output amount ${amountFormatted} ${tokenSymbol} from quote data for execution ${execution.id}`);
+                if (isBNSNotFound) {
+                    // Handle BNS not found cases with reminder messages
+                    const safeHandle = execution.replierHandle || 'unknown';
+                    const safeBnsName = execution.bnsName || undefined;
+                    
+                    // Use the same BNS not found message variations as the live system
+                    const bnsReminderVariations = [
+                        `hey @${safeHandle} - couldn't find your bns${safeBnsName ? ` "${safeBnsName}"` : ''} in the registry. set up a .btc name to receive charisma airdrops! visit btc.us to get started`,
+                        `@${safeHandle} your bns${safeBnsName ? ` "${safeBnsName}"` : ''} isn't registered yet. grab a .btc name at btc.us to qualify for charisma token airdrops`,
+                        `hey @${safeHandle} - no bns${safeBnsName ? ` "${safeBnsName}"` : ''} found in the registry. get a .btc name at btc.us to receive future charisma airdrops`,
+                        `@${safeHandle} couldn't locate your bns${safeBnsName ? ` "${safeBnsName}"` : ''} in the registry. register a .btc name at btc.us for charisma airdrop eligibility`,
+                        `hey @${safeHandle} - bns${safeBnsName ? ` "${safeBnsName}"` : ''} not found. set up your .btc name at btc.us to get charisma airdrops when they drop`
+                    ];
+                    
+                    // Use deterministic selection based on handle for consistency
+                    const messageIndex = safeHandle.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % bnsReminderVariations.length;
+                    backfillMessage = bnsReminderVariations[messageIndex];
+                    
+                    console.log(`[Backfill Debug] BNS reminder message for ${execution.id}:`, {
+                        handle: safeHandle,
+                        bnsName: safeBnsName,
+                        messageIndex,
+                        selectedMessage: bnsReminderVariations[messageIndex]
+                    });
+                    
                 } else {
-                    // Fallback to input amount if quote data is not available
-                    const inputTokenMeta = await getTokenMetadataCached(trigger.inputToken);
-                    const inputDecimals = inputTokenMeta.decimals || 6;
-                    amountFormatted = (parseInt(trigger.amountIn) / Math.pow(10, inputDecimals)).toFixed(6).replace(/\.?0+$/, '');
-                    console.warn(`[Backfill Debug] Quote data not available for execution ${execution.id}, using fallback input amount ${amountFormatted}`);
+                    // Handle successful executions with order completion messages
+                    const { getTwitterTrigger } = await import('@/lib/twitter-triggers/store');
+                    const trigger = await getTwitterTrigger(execution.triggerId);
+                    
+                    if (!trigger) {
+                        result.skipped = true;
+                        result.skipReason = 'Trigger not found';
+                        summary.skipped++;
+                        summary.results.push(result);
+                        continue;
+                    }
+                    
+                    // Get token information for the reply message
+                    const { getTokenMetadataCached } = await import('@repo/tokens');
+                    const outputTokenMeta = await getTokenMetadataCached(trigger.outputToken);
+                    const tokenSymbol = outputTokenMeta.symbol || 'tokens';
+                    
+                    // Get the actual output amount from the order's quote metadata
+                    const { getOrder } = await import('@/lib/orders/store');
+                    const orderWithQuote = execution.orderUuid ? await getOrder(execution.orderUuid) : null;
+                    let amountFormatted = '0';
+                    
+                    if (orderWithQuote?.metadata?.quote?.amountOut) {
+                        const outputDecimals = outputTokenMeta.decimals || 6;
+                        const actualOutputAmount = orderWithQuote.metadata.quote.amountOut;
+                        amountFormatted = (actualOutputAmount / Math.pow(10, outputDecimals)).toFixed(6).replace(/\.?0+$/, '');
+                        console.log(`[Backfill Debug] Using actual output amount ${amountFormatted} ${tokenSymbol} from quote data for execution ${execution.id}`);
+                    } else {
+                        // Fallback to input amount if quote data is not available
+                        const inputTokenMeta = await getTokenMetadataCached(trigger.inputToken);
+                        const inputDecimals = inputTokenMeta.decimals || 6;
+                        amountFormatted = (parseInt(trigger.amountIn) / Math.pow(10, inputDecimals)).toFixed(6).replace(/\.?0+$/, '');
+                        console.warn(`[Backfill Debug] Quote data not available for execution ${execution.id}, using fallback input amount ${amountFormatted}`);
+                    }
+                    
+                    // Ensure we have safe values for template literals
+                    const safeHandle = execution.replierHandle || 'unknown';
+                    const safeBnsName = execution.bnsName || 'unknown.btc';
+                    const safeAmount = amountFormatted || '0';
+                    const safeToken = tokenSymbol || 'tokens';
+                    const safeTxid = execution.txid || 'no-txid';
+                    
+                    // Validate that we have all required data for successful execution message
+                    if (!execution.replierHandle || !execution.bnsName || !execution.txid) {
+                        result.skipped = true;
+                        result.skipReason = `Missing required data: handle=${!!execution.replierHandle}, bns=${!!execution.bnsName}, txid=${!!execution.txid}`;
+                        summary.skipped++;
+                        summary.results.push(result);
+                        continue;
+                    }
+                    
+                    // Create the actual message that would be sent with randomized variations
+                    const messageVariations = [
+                        `hey @${safeHandle} - i just sent you ${safeAmount} ${safeToken} to your bns at ${safeBnsName} for replying to this post`,
+                        `@${safeHandle} just sent you ${safeAmount} ${safeToken} to ${safeBnsName} for the reply`,
+                        `hey @${safeHandle} - you got ${safeAmount} ${safeToken} for replying. sent to ${safeBnsName}`,
+                        `@${safeHandle} sent ${safeAmount} ${safeToken} to your bns at ${safeBnsName} for replying to this post`,
+                        `hey @${safeHandle} - ${safeAmount} ${safeToken} sent to ${safeBnsName} for the reply`,
+                        `@${safeHandle} you got ${safeAmount} ${safeToken} at ${safeBnsName} for replying to this`,
+                        `hey @${safeHandle} - just sent ${safeAmount} ${safeToken} to ${safeBnsName} for replying`,
+                        `@${safeHandle} ${safeAmount} ${safeToken} sent to your bns at ${safeBnsName} for the reply`,
+                        `hey @${safeHandle} - sent you ${safeAmount} ${safeToken} at ${safeBnsName} for replying to this post`,
+                        `@${safeHandle} just dropped ${safeAmount} ${safeToken} to ${safeBnsName} for the reply`
+                    ];
+                    
+                    // Use a deterministic random selection based on execution ID for consistency
+                    const idSlice = execution.id.slice(-2);
+                    const parsedIndex = parseInt(idSlice, 16);
+                    const messageIndex = isNaN(parsedIndex) ? 0 : parsedIndex % messageVariations.length;
+                    const selectedMessage = messageVariations[messageIndex] || messageVariations[0];
+                    
+                    backfillMessage = `${selectedMessage}\n\n` +
+                                    `https://explorer.hiro.so/txid/${safeTxid}?chain=mainnet`;
+                    
+                    console.log(`[Backfill Debug] Success message for ${execution.id}:`, {
+                        replierHandle: execution.replierHandle,
+                        bnsName: execution.bnsName,
+                        txid: execution.txid,
+                        amountFormatted,
+                        tokenSymbol
+                    });
                 }
-                
-                // Ensure we have safe values for template literals
-                const safeHandle = execution.replierHandle || 'unknown';
-                const safeBnsName = execution.bnsName || 'unknown.btc';
-                const safeAmount = amountFormatted || '0';
-                const safeToken = tokenSymbol || 'tokens';
-                const safeTxid = execution.txid || 'no-txid';
-                
-                // Create the actual message that would be sent with randomized variations
-                const messageVariations = [
-                    `hey @${safeHandle} - i just sent you ${safeAmount} ${safeToken} to your bns at ${safeBnsName} for replying to this post`,
-                    `@${safeHandle} just sent you ${safeAmount} ${safeToken} to ${safeBnsName} for the reply`,
-                    `hey @${safeHandle} - you got ${safeAmount} ${safeToken} for replying. sent to ${safeBnsName}`,
-                    `@${safeHandle} sent ${safeAmount} ${safeToken} to your bns at ${safeBnsName} for replying to this post`,
-                    `hey @${safeHandle} - ${safeAmount} ${safeToken} sent to ${safeBnsName} for the reply`,
-                    `@${safeHandle} you got ${safeAmount} ${safeToken} at ${safeBnsName} for replying to this`,
-                    `hey @${safeHandle} - just sent ${safeAmount} ${safeToken} to ${safeBnsName} for replying`,
-                    `@${safeHandle} ${safeAmount} ${safeToken} sent to your bns at ${safeBnsName} for the reply`,
-                    `hey @${safeHandle} - sent you ${safeAmount} ${safeToken} at ${safeBnsName} for replying to this post`,
-                    `@${safeHandle} just dropped ${safeAmount} ${safeToken} to ${safeBnsName} for the reply`
-                ];
-                
-                // Use a deterministic random selection based on execution ID for consistency
-                const idSlice = execution.id.slice(-2);
-                const parsedIndex = parseInt(idSlice, 16);
-                const messageIndex = isNaN(parsedIndex) ? 0 : parsedIndex % messageVariations.length;
-                const selectedMessage = messageVariations[messageIndex] || messageVariations[0];
-                
-                // Debug log for message selection
-                console.log(`[Backfill Debug] Message selection for ${execution.id}:`, {
-                    idSlice,
-                    parsedIndex,
-                    messageIndex,
-                    variationsLength: messageVariations.length,
-                    selectedMessage: selectedMessage || 'FALLBACK_UNDEFINED',
-                    isValidIndex: messageIndex >= 0 && messageIndex < messageVariations.length
-                });
-                
-                // Debug logging to see what data we have
-                console.log(`[Backfill Debug] Execution ${execution.id}:`, {
-                    replierHandle: execution.replierHandle,
-                    bnsName: execution.bnsName,
-                    txid: execution.txid,
-                    amountFormatted,
-                    tokenSymbol
-                });
-                
-                // Validate that we have all required data for the message
-                if (!execution.replierHandle || !execution.bnsName || !execution.txid) {
-                    result.skipped = true;
-                    result.skipReason = `Missing required data: handle=${!!execution.replierHandle}, bns=${!!execution.bnsName}, txid=${!!execution.txid}`;
-                    summary.skipped++;
-                    summary.results.push(result);
-                    continue;
-                }
-                
-                const backfillMessage = `${selectedMessage}\n\n` +
-                                      `https://explorer.hiro.so/txid/${safeTxid}?chain=mainnet`;
                 
                 // Mark this reply tweet ID as processed to prevent duplicates
                 if (execution.replyTweetId) {
@@ -216,7 +256,7 @@ export async function POST(request: NextRequest) {
                     console.log(`[Backfill Debug] Preview message for ${execution.id}:`, {
                         messageLength: backfillMessage?.length || 0,
                         messagePreview: backfillMessage?.substring(0, 100) || 'UNDEFINED',
-                        selectedMessage: selectedMessage || 'UNDEFINED'
+                        messageType: isBNSNotFound ? 'BNS_REMINDER' : 'SUCCESS_NOTIFICATION'
                     });
                 } else {
                     // Send actual reply
@@ -308,12 +348,13 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const onlyRecentDays = parseInt(searchParams.get('onlyRecentDays') || '7');
         const skipExistingReplies = searchParams.get('skipExistingReplies') !== 'false';
+        const includeBNSReminders = searchParams.get('includeBNSReminders') === 'true';
         
-        // Get successful executions that don't have replies yet
+        // Get executions that don't have replies yet
         const { listAllTwitterExecutions } = await import('@/lib/twitter-triggers/store');
         const allExecutions = await listAllTwitterExecutions(500);
         
-        // Filter for successful executions that need replies
+        // Filter for executions that need replies
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - onlyRecentDays);
         
@@ -321,14 +362,12 @@ export async function GET(request: NextRequest) {
         const seenReplyTweetIds = new Set<string>();
         
         const eligibleExecutions = allExecutions.filter(execution => {
-            if (execution.status !== 'order_broadcasted' && execution.status !== 'order_confirmed') {
+            // Must have reply information
+            if (!execution.replyTweetId || !execution.replierHandle) {
                 return false;
             }
             
-            if (!execution.txid || !execution.replyTweetId || !execution.replierHandle || !execution.bnsName) {
-                return false;
-            }
-            
+            // Check date filter
             if (onlyRecentDays > 0) {
                 const executedDate = new Date(execution.executedAt);
                 if (executedDate < cutoffDate) {
@@ -336,6 +375,7 @@ export async function GET(request: NextRequest) {
                 }
             }
             
+            // Skip if already has reply (unless specifically requested)
             if (skipExistingReplies && execution.twitterReplyStatus === 'sent') {
                 return false;
             }
@@ -343,6 +383,29 @@ export async function GET(request: NextRequest) {
             // Skip if we've already seen this reply tweet ID
             if (seenReplyTweetIds.has(execution.replyTweetId)) {
                 return false;
+            }
+            
+            // Filter by execution type
+            if (includeBNSReminders) {
+                // Include both successful orders AND BNS not found cases
+                const isSuccessful = (execution.status === 'order_broadcasted' || execution.status === 'order_confirmed') && execution.txid;
+                const isBNSNotFound = execution.status === 'failed' && 
+                                    execution.error?.includes('BNS') && 
+                                    (execution.error.includes('not found') || execution.error.includes('resolution failed'));
+                
+                if (!isSuccessful && !isBNSNotFound) {
+                    return false;
+                }
+            } else {
+                // Original behavior - only successful executions
+                if (execution.status !== 'order_broadcasted' && execution.status !== 'order_confirmed') {
+                    return false;
+                }
+                
+                // Must have transaction ID and BNS name for successful executions
+                if (!execution.txid || !execution.bnsName) {
+                    return false;
+                }
             }
             
             // Mark this reply tweet ID as seen

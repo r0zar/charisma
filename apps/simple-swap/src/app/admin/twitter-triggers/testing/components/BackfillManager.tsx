@@ -74,11 +74,12 @@ export default function BackfillManager() {
     const [limit, setLimit] = useState(25);
     const [onlyRecentDays, setOnlyRecentDays] = useState(7);
     const [skipExistingReplies, setSkipExistingReplies] = useState(true);
+    const [includeBNSReminders, setIncludeBNSReminders] = useState(false);
 
     // Load preview on mount and when settings change
     useEffect(() => {
         loadPreview();
-    }, [limit, onlyRecentDays, skipExistingReplies]);
+    }, [limit, onlyRecentDays, skipExistingReplies, includeBNSReminders]);
 
     const loadPreview = async () => {
         setPreviewLoading(true);
@@ -86,7 +87,8 @@ export default function BackfillManager() {
             const params = new URLSearchParams({
                 limit: limit.toString(),
                 onlyRecentDays: onlyRecentDays.toString(),
-                skipExistingReplies: skipExistingReplies.toString()
+                skipExistingReplies: skipExistingReplies.toString(),
+                includeBNSReminders: includeBNSReminders.toString()
             });
 
             const response = await fetch(`/api/admin/twitter-triggers/backfill-replies?${params}`);
@@ -119,7 +121,8 @@ export default function BackfillManager() {
                     dryRun,
                     limit,
                     onlyRecentDays,
-                    skipExistingReplies
+                    skipExistingReplies,
+                    includeBNSReminders
                 }),
             });
 
@@ -184,7 +187,7 @@ export default function BackfillManager() {
                     <h3 className="text-lg font-semibold text-foreground">Backfill Configuration</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-foreground mb-2">
                             Limit
@@ -228,6 +231,22 @@ export default function BackfillManager() {
                             />
                             <span className="ml-2 text-sm text-foreground">Skip if already replied</span>
                         </div>
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                            Include BNS Reminders
+                        </label>
+                        <div className="flex items-center h-[42px]">
+                            <input
+                                type="checkbox"
+                                checked={includeBNSReminders}
+                                onChange={(e) => setIncludeBNSReminders(e.target.checked)}
+                                className="w-4 h-4 text-primary bg-background border border-border rounded focus:ring-primary focus:ring-2"
+                            />
+                            <span className="ml-2 text-sm text-foreground">Send BNS setup reminders</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Include failed executions due to missing BNS</p>
                     </div>
                 </div>
             </div>
@@ -324,7 +343,7 @@ export default function BackfillManager() {
                         <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                         <div className="text-sm">
                             <strong>Important:</strong> Backfill will send real Twitter replies to users. 
-                            Always run a dry run first to verify the selection. Replies will include "(Backfill notification)" text.
+                            Always run a dry run first to verify the selection.
                         </div>
                     </div>
                 </div>

@@ -152,6 +152,58 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
 
     if (!bnsResult.bnsName) {
         console.log(`[Twitter Processor] No BNS found in reply ${reply.id} from @${reply.authorHandle}`);
+        
+        // Send helpful reply about BNS setup for Charisma airdrops
+        // Create a temporary execution record to track the BNS not found notification
+        let tempExecution: TwitterTriggerExecution | null = null;
+        try {
+            // Create execution record for tracking the BNS not found notification
+            tempExecution = await createTwitterExecution({
+                triggerId: trigger.id,
+                replyTweetId: reply.id,
+                replierHandle: reply.authorHandle,
+                replierDisplayName: reply.authorDisplayName,
+                bnsName: 'no_bns_found',
+                executedAt: new Date().toISOString(),
+                status: 'failed',
+                error: 'No BNS found in reply',
+                replyText: reply.text,
+                replyCreatedAt: reply.createdAt,
+            });
+
+            const { getTwitterReplyService } = await import('./twitter-reply-service');
+            const twitterReplyService = getTwitterReplyService();
+            
+            console.log(`[Twitter Processor] 💬 Sending BNS setup notification to @${reply.authorHandle}`);
+            const replyResult = await twitterReplyService.notifyBNSNotFound(
+                reply.id,
+                reply.authorHandle
+            );
+            
+            // Update execution with reply status
+            if (replyResult.success) {
+                console.log(`[Twitter Processor] ✅ Successfully sent BNS setup notification to @${reply.authorHandle}`);
+                await updateTwitterExecution(tempExecution.id, {
+                    twitterReplyId: replyResult.tweetId,
+                    twitterReplyStatus: 'sent'
+                });
+            } else {
+                console.error(`[Twitter Processor] ❌ Failed to send BNS setup notification:`, replyResult.error);
+                await updateTwitterExecution(tempExecution.id, {
+                    twitterReplyStatus: 'failed',
+                    twitterReplyError: replyResult.error
+                });
+            }
+        } catch (error) {
+            console.error(`[Twitter Processor] Error sending BNS setup notification:`, error);
+            if (tempExecution) {
+                await updateTwitterExecution(tempExecution.id, {
+                    twitterReplyStatus: 'failed',
+                    twitterReplyError: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        }
+        
         return false;
     }
 
@@ -206,6 +258,40 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
             status: 'failed',
             error: `BNS resolution failed: ${error}`,
         });
+
+        // Send helpful reply about BNS setup for Charisma airdrops (with the specific BNS name)
+        try {
+            const { getTwitterReplyService } = await import('./twitter-reply-service');
+            const twitterReplyService = getTwitterReplyService();
+            
+            console.log(`[Twitter Processor] 💬 Sending BNS not found notification to @${reply.authorHandle} for ${bnsResult.bnsName}`);
+            const replyResult = await twitterReplyService.notifyBNSNotFound(
+                reply.id,
+                reply.authorHandle,
+                bnsResult.bnsName
+            );
+            
+            // Update execution with reply status
+            if (replyResult.success) {
+                console.log(`[Twitter Processor] ✅ Successfully sent BNS not found notification to @${reply.authorHandle}`);
+                await updateTwitterExecution(execution.id, {
+                    twitterReplyId: replyResult.tweetId,
+                    twitterReplyStatus: 'sent'
+                });
+            } else {
+                console.error(`[Twitter Processor] ❌ Failed to send BNS not found notification:`, replyResult.error);
+                await updateTwitterExecution(execution.id, {
+                    twitterReplyStatus: 'failed',
+                    twitterReplyError: replyResult.error
+                });
+            }
+        } catch (replyError) {
+            console.error(`[Twitter Processor] Error sending BNS not found notification:`, replyError);
+            await updateTwitterExecution(execution.id, {
+                twitterReplyStatus: 'failed',
+                twitterReplyError: replyError instanceof Error ? replyError.message : 'Unknown error'
+            });
+        }
 
         return false;
     }

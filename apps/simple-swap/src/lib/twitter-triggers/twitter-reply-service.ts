@@ -138,6 +138,24 @@ export class TwitterReplyService {
     }
 
     /**
+     * Format the BNS not found message with randomized variations
+     */
+    formatBNSNotFoundMessage(replierHandle: string, bnsName?: string): string {
+        // 5 different message variations encouraging BNS setup for Charisma airdrops
+        const messageVariations = [
+            `hey @${replierHandle} - couldn't find your bns${bnsName ? ` "${bnsName}"` : ''} in the registry. set up a .btc name to receive charisma airdrops! visit btc.us to get started`,
+            `@${replierHandle} your bns${bnsName ? ` "${bnsName}"` : ''} isn't registered yet. grab a .btc name at btc.us to qualify for charisma token airdrops`,
+            `hey @${replierHandle} - no bns${bnsName ? ` "${bnsName}"` : ''} found in the registry. get a .btc name at btc.us to receive future charisma airdrops`,
+            `@${replierHandle} couldn't locate your bns${bnsName ? ` "${bnsName}"` : ''} in the registry. register a .btc name at btc.us for charisma airdrop eligibility`,
+            `hey @${replierHandle} - bns${bnsName ? ` "${bnsName}"` : ''} not found. set up your .btc name at btc.us to get charisma airdrops when they drop`
+        ];
+        
+        // Use a deterministic random selection based on handle for consistency
+        const messageIndex = replierHandle.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % messageVariations.length;
+        return messageVariations[messageIndex];
+    }
+
+    /**
      * Send order execution notification
      */
     async notifyOrderExecution(
@@ -164,6 +182,39 @@ export class TwitterReplyService {
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
             console.error(`[Twitter Reply] Error in notifyOrderExecution:`, errorMsg);
+            return { 
+                success: false, 
+                error: errorMsg 
+            };
+        }
+    }
+
+    /**
+     * Send BNS not found notification to encourage registration
+     */
+    async notifyBNSNotFound(
+        replyTweetId: string,
+        replierHandle: string, 
+        bnsName?: string
+    ): Promise<{ success: boolean; tweetId?: string; error?: string }> {
+        try {
+            const message = this.formatBNSNotFoundMessage(replierHandle, bnsName);
+            
+            console.log(`[Twitter Reply] Notifying BNS not found for ${replierHandle}${bnsName ? ` (${bnsName})` : ''}`);
+            
+            const result = await this.replyToTweet(replyTweetId, message);
+            
+            if (result.success) {
+                console.log(`[Twitter Reply] ✅ Successfully notified ${replierHandle} about BNS setup`);
+            } else {
+                console.error(`[Twitter Reply] ❌ Failed to notify ${replierHandle} about BNS setup:`, result.error);
+            }
+            
+            return result;
+            
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`[Twitter Reply] Error in notifyBNSNotFound:`, errorMsg);
             return { 
                 success: false, 
                 error: errorMsg 

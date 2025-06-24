@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
 
         console.log(`[Fill Gap API] Broadcast result:`, broadcastResult);
 
-        if (broadcastResult.error) {
+        if ((broadcastResult as any).error) {
             return NextResponse.json({
                 success: false,
-                error: `Transaction failed: ${broadcastResult.error}`,
+                error: `Transaction failed: ${(broadcastResult as any).error}`,
                 details: broadcastResult
             }, { status: 400 });
         }
