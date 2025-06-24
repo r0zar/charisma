@@ -69,7 +69,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
     ordersCreated: number;
     errors: string[];
 }> {
-    console.log(`[Twitter Processor] Processing trigger ${trigger.id} for tweet ${trigger.tweetId}`);
+    console.warn(`[Twitter Processor] Processing trigger ${trigger.id} for tweet ${trigger.tweetId}`);
 
     const results = {
         newReplies: 0,
@@ -86,6 +86,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
 
         // Scrape new replies
         const scrapingResult = await scrapeTwitterReplies(trigger.tweetId, lastReplyId);
+        console.error(`[Twitter Processor] Scraping result:`, scrapingResult);
 
         if (!scrapingResult.success) {
             throw new Error(`Twitter scraping failed: ${scrapingResult.error}`);
