@@ -514,11 +514,17 @@ export async function addOverflowSignaturesToTrigger(
         const { addOrder } = await import('../orders/store');
         const newOrderIds: string[] = [];
         
+        // Generate a single strategyId for all overflow orders in this batch
+        const overflowStrategyId = `twitter_overflow_${triggerId}_${Date.now()}`;
+        const batchSize = signatures.length;
+        
+        console.log(`[Twitter Store] Creating ${batchSize} overflow orders with shared strategy ID: ${overflowStrategyId}`);
+        
         for (let i = 0; i < signatures.length; i++) {
             const sig = signatures[i];
             
             try {
-                // Create order payload matching the original trigger structure
+                // Create order payload with shared strategy ID for proper grouping
                 const orderPayload = {
                     owner: trigger.owner,
                     inputToken: sig.inputToken,
@@ -527,12 +533,12 @@ export async function addOverflowSignaturesToTrigger(
                     recipient: 'PLACEHOLDER', // Will be overridden when executed with BNS address
                     signature: sig.signature,
                     uuid: sig.uuid,
-                    // Strategy metadata for grouping (continue the sequence)
-                    strategyId: `twitter_overflow_${triggerId}_${Date.now()}`,
+                    // Strategy metadata for grouping - all overflow orders share the same strategyId
+                    strategyId: overflowStrategyId,
                     strategyType: 'twitter' as const,
-                    strategyPosition: (trigger.orderIds?.length || 0) + i + 1,
-                    strategySize: (trigger.orderIds?.length || 0) + signatures.length,
-                    strategyDescription: `Overflow signatures for Twitter trigger ${trigger.tweetUrl}`,
+                    strategyPosition: i + 1, // Position within the overflow batch (1-based)
+                    strategySize: batchSize, // Size of the overflow batch only
+                    strategyDescription: `Overflow batch for Twitter trigger ${trigger.tweetUrl} (${batchSize} orders)`,
                     // Order metadata
                     metadata: {
                         orderType: 'twitter_trigger_overflow',
@@ -540,14 +546,16 @@ export async function addOverflowSignaturesToTrigger(
                         tweetUrl: trigger.tweetUrl,
                         triggerId: trigger.id,
                         bulkSigned: true,
-                        isOverflow: true
+                        isOverflow: true,
+                        overflowBatchId: overflowStrategyId,
+                        originalTriggerOrderCount: trigger.orderIds?.length || 0
                     }
                 };
                 
                 const order = await addOrder(orderPayload);
                 newOrderIds.push(order.uuid);
                 
-                console.log(`[Twitter Store] Created overflow order ${i + 1}/${signatures.length}: ${order.uuid}`);
+                console.log(`[Twitter Store] Created overflow order ${i + 1}/${signatures.length}: ${order.uuid} (strategy: ${overflowStrategyId})`);
                 
             } catch (orderError) {
                 console.error(`[Twitter Store] Failed to create overflow order ${i + 1}:`, orderError);

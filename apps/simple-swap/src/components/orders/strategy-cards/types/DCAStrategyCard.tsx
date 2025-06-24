@@ -55,6 +55,9 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
                     <div className="text-xs text-white/60">
                         {description}
                     </div>
+                    <div className="text-xs text-white/40 font-mono">
+                        {id}
+                    </div>
                 </div>
                 
                 <div className="flex items-center gap-2">

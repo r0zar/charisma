@@ -1,3 +1,5 @@
+'use server';
+
 import { LimitOrder, NewOrderRequest } from './types';
 // @ts-ignore: vercel/kv runtime import without types
 import { kv } from '@vercel/kv';
@@ -5,6 +7,24 @@ import { kv } from '@vercel/kv';
 const HASH_KEY = 'orders'; // Redis hash holding order JSON blobs
 
 export async function addOrder(req: NewOrderRequest): Promise<LimitOrder> {
+    // Validate strategy metadata for Twitter strategies
+    if (req.strategyType === 'twitter' && req.strategySize === 1) {
+        console.warn(`[Orders Store] Preventing single-order Twitter strategy creation: ${req.strategyId}`);
+        console.warn(`[Orders Store] Strategy metadata:`, {
+            strategyId: req.strategyId,
+            strategyType: req.strategyType,
+            strategySize: req.strategySize,
+            strategyPosition: req.strategyPosition
+        });
+        
+        // Log additional context for debugging
+        if (req.metadata) {
+            console.warn(`[Orders Store] Order metadata:`, req.metadata);
+        }
+        
+        throw new Error(`Invalid Twitter strategy: Single-order Twitter strategies are not allowed. Strategy ${req.strategyId} has size 1.`);
+    }
+    
     const order: LimitOrder = {
         ...req,
         status: 'open',
@@ -53,7 +73,15 @@ export async function listOrdersPaginated(
 
     // Filter by status if specified
     if (statusFilter && statusFilter !== 'all') {
-        filtered = filtered.filter((o) => o.status === statusFilter);
+        if (statusFilter === 'open') {
+            // 'open' filter includes open and broadcasted orders (actively in progress)
+            filtered = filtered.filter((o) =>
+                o.status === 'open' ||
+                o.status === 'broadcasted'
+            );
+        } else {
+            filtered = filtered.filter((o) => o.status === statusFilter);
+        }
     }
 
     // Filter by search query if specified

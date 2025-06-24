@@ -18,7 +18,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { groupOrdersByStrategy, StrategyDisplayData } from "@/lib/orders/strategy-formatter";
 import { formatOrderCondition } from "@/lib/orders/condition-formatter";
 import { CompactOrderCard, StrategyProgressBar, ConditionStatusIndicator, PriceProgressBar } from "./order-progress-indicators";
-import { getLatestPrice } from "@/lib/price/store";
+import { useBlaze } from 'blaze-sdk/realtime';
 import { StrategyCardFactory } from "./strategy-cards";
 import { truncateAddress } from "@/lib/address-utils";
 import { formatOrderDate, formatRelativeTime, formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
@@ -34,6 +34,30 @@ interface DisplayOrder extends LimitOrder {
     outputTokenMeta: TokenCacheData;
     conditionTokenMeta?: TokenCacheData;
     baseAssetMeta?: TokenCacheData | null;
+}
+
+// Filter strategies based on status
+function filterStrategiesByStatus(
+    strategies: StrategyDisplayData[], 
+    activeFilter: string
+): StrategyDisplayData[] {
+    if (activeFilter === 'all') {
+        return strategies;
+    }
+    
+    return strategies.filter(strategy => {
+        // Check if strategy has any orders matching the filter criteria
+        const hasMatchingOrders = strategy.orders.some(order => {
+            if (activeFilter === 'open') {
+                // 'open' filter includes open and broadcasted orders (actively in progress)
+                return order.status === 'open' || order.status === 'broadcasted';
+            } else {
+                return order.status === activeFilter;
+            }
+        });
+        
+        return hasMatchingOrders;
+    });
 }
 
 // Transaction Status Indicator for filled orders
@@ -590,6 +614,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
 
 export default function OrdersPanel() {
     const { address, connected } = useWallet();
+    const { getPrice } = useBlaze({ userId: address });
     const [displayOrders, setDisplayOrders] = useState<DisplayOrder[]>([]);
     const tokenMetaCacheRef = useRef<Map<string, TokenCacheData>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -670,21 +695,17 @@ export default function OrdersPanel() {
         setError(null);
         
         try {
-            // Build query parameters
+            // Build query parameters - get ALL orders, filter at strategy level
             const params = new URLSearchParams({
                 owner: address
             });
             
             if (usePagination) {
-                params.append('page', pagination.page.toString());
-                params.append('limit', pagination.limit.toString());
+                params.append('page', '1');
+                params.append('limit', '100'); // Get recent orders for strategy grouping
                 params.append('sortBy', 'createdAt');
                 params.append('sortOrder', 'desc');
-                if (activeFilter !== 'all' && activeFilter !== 'open') {
-                    // For specific filters, use server-side filtering
-                    // "open" filter will fetch all orders and filter client-side to include both 'open' and 'broadcasted'
-                    params.append('status', activeFilter);
-                }
+                // Don't filter by status at API level - we'll filter strategies instead
                 
                 if (searchQuery && searchQuery.trim()) {
                     params.append('search', searchQuery.trim());
@@ -850,33 +871,28 @@ export default function OrdersPanel() {
 
         // Group orders into strategies
         const grouped = groupOrdersByStrategy(displayOrders, tokenMetaMap);
-        setStrategyGroups(grouped);
         
-        // Fetch current prices for condition tokens
-        const fetchCurrentPrices = async () => {
-            const priceMap = new Map<string, number>();
-            const uniqueConditionTokens = new Set(
-                displayOrders
-                    .filter(order => order.conditionToken)
-                    .map(order => order.conditionToken!)
-            );
+        // Filter strategies based on active filter
+        const filteredStrategies = filterStrategiesByStatus(grouped, activeFilter);
+        setStrategyGroups(filteredStrategies);
+        
+        // Fetch current prices for condition tokens using useBlaze
+        const priceMap = new Map<string, number>();
+        const uniqueConditionTokens = new Set(
+            displayOrders
+                .filter(order => order.conditionToken && order.conditionToken !== '*')
+                .map(order => order.conditionToken!)
+        );
 
-            for (const token of uniqueConditionTokens) {
-                try {
-                    const price = await getLatestPrice(token);
-                    if (price !== undefined) {
-                        priceMap.set(token, price);
-                    }
-                } catch (error) {
-                    console.warn(`Failed to fetch price for ${token}:`, error);
-                }
+        uniqueConditionTokens.forEach(token => {
+            const price = getPrice(token);
+            if (price !== null) {
+                priceMap.set(token, price);
             }
-            
-            setCurrentPrices(priceMap);
-        };
-
-        fetchCurrentPrices();
-    }, [displayOrders]);
+        });
+        
+        setCurrentPrices(priceMap);
+    }, [displayOrders, activeFilter, getPrice]);
 
     // Order status polling for real-time updates
     useEffect(() => {
@@ -981,10 +997,8 @@ export default function OrdersPanel() {
         }
     };
 
-    // Apply client-side filtering only for "open" filter to include both open and broadcasted orders
-    const filteredOrders = activeFilter === 'open' 
-        ? displayOrders.filter(order => order.status === 'open' || order.status === 'broadcasted' || order.status === 'filled')
-        : displayOrders;
+    // All filtering is now done server-side
+    const filteredOrders = displayOrders;
 
     // Function to copy text to clipboard with visual feedback
     const copyToClipboard = (text: string, id: string) => {
