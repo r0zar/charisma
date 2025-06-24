@@ -91,23 +91,26 @@ async function scrapeWithTimeout(tweetId: string, sinceId?: string, timeoutMs: n
     try {
         console.log(`[Twitter Scraper] Using @the-convocation/twitter-scraper for tweet ${tweetId}`);
 
-        // Initialize scraper with CORS proxy and rate limiting
+        // Initialize scraper with CORS proxy (only in production) and rate limiting
+        const isProduction = process.env.NODE_ENV === 'production';
         const scraper = new Scraper({
-            // Add CORS proxy for serverless environments
-            // transform: {
-            //     request(input: RequestInfo | URL, init?: RequestInit) {
-            //         if (input instanceof URL) {
-            //             const proxy = "https://corsproxy.io/?" +
-            //                 encodeURIComponent(input.toString());
-            //             return [proxy, init];
-            //         } else if (typeof input === "string") {
-            //             const proxy = "https://corsproxy.io/?" +
-            //                 encodeURIComponent(input);
-            //             return [proxy, init];
-            //         }
-            //         return [input, init];
-            //     },
-            // },
+            // Add CORS proxy for serverless environments (production only)
+            ...(isProduction && {
+                transform: {
+                    request(input: RequestInfo | URL, init?: RequestInit) {
+                        if (input instanceof URL) {
+                            const proxy = "https://corsproxy.io/?" +
+                                encodeURIComponent(input.toString());
+                            return [proxy, init];
+                        } else if (typeof input === "string") {
+                            const proxy = "https://corsproxy.io/?" +
+                                encodeURIComponent(input);
+                            return [proxy, init];
+                        }
+                        return [input, init];
+                    },
+                }
+            }),
             // Use error strategy instead of waiting up to 13 minutes for rate limits
             rateLimitStrategy: new ErrorRateLimitStrategy(),
         });
