@@ -150,22 +150,22 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 
     // Check if we already have an execution for this trigger + BNS combination (idempotent processing)
     const existingExecution = await getExecutionByTriggerAndBNS(trigger.id, bnsResult.bnsName);
-    
+
     let execution: TwitterTriggerExecution;
-    
+
     if (existingExecution) {
         console.log(`[Twitter Processor] Found existing execution ${existingExecution.id} for BNS ${bnsResult.bnsName} with status: ${existingExecution.status}`);
-        
+
         // Decide what to do based on existing execution status
         if (existingExecution.status === 'order_broadcasted' || existingExecution.status === 'order_confirmed') {
             console.log(`[Twitter Processor] ✅ Skipping BNS ${bnsResult.bnsName} - already processed successfully`);
             return true; // Consider this a success since user already got their order
         }
-        
+
         // For failed, pending, or bns_resolved statuses, we'll retry the execution
         console.log(`[Twitter Processor] 🔄 Retrying execution for BNS ${bnsResult.bnsName} - previous status: ${existingExecution.status}`);
         execution = existingExecution;
-        
+
         // Reset status to pending for retry
         await updateTwitterExecution(execution.id, {
             status: 'pending',
@@ -226,8 +226,8 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
             });
 
             // Update the order metadata with Twitter execution information
-            const finalExecution = { 
-                ...updatedExecution, 
+            const finalExecution = {
+                ...updatedExecution,
                 orderUuid: orderResult.orderUuid,
                 txid: orderResult.txid,
                 status: 'order_broadcasted' as const
@@ -238,22 +238,22 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
             await incrementTriggerCount(trigger.id);
 
             console.log(`[Twitter Processor] ✅ Successfully executed order ${orderResult.orderUuid} for BNS ${bnsResult.bnsName} (${recipientAddress})`);
-            
+
             // Send Twitter reply notification (fire-and-forget)
             try {
                 const { getTwitterReplyService } = await import('./twitter-reply-service');
                 const twitterReplyService = getTwitterReplyService();
-                
+
                 // Get token info for the notification
                 const { getTokenMetadataCached } = await import('@repo/tokens');
                 const outputTokenMeta = await getTokenMetadataCached(trigger.outputToken);
                 const tokenSymbol = outputTokenMeta.symbol || 'tokens';
-                
+
                 // Get the actual output amount from the order's quote metadata
                 const { getOrder } = await import('../orders/store');
                 const orderWithQuote = await getOrder(orderResult.orderUuid!);
                 let amountFormatted = '0';
-                
+
                 if (orderWithQuote?.metadata?.quote?.amountOut) {
                     const outputDecimals = outputTokenMeta.decimals || 6;
                     const actualOutputAmount = orderWithQuote.metadata.quote.amountOut;
@@ -267,7 +267,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
                     amountFormatted = (parseInt(trigger.amountIn) / Math.pow(10, inputDecimals)).toFixed(6).replace(/\.?0+$/, '');
                     console.warn(`[Twitter Processor] Quote data not available, using fallback input amount ${amountFormatted}`);
                 }
-                
+
                 // Send notification and track result
                 twitterReplyService.notifyOrderExecution(finalExecution, orderResult.txid!, tokenSymbol, amountFormatted)
                     .then(result => {
@@ -299,11 +299,11 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
                             console.error(`[Twitter Processor] Failed to update execution with reply error:`, updateError);
                         });
                     });
-                    
+
             } catch (error) {
                 console.error(`[Twitter Processor] Error setting up Twitter reply notification:`, error);
             }
-            
+
             return true;
         } else if (orderResult.error === 'No available orders - all pre-signed orders have been used') {
             // This is an overflow execution - log it but don't fail
@@ -391,7 +391,7 @@ export async function executePreSignedOrder(trigger: TwitterTrigger, recipientAd
         const { broadcastOrder } = await import('../orders/store');
 
         // Use higher slippage for Twitter triggers to handle simultaneous executions
-        const twitterSlippage = 5; // 5% slippage for Twitter triggers
+        const twitterSlippage = 20; // 20% slippage for Twitter triggers
         console.log(`[Twitter Processor] Using ${twitterSlippage}% slippage for Twitter trigger execution`);
         const executionResult = await executeTrade(updatedOrder, twitterSlippage);
 
@@ -475,7 +475,7 @@ async function updateOrderWithExecutionMetadata(
 
         const { getOrder, updateOrder } = await import('../orders/store');
         const order = await getOrder(orderUuid);
-        
+
         if (!order) {
             console.error(`[Twitter Processor] ❌ Order ${orderUuid} not found when trying to update metadata`);
             return;
@@ -485,8 +485,8 @@ async function updateOrderWithExecutionMetadata(
 
         // Validate execution data before storing
         const requiredFields = ['replierHandle', 'bnsName', 'executedAt', 'status'];
-        const missingFields = requiredFields.filter(field => !execution[field]);
-        
+        const missingFields = requiredFields.filter(field => !execution[field as keyof TwitterTriggerExecution]);
+
         if (missingFields.length > 0) {
             console.error(`[Twitter Processor] ❌ Missing required execution fields: ${missingFields.join(', ')}`);
             console.error(`[Twitter Processor] 📊 Execution object:`, execution);
@@ -508,8 +508,8 @@ async function updateOrderWithExecutionMetadata(
 
         // Validate that we have the minimum required fields for UI
         const uiRequiredFields = ['replierHandle', 'bnsName', 'executedAt'];
-        const missingUIFields = uiRequiredFields.filter(field => !executionMetadata[field]);
-        
+        const missingUIFields = uiRequiredFields.filter(field => !executionMetadata[field as keyof typeof executionMetadata]);
+
         if (missingUIFields.length > 0) {
             console.warn(`[Twitter Processor] ⚠️ Missing UI-required fields: ${missingUIFields.join(', ')}`);
         }
@@ -527,18 +527,18 @@ async function updateOrderWithExecutionMetadata(
         console.log(`[Twitter Processor] 📦 Complete updated order metadata:`, updatedOrder.metadata);
 
         await updateOrder(updatedOrder);
-        
+
         // Verify the update was successful by re-fetching the order
         const verifyOrder = await getOrder(orderUuid);
         console.log(`[Twitter Processor] ✅ Verification - order metadata after update:`, verifyOrder?.metadata);
-        
+
         if (verifyOrder?.metadata?.execution) {
             console.log(`[Twitter Processor] ✅ SUCCESS: Metadata update completed for order ${orderUuid}`);
             console.log(`[Twitter Processor] 📊 Stored execution metadata:`, verifyOrder.metadata.execution);
         } else {
             console.error(`[Twitter Processor] ❌ FAILED: Metadata not found after update for order ${orderUuid}`);
         }
-        
+
     } catch (error) {
         console.error(`[Twitter Processor] ❌ Failed to update order ${orderUuid} with execution metadata:`, error);
         console.error(`[Twitter Processor] 📊 Execution object:`, execution);
@@ -562,13 +562,13 @@ export async function retryFailedExecutions(trigger: TwitterTrigger): Promise<{
         // Get all execution records for this trigger
         const { kv } = await import('@vercel/kv');
         const executionKeys = await kv.keys('twitter_execution:*');
-        
+
         const failedExecutions = [];
         for (const key of executionKeys) {
             try {
                 const execution = await kv.get(key) as any;
-                if (execution && 
-                    execution.triggerId === trigger.id && 
+                if (execution &&
+                    execution.triggerId === trigger.id &&
                     (execution.status === 'failed' || execution.status === 'pending')) {
                     failedExecutions.push(execution);
                 }
