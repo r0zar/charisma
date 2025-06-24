@@ -49,11 +49,9 @@ export async function listTwitterTriggers(activeOnly: boolean = false): Promise<
     }
 
     // Batch get all triggers
-    const pipeline = kv.pipeline();
-    for (const id of triggerIds) {
-        pipeline.get(`${TRIGGER_PREFIX}${id}`);
-    }
-    const triggers = await pipeline.exec() as TwitterTrigger[];
+    const triggers = await Promise.all(
+        triggerIds.map(id => kv.get(`${TRIGGER_PREFIX}${id}`))
+    ) as TwitterTrigger[];
 
     // Filter out null values and optionally inactive triggers
     const validTriggers = triggers.filter(trigger =>
