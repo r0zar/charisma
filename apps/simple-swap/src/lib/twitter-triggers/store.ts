@@ -401,16 +401,20 @@ export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
 
     console.log(`[Twitter Store] All triggers:`, allTriggers);
 
-    return allTriggers.filter(trigger => {
+    const filteredTriggers = [];
+
+    for (const trigger of allTriggers) {
         // Check if max triggers reached
         if (trigger.maxTriggers && trigger.triggeredCount >= trigger.maxTriggers) {
             // Mark as inactive if max reached
-            updateTwitterTrigger(trigger.id, { isActive: false });
-            return false;
+            await updateTwitterTrigger(trigger.id, { isActive: false });
+            continue;
         }
 
-        return true;
-    });
+        filteredTriggers.push(trigger);
+    }
+
+    return filteredTriggers;
 }
 
 /**
