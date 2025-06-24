@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processTwitterTriggers } from '@/lib/twitter-triggers/processor';
-import { getTriggersToCheck } from '@/lib/twitter-triggers/store';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -14,10 +13,6 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('[Twitter Cron] Starting Twitter triggers processing job');
-
-        // Check if we have any triggers to process
-        const triggersToCheck = await getTriggersToCheck();
-        console.log(`[Twitter Cron] Found ${triggersToCheck.length} active triggers to process`);
 
         const startTime = Date.now();
         const results = await processTwitterTriggers();
