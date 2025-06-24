@@ -32,6 +32,12 @@ export async function processTwitterTriggers(): Promise<{
     // Process each trigger
     for (const trigger of triggers) {
         try {
+            // wait 1 second
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // throw error
+            throw new Error('test');
+
             const triggerResult = await processIndividualTrigger(trigger);
 
             results.triggersChecked++;
