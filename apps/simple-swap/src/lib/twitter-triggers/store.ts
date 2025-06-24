@@ -397,11 +397,12 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
 export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
     const allTriggers = await listTwitterTriggers(true); // active only
 
-    console.log(`[Twitter Store] All triggers:`, allTriggers);
+    console.warn(`[Twitter Store] All triggers:`, allTriggers);
 
     const filteredTriggers = [];
 
     for (const trigger of allTriggers) {
+        console.error(`[Twitter Store] Trigger:`, trigger);
         // Check if max triggers reached
         if (trigger.maxTriggers && trigger.triggeredCount >= trigger.maxTriggers) {
             // Mark as inactive if max reached

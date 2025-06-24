@@ -23,7 +23,7 @@ export async function processTwitterTriggers(): Promise<{
 
     // Get all active triggers that need checking
     const triggers = await getTriggersToCheck();
-    console.log(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
+    console.error(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
 
     if (triggers.length === 0) {
         return results;
