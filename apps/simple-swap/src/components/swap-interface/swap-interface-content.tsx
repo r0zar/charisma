@@ -111,14 +111,14 @@ function SwapInterfaceContentInner() {
       {mode === 'order' ? (
         /* Order Mode - Responsive Layout */
         <div className="max-w-7xl mx-auto">
-          {/* 2XL+ screens: Side-by-side 3/5 Grid Layout */}
-          <div className="hidden 2xl:grid grid-cols-5 gap-6">
+          {/* 3XL+ screens: Side-by-side 3/5 Grid Layout */}
+          <div className="hidden 3xl:grid grid-cols-5 gap-6">
             {/* Left Side - Limit Conditions (3/5) */}
             <div className="col-span-3 space-y-6">
               <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 backdrop-blur-sm">
                 <LimitConditionSection />
               </div>
-              
+
             </div>
 
             {/* Right Side - Send/Receive (2/5) */}
@@ -145,8 +145,8 @@ function SwapInterfaceContentInner() {
             </div>
           </div>
 
-          {/* Below 2XL: Vertical Stack Layout */}
-          <div className="2xl:hidden max-w-2xl mx-auto">
+          {/* Below 3XL: Vertical Stack Layout */}
+          <div className="3xl:hidden max-w-3xl mx-auto">
             {/* Limit Order Conditions */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 backdrop-blur-sm mb-6">
               <LimitConditionSection />
@@ -214,11 +214,10 @@ function SwapInterfaceContentInner() {
 export default function SwapInterfaceContent({ initialTokens = [], searchParams }: SwapInterfaceContentProps) {
   // Get tokens from swap context to pass to order conditions provider
   const { displayTokens } = useSwapTokens();
-  
+
   return (
-    <OrderConditionsProvider 
+    <OrderConditionsProvider
       availableTokens={displayTokens}
-      defaultBaseTokenId="SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt"
     >
       <SwapInterfaceContentInner />
     </OrderConditionsProvider>

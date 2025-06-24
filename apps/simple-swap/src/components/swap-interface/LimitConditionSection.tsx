@@ -220,13 +220,13 @@ export default function LimitConditionSection() {
             </div>
 
             {/* Trigger Toggles */}
-            <div className="mb-4 space-y-3">
+            <div className="mb-3 space-y-2">
                 <p className="text-xs text-white/60">Enable one or more triggers. Orders with no triggers are executed manually via API.</p>
 
                 {/* Price and Time Trigger Toggles - Side by Side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {/* Unified Price Trigger Toggle */}
-                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${(hasPriceTrigger || hasRatioTrigger) ? 'ring-1 ring-blue-500/20' : ''
+                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${(hasPriceTrigger || hasRatioTrigger) ? 'ring-1 ring-blue-500/20' : ''
                         }`}
                         onClick={(e) => {
                             e.preventDefault();
@@ -249,8 +249,8 @@ export default function LimitConditionSection() {
                             }
                         }}
                     >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center space-x-2.5">
                                 <div className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${(hasPriceTrigger || hasRatioTrigger)
                                     ? 'bg-blue-500 border-blue-500 text-white'
                                     : 'border-white/[0.15]'
@@ -270,12 +270,12 @@ export default function LimitConditionSection() {
 
                         {/* Trigger Summary Display */}
                         {hasPriceTrigger && getPriceTriggerDisplay() && (
-                            <div className="text-xs text-blue-400 bg-blue-500/[0.08] border border-blue-500/[0.15] rounded px-2 py-1 mb-2">
+                            <div className="text-xs text-blue-400 bg-blue-500/[0.08] border border-blue-500/[0.15] rounded px-2 py-1">
                                 {getPriceTriggerDisplay()}
                             </div>
                         )}
                         {hasRatioTrigger && getRatioTriggerDisplay() && (
-                            <div className="text-xs text-blue-400 bg-blue-500/[0.08] border border-blue-500/[0.15] rounded px-2 py-1 mb-2">
+                            <div className="text-xs text-blue-400 bg-blue-500/[0.08] border border-blue-500/[0.15] rounded px-2 py-1">
                                 {getRatioTriggerDisplay()}
                             </div>
                         )}
@@ -283,7 +283,7 @@ export default function LimitConditionSection() {
                     </div>
 
                     {/* Time Trigger Toggle */}
-                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${hasTimeTrigger ? 'ring-1 ring-green-500/20' : ''
+                    <div className={`bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 cursor-pointer transition-all duration-200 hover:bg-white/[0.03] ${hasTimeTrigger ? 'ring-1 ring-green-500/20' : ''
                         }`}
                         onClick={(e) => {
                             e.preventDefault();
@@ -295,7 +295,7 @@ export default function LimitConditionSection() {
                             if (newState) {
                                 // Enabling Time trigger - just enable it, don't affect other triggers
                                 setHasTimeTrigger(true);
-                                
+
                                 // Default start time to current time if not already set
                                 if (!timeStartTime) {
                                     const now = new Date();
@@ -309,8 +309,8 @@ export default function LimitConditionSection() {
                             }
                         }}
                     >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center space-x-2.5">
                                 <div className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${hasTimeTrigger
                                     ? 'bg-green-500 border-green-500 text-white'
                                     : 'border-white/[0.15]'
@@ -354,17 +354,17 @@ export default function LimitConditionSection() {
             </div>
 
             {/* Unified Trigger Control Bar */}
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-3 sm:p-4 backdrop-blur-sm">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 backdrop-blur-sm">
 
                 {/* Manual Order Description - Only show when no triggers are enabled */}
                 {isManualOrder && (
-                    <div className="mb-4">
+                    <div className="mb-3">
                         <label className="text-xs text-white/60 mb-1 block">Description (Optional)</label>
                         <textarea
                             value={manualDescription}
                             onChange={(e) => setManualDescription(e.target.value)}
                             placeholder="Describe when you want to execute this order..."
-                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/[0.15] resize-none"
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/[0.15] resize-none"
                             rows={2}
                             maxLength={500}
                         />
@@ -376,8 +376,8 @@ export default function LimitConditionSection() {
 
                 {/* Unified Price Trigger Configuration */}
                 {(hasPriceTrigger || hasRatioTrigger) && (
-                    <div className="mb-4">
-                        <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
                             <h5 className="text-sm font-medium text-blue-400">
                                 Price Trigger Configuration
                             </h5>
@@ -422,10 +422,10 @@ export default function LimitConditionSection() {
                                 </button>
                             </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap lg:items-center gap-3 sm:gap-4">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap lg:items-center gap-2 sm:gap-3">
 
                             {/* Token Selection */}
-                            <div className="flex items-center space-x-3 min-w-0 w-full sm:w-auto">
+                            <div className="flex items-center space-x-2 min-w-0 w-full sm:w-auto">
                                 <div className="min-w-0 flex-1 sm:min-w-[120px] sm:flex-none">
                                     <TokenDropdown
                                         tokens={displayTokens}
@@ -444,9 +444,9 @@ export default function LimitConditionSection() {
                             </div>
 
                             {/* Condition Direction */}
-                            <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-center sm:justify-start">
+                            <div className="flex items-center space-x-2 w-full sm:w-auto justify-center sm:justify-start">
                                 <span className="text-sm text-white/70">is</span>
-                                <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-xl p-1">
+                                <div className="flex items-center bg-white/[0.03] border border-white/[0.08] rounded-lg p-1">
                                     {[
                                         { key: 'gt', label: '≥', tooltip: 'greater than or equal to' },
                                         { key: 'lt', label: '≤', tooltip: 'less than or equal to' },
@@ -454,7 +454,7 @@ export default function LimitConditionSection() {
                                         <button
                                             key={key}
                                             title={tooltip}
-                                            className={`px-2 sm:px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${(hasPriceTrigger ? priceDirection : ratioDirection) === key
+                                            className={`px-2 py-1.5 text-sm font-medium rounded transition-all duration-200 ${(hasPriceTrigger ? priceDirection : ratioDirection) === key
                                                 ? 'bg-white/[0.1] text-white/95 shadow-sm'
                                                 : 'text-white/60 hover:text-white/80 hover:bg-white/[0.05]'
                                                 }`}
@@ -587,9 +587,12 @@ export default function LimitConditionSection() {
                                     />
                                     <button
                                         onClick={() => setTimeStartTime('')}
-                                        className="px-3 py-2 text-xs text-white/60 hover:text-white/90 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] rounded-lg transition-all duration-200"
+                                        className="p-2 text-white/60 hover:text-white/90 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] rounded-lg transition-all duration-200"
+                                        title="Clear start time"
                                     >
-                                        Clear
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
                                     </button>
                                 </div>
                                 <p className="text-xs text-white/50 mt-1">
@@ -615,9 +618,12 @@ export default function LimitConditionSection() {
                                     />
                                     <button
                                         onClick={() => setTimeEndTime('')}
-                                        className="px-3 py-2 text-xs text-white/60 hover:text-white/90 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] rounded-lg transition-all duration-200"
+                                        className="p-2 text-white/60 hover:text-white/90 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] rounded-lg transition-all duration-200"
+                                        title="Clear end time"
                                     >
-                                        Clear
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
                                     </button>
                                 </div>
                                 <p className="text-xs text-white/50 mt-1">
