@@ -5,6 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
     try {
+        // Only allow in development environment
+        if (process.env.NODE_ENV !== 'development') {
+            return NextResponse.json({ error: 'Debug endpoint only available in development' }, { status: 403 });
+        }
+
         console.log('[Debug] Fetching TwitterTriggerExecution records...');
         
         // Import the store functions

@@ -7,6 +7,11 @@ import { listOrders, updateOrder } from '@/lib/orders/store';
  */
 export async function POST(request: NextRequest) {
     try {
+        // Only allow in development environment
+        if (process.env.NODE_ENV !== 'development') {
+            return NextResponse.json({ error: 'Debug endpoint only available in development' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { dryRun = true } = body; // Default to dry run for safety
         

@@ -8,6 +8,11 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Only allow in development environment
+        if (process.env.NODE_ENV !== 'development') {
+            return NextResponse.json({ error: 'Debug endpoint only available in development' }, { status: 403 });
+        }
+
         const executionId = params.id;
         console.log(`[Debug] Fetching execution details for: ${executionId}`);
         
