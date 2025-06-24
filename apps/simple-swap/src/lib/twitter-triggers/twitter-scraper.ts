@@ -1,4 +1,9 @@
 import { TwitterReply, TwitterScrapingResult } from './types';
+import { Scraper, SearchMode } from '@the-convocation/twitter-scraper';
+
+// Check credentials
+const USERNAME = process.env.TWITTER_USERNAME;
+const PASSWORD = process.env.TWITTER_PASSWORD;
 
 /**
  * Extracts tweet ID from various Twitter URL formats
@@ -31,30 +36,23 @@ export async function scrapeTwitterReplies(tweetId: string, sinceId?: string): P
         console.log(`[Twitter Scraper] Scraping replies for tweet ${tweetId}${sinceId ? ` since ${sinceId}` : ''}`);
 
         try {
-            // Use @the-convocation/twitter-scraper (original working version)
-            const { Scraper, SearchMode } = await import('@the-convocation/twitter-scraper');
-
             console.log(`[Twitter Scraper] Using @the-convocation/twitter-scraper for tweet ${tweetId}`);
 
             // Initialize scraper
             const scraper = new Scraper();
 
-            // Check credentials
-            const username = process.env.TWITTER_USERNAME;
-            const password = process.env.TWITTER_PASSWORD;
-
             console.log(`[Twitter Scraper] Checking credentials:`, {
-                hasUsername: !!username,
-                hasPassword: !!password,
-                usernameLength: username?.length || 0,
-                passwordLength: password?.length || 0
+                hasUsername: !!USERNAME,
+                hasPassword: !!PASSWORD,
+                usernameLength: USERNAME?.length || 0,
+                passwordLength: PASSWORD?.length || 0
             });
 
             // Optional: Login with credentials if available
-            if (username && password) {
-                console.log(`[Twitter Scraper] Logging in with credentials for user: ${username}`);
+            if (USERNAME && PASSWORD) {
+                console.log(`[Twitter Scraper] Logging in with credentials for user: ${USERNAME}`);
                 try {
-                    await scraper.login(username, password);
+                    await scraper.login(USERNAME, PASSWORD);
                     console.log(`[Twitter Scraper] Login successful`);
                 } catch (loginError) {
                     console.error(`[Twitter Scraper] Login failed:`, loginError);
