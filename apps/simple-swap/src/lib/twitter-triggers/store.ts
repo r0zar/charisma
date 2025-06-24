@@ -44,6 +44,8 @@ export async function getTwitterTrigger(id: string): Promise<TwitterTrigger | nu
 export async function listTwitterTriggers(activeOnly: boolean = false): Promise<TwitterTrigger[]> {
     const triggerIds = await kv.smembers(TRIGGER_LIST_KEY) || [];
 
+    throw triggerIds;
+
     if (triggerIds.length === 0) {
         return [];
     }
