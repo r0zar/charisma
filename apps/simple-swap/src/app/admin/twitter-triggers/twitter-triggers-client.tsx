@@ -244,7 +244,6 @@ export default function TwitterTriggersClient() {
 
         try {
             const response = await fetch('/api/cron/twitter-triggers', {
-                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },

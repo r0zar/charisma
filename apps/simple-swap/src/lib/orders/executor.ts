@@ -2,52 +2,48 @@ import { listOrders, fillOrder, updateOrder } from './store';
 import { LimitOrder } from './types';
 import { getLatestPrice } from '@/lib/price/store';
 import { getQuote } from '@/app/actions';
-import { kv } from '@vercel/kv';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
 import { fetchNonce } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 
 /**
- * Simple Redis-based nonce management with atomic increment
+ * Nonce management following meme-roulette's proven approach
+ * Get blockchain nonce once and increment sequentially for batch processing
  */
+let currentNonce: number | null = null;
+let lastNonceFetch: number = 0;
+const NONCE_CACHE_TTL = 30000; // 30 seconds
+
 async function getNextNonce(useBlockchainNonce: boolean = false): Promise<number> {
     try {
-        // Get current blockchain nonce first
-        const currentBlockchainNonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
-        const blockchainNonce = Number(currentBlockchainNonce);
+        const now = Date.now();
         
-        // CRITICAL FIX: Always use blockchain nonce to prevent gaps
-        // The previous Redis increment approach created nonce gaps when transactions failed
-        const nonceKey = `nonce_counter:${BLAZE_SOLVER_ADDRESS}`;
-        
-        // Check if we have a gap and need to reset
-        const currentCounter = await kv.get(nonceKey);
-        if (currentCounter && Number(currentCounter) > blockchainNonce) {
-            console.log(`[Nonce] ⚠️ DETECTED GAP: Redis counter ${currentCounter} > blockchain ${blockchainNonce}`);
-            console.log(`[Nonce] 🔧 FIXING GAP: Resetting Redis counter to match blockchain`);
-            await kv.del(nonceKey); // Clear the problematic counter
+        // For first transaction or when cache expires, fetch fresh nonce
+        if (currentNonce === null || useBlockchainNonce || (now - lastNonceFetch) > NONCE_CACHE_TTL) {
+            console.log(`[Nonce] Fetching fresh blockchain nonce`);
+            const blockchainNonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
+            currentNonce = Number(blockchainNonce) + 1;
+            lastNonceFetch = now;
+            console.log(`[Nonce] Using fresh blockchain nonce: ${currentNonce}`);
+        } else {
+            // For subsequent transactions, increment sequentially
+            currentNonce++;
+            console.log(`[Nonce] Using sequential nonce: ${currentNonce}`);
         }
         
-        // Always use current blockchain nonce - this prevents gaps completely
-        const safeNonce = blockchainNonce;
-        console.log(`[Nonce] Using safe blockchain nonce: ${safeNonce} (gap-proof)`);
-        
-        // For first tx in series, we still want to track this
-        if (useBlockchainNonce) {
-            console.log(`[Nonce] First transaction in series using blockchain nonce: ${safeNonce}`);
-        }
-        
-        return safeNonce;
+        return currentNonce;
 
     } catch (error) {
-        console.error('[Nonce] Error with nonce management:', error);
-        // Fallback to blockchain nonce
-        const fallbackNonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
-        console.log(`[Nonce] Fallback to blockchain nonce: ${fallbackNonce}`);
-        return Number(fallbackNonce);
+        console.error('[Nonce] Error fetching blockchain nonce:', error);
+        // Reset cache on error
+        currentNonce = null;
+        throw error;
     }
 }
+
+// Helper function for delay (following meme-roulette pattern)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Simple retry wrapper with exponential backoff for nonce conflicts
@@ -112,6 +108,11 @@ async function executeMultihopSwapWithNonce(
             const result = await broadcastMultihopTransaction(txConfig, privateKey);
 
             console.log('[Nonce] Transaction broadcast successful:', result);
+            
+            // Add delay after successful broadcast (following meme-roulette pattern)
+            console.log('[Nonce] Adding 3-second delay after transaction broadcast...');
+            await delay(3000);
+            
             return result;
 
         } catch (error) {
