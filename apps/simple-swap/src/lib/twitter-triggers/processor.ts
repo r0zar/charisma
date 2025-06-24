@@ -32,9 +32,6 @@ export async function processTwitterTriggers(): Promise<{
     // Process each trigger
     for (const trigger of triggers) {
         try {
-            // wait 1 second
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
             const triggerResult = await processIndividualTrigger(trigger);
 
             results.triggersChecked++;
@@ -44,9 +41,6 @@ export async function processTwitterTriggers(): Promise<{
             if (triggerResult.errors.length > 0) {
                 results.errors.push(...triggerResult.errors);
             }
-
-            // wait 1 second
-            await new Promise(resolve => setTimeout(resolve, 1000));
 
         } catch (error) {
             const errorMsg = `Error processing trigger ${trigger.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -75,9 +69,6 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
         errors: [] as string[],
     };
 
-    // Track if this is the first transaction in the series for this trigger
-    let isFirstTransaction = true;
-
     try {
         // Get the last reply ID we've seen (to avoid processing duplicates)
         const lastReplyId = await getLastProcessedReplyId(trigger.id);
@@ -96,10 +87,9 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
         // Process each reply sequentially to prevent nonce conflicts
         for (const reply of scrapingResult.replies) {
             try {
-                const orderCreated = await processReplyForBNS(trigger, reply, isFirstTransaction);
+                const orderCreated = await processReplyForBNS(trigger, reply);
                 if (orderCreated) {
                     results.ordersCreated++;
-                    isFirstTransaction = false; // Mark subsequent transactions as non-first
                 }
 
                 // Add delay between executions to prevent nonce conflicts
@@ -116,7 +106,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
         // Retry failed executions for this trigger
         try {
             console.log(`[Twitter Processor] Checking for failed executions to retry for trigger ${trigger.id}`);
-            const retryResult = await retryFailedExecutions(trigger, isFirstTransaction);
+            const retryResult = await retryFailedExecutions(trigger);
             results.ordersCreated += retryResult.ordersCreated;
             results.errors.push(...retryResult.errors);
         } catch (error) {
@@ -139,7 +129,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
 /**
  * Process a single reply to check for BNS and create order if found
  */
-async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTransaction: boolean = false): Promise<boolean> {
+async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<boolean> {
     console.log(`[Twitter Processor] Processing reply ${reply.id} from @${reply.authorHandle}`);
 
     // Extract and resolve BNS from the reply
@@ -305,7 +295,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
 
     // Try to execute a pre-signed order, or create overflow execution if none available
     try {
-        const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id, isFirstTransaction);
+        const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id);
 
         if (orderResult.success) {
             // Update execution with order details including txid
@@ -691,7 +681,7 @@ export async function retryFailedExecutions(trigger: TwitterTrigger, isFirstTran
                 };
 
                 // Use the existing processReplyForBNS logic which handles retries
-                const orderCreated = await processReplyForBNS(trigger, mockReply, currentIsFirstTransaction);
+                const orderCreated = await processReplyForBNS(trigger, mockReply);
                 if (orderCreated) {
                     results.ordersCreated++;
                     currentIsFirstTransaction = false; // Mark subsequent retries as non-first

@@ -406,7 +406,6 @@ export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
         if (trigger.maxTriggers && trigger.triggeredCount >= trigger.maxTriggers) {
             // Mark as inactive if max reached
             await updateTwitterTrigger(trigger.id, { isActive: false });
-            continue;
         }
 
         filteredTriggers.push(trigger);
