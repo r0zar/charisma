@@ -1049,9 +1049,6 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0)(react@19.1.0)
-      partysocket:
-        specifier: ^1.1.4
-        version: 1.1.4
       react:
         specifier: ^19
         version: 19.1.0
@@ -1079,9 +1076,6 @@ importers:
       zod:
         specifier: ^3.22.4
         version: 3.24.3
-      zustand:
-        specifier: ^5.0.5
-        version: 5.0.5(@types/react@19.0.10)(react@19.1.0)(use-sync-external-store@1.5.0)
     devDependencies:
       '@next/eslint-plugin-next':
         specifier: ^15.2.1

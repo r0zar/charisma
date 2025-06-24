@@ -61,22 +61,24 @@ export async function listTwitterTriggers(activeOnly: boolean = false): Promise<
     );
 
     // Update available orders for triggers that have pre-signed orders
-    const triggersWithUpdatedCounts = await Promise.all(
-        validTriggers.map(async (trigger) => {
-            if (trigger.orderIds && trigger.orderIds.length > 0) {
-                const availableOrders = await checkAvailableOrders(trigger.orderIds);
+    const triggersWithUpdatedCounts = [];
+    for (const trigger of validTriggers) {
+        if (trigger.orderIds && trigger.orderIds.length > 0) {
+            const availableOrders = await checkAvailableOrders(trigger.orderIds);
 
-                console.log(`[Twitter Store] Trigger ${trigger.id} has ${availableOrders} available orders`);
+            console.log(`[Twitter Store] Trigger ${trigger.id} has ${availableOrders} available orders`);
 
-                // Update cached count if needed
-                if (trigger.availableOrders !== availableOrders) {
-                    await updateTwitterTrigger(trigger.id, { availableOrders });
-                    return { ...trigger, availableOrders };
-                }
+            // Update cached count if needed
+            if (trigger.availableOrders !== availableOrders) {
+                await updateTwitterTrigger(trigger.id, { availableOrders });
+                triggersWithUpdatedCounts.push({ ...trigger, availableOrders });
+            } else {
+                triggersWithUpdatedCounts.push(trigger);
             }
-            return trigger;
-        })
-    );
+        } else {
+            triggersWithUpdatedCounts.push(trigger);
+        }
+    }
 
     return triggersWithUpdatedCounts;
 }
@@ -201,23 +203,23 @@ export async function getTwitterExecutions(triggerId: string, limit: number = 50
 export async function getTwitterExecutionsWithResolvedStatus(triggerId: string, limit: number = 50): Promise<TwitterTriggerExecution[]> {
     // Get base executions
     const executions = await getTwitterExecutions(triggerId, limit);
-    
+
     if (executions.length === 0) {
         return [];
     }
-    
+
     try {
         // Use status resolver to get current statuses
         const { resolveMultipleExecutionStatuses } = await import('./status-resolver');
         const resolvedExecutions = await resolveMultipleExecutionStatuses(executions);
-        
+
         // Return the resolved executions (status resolver updates the records automatically)
         return resolvedExecutions.map(resolved => ({
             ...resolved,
             // Use the resolved status as the main status
             status: resolved.resolvedStatus
         }));
-        
+
     } catch (error) {
         console.error('[Twitter Store] Error resolving execution statuses, returning base executions:', error);
         return executions;
@@ -242,9 +244,9 @@ export async function getExecutionByTriggerAndBNS(triggerId: string, bnsName: st
     const executions = await pipeline.exec() as TwitterTriggerExecution[];
 
     // Find execution matching both triggerId and bnsName
-    const matchingExecution = executions.find(exec => 
-        exec && 
-        exec.triggerId === triggerId && 
+    const matchingExecution = executions.find(exec =>
+        exec &&
+        exec.triggerId === triggerId &&
         exec.bnsName === bnsName
     );
 
@@ -269,8 +271,8 @@ export async function getExecutionByOrderUuid(orderUuid: string): Promise<Twitte
     const executions = await pipeline.exec() as TwitterTriggerExecution[];
 
     // Find execution matching the orderUuid
-    const matchingExecution = executions.find(exec => 
-        exec && 
+    const matchingExecution = executions.find(exec =>
+        exec &&
         exec.orderUuid === orderUuid
     );
 
@@ -308,23 +310,23 @@ export async function listAllTwitterExecutions(limit: number = 100): Promise<Twi
 export async function listAllTwitterExecutionsWithResolvedStatus(limit: number = 100): Promise<TwitterTriggerExecution[]> {
     // Get base executions
     const executions = await listAllTwitterExecutions(limit);
-    
+
     if (executions.length === 0) {
         return [];
     }
-    
+
     try {
         // Use status resolver to get current statuses
         const { resolveMultipleExecutionStatuses } = await import('./status-resolver');
         const resolvedExecutions = await resolveMultipleExecutionStatuses(executions);
-        
+
         // Return the resolved executions (status resolver updates the records automatically)
         return resolvedExecutions.map(resolved => ({
             ...resolved,
             // Use the resolved status as the main status
             status: resolved.resolvedStatus
         }));
-        
+
     } catch (error) {
         console.error('[Twitter Store] Error resolving all execution statuses, returning base executions:', error);
         return executions;
@@ -439,39 +441,39 @@ export async function syncTwitterExecutionsWithOrders(): Promise<{
 
     try {
         console.log('[Twitter Store] Starting sync of Twitter executions using smart status resolver...');
-        
+
         // Get all Twitter executions that have an orderUuid or txid
         const allExecutions = await listAllTwitterExecutions(500);
-        const executionsToCheck = allExecutions.filter(exec => 
+        const executionsToCheck = allExecutions.filter(exec =>
             exec.orderUuid || exec.txid
         );
-        
+
         result.executions_checked = executionsToCheck.length;
         console.log(`[Twitter Store] Found ${executionsToCheck.length} executions to check`);
 
         // Use the status resolver to batch process executions
         const { resolveMultipleExecutionStatuses } = await import('./status-resolver');
         const resolvedExecutions = await resolveMultipleExecutionStatuses(executionsToCheck);
-        
+
         // Count results
         for (const resolved of resolvedExecutions) {
             // Count status sources
             result.status_sources[resolved.statusSource] = (result.status_sources[resolved.statusSource] || 0) + 1;
-            
+
             // Count updates (status resolver handles the actual updating)
             if (resolved.resolvedStatus !== resolved.status) {
                 result.executions_updated++;
             }
         }
-        
+
         console.log(`[Twitter Store] Sync completed using status resolver:`, {
             checked: result.executions_checked,
             updated: result.executions_updated,
             sources: result.status_sources
         });
-        
+
         return result;
-        
+
     } catch (error) {
         const errorMsg = `Fatal error during sync: ${error instanceof Error ? error.message : 'Unknown error'}`;
         console.error(`[Twitter Store] ${errorMsg}`);
@@ -484,7 +486,7 @@ export async function syncTwitterExecutionsWithOrders(): Promise<{
  * Add overflow signatures to an existing trigger and reactivate it
  */
 export async function addOverflowSignaturesToTrigger(
-    triggerId: string, 
+    triggerId: string,
     signatures: Array<{
         uuid: string;
         signature: string;
@@ -500,7 +502,7 @@ export async function addOverflowSignaturesToTrigger(
 }> {
     try {
         console.log(`[Twitter Store] Adding ${signatures.length} overflow signatures to trigger ${triggerId}`);
-        
+
         // Get the existing trigger
         const trigger = await getTwitterTrigger(triggerId);
         if (!trigger) {
@@ -509,20 +511,20 @@ export async function addOverflowSignaturesToTrigger(
                 error: 'Trigger not found'
             };
         }
-        
+
         // Create orders from the new signatures
         const { addOrder } = await import('../orders/store');
         const newOrderIds: string[] = [];
-        
+
         // Generate a single strategyId for all overflow orders in this batch
         const overflowStrategyId = `twitter_overflow_${triggerId}_${Date.now()}`;
         const batchSize = signatures.length;
-        
+
         console.log(`[Twitter Store] Creating ${batchSize} overflow orders with shared strategy ID: ${overflowStrategyId}`);
-        
+
         for (let i = 0; i < signatures.length; i++) {
             const sig = signatures[i];
-            
+
             try {
                 // Create order payload with shared strategy ID for proper grouping
                 const orderPayload = {
@@ -551,12 +553,12 @@ export async function addOverflowSignaturesToTrigger(
                         originalTriggerOrderCount: trigger.orderIds?.length || 0
                     }
                 };
-                
+
                 const order = await addOrder(orderPayload);
                 newOrderIds.push(order.uuid);
-                
+
                 console.log(`[Twitter Store] Created overflow order ${i + 1}/${signatures.length}: ${order.uuid} (strategy: ${overflowStrategyId})`);
-                
+
             } catch (orderError) {
                 console.error(`[Twitter Store] Failed to create overflow order ${i + 1}:`, orderError);
                 return {
@@ -565,35 +567,35 @@ export async function addOverflowSignaturesToTrigger(
                 };
             }
         }
-        
+
         // Update the trigger with new order IDs and reactivate
         const existingOrderIds = trigger.orderIds || [];
         const allOrderIds = [...existingOrderIds, ...newOrderIds];
         const newAvailableOrders = await checkAvailableOrders(allOrderIds);
-        
+
         const updatedTrigger = await updateTwitterTrigger(triggerId, {
             orderIds: allOrderIds,
             availableOrders: newAvailableOrders,
             isActive: true, // Reactivate the trigger
             lastChecked: new Date().toISOString(), // Reset last checked time for processing
         });
-        
+
         if (!updatedTrigger) {
             return {
                 success: false,
                 error: 'Failed to update trigger'
             };
         }
-        
+
         console.log(`[Twitter Store] ✅ Successfully added ${newOrderIds.length} overflow signatures to trigger ${triggerId}`);
         console.log(`[Twitter Store] 🟢 Trigger reactivated with ${newAvailableOrders} total available orders`);
-        
+
         return {
             success: true,
             trigger: updatedTrigger,
             newOrderIds
         };
-        
+
     } catch (error) {
         console.error(`[Twitter Store] Error adding overflow signatures to trigger ${triggerId}:`, error);
         return {
