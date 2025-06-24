@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
 // GET /api/cron/twitter-triggers - Get processing status (for monitoring)
 export async function GET(request: NextRequest) {
     try {
+        console.log("HENLO")
         const activeTriggers = await listTwitterTriggers();
         const recentExecutions = await listAllTwitterExecutions(10);
 
