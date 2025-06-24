@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { TwitterTrigger, TwitterTriggerExecution, TwitterTriggerWithStats } from './types';
+import { getOrder } from '../orders/store';
 
 // KV key prefixes
 const TRIGGER_PREFIX = 'twitter_trigger:';
@@ -61,7 +62,6 @@ export async function listTwitterTriggers(activeOnly: boolean = false): Promise<
     // Update available orders for triggers that have pre-signed orders
     const triggersWithUpdatedCounts = [];
     for (const trigger of validTriggers) {
-        console.log("TT")
         if (trigger.orderIds && trigger.orderIds.length > 0) {
             const availableOrders = await checkAvailableOrders(trigger.orderIds);
 
@@ -372,9 +372,6 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
     }
 
     try {
-        // Import order checking function
-        const { getOrder } = await import('../orders/store');
-
         let availableCount = 0;
 
         // Check each order's status

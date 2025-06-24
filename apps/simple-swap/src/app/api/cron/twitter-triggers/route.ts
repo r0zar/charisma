@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processTwitterTriggers } from '@/lib/twitter-triggers/processor';
-import { listAllTwitterExecutions, listTwitterTriggers } from '@/lib/twitter-triggers/store';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
 // POST /api/cron/twitter-triggers - Process Twitter triggers (cron job)
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
     try {
         // 1. Authorize the request
         const authHeader = request.headers.get('authorization');
@@ -37,33 +36,6 @@ export async function POST(request: NextRequest) {
             success: false,
             error: 'Twitter triggers processing failed',
             details: error instanceof Error ? error.message : 'Unknown error'
-        }, { status: 500 });
-    }
-}
-
-// GET /api/cron/twitter-triggers - Get processing status (for monitoring)
-export async function GET(request: NextRequest) {
-    try {
-        console.log("HENLO")
-        const activeTriggers = await listTwitterTriggers();
-        const recentExecutions = await listAllTwitterExecutions(10);
-
-        return NextResponse.json({
-            success: true,
-            data: {
-                activeTriggers: activeTriggers.length,
-                recentExecutions: recentExecutions.length,
-                lastExecution: recentExecutions[0]?.executedAt || null,
-                status: 'ready',
-                timestamp: new Date().toISOString(),
-            }
-        });
-
-    } catch (error) {
-        console.error('[Twitter Cron] Error getting status:', error);
-        return NextResponse.json({
-            success: false,
-            error: 'Failed to get Twitter triggers status'
         }, { status: 500 });
     }
 }
