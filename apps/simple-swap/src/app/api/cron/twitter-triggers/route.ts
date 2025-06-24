@@ -2,23 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processTwitterTriggers } from '@/lib/twitter-triggers/processor';
 import { getTriggersToCheck } from '@/lib/twitter-triggers/store';
 
+const CRON_SECRET = process.env.CRON_SECRET;
+
 // POST /api/cron/twitter-triggers - Process Twitter triggers (cron job)
 export async function POST(request: NextRequest) {
     try {
-        const cronToken = request.headers.get('authorization');
-        const expectedToken = process.env.CRON_SECRET;
-
-        if (expectedToken && cronToken !== `Bearer ${expectedToken}`) {
-            return NextResponse.json({
-                success: false,
-                error: 'Unauthorized'
-            }, { status: 401 });
+        // 1. Authorize the request
+        const authHeader = request.headers.get('authorization');
+        if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
         console.log('[Twitter Cron] Starting Twitter triggers processing job');
-
-        // wait 2 seconds
-        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Check if we have any triggers to process
         const triggersToCheck = await getTriggersToCheck();
