@@ -7,7 +7,7 @@ import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useBlaze } from 'blaze-sdk/realtime';
-import { formatPriceUSD } from '@/lib/utils';
+import { formatPriceUSD, hasValidPrice } from '@/lib/utils';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
@@ -39,6 +39,7 @@ export default function TokenOutputSection() {
     // Get enhanced balance data for the current token
     const toTokenBalance = selectedToToken && address ? balances[`${address}:${selectedToToken.contractId}`] : null;
     const price = prices[selectedToToken?.contractId ?? ''];
+
 
     // Determine props based on mode and state
     const label = 'You receive';
@@ -188,7 +189,7 @@ export default function TokenOutputSection() {
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
                             <div className="h-2 w-2 rounded-full bg-green-400 flex-shrink-0"></div>
                             <span className="text-xs text-white/70 truncate">
-                                Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {price ? formatPriceUSD(price.price) : 'Price loading...'}
+                                Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
                             </span>
                         </div>
                         
@@ -225,7 +226,15 @@ export default function TokenOutputSection() {
                                     {outputAmount}
                                 </div>
                                 <div className="text-sm text-white/60 mt-1">
-                                    {price && outputAmount ? formatPriceUSD(price.price * Number(outputAmount)) : 'Enter amount'}
+                                    {(() => {
+                                        const hasPrice = hasValidPrice(price);
+                                        const hasOutput = outputAmount;
+                                        // Remove commas and any other formatting from outputAmount before converting to number
+                                        const cleanOutputAmount = typeof outputAmount === 'string' ? outputAmount.replace(/,/g, '') : outputAmount;
+                                        const numericOutput = Number(cleanOutputAmount);
+                                        const calculation = hasPrice && hasOutput ? price.price * numericOutput : null;
+                                        return hasPrice && hasOutput && !isNaN(numericOutput) && !isNaN(calculation!) ? formatPriceUSD(calculation!) : 'Enter amount';
+                                    })()}
                                 </div>
                             </>
                         )}
@@ -260,7 +269,7 @@ export default function TokenOutputSection() {
                             <span className="text-sm font-medium text-white/90">Price Chart</span>
                         </div>
                         <div className="text-xs text-white/60 flex-shrink-0">
-                            {price ? formatPriceUSD(price.price) : 'Loading...'}
+                            {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Loading...'}
                         </div>
                     </div>
                     <ConditionTokenChartWrapper token={selectedToToken} targetPrice="" onTargetPriceChange={() => { }} />

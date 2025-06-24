@@ -78,7 +78,7 @@ export function useRouterTrading() {
     priceTriggerToken,
     priceTargetPrice,
     priceDirection,
-    
+
     hasRatioTrigger,
     ratioTriggerToken,
     ratioBaseToken,
@@ -180,14 +180,6 @@ export function useRouterTrading() {
     const toContractId = getContractIdForToken(selectedToToken, useSubnetTo);
 
     if (!fromContractId || !toContractId) return;
-
-    console.log('💱 Fetching quote with tokens:', {
-      fromToken: fromContractId,
-      toToken: toContractId,
-      amount: microAmount,
-      useSubnetFrom,
-      useSubnetTo
-    });
 
     setIsLoadingQuote(true);
     setError(null);
@@ -414,10 +406,10 @@ export function useRouterTrading() {
       console.log('✅ Signature received:', signature);
 
       console.log('📦 Building payload...');
-      
+
       // Build payload - use passed options or fall back to context state
       let conditionToken, baseAsset, targetPrice, direction;
-      
+
       // If specific condition is passed in opts, use it (for DCA)
       if (opts.conditionToken !== undefined) {
         conditionToken = typeof opts.conditionToken === 'string' ? opts.conditionToken : opts.conditionToken.contractId;
@@ -429,7 +421,7 @@ export function useRouterTrading() {
         if (hasPriceTrigger && hasRatioTrigger) {
           throw new Error('Cannot have both price and ratio triggers enabled simultaneously');
         }
-        
+
         if (hasPriceTrigger) {
           if (!priceTriggerToken || !priceTargetPrice) {
             throw new Error('Price trigger requires trigger token and target price');
@@ -463,7 +455,7 @@ export function useRouterTrading() {
         signature,
         uuid,
       };
-      
+
       // Add time window constraints if provided
       if (opts.validFrom) {
         payload.validFrom = opts.validFrom;
@@ -471,12 +463,12 @@ export function useRouterTrading() {
       if (opts.validTo) {
         payload.validTo = opts.validTo;
       }
-      
+
       // Add manual description if it's a manual order
       if (isManualOrder && opts.manualDescription) {
         payload.description = opts.manualDescription;
       }
-      
+
       // Add strategy metadata for DCA/batch orders
       if (opts.strategyId) {
         payload.strategyId = opts.strategyId;
@@ -937,7 +929,7 @@ export function useRouterTrading() {
     // Basic requirements
     if (!selectedFromToken || !selectedToToken || !walletAddress) return false;
     if (!displayAmount || parseFloat(displayAmount) <= 0) return false;
-    
+
     // Trigger validation
     const triggerValidation = validateTriggers();
     return triggerValidation.isValid;

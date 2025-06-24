@@ -7,7 +7,7 @@ import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useBlaze } from 'blaze-sdk/realtime';
-import { formatPriceUSD } from '@/lib/utils';
+import { formatPriceUSD, hasValidPrice } from '@/lib/utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
@@ -257,7 +257,7 @@ export default function TokenInputSection() {
                     <div className="flex items-center space-x-2 pt-3 border-t border-white/[0.08]">
                         <div className="h-2 w-2 rounded-full bg-green-400"></div>
                         <span className="text-xs text-white/70">
-                            Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {price ? formatPriceUSD(price.price) : 'Price loading...'}
+                            Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
                         </span>
                     </div>
                 </div>
@@ -279,7 +279,11 @@ export default function TokenInputSection() {
                             className="bg-transparent border-none text-xl sm:text-2xl lg:text-3xl font-semibold focus:outline-none w-full placeholder:text-white/30 text-white/95"
                         />
                         <div className="text-sm text-white/60 mt-1">
-                            {price && displayAmount ? formatPriceUSD(price.price * Number(displayAmount)) : 'Enter amount'}
+                            {hasValidPrice(price) && displayAmount ? (() => {
+                                const cleanAmount = typeof displayAmount === 'string' ? displayAmount.replace(/,/g, '') : displayAmount;
+                                const numericAmount = Number(cleanAmount);
+                                return !isNaN(numericAmount) ? formatPriceUSD(price.price * numericAmount) : 'Enter amount';
+                            })() : 'Enter amount'}
                         </div>
                     </div>
 
@@ -312,7 +316,7 @@ export default function TokenInputSection() {
                             <span className="text-sm font-medium text-white/90">Price Chart</span>
                         </div>
                         <div className="text-xs text-white/60 flex-shrink-0">
-                            {price ? formatPriceUSD(price.price) : 'Loading...'}
+                            {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Loading...'}
                         </div>
                     </div>
                     <ConditionTokenChartWrapper token={selectedFromToken} targetPrice="" onTargetPriceChange={() => { }} />

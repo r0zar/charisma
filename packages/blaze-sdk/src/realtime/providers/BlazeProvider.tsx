@@ -29,6 +29,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   const [metadata, setMetadata] = useState<Record<string, TokenMetadata>>({});
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [initialPricesLoaded, setInitialPricesLoaded] = useState(false);
 
   // Track current balance subscriptions
   const currentUserSubscription = useRef<string | null>(null);
@@ -73,7 +74,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                 contractId: data.contractId,
                 price: data.price,
                 timestamp: data.timestamp,
-                source: data.source
+                source: data.source || 'realtime'
               }
             }));
             setLastUpdate(Date.now());
@@ -86,7 +87,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                 contractId: price.contractId,
                 price: price.price,
                 timestamp: price.timestamp,
-                source: price.source
+                source: price.source || 'realtime'
               };
             });
             setPrices(prev => ({ ...prev, ...newPrices }));
@@ -233,7 +234,8 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
 
   // Utility functions (memoized to prevent unnecessary re-renders)
   const getPrice = useCallback((contractId: string): number | undefined => {
-    return prices[contractId]?.price;
+    const result = prices[contractId]?.price;
+    return result;
   }, [prices]);
 
   const getBalance = useCallback((userId: string, contractId: string): BalanceData | undefined => {

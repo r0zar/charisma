@@ -99,11 +99,11 @@ async function scrapeWithTimeout(tweetId: string, sinceId?: string, timeoutMs: n
                 transform: {
                     request(input: RequestInfo | URL, init?: RequestInit) {
                         if (input instanceof URL) {
-                            const proxy = "https://corsproxy.io/?" +
+                            const proxy = "https://crossorigin.me/" +
                                 encodeURIComponent(input.toString());
                             return [proxy, init];
                         } else if (typeof input === "string") {
-                            const proxy = "https://corsproxy.io/?" +
+                            const proxy = "https://crossorigin.me/" +
                                 encodeURIComponent(input);
                             return [proxy, init];
                         }

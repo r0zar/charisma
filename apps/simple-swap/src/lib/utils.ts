@@ -26,7 +26,9 @@ export function getIpfsUrl(ipfsHash: string, gateway: string = 'https://ipfs.io/
 }
 
 export const formatPriceUSD = (price: number) => {
-  if (price === undefined || price === null || isNaN(price)) return 'Price not available';
+  if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
+    return 'Price not available';
+  }
 
   // Smart dynamic precision
   if (price === 0) return '$0.00';
@@ -42,6 +44,15 @@ export const formatPriceUSD = (price: number) => {
     // For large prices, use commas and 2 decimals
     return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
+}
+
+/**
+ * Helper function to check if a price object has a valid price value
+ * @param price - The price object from Blaze context
+ * @returns true if price exists and has a valid price value
+ */
+export const hasValidPrice = (price: { price: number } | undefined): price is { price: number } => {
+  return !!(price && price.price !== undefined && price.price !== null && !isNaN(price.price) && isFinite(price.price));
 }
 
 export const isDevelopment = process.env.NODE_ENV === "development"
