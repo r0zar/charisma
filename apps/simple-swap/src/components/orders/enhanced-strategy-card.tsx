@@ -11,6 +11,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { Copy, Check, Zap, Trash2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { truncateAddress } from '@/lib/address-utils';
+import { formatOrderDate, formatRelativeTime, formatExecWindow, formatOrderStatusTime, formatStrategyStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
 
 interface EnhancedStrategyCardProps {
     strategyData: StrategyDisplayData;
@@ -25,8 +26,6 @@ interface EnhancedStrategyCardProps {
     onCancelOrder: (uuid: string) => void;
     copiedId: string | null;
     formatTokenAmount: (amount: string | number, decimals: number) => string;
-    formatRelativeTime: (dateString: string) => string;
-    formatExecWindow: (order: any) => string;
 }
 
 export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
@@ -41,9 +40,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
     onExecuteNow,
     onCancelOrder,
     copiedId,
-    formatTokenAmount,
-    formatRelativeTime,
-    formatExecWindow
+    formatTokenAmount
 }) => {
     const { id, type, description, orders, status } = strategyData;
     const isExpanded = expandedStrategies.has(id);
@@ -65,7 +62,14 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                     : 'border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15]',
                 "backdrop-blur-sm"
             )}
-            onClick={() => onToggleRowExpansion(isSingleOrder ? firstOrder.uuid : id)}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (isSingleOrder) {
+                    onToggleRowExpansion(firstOrder.uuid);
+                } else {
+                    onToggleExpansion(id);
+                }
+            }}
         >
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
@@ -83,8 +87,15 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                 {/* Header Row */}
                 <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                        <div className="text-sm font-medium text-white/90" title={new Date(firstOrder.createdAt).toLocaleString()}>
-                            {formatRelativeTime(firstOrder.createdAt)}
+                        <div className="text-sm font-medium text-white/90" title={
+                            isSingleOrder 
+                                ? formatOrderStatusTime(firstOrder).tooltip
+                                : formatStrategyStatusTime({ status, orders }).tooltip
+                        }>
+                            {isSingleOrder 
+                                ? formatOrderStatusTime(firstOrder).text
+                                : formatStrategyStatusTime({ status, orders }).text
+                            }
                         </div>
                         {isSingleOrder ? (
                             <div className="flex items-center gap-2 text-xs text-white/40">
@@ -113,7 +124,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                         )}
                         {(firstOrder.validFrom || firstOrder.validTo) && (
                             <div className="text-xs text-white/40 mt-1">
-                                {formatExecWindow(firstOrder)}
+                                {formatExecWindow(firstOrder.validFrom, firstOrder.validTo)}
                             </div>
                         )}
                     </div>
@@ -125,9 +136,14 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                             </span>
                         )}
                         <PremiumStatusBadge 
-                            status={isSingleOrder ? firstOrder.status : (status === 'completed' ? 'confirmed' : status === 'active' ? 'open' : 'cancelled')} 
-                            txid={firstOrder.txid} 
-                            failureReason={firstOrder.failureReason} 
+                            status={isSingleOrder ? firstOrder.status : (
+                                status === 'completed' ? 'confirmed' : 
+                                status === 'active' || status === 'partially_filled' ? 'open' : 
+                                'cancelled'
+                            )} 
+                            txid={isSingleOrder ? firstOrder.txid : undefined} 
+                            failureReason={isSingleOrder ? firstOrder.failureReason : undefined}
+                            conditionIcon={getConditionIcon(firstOrder, isSingleOrder ? 'single' : type)}
                         />
                     </div>
                 </div>
@@ -164,9 +180,9 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                     </div>
                 </div>
 
-                {/* Condition Display and Action Buttons */}
+                {/* Price Condition Display and Action Buttons */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                    {/* Left: Condition Display */}
+                    {/* Left: Price Condition Details (only for price-triggered orders) */}
                     <div className="space-y-3">
                         {firstOrder.conditionToken && firstOrder.targetPrice && firstOrder.direction && 
                          !(firstOrder.conditionToken === '*' && firstOrder.targetPrice === '0' && firstOrder.direction === 'gt') ? (
@@ -188,27 +204,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                     </>
                                 );
                             })()
-                        ) : (
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="text-lg">
-                                    {firstOrder.conditionToken === '*' ? '⚡' : '👤'}
-                                </span>
-                                <div>
-                                    <div className="text-white/90 font-medium">
-                                        {firstOrder.conditionToken === '*' ? 
-                                            'Execute immediately' : 
-                                            'Manual execution required'
-                                        }
-                                    </div>
-                                    <div className="text-xs text-white/60">
-                                        {firstOrder.conditionToken === '*' ? 
-                                            'This order will be executed automatically right away' : 
-                                            'This order must be manually executed via the interface or API'
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        ) : null}
                     </div>
 
                     {/* Right: Action Buttons (only for single orders with open status) */}
@@ -257,11 +253,11 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleExpansion(id);
+                                onToggleRowExpansion(id);
                             }}
                             className="flex items-center gap-2 text-xs text-white/60 hover:text-white/90 transition-colors cursor-pointer"
                         >
-                            {isExpanded ? (
+                            {isDetailExpanded ? (
                                 <>
                                     <ChevronUp className="h-4 w-4" />
                                     Hide details
@@ -269,7 +265,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                             ) : (
                                 <>
                                     <ChevronDown className="h-4 w-4" />
-                                    Show {orders.length} orders
+                                    Show details
                                 </>
                             )}
                         </button>
@@ -279,230 +275,536 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                 {/* Expanded Strategy Details */}
                 {!isSingleOrder && isExpanded && (
                     <div className="pt-4 border-t border-white/[0.08] space-y-3">
-                        {orders.map((order, index) => (
-                            <div key={order.uuid} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs text-white/60 font-mono">#{index + 1}</span>
-                                    <div>
-                                        <div className="text-xs text-white/80 font-mono">
-                                            {formatTokenAmount(order.amountIn, order.inputTokenMeta.decimals!)} {order.inputTokenMeta.symbol}
+                        {orders.map((order, index) => {
+                            const isOrderExpanded = expandedRow === order.uuid;
+                            return (
+                                <div key={order.uuid} className="rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                                    <div 
+                                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-white/[0.02] transition-all duration-200"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onToggleRowExpansion(order.uuid);
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs text-white/60 font-mono">#{index + 1}</span>
+                                            <div>
+                                                <div className="text-xs text-white/80 font-mono">
+                                                    {formatTokenAmount(order.amountIn, order.inputTokenMeta.decimals!)} {order.inputTokenMeta.symbol}
+                                                </div>
+                                                <div className="text-xs text-white/40">
+                                                    {order.uuid.substring(0, 8)}
+                                                </div>
+                                                {(order.validFrom || order.validTo) && (
+                                                    <div className="text-xs text-white/40 mt-1">
+                                                        {formatExecWindow(order.validFrom, order.validTo)}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-white/40">
-                                            {order.uuid.substring(0, 8)}
+                                        <div className="flex items-center gap-2">
+                                            <PremiumStatusBadge 
+                                                status={order.status} 
+                                                txid={order.txid} 
+                                                failureReason={order.failureReason} 
+                                            />
+                                            {order.status === 'open' && (
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onExecuteNow(order.uuid);
+                                                        }}
+                                                        className="p-1 rounded-lg bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.15] transition-all duration-200 cursor-pointer"
+                                                        title="Execute now"
+                                                    >
+                                                        <Zap className="h-3 w-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onCancelOrder(order.uuid);
+                                                        }}
+                                                        className="p-1 rounded-lg bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.15] transition-all duration-200 cursor-pointer"
+                                                        title="Cancel"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <div className="p-1 rounded-lg text-white/40 transition-all duration-200 pointer-events-none">
+                                                {isOrderExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <PremiumStatusBadge 
-                                        status={order.status} 
-                                        txid={order.txid} 
-                                        failureReason={order.failureReason} 
-                                    />
-                                    {order.status === 'open' && (
-                                        <div className="flex gap-1">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onExecuteNow(order.uuid);
-                                                }}
-                                                className="p-1 rounded-lg bg-emerald-500/[0.08] text-emerald-400 hover:bg-emerald-500/[0.15] transition-all duration-200 cursor-pointer"
-                                                title="Execute now"
-                                            >
-                                                <Zap className="h-3 w-3" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onCancelOrder(order.uuid);
-                                                }}
-                                                className="p-1 rounded-lg bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.15] transition-all duration-200 cursor-pointer"
-                                                title="Cancel"
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </button>
+
+                                    {/* Individual Order Detailed View */}
+                                    {isOrderExpanded && (
+                                        <div className="px-3 pb-3 border-t border-white/[0.05] space-y-4">
+                                            <div className="grid gap-4 md:grid-cols-2 pt-3">
+                                                {/* Technical Parameters */}
+                                                <div className="space-y-3">
+                                                    <h4 className="text-xs font-medium text-white/90 flex items-center gap-2">
+                                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                                                        Technical Parameters
+                                                    </h4>
+                                                    <div className="space-y-2 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Order UUID:</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-mono text-white/80">{order.uuid}</span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onCopyToClipboard(order.uuid, order.uuid);
+                                                                    }}
+                                                                    className="p-0.5 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                                                                >
+                                                                    {copiedId === order.uuid ? (
+                                                                        <Check className="h-2.5 w-2.5 text-emerald-400" />
+                                                                    ) : (
+                                                                        <Copy className="h-2.5 w-2.5" />
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Input Token:</span>
+                                                            <span className="font-mono text-white/80">{order.inputToken}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Output Token:</span>
+                                                            <span className="font-mono text-white/80">{order.outputToken}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Amount (micro units):</span>
+                                                            <span className="font-mono text-white/80">{order.amountIn}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Recipient:</span>
+                                                            <span className="font-mono text-white/80">{truncateAddress(order.recipient)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Owner:</span>
+                                                            <span className="font-mono text-white/80">{truncateAddress(order.owner)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Condition Details */}
+                                                <div className="space-y-3">
+                                                    <h4 className="text-xs font-medium text-white/90 flex items-center gap-2">
+                                                        <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                                                        Condition Details
+                                                    </h4>
+                                                    <div className="space-y-2 text-xs">
+                                                        {order.conditionToken && 
+                                                         !(order.conditionToken === '*' && order.targetPrice === '0' && order.direction === 'gt') ? (
+                                                            <>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-white/60">Condition Token:</span>
+                                                                    <span className="font-mono text-white/80">{order.conditionToken}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-white/60">Target Price:</span>
+                                                                    <span className="font-mono text-white/80">{order.targetPrice}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-white/60">Direction:</span>
+                                                                    <span className="text-white/80 capitalize">{order.direction}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-white/60">Base Asset:</span>
+                                                                    <span className="font-mono text-white/80">{order.baseAsset || 'USD'}</span>
+                                                                </div>
+                                                                {order.creationPrice && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-white/60">Creation Price:</span>
+                                                                        <span className="font-mono text-white/80">{order.creationPrice}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="mt-3 p-2 rounded-lg bg-blue-500/[0.08] border border-blue-500/[0.15]">
+                                                                    <div className="text-blue-400 text-xs font-medium mb-1">
+                                                                        Execution Trigger
+                                                                    </div>
+                                                                    <div className="text-white/70 text-xs">
+                                                                        Order executes when {order.conditionTokenMeta?.symbol || order.conditionToken} price {order.direction === 'gt' ? 'reaches or exceeds' : 'drops to or below'} {order.targetPrice} {order.baseAsset || 'USD'}
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="p-2 rounded-lg bg-amber-500/[0.08] border border-amber-500/[0.15]">
+                                                                <div className="text-amber-400 text-xs font-medium mb-1">
+                                                                    {order.conditionToken === '*' && (type === 'dca' || type === 'split') ? 
+                                                                        'Time-triggered Execution' :
+                                                                        order.conditionToken === '*' ? 'Immediate Execution' : 'Execute on Command'
+                                                                    }
+                                                                </div>
+                                                                <div className="text-white/70 text-xs">
+                                                                    {order.conditionToken === '*' && (type === 'dca' || type === 'split') ? 
+                                                                        'This order will execute automatically within its scheduled time window' :
+                                                                        order.conditionToken === '*' ? 
+                                                                            'This order will be executed automatically right away' : 
+                                                                            'This order must be triggered manually via the interface or API'
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Timestamps */}
+                                            <div className="border-t border-white/[0.05] pt-3">
+                                                <h4 className="text-xs font-medium text-white/90 flex items-center gap-2 mb-3">
+                                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                                                    Timeline
+                                                </h4>
+                                                <div className="space-y-2 text-xs">
+                                                    {getOrderTimestamps(order).map((timestamp, idx) => (
+                                                        <div key={idx} className={`flex justify-between ${timestamp.isMain ? 'text-white/90 font-medium' : 'text-white/70'}`}>
+                                                            <span className="text-white/60">{timestamp.label}:</span>
+                                                            <span>{timestamp.time}</span>
+                                                        </div>
+                                                    ))}
+                                                    {order.txid && (
+                                                        <div className="flex justify-between items-center pt-2 border-t border-white/[0.05]">
+                                                            <span className="text-white/60">Transaction:</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-mono text-white/80">{truncateAddress(order.txid)}</span>
+                                                                <a
+                                                                    href={`https://explorer.hiro.so/txid/${order.txid}?chain=mainnet`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="p-0.5 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                                                                    title="View on explorer"
+                                                                >
+                                                                    <ExternalLink className="h-2.5 w-2.5" />
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Execution Window */}
+                                            {(order.validFrom || order.validTo) && (
+                                                <div className="border-t border-white/[0.05] pt-3">
+                                                    <h4 className="text-xs font-medium text-white/90 flex items-center gap-2 mb-3">
+                                                        <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                                                        Execution Window
+                                                    </h4>
+                                                    <div className="grid gap-2 md:grid-cols-2 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Valid From:</span>
+                                                            <span className="text-white/80">{order.validFrom || 'Immediate'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-white/60">Valid To:</span>
+                                                            <span className="text-white/80">{order.validTo || 'No expiry'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 
-                {/* Detailed Technical View - Expanded on click */}
+                {/* Detailed Technical View - Strategy-level details only */}
                 {isDetailExpanded && (
                     <div className="pt-6 border-t border-white/[0.08] space-y-6">
-                        <div className="grid gap-6 md:grid-cols-2">
-                            {/* Technical Parameters */}
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                                    Technical Parameters
-                                </h4>
-                                <div className="space-y-3 text-xs">
-                                    <div className="flex justify-between">
-                                        <span className="text-white/60">Order UUID:</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono text-white/80">{firstOrder.uuid}</span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onCopyToClipboard(firstOrder.uuid, firstOrder.uuid);
-                                                }}
-                                                className="p-1 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
-                                            >
-                                                {copiedId === firstOrder.uuid ? (
-                                                    <Check className="h-3 w-3 text-emerald-400" />
-                                                ) : (
-                                                    <Copy className="h-3 w-3" />
-                                                )}
-                                            </button>
+                        {!isSingleOrder ? (
+                            // Strategy Details View
+                            <div className="space-y-6">
+                                <div className="grid gap-6 md:grid-cols-2">
+                                    {/* Strategy Information */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                                            Strategy Information
+                                        </h4>
+                                        <div className="space-y-3 text-xs">
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Strategy ID:</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-white/80">{strategyData.id}</span>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onCopyToClipboard(strategyData.id, strategyData.id);
+                                                        }}
+                                                        className="p-1 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                                                    >
+                                                        {copiedId === strategyData.id ? (
+                                                            <Check className="h-3 w-3 text-emerald-400" />
+                                                        ) : (
+                                                            <Copy className="h-3 w-3" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Type:</span>
+                                                <span className="text-white/80 capitalize">{strategyData.type}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Description:</span>
+                                                <span className="text-white/80">{strategyData.description}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Total Value:</span>
+                                                <span className="text-white/80">{strategyData.totalValue} {firstOrder.inputTokenMeta.symbol}</span>
+                                            </div>
+                                            {strategyData.estimatedCompletion && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Est. Completion:</span>
+                                                    <span className="text-white/80">{strategyData.estimatedCompletion}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-white/60">Input Token:</span>
-                                        <span className="font-mono text-white/80">{firstOrder.inputToken}</span>
+
+                                    {/* Strategy Progress */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                            Progress Overview
+                                        </h4>
+                                        <div className="space-y-3 text-xs">
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Total Orders:</span>
+                                                <span className="text-white/80">{strategyData.totalOrders}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Completed:</span>
+                                                <span className="text-white/80">{strategyData.completedOrders}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Remaining:</span>
+                                                <span className="text-white/80">{strategyData.totalOrders - strategyData.completedOrders}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Progress:</span>
+                                                <span className="text-white/80">{Math.round(strategyData.progressPercent)}%</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-white/60">Status:</span>
+                                                <span className="text-white/80 capitalize">{strategyData.status.replace('_', ' ')}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-white/60">Output Token:</span>
-                                        <span className="font-mono text-white/80">{firstOrder.outputToken}</span>
+                                </div>
+
+                                {/* Strategy Creation Details */}
+                                <div className="border-t border-white/[0.05] pt-4">
+                                    <h4 className="text-sm font-medium text-white/90 flex items-center gap-2 mb-4">
+                                        <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                        Creation Details
+                                    </h4>
+                                    <div className="grid gap-3 md:grid-cols-2 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Created:</span>
+                                            <span className="text-white/80">{formatOrderDate(firstOrder.createdAt)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Owner:</span>
+                                            <span className="font-mono text-white/80">{truncateAddress(firstOrder.owner)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Trading Pair:</span>
+                                            <span className="text-white/80">{firstOrder.inputTokenMeta.symbol} → {firstOrder.outputTokenMeta.symbol}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Recipient:</span>
+                                            <span className="font-mono text-white/80">{truncateAddress(firstOrder.recipient)}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-white/60">Amount (micro units):</span>
-                                        <span className="font-mono text-white/80">{firstOrder.amountIn}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-white/60">Recipient:</span>
-                                        <span className="font-mono text-white/80">{truncateAddress(firstOrder.recipient)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-white/60">Owner:</span>
-                                        <span className="font-mono text-white/80">{truncateAddress(firstOrder.owner)}</span>
-                                    </div>
+                                </div>
+
+                                <div className="text-center text-xs text-white/40 italic">
+                                    Expand individual orders above for detailed technical parameters and transaction information
                                 </div>
                             </div>
-
-                            {/* Condition Details */}
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                                    Condition Details
-                                </h4>
-                                <div className="space-y-3 text-xs">
-                                    {firstOrder.conditionToken && 
-                                     !(firstOrder.conditionToken === '*' && firstOrder.targetPrice === '0' && firstOrder.direction === 'gt') ? (
-                                        <>
-                                            <div className="flex justify-between">
-                                                <span className="text-white/60">Condition Token:</span>
-                                                <span className="font-mono text-white/80">{firstOrder.conditionToken}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-white/60">Target Price:</span>
-                                                <span className="font-mono text-white/80">{firstOrder.targetPrice}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-white/60">Direction:</span>
-                                                <span className="text-white/80 capitalize">{firstOrder.direction}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-white/60">Base Asset:</span>
-                                                <span className="font-mono text-white/80">{firstOrder.baseAsset || 'USD'}</span>
-                                            </div>
-                                            {firstOrder.creationPrice && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-white/60">Creation Price:</span>
-                                                    <span className="font-mono text-white/80">{firstOrder.creationPrice}</span>
-                                                </div>
-                                            )}
-                                            {currentPrices.get(firstOrder.conditionToken) && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-white/60">Current Price:</span>
-                                                    <span className="font-mono text-white/80">{currentPrices.get(firstOrder.conditionToken)?.toFixed(6)}</span>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="text-white/60 italic">
-                                            {firstOrder.conditionToken === '*' ? 
-                                                'Immediate execution (wildcard) - will execute automatically' : 
-                                                'No conditions - requires manual execution via interface or API'
-                                            }
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Execution Window */}
-                                <div className="pt-4 border-t border-white/[0.05]">
-                                    <h4 className="text-sm font-medium text-white/90 flex items-center gap-2 mb-4">
-                                        <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
-                                        Execution Window
+                        ) : (
+                            // Single Order Details View (unchanged for single orders)
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {/* Technical Parameters */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                        Technical Parameters
                                     </h4>
                                     <div className="space-y-3 text-xs">
                                         <div className="flex justify-between">
-                                            <span className="text-white/60">Valid From:</span>
-                                            <span className="text-white/80">{firstOrder.validFrom || 'Immediate'}</span>
+                                            <span className="text-white/60">Order UUID:</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-white/80">{firstOrder.uuid}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onCopyToClipboard(firstOrder.uuid, firstOrder.uuid);
+                                                    }}
+                                                    className="p-1 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                                                >
+                                                    {copiedId === firstOrder.uuid ? (
+                                                        <Check className="h-3 w-3 text-emerald-400" />
+                                                    ) : (
+                                                        <Copy className="h-3 w-3" />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-white/60">Valid To:</span>
-                                            <span className="text-white/80">{firstOrder.validTo || 'No expiry'}</span>
+                                            <span className="text-white/60">Input Token:</span>
+                                            <span className="font-mono text-white/80">{firstOrder.inputToken}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-white/60">Created:</span>
-                                            <span className="text-white/80">{new Date(firstOrder.createdAt).toLocaleString()}</span>
+                                            <span className="text-white/60">Output Token:</span>
+                                            <span className="font-mono text-white/80">{firstOrder.outputToken}</span>
                                         </div>
-                                        {firstOrder.txid && (
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-white/60">Transaction:</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-white/80">{truncateAddress(firstOrder.txid)}</span>
-                                                    <a
-                                                        href={`https://explorer.hiro.so/txid/${firstOrder.txid}?chain=mainnet`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="p-1 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
-                                                        title="View on explorer"
-                                                    >
-                                                        <ExternalLink className="h-3 w-3" />
-                                                    </a>
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Amount (micro units):</span>
+                                            <span className="font-mono text-white/80">{firstOrder.amountIn}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Recipient:</span>
+                                            <span className="font-mono text-white/80">{truncateAddress(firstOrder.recipient)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-white/60">Owner:</span>
+                                            <span className="font-mono text-white/80">{truncateAddress(firstOrder.owner)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Condition Details */}
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                                        Condition Details
+                                    </h4>
+                                    <div className="space-y-3 text-xs">
+                                        {firstOrder.conditionToken && 
+                                         !(firstOrder.conditionToken === '*' && firstOrder.targetPrice === '0' && firstOrder.direction === 'gt') ? (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Condition Token:</span>
+                                                    <span className="font-mono text-white/80">{firstOrder.conditionToken}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Target Price:</span>
+                                                    <span className="font-mono text-white/80">{firstOrder.targetPrice}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Direction:</span>
+                                                    <span className="text-white/80 capitalize">{firstOrder.direction}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Base Asset:</span>
+                                                    <span className="font-mono text-white/80">{firstOrder.baseAsset || 'USD'}</span>
+                                                </div>
+                                                {firstOrder.creationPrice && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-white/60">Creation Price:</span>
+                                                        <span className="font-mono text-white/80">{firstOrder.creationPrice}</span>
+                                                    </div>
+                                                )}
+                                                {currentPrices.get(firstOrder.conditionToken) && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-white/60">Current Price:</span>
+                                                        <span className="font-mono text-white/80">{currentPrices.get(firstOrder.conditionToken)?.toFixed(6)}</span>
+                                                    </div>
+                                                )}
+                                                <div className="mt-3 p-2 rounded-lg bg-blue-500/[0.08] border border-blue-500/[0.15]">
+                                                    <div className="text-blue-400 text-xs font-medium mb-1">
+                                                        Execution Trigger
+                                                    </div>
+                                                    <div className="text-white/70 text-xs">
+                                                        Order executes when {firstOrder.conditionTokenMeta?.symbol || firstOrder.conditionToken} price {firstOrder.direction === 'gt' ? 'reaches or exceeds' : 'drops to or below'} {firstOrder.targetPrice} {firstOrder.baseAsset || 'USD'}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="p-2 rounded-lg bg-amber-500/[0.08] border border-amber-500/[0.15]">
+                                                <div className="text-amber-400 text-xs font-medium mb-1">
+                                                    {firstOrder.conditionToken === '*' && !isSingleOrder && (type === 'dca' || type === 'split') ? 
+                                                        'Time-triggered Execution' :
+                                                        firstOrder.conditionToken === '*' ? 'Immediate Execution' : 'Execute on Command'
+                                                    }
+                                                </div>
+                                                <div className="text-white/70 text-xs">
+                                                    {firstOrder.conditionToken === '*' && !isSingleOrder && (type === 'dca' || type === 'split') ? 
+                                                        'This order will execute automatically within its scheduled time window' :
+                                                        firstOrder.conditionToken === '*' ? 
+                                                            'This order will be executed automatically right away' : 
+                                                            'This order must be triggered manually via the interface or API'
+                                                    }
                                                 </div>
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Strategy Details (for multi-order strategies) */}
-                            {!isSingleOrder && (
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-medium text-white/90 flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
-                                        Strategy Details
-                                    </h4>
-                                    <div className="space-y-3 text-xs">
-                                        <div className="flex justify-between">
-                                            <span className="text-white/60">Strategy ID:</span>
-                                            <span className="font-mono text-white/80">{strategyData.id}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-white/60">Type:</span>
-                                            <span className="text-white/80 capitalize">{strategyData.type}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-white/60">Total Orders:</span>
-                                            <span className="text-white/80">{strategyData.totalOrders}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-white/60">Completed:</span>
-                                            <span className="text-white/80">{strategyData.completedOrders}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-white/60">Progress:</span>
-                                            <span className="text-white/80">{Math.round(strategyData.progressPercent)}%</span>
+                                    {/* Timeline */}
+                                    <div className="pt-4 border-t border-white/[0.05]">
+                                        <h4 className="text-sm font-medium text-white/90 flex items-center gap-2 mb-4">
+                                            <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                            Timeline
+                                        </h4>
+                                        <div className="space-y-3 text-xs">
+                                            {getOrderTimestamps(firstOrder).map((timestamp, idx) => (
+                                                <div key={idx} className={`flex justify-between ${timestamp.isMain ? 'text-white/90 font-medium' : 'text-white/70'}`}>
+                                                    <span className="text-white/60">{timestamp.label}:</span>
+                                                    <span className="text-white/80">{timestamp.time}</span>
+                                                </div>
+                                            ))}
+                                            {firstOrder.txid && (
+                                                <div className="flex justify-between items-center pt-2 border-t border-white/[0.05]">
+                                                    <span className="text-white/60">Transaction:</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-mono text-white/80">{truncateAddress(firstOrder.txid)}</span>
+                                                        <a
+                                                            href={`https://explorer.hiro.so/txid/${firstOrder.txid}?chain=mainnet`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="p-1 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                                                            title="View on explorer"
+                                                        >
+                                                            <ExternalLink className="h-3 w-3" />
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+
+                                    {/* Execution Window */}
+                                    {(firstOrder.validFrom || firstOrder.validTo) && (
+                                        <div className="pt-4 border-t border-white/[0.05]">
+                                            <h4 className="text-sm font-medium text-white/90 flex items-center gap-2 mb-4">
+                                                <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                                                Execution Window
+                                            </h4>
+                                            <div className="space-y-3 text-xs">
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Valid From:</span>
+                                                    <span className="text-white/80">{firstOrder.validFrom || 'Immediate'}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-white/60">Valid To:</span>
+                                                    <span className="text-white/80">{firstOrder.validTo || 'No expiry'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
 
                         {/* Click hint */}
                         <div className="text-center">

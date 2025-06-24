@@ -4,6 +4,7 @@ import React from 'react';
 import { ConditionDisplayData } from '@/lib/orders/condition-formatter';
 import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
 import { cn } from '@/lib/utils';
+import { formatShortDate } from '@/lib/date-utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 
 interface PriceProgressBarProps {
@@ -228,7 +229,7 @@ export const CompactOrderCard: React.FC<CompactOrderCardProps> = ({
                     <div>
                         <div className="text-sm font-medium text-white/90">{description}</div>
                         <div className="text-xs text-white/60">
-                            {new Date(firstOrder.createdAt).toLocaleDateString()}
+                            {formatShortDate(firstOrder.createdAt)}
                             {type !== 'single' && ` • ${orders.length} orders`}
                         </div>
                     </div>

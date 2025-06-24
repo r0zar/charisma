@@ -21,6 +21,7 @@ import { CompactOrderCard, StrategyProgressBar, ConditionStatusIndicator, PriceP
 import { getLatestPrice } from "@/lib/price/store";
 import { EnhancedStrategyCard } from "./enhanced-strategy-card";
 import { truncateAddress } from "@/lib/address-utils";
+import { formatOrderDate, formatRelativeTime, formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
 
 interface BadgeProps {
     status: LimitOrder["status"];
@@ -109,7 +110,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
 };
 
 // Premium Status Badge with Apple/Tesla design
-export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string }> = ({ status, txid, failureReason }) => {
+export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditionIcon?: string | null }> = ({ status, txid, failureReason, conditionIcon }) => {
     const statusConfig: Record<LimitOrder["status"], { color: string, bgColor: string, borderColor: string, label: string, indicatorColor: string }> = {
         open: {
             color: "text-blue-400",
@@ -164,9 +165,14 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string }> = ({ s
     };
 
     const badgeContent = (
-        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${config.color} ${config.bgColor} ${config.borderColor}`}>
+        <div className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${config.color} ${config.bgColor} ${config.borderColor}`}>
             <div className={`w-1.5 h-1.5 rounded-full ${config.indicatorColor} ${status === 'open' ? 'animate-pulse' : ''}`} />
             <span>{config.label}</span>
+            {conditionIcon && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-black/80 border border-white/20 rounded-full flex items-center justify-center text-[10px] leading-none">
+                    {conditionIcon}
+                </div>
+            )}
         </div>
     );
 
@@ -239,8 +245,6 @@ interface PremiumOrderCardProps {
     executeNow: (uuid: string) => void;
     setConfirmUuid: (uuid: string) => void;
     formatTokenAmount: (amount: string | number, decimals: number) => string;
-    formatRelativeTime: (dateString: string) => string;
-    formatExecWindow: (order: LimitOrder) => string;
 }
 
 const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
@@ -252,9 +256,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
     copiedId,
     executeNow,
     setConfirmUuid,
-    formatTokenAmount,
-    formatRelativeTime,
-    formatExecWindow
+    formatTokenAmount
 }) => {
     const isExpanded = expandedRow === o.uuid;
     
@@ -283,8 +285,8 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                 {/* Header Row */}
                 <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                        <div className="text-sm font-medium text-white/90" title={new Date(o.createdAt).toLocaleString()}>
-                            {formatRelativeTime(o.createdAt)}
+                        <div className="text-sm font-medium text-white/90" title={formatOrderStatusTime(o).tooltip}>
+                            {formatOrderStatusTime(o).text}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-white/40">
                             <span className="font-mono" title={o.uuid}>
@@ -307,12 +309,17 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                         </div>
                         {(o.validFrom || o.validTo) && (
                             <div className="text-xs text-white/40 mt-1">
-                                {formatExecWindow(o)}
+                                {formatExecWindow(o.validFrom, o.validTo)}
                             </div>
                         )}
                     </div>
                     
-                    <PremiumStatusBadge status={o.status} txid={o.txid} failureReason={o.failureReason} />
+                    <PremiumStatusBadge 
+                        status={o.status} 
+                        txid={o.txid} 
+                        failureReason={o.failureReason}
+                        conditionIcon={getConditionIcon(o, 'single')}
+                    />
                 </div>
 
                 {/* Swap Details Row */}
@@ -439,11 +446,16 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                 <div>
                                     <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Order Details</h4>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-white/60">Created:</span>
-                                            <span className="text-white/90 font-mono text-xs" title={new Date(o.createdAt).toISOString()}>
-                                                {new Date(o.createdAt).toLocaleString()}
-                                            </span>
+                                        <div className="border-b border-white/[0.05] pb-2 mb-3">
+                                            <h5 className="text-xs font-medium text-white/90 mb-2">Timeline</h5>
+                                            <div className="space-y-1">
+                                                {getOrderTimestamps(o).map((timestamp, idx) => (
+                                                    <div key={idx} className={`flex justify-between text-xs ${timestamp.isMain ? 'text-white/90 font-medium' : 'text-white/70'}`}>
+                                                        <span className="text-white/60">{timestamp.label}:</span>
+                                                        <span>{timestamp.time}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <span className="text-white/60">Order ID:</span>
@@ -473,8 +485,8 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                         {(o.validFrom || o.validTo) && (
                                             <div className="flex justify-between items-start">
                                                 <span className="text-white/60">Execution Window:</span>
-                                                <span className="text-white/90 font-mono text-xs text-right max-w-[200px]" title={formatExecWindow(o)}>
-                                                    {formatExecWindow(o)}
+                                                <span className="text-white/90 font-mono text-xs text-right max-w-[200px]" title={formatExecWindow(o.validFrom, o.validTo)}>
+                                                    {formatExecWindow(o.validFrom, o.validTo)}
                                                 </span>
                                             </div>
                                         )}
@@ -575,41 +587,6 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
     );
 };
 
-// Function to format relative time
-function formatRelativeTime(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSec = Math.round(diffMs / 1000);
-    const diffMin = Math.round(diffSec / 60);
-    const diffHour = Math.round(diffMin / 60);
-    const diffDay = Math.round(diffHour / 24);
-
-    if (diffSec < 60) {
-        return 'just now';
-    } else if (diffMin < 60) {
-        return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
-    } else if (diffHour < 24) {
-        return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
-    } else if (diffDay < 30) {
-        return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-    } else {
-        // Fall back to date if more than a month ago
-        return date.toLocaleDateString();
-    }
-}
-
-// Helper to format execution window text
-function formatExecWindow(order: LimitOrder): string {
-    const from = order.validFrom ? new Date(order.validFrom) : null;
-    const to = order.validTo ? new Date(order.validTo) : null;
-
-    if (!from && !to) return 'Anytime';
-    if (from && !to) return `After ${from.toLocaleString()}`;
-    if (!from && to) return `Before ${to.toLocaleString()}`;
-    if (from && to) return `${from.toLocaleString()} – ${to.toLocaleString()}`;
-    return 'Anytime';
-}
 
 export default function OrdersPanel() {
     const { address, connected } = useWallet();
@@ -1260,8 +1237,6 @@ export default function OrdersPanel() {
                                     onCancelOrder={(uuid) => setConfirmUuid(uuid)}
                                     copiedId={copiedId}
                                     formatTokenAmount={formatTokenAmount}
-                                    formatRelativeTime={formatRelativeTime}
-                                    formatExecWindow={formatExecWindow}
                                 />
                             );
                         })}
