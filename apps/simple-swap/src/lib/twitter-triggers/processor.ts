@@ -81,6 +81,9 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
         errors: [] as string[],
     };
 
+    // Track if this is the first transaction in the series for this trigger
+    let isFirstTransaction = true;
+
     try {
         // Get the last reply ID we've seen (to avoid processing duplicates)
         const lastReplyId = await getLastProcessedReplyId(trigger.id);
@@ -95,12 +98,18 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
         console.log(`[Twitter Processor] Found ${scrapingResult.replies.length} new replies for trigger ${trigger.id}`);
         results.newReplies = scrapingResult.replies.length;
 
-        // Process each reply
+        // Process each reply sequentially to prevent nonce conflicts
         for (const reply of scrapingResult.replies) {
             try {
-                const orderCreated = await processReplyForBNS(trigger, reply);
+                const orderCreated = await processReplyForBNS(trigger, reply, isFirstTransaction);
                 if (orderCreated) {
                     results.ordersCreated++;
+                    isFirstTransaction = false; // Mark subsequent transactions as non-first
+                }
+                
+                // Add delay between executions to prevent nonce conflicts
+                if (scrapingResult.replies.indexOf(reply) < scrapingResult.replies.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay between executions
                 }
             } catch (error) {
                 const errorMsg = `Error processing reply ${reply.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -112,7 +121,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
         // Retry failed executions for this trigger
         try {
             console.log(`[Twitter Processor] Checking for failed executions to retry for trigger ${trigger.id}`);
-            const retryResult = await retryFailedExecutions(trigger);
+            const retryResult = await retryFailedExecutions(trigger, isFirstTransaction);
             results.ordersCreated += retryResult.ordersCreated;
             results.errors.push(...retryResult.errors);
         } catch (error) {
@@ -135,7 +144,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
 /**
  * Process a single reply to check for BNS and create order if found
  */
-async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<boolean> {
+async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTransaction: boolean = false): Promise<boolean> {
     console.log(`[Twitter Processor] Processing reply ${reply.id} from @${reply.authorHandle}`);
 
     // Extract and resolve BNS from the reply
@@ -215,7 +224,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 
     // Try to execute a pre-signed order, or create overflow execution if none available
     try {
-        const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id);
+        const orderResult = await executePreSignedOrder(trigger, recipientAddress!, execution.id, isFirstTransaction);
 
         if (orderResult.success) {
             // Update execution with order details including txid
@@ -334,7 +343,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
 /**
  * Execute a pre-signed order from a Twitter trigger
  */
-export async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: string, executionId: string): Promise<{
+export async function executePreSignedOrder(trigger: TwitterTrigger, recipientAddress: string, executionId: string, isFirstTransaction: boolean = false): Promise<{
     success: boolean;
     orderUuid?: string;
     txid?: string;
@@ -392,8 +401,8 @@ export async function executePreSignedOrder(trigger: TwitterTrigger, recipientAd
 
         // Use higher slippage for Twitter triggers to handle simultaneous executions
         const twitterSlippage = 50; // 50% slippage for Twitter triggers
-        console.log(`[Twitter Processor] Using ${twitterSlippage}% slippage for Twitter trigger execution`);
-        const executionResult = await executeTrade(updatedOrder, twitterSlippage);
+        console.log(`[Twitter Processor] Using ${twitterSlippage}% slippage for Twitter trigger execution${isFirstTransaction ? ' (first tx - using blockchain nonce)' : ''}`);
+        const executionResult = await executeTrade(updatedOrder, twitterSlippage, isFirstTransaction);
 
         console.log(`[Twitter Processor] Trade execution result for order ${nextOrderUuid}:`, {
             orderUuid: nextOrderUuid,
@@ -549,7 +558,7 @@ async function updateOrderWithExecutionMetadata(
 /**
  * Retry failed executions for a specific trigger
  */
-export async function retryFailedExecutions(trigger: TwitterTrigger): Promise<{
+export async function retryFailedExecutions(trigger: TwitterTrigger, isFirstTransaction: boolean = false): Promise<{
     ordersCreated: number;
     errors: string[];
 }> {
@@ -584,10 +593,11 @@ export async function retryFailedExecutions(trigger: TwitterTrigger): Promise<{
 
         console.log(`[Twitter Processor] Found ${failedExecutions.length} failed executions to retry for trigger ${trigger.id}`);
 
-        // Retry each failed execution
+        // Retry each failed execution sequentially to prevent nonce conflicts
+        let currentIsFirstTransaction = isFirstTransaction;
         for (const execution of failedExecutions) {
             try {
-                console.log(`[Twitter Processor] Retrying execution ${execution.id} for BNS ${execution.bnsName}`);
+                console.log(`[Twitter Processor] Retrying execution ${execution.id} for BNS ${execution.bnsName}${currentIsFirstTransaction ? ' (first tx)' : ''}`);
 
                 // Create a mock reply object for processReplyForBNS
                 const mockReply = {
@@ -600,12 +610,18 @@ export async function retryFailedExecutions(trigger: TwitterTrigger): Promise<{
                 };
 
                 // Use the existing processReplyForBNS logic which handles retries
-                const orderCreated = await processReplyForBNS(trigger, mockReply);
+                const orderCreated = await processReplyForBNS(trigger, mockReply, currentIsFirstTransaction);
                 if (orderCreated) {
                     results.ordersCreated++;
+                    currentIsFirstTransaction = false; // Mark subsequent retries as non-first
                     console.log(`[Twitter Processor] ✅ Successfully retried execution ${execution.id}`);
                 } else {
                     console.log(`[Twitter Processor] ⚠️ Retry attempt for execution ${execution.id} did not create order`);
+                }
+
+                // Add delay between retry attempts to prevent nonce conflicts
+                if (failedExecutions.indexOf(execution) < failedExecutions.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay between retries
                 }
 
             } catch (error) {

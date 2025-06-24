@@ -481,6 +481,121 @@ export async function syncTwitterExecutionsWithOrders(): Promise<{
 }
 
 /**
+ * Add overflow signatures to an existing trigger and reactivate it
+ */
+export async function addOverflowSignaturesToTrigger(
+    triggerId: string, 
+    signatures: Array<{
+        uuid: string;
+        signature: string;
+        inputToken: string;
+        outputToken: string;
+        amountIn: string;
+    }>
+): Promise<{
+    success: boolean;
+    trigger?: TwitterTrigger;
+    newOrderIds?: string[];
+    error?: string;
+}> {
+    try {
+        console.log(`[Twitter Store] Adding ${signatures.length} overflow signatures to trigger ${triggerId}`);
+        
+        // Get the existing trigger
+        const trigger = await getTwitterTrigger(triggerId);
+        if (!trigger) {
+            return {
+                success: false,
+                error: 'Trigger not found'
+            };
+        }
+        
+        // Create orders from the new signatures
+        const { addOrder } = await import('../orders/store');
+        const newOrderIds: string[] = [];
+        
+        for (let i = 0; i < signatures.length; i++) {
+            const sig = signatures[i];
+            
+            try {
+                // Create order payload matching the original trigger structure
+                const orderPayload = {
+                    owner: trigger.owner,
+                    inputToken: sig.inputToken,
+                    outputToken: sig.outputToken,
+                    amountIn: sig.amountIn,
+                    recipient: 'PLACEHOLDER', // Will be overridden when executed with BNS address
+                    signature: sig.signature,
+                    uuid: sig.uuid,
+                    // Strategy metadata for grouping (continue the sequence)
+                    strategyId: `twitter_overflow_${triggerId}_${Date.now()}`,
+                    strategyType: 'twitter' as const,
+                    strategyPosition: (trigger.orderIds?.length || 0) + i + 1,
+                    strategySize: (trigger.orderIds?.length || 0) + signatures.length,
+                    strategyDescription: `Overflow signatures for Twitter trigger ${trigger.tweetUrl}`,
+                    // Order metadata
+                    metadata: {
+                        orderType: 'twitter_trigger_overflow',
+                        createdFor: 'twitter-trigger-overflow-system',
+                        tweetUrl: trigger.tweetUrl,
+                        triggerId: trigger.id,
+                        bulkSigned: true,
+                        isOverflow: true
+                    }
+                };
+                
+                const order = await addOrder(orderPayload);
+                newOrderIds.push(order.uuid);
+                
+                console.log(`[Twitter Store] Created overflow order ${i + 1}/${signatures.length}: ${order.uuid}`);
+                
+            } catch (orderError) {
+                console.error(`[Twitter Store] Failed to create overflow order ${i + 1}:`, orderError);
+                return {
+                    success: false,
+                    error: `Failed to create overflow order ${i + 1}: ${orderError instanceof Error ? orderError.message : 'Unknown error'}`
+                };
+            }
+        }
+        
+        // Update the trigger with new order IDs and reactivate
+        const existingOrderIds = trigger.orderIds || [];
+        const allOrderIds = [...existingOrderIds, ...newOrderIds];
+        const newAvailableOrders = await checkAvailableOrders(allOrderIds);
+        
+        const updatedTrigger = await updateTwitterTrigger(triggerId, {
+            orderIds: allOrderIds,
+            availableOrders: newAvailableOrders,
+            isActive: true, // Reactivate the trigger
+            lastChecked: new Date().toISOString(), // Reset last checked time for processing
+        });
+        
+        if (!updatedTrigger) {
+            return {
+                success: false,
+                error: 'Failed to update trigger'
+            };
+        }
+        
+        console.log(`[Twitter Store] ✅ Successfully added ${newOrderIds.length} overflow signatures to trigger ${triggerId}`);
+        console.log(`[Twitter Store] 🟢 Trigger reactivated with ${newAvailableOrders} total available orders`);
+        
+        return {
+            success: true,
+            trigger: updatedTrigger,
+            newOrderIds
+        };
+        
+    } catch (error) {
+        console.error(`[Twitter Store] Error adding overflow signatures to trigger ${triggerId}:`, error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
  * Clean up old execution records (optional maintenance function)
  */
 export async function cleanupOldExecutions(olderThanDays: number = 30): Promise<number> {

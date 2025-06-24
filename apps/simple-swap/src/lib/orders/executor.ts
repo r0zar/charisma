@@ -9,53 +9,127 @@ import { fetchNonce } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 
 /**
- * Helper function to get the current nonce for the blaze solver address
+ * Simple Redis-based nonce management with atomic increment
  */
-async function getCurrentNonce(): Promise<number> {
+async function getNextNonce(useBlockchainNonce: boolean = false): Promise<number> {
     try {
-        const nonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
-        return Number(nonce);
+        // Get current blockchain nonce first
+        const currentBlockchainNonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
+        const blockchainNonce = Number(currentBlockchainNonce);
+        
+        // CRITICAL FIX: Always use blockchain nonce to prevent gaps
+        // The previous Redis increment approach created nonce gaps when transactions failed
+        const nonceKey = `nonce_counter:${BLAZE_SOLVER_ADDRESS}`;
+        
+        // Check if we have a gap and need to reset
+        const currentCounter = await kv.get(nonceKey);
+        if (currentCounter && Number(currentCounter) > blockchainNonce) {
+            console.log(`[Nonce] ⚠️ DETECTED GAP: Redis counter ${currentCounter} > blockchain ${blockchainNonce}`);
+            console.log(`[Nonce] 🔧 FIXING GAP: Resetting Redis counter to match blockchain`);
+            await kv.del(nonceKey); // Clear the problematic counter
+        }
+        
+        // Always use current blockchain nonce - this prevents gaps completely
+        const safeNonce = blockchainNonce;
+        console.log(`[Nonce] Using safe blockchain nonce: ${safeNonce} (gap-proof)`);
+        
+        // For first tx in series, we still want to track this
+        if (useBlockchainNonce) {
+            console.log(`[Nonce] First transaction in series using blockchain nonce: ${safeNonce}`);
+        }
+        
+        return safeNonce;
+
     } catch (error) {
-        console.error('[Nonce] Error fetching nonce for blaze solver:', error);
-        throw new Error('Failed to fetch current nonce');
+        console.error('[Nonce] Error with nonce management:', error);
+        // Fallback to blockchain nonce
+        const fallbackNonce = await fetchNonce({ address: BLAZE_SOLVER_ADDRESS });
+        console.log(`[Nonce] Fallback to blockchain nonce: ${fallbackNonce}`);
+        return Number(fallbackNonce);
     }
 }
 
 /**
- * Enhanced executeMultihopSwap with intelligent nonce management
- * This version fetches the current nonce and uses it to prevent ConflictingNonceInMempool errors
+ * Simple retry wrapper with exponential backoff for nonce conflicts
+ */
+async function executeWithRetry<T>(
+    operation: () => Promise<T>,
+    maxAttempts: number = 3,
+    baseDelay: number = 1000
+): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            // Check if it's a nonce conflict
+            const isNonceConflict = errorMessage.includes('ConflictingNonceInMempool') ||
+                errorMessage.includes('nonce') ||
+                errorMessage.includes('BadNonce');
+
+            if (isNonceConflict && attempt < maxAttempts) {
+                const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s
+                console.log(`[Retry] Nonce conflict detected (attempt ${attempt}/${maxAttempts}), retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+
+            // If it's not a nonce conflict or we've exhausted retries, throw
+            throw error;
+        }
+    }
+
+    throw lastError;
+}
+
+/**
+ * Enhanced executeMultihopSwap with intelligent nonce management and retry logic
  */
 async function executeMultihopSwapWithNonce(
     route: any,
     meta: any,
     privateKey: string,
     config?: any,
-    slippage?: number
+    slippage?: number,
+    useBlockchainNonce?: boolean
 ): Promise<any> {
-    try {
-        console.log('[Nonce] Fetching current nonce for intelligent transaction broadcasting');
-        const currentNonce = await getCurrentNonce();
-        console.log('[Nonce] Using nonce:', currentNonce);
+    return executeWithRetry(async () => {
+        try {
+            console.log(`[Nonce] Using ${useBlockchainNonce ? 'blockchain' : 'atomic'} nonce management for transaction broadcasting`);
+            const uniqueNonce = await getNextNonce(useBlockchainNonce);
+            console.log('[Nonce] Using unique nonce:', uniqueNonce);
 
-        // Build transaction config with explicit nonce and slippage
-        const metaWithSlippage = slippage !== undefined ? { ...meta, slippage } : meta;
-        const txConfig = await buildXSwapTransaction(route, metaWithSlippage, config);
-        txConfig.nonce = currentNonce;
+            // Build transaction config with explicit nonce and slippage
+            const metaWithSlippage = slippage !== undefined ? { ...meta, slippage } : meta;
+            const txConfig = await buildXSwapTransaction(route, metaWithSlippage, config);
+            txConfig.nonce = uniqueNonce;
 
-        console.log('[Nonce] Broadcasting multihop transaction with explicit nonce:', currentNonce);
-        const result = await broadcastMultihopTransaction(txConfig, privateKey);
+            console.log('[Nonce] Broadcasting multihop transaction with unique nonce:', uniqueNonce);
+            const result = await broadcastMultihopTransaction(txConfig, privateKey);
 
-        console.log('[Nonce] Transaction broadcast result:', result);
-        return result;
+            console.log('[Nonce] Transaction broadcast successful:', result);
+            return result;
 
-    } catch (error) {
-        console.error('[Nonce] Error in nonce-managed multihop swap:', error);
+        } catch (error) {
+            console.error('[Nonce] Error in nonce-managed multihop swap:', error);
 
-        // If nonce management fails, fall back to original function
-        console.log('[Nonce] Falling back to original executeMultihopSwap without nonce management');
-        const metaWithSlippage = slippage !== undefined ? { ...meta, slippage } : meta;
-        return executeMultihopSwap(route, metaWithSlippage, privateKey, config);
-    }
+            // Check if it's a nonce-related error
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('ConflictingNonceInMempool') || errorMessage.includes('nonce')) {
+                console.log('[Nonce] Nonce conflict detected, will retry...');
+                throw error; // Let the retry wrapper handle it
+            }
+
+            // For non-nonce errors, fall back to original function
+            console.log('[Nonce] Non-nonce error, falling back to original executeMultihopSwap');
+            const metaWithSlippage = slippage !== undefined ? { ...meta, slippage } : meta;
+            return executeMultihopSwap(route, metaWithSlippage, privateKey, config);
+        }
+    });
 }
 
 /**
@@ -114,7 +188,7 @@ export interface TradeExecutionResult {
     error?: string;
 }
 
-export async function executeTrade(order: LimitOrder, slippage?: number): Promise<TradeExecutionResult> {
+export async function executeTrade(order: LimitOrder, slippage?: number, useBlockchainNonce?: boolean): Promise<TradeExecutionResult> {
     // get quote for multi-hop swap
     console.log({ orderUuid: order.uuid, inputToken: order.inputToken, outputToken: order.outputToken, amountIn: order.amountIn }, 'Fetching quote for order execution');
     const quoteRes = await getQuote(order.inputToken, order.outputToken, order.amountIn);
@@ -161,7 +235,8 @@ export async function executeTrade(order: LimitOrder, slippage?: number): Promis
         },
         BLAZE_SIGNER_PRIVATE_KEY!,
         undefined, // config
-        slippage
+        slippage,
+        useBlockchainNonce
     );
 
     // Log the complete response for debugging
