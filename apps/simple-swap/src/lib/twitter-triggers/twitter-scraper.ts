@@ -189,28 +189,3 @@ export function validateTweetUrl(url: string): { valid: boolean; error?: string;
         };
     }
 }
-
-/**
- * Rate limiting helper for Twitter API calls
- */
-export class TwitterRateLimiter {
-    private lastCall: number = 0;
-    private minInterval: number;
-
-    constructor(callsPerMinute: number = 30) {
-        this.minInterval = (60 * 1000) / callsPerMinute; // Convert to milliseconds
-    }
-
-    async waitIfNeeded(): Promise<void> {
-        const now = Date.now();
-        const timeSinceLastCall = now - this.lastCall;
-
-        if (timeSinceLastCall < this.minInterval) {
-            const waitTime = this.minInterval - timeSinceLastCall;
-            console.log(`[Rate Limiter] Waiting ${waitTime}ms before next Twitter API call`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-
-        this.lastCall = Date.now();
-    }
-}

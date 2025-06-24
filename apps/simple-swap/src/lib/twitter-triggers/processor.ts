@@ -1,10 +1,7 @@
 import { getTriggersToCheck, createTwitterExecution, updateTwitterExecution, incrementTriggerCount, getExecutionByTriggerAndBNS } from './store';
-import { scrapeTwitterReplies, TwitterRateLimiter } from './twitter-scraper';
+import { scrapeTwitterReplies } from './twitter-scraper';
 import { processBNSFromReply } from './bns-resolver';
 import { TwitterTrigger, TwitterTriggerExecution } from './types';
-
-// Rate limiter for Twitter API calls
-const rateLimiter = new TwitterRateLimiter(30); // 30 calls per minute
 
 /**
  * Main processing function that checks all active triggers for new replies
@@ -36,7 +33,6 @@ export async function processTwitterTriggers(): Promise<{
         // Process each trigger
         for (const trigger of triggers) {
             try {
-                await rateLimiter.waitIfNeeded();
                 const triggerResult = await processIndividualTrigger(trigger);
 
                 results.triggersChecked++;
@@ -106,7 +102,7 @@ async function processIndividualTrigger(trigger: TwitterTrigger): Promise<{
                     results.ordersCreated++;
                     isFirstTransaction = false; // Mark subsequent transactions as non-first
                 }
-                
+
                 // Add delay between executions to prevent nonce conflicts
                 if (scrapingResult.replies.indexOf(reply) < scrapingResult.replies.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay between executions
@@ -152,7 +148,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
 
     if (!bnsResult.bnsName) {
         console.log(`[Twitter Processor] No BNS found in reply ${reply.id} from @${reply.authorHandle}`);
-        
+
         // Send helpful reply about BNS setup for Charisma airdrops
         // Create a temporary execution record to track the BNS not found notification
         let tempExecution: TwitterTriggerExecution | null = null;
@@ -173,13 +169,13 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
 
             const { getTwitterReplyService } = await import('./twitter-reply-service');
             const twitterReplyService = getTwitterReplyService();
-            
+
             console.log(`[Twitter Processor] 💬 Sending BNS setup notification to @${reply.authorHandle}`);
             const replyResult = await twitterReplyService.notifyBNSNotFound(
                 reply.id,
                 reply.authorHandle
             );
-            
+
             // Update execution with reply status
             if (replyResult.success) {
                 console.log(`[Twitter Processor] ✅ Successfully sent BNS setup notification to @${reply.authorHandle}`);
@@ -203,7 +199,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
                 });
             }
         }
-        
+
         return false;
     }
 
@@ -263,14 +259,14 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any, isFirstTr
         try {
             const { getTwitterReplyService } = await import('./twitter-reply-service');
             const twitterReplyService = getTwitterReplyService();
-            
+
             console.log(`[Twitter Processor] 💬 Sending BNS not found notification to @${reply.authorHandle} for ${bnsResult.bnsName}`);
             const replyResult = await twitterReplyService.notifyBNSNotFound(
                 reply.id,
                 reply.authorHandle,
                 bnsResult.bnsName
             );
-            
+
             // Update execution with reply status
             if (replyResult.success) {
                 console.log(`[Twitter Processor] ✅ Successfully sent BNS not found notification to @${reply.authorHandle}`);
