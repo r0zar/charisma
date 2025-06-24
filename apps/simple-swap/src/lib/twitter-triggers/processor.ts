@@ -12,8 +12,6 @@ export async function processTwitterTriggers(): Promise<{
     ordersCreated: number;
     errors: string[];
 }> {
-    console.log('[Twitter Processor] Starting Twitter trigger processing');
-
     const results = {
         triggersChecked: 0,
         newReplies: 0,
@@ -21,9 +19,11 @@ export async function processTwitterTriggers(): Promise<{
         errors: [] as string[],
     };
 
+    console.warn('[Twitter Processor] Starting Twitter trigger processing');
+
     // Get all active triggers that need checking
     const triggers = await listTwitterTriggers(true);
-    console.error(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
+    console.log(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
 
     if (triggers.length === 0) {
         return results;

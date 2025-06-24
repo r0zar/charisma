@@ -44,8 +44,6 @@ export async function getTwitterTrigger(id: string): Promise<TwitterTrigger | nu
 export async function listTwitterTriggers(activeOnly: boolean = false): Promise<TwitterTrigger[]> {
     const triggerIds = await kv.smembers(TRIGGER_LIST_KEY) || [];
 
-    throw triggerIds;
-
     if (triggerIds.length === 0) {
         return [];
     }
@@ -63,6 +61,7 @@ export async function listTwitterTriggers(activeOnly: boolean = false): Promise<
     // Update available orders for triggers that have pre-signed orders
     const triggersWithUpdatedCounts = [];
     for (const trigger of validTriggers) {
+        console.log("TT")
         if (trigger.orderIds && trigger.orderIds.length > 0) {
             const availableOrders = await checkAvailableOrders(trigger.orderIds);
 
