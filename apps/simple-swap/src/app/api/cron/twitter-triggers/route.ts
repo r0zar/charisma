@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processTwitterTriggers } from '@/lib/twitter-triggers/processor';
+import { listAllTwitterExecutions, listTwitterTriggers } from '@/lib/twitter-triggers/store';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -43,10 +44,7 @@ export async function POST(request: NextRequest) {
 // GET /api/cron/twitter-triggers - Get processing status (for monitoring)
 export async function GET(request: NextRequest) {
     try {
-        const { getTriggersToCheck } = await import('@/lib/twitter-triggers/store');
-        const { listAllTwitterExecutions } = await import('@/lib/twitter-triggers/store');
-
-        const activeTriggers = await getTriggersToCheck();
+        const activeTriggers = await listTwitterTriggers();
         const recentExecutions = await listAllTwitterExecutions(10);
 
         return NextResponse.json({

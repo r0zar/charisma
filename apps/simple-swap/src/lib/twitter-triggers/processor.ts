@@ -1,4 +1,4 @@
-import { getTriggersToCheck, createTwitterExecution, updateTwitterExecution, incrementTriggerCount, getExecutionByTriggerAndBNS } from './store';
+import { createTwitterExecution, updateTwitterExecution, incrementTriggerCount, getExecutionByTriggerAndBNS, listTwitterTriggers } from './store';
 import { scrapeTwitterReplies } from './twitter-scraper';
 import { processBNSFromReply } from './bns-resolver';
 import { TwitterTrigger, TwitterTriggerExecution } from './types';
@@ -22,7 +22,7 @@ export async function processTwitterTriggers(): Promise<{
     };
 
     // Get all active triggers that need checking
-    const triggers = await getTriggersToCheck();
+    const triggers = await listTwitterTriggers(true);
     console.error(`[Twitter Processor] Found ${triggers.length} active triggers to check`);
 
     if (triggers.length === 0) {

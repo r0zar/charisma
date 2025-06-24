@@ -392,30 +392,6 @@ export async function checkAvailableOrders(orderIds: string[]): Promise<number> 
 }
 
 /**
- * Get triggers that need to be checked (active and within time bounds)
- */
-export async function getTriggersToCheck(): Promise<TwitterTrigger[]> {
-    const allTriggers = await listTwitterTriggers(true); // active only
-
-    console.warn(`[Twitter Store] All triggers:`, allTriggers);
-
-    const filteredTriggers = [];
-
-    for (const trigger of allTriggers) {
-        console.error(`[Twitter Store] Trigger:`, trigger);
-        // Check if max triggers reached
-        if (trigger.maxTriggers && trigger.triggeredCount >= trigger.maxTriggers) {
-            // Mark as inactive if max reached
-            await updateTwitterTrigger(trigger.id, { isActive: false });
-        }
-
-        filteredTriggers.push(trigger);
-    }
-
-    return filteredTriggers;
-}
-
-/**
  * Sync Twitter execution statuses with current order statuses using smart status resolver
  */
 export async function syncTwitterExecutionsWithOrders(): Promise<{
