@@ -16,19 +16,19 @@ import { NFTBonusDisplay } from '@/components/admin/energy/NFTBonusDisplay';
 import { useNFTBonuses } from '@/lib/nft-service';
 import { formatEnergyValue, formatTimeDuration, getCapacityZoneStyles, type RealTimeEnergyData } from '@/lib/energy/real-time';
 
-// Helper function to format energy values - show decimals only when value < 1
+// Helper function to format energy values - show decimals for values < 10
 const formatEnergy = (rawValue: number): string => {
     const divisor = Math.pow(10, 6); // 6 decimals for energy
     const adjustedValue = rawValue / divisor;
 
-    if (adjustedValue < 1) {
-        // Show up to 2 decimal places for values less than 1
+    if (adjustedValue < 10) {
+        // Show up to 2 decimal places for values less than 10
         return adjustedValue.toLocaleString(undefined, {
             maximumFractionDigits: 2,
             minimumFractionDigits: 0
         });
     } else {
-        // Show whole numbers for values >= 1
+        // Show whole numbers for values >= 10
         return Math.round(adjustedValue).toLocaleString();
     }
 };
