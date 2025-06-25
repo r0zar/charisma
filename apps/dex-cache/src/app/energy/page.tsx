@@ -23,7 +23,7 @@ export default function EnergyPage() {
                         Energy System
                     </h1>
                     <p className="text-muted-foreground mt-2">
-                        Advanced energy management dashboard with real-time tracking, NFT bonuses, and hold-to-earn functionality.
+                        Advanced energy management dashboard with real-time tracking, NFT bonuses, and rewards.
                     </p>
                 </div>
             </div>
