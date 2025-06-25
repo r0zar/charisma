@@ -9,7 +9,8 @@
     "dev:watch": "pnpm dev",
     "lint": "next lint",
     "check-types": "tsc --noEmit",
-    "start": "next start"
+    "start": "next start",
+    "script": "node scripts/run.js"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",
@@ -39,9 +40,12 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
     "eslint": "^9.24.0",
+    "glob": "^11.0.3",
     "postcss": "^8.4.35",
     "tailwindcss": "^4",
+    "tsx": "^4.19.4",
     "tw-animate-css": "^1.2.8",
     "typescript": "^5"
   }

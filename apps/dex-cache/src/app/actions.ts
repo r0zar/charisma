@@ -166,9 +166,8 @@ export async function getVaultIds(): Promise<string[]> { // For direct data acce
 }
 
 // Server action to fetch add liquidity data
-export async function getAddLiquidityQuoteAndSupply(vaultContractId: string, targetLpAmount: number): Promise<{ success: boolean; error?: string; totalSupply?: number; quote?: { dx: number; dy: number; dk: number } | null }> {
-    try {
-        const [totalSupply, quote] = await Promise.all([
+export async function getAddLiquidityQuoteAndSupply(vaultContractId: string, targetLpAmount: number): Promise<{ success: boolean; error?: string; total_supply?: number; quote?: { dx: number; dy: number; dk: number } | null }> { try {
+        const [total_supply, quote] = await Promise.all([
             getLpTokenTotalSupply(vaultContractId),
             targetLpAmount > 0
                 ? getLiquidityOperationQuote(vaultContractId, targetLpAmount, OP_ADD_LIQUIDITY)
@@ -302,7 +301,7 @@ export async function getAddLiquidityInitialData(
         const userBalanceB = Number(tokenBBalance || 0);
         const poolReserveA = Number(vaultData.reservesA || 0);
         const poolReserveB = Number(vaultData.reservesB || 0);
-        const currentLpTotalSupply = Number(totalSupply || 0);
+        const currentLpTotalSupply = Number(total_supply || 0);
 
         if (userBalanceA > 0 && userBalanceB > 0 && poolReserveA > 0 && poolReserveB > 0 && currentLpTotalSupply > 0) {
             const maxLpIfUsingAllA = (userBalanceA / poolReserveA) * currentLpTotalSupply;
@@ -310,13 +309,12 @@ export async function getAddLiquidityInitialData(
             maxPotentialLpTokens = Math.min(maxLpIfUsingAllA, maxLpIfUsingAllB);
         }
 
-        return {
-            success: true,
+        return { success: true,
             data: {
                 tokenABalance,
                 tokenBBalance,
                 lpBalance,
-                totalSupply,
+                total_supply,
                 reservesA: poolReserveA, // Also return reserves for potential client use
                 reservesB: poolReserveB, // Also return reserves for potential client use
                 maxPotentialLpTokens
@@ -335,7 +333,7 @@ export async function getAddLiquidityInitialData(
 /**
  * Server action to fetch total supply for any token contract
  */
-export async function getTokenTotalSupply(tokenContractId: string): Promise<{ success: boolean; totalSupply?: number; error?: string }> {
+export async function getTokenTotalSupply(tokenContractId: string): Promise<{ success: boolean; total_supply?: number; error?: string }> {
     try {
         if (!tokenContractId || tokenContractId === '.stx') {
             // Use the polyglot function to get real STX total supply
@@ -344,14 +342,13 @@ export async function getTokenTotalSupply(tokenContractId: string): Promise<{ su
             const microStxSupply = (stxTotalSupply * 1_000_000)
             return {
                 success: true,
-                totalSupply: microStxSupply
+                total_supply: microStxSupply
             };
         }
 
         const totalSupply = await getLpTokenTotalSupply(tokenContractId);
-        return {
-            success: true,
-            totalSupply
+        return { success: true,
+            total_supply
         };
     } catch (error) {
         console.error("Error in getTokenTotalSupply:", error);

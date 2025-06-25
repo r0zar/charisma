@@ -235,12 +235,16 @@ export async function inspectTokenData(contractId: string): Promise<InspectionRe
     // Check if token is blacklisted
     const blacklisted = await isBlacklisted(contractId);
 
-    if (!blacklisted) {
-        // Attempt to add the token to the list when it's inspected (only if not blacklisted)
-        await addTokenToList(contractId);
-    }
+    // Note: Inspection should NOT automatically add tokens to managed list
+    // This separation allows pure inspection without side effects
 
-    const cacheKey = getCacheKey(contractId);
+    let cacheKey: string;
+    try {
+        cacheKey = getCacheKey(contractId);
+    } catch (error: any) {
+        console.error(`[Inspect] Invalid contractId format for ${contractId}:`, error);
+        return { contractId, fetchError: `Invalid contract ID format: ${error.message}` };
+    }
     let rawMetadata: any | null = null;
     let cachedData: any | null = null;
     let fetchError: string | null = null;
@@ -297,8 +301,8 @@ export async function forceRefreshToken(contractId: string): Promise<{ success: 
         const refreshedData = await getTokenData(contractId, true);
         if (refreshedData) {
             console.log(`[Inspect] Refresh successful for ${contractId}`);
-            // Attempt to add the token to the list after successful refresh
-            await addTokenToList(contractId);
+            // Note: Force refresh during inspection should NOT automatically add to managed list
+            // Use explicit addTokenToList action if needed
             return { success: true, data: refreshedData };
         } else {
             console.warn(`[Inspect] Refresh for ${contractId} completed but returned null data.`);

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
                     symbol: token.symbol,
                     image: token.image,
                     contractId: token.contractId,
-                    totalSupply: token.total_supply,
+                    total_supply: token.total_supply,
                     decimals: token.decimals || 0,
                     type: token.type
                 });
@@ -62,16 +62,15 @@ export async function GET(request: NextRequest) {
 
         // Get price stats for all tokens
         const priceStats = await Promise.all(
-            tokens.map(async (token) => {
-                try {
+            tokens.map(async (token) => { try {
                     const stats = await getPriceStats(token);
                     const metadata = tokenMetadataMap.get(token);
                     let marketcap = null;
-                    if (stats.price && metadata?.totalSupply) {
+                    if (stats.price && metadata?.total_supply) {
                         try {
-                            const totalSupplyNum = parseFloat(metadata.totalSupply);
+                            const total_supplyNum = parseFloat(metadata.total_supply);
                             const decimals = metadata.decimals || 0;
-                            const adjustedSupply = totalSupplyNum / Math.pow(10, decimals);
+                            const adjustedSupply = total_supplyNum / Math.pow(10, decimals);
                             marketcap = stats.price * adjustedSupply;
                         } catch (error) {
                             console.warn(`⚠️ Error calculating marketcap for ${token}:`, error);

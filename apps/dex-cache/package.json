@@ -9,7 +9,8 @@
     "dev:watch": "pnpm dev",
     "lint": "next lint",
     "check-types": "tsc --noEmit",
-    "start": "next start"
+    "start": "next start",
+    "script": "node scripts/run.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.11",
@@ -34,6 +35,7 @@
     "clsx": "^2.1.1",
     "colorthief": "^2.6.0",
     "dexterity-sdk": "workspace:*",
+    "framer-motion": "^12.7.4",
     "geist": "^1.3.1",
     "lightweight-charts": "^5",
     "lodash": "^4.17.21",
@@ -46,6 +48,7 @@
     "react-dom": "^19.0.0",
     "react-json-view": "^1.21.3",
     "react-spring": "^9.7.5",
+    "recharts": "^3.0.0",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.2.0"
   },
@@ -60,6 +63,7 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
     "eslint": "^9.24.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^4",

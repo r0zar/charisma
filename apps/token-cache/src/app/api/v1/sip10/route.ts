@@ -24,9 +24,20 @@ export async function GET(req: NextRequest) {
         // Fetch all tokens using the existing service
         const cacheData = await getAllMetadata();
 
-        // Filter out tokens that don't have a contractId
+        // Filter out tokens that don't have essential fields (relaxed image requirement)
         const tokens = cacheData
-            .filter(token => token.symbol && token.image && token.decimals && token.contractId);
+            .filter(token => {
+                const hasEssentials = token.contractId && token.symbol && (token.decimals !== undefined);
+                if (!hasEssentials && process.env.NODE_ENV === 'development') {
+                    console.debug(`[API] Filtering out token due to missing essentials:`, {
+                        contractId: token.contractId,
+                        symbol: token.symbol,
+                        decimals: token.decimals,
+                        hasImage: !!token.image
+                    });
+                }
+                return hasEssentials;
+            });
 
         // Return the tokens with CORS headers
         return NextResponse.json(tokens, {

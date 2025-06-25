@@ -6,8 +6,7 @@ import { TokenCacheData } from "@repo/tokens";
 import { useState, useEffect } from "react";
 import { getTokenTotalSupply } from "@/app/actions";
 
-const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; reserves: number; price: number | undefined }) => {
-    const [totalSupplyDisplay, setTotalSupplyDisplay] = useState<string>('Loading...');
+const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; reserves: number; price: number | undefined }) => { const [total_supplyDisplay, setTotalSupplyDisplay] = useState<string>('Loading...');
     const [isLoadingSupply, setIsLoadingSupply] = useState(true);
 
     const tokenDecimals = token.decimals ?? 6;
@@ -55,8 +54,8 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
             // If no cached data, fetch from the blockchain
             try {
                 const result = await getTokenTotalSupply(token.contractId);
-                if (result.success && result.totalSupply) {
-                    const supplyNumber = BigInt(result.totalSupply);
+                if (result.success && result.total_supply) {
+                    const supplyNumber = BigInt(result.total_supply);
                     const divisor = BigInt(10 ** tokenDecimals);
                     const humanReadableSupply = Number(supplyNumber) / Number(divisor);
                     setTotalSupplyDisplay(humanReadableSupply.toLocaleString(undefined, {
@@ -153,7 +152,7 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                                 {isLoadingSupply && (
                                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
                                 )}
-                                {totalSupplyDisplay}
+                                { total_supplyDisplay}
                             </div>
                         </div>
                     </div>

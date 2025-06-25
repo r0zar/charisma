@@ -222,3 +222,66 @@ pnpm start
 
 ### Debug Mode
 Set `DEBUG_MODE=true` in environment variables for detailed logging.
+
+## Script Runner
+
+This project includes an elegant script runner system for debugging, testing, and data analysis:
+
+```bash
+# List available scripts
+pnpm script list
+
+# Run a specific script
+pnpm script <script-name> [args...]
+
+# Examples
+pnpm script test-order-api
+pnpm script analyze-order-data
+pnpm script test-order-api SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.brc20-ormm SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token 1000000
+```
+
+### Script Capabilities
+
+The script runner provides:
+
+- **TypeScript Support**: Run `.ts` files directly with automatic compilation
+- **Environment Variables**: Automatic loading from `.env` files with priority order
+- **Auto-discovery**: Scripts are automatically detected in the `scripts/` folder
+- **Argument Passing**: Pass command-line arguments to your scripts
+- **Project Context**: Full access to project dependencies and utilities
+
+### Use Cases
+
+1. **Debugging Trading Issues**
+   - Test order API endpoints with real data
+   - Analyze failed orders and error patterns
+   - Validate price calculations and slippage
+   - Debug routing algorithms
+
+2. **Data Analysis & Insights**
+   - Analyze trading patterns and volumes
+   - Generate reports on order completion rates
+   - Track popular token pairs and routes
+   - Monitor system performance metrics
+
+3. **Migrations & Backfills**
+   - Migrate order data between formats
+   - Backfill missing historical data
+   - Update cached price information
+   - Batch process pending orders
+
+4. **Testing & Validation**
+   - End-to-end API testing
+   - Load testing with synthetic data
+   - Integration testing with external DEXs
+   - Validation of order execution logic
+
+### Creating New Scripts
+
+To create a new script:
+
+1. Add a `.ts` file to the `scripts/` directory
+2. Write your script using project imports and environment variables
+3. Run with `pnpm script <your-script-name>`
+
+No need to modify `package.json` - scripts are auto-discovered!

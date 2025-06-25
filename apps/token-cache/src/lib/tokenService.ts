@@ -129,8 +129,25 @@ export const isBlacklisted = async (contractId: string): Promise<boolean> => {
  * Generates the cache key for a given contract ID.
  * @param contractId - The token contract ID.
  * @returns The cache key string.
+ * @throws Error if contractId is invalid
  */
-export const getCacheKey = (contractId: string): string => `sip10:${contractId}`;
+export const getCacheKey = (contractId: string): string => {
+    if (!contractId || typeof contractId !== 'string') {
+        throw new Error(`Invalid contractId for cache key: ${contractId}`);
+    }
+    
+    // Basic format validation - should contain a dot
+    if (!contractId.includes('.')) {
+        throw new Error(`Invalid contractId format (expected address.contract): ${contractId}`);
+    }
+    
+    // Handle special case for STX
+    if (contractId === '.stx') {
+        return 'sip10:stx';
+    }
+    
+    return `sip10:${contractId}`;
+};
 
 /**
  * Adds a contract ID to the managed token list in KV if it's not already present and not blacklisted.
@@ -178,7 +195,13 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
         return null;
     }
 
-    const cacheKey = getCacheKey(contractId);
+    let cacheKey: string;
+    try {
+        cacheKey = getCacheKey(contractId);
+    } catch (error) {
+        console.error(`Failed to generate cache key for ${contractId}:`, error);
+        return null;
+    }
 
     try {
         // 1. Check cache first (unless forcing refresh)
@@ -266,6 +289,9 @@ export const getAllMetadata = async (): Promise<TokenCacheData[]> => {
         return kv.get(getCacheKey(id)).then(cached => {
             if (cached) cacheHitCount++;
             return getTokenData(id); // Now call the actual function
+        }).catch(error => {
+            console.error(`[getAllMetadata] Error processing token ${id}:`, error);
+            return null; // Return null for failed tokens
         });
     });
     const allDataResults = await Promise.allSettled(allDataPromises);

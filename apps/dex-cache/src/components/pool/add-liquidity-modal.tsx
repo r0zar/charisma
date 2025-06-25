@@ -118,7 +118,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
                             tokenB: result.data.tokenBBalance,
                             lp: result.data.lpBalance
                         });
-                        setTotalSupply(result.data.totalSupply);
+                        setTotalSupply(result.data.total_supply);
                         // Set maxLpTokens directly from server data
                         setMaxLpTokens(result.data.maxPotentialLpTokens || 0);
                         // We could also store result.data.reservesA and result.data.reservesB if needed elsewhere

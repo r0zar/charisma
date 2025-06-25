@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getBalance, totalSupply, getStable, totalStableSupply, getTokenFees, getUsdFees } from "@/lib/stablecoin/state"
+import { getBalance, total_supply, getStable, totalStableSupply, getTokenFees, getUsdFees } from "@/lib/stablecoin/state"
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
@@ -15,5 +15,5 @@ export async function GET(req: Request) {
         getTokenFees(),
         getUsdFees()
     ])
-    return NextResponse.json({ balance: bal, totalSupply: supply, stableBalance: stable, stableSupply, tokenFeePool: feeTokenPool, usdFeePool: feeUsdPool })
+    return NextResponse.json({ balance: bal, total_supply: supply, stableBalance: stable, stableSupply, tokenFeePool: feeTokenPool, usdFeePool: feeUsdPool })
 } 

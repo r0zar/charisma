@@ -21,7 +21,7 @@ export interface PurchasableItem extends BaseShopItem {
         contractId: string;
         tokenSymbol?: string;
         decimals?: number;
-        totalSupply?: string | null;
+        total_supply?: string | null;
         maxQuantity?: number;
         edition?: string | number;
         artist?: string;
@@ -139,7 +139,7 @@ export type LegacyShopItem = {
         tokenSymbol?: string;
         amount?: string;
         decimals?: number;
-        totalSupply?: string | null;
+        total_supply?: string | null;
         maxQuantity?: number;
         edition?: string | number;
         artist?: string;

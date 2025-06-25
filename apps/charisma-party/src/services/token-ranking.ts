@@ -25,7 +25,7 @@ export interface TokenMetadata {
     symbol: string;
     image: string;
     contractId: string;
-    totalSupply: string;
+    total_supply: string;
     decimals: number;
     type: string;
 }
@@ -197,7 +197,7 @@ export class TokenRankingService {
                             symbol: cachedMetadata.symbol || this.generateTokenSymbol(token.contractId),
                             image: cachedMetadata.image || null,
                             contractId: token.contractId,
-                            totalSupply: cachedMetadata.total_supply || null,
+                            total_supply: cachedMetadata.total_supply || null,
                             decimals: cachedMetadata.decimals || 6,
                             type: cachedMetadata.type || 'unknown'
                         };
@@ -209,7 +209,7 @@ export class TokenRankingService {
                             symbol: this.generateTokenSymbol(token.contractId),
                             image: null,
                             contractId: token.contractId,
-                            totalSupply: null,
+                            total_supply: null,
                             decimals: 6,
                             type: 'unknown'
                         };

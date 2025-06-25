@@ -181,6 +181,17 @@ const adminActions = [
         ),
         color: 'purple',
     },
+    {
+        title: 'Energy Analytics',
+        description: 'Monitor hold-to-earn energy system and user analytics',
+        href: '/admin/energy',
+        icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+        ),
+        color: 'yellow',
+    },
 ];
 
 export default function AdminDashboard() {
@@ -199,7 +210,7 @@ export default function AdminDashboard() {
                 <AdminStats />
             </Suspense>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {adminActions.map((action) => (
                     <Link
                         key={action.href}
@@ -210,7 +221,8 @@ export default function AdminDashboard() {
                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color === 'red' ? 'bg-red-500/20 text-red-400' :
                                 action.color === 'blue' ? 'bg-primary/20 text-primary' :
                                     action.color === 'green' ? 'bg-green-500/20 text-green-400' :
-                                        'bg-secondary/20 text-secondary'
+                                        action.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-400' :
+                                            'bg-secondary/20 text-secondary'
                                 }`}>
                                 {action.icon}
                             </div>

@@ -9,7 +9,8 @@
     "lint": "next lint",
     "check-types": "tsc --noEmit",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "script": "node scripts/run.js"
   },
   "dependencies": {
     "@charisma/notifier": "workspace:^",
@@ -70,6 +71,7 @@
     "eslint": "^9.24.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.19.4",
     "typescript": "^5",
     "vitest": "^3.1.3"
   }

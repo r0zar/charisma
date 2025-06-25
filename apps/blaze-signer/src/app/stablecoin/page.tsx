@@ -102,7 +102,7 @@ export default function StablecoinPage() {
             const json = await res.json()
             if (res.ok) {
                 setBalance(json.balance)
-                setSupply(json.totalSupply)
+                setSupply(json.total_supply)
                 setStableBal(json.stableBalance)
                 setStableSupply(json.stableSupply)
                 setFeePoolUsd(json.usdFeePool)
