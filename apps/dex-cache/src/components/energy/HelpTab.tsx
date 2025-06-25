@@ -49,7 +49,7 @@ export function HelpTab() {
                         </div>
 
                         <p className="text-sm text-muted-foreground mb-4">
-                            Acquire FLOW, POV, or DEX tokens to start generating energy automatically.
+                            Acquire SXC, POV, or DEX tokens to start generating energy automatically.
                         </p>
 
                         <div className="space-y-2">
@@ -86,7 +86,7 @@ export function HelpTab() {
 
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
-                                <span>FLOW tokens:</span>
+                                <span>SXC tokens:</span>
                                 <span className="text-green-500">High rate</span>
                             </div>
                             <div className="flex items-center justify-between">
@@ -222,14 +222,14 @@ export function HelpTab() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* FLOW Token */}
+                    {/* SXC Token */}
                     <div className="token-card p-4">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
                                 <Droplets className="h-4 w-4 text-orange-500" />
                             </div>
                             <div>
-                                <h4 className="font-semibold">FLOW Token</h4>
+                                <h4 className="font-semibold">SXC Token</h4>
                                 <Badge variant="outline" className="text-orange-500 border-orange-500/30">High Yield</Badge>
                             </div>
                         </div>
@@ -238,7 +238,7 @@ export function HelpTab() {
                         </p>
                         <Button variant="outline" size="sm" className="w-full" asChild>
                             <a href="https://swap.charisma.rocks/swap" target="_blank" rel="noopener noreferrer">
-                                Get FLOW Tokens
+                                Get SXC Tokens
                                 <ExternalLink className="h-3 w-3 ml-1" />
                             </a>
                         </Button>

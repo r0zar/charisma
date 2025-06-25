@@ -23,11 +23,11 @@ const missingEnergyVaults: EnergyVaultConfig[] = [
         description: "Hold POV tokens to earn energy over time"
     },
     {
-        name: "Charismatic Flow Energize", 
+        name: "Charismatic Flow Energize",
         contractId: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow-energize",
         engineContractId: "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.charismatic-flow-hold-to-earn",
-        baseToken: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow-v2", // FLOW token
-        description: "Hold FLOW tokens to earn energy over time"
+        baseToken: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow-v2", // SXC token
+        description: "Hold SXC tokens to earn energy over time"
     }
 ];
 
@@ -37,7 +37,7 @@ async function addMissingEnergyVaults() {
     try {
         for (const vaultConfig of missingEnergyVaults) {
             console.log(`⚡ Adding ${vaultConfig.name}...`);
-            
+
             // Get token metadata for the base token
             let baseTokenMetadata;
             try {
@@ -58,7 +58,7 @@ async function addMissingEnergyVaults() {
             // Create the energy vault entry
             const energyVault = {
                 type: "ENERGY",
-                protocol: "CHARISMA", 
+                protocol: "CHARISMA",
                 contractId: vaultConfig.contractId,
                 contractAddress: vaultConfig.contractId.split('.')[0],
                 contractName: vaultConfig.contractId.split('.')[1],
@@ -78,7 +78,7 @@ async function addMissingEnergyVaults() {
             // Save to KV cache
             const cacheKey = `${VAULT_CACHE_KEY_PREFIX}${vaultConfig.contractId}`;
             await kv.set(cacheKey, energyVault);
-            
+
             console.log(`✅ Added ${vaultConfig.name} to vault cache`);
             console.log(`   Contract: ${vaultConfig.contractId}`);
             console.log(`   Engine: ${vaultConfig.engineContractId}`);
@@ -91,7 +91,7 @@ async function addMissingEnergyVaults() {
         console.log('🔍 Verifying added vaults...');
         const allKeys = await kv.keys(`${VAULT_CACHE_KEY_PREFIX}*`);
         const energyVaultKeys = [];
-        
+
         for (const key of allKeys) {
             const vault = await kv.get(key);
             if (vault && (vault as any).type === 'ENERGY') {
@@ -99,19 +99,19 @@ async function addMissingEnergyVaults() {
                 console.log(`✅ Found energy vault: ${(vault as any).name} (${key})`);
             }
         }
-        
+
         console.log(`\n🎯 Total energy vaults in system: ${energyVaultKeys.length}`);
-        
+
         // Update the monitored contracts for the cron job
         console.log('\n📊 Updating monitored contracts for cron job...');
         const energyContracts = missingEnergyVaults.map(v => v.engineContractId);
-        
+
         // Add the existing one
         energyContracts.push('SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn');
-        
+
         // Remove duplicates
         const uniqueContracts = [...new Set(energyContracts)];
-        
+
         await kv.set('energy:monitored_contracts', uniqueContracts);
         console.log(`✅ Updated monitored contracts: ${uniqueContracts.length} engines`);
         uniqueContracts.forEach(contract => {

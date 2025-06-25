@@ -21,7 +21,7 @@ export interface APYCalculationResult {
 }
 
 export interface TokenHolding {
-    symbol: string; // 'FLOW', 'POV', 'DEX', etc.
+    symbol: string; // 'SXC', 'POV', 'DEX', etc.
     amount: number; // Amount in human-readable units
     contractId?: string;
 }
@@ -42,21 +42,21 @@ export interface APYCalculationParams {
  */
 export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, number>): EnergyTokenPrices {
     const now = Date.now();
-    
+
     const result: EnergyTokenPrices = {
         lastUpdated: now,
         isStale: false,
         confidence: 0.8 // Default confidence
     };
-    
+
     console.log('[APY Calculator] Converting price map to Energy token prices. Available contracts:', Object.keys(priceMap));
-    
+
     // Look for energy token prices by contract ID
     const hootPrice = priceMap[ENERGY_TOKENS.HOOT];
     const energyPrice = priceMap[ENERGY_TOKENS.ENERGY];
     const charismaPrice = priceMap[ENERGY_TOKENS.CHARISMA];
     const dexterityPrice = priceMap[ENERGY_TOKENS.DEXTERITY];
-    
+
     if (hootPrice !== undefined) {
         result.hoot = {
             tokenId: ENERGY_TOKENS.HOOT,
@@ -68,7 +68,7 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
         };
         console.log(`[APY Calculator] Found HOOT price: $${hootPrice}`);
     }
-    
+
     if (energyPrice !== undefined) {
         result.energy = {
             tokenId: ENERGY_TOKENS.ENERGY,
@@ -80,7 +80,7 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
         };
         console.log(`[APY Calculator] Found Energy price: $${energyPrice}`);
     }
-    
+
     if (charismaPrice !== undefined) {
         result.charisma = {
             tokenId: ENERGY_TOKENS.CHARISMA,
@@ -92,7 +92,7 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
         };
         console.log(`[APY Calculator] Found Charisma price: $${charismaPrice}`);
     }
-    
+
     if (dexterityPrice !== undefined) {
         result.dexterity = {
             tokenId: ENERGY_TOKENS.DEXTERITY,
@@ -104,15 +104,15 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
         };
         console.log(`[APY Calculator] Found Dexterity price: $${dexterityPrice}`);
     }
-    
+
     // Calculate average confidence
     const availablePrices = [result.hoot, result.energy, result.charisma, result.dexterity].filter(Boolean);
     if (availablePrices.length > 0) {
         result.confidence = availablePrices.reduce((sum, price) => sum + (price?.confidence || 0), 0) / availablePrices.length;
     }
-    
+
     console.log('[APY Calculator] Converted price map to Energy token prices:', result);
-    
+
     return result;
 }
 
@@ -121,29 +121,29 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
  */
 export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPriceData[]): EnergyTokenPrices {
     const now = Date.now();
-    
+
     // Helper to find price by contract ID
     const findPrice = (contractId: string) => {
         return kraxelPrices.find(p => p.contractId === contractId);
     };
-    
+
     // Get prices for energy tokens using constants
     const hootPrice = findPrice(ENERGY_TOKENS.HOOT);
     const energyPrice = findPrice(ENERGY_TOKENS.ENERGY);
     const charismaPrice = findPrice(ENERGY_TOKENS.CHARISMA);
     const dexterityPrice = findPrice(ENERGY_TOKENS.DEXTERITY);
-    
+
     const result: EnergyTokenPrices = {
         lastUpdated: now,
         isStale: false,
         confidence: 0.8 // Default confidence
     };
-    
+
     console.log('[APY Calculator] Looking for token prices in Kraxel data:', {
         totalPrices: kraxelPrices.length,
         availableContracts: kraxelPrices.map(p => p.contractId)
     });
-    
+
     if (hootPrice) {
         result.hoot = {
             tokenId: hootPrice.contractId,
@@ -154,7 +154,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             lastUpdated: now
         };
     }
-    
+
     if (energyPrice) {
         result.energy = {
             tokenId: energyPrice.contractId,
@@ -165,7 +165,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             lastUpdated: now
         };
     }
-    
+
     if (charismaPrice) {
         result.charisma = {
             tokenId: charismaPrice.contractId,
@@ -176,7 +176,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             lastUpdated: now
         };
     }
-    
+
     if (dexterityPrice) {
         result.dexterity = {
             tokenId: dexterityPrice.contractId,
@@ -187,15 +187,15 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             lastUpdated: now
         };
     }
-    
+
     // Calculate average confidence
     const availablePrices = [result.hoot, result.energy, result.charisma, result.dexterity].filter(Boolean);
     if (availablePrices.length > 0) {
         result.confidence = availablePrices.reduce((sum, price) => sum + (price?.confidence || 0), 0) / availablePrices.length;
     }
-    
+
     console.log('[APY Calculator] Converted Kraxel prices to Energy token prices:', result);
-    
+
     return result;
 }
 
@@ -207,8 +207,8 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
 
     console.log('[APY Calculator] === Starting APY Calculation ===');
     // Determine price format
-    const pricesType = Array.isArray(rawPrices) 
-        ? 'KraxelPriceData[]' 
+    const pricesType = Array.isArray(rawPrices)
+        ? 'KraxelPriceData[]'
         : (rawPrices && typeof rawPrices === 'object' && !rawPrices.hasOwnProperty('lastUpdated'))
             ? 'PriceMap'
             : 'EnergyTokenPrices';
@@ -228,7 +228,7 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
     // Convert prices to EnergyTokenPrices format if needed
     console.log('[APY Calculator] Converting prices - Type:', pricesType);
     let prices: EnergyTokenPrices;
-    
+
     if (Array.isArray(rawPrices)) {
         prices = convertKraxelPricesToEnergyTokenPrices(rawPrices);
     } else if (pricesType === 'PriceMap') {
@@ -236,7 +236,7 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
     } else {
         prices = rawPrices as EnergyTokenPrices;
     }
-    
+
     console.log('[APY Calculator] Final prices object:', prices);
 
     // Get energy value in USD (using HOOT price as baseline)
@@ -395,7 +395,7 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
         },
         warnings: warnings.length > 0 ? warnings : undefined
     };
-    
+
     console.log('[APY Calculator] === Final Result ===');
     console.log('[APY Calculator] Result summary:', {
         finalAPY: result.apy.toFixed(2) + '%',
@@ -405,7 +405,7 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
         warnings
     });
     console.log('[APY Calculator] === Calculation Complete ===');
-    
+
     return result;
 }
 

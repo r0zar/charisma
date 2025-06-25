@@ -8,7 +8,7 @@ async function debugNamingIssue() {
 
     try {
         const energyVaults = await fetchHoldToEarnVaults();
-        
+
         if (!energyVaults || energyVaults.length === 0) {
             console.log('❌ No energy vaults found');
             return;
@@ -19,7 +19,7 @@ async function debugNamingIssue() {
 
         for (let i = 0; i < energyVaults.length; i++) {
             const vault = energyVaults[i];
-            
+
             console.log(`${i + 1}. Vault Analysis:`);
             console.log(`   🏪 Vault Name: "${vault.name}"`);
             console.log(`   🔗 Contract ID: "${vault.contractId}"`);
@@ -46,31 +46,31 @@ async function debugNamingIssue() {
 
             // Test the naming logic step by step
             console.log(`   🧠 Naming Logic Test:`);
-            
+
             // Step 1: Clean symbol mapping
             const symbolMap: Record<string, string> = {
-                'charismatic-flow-v2': 'FLOW',
+                'charismatic-flow-v2': 'SXC',
                 'perseverantia-omnia-vincit-v2': 'POV',
                 'dexterity-pool-v1': 'DEX',
                 'DEX': 'DEX'
             };
-            
+
             const cleanSymbol = symbolMap[tokenData.symbol] || symbolMap[tokenData.name] || tokenData.symbol;
             console.log(`      Step 1 - Clean Symbol: "${cleanSymbol}"`);
-            
+
             // Step 2: Engine name mapping
             const engineNameMap: Record<string, string> = {
-                'FLOW': 'Charismatic Flow',
-                'POV': 'Perseverantia', 
+                'SXC': 'Charismatic Flow',
+                'POV': 'Perseverantia',
                 'DEX': 'Dexterity'
             };
-            
+
             const engineBaseName = engineNameMap[cleanSymbol] || tokenData.name;
             console.log(`      Step 2 - Engine Base Name: "${engineBaseName}"`);
-            
+
             const finalName = `${engineBaseName} Engine`;
             console.log(`      Step 3 - Final Name: "${finalName}"`);
-            
+
             console.log('');
         }
 

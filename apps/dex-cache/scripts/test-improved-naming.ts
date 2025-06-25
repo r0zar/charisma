@@ -11,7 +11,7 @@ async function testImprovedNaming() {
             fetchHoldToEarnVaults(),
             fetchEngineRates()
         ]);
-        
+
         if (!energyVaults || energyVaults.length === 0) {
             console.log('❌ No energy vaults found');
             return;
@@ -22,7 +22,7 @@ async function testImprovedNaming() {
 
         for (let i = 0; i < energyVaults.length; i++) {
             const vault = energyVaults[i];
-            
+
             // Get token metadata
             let tokenData;
             try {
@@ -38,7 +38,7 @@ async function testImprovedNaming() {
             // Apply the improved naming logic
             const getCleanSymbol = (symbol: string, name: string) => {
                 const symbolMap: Record<string, string> = {
-                    'charismatic-flow-v2': 'FLOW',
+                    'charismatic-flow-v2': 'SXC',
                     'perseverantia-omnia-vincit-v2': 'POV',
                     'dexterity-pool-v1': 'DEX',
                     'DEX': 'DEX'
@@ -49,8 +49,8 @@ async function testImprovedNaming() {
             const getEngineName = (vault: any, tokenData: any) => {
                 const cleanSymbol = getCleanSymbol(tokenData.symbol, tokenData.name);
                 const engineNameMap: Record<string, string> = {
-                    'FLOW': 'Charismatic Flow',
-                    'POV': 'Perseverantia', 
+                    'SXC': 'Charismatic Flow',
+                    'POV': 'Perseverantia',
                     'DEX': 'Dexterity'
                 };
 
@@ -77,7 +77,7 @@ async function testImprovedNaming() {
         console.log('=============================');
         console.log('BEFORE (with issues):');
         console.log('• Charismatic Flow Engine (duplicated)');
-        console.log('• Engine (too generic)'); 
+        console.log('• Engine (too generic)');
         console.log('• Hold charismatic-flow-v2 tokens (ugly)');
         console.log('');
         console.log('AFTER (cleaned up):');
@@ -97,7 +97,7 @@ async function testImprovedNaming() {
 
             const getCleanSymbol = (symbol: string, name: string) => {
                 const symbolMap: Record<string, string> = {
-                    'charismatic-flow-v2': 'FLOW',
+                    'charismatic-flow-v2': 'SXC',
                     'perseverantia-omnia-vincit-v2': 'POV',
                     'dexterity-pool-v1': 'DEX',
                     'DEX': 'DEX'
@@ -108,8 +108,8 @@ async function testImprovedNaming() {
             const getEngineName = (vault: any, tokenData: any) => {
                 const cleanSymbol = getCleanSymbol(tokenData.symbol, tokenData.name);
                 const engineNameMap: Record<string, string> = {
-                    'FLOW': 'Charismatic Flow',
-                    'POV': 'Perseverantia', 
+                    'SXC': 'Charismatic Flow',
+                    'POV': 'Perseverantia',
                     'DEX': 'Dexterity'
                 };
 
@@ -120,7 +120,7 @@ async function testImprovedNaming() {
             const cleanSymbol = getCleanSymbol(tokenData.symbol, tokenData.name);
             const engineName = getEngineName(vault, tokenData);
             const contributionRate = engineRates[vault.engineContractId] || 0;
-            
+
             console.log(`• ${engineName}`);
             console.log(`  Hold ${cleanSymbol} tokens`);
             console.log(`  Rate: ${(contributionRate / 1000000).toFixed(2)}/s`);

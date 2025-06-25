@@ -7,7 +7,7 @@ export const ENERGY_TOKENS = {
     CHARISMA: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token',
     DEXTERITY: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1',
     // Add other energy generation tokens as needed
-    // FLOW: '', // Contract ID when available
+    // SXC: '', // Contract ID when available
     // POV: '',  // Contract ID when available
 } as const;
 
@@ -42,7 +42,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
     errors?: PriceError[];
 }> {
     const now = Date.now();
-    
+
     // Return cached data if fresh
     if (useCache && cachedPrices && (now - lastFetchTime) < CACHE_DURATION_MS) {
         console.log('[EnergyPriceService] Serving cached prices');
@@ -51,16 +51,16 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
 
     try {
         console.log('[EnergyPriceService] Fetching fresh token prices...');
-        
+
         // Get all relevant token IDs
         const tokenIds = Object.values(ENERGY_TOKENS);
         console.log('[EnergyPriceService] Token IDs to fetch:', tokenIds);
-        
+
         // Fetch prices for all tokens
         console.log('[EnergyPriceService] Calling getMultipleTokenPrices...');
         const priceMap = await getMultipleTokenPrices(tokenIds);
         console.log('[EnergyPriceService] Received price map:', priceMap);
-        
+
         const errors: PriceError[] = [];
         const prices: Partial<EnergyTokenPrices> = {
             lastUpdated: now,
@@ -119,7 +119,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
 
         // Calculate average confidence
         const availablePrices = [energyPrice, hootPrice, charismaPrice, dexterityPrice].filter(Boolean);
-        prices.confidence = availablePrices.length > 0 
+        prices.confidence = availablePrices.length > 0
             ? availablePrices.reduce((sum, price) => sum + (price?.confidence || 0), 0) / availablePrices.length
             : 0;
 
@@ -137,7 +137,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
 
     } catch (error) {
         console.error('[EnergyPriceService] Failed to fetch energy token prices:', error);
-        
+
         // Return stale cache if available
         if (cachedPrices && (now - lastFetchTime) < STALE_THRESHOLD_MS) {
             const stalePrices = {
@@ -145,7 +145,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
                 isStale: true,
                 lastUpdated: lastFetchTime
             };
-            
+
             return {
                 success: true,
                 prices: stalePrices,
@@ -211,10 +211,10 @@ export function getTokenPriceUSD(prices: EnergyTokenPrices, tokenSymbol: string)
         console.log('[PriceService] Empty token symbol provided');
         return 0;
     }
-    
+
     const symbol = tokenSymbol.toLowerCase();
     console.log(`[PriceService] Looking up price for symbol: "${symbol}"`);
-    
+
     switch (symbol) {
         case 'energy':
         case 'hoot':

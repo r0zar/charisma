@@ -862,6 +862,24 @@ export function EnergyDashboardTab() {
 
                     <div className="glass-card p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                            <Coins className="h-4 w-4" />
+                            Daily Profit
+                        </div>
+                        <div className="text-2xl font-bold text-green-400">
+                            {!energyPrices ? 'Loading...' :
+                                !displayEnergyState ? 'No Data' :
+                                    apyData ? formatDailyProfit(apyData.dailyProfit) : '$0.00'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {!energyPrices ? 'fetching prices...' :
+                                energyPrices?.isStale ? 'stale prices' :
+                                    !displayEnergyState?.energyRatePerSecond ? 'no generation' :
+                                        'current estimate'}
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <TrendingUp className="h-4 w-4" />
                             APY
                         </div>
@@ -885,24 +903,6 @@ export function EnergyDashboardTab() {
                                     ⚠
                                 </span>
                             )}
-                        </div>
-                    </div>
-
-                    <div className="glass-card p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <Coins className="h-4 w-4" />
-                            Daily Profit
-                        </div>
-                        <div className="text-2xl font-bold text-green-400">
-                            {!energyPrices ? 'Loading...' :
-                                !displayEnergyState ? 'No Data' :
-                                    apyData ? formatDailyProfit(apyData.dailyProfit) : '$0.00'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                            {!energyPrices ? 'fetching prices...' :
-                                energyPrices?.isStale ? 'stale prices' :
-                                    !displayEnergyState?.energyRatePerSecond ? 'no generation' :
-                                        'current estimate'}
                         </div>
                     </div>
                 </div>

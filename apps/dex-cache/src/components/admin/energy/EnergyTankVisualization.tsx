@@ -225,7 +225,7 @@ export function EnergyTankVisualization({
                     // Create clean token symbol mapping
                     const getCleanSymbol = (symbol: string, name: string) => {
                         const symbolMap: Record<string, string> = {
-                            'charismatic-flow-v2': 'FLOW',
+                            'charismatic-flow-v2': 'SXC',
                             'perseverantia-omnia-vincit-v2': 'POV',
                             'dexterity-pool-v1': 'DEX',
                             'DEX': 'DEX'
@@ -237,7 +237,7 @@ export function EnergyTankVisualization({
                     // Create clean engine names with robust fallbacks
                     const cleanSymbol = getCleanSymbol(tokenData.symbol, tokenData.name);
                     const engineNameMap: Record<string, string> = {
-                        'FLOW': 'Charismatic Flow',
+                        'SXC': 'Charismatic Flow',
                         'POV': 'Perseverantia',
                         'DEX': 'Dexterity'
                     };
@@ -260,7 +260,7 @@ export function EnergyTankVisualization({
                 // Create clean token symbol for display
                 const cleanSymbol = (() => {
                     const symbolMap: Record<string, string> = {
-                        'charismatic-flow-v2': 'FLOW',
+                        'charismatic-flow-v2': 'SXC',
                         'perseverantia-omnia-vincit-v2': 'POV',
                         'dexterity-pool-v1': 'DEX',
                         'DEX': 'DEX'
