@@ -6,7 +6,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Info } from 'lucide-react';
 import { TokenCacheData } from '@repo/tokens';
 
-export default function ClientPage({ initialTokens = [] }: { initialTokens?: TokenCacheData[] }) {
+interface PaginationInfo {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+    hasPrevious: boolean;
+}
+
+interface ClientPageProps {
+    initialTokens?: TokenCacheData[];
+    initialPagination?: PaginationInfo;
+    initialSearch?: string;
+}
+
+export default function ClientPage({ 
+    initialTokens = [], 
+    initialPagination,
+    initialSearch = ''
+}: ClientPageProps) {
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     // Get an example contract ID for the API link, if tokens exist
@@ -36,11 +55,27 @@ export default function ClientPage({ initialTokens = [] }: { initialTokens?: Tok
                             )}
                         </span>
                     </p>
+                    {initialPagination && (
+                        <p className="flex items-start gap-3">
+                            <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                            <span className="text-muted-foreground">
+                                Showing {initialTokens.length} of {initialPagination.total} tokens
+                                {initialSearch && (
+                                    <span> matching "<span className="font-mono">{initialSearch}</span>"</span>
+                                )}
+                                {initialPagination.totalPages > 1 && (
+                                    <span> (Page {initialPagination.page} of {initialPagination.totalPages})</span>
+                                )}
+                            </span>
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 
             <TokenList
                 initialTokens={initialTokens}
+                initialPagination={initialPagination}
+                initialSearch={initialSearch}
                 isDevelopment={isDevelopment}
             />
         </div>

@@ -275,6 +275,43 @@
     }
   }
 
+  @keyframes expandHeight {
+    from {
+      height: 0;
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      height: auto;
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes collapseHeight {
+    from {
+      height: auto;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      height: 0;
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes expandCard {
+    from {
+      transform: scale(1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    to {
+      transform: scale(1.02);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   @keyframes shimmer {
     0% {
       transform: translateX(-100%) skewX(-15deg);
@@ -329,6 +366,36 @@
 
   .animate-appear {
     animation: appear 0.3s ease-out forwards;
+  }
+
+  .animate-expand-height {
+    animation: expandHeight 0.3s ease-out forwards;
+  }
+
+  .animate-collapse-height {
+    animation: collapseHeight 0.25s ease-in forwards;
+  }
+
+  .animate-expand-card {
+    animation: expandCard 0.2s ease-out forwards;
+  }
+
+  /* Smooth height transitions */
+  .transition-height {
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, transform 0.3s ease-out;
+  }
+
+  .transition-height.expanded {
+    max-height: 500px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .transition-height.collapsed {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+    overflow: hidden;
   }
   
   /* Utility to hide scrollbars */

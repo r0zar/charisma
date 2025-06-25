@@ -319,6 +319,63 @@ export const getAllMetadata = async (): Promise<TokenCacheData[]> => {
 };
 
 /**
+ * Fetches paginated token data with optional search filtering.
+ *
+ * @param page - Page number (1-based)
+ * @param limit - Number of tokens per page
+ * @param search - Optional search term to filter by name, symbol, or contractId
+ * @returns A promise resolving to an array of TokenMetadata objects for the requested page.
+ */
+export const getAllMetadataPaginated = async (page: number = 1, limit: number = 20, search?: string): Promise<TokenCacheData[]> => {
+    // Get all tokens first (this could be optimized later if needed)
+    const allTokens = await getAllMetadata();
+    
+    // Apply search filter if provided
+    let filteredTokens = allTokens;
+    if (search && search.trim()) {
+        const searchTerm = search.toLowerCase().trim();
+        filteredTokens = allTokens.filter(token => 
+            token.name?.toLowerCase().includes(searchTerm) ||
+            token.symbol?.toLowerCase().includes(searchTerm) ||
+            token.contractId?.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    // Apply pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedTokens = filteredTokens.slice(startIndex, endIndex);
+
+    console.log(`[getAllMetadataPaginated] Page ${page}, limit ${limit}, search: "${search || 'none'}", total: ${filteredTokens.length}, returned: ${paginatedTokens.length}`);
+    
+    return paginatedTokens;
+};
+
+/**
+ * Gets the total count of tokens, with optional search filtering.
+ *
+ * @param search - Optional search term to filter by name, symbol, or contractId
+ * @returns A promise resolving to the total count of tokens matching the search criteria.
+ */
+export const getTokenCount = async (search?: string): Promise<number> => {
+    // Get all tokens first (this could be optimized later if needed)
+    const allTokens = await getAllMetadata();
+    
+    // Apply search filter if provided
+    if (search && search.trim()) {
+        const searchTerm = search.toLowerCase().trim();
+        const filteredTokens = allTokens.filter(token => 
+            token.name?.toLowerCase().includes(searchTerm) ||
+            token.symbol?.toLowerCase().includes(searchTerm) ||
+            token.contractId?.toLowerCase().includes(searchTerm)
+        );
+        return filteredTokens.length;
+    }
+
+    return allTokens.length;
+};
+
+/**
  * Fetches cache statistics including blacklist information.
  * @returns A promise resolving to an object with totalManaged, cachedCount, and blacklist stats.
  */

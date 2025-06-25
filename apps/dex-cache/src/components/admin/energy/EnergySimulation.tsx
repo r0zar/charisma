@@ -1,154 +1,123 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Settings, Zap, Battery, Clock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { request } from '@stacks/connect';
+import { Wifi, WifiOff, Zap, Battery, Clock, AlertTriangle, Settings2, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { getTokenMetadataCached, type TokenCacheData } from '@repo/tokens';
 import { useApp } from '@/lib/context/app-context';
-import { useBlaze } from 'blaze-sdk/realtime';
 import { EnergyTankVisualization } from './EnergyTankVisualization';
-import { EnergyFlowVisualization, AnimatedCounter, EnergyBurstEffect } from './EnergyParticles';
+import { EnergyFlowVisualization, AnimatedCounter } from './EnergyParticles';
 import { NFTBonusDisplay } from './NFTBonusDisplay';
+import { useNFTBonuses } from '@/lib/nft-service';
+import { formatEnergyValue, formatTimeDuration, getCapacityZoneStyles, type RealTimeEnergyData } from '@/lib/energy/real-time';
+import { Pc, uintCV } from '@stacks/transactions';
 
-interface SimulationState {
-    isRunning: boolean;
-    currentEnergy: number;
-    maxCapacity: number;
-    tokenBalance: number;
-    energyRate: number; // Energy per second
-    startTime: number;
-    elapsedTime: number;
+interface StreamConnectionState {
+    isConnected: boolean;
+    isConnecting: boolean;
+    error: string | null;
+    lastUpdate: number;
+    reconnectAttempts: number;
 }
 
-export function EnergySimulation() {
-    const [simulation, setSimulation] = useState<SimulationState>({
-        isRunning: false,
-        currentEnergy: 0,
-        maxCapacity: 100000000, // Will be updated with real capacity including NFT bonuses
-        tokenBalance: 0, // Will be set from user's actual balance
-        energyRate: 0,
-        startTime: 0,
-        elapsedTime: 0
+interface EnergyState extends RealTimeEnergyData {
+    // Real-time data from SSE stream
+}
+
+export function EnergyTracker() {
+    const [energyState, setEnergyState] = useState<EnergyState | null>(null);
+    const [connectionState, setConnectionState] = useState<StreamConnectionState>({
+        isConnected: false,
+        isConnecting: false,
+        error: null,
+        lastUpdate: 0,
+        reconnectAttempts: 0
     });
 
     const [tokenMetadata, setTokenMetadata] = useState<TokenCacheData | null>(null);
     const [energyMetadata, setEnergyMetadata] = useState<TokenCacheData | null>(null);
-    const [showSettings, setShowSettings] = useState(false);
-    const [showBurstEffect, setShowBurstEffect] = useState(false);
 
-    // Form inputs for configuration
-    const [configMaxCapacity, setConfigMaxCapacity] = useState<string>('100');
-    const [configTokenBalance, setConfigTokenBalance] = useState<string>('0');
-    
-    // Wallet connection and balance
+    // Burn energy state
+    const [isBurning, setIsBurning] = useState(false);
+    const [burnSuccess, setBurnSuccess] = useState(false);
+
+    // Energy tap animation state
+    const [harvestAnimation, setHarvestAnimation] = useState({ show: false, amount: 0 });
+
+    // Energy burn animation state
+    const [burnAnimation, setBurnAnimation] = useState({ show: false, amount: 0 });
+
+    // Current Stacks block tracking
+    const [currentBlock, setCurrentBlock] = useState<number | null>(null);
+
+    // Optimistic updates tracking using ref to avoid re-render dependency issues
+    const optimisticUpdatesRef = useRef({
+        balanceIncrease: 0,
+        harvestableDecrease: 0,
+        accumulatedDecrease: 0, // Track accumulated energy decreases separately
+        pendingTaps: new Map<string, number>() // track pending taps by transaction ID
+    });
+
+    // Wallet connection
     const { walletState } = useApp();
-    const { balances } = useBlaze(walletState.connected ? { userId: walletState.address } : undefined);
 
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const lastUpdateRef = useRef<number>(Date.now());
+    const eventSourceRef = useRef<EventSource | null>(null);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Calculate progress percentage and capacity zones
-    const progressPercentage = simulation.maxCapacity > 0
-        ? Math.min((simulation.currentEnergy / simulation.maxCapacity) * 100, 100)
-        : 0;
-
-    // Define capacity urgency zones
-    const getCapacityZone = (percentage: number) => {
-        if (percentage >= 100) return 'overflow';
-        if (percentage >= 85) return 'critical';
-        if (percentage >= 60) return 'warning';
-        return 'safe';
-    };
-
-    const capacityZone = getCapacityZone(progressPercentage);
-
-    // Zone-specific styling and animations
-    const getZoneStyles = (zone: string) => {
-        switch (zone) {
-            case 'overflow':
-                return {
-                    progressColor: 'bg-red-500',
-                    glowColor: 'rgba(239, 68, 68, 0.4)',
-                    borderColor: 'border-red-500/50',
-                    animation: 'animate-pulse',
-                    textColor: 'text-red-400'
-                };
-            case 'critical':
-                return {
-                    progressColor: 'bg-red-400',
-                    glowColor: 'rgba(248, 113, 113, 0.3)',
-                    borderColor: 'border-red-400/40',
-                    animation: 'animate-pulse',
-                    textColor: 'text-red-300'
-                };
-            case 'warning':
-                return {
-                    progressColor: 'bg-yellow-400',
-                    glowColor: 'rgba(251, 191, 36, 0.3)',
-                    borderColor: 'border-yellow-400/40',
-                    animation: 'animate-bounce',
-                    textColor: 'text-yellow-300'
-                };
-            default:
-                return {
-                    progressColor: 'bg-gradient-to-r from-primary to-primary/80',
-                    glowColor: 'hsl(var(--primary) / 0.2)',
-                    borderColor: 'border-primary/30',
-                    animation: '',
-                    textColor: 'text-primary'
-                };
+    // Fetch current Stacks block height
+    const fetchCurrentBlock = async () => {
+        try {
+            const response = await fetch('https://api.hiro.so/v2/info');
+            const data = await response.json();
+            setCurrentBlock(data.stacks_tip_height);
+        } catch (error) {
+            console.warn('Failed to fetch current block height:', error);
         }
     };
 
-    const zoneStyles = getZoneStyles(capacityZone);
+    // Update current block every 5 seconds
+    useEffect(() => {
+        fetchCurrentBlock(); // Initial fetch
+        const interval = setInterval(fetchCurrentBlock, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Calculate derived values from energy state
+    // For Energy Capacity section: show current spendable balance vs max capacity
+    const currentBalancePercentage = energyState ?
+        Math.min((energyState.currentEnergyBalance / energyState.maxCapacity) * 100, 100) : 0;
+
+    // Determine capacity zone based on CURRENT BALANCE, not harvestable energy
+    const currentBalanceZone: 'safe' | 'warning' | 'critical' | 'overflow' =
+        currentBalancePercentage >= 100 ? 'overflow' :
+            currentBalancePercentage >= 85 ? 'critical' :
+                currentBalancePercentage >= 60 ? 'warning' : 'safe';
+
+    const zoneStyles = getCapacityZoneStyles(currentBalanceZone);
+
+    // Keep the original harvestable energy calculations for other parts of the UI
+    const harvestablePercentage = energyState?.capacityPercentage || 0;
+    const harvestableZone = energyState?.capacityStatus || 'safe';
 
     // Calculate base vs bonus capacity using real NFT data
     const baseCapacity = 100000000; // 100 energy as base (100 * 10^6)
-    
-    // Calculate actual bonus capacity from Memobot NFTs
-    let memobotBonusCapacity = 0;
-    if (walletState.connected && balances && walletState.address) {
-        // Check for Memobot NFTs in user's balance
-        const memobotContracts = [
-            'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.memobots',
-            'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.memobot'
-        ];
-        
-        memobotContracts.forEach(contractId => {
-            Object.keys(balances).forEach(balanceKey => {
-                if (balanceKey.includes(contractId) && balanceKey.includes(walletState.address!)) {
-                    const balance = balances[balanceKey];
-                    if (balance && typeof balance.formattedBalance === 'number' && balance.formattedBalance > 0) {
-                        memobotBonusCapacity += balance.formattedBalance * 50000000; // 50 energy per Memobot (50 * 10^6)
-                    }
-                }
-            });
-        });
-    }
-    
-    const totalCapacity = baseCapacity + memobotBonusCapacity;
-    const bonusCapacity = memobotBonusCapacity;
 
-    const requiredTokenId = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1';
-
-    // Get user's actual token balance
-    const userTokenBalance = walletState.connected && balances
-        ? balances[`${walletState.address}:${requiredTokenId}`]?.formattedBalance || 0
-        : 0;
+    // Use real NFT bonus data from nft-service
+    const { bonuses: nftBonuses } = useNFTBonuses(walletState.address);
+    const actualCapacityBonus = nftBonuses?.capacityBonus || 0;
+    const bonusCapacity = actualCapacityBonus;
 
     // Load token metadata
     useEffect(() => {
         const loadMetadata = async () => {
             try {
                 const [tokenMeta, energyMeta] = await Promise.all([
-                    getTokenMetadataCached(requiredTokenId),
+                    getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1'),
                     getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy')
                 ]);
                 setTokenMetadata(tokenMeta);
@@ -160,173 +129,289 @@ export function EnergySimulation() {
         loadMetadata();
     }, []);
 
-    // Update simulation with user's actual token balance
-    useEffect(() => {
-        if (userTokenBalance > 0) {
-            setSimulation(prev => ({ ...prev, tokenBalance: userTokenBalance }));
-            setConfigTokenBalance(userTokenBalance.toString());
+    // SSE Connection Management
+    const connectToEnergyStream = () => {
+        if (!walletState.connected || !walletState.address) {
+            console.warn('Cannot connect to energy stream: wallet not connected');
+            return;
         }
-    }, [userTokenBalance]);
 
-    // Update simulation capacity when NFT bonuses change
-    useEffect(() => {
-        setSimulation(prev => ({ 
-            ...prev, 
-            maxCapacity: totalCapacity,
-            // Reset energy if it exceeds new capacity
-            currentEnergy: Math.min(prev.currentEnergy, totalCapacity)
-        }));
-        setConfigMaxCapacity((totalCapacity / Math.pow(10, energyMetadata?.decimals || 6)).toString());
-    }, [totalCapacity, energyMetadata]);
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+        }
 
-    // Calculate real energy generation rate
-    const calculateEnergyRate = useCallback((tokenBalance: number): number => {
-        if (!tokenMetadata) return 0;
+        setConnectionState(prev => ({ ...prev, isConnecting: true, error: null }));
+        console.log(`🌊 Connecting to energy stream for: ${walletState.address}`);
 
-        // Convert to raw token units
-        const decimals = tokenMetadata.decimals || 6;
-        const rawTokenBalance = tokenBalance * Math.pow(10, decimals);
+        const eventSource = new EventSource(`/api/v1/energy/stream/${walletState.address}`);
+        eventSourceRef.current = eventSource;
 
-        // Real rate calculation based on actual energize vault mechanics
-        // This should match the actual contract rate - using discovered rate from testing
-        const baseRatePerToken = 0.0015; // Energy per raw token per second (from contract testing)
+        eventSource.onopen = () => {
+            console.log('✅ Energy stream connected');
+            setConnectionState({
+                isConnected: true,
+                isConnecting: false,
+                error: null,
+                lastUpdate: Date.now(),
+                reconnectAttempts: 0
+            });
+        };
 
-        return rawTokenBalance * baseRatePerToken;
-    }, [tokenMetadata]);
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
 
-    // Update energy rate when token balance changes
-    useEffect(() => {
-        const newRate = calculateEnergyRate(simulation.tokenBalance);
-        setSimulation(prev => ({ ...prev, energyRate: newRate }));
-    }, [simulation.tokenBalance, calculateEnergyRate]);
+                if (data.type === 'energy_update') {
+                    // Apply optimistic updates to incoming SSE data (respecting capacity limits)
+                    const optimisticBalance = data.currentEnergyBalance + optimisticUpdatesRef.current.balanceIncrease;
+                    const cappedBalance = Math.min(optimisticBalance, data.maxCapacity);
 
-    // Update simulation state
-    const updateSimulation = useCallback(() => {
-        const now = Date.now();
-        setSimulation(prev => {
-            if (!prev.isRunning) return prev;
-
-            const deltaTime = (now - lastUpdateRef.current) / 1000; // Time since last update
-            const energyGained = deltaTime * prev.energyRate;
-            const newEnergy = Math.min(prev.currentEnergy + energyGained, prev.maxCapacity);
-            const totalElapsedTime = (now - prev.startTime) / 1000;
-
-            return {
-                ...prev,
-                currentEnergy: newEnergy,
-                elapsedTime: totalElapsedTime
-            };
-        });
-        lastUpdateRef.current = now;
-    }, []);
-
-    // Start/stop simulation
-    const toggleSimulation = () => {
-        setSimulation(prev => {
-            if (prev.isRunning) {
-                // Stop simulation
-                if (intervalRef.current) {
-                    clearInterval(intervalRef.current);
-                    intervalRef.current = null;
+                    const updatedData = {
+                        ...data,
+                        currentEnergyBalance: cappedBalance,
+                        totalHarvestableEnergy: Math.max(0, data.totalHarvestableEnergy - optimisticUpdatesRef.current.harvestableDecrease),
+                        accumulatedSinceLastHarvest: Math.max(0, data.accumulatedSinceLastHarvest - optimisticUpdatesRef.current.accumulatedDecrease)
+                    };
+                    setEnergyState(updatedData);
+                    setConnectionState(prev => ({ ...prev, lastUpdate: Date.now() }));
+                } else if (data.type === 'connected') {
+                    console.log('🎯 Energy stream handshake completed');
+                } else if (data.type === 'error') {
+                    console.error('🔥 Energy stream error:', data.message);
+                    setConnectionState(prev => ({ ...prev, error: data.message }));
                 }
-                return { ...prev, isRunning: false };
-            } else {
-                // Start simulation - trigger burst effect
-                setShowBurstEffect(true);
-                const now = Date.now();
-                lastUpdateRef.current = now;
-                const newState = {
-                    ...prev,
-                    isRunning: true,
-                    startTime: now
-                };
-                return newState;
-            }
-        });
-    };
-
-    // Reset simulation
-    const resetSimulation = () => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-
-        setSimulation(prev => ({
-            ...prev,
-            isRunning: false,
-            currentEnergy: 0,
-            startTime: 0,
-            elapsedTime: 0
-        }));
-    };
-
-    // Apply configuration
-    const applyConfiguration = () => {
-        const newTokenBalance = parseFloat(configTokenBalance) || 1000;
-        
-        // Use real capacity calculation instead of user input
-        const realMaxCapacity = totalCapacity;
-
-        setSimulation(prev => ({
-            ...prev,
-            maxCapacity: realMaxCapacity,
-            tokenBalance: newTokenBalance,
-            currentEnergy: 0,
-            startTime: 0,
-            elapsedTime: 0,
-            isRunning: false
-        }));
-
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-
-        setShowSettings(false);
-    };
-
-    // Start interval when simulation starts
-    useEffect(() => {
-        if (simulation.isRunning && simulation.energyRate > 0) {
-            intervalRef.current = setInterval(updateSimulation, 100); // Update every 100ms for smooth animation
-        } else if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
+            } catch (error) {
+                console.error('Failed to parse SSE data:', error);
             }
         };
-    }, [simulation.isRunning, simulation.energyRate, updateSimulation]);
 
-    // Format energy values
-    const formatEnergy = (rawValue: number): string => {
-        if (!energyMetadata) return rawValue.toLocaleString();
+        eventSource.onerror = (error) => {
+            console.error('❌ Energy stream error:', error);
+            setConnectionState(prev => ({
+                ...prev,
+                isConnected: false,
+                isConnecting: false,
+                error: 'Connection lost',
+                reconnectAttempts: prev.reconnectAttempts + 1
+            }));
 
-        const decimals = energyMetadata.decimals || 6;
-        const divisor = Math.pow(10, decimals);
-        const adjustedValue = rawValue / divisor;
+            // Auto-reconnect with exponential backoff
+            if (connectionState.reconnectAttempts < 5) {
+                const delay = Math.min(1000 * Math.pow(2, connectionState.reconnectAttempts), 10000);
+                console.log(`🔄 Reconnecting in ${delay}ms (attempt ${connectionState.reconnectAttempts + 1})`);
 
-        return adjustedValue.toLocaleString(undefined, {
-            maximumFractionDigits: 6,
-            minimumFractionDigits: 0
-        });
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    connectToEnergyStream();
+                }, delay);
+            }
+        };
     };
 
-    // Calculate time to full capacity
-    const timeToFullCapacity = simulation.energyRate > 0
-        ? (simulation.maxCapacity - simulation.currentEnergy) / simulation.energyRate
-        : 0;
+    // Connect when wallet connects
+    useEffect(() => {
+        if (walletState.connected && walletState.address) {
+            connectToEnergyStream();
+        } else {
+            // Disconnect when wallet disconnects
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+                eventSourceRef.current = null;
+            }
+            setConnectionState({
+                isConnected: false,
+                isConnecting: false,
+                error: null,
+                lastUpdate: 0,
+                reconnectAttempts: 0
+            });
+            setEnergyState(null);
+        }
 
-    const formatTime = (seconds: number): string => {
-        if (seconds < 60) return `${Math.round(seconds)}s`;
-        if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-        if (seconds < 86400) return `${Math.round(seconds / 3600)}h`;
-        return `${Math.round(seconds / 86400)}d`;
+        // Cleanup on unmount
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+        };
+    }, [walletState.connected, walletState.address]);
+
+    // Manual reconnection function
+    const handleReconnect = () => {
+        setConnectionState(prev => ({ ...prev, reconnectAttempts: 0 }));
+        connectToEnergyStream();
+    };
+
+    // Burn energy using hooter-farm-x10 contract
+    const handleBurnEnergy = async () => {
+        if (!walletState.connected || !walletState.address) {
+            console.error('Wallet not connected');
+            return;
+        }
+
+        const energyBalance = energyState?.currentEnergyBalance || 0;
+
+        try {
+            setIsBurning(true);
+            const hooterTheOwlToken = await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl');
+            const hooterFarmX10Contract = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-x10';
+            const response = await request('stx_callContract', {
+                contract: hooterFarmX10Contract,
+                functionName: 'claim',
+                functionArgs: [uintCV(energyBalance)], // 1000 energy in micro-units
+                postConditions: [
+                    Pc.principal(walletState.address).willSendLte(energyBalance).ft(energyMetadata?.contractId as any, 'energy'),
+                    Pc.principal(hooterFarmX10Contract).willSendLte(energyBalance).ft(hooterTheOwlToken?.contractId as any, 'hooter')
+                ],
+                network: 'mainnet'
+            });
+
+            console.log('Burn energy transaction response:', response);
+            setBurnSuccess(true);
+
+            // Optimistic update - immediately reduce energy balance
+            const burnedAmount = energyBalance;
+            console.log(`Optimistically reducing energy balance by ${burnedAmount} micro-units`);
+
+            // Show burn animation
+            setBurnAnimation({ show: true, amount: burnedAmount });
+
+            // Generate unique burn ID for tracking
+            const burnId = `burn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Update optimistic tracking
+            optimisticUpdatesRef.current.balanceIncrease -= burnedAmount; // Negative increase = decrease
+            optimisticUpdatesRef.current.pendingTaps.set(burnId, -burnedAmount); // Track as negative
+
+            // Immediately update energy state (reduce current balance to 0 or minimal amount)
+            setEnergyState(prev => prev ? {
+                ...prev,
+                currentEnergyBalance: 0 // Burn typically consumes all available energy
+            } : null);
+
+            // Hide burn animation after 2 seconds
+            setTimeout(() => {
+                setBurnAnimation({ show: false, amount: 0 });
+            }, 2000);
+
+            // Reset success state after 3 seconds
+            setTimeout(() => {
+                setBurnSuccess(false);
+            }, 3000);
+
+            // Clear optimistic update after 60 seconds (blockchain confirmation should happen by then)
+            setTimeout(() => {
+                if (optimisticUpdatesRef.current.pendingTaps.has(burnId)) {
+                    const amount = optimisticUpdatesRef.current.pendingTaps.get(burnId)!;
+                    optimisticUpdatesRef.current.balanceIncrease -= amount; // Remove the negative amount
+                    optimisticUpdatesRef.current.pendingTaps.delete(burnId);
+                    console.log(`Cleared optimistic burn update for ${burnId}`);
+                }
+            }, 60000);
+
+        } catch (error) {
+            console.error('Energy burn failed:', error);
+
+            // Revert optimistic update on error
+            if (energyState) {
+                const revertAmount = energyState.currentEnergyBalance || 0;
+                console.log(`Reverting optimistic burn update: ${revertAmount} micro-units`);
+
+                // Restore the original energy balance
+                setEnergyState(prev => prev ? {
+                    ...prev,
+                    currentEnergyBalance: energyBalance // Restore original balance
+                } : null);
+
+                // Also revert the optimistic tracking
+                optimisticUpdatesRef.current.balanceIncrease += energyBalance;
+            }
+        } finally {
+            setIsBurning(false);
+        }
+    };
+
+    // Handle optimistic energy tap update with animation and per-engine tracking
+    const handleEnergyHarvested = (tappedAmount: number, engineContractId?: string) => {
+        console.log(`Energy tapped: ${tappedAmount} micro-units from engine: ${engineContractId || 'unknown'}`);
+
+        if (!energyState) return;
+
+        // Calculate how much energy can actually be added to balance (respecting capacity)
+        const currentBalance = energyState.currentEnergyBalance;
+        const maxCapacity = energyState.maxCapacity;
+        const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
+        const actualHarvestedAmount = Math.min(tappedAmount, remainingCapacity);
+        const wastedAmount = tappedAmount - actualHarvestedAmount;
+
+        console.log(`Capacity check: current=${currentBalance}, max=${maxCapacity}, remaining=${remainingCapacity}`);
+        console.log(`Harvest: requested=${tappedAmount}, actual=${actualHarvestedAmount}, wasted=${wastedAmount}`);
+
+        // Generate unique tap ID for tracking
+        const tapId = `tap-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Show appropriate animation based on capacity
+        if (actualHarvestedAmount > 0) {
+            setHarvestAnimation({ show: true, amount: actualHarvestedAmount });
+        }
+
+        // Show waste warning if energy was wasted
+        if (wastedAmount > 0) {
+            console.warn(`⚠️ ${wastedAmount} micro-units wasted - wallet at capacity!`);
+            // Could show a different animation here for wasted energy
+        }
+
+        // Hide animation after 2 seconds
+        setTimeout(() => {
+            setHarvestAnimation({ show: false, amount: 0 });
+        }, 2000);
+
+        // The accumulated energy should decrease by exactly the amount that goes into the balance
+        // This ensures perfect 1:1 correspondence between balance increase and accumulated decrease
+        const accumulatedEnergyReduction = actualHarvestedAmount;
+
+        console.log(`Accumulated energy reduction: ${accumulatedEnergyReduction} micro-units`);
+
+        // Update optimistic tracking in ref (only track what was actually harvested)
+        if (actualHarvestedAmount > 0) {
+            optimisticUpdatesRef.current.balanceIncrease += actualHarvestedAmount;
+            optimisticUpdatesRef.current.harvestableDecrease += tappedAmount; // Full amount removed from harvestable
+            optimisticUpdatesRef.current.accumulatedDecrease += accumulatedEnergyReduction; // Track accumulated decrease separately
+            optimisticUpdatesRef.current.pendingTaps.set(tapId, actualHarvestedAmount);
+
+            // Immediately update current energy state (respecting capacity)
+            setEnergyState(prev => prev ? {
+                ...prev,
+                currentEnergyBalance: Math.min(prev.currentEnergyBalance + actualHarvestedAmount, maxCapacity),
+                totalHarvestableEnergy: Math.max(0, prev.totalHarvestableEnergy - tappedAmount),
+                // Reduce accumulated energy by exactly the amount that went into balance
+                accumulatedSinceLastHarvest: Math.max(0, prev.accumulatedSinceLastHarvest - accumulatedEnergyReduction)
+            } : null);
+        } else {
+            // If nothing was harvested due to capacity, don't reduce accumulated energy
+            // (since no energy actually moved from accumulated to balance)
+            optimisticUpdatesRef.current.harvestableDecrease += tappedAmount;
+            setEnergyState(prev => prev ? {
+                ...prev,
+                totalHarvestableEnergy: Math.max(0, prev.totalHarvestableEnergy - tappedAmount),
+                // Don't reduce accumulated energy if nothing was actually harvested
+                accumulatedSinceLastHarvest: prev.accumulatedSinceLastHarvest
+            } : null);
+        }
+
+        // Clear this specific tap after 60 seconds (blockchain confirmation should happen by then)
+        setTimeout(() => {
+            if (optimisticUpdatesRef.current.pendingTaps.has(tapId)) {
+                const amount = optimisticUpdatesRef.current.pendingTaps.get(tapId)!;
+                optimisticUpdatesRef.current.balanceIncrease -= amount;
+                optimisticUpdatesRef.current.harvestableDecrease -= tappedAmount;
+                optimisticUpdatesRef.current.accumulatedDecrease -= accumulatedEnergyReduction;
+                optimisticUpdatesRef.current.pendingTaps.delete(tapId);
+                console.log(`Cleared optimistic update for tap ${tapId}`);
+            }
+        }, 60000);
     };
 
     if (!tokenMetadata || !energyMetadata) {
@@ -342,15 +427,10 @@ export function EnergySimulation() {
 
     return (
         <EnergyFlowVisualization
-            isActive={simulation.isRunning}
-            energyRate={simulation.energyRate}
+            isActive={connectionState.isConnected && (energyState?.energyRatePerSecond || 0) > 0}
+            energyRate={energyState?.energyRatePerSecond || 0}
         >
             <div className="glass-card p-6 relative">
-                {/* Energy Burst Effect */}
-                <EnergyBurstEffect 
-                    trigger={showBurstEffect}
-                    onComplete={() => setShowBurstEffect(false)}
-                />
 
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
@@ -358,345 +438,575 @@ export function EnergySimulation() {
                             <Zap className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold">Energy Generation Simulation</h3>
-                            <p className="text-sm text-muted-foreground">Real-time energy accumulation visualization</p>
+                            <h3 className="text-lg font-semibold">Real-Time Energy Tracker</h3>
+                            <p className="text-sm text-muted-foreground">Live energy accumulation status</p>
                         </div>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSettings(!showSettings)}
-                        className="flex items-center gap-2"
-                    >
-                        <Settings className="h-4 w-4" />
-                        Configure
-                    </Button>
-                </div>
-
-            {/* Configuration Panel */}
-            {showSettings && (
-                <div className="token-card p-4 mb-6">
-                    <h4 className="font-medium mb-4">Simulation Configuration</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label htmlFor="max-capacity">Max Energy Capacity (Auto-calculated)</Label>
-                            <div className="mt-1 p-2 bg-muted/20 rounded-md border">
-                                <div className="text-sm font-medium">
-                                    {(totalCapacity / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)} Energy
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                    Base: {(baseCapacity / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)} + 
-                                    Memobot Bonus: {(bonusCapacity / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)}
-                                </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Capacity automatically calculated from your Memobot NFT ownership
-                            </p>
-                        </div>
-
-                        <div>
-                            <Label htmlFor="token-balance">Token Balance ({tokenMetadata.symbol})</Label>
-                            <div className="relative">
-                                <Input
-                                    id="token-balance"
-                                    type="number"
-                                    value={configTokenBalance}
-                                    onChange={(e) => setConfigTokenBalance(e.target.value)}
-                                    placeholder="Enter token amount"
-                                    className="mt-1"
-                                    min="0"
-                                    step="0.000001"
-                                />
-                                {walletState.connected && userTokenBalance > 0 && (
-                                    <Badge variant="secondary" className="absolute -top-2 -right-2 text-xs">
-                                        Wallet Balance
-                                    </Badge>
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {walletState.connected 
-                                    ? `Your wallet balance: ${userTokenBalance.toLocaleString()} ${tokenMetadata.symbol}`
-                                    : `Amount of ${tokenMetadata.name} tokens held`
-                                }
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-2 mt-4">
-                        <Button onClick={applyConfiguration} className="button-primary">
-                            Apply Configuration
-                        </Button>
-                        <Button variant="outline" onClick={() => setShowSettings(false)}>
-                            Cancel
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            {/* Current Configuration Display with Animated Counters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-3 token-card">
-                    <div className="text-xs text-muted-foreground mb-1">Token Balance</div>
-                    <div className="font-semibold">
-                        <AnimatedCounter 
-                            value={simulation.tokenBalance} 
-                            decimals={0}
-                            suffix={` ${tokenMetadata.symbol}`}
-                        />
-                    </div>
-                </div>
-
-                <div className="text-center p-3 token-card">
-                    <div className="text-xs text-muted-foreground mb-1">Max Capacity</div>
-                    <div className="font-semibold">
-                        <AnimatedCounter 
-                            value={simulation.maxCapacity / Math.pow(10, energyMetadata?.decimals || 6)} 
-                            decimals={2}
-                            suffix=" Energy"
-                        />
-                    </div>
-                </div>
-
-                <div className="text-center p-3 token-card">
-                    <div className="text-xs text-muted-foreground mb-1">Generation Rate</div>
-                    <div className="font-semibold">
-                        <AnimatedCounter 
-                            value={simulation.energyRate / Math.pow(10, energyMetadata?.decimals || 6)} 
-                            decimals={6}
-                            suffix="/sec"
-                            className={cn(
-                                simulation.isRunning && "text-primary"
-                            )}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Multi-Engine Energy Tank Visualization and NFT Bonuses */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-                <div className="xl:col-span-2">
-                    <EnergyTankVisualization
-                        currentEnergy={simulation.currentEnergy}
-                        maxCapacity={simulation.maxCapacity}
-                        baseCapacity={baseCapacity}
-                        bonusCapacity={bonusCapacity}
-                        totalEnergyRate={simulation.energyRate}
-                        isGenerating={simulation.isRunning}
-                        capacityZone={capacityZone}
-                    />
-                </div>
-                
-                <div className="xl:col-span-1">
-                    <NFTBonusDisplay userAddress={walletState.address} />
-                </div>
-            </div>
-
-            {/* Capacity Warning Alert */}
-            {capacityZone !== 'safe' && (
-                <Alert className={cn("border-2", zoneStyles.borderColor)}>
-                    <AlertDescription className={cn("font-medium", zoneStyles.textColor)}>
-                        {capacityZone === 'overflow' && (
-                            <>⚠️ ENERGY CAPACITY FULL - Energy generation is being wasted! Spend energy to resume earning.</>
-                        )}
-                        {capacityZone === 'critical' && (
-                            <>🔴 CRITICAL CAPACITY WARNING - You're at {progressPercentage.toFixed(1)}% capacity. Spend energy soon to avoid waste.</>
-                        )}
-                        {capacityZone === 'warning' && (
-                            <>🟡 CAPACITY WARNING - You're at {progressPercentage.toFixed(1)}% capacity. Consider spending energy soon.</>
-                        )}
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            {/* Progress Bar Section */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Battery className={cn("h-5 w-5", zoneStyles.textColor)} />
-                        <span className="font-medium">Energy Capacity</span>
-                        <Badge 
-                            variant={capacityZone === 'safe' ? 'outline' : 'destructive'}
-                            className={cn(
-                                capacityZone !== 'safe' && zoneStyles.animation,
-                                capacityZone === 'warning' && 'bg-yellow-500/20 text-yellow-700 border-yellow-500/50',
-                                capacityZone === 'critical' && 'bg-red-500/20 text-red-700 border-red-500/50',
-                                capacityZone === 'overflow' && 'bg-red-600/30 text-red-800 border-red-600/60'
-                            )}
+                        {/* Current Stacks Block */}
+                        <div className="text-xs text-muted-foreground">
+                            Block: {currentBlock ? currentBlock.toLocaleString() : '...'}
+                        </div>
+
+                        <Badge
+                            variant={connectionState.isConnected ? "default" : "destructive"}
+                            className="flex items-center gap-1"
                         >
-                            {progressPercentage.toFixed(1)}%
+                            {connectionState.isConnected ? (
+                                <><Wifi className="h-3 w-3" /> Live</>
+                            ) : connectionState.isConnecting ? (
+                                <><div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" /> Connecting</>
+                            ) : (
+                                <><WifiOff className="h-3 w-3" /> Offline</>
+                            )}
                         </Badge>
-                    </div>
-
-                    <div className="text-sm text-muted-foreground">
-                        <AnimatedCounter 
-                            value={simulation.currentEnergy / Math.pow(10, energyMetadata?.decimals || 6)} 
-                            decimals={2}
-                        /> / <AnimatedCounter 
-                            value={simulation.maxCapacity / Math.pow(10, energyMetadata?.decimals || 6)} 
-                            decimals={0}
-                        />
+                        {connectionState.error && (
+                            <button
+                                onClick={handleReconnect}
+                                className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            >
+                                Reconnect
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Animated Progress Bar with Dynamic Zone Styling */}
-                <div className={cn("relative", capacityZone !== 'safe' && zoneStyles.animation)}>
-                    <Progress
-                        value={progressPercentage}
-                        className="h-8 bg-muted/20"
-                        indicatorClassName={cn(zoneStyles.progressColor)}
-                    />
-
-                    {/* Enhanced Glow Effect for Different Zones */}
-                    {simulation.isRunning && (
-                        <div
-                            className="absolute inset-0 h-8 rounded-full pointer-events-none"
-                            style={{
-                                background: `radial-gradient(ellipse at center, ${zoneStyles.glowColor} 0%, transparent 70%)`,
-                                filter: 'blur(12px)',
-                                animation: capacityZone !== 'safe' ? 'pulse 1.5s infinite' : 'none'
-                            }}
-                        />
-                    )}
-
-                    {/* Zone Markers */}
-                    <div className="absolute inset-0 h-8 pointer-events-none">
-                        {/* Warning zone marker at 60% */}
-                        <div 
-                            className="absolute top-0 bottom-0 w-0.5 bg-yellow-400/60"
-                            style={{ left: '60%' }}
-                        />
-                        {/* Critical zone marker at 85% */}
-                        <div 
-                            className="absolute top-0 bottom-0 w-0.5 bg-red-400/60"
-                            style={{ left: '85%' }}
-                        />
-                    </div>
-
-                    {/* Energy Value Overlay with Zone-Aware Styling and Animation */}
-                    <div className="absolute inset-0 flex items-center justify-center h-8">
-                        <span className={cn(
-                            "text-xs font-medium drop-shadow-sm",
-                            capacityZone === 'safe' ? "text-foreground/90" : "text-white font-bold"
-                        )}>
-                            <AnimatedCounter 
-                                value={simulation.currentEnergy / Math.pow(10, energyMetadata?.decimals || 6)} 
-                                decimals={2}
-                                suffix=" Energy"
-                                duration={0.5}
-                            />
-                        </span>
-                    </div>
-
-                    {/* Overflow Effect */}
-                    {capacityZone === 'overflow' && simulation.isRunning && (
-                        <div className="absolute -top-2 -right-2 text-red-500 animate-bounce">
-                            <span className="text-xs font-bold bg-red-500/20 px-2 py-1 rounded border border-red-500/50">
-                                ⚠️ WASTING ENERGY
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Status Information with Zone-Aware Styling */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>Elapsed: {formatTime(simulation.elapsedTime)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        <span>Rate: {formatEnergy(simulation.energyRate * 3600)}/hour</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Battery className={cn(
-                            "h-4 w-4",
-                            capacityZone === 'overflow' ? 'text-red-500' : 'text-muted-foreground'
-                        )} />
-                        <span className={cn(
-                            capacityZone === 'overflow' && 'text-red-500 font-bold'
-                        )}>
-                            {progressPercentage >= 100 ? 'CAPACITY FULL' : `Full in: ${formatTime(timeToFullCapacity)}`}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Energy Waste Calculator */}
-                {capacityZone === 'overflow' && simulation.isRunning && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                        <div className="flex items-center gap-2 text-red-400 text-sm">
-                            <span className="font-semibold">⚠️ Energy Being Wasted:</span>
-                            <span className="font-mono">
-                                {formatEnergy(simulation.energyRate * 60)}/minute
-                            </span>
-                            <span className="text-xs text-red-300">
-                                ({formatEnergy(simulation.energyRate * 3600)}/hour)
-                            </span>
-                        </div>
-                        <div className="text-xs text-red-300 mt-1">
-                            Spend energy now to resume earning! Every second at full capacity wastes potential rewards.
+                {/* Connection Status Panel */}
+                {(!connectionState.isConnected || connectionState.error) && walletState.connected && (
+                    <div className="token-card p-4 mb-6">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                            Stream Status
+                        </h4>
+                        {connectionState.error && (
+                            <Alert className="mb-3">
+                                <AlertDescription>
+                                    {connectionState.error}
+                                    {connectionState.reconnectAttempts > 0 && (
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                            (Attempt {connectionState.reconnectAttempts}/5)
+                                        </span>
+                                    )}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        <div className="text-sm text-muted-foreground">
+                            {connectionState.isConnecting ? (
+                                'Connecting to real-time energy stream...'
+                            ) : (
+                                'Real-time energy data is currently unavailable.'
+                            )}
                         </div>
                     </div>
                 )}
 
-                {/* Control Buttons */}
-                <div className="flex items-center gap-3 pt-4 border-t border-border/30">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    onClick={toggleSimulation}
-                                    className={simulation.isRunning ? "button-secondary" : "button-primary"}
-                                    disabled={simulation.energyRate <= 0}
-                                >
-                                    {simulation.isRunning ? (
-                                        <>
-                                            <Pause className="h-4 w-4 mr-2" />
-                                            Pause
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Play className="h-4 w-4 mr-2" />
-                                            Start
-                                        </>
-                                    )}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {simulation.isRunning ? 'Pause the simulation' : 'Start energy generation simulation'}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                {/* Real-Time Energy Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="text-center p-3 token-card relative">
+                        <div className="text-xs text-muted-foreground mb-1">Current Balance</div>
+                        <div className="font-semibold relative">
+                            {energyState ? (
+                                <AnimatedCounter
+                                    value={energyState.currentEnergyBalance / Math.pow(10, energyMetadata?.decimals || 6)}
+                                    decimals={2}
+                                    suffix=" Energy"
+                                    className={harvestAnimation.show ? "text-yellow-500" : ""}
+                                />
+                            ) : (
+                                <span className="text-muted-foreground">--</span>
+                            )}
 
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    onClick={resetSimulation}
-                                >
-                                    <RotateCcw className="h-4 w-4 mr-2" />
-                                    Reset
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Reset simulation to zero energy
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                            {/* Tap Animation */}
+                            {harvestAnimation.show && (
+                                <div className="absolute inset-0 pointer-events-none">
+                                    {/* Golden glow effect */}
+                                    <div className="absolute inset-0 bg-yellow-400/20 rounded-lg animate-pulse" />
 
-                    {simulation.energyRate <= 0 && (
-                        <Alert className="flex-1">
-                            <AlertDescription className="text-xs">
-                                Configure a token balance greater than 0 to start generating energy
-                            </AlertDescription>
-                        </Alert>
-                    )}
+                                    {/* Floating tap amount */}
+                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                                        <div className={cn(
+                                            "text-xs px-2 py-1 rounded-full font-bold shadow-lg",
+                                            energyState && energyState.currentEnergyBalance >= energyState.maxCapacity
+                                                ? "bg-orange-500 text-orange-900"
+                                                : "bg-yellow-500 text-yellow-900"
+                                        )}>
+                                            +{(harvestAnimation.amount / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)} Energy
+                                            {energyState && energyState.currentEnergyBalance >= energyState.maxCapacity && (
+                                                <div className="text-xs opacity-80 mt-0.5">At capacity!</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Sparkle effects */}
+                                    <div className="absolute top-1 right-1">
+                                        <div className="h-2 w-2 bg-yellow-400 rounded-full animate-ping" />
+                                    </div>
+                                    <div className="absolute bottom-1 left-1">
+                                        <div className="h-1 w-1 bg-yellow-300 rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
+                                    </div>
+                                    <div className="absolute top-2 left-1/2">
+                                        <div className="h-1.5 w-1.5 bg-yellow-500 rounded-full animate-ping" style={{ animationDelay: '0.4s' }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Burn Animation */}
+                            {burnAnimation.show && (
+                                <div className="absolute inset-0 pointer-events-none">
+                                    {/* Red flame effect */}
+                                    <div className="absolute inset-0 bg-red-500/30 rounded-lg animate-pulse" />
+
+                                    {/* Floating burn amount */}
+                                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                                        <div className="text-xs px-2 py-1 rounded-full font-bold shadow-lg bg-red-500 text-red-100">
+                                            <Flame className="h-3 w-3 inline mr-1" />
+                                            -{(burnAnimation.amount / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)} Energy Burned
+                                        </div>
+                                    </div>
+
+                                    {/* Fire effects */}
+                                    <div className="absolute top-1 right-1">
+                                        <div className="h-2 w-2 bg-red-500 rounded-full animate-ping" />
+                                    </div>
+                                    <div className="absolute bottom-1 left-1">
+                                        <div className="h-1 w-1 bg-orange-500 rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
+                                    </div>
+                                    <div className="absolute top-2 left-1/2">
+                                        <div className="h-1.5 w-1.5 bg-red-400 rounded-full animate-ping" style={{ animationDelay: '0.4s' }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="text-center p-3 token-card">
+                        <div className="text-xs text-muted-foreground mb-1">Accumulated</div>
+                        <div className="font-semibold">
+                            {energyState ? (
+                                <AnimatedCounter
+                                    value={energyState.accumulatedSinceLastHarvest / Math.pow(10, energyMetadata?.decimals || 6)}
+                                    decimals={2}
+                                    suffix=" Energy"
+                                    className="text-primary"
+                                />
+                            ) : (
+                                <span className="text-muted-foreground">--</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="text-center p-3 token-card">
+                        <div className="text-xs text-muted-foreground mb-1">Generation Rate</div>
+                        <div className="font-semibold">
+                            {energyState ? (
+                                <AnimatedCounter
+                                    value={energyState.energyRatePerSecond / Math.pow(10, energyMetadata?.decimals || 6)}
+                                    decimals={6}
+                                    suffix="/sec"
+                                    className="text-green-400"
+                                />
+                            ) : (
+                                <span className="text-muted-foreground">--</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="text-center p-3 token-card">
+                        <div className="text-xs text-muted-foreground mb-1">Time Since Harvest</div>
+                        <div className="font-semibold">
+                            {energyState ? (
+                                <span>{formatTimeDuration(energyState.timeSinceLastHarvest)}</span>
+                            ) : (
+                                <span className="text-muted-foreground">--</span>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                {/* Multi-Engine Energy Tank Visualization and NFT Bonuses */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+                    <div className="xl:col-span-2">
+                        <EnergyTankVisualization
+                            currentEnergy={energyState?.totalHarvestableEnergy || 0}
+                            currentBalance={energyState?.currentEnergyBalance || 0}
+                            maxCapacity={energyState?.maxCapacity || baseCapacity + actualCapacityBonus}
+                            baseCapacity={baseCapacity}
+                            bonusCapacity={bonusCapacity}
+                            totalEnergyRate={energyState?.energyRatePerSecond || 0}
+                            isGenerating={connectionState.isConnected && (energyState?.energyRatePerSecond || 0) > 0}
+                            capacityZone={harvestableZone}
+                            onEnergyHarvested={handleEnergyHarvested}
+                        />
+                    </div>
+
+                    <div className="xl:col-span-1 space-y-6">
+                        <NFTBonusDisplay userAddress={walletState.address} />
+                    </div>
+                </div>
+
+                {/* Energy Capacity and Smart Energy Management - Side by Side on XL */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                    {/* Energy Capacity Section - Left Column */}
+                    <div className="token-card p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Battery className={cn("h-4 w-4", zoneStyles.textColor)} />
+                                <span className="text-sm font-medium">Energy Capacity</span>
+                                {energyState && (
+                                    <span className="text-sm text-muted-foreground">
+                                        <AnimatedCounter
+                                            value={energyState.currentEnergyBalance / Math.pow(10, energyMetadata?.decimals || 6)}
+                                            decimals={1}
+                                        /> / <AnimatedCounter
+                                            value={energyState.maxCapacity / Math.pow(10, energyMetadata?.decimals || 6)}
+                                            decimals={0}
+                                        />
+                                    </span>
+                                )}
+                            </div>
+
+                            <Badge
+                                variant={currentBalanceZone === 'safe' ? 'outline' : currentBalanceZone === 'overflow' ? 'destructive' : 'secondary'}
+                                className={cn(
+                                    "text-xs",
+                                    currentBalanceZone === 'overflow' && 'animate-pulse bg-red-500/20 text-red-700 border-red-500/50'
+                                )}
+                            >
+                                {currentBalanceZone === 'overflow' ? '⚠️ FULL' :
+                                    currentBalanceZone === 'critical' ? '🔴 Critical' :
+                                        currentBalanceZone === 'warning' ? '🟡 Warning' :
+                                            `${currentBalancePercentage.toFixed(0)}%`}
+                            </Badge>
+                        </div>
+
+                        {/* Animated Progress Bar with Dynamic Zone Styling */}
+                        <div className={cn("relative", currentBalanceZone !== 'safe' && zoneStyles.animation)}>
+                            <Progress
+                                value={currentBalancePercentage}
+                                className="h-8 bg-muted/20"
+                                indicatorClassName={cn(zoneStyles.progressColor)}
+                            />
+
+                            {/* Enhanced Glow Effect for Different Zones */}
+                            {connectionState.isConnected && (energyState?.energyRatePerSecond || 0) > 0 && (
+                                <div
+                                    className="absolute inset-0 h-8 rounded-full pointer-events-none"
+                                    style={{
+                                        background: `radial-gradient(ellipse at center, ${zoneStyles.glowColor} 0%, transparent 70%)`,
+                                        filter: 'blur(12px)',
+                                        animation: currentBalanceZone !== 'safe' ? 'pulse 1.5s infinite' : 'none'
+                                    }}
+                                />
+                            )}
+
+                            {/* Zone Markers */}
+                            <div className="absolute inset-0 h-8 pointer-events-none">
+                                {/* Warning zone marker at 60% */}
+                                <div
+                                    className="absolute top-0 bottom-0 w-0.5 bg-yellow-400/60"
+                                    style={{ left: '60%' }}
+                                />
+                                {/* Critical zone marker at 85% */}
+                                <div
+                                    className="absolute top-0 bottom-0 w-0.5 bg-red-400/60"
+                                    style={{ left: '85%' }}
+                                />
+                            </div>
+
+                            {/* Energy Value Overlay with Zone-Aware Styling and Animation */}
+                            <div className="absolute inset-0 flex items-center justify-center h-8">
+                                <span className={cn(
+                                    "text-xs font-medium drop-shadow-sm",
+                                    currentBalanceZone === 'safe' ? "text-foreground/90" : "text-white font-bold"
+                                )}>
+                                    {energyState ? (
+                                        <AnimatedCounter
+                                            value={energyState.currentEnergyBalance / Math.pow(10, energyMetadata?.decimals || 6)}
+                                            decimals={2}
+                                            suffix=" Energy"
+                                            duration={0.5}
+                                        />
+                                    ) : (
+                                        <span>-- Energy</span>
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Real-Time Status Information */}
+                        <div className="grid grid-cols-1 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>
+                                    Last Harvest: {energyState ?
+                                        new Date(energyState.lastHarvestTimestamp).toLocaleTimeString() :
+                                        '--'
+                                    }
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-muted-foreground" />
+                                <span>
+                                    Rate: {energyState ?
+                                        formatEnergyValue(energyState.energyRatePerSecond * 3600) + '/hour' :
+                                        '--'
+                                    }
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Battery className={cn(
+                                    "h-4 w-4",
+                                    currentBalanceZone === 'overflow' ? 'text-red-500' : 'text-muted-foreground'
+                                )} />
+                                <span className={cn(
+                                    currentBalanceZone === 'overflow' && 'text-red-500 font-bold'
+                                )}>
+                                    {currentBalancePercentage >= 100 ? 'CAPACITY FULL' : (
+                                        energyState ? `Full in: ${formatTimeDuration(energyState.timeToCapacity)}` : '--'
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Energy Waste Calculator */}
+                        {currentBalanceZone === 'overflow' && energyState && energyState.energyWasteRate > 0 && (
+                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                <div className="flex items-center gap-2 text-red-400 text-sm">
+                                    <span className="font-semibold">⚠️ Energy Being Wasted:</span>
+                                    <span className="font-mono">
+                                        {formatEnergyValue(energyState.energyWasteRate * 60)}/minute
+                                    </span>
+                                    <span className="text-xs text-red-300">
+                                        ({formatEnergyValue(energyState.energyWasteRate * 3600)}/hour)
+                                    </span>
+                                </div>
+                                <div className="text-xs text-red-300 mt-1">
+                                    Harvest now to resume earning! Every second at full capacity wastes potential rewards.
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Real-Time Status Summary */}
+                        <div className="flex items-center justify-between pt-4 border-t border-border/30">
+                            {!walletState.connected && (
+                                <Alert className="flex-1 ml-4">
+                                    <AlertDescription className="text-xs">
+                                        Connect your wallet to view real-time energy tracking
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Smart Energy Management - Right Column */}
+                    {connectionState.isConnected && energyState && (energyState?.energyRatePerSecond || 0) > 0 && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Settings2 className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">Smart Energy Management</span>
+                            </div>
+
+                            {(() => {
+                                const BURN_AMOUNT = 1000000000; // 1000 energy in micro-units
+                                const currentEnergyBalance = energyState.currentEnergyBalance || 0;
+                                const accumulatedEnergy = energyState.accumulatedSinceLastHarvest || 0;
+                                const maxSpendable = Math.floor(currentEnergyBalance);
+                                const currentCapacityPercent = (currentEnergyBalance / energyState.maxCapacity) * 100;
+                                const hasEnergyToSpend = currentEnergyBalance >= BURN_AMOUNT; // Must have at least 1000 energy to burn
+                                const hasEnergyToHarvest = accumulatedEnergy >= BURN_AMOUNT; // Has accumulated energy ready to harvest
+
+                                // Case 1: At capacity but need to harvest first
+                                if (currentCapacityPercent >= 95 && hasEnergyToHarvest && !hasEnergyToSpend) {
+                                    return (
+                                        <div className="border-2 border-orange-500/50 bg-orange-500/10 rounded-lg p-4 space-y-3">
+                                            <div className="flex items-start gap-2">
+                                                <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                                                <div className="flex-1">
+                                                    <div className="font-semibold text-orange-700">Harvest Energy First!</div>
+                                                    <div className="text-sm text-orange-600 mt-1">
+                                                        You have {(accumulatedEnergy / 1000000).toFixed(1)} energy ready to harvest
+                                                    </div>
+                                                    <div className="text-xs text-orange-500/80 mt-1">
+                                                        Tap the engine buttons above to collect your energy, then you can spend it
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // Case 2: Full energy and has spendable energy - prompt to spend
+                                if (currentCapacityPercent >= 95 && hasEnergyToSpend) {
+                                    return (
+                                        <div className="border-2 border-red-500/50 bg-red-500/10 rounded-lg p-4 space-y-3">
+                                            <div className="flex items-start gap-2">
+                                                <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                                <div className="flex-1">
+                                                    <div className="font-semibold text-red-700">Energy Full!</div>
+                                                    <div className="text-sm text-red-600 mt-1">
+                                                        Spend energy to avoid overflow waste
+                                                    </div>
+                                                    <div className="text-xs text-red-500/80 mt-1">
+                                                        Can spend up to {(maxSpendable / 1000000).toFixed(1)} energy • Burns 1000 energy per transaction
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                className="w-full h-12 text-base font-bold"
+                                                variant={burnSuccess ? "secondary" : "destructive"}
+                                                onClick={handleBurnEnergy}
+                                                disabled={isBurning || !walletState.connected}
+                                            >
+                                                {isBurning ? (
+                                                    <>
+                                                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border border-current border-t-transparent" />
+                                                        Burning Energy...
+                                                    </>
+                                                ) : burnSuccess ? (
+                                                    <>
+                                                        <Flame className="h-4 w-4 mr-2" />
+                                                        Energy Burned!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Flame className="h-5 w-5 mr-2" />
+                                                        Burn Energy Now
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    );
+                                }
+
+                                // Case 3: Critical level but need to harvest first
+                                if (currentCapacityPercent >= 85 && hasEnergyToHarvest && !hasEnergyToSpend) {
+                                    return (
+                                        <div className="border border-orange-400/50 bg-orange-400/5 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                                <div className="font-medium text-orange-700">Harvest Available Energy</div>
+                                            </div>
+                                            <div className="text-sm text-orange-600">
+                                                {(accumulatedEnergy / 1000000).toFixed(1)} energy ready to collect
+                                            </div>
+                                            <div className="text-xs text-orange-500/80 mt-1">
+                                                Tap engines above to harvest, then spend to avoid waste
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // Case 4: Critical level and has spendable energy
+                                if (currentCapacityPercent >= 85 && hasEnergyToSpend) {
+                                    return (
+                                        <div className="border border-red-400/50 bg-red-400/5 rounded-lg p-4 space-y-3">
+                                            <div className="flex items-start gap-2">
+                                                <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                                                <div className="flex-1">
+                                                    <div className="font-medium text-red-600">Critical Level!</div>
+                                                    <div className="text-sm text-red-500 mt-1">
+                                                        Energy nearly full at {currentCapacityPercent.toFixed(1)}%
+                                                    </div>
+                                                    <div className="text-xs text-red-400/80 mt-1">
+                                                        Spend energy soon to avoid waste
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                className="w-full h-10"
+                                                variant={burnSuccess ? "secondary" : "outline"}
+                                                onClick={handleBurnEnergy}
+                                                disabled={isBurning || !walletState.connected}
+                                            >
+                                                {isBurning ? (
+                                                    <>
+                                                        <div className="h-3 w-3 mr-2 animate-spin rounded-full border border-current border-t-transparent" />
+                                                        Burning...
+                                                    </>
+                                                ) : burnSuccess ? (
+                                                    <>
+                                                        <Flame className="h-3 w-3 mr-2" />
+                                                        Burned!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Flame className="h-4 w-4 mr-2" />
+                                                        Burn Energy
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    );
+                                }
+
+                                // Case 5: Warning level - only if user has energy to spend
+                                if (currentCapacityPercent >= 60 && hasEnergyToSpend) {
+                                    return (
+                                        <div className="border border-yellow-500/40 bg-yellow-500/5 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                                <div className="font-medium text-yellow-700">Monitor Energy Levels</div>
+                                            </div>
+                                            <div className="text-sm text-yellow-600">
+                                                {currentCapacityPercent.toFixed(1)}% capacity
+                                            </div>
+                                            <div className="text-xs text-yellow-500/80 mt-1">
+                                                Consider spending energy soon
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // Case 6: Has energy to harvest but not critical
+                                if (hasEnergyToHarvest && !hasEnergyToSpend) {
+                                    return (
+                                        <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-4 text-center">
+                                            <div className="text-blue-600 font-medium mb-1">💰 Energy Ready to Harvest</div>
+                                            <div className="text-sm text-blue-500">
+                                                {(accumulatedEnergy / 1000000).toFixed(1)} energy available to collect
+                                            </div>
+                                            <div className="text-xs text-blue-400/80 mt-1">
+                                                Tap the engine buttons above to collect your energy
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // Case 7: Safe operation or no energy to spend/harvest
+                                return (
+                                    <div className="border border-green-500/30 bg-green-500/5 rounded-lg p-4 text-center">
+                                        <div className="text-green-600 font-medium mb-1">✅ Energy Levels Optimal</div>
+                                        <div className="text-sm text-green-500">
+                                            {hasEnergyToSpend ? 'Continue accumulating' : hasEnergyToHarvest ? 'Tap engines to collect energy' : 'Energy generating normally'}
+                                        </div>
+                                        <div className="text-xs text-green-400/80 mt-1">
+                                            Current: {currentCapacityPercent.toFixed(1)}% capacity
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Contract Info */}
+                            <div className="bg-muted/50 rounded-lg p-3 border border-muted/60">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-medium text-muted-foreground">Burn Contract</span>
+                                    <code className="text-xs bg-background px-2 py-1 rounded border">hooter-farm-x10</code>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    Burns 1000 energy → Generates HOOT tokens
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
             </div>
         </EnergyFlowVisualization>
     );
 }
+
+// Export with both names for backwards compatibility
+export { EnergyTracker as EnergySimulation };

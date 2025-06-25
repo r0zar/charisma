@@ -4,6 +4,7 @@ import { getAllVaultData, Vault } from "../pool-service";
 import { revalidatePath } from "next/cache";
 import { kv } from "@vercel/kv";
 import { processAllEnergyData, EnergyAnalyticsData } from "@/lib/energy/analytics";
+import { getUserEnergyStatsV2, EnergyAnalyticsData as EnergyAnalyticsDataV2 } from "@/lib/energy/analytics-v2";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { callReadOnlyFunction } from "@repo/polyglot";
 import { principalCV } from "@stacks/transactions";
@@ -40,9 +41,127 @@ export async function fetchHoldToEarnVaults(): Promise<HoldToEarnVault[]> {
     return getAllVaultData({ type: 'ENERGY' }) as any;
 }
 
+// Fetch real energy rates for individual engines
+export async function fetchEngineRates(): Promise<Record<string, number>> {
+    try {
+        const engineRates: Record<string, number> = {};
+        
+        // Get all monitored energy contracts
+        const monitoredContracts = await kv.get<string[]>(getEnergyContractsKey()) || MONITORED_CONTRACTS_FALLBACK;
+        
+        // Fetch analytics data for each engine
+        for (const contractId of monitoredContracts) {
+            try {
+                const analyticsKey = getEnergyAnalyticsCacheKey(contractId);
+                const analyticsData = await kv.get<EnergyAnalyticsData>(analyticsKey);
+                
+                if (analyticsData?.rates) {
+                    // Convert from per-minute to per-second
+                    const ratePerSecond = (analyticsData.rates.overallEnergyPerMinute || 0) / 60;
+                    engineRates[contractId] = ratePerSecond;
+                } else {
+                    engineRates[contractId] = 0;
+                }
+            } catch (error) {
+                console.warn(`Could not load analytics for ${contractId}:`, error);
+                engineRates[contractId] = 0;
+            }
+        }
+        
+        return engineRates;
+    } catch (error) {
+        console.error('Error fetching engine rates:', error);
+        return {};
+    }
+}
+
+/**
+ * Enhanced version of processAllEnergyData that uses analytics-v2 for improved rate calculations
+ */
+async function processAllEnergyDataV2(contractId: string, userAddress?: string): Promise<EnergyAnalyticsData> {
+    console.log(`🔄 Processing energy data V2 for ${contractId}${userAddress ? ` (user: ${userAddress})` : ''}`);
+    
+    // Use the original processAllEnergyData to get the base data structure
+    const baseData = await processAllEnergyData(contractId, userAddress);
+    
+    // Enhance user stats with v2 calculations
+    const enhancedUserStats: Record<string, any> = {};
+    
+    if (userAddress) {
+        // Process specific user with v2 analytics
+        const userStatsV2 = getUserEnergyStatsV2(baseData.logs, userAddress);
+        if (userStatsV2) {
+            // Convert v2 stats to legacy format for compatibility
+            enhancedUserStats[userAddress] = {
+                address: userStatsV2.address,
+                totalEnergyHarvested: userStatsV2.historical.totalEnergyHarvested,
+                totalIntegralCalculated: userStatsV2.historical.totalIntegralCalculated,
+                harvestCount: userStatsV2.historical.harvestCount,
+                averageEnergyPerHarvest: userStatsV2.historical.averageEnergyPerHarvest,
+                lastHarvestTimestamp: userStatsV2.historical.lastHarvestTimestamp,
+                // Use the corrected rate calculations from v2
+                estimatedEnergyRate: userStatsV2.currentRate.energyPerMinute,
+                estimatedIntegralRate: 0, // Could be calculated if needed
+                harvestHistory: userStatsV2.historical.harvestHistory.map(h => ({
+                    timestamp: h.timestamp,
+                    energy: h.energy,
+                    integral: h.integral,
+                    blockHeight: h.blockHeight,
+                    txId: h.txId
+                }))
+            };
+        }
+    } else {
+        // Process all users with v2 analytics
+        const userLogs = baseData.logs.reduce((acc: Record<string, any[]>, log) => {
+            if (!acc[log.sender]) {
+                acc[log.sender] = [];
+            }
+            acc[log.sender].push(log);
+            return acc;
+        }, {});
+
+        // Process top users (limit to 20 for performance)
+        const topUsers = Object.keys(userLogs)
+            .sort((a, b) => userLogs[b].length - userLogs[a].length)
+            .slice(0, 20);
+
+        for (const address of topUsers) {
+            const userStatsV2 = getUserEnergyStatsV2(baseData.logs, address);
+            if (userStatsV2) {
+                enhancedUserStats[address] = {
+                    address: userStatsV2.address,
+                    totalEnergyHarvested: userStatsV2.historical.totalEnergyHarvested,
+                    totalIntegralCalculated: userStatsV2.historical.totalIntegralCalculated,
+                    harvestCount: userStatsV2.historical.harvestCount,
+                    averageEnergyPerHarvest: userStatsV2.historical.averageEnergyPerHarvest,
+                    lastHarvestTimestamp: userStatsV2.historical.lastHarvestTimestamp,
+                    // Use the corrected rate calculations from v2
+                    estimatedEnergyRate: userStatsV2.currentRate.energyPerMinute,
+                    estimatedIntegralRate: 0,
+                    harvestHistory: userStatsV2.historical.harvestHistory.map(h => ({
+                        timestamp: h.timestamp,
+                        energy: h.energy,
+                        integral: h.integral,
+                        blockHeight: h.blockHeight,
+                        txId: h.txId
+                    }))
+                };
+            }
+        }
+    }
+
+    // Return enhanced data with v2 calculations
+    return {
+        ...baseData,
+        userStats: enhancedUserStats
+    };
+}
+
 /**
  * Core logic for processing energy data for all monitored contracts.
  * This function is intended to be called by server actions or the cron API route.
+ * Now uses analytics-v2 for improved rate calculations.
  */
 export async function runEnergyDataProcessingForAllContracts(): Promise<{
     success: boolean;
@@ -60,7 +179,7 @@ export async function runEnergyDataProcessingForAllContracts(): Promise<{
     const lastRun = await kv.get<number>(getCronLastRunKey()) || 0;
     const timeSinceLastRun = now - lastRun;
 
-    console.log(`Energy data processing starting. Last run: ${new Date(lastRun).toISOString()} (${timeSinceLastRun / 1000 / 60} minutes ago)`);
+    console.log(`🔄 Energy data processing V2 starting. Last run: ${new Date(lastRun).toISOString()} (${timeSinceLastRun / 1000 / 60} minutes ago)`);
 
     let contractsToMonitor = await kv.get<string[]>(getEnergyContractsKey());
 
@@ -84,17 +203,18 @@ export async function runEnergyDataProcessingForAllContracts(): Promise<{
     const processingResults = await Promise.allSettled(
         contractsToMonitor.map(async (contractId) => {
             try {
-                console.log(`Processing energy analytics for ${contractId}`);
-                const data: EnergyAnalyticsData = await processAllEnergyData(contractId, undefined);
+                console.log(`📊 Processing energy analytics V2 for ${contractId}`);
+                const data: EnergyAnalyticsData = await processAllEnergyDataV2(contractId, undefined);
                 const cacheKey = getEnergyAnalyticsCacheKey(contractId);
                 await kv.set(cacheKey, data, { ex: 60 * 60 * 2 }); // 2 hour expiration
+                console.log(`✅ Successfully processed ${data.logs.length} logs for ${contractId}`);
                 return {
                     contractId,
                     success: true,
                     logsCount: data.logs.length
                 };
             } catch (error) {
-                console.error(`Error processing energy for ${contractId}:`, error);
+                console.error(`❌ Error processing energy for ${contractId}:`, error);
                 return {
                     contractId,
                     success: false,
@@ -106,7 +226,7 @@ export async function runEnergyDataProcessingForAllContracts(): Promise<{
 
     await kv.set(getCronLastRunKey(), now);
     const duration = Date.now() - startTime;
-    console.log(`Energy data processing completed in ${duration}ms`);
+    console.log(`✅ Energy data processing V2 completed in ${duration}ms`);
 
     // Format results for the return value
     const formattedResults = processingResults.map((result, index) => {

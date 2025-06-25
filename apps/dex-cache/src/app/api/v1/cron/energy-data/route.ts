@@ -68,8 +68,8 @@ export async function POST(request: Request) {
         const newList = [...currentList, contractId];
         await kv.set(getEnergyContractsKey(), newList);
 
-        // Immediately collect data for the new contract
-        console.log(`POST: Processing analytics for newly added contract ${contractId}`);
+        // Immediately collect data for the new contract using V2 analytics
+        console.log(`POST: Processing analytics V2 for newly added contract ${contractId}`);
         const data = await processAllEnergyData(contractId, undefined);
         const cacheKey = getEnergyAnalyticsCacheKey(contractId);
         await kv.set(cacheKey, data, { ex: 60 * 60 * 2 });

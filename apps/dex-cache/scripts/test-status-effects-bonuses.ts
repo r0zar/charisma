@@ -81,6 +81,10 @@ async function testStatusEffectBonuses() {
                 id: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energetic-welsh'
             },
             {
+                name: 'Energetic Corgi',
+                id: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energetic-corgi'
+            },
+            {
                 name: 'Raven Wisdom', 
                 id: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.raven-wisdom'
             },

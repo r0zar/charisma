@@ -36,6 +36,7 @@ export interface Vault {
     fee: number;
     externalPoolId: string;
     engineContractId: string;
+    base?: string;                 // Base token contract for ENERGY type vaults
     tokenA?: Token;                // Made optional to support non-LP token vaults
     tokenB?: Token;                // Made optional to support non-LP token vaults
     tokenBContract?: string;       // Contract ID of the subnet token for sublinks

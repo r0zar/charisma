@@ -67,7 +67,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                 bonusValue: realNFTBonuses?.feeDiscountBonus || 0,
                 isActive: (realNFTBonuses?.totalRavenCount || 0) > 0,
                 ownedCount: realNFTBonuses?.totalRavenCount || 0,
-                description: 'Fee discounts from Raven NFT collections (+2% per NFT, max 15%)',
+                description: 'Fee discounts from Raven NFT collections (25% base + variable based on highest Raven ID)',
                 rarity: 'legendary',
                 glowColor: 'rgba(147, 51, 234, 0.3)'
             },
@@ -80,7 +80,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                 bonusValue: (realNFTBonuses?.capacityBonus || 0) / 1000000, // Convert from micro units
                 isActive: (realNFTBonuses?.totalMemobotCount || 0) > 0,
                 ownedCount: realNFTBonuses?.totalMemobotCount || 0,
-                description: 'Energy capacity increase from Memobot NFT collections (+50 energy per NFT)',
+                description: 'Energy capacity increase from Memobot NFT collections (+10 energy per NFT)',
                 rarity: 'rare',
                 glowColor: 'rgba(59, 130, 246, 0.3)'
             }
@@ -95,6 +95,10 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                 raven: `${realNFTBonuses.totalRavenCount} NFTs = -${realNFTBonuses.feeDiscountBonus}% fees`,
                 memobot: `${realNFTBonuses.totalMemobotCount} NFTs = +${realNFTBonuses.capacityBonus / 1000000} energy capacity`
             });
+            console.log('🔍 Raw feeDiscountBonus value:', realNFTBonuses.feeDiscountBonus);
+            console.log('🔍 Bonus value in UI component:', realNFTBonuses?.feeDiscountBonus || 0);
+            console.log('🔍 Type of feeDiscountBonus:', typeof realNFTBonuses.feeDiscountBonus);
+            console.log('🔍 Full realNFTBonuses object:', realNFTBonuses);
         }
     }, [realNFTBonuses, nftLoading]);
 

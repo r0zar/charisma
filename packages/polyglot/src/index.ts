@@ -130,7 +130,7 @@ export async function callReadOnlyFunction(
   functionName: string,
   args: ClarityValue[] = [],
   sender?: string
-): Promise<any> {
+): Promise<{ value: any, type: any } | null> {
   try {
     const endpoint = `/v2/contracts/call-read/${contractAddress}/${contractName}/${functionName}`;
 

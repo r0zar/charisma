@@ -1,4 +1,4 @@
-import { getAllMetadata } from "@/lib/tokenService";
+import { getAllMetadataPaginated, getTokenCount } from "@/lib/tokenService";
 import { Metadata } from 'next';
 import { List } from 'lucide-react'; // Import an icon
 import ClientPage from "@/components/ClientPage";
@@ -9,9 +9,35 @@ export const metadata: Metadata = {
   description: 'Browse the list of cached metadata on the Stacks blockchain.',
 };
 
-export default async function HomePage() {
-  // Pre-fetch token data on the server for hydration
-  const tokens = await getAllMetadata();
+interface HomePageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  // Parse search parameters
+  const page = Math.max(1, parseInt(Array.isArray(searchParams.page) ? searchParams.page[0] : searchParams.page || '1', 10));
+  const limit = 20; // Fixed limit for now
+  const search = Array.isArray(searchParams.search) ? searchParams.search[0] : searchParams.search || '';
+
+  // Pre-fetch paginated token data on the server for hydration
+  const [tokens, totalCount] = await Promise.all([
+    getAllMetadataPaginated(page, limit, search),
+    getTokenCount(search)
+  ]);
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(totalCount / limit);
+  const hasMore = page < totalPages;
+  const hasPrevious = page > 1;
+
+  const paginationInfo = {
+    page,
+    limit,
+    total: totalCount,
+    totalPages,
+    hasMore,
+    hasPrevious
+  };
 
   return (
     <main className="container py-8">
@@ -24,7 +50,11 @@ export default async function HomePage() {
         Use the inspector tool to check specific metadata or refresh their data.
       </p>
 
-      <ClientPage initialTokens={tokens} />
+      <ClientPage 
+        initialTokens={tokens} 
+        initialPagination={paginationInfo}
+        initialSearch={search}
+      />
     </main>
   );
 }

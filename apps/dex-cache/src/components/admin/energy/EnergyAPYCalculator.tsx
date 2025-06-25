@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EnergyRateBreakdown } from '../EnergyRateBreakdown';
-import { TokenEnergyComparison } from './TokenEnergyComparison';
 import { EnergySimulation } from './EnergySimulation';
 import { getTokenMetadataCached, type TokenCacheData } from '@repo/tokens';
 
@@ -127,11 +126,8 @@ export default function EnergyAPYCalculator() {
         <div className="space-y-6">
 
 
-            {/* Real-time Energy Simulation */}
+            {/* Real-time Energy Tracker */}
             <EnergySimulation />
-
-            {/* Token Energy Comparison */}
-            <TokenEnergyComparison />
         </div>
     );
 }

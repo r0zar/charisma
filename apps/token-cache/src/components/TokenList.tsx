@@ -53,10 +53,20 @@ const truncateContractId = (contractId: string, prefixLength = 4, suffixLength =
     return `${prefix}...${suffix}.${contractName}`;
 };
 
+interface PaginationInfo {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+    hasPrevious: boolean;
+}
+
 interface TokenListProps {
     initialTokens: TokenCacheData[];
+    initialPagination?: PaginationInfo;
+    initialSearch?: string;
     isDevelopment: boolean;
-    initialSearchTerm?: string;
 }
 
 /**
@@ -95,45 +105,76 @@ function sanitizeImageUrl(url?: string): string {
     return '/placeholder-icon.svg';
 }
 
-export default function TokenList({ initialTokens, isDevelopment, initialSearchTerm = '' }: TokenListProps) {
+export default function TokenList({ 
+    initialTokens, 
+    initialPagination,
+    initialSearch = '',
+    isDevelopment 
+}: TokenListProps) {
     const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+    const [searchTerm, setSearchTerm] = useState(initialSearch);
+    const [isSearching, setIsSearching] = useState(false);
     const [expandedTokens, setExpandedTokens] = useState<Record<string, boolean>>({});
     const [isLookingUp, setIsLookingUp] = useState(false);
     const [removingTokenId, setRemovingTokenId] = useState<string | null>(null);
     const [refreshingTokenId, setRefreshingTokenId] = useState<string | null>(null);
     const [blacklistingTokenId, setBlacklistingTokenId] = useState<string | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const searchPerformedRef = useRef(false);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Effect to handle initialSearchTerm
-    useEffect(() => {
-        if (initialSearchTerm && !searchPerformedRef.current) {
-            setSearchTerm(initialSearchTerm);
-            if (looksLikeContractId(initialSearchTerm) &&
-                !initialTokens.some(token => token.contractId === initialSearchTerm)) {
-                handleLookup(initialSearchTerm);
-                searchPerformedRef.current = true;
-            }
-        }
-    }, [initialSearchTerm, initialTokens]);
+    // Use server-provided data directly (no client-side filtering since it's handled server-side)
+    const [displayedTokens, setDisplayedTokens] = useState<TokenCacheData[]>(initialTokens);
+    const [pagination, setPagination] = useState<PaginationInfo | undefined>(initialPagination);
 
-    // replace this with usestate and useEffect
-    const [filteredTokens, setFilteredTokens] = useState<TokenCacheData[]>(initialTokens);
+    // Update displayed tokens when initialTokens change
     useEffect(() => {
-        setFilteredTokens(initialTokens.filter(
-            (token) =>
-                token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                token.symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                token.contractId?.toLowerCase().includes(searchTerm.toLowerCase())
-        ));
-    }, [initialTokens, searchTerm]);
+        setDisplayedTokens(initialTokens);
+        setPagination(initialPagination);
+        setIsSearching(false); // Clear searching state when new data arrives
+    }, [initialTokens, initialPagination]);
 
     const toggleExpand = (contractId: string) => {
         setExpandedTokens(prev => ({
             ...prev,
             [contractId]: !prev[contractId]
         }));
+    };
+
+    // Handle search with debouncing
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value);
+        
+        // Clear existing timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        // Set new timeout for server-side search
+        searchTimeoutRef.current = setTimeout(() => {
+            setIsSearching(true);
+            const params = new URLSearchParams();
+            if (value.trim()) {
+                params.set('search', value.trim());
+            }
+            // Reset to page 1 when searching
+            params.set('page', '1');
+            
+            // Navigate to new URL which will trigger server-side re-render
+            router.push(`/?${params.toString()}`);
+        }, 500); // 500ms debounce
+    };
+
+    // Handle pagination navigation
+    const handlePageChange = (newPage: number) => {
+        if (!pagination || newPage < 1 || newPage > pagination.totalPages) return;
+        
+        const params = new URLSearchParams();
+        params.set('page', newPage.toString());
+        if (searchTerm.trim()) {
+            params.set('search', searchTerm.trim());
+        }
+        
+        router.push(`/?${params.toString()}`);
     };
 
     const handleLookup = async (contractId: string) => {
@@ -171,7 +212,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                     toast.success(`Removed ${truncateContractId(contractId)}. Refresh page to see updated list.`, { id: loadingToastId });
                     router.refresh(); // Re-fetch server data after successful removal
                     // optimistically remove the token from the list
-                    setFilteredTokens(filteredTokens.filter(token => token.contractId !== contractId));
+                    setDisplayedTokens(displayedTokens.filter(token => token.contractId !== contractId));
                 } else {
                     toast.error(result.error || 'Failed to remove token.', { id: loadingToastId });
                 }
@@ -217,7 +258,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                     toast.success('message' in result ? result.message : `Blacklisted ${truncateContractId(contractId)}.`, { id: loadingToastId });
                     router.refresh(); // Re-fetch server data after successful blacklist
                     // optimistically remove the token from the list
-                    setFilteredTokens(filteredTokens.filter(token => token.contractId !== contractId));
+                    setDisplayedTokens(displayedTokens.filter(token => token.contractId !== contractId));
                 } else {
                     toast.error('error' in result ? result.error : 'Failed to blacklist token.', { id: loadingToastId });
                 }
@@ -235,6 +276,15 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
         }
     }, []);
 
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, []);
+
     return (
         <div className="w-full flex flex-col gap-4">
             {/* Search Input */}
@@ -245,7 +295,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                     type="search"
                     placeholder="Search by name, symbol, or contract ID..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="pl-10 w-full"
                     aria-label="Search tokens"
                 />
@@ -253,8 +303,63 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
 
             {/* REMOVED: Status Messages Area (Using Toasts now) */}
 
+            {/* Pagination Controls - Top */}
+            {pagination && pagination.totalPages > 1 && !isSearching && (
+                <div className="flex items-center justify-between py-4 border-b">
+                    <div className="text-sm text-muted-foreground">
+                        Page {pagination.page} of {pagination.totalPages} 
+                        ({pagination.total} total tokens{searchTerm && ` matching "${searchTerm}"`})
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={!pagination.hasPrevious}
+                        >
+                            Previous
+                        </Button>
+                        <div className="flex items-center gap-1">
+                            {/* Show page numbers around current page */}
+                            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                let pageNum;
+                                if (pagination.totalPages <= 5) {
+                                    pageNum = i + 1;
+                                } else if (pagination.page <= 3) {
+                                    pageNum = i + 1;
+                                } else if (pagination.page >= pagination.totalPages - 2) {
+                                    pageNum = pagination.totalPages - 4 + i;
+                                } else {
+                                    pageNum = pagination.page - 2 + i;
+                                }
+                                
+                                return (
+                                    <Button
+                                        key={pageNum}
+                                        variant={pageNum === pagination.page ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className="w-8 h-8 p-0"
+                                    >
+                                        {pageNum}
+                                    </Button>
+                                );
+                            })}
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={!pagination.hasMore}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Lookup Button for When Search Finds Nothing */}
-            {filteredTokens.length === 0 && !isLookingUp && (
+            {displayedTokens.length === 0 && !isLookingUp && !isSearching && (
                 <Card className="text-center py-8">
                     <CardContent>
                         <p className="text-muted-foreground mb-4">No tokens match your search.</p>
@@ -272,10 +377,23 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                 </Card>
             )}
 
+            {/* Loading state for search */}
+            {isSearching && (
+                <Card className="text-center py-8">
+                    <CardContent>
+                        <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-muted-foreground">Searching...</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Token List */}
-            {filteredTokens.length > 0 && (
-                <ul className="space-y-3">
-                    {filteredTokens.map((token) => {
+            {displayedTokens.length > 0 && !isSearching && (
+                <>
+                    <ul className="space-y-3">
+                        {displayedTokens.map((token) => {
                         const isExpanded = expandedTokens[token.contractId || ''] || false;
                         const isRemoving = removingTokenId === token.contractId;
                         const isRefreshing = refreshingTokenId === token.contractId;
@@ -283,10 +401,10 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                         const isLoading = isRemoving || isRefreshing || isBlacklisting;
 
                         return (
-                            <li key={token.contractId} className={`border rounded-lg overflow-hidden transition-all duration-300 ${isLoading ? 'opacity-70' : ''} ${isExpanded ? 'shadow-md bg-muted/30' : 'bg-card shadow-sm hover:shadow'}`}>
+                            <li key={token.contractId} className={`border rounded-lg overflow-hidden transition-all duration-300 ${isLoading ? 'opacity-70' : ''} ${isExpanded ? 'shadow-md bg-muted/30 scale-[1.01]' : 'bg-card shadow-sm hover:shadow hover:scale-[1.005]'}`}>
                                 {/* Main Row */}
                                 <div
-                                    className={`flex items-center p-4 gap-4 ${isLoading ? 'cursor-wait' : 'cursor-pointer'}`}
+                                    className={`flex items-center p-4 gap-4 transition-all duration-200 ${isLoading ? 'cursor-wait' : 'cursor-pointer hover:bg-muted/20'} ${isExpanded ? 'bg-muted/10' : ''}`}
                                     onClick={() => !isLoading && toggleExpand(token.contractId || '')}
                                 >
                                     {/* Image */}
@@ -297,11 +415,11 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                                 alt={`${token.name} logo`}
                                                 width={40}
                                                 height={40}
-                                                className="rounded-md object-cover border bg-background"
+                                                className={`rounded-md object-cover border bg-background transition-all duration-300 ${isExpanded ? 'ring-2 ring-primary/30 scale-110' : 'hover:scale-105'}`}
                                                 onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-icon.svg'; }} // Fallback placeholder
                                             />
                                         ) : (
-                                            <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center text-muted-foreground">
+                                            <div className={`w-10 h-10 rounded-md bg-muted flex items-center justify-center text-muted-foreground transition-all duration-300 ${isExpanded ? 'ring-2 ring-primary/30 scale-110' : 'hover:scale-105'}`}>
                                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                             </div>
                                         )}
@@ -366,7 +484,7 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex-shrink-0 ml-auto flex items-center gap-1">
+                                    <div className={`flex-shrink-0 ml-auto flex items-center gap-1 transition-all duration-300 ${isExpanded ? 'scale-105' : ''}`}>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -423,29 +541,89 @@ export default function TokenList({ initialTokens, isDevelopment, initialSearchT
                                             className="text-muted-foreground hover:bg-accent"
                                         // onClick={(e) => { e.stopPropagation(); toggleExpand(token.contractId || ''); }} // Already handled by parent div click
                                         >
-                                            <ChevronDown className={`h-4 w-4 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                            <ChevronDown className={`h-4 w-4 transform transition-all duration-300 ease-out ${isExpanded ? 'rotate-180 text-primary' : 'text-muted-foreground'}`} />
                                         </Button>
                                     </div>
                                 </div>
 
                                 {/* Expanded JSON View */}
-                                {isExpanded && (
-                                    <div className="border-t border-border bg-muted/50 animate-fadeDown">
-                                        <ReactJson
-                                            src={token}
-                                            theme="ocean" // Consider linking to theme state later
-                                            iconStyle="square"
-                                            displayObjectSize={false}
-                                            displayDataTypes={false}
-                                            enableClipboard={false}
-                                            style={{ padding: '1rem', background: 'transparent' }}
-                                        />
-                                    </div>
-                                )}
+                                <div className={`border-t border-border bg-muted/50 transition-height ${
+                                    isExpanded ? 'expanded' : 'collapsed'
+                                }`}>
+                                    {isExpanded && (
+                                        <div className="p-4 animate-appear">
+                                            <ReactJson
+                                                src={token}
+                                                theme="ocean" // Consider linking to theme state later
+                                                iconStyle="square"
+                                                displayObjectSize={false}
+                                                displayDataTypes={false}
+                                                enableClipboard={false}
+                                                style={{ background: 'transparent' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </li>
                         );
                     })}
                 </ul>
+                
+                {/* Pagination Controls */}
+                {pagination && pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                        <div className="text-sm text-muted-foreground">
+                            Page {pagination.page} of {pagination.totalPages} 
+                            ({pagination.total} total tokens{searchTerm && ` matching "${searchTerm}"`})
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(pagination.page - 1)}
+                                disabled={!pagination.hasPrevious}
+                            >
+                                Previous
+                            </Button>
+                            <div className="flex items-center gap-1">
+                                {/* Show page numbers around current page */}
+                                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                    let pageNum;
+                                    if (pagination.totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (pagination.page <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (pagination.page >= pagination.totalPages - 2) {
+                                        pageNum = pagination.totalPages - 4 + i;
+                                    } else {
+                                        pageNum = pagination.page - 2 + i;
+                                    }
+                                    
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={pageNum === pagination.page ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => handlePageChange(pageNum)}
+                                            className="w-8 h-8 p-0"
+                                        >
+                                            {pageNum}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(pagination.page + 1)}
+                                disabled={!pagination.hasMore}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </div>
+                )}
+                </>
             )}
         </div>
     );

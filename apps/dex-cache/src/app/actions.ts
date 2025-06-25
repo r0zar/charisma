@@ -175,7 +175,7 @@ export async function getAddLiquidityQuoteAndSupply(vaultContractId: string, tar
         ]);
         return {
             success: true,
-            totalSupply,
+            total_supply,
             quote
         };
     } catch (error: any) {
@@ -301,7 +301,7 @@ export async function getAddLiquidityInitialData(
         const userBalanceB = Number(tokenBBalance || 0);
         const poolReserveA = Number(vaultData.reservesA || 0);
         const poolReserveB = Number(vaultData.reservesB || 0);
-        const currentLpTotalSupply = Number(total_supply || 0);
+        const currentLpTotalSupply = Number(totalSupply || 0);
 
         if (userBalanceA > 0 && userBalanceB > 0 && poolReserveA > 0 && poolReserveB > 0 && currentLpTotalSupply > 0) {
             const maxLpIfUsingAllA = (userBalanceA / poolReserveA) * currentLpTotalSupply;
@@ -314,7 +314,7 @@ export async function getAddLiquidityInitialData(
                 tokenABalance,
                 tokenBBalance,
                 lpBalance,
-                total_supply,
+                total_supply: totalSupply,
                 reservesA: poolReserveA, // Also return reserves for potential client use
                 reservesB: poolReserveB, // Also return reserves for potential client use
                 maxPotentialLpTokens
@@ -348,7 +348,7 @@ export async function getTokenTotalSupply(tokenContractId: string): Promise<{ su
 
         const totalSupply = await getLpTokenTotalSupply(tokenContractId);
         return { success: true,
-            total_supply
+            total_supply: totalSupply
         };
     } catch (error) {
         console.error("Error in getTokenTotalSupply:", error);
