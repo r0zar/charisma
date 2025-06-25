@@ -224,28 +224,26 @@ export function getTokenPriceUSD(prices: EnergyTokenPrices, tokenSymbol: string)
             return energyPrice;
         case 'charisma':
         case 'cha':
-            const charismaPrice = prices.charisma?.usdPrice || 0;
-            console.log(`[PriceService] Charisma price: ${charismaPrice}`);
+            const charismaPrice = prices.charisma?.usdPrice || 0.01;
+            console.log(`[PriceService] Charisma price: ${charismaPrice}${prices.charisma?.usdPrice ? '' : ' (fallback)'}`);
             return charismaPrice;
         case 'dexterity':
         case 'dex':
-            const dexPrice = prices.dexterity?.usdPrice || 0;
-            console.log(`[PriceService] Dexterity price: ${dexPrice}`);
+            const dexPrice = prices.dexterity?.usdPrice || 0.01;
+            console.log(`[PriceService] Dexterity price: ${dexPrice}${prices.dexterity?.usdPrice ? '' : ' (fallback)'}`);
             return dexPrice;
         case 'sxc':
         case 'charismatic-flow':
         case 'flow':
-            // For now, these tokens may not have specific prices
-            console.log(`[PriceService] SXC/Flow price: 0 (not available)`);
-            return 0;
+            console.log(`[PriceService] SXC/Flow price: $0.01 (fallback)`);
+            return 0.01;
         case 'pov':
         case 'perseverantia-omnia-vincit':
-            // For now, these tokens may not have specific prices
-            console.log(`[PriceService] POV price: 0 (not available)`);
-            return 0;
+            console.log(`[PriceService] POV price: $0.01 (fallback)`);
+            return 0.01;
         default:
-            console.log(`[PriceService] Unknown token symbol: "${symbol}"`);
-            return 0;
+            console.log(`[PriceService] Unknown token symbol: "${symbol}" - using $0.01 fallback`);
+            return 0.01;
     }
 }
 

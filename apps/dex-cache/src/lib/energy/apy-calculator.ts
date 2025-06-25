@@ -359,10 +359,8 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
 
     if (capacityPercentage >= 95) {
         warnings.push('Energy tank nearly full - harvest to avoid waste');
-        // Adjust profit for potential waste
-        const wastePercentage = Math.max(0, capacityPercentage - 95) / 5; // 0-100% waste
-        apy *= (1 - wastePercentage);
-        // Don't adjust daily profit as it's already being earned
+        // Note: Don't adjust APY for capacity - APY represents theoretical annual return
+        // The daily profit already reflects what's currently being earned
     }
 
     // Calculate confidence based on price confidence and data quality
