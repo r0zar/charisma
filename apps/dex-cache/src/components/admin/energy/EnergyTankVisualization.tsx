@@ -429,10 +429,17 @@ export function EnergyTankVisualization({
     const formatEnergy = (value: number): string => {
         const divisor = Math.pow(10, 6);
         const adjustedValue = value / divisor;
-        return adjustedValue.toLocaleString(undefined, {
-            maximumFractionDigits: 2,
-            minimumFractionDigits: 0
-        });
+
+        if (adjustedValue < 10) {
+            // Show up to 2 decimal places for values less than 10
+            return adjustedValue.toLocaleString(undefined, {
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 0
+            });
+        } else {
+            // Show whole numbers for values >= 10
+            return Math.round(adjustedValue).toLocaleString();
+        }
     };
 
     return (
