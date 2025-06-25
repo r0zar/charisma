@@ -2,11 +2,14 @@ export const revalidate = 300; // Revalidate this page at most every 5 minutes
 
 import { EnergyDashboardTab } from '@/components/energy/EnergyDashboardTab';
 import { NFTBonusesTab } from '@/components/energy/NFTBonusesTab';
+import { HelpTab } from '@/components/energy/HelpTab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Zap, Info, Clock, Shield, HandCoins, Battery, Crown, Cpu } from 'lucide-react';
+import { Zap, Info, Clock, Shield, HandCoins, Battery, Crown, Cpu, HelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+// https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.power-cells?chain=mainnet
 
 export default function EnergyPage() {
 
@@ -27,7 +30,7 @@ export default function EnergyPage() {
 
             {/* Tabbed Interface */}
             <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 h-12 mb-4">
+                <TabsList className="grid w-full grid-cols-3 h-12 mb-4">
                     <TabsTrigger value="dashboard" className="flex items-center gap-2 text-sm">
                         <Zap className="h-4 w-4" />
                         <span className="hidden sm:inline">Energy Dashboard</span>
@@ -37,6 +40,11 @@ export default function EnergyPage() {
                         <Crown className="h-4 w-4" />
                         <span className="hidden sm:inline">NFT Bonuses</span>
                         <span className="sm:hidden">NFTs</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="help" className="flex items-center gap-2 text-sm">
+                        <HelpCircle className="h-4 w-4" />
+                        <span className="hidden sm:inline">Help & Info</span>
+                        <span className="sm:hidden">Help</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -49,6 +57,11 @@ export default function EnergyPage() {
                 {/* NFT Bonuses Tab */}
                 <TabsContent value="nft-bonuses" className="space-y-8">
                     <NFTBonusesTab />
+                </TabsContent>
+
+                {/* Help & Info Tab */}
+                <TabsContent value="help" className="space-y-8">
+                    <HelpTab />
                 </TabsContent>
             </Tabs>
 
