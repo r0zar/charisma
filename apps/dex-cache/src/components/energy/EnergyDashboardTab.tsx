@@ -142,25 +142,25 @@ export function EnergyDashboardTab() {
         // Ensure all values are numbers and not NaN
         const safeCurrentBalance = isNaN(energyState.currentEnergyBalance) ? 0 : (energyState.currentEnergyBalance || 0);
         const safeTotalHarvestable = isNaN(energyState.totalHarvestableEnergy) ? 0 : (energyState.totalHarvestableEnergy || 0);
-        
+
         // Calculate total accumulated as sum of individual engine accumulations
         const engineAccumulations = energyState.engineAccumulations || {};
         const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
-        
+
         let safeAccumulated: number;
-        
+
         if (hasEngineAccumulations) {
             // New per-engine system: sum up individual engine accumulations
             const baseAccumulated = Object.values(engineAccumulations).reduce((sum, acc) => {
                 return sum + (isNaN(acc) ? 0 : acc);
             }, 0);
-            
+
             // Apply optimistic per-engine decreases
             const optimisticEngineDecreases = optimistic.engineAccumulatedDecrease;
             const totalOptimisticDecrease = Object.entries(optimisticEngineDecreases).reduce((sum, [engineId, decrease]) => {
                 return sum + (engineAccumulations[engineId] ? Math.min(decrease, engineAccumulations[engineId]) : 0);
             }, 0);
-            
+
             safeAccumulated = Math.max(0, baseAccumulated - totalOptimisticDecrease);
         } else {
             // Fallback to old global accumulated system (for backward compatibility)
@@ -409,7 +409,7 @@ export function EnergyDashboardTab() {
 
         optimisticUpdatesRef.current.balanceIncrease += balanceIncrease;
         optimisticUpdatesRef.current.harvestableDecrease += harvestableDecrease;
-        
+
         // Track per-engine accumulated decrease
         if (engineContractId) {
             if (!optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId]) {
@@ -428,18 +428,18 @@ export function EnergyDashboardTab() {
         setTimeout(() => {
             optimisticUpdatesRef.current.balanceIncrease = Math.max(0, optimisticUpdatesRef.current.balanceIncrease - balanceIncrease);
             optimisticUpdatesRef.current.harvestableDecrease = Math.max(0, optimisticUpdatesRef.current.harvestableDecrease - harvestableDecrease);
-            
+
             // Clear per-engine accumulated decrease
             if (engineContractId && optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId]) {
-                optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] = Math.max(0, 
+                optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] = Math.max(0,
                     optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] - accumulatedEnergyReduction);
-                
+
                 // Remove entry if it's now zero
                 if (optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] === 0) {
                     delete optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId];
                 }
             }
-            
+
             console.log('Cleared optimistic harvest update for engine:', engineContractId);
         }, 30000); // Clear after 30 seconds
     };
@@ -620,7 +620,7 @@ export function EnergyDashboardTab() {
                     <div className="glass-card p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <Clock className="h-4 w-4" />
-                            Accumulated
+                            Untapped
                         </div>
                         <div className="text-2xl font-bold text-green-400">
                             {formatEnergy(displayEnergyState.accumulatedSinceLastHarvest || 0)}
@@ -633,21 +633,57 @@ export function EnergyDashboardTab() {
                     <div className="glass-card p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <Settings2 className="h-4 w-4" />
-                            Capacity
+                            {(() => {
+                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
+                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
+                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
+                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
+                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
+
+                                return overflowEnergy > 0 ? 'Overflow' : 'Capacity';
+                            })()}
                         </div>
                         <div className={cn(
                             "text-2xl font-bold",
-                            currentBalanceZone === 'safe' ? 'text-green-500' :
-                                currentBalanceZone === 'warning' ? 'text-blue-500' :
-                                    currentBalanceZone === 'critical' ? 'text-orange-500' :
-                                        'text-orange-600'
+                            (() => {
+                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
+                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
+                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
+                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
+                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
+
+                                if (overflowEnergy > 0) return 'text-red-500';
+                                return currentBalanceZone === 'safe' ? 'text-green-500' :
+                                    currentBalanceZone === 'warning' ? 'text-blue-500' :
+                                        currentBalanceZone === 'critical' ? 'text-orange-500' :
+                                            'text-orange-600';
+                            })()
                         )}>
-                            {(currentBalancePercentage || 0).toFixed(0)}%
+                            {(() => {
+                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
+                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
+                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
+                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
+                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
+
+                                return overflowEnergy > 0 ?
+                                    formatEnergy(overflowEnergy) :
+                                    `${(currentBalancePercentage || 0).toFixed(0)}%`;
+                            })()}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                            {currentBalanceZone === 'overflow' ? 'FULL TANK' :
-                                currentBalanceZone === 'critical' ? 'NEARLY FULL' :
-                                    currentBalanceZone === 'warning' ? 'GETTING FULL' : 'ROOM TO GROW'}
+                            {(() => {
+                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
+                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
+                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
+                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
+                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
+
+                                return overflowEnergy > 0 ? 'unclaimable energy' :
+                                    currentBalanceZone === 'overflow' ? 'FULL TANK' :
+                                        currentBalanceZone === 'critical' ? 'NEARLY FULL' :
+                                            currentBalanceZone === 'warning' ? 'GETTING FULL' : 'ROOM TO GROW';
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -656,14 +692,14 @@ export function EnergyDashboardTab() {
             {/* Energy Collective System */}
             {displayEnergyState && (
                 <EnergyTankVisualization
-                    currentEnergy={displayEnergyState.totalHarvestableEnergy || 0}
+                    currentEnergy={displayEnergyState.currentEnergyBalance || 0}
                     currentBalance={displayEnergyState.currentEnergyBalance || 0}
                     maxCapacity={displayEnergyState.maxCapacity || baseCapacity + actualCapacityBonus}
                     baseCapacity={baseCapacity}
                     bonusCapacity={bonusCapacity}
                     totalEnergyRate={displayEnergyState.energyRatePerSecond || 0}
                     isGenerating={connectionState.isConnected && (displayEnergyState.energyRatePerSecond || 0) > 0}
-                    capacityZone={harvestableZone}
+                    capacityZone={currentBalanceZone}
                     engineAccumulations={displayEnergyState.engineAccumulations || {}}
                     onEnergyHarvested={handleEnergyHarvested}
                 />
@@ -683,13 +719,13 @@ export function EnergyDashboardTab() {
 
                 {displayEnergyState && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* Total Available Energy Card */}
+                        {/* Current Balance vs Capacity Card */}
                         <div className="token-card p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <div>
-                                    <div className="text-sm font-medium">Total Available Energy</div>
+                                    <div className="text-sm font-medium">Current Balance</div>
                                     <div className="text-2xl font-bold">
-                                        {formatEnergy(displayEnergyState.totalHarvestableEnergy || 0)}
+                                        {formatEnergy(displayEnergyState.currentEnergyBalance || 0)}
                                         <span className="text-sm font-normal text-muted-foreground">
                                             / {formatEnergy(displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus))}
                                         </span>
@@ -698,34 +734,34 @@ export function EnergyDashboardTab() {
                                 <div className="text-right">
                                     <div className={cn(
                                         "text-3xl font-bold",
-                                        harvestableZone === 'safe' ? 'text-green-500' :
-                                            harvestableZone === 'warning' ? 'text-blue-500' :
-                                                harvestableZone === 'critical' ? 'text-orange-500' :
+                                        currentBalanceZone === 'safe' ? 'text-green-500' :
+                                            currentBalanceZone === 'warning' ? 'text-blue-500' :
+                                                currentBalanceZone === 'critical' ? 'text-orange-500' :
                                                     'text-orange-600'
                                     )}>
-                                        {(harvestablePercentage || 0).toFixed(0)}%
+                                        {(currentBalancePercentage || 0).toFixed(0)}%
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        {harvestableZone === 'overflow' ? 'FULL TANK' :
-                                            harvestableZone === 'critical' ? 'NEARLY FULL' :
-                                                harvestableZone === 'warning' ? 'GETTING FULL' : 'ROOM TO GROW'}
+                                        {currentBalanceZone === 'overflow' ? 'FULL TANK' :
+                                            currentBalanceZone === 'critical' ? 'NEARLY FULL' :
+                                                currentBalanceZone === 'warning' ? 'GETTING FULL' : 'ROOM TO GROW'}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Capacity Bar */}
+                            {/* Capacity Bar - Shows current balance vs max capacity */}
                             <div className="relative mb-3">
                                 <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
                                     <div
                                         className={cn(
                                             "h-full transition-all duration-1000 rounded-full",
-                                            harvestableZone === 'overflow' ? 'bg-orange-500' :
-                                                harvestableZone === 'critical' ? 'bg-orange-400' :
-                                                    harvestableZone === 'warning' ? 'bg-blue-400' :
+                                            currentBalanceZone === 'overflow' ? 'bg-orange-500' :
+                                                currentBalanceZone === 'critical' ? 'bg-orange-400' :
+                                                    currentBalanceZone === 'warning' ? 'bg-blue-400' :
                                                         'bg-gradient-to-r from-primary to-primary/80',
                                             connectionState.isConnected && "animate-pulse"
                                         )}
-                                        style={{ width: `${Math.min(harvestablePercentage || 0, 100)}%` }}
+                                        style={{ width: `${Math.min(currentBalancePercentage || 0, 100)}%` }}
                                     />
                                 </div>
                                 {/* Capacity zone markers */}
@@ -744,13 +780,27 @@ export function EnergyDashboardTab() {
                                     <span className="font-mono">{formatEnergy(displayEnergyState.currentEnergyBalance || 0)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-green-400">+ Accumulated:</span>
+                                    <span className="text-green-400">+ Untapped:</span>
                                     <span className="font-mono text-green-400">{formatEnergy(displayEnergyState.accumulatedSinceLastHarvest || 0)}</span>
                                 </div>
                                 <div className="flex items-center justify-between font-medium pt-1 border-t border-border/20">
                                     <span>Total Available:</span>
                                     <span className="font-mono">{formatEnergy(displayEnergyState.totalHarvestableEnergy || 0)}</span>
                                 </div>
+                                {(() => {
+                                    const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
+                                    const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
+                                    const currentBalance = displayEnergyState.currentEnergyBalance || 0;
+                                    const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
+                                    const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
+
+                                    return overflowEnergy > 0 ? (
+                                        <div className="flex items-center justify-between text-red-400 font-medium">
+                                            <span>- Unclaimable:</span>
+                                            <span className="font-mono">{formatEnergy(overflowEnergy)}</span>
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
 
                             {/* Capacity Breakdown */}

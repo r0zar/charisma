@@ -9,7 +9,7 @@ const ENERGY_CONTRACT_ID = 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-
 export interface RealTimeEnergyData {
     currentEnergyBalance: number;
     accumulatedSinceLastHarvest: number; // Deprecated - use engineAccumulations instead
-    engineAccumulations: Record<string, number>; // Per-engine accumulated energy by contract ID
+    engineAccumulations: Record<string, number>; // Per-engine untapped energy by contract ID
     totalHarvestableEnergy: number;
     energyRatePerSecond: number;
     lastHarvestTimestamp: number;

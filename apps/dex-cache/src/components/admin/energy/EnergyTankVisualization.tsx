@@ -25,7 +25,7 @@ interface EnergyEngine {
     image?: string;
     isHarvesting?: boolean;
     harvestSuccess?: boolean;
-    // Per-engine accumulated energy tracking
+    // Per-engine untapped energy tracking
     accumulatedEnergy?: number;
     lastHarvestTimestamp?: number;
     timeSinceLastHarvest?: number;
@@ -41,7 +41,7 @@ interface EnergyTankProps {
     totalEnergyRate: number;
     isGenerating: boolean;
     capacityZone: 'safe' | 'warning' | 'critical' | 'overflow';
-    engineAccumulations?: Record<string, number>; // Per-engine accumulated energy from SSE
+    engineAccumulations?: Record<string, number>; // Per-engine untapped energy from SSE
     onEnergyHarvested?: (amount: number, engineContractId?: string) => void;
 }
 
@@ -108,12 +108,12 @@ export function EnergyTankVisualization({
         }
     }, [engineLastBlocks]);
 
-    // Update engines with SSE-provided accumulated energy data or fallback calculation
+    // Update engines with SSE-provided untapped energy data or fallback calculation
     useEffect(() => {
         const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
         
         if (hasEngineAccumulations) {
-            // Use SSE-provided per-engine accumulated data
+            // Use SSE-provided per-engine untapped data
             setEngines(prevEngines =>
                 prevEngines.map(engine => ({
                     ...engine,
@@ -602,9 +602,9 @@ export function EnergyTankVisualization({
                                                 </div>
                                             </div>
 
-                                            {/* Per-Engine Accumulated Energy */}
+                                            {/* Per-Engine Untapped Energy */}
                                             <div className="text-right">
-                                                <div className="text-xs text-muted-foreground">Accumulated</div>
+                                                <div className="text-xs text-muted-foreground">Untapped</div>
                                                 <div className={cn(
                                                     "text-sm font-mono font-semibold transition-colors duration-300",
                                                     engine.accumulatedEnergy && engine.accumulatedEnergy > 0 ? "text-green-400" : "text-muted-foreground"
