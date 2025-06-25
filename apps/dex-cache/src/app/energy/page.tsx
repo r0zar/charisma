@@ -20,7 +20,7 @@ export default function EnergyPage() {
                 <div>
                     <h1 className="text-3xl font-bold flex items-center gap-2">
                         <Zap className="h-8 w-8 text-primary" />
-                        Energy System
+                        Hold-to-Earn
                     </h1>
                     <p className="text-muted-foreground mt-2">
                         Advanced energy management dashboard with real-time tracking, NFT bonuses, and rewards.

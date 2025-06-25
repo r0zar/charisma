@@ -2,19 +2,30 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { request } from '@stacks/connect';
-import { Wifi, WifiOff, Zap, Battery, Clock, AlertTriangle, Settings2, Flame } from 'lucide-react';
+import { Wifi, WifiOff, Zap, Battery, Clock, AlertTriangle, Settings2, Flame, TrendingUp, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { getTokenMetadataCached, type TokenCacheData } from '@repo/tokens';
+import { getTokenMetadataCached, listPrices, type TokenCacheData, type KraxelPriceData } from '@repo/tokens';
 import { useApp } from '@/lib/context/app-context';
+import { getAccountBalances } from '@repo/polyglot';
 import { EnergyTankVisualization } from '@/components/admin/energy/EnergyTankVisualization';
 import { EnergyFlowVisualization, AnimatedCounter } from '@/components/admin/energy/EnergyParticles';
 import { NFTBonusDisplay } from '@/components/admin/energy/NFTBonusDisplay';
 import { useNFTBonuses } from '@/lib/nft-service';
 import { formatEnergyValue, formatTimeDuration, getCapacityZoneStyles, type RealTimeEnergyData } from '@/lib/energy/real-time';
+import { ENERGY_TOKENS } from '@/lib/energy/price-service';
+import {
+    calculateEnergyAPY,
+    formatAPY,
+    formatDailyProfit,
+    getAPYColorClass,
+    getConfidenceIndicator,
+    type APYCalculationResult,
+    type TokenHolding
+} from '@/lib/energy/apy-calculator';
 
 // Helper function to format energy values - show decimals for values < 10
 const formatEnergy = (rawValue: number): string => {
@@ -72,6 +83,11 @@ export function EnergyDashboardTab() {
     // Current Stacks block tracking
     const [currentBlock, setCurrentBlock] = useState<number | null>(null);
 
+    // Energy token prices and APY calculations
+    const [energyPrices, setEnergyPrices] = useState<Record<string, number> | null>(null);
+    const [apyData, setApyData] = useState<APYCalculationResult | null>(null);
+
+
     // Optimistic updates tracking using ref to avoid re-render dependency issues
     const optimisticUpdatesRef = useRef({
         balanceIncrease: 0,
@@ -82,6 +98,42 @@ export function EnergyDashboardTab() {
 
     // Wallet connection
     const { walletState } = useApp();
+
+    // Token balances for APY calculation
+    const [balances, setBalances] = useState<Record<string, number> | null>(null);
+
+    // Fetch token balances for APY calculation
+    useEffect(() => {
+        if (!walletState.address) {
+            setBalances(null);
+            return;
+        }
+
+        const fetchBalances = async () => {
+            try {
+                const accountData = await getAccountBalances(walletState.address);
+
+                if (accountData?.fungible_tokens) {
+                    const tokenBalances: Record<string, number> = {};
+
+                    // Extract fungible token balances
+                    for (const [tokenId, data] of Object.entries(accountData.fungible_tokens)) {
+                        if (typeof data === 'object' && data && 'balance' in data) {
+                            tokenBalances[tokenId] = Number(data.balance);
+                        }
+                    }
+
+                    setBalances(tokenBalances);
+                } else {
+                    setBalances({});
+                }
+            } catch (error) {
+                setBalances({});
+            }
+        };
+
+        fetchBalances();
+    }, [walletState.address]);
 
     const eventSourceRef = useRef<EventSource | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,6 +153,42 @@ export function EnergyDashboardTab() {
     useEffect(() => {
         fetchCurrentBlock(); // Initial fetch
         const interval = setInterval(fetchCurrentBlock, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Fetch energy token prices
+    const fetchPrices = async () => {
+        try {
+            console.log('[Price Debug] Fetching energy token prices...');
+            const result = await listPrices();
+            setEnergyPrices(result);
+        } catch (error) {
+            console.error('Failed to fetch energy token prices:', error);
+        }
+    };
+
+    // Initial price fetch and periodic updates
+    useEffect(() => {
+        console.log('[Price Debug] Starting price fetch effect...');
+
+        // Test if the import is working
+        console.log('[Price Debug] fetchEnergyTokenPricesSmart function:', typeof fetchEnergyTokenPricesSmart);
+
+        // Try immediate execution with more error handling
+        (async () => {
+            try {
+                console.log('[Price Debug] About to call fetchPrices...');
+                await fetchPrices();
+                console.log('[Price Debug] fetchPrices completed');
+            } catch (error) {
+                console.error('[Price Debug] fetchPrices error:', error);
+            }
+        })();
+
+        const interval = setInterval(() => {
+            console.log('[Price Debug] Interval price fetch...');
+            fetchPrices();
+        }, 5 * 60 * 1000); // Every 5 minutes
         return () => clearInterval(interval);
     }, []);
 
@@ -132,6 +220,161 @@ export function EnergyDashboardTab() {
     const baseCapacity = 100000000; // 100 energy in micro-units
     const actualCapacityBonus = nftBonuses?.capacityBonus || 0;
     const bonusCapacity = actualCapacityBonus;
+
+    // Convert balances to TokenHolding format for APY calculation
+    const getTokenHoldings = async (): Promise<TokenHolding[]> => {
+        if (!balances || typeof balances !== 'object') {
+            return [];
+        }
+
+        const holdings: TokenHolding[] = [];
+
+        // Map contract IDs to symbols and extract balances
+        const tokenMappings = [
+            await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1'),
+            await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl'),
+            await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token'),
+            await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energy'),
+            await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow'),
+            await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit'),
+            // Add other energy-generating tokens as needed
+        ];
+
+        for (const token of tokenMappings) {
+            if (!token?.contractId) {
+                continue;
+            }
+
+            // Try multiple possible identifier formats based on known patterns
+            const contractName = token.contractId.split('.')[1];
+            const possibleIdentifiers = [
+                // Known specific mappings for Charisma tokens
+                contractName === 'hooter-the-owl' ? 'hooter' : null,
+                contractName === 'dexterity-pool-v1' ? 'DEX' : null,
+                contractName === 'dexterity-token' ? 'DEX' : null,
+                contractName === 'charisma-token' ? 'charisma' : null,
+                contractName === 'energy' ? 'energy' : null,
+                contractName === 'charismatic-flow' ? 'SXC' : null,
+                contractName === 'perseverantia-omnia-vincit' ? 'POV' : null,
+                // Fallback to standard patterns
+                token.identifier,
+                token.symbol?.toLowerCase(),
+                token.symbol,
+                token.name?.toLowerCase(),
+                contractName
+            ].filter(Boolean);
+
+
+            let foundBalance = 0;
+            let foundKey = '';
+
+            // Try each possible balance key format
+            for (const identifier of possibleIdentifiers) {
+                const balanceKey = `${token.contractId}::${identifier}`;
+                const balance = balances[balanceKey];
+
+
+
+                if (balance && typeof balance === 'number' && balance > 0) {
+                    foundBalance = balance;
+                    foundKey = balanceKey;
+                    break;
+                }
+            }
+
+
+
+            if (foundBalance > 0) {
+                // Convert from micro-units to human-readable units
+                const humanReadableAmount = foundBalance / Math.pow(10, 6);
+
+                // Ensure we have a proper symbol - map from contract name if symbol is missing
+                let symbol = token.symbol as string;
+                if (!symbol || symbol.trim() === '') {
+                    const contractName = token.contractId.split('.')[1];
+                    switch (contractName) {
+                        case 'hooter-the-owl':
+                            symbol = 'HOOT';
+                            break;
+                        case 'dexterity-pool-v1':
+                        case 'dexterity-token':
+                            symbol = 'DEX';
+                            break;
+                        case 'charisma-token':
+                            symbol = 'CHARISMA';
+                            break;
+                        case 'energy':
+                            symbol = 'ENERGY';
+                            break;
+                        case 'charismatic-flow':
+                            symbol = 'SXC';
+                            break;
+                        case 'perseverantia-omnia-vincit':
+                            symbol = 'POV';
+                            break;
+                        default:
+                            symbol = contractName.toUpperCase();
+                    }
+                }
+
+                holdings.push({
+                    symbol: symbol,
+                    amount: humanReadableAmount,
+                    contractId: token.contractId
+                });
+
+                console.log('[Balance Debug] Added to holdings:', {
+                    symbol: symbol,
+                    originalSymbol: token.symbol,
+                    amount: humanReadableAmount,
+                    rawBalance: foundBalance
+                });
+            }
+        }
+        return holdings;
+    };
+
+    useEffect(() => {
+        getTokenHoldings().then(console.log);
+    }, []);
+
+    // Calculate APY when energy state, prices, or balances change
+    useEffect(() => {
+        if (energyState && energyPrices) {
+            const calculateAPY = async () => {
+                try {
+                    console.log('[APY Debug] Calculating APY with energy state and prices available');
+
+                    const tokenHoldings = await getTokenHoldings();
+
+                    const result = calculateEnergyAPY({
+                        energyData: energyState,
+                        prices: energyPrices,
+                        tokenHoldings,
+                        nftBonuses: {
+                            generationMultiplier: (nftBonuses?.energyGenerationBonus || 0) / 100, // Convert percentage to decimal
+                            capacityBonus: actualCapacityBonus
+                        }
+                    });
+
+                    setApyData(result);
+                } catch (error) {
+                    console.error('Failed to calculate APY:', error);
+                    setApyData(null);
+                }
+            };
+
+            calculateAPY();
+        } else {
+            console.log('[APY Debug] Missing data for APY calculation:', {
+                hasEnergyState: !!energyState,
+                hasPrices: !!energyPrices,
+                energyStateKeys: energyState ? Object.keys(energyState) : [],
+                pricesKeys: energyPrices ? Object.keys(energyPrices) : []
+            });
+            setApyData(null);
+        }
+    }, [energyState, energyPrices, nftBonuses, actualCapacityBonus, balances]);
 
     // Apply optimistic updates to energy state for display
     const getDisplayEnergyState = () => {
@@ -619,71 +862,47 @@ export function EnergyDashboardTab() {
 
                     <div className="glass-card p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <Clock className="h-4 w-4" />
-                            Untapped
+                            <TrendingUp className="h-4 w-4" />
+                            APY
                         </div>
-                        <div className="text-2xl font-bold text-green-400">
-                            {formatEnergy(displayEnergyState.accumulatedSinceLastHarvest || 0)}
+                        <div className={cn(
+                            "text-2xl font-bold",
+                            apyData ? getAPYColorClass(apyData.apy) : 'text-gray-500'
+                        )}>
+                            {!energyPrices ? 'Loading...' :
+                                !displayEnergyState ? 'No Data' :
+                                    apyData ? formatAPY(apyData.apy) : '0.0%'}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                            ready to harvest
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <span>annual yield</span>
+                            {apyData && (
+                                <span className={getConfidenceIndicator(apyData.confidence).color}>
+                                    {getConfidenceIndicator(apyData.confidence).icon}
+                                </span>
+                            )}
+                            {apyData?.warnings && apyData.warnings.length > 0 && (
+                                <span title={apyData.warnings.join(', ')} className="text-yellow-500 cursor-help">
+                                    ⚠
+                                </span>
+                            )}
                         </div>
                     </div>
 
                     <div className="glass-card p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <Settings2 className="h-4 w-4" />
-                            {(() => {
-                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
-                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
-                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
-                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
-                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
-
-                                return overflowEnergy > 0 ? 'Overflow' : 'Capacity';
-                            })()}
+                            <Coins className="h-4 w-4" />
+                            Daily Profit
                         </div>
-                        <div className={cn(
-                            "text-2xl font-bold",
-                            (() => {
-                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
-                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
-                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
-                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
-                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
-
-                                if (overflowEnergy > 0) return 'text-red-500';
-                                return currentBalanceZone === 'safe' ? 'text-green-500' :
-                                    currentBalanceZone === 'warning' ? 'text-blue-500' :
-                                        currentBalanceZone === 'critical' ? 'text-orange-500' :
-                                            'text-orange-600';
-                            })()
-                        )}>
-                            {(() => {
-                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
-                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
-                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
-                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
-                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
-
-                                return overflowEnergy > 0 ?
-                                    formatEnergy(overflowEnergy) :
-                                    `${(currentBalancePercentage || 0).toFixed(0)}%`;
-                            })()}
+                        <div className="text-2xl font-bold text-green-400">
+                            {!energyPrices ? 'Loading...' :
+                                !displayEnergyState ? 'No Data' :
+                                    apyData ? formatDailyProfit(apyData.dailyProfit) : '$0.00'}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                            {(() => {
-                                const totalAccumulated = displayEnergyState.accumulatedSinceLastHarvest || 0;
-                                const maxCapacity = displayEnergyState.maxCapacity || (baseCapacity + actualCapacityBonus);
-                                const currentBalance = displayEnergyState.currentEnergyBalance || 0;
-                                const remainingCapacity = Math.max(0, maxCapacity - currentBalance);
-                                const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
-
-                                return overflowEnergy > 0 ? 'unclaimable energy' :
-                                    currentBalanceZone === 'overflow' ? 'FULL TANK' :
-                                        currentBalanceZone === 'critical' ? 'NEARLY FULL' :
-                                            currentBalanceZone === 'warning' ? 'GETTING FULL' : 'ROOM TO GROW';
-                            })()}
+                            {!energyPrices ? 'fetching prices...' :
+                                energyPrices?.isStale ? 'stale prices' :
+                                    !displayEnergyState?.energyRatePerSecond ? 'no generation' :
+                                        'current estimate'}
                         </div>
                     </div>
                 </div>

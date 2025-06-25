@@ -137,7 +137,7 @@ export function calculateCurrentEnergyRate(
         if (currentHarvest.block_time && previousHarvest.block_time) {
             const timeDiff = currentHarvest.block_time - previousHarvest.block_time; // seconds
             if (timeDiff > 0) {
-                const energyRate = currentHarvest.energy / timeDiff; // energy per second
+                const energyRate = currentHarvest.energy / timeDiff; // energy per second (in micro-units)
                 periodRates.push(energyRate);
             }
         }
@@ -247,7 +247,7 @@ export function getUserEnergyStatsV2(logs: EnergyLog[], userAddress: string): Us
         // Add time and rate information for periods after the first
         if (index > 0 && log.block_time && sortedLogs[index - 1].block_time) {
             const timeSinceLastHarvest = log.block_time - sortedLogs[index - 1].block_time!;
-            const effectiveRate = timeSinceLastHarvest > 0 ? Number(log.energy) / timeSinceLastHarvest : 0;
+            const effectiveRate = timeSinceLastHarvest > 0 ? Number(log.energy) / timeSinceLastHarvest : 0; // energy per second (in micro-units)
             
             entry.timeSinceLastHarvest = timeSinceLastHarvest;
             entry.effectiveRate = effectiveRate;

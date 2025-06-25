@@ -57,17 +57,14 @@ async function checkNFTBalancesFromAccount(userAddress: string): Promise<Record<
     const results: Record<string, NFTBalance> = {};
 
     try {
-        console.log(`🔍 Getting account balances for ${userAddress}...`);
         const accountData = await getAccountBalances(userAddress);
 
         if (!accountData?.non_fungible_tokens) {
-            console.log('❌ No NFT data found in account balances');
             return results;
         }
 
         // Process all NFT collections from account balances
         const nftEntries = Object.entries(accountData.non_fungible_tokens);
-        console.log(`📊 Found ${nftEntries.length} NFT collections in account`);
 
         for (const [contractId, nftData] of nftEntries) {
             const count = parseInt(nftData.count);
@@ -80,7 +77,6 @@ async function checkNFTBalancesFromAccount(userAddress: string): Promise<Record<
                 };
 
                 results[contractId] = balance;
-                console.log(`✅ Found ${count} NFTs in ${contractId}`);
             }
         }
 
@@ -186,7 +182,7 @@ export async function getNFTBonuses(userAddress: string): Promise<NFTBonuses> {
                         console.log(`🎯 Found exact highest Raven ID from server cache: ${highestRavenId}`);
                     }
                 }
-                
+
                 // Special case: We know this specific address owns Raven #99
                 if (userAddress === 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS' && highestRavenId === 0 && bonuses.totalRavenCount === 1) {
                     console.log('🔧 Using manual override: This address owns Raven #99 (server cache failed)');

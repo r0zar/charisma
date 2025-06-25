@@ -121,6 +121,7 @@ export async function calculateRealTimeEnergyStatus(userAddress: string): Promis
         return {
             currentEnergyBalance,
             accumulatedSinceLastHarvest,
+            engineAccumulations: {}, // TODO: Implement per-engine accumulation data
             totalHarvestableEnergy,
             energyRatePerSecond,
             lastHarvestTimestamp,
@@ -142,6 +143,7 @@ export async function calculateRealTimeEnergyStatus(userAddress: string): Promis
         return {
             currentEnergyBalance: 0,
             accumulatedSinceLastHarvest: 0,
+            engineAccumulations: {},
             totalHarvestableEnergy: 0,
             energyRatePerSecond: 0,
             lastHarvestTimestamp: now,

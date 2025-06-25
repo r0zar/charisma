@@ -111,7 +111,7 @@ export function EnergyTankVisualization({
     // Update engines with SSE-provided untapped energy data or fallback calculation
     useEffect(() => {
         const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
-        
+
         if (hasEngineAccumulations) {
             // Use SSE-provided per-engine untapped data
             setEngines(prevEngines =>
@@ -130,10 +130,10 @@ export function EnergyTankVisualization({
                         return { ...engine, accumulatedEnergy: 0, lastTappedBlock: engineLastBlocks[engine.engineContractId] };
                     }
 
-                    // Simple time-based accumulation (fallback calculation)
-                    const lastHarvest = engineHarvestTimestamps[engine.engineContractId] || now;
-                    const timeSinceLastHarvest = Math.max(0, (now - lastHarvest) / 1000); // seconds
-                    const accumulatedEnergy = timeSinceLastHarvest * engine.contributionRate;
+                    // Block-based accumulation calculation
+                    const lastTappedBlock = engineLastBlocks[engine.engineContractId] || currentBlock || 0;
+                    const blocksSinceTap = Math.max(0, (currentBlock || 0) - lastTappedBlock);
+                    const accumulatedEnergy = blocksSinceTap * engine.contributionRate;
 
                     return {
                         ...engine,
@@ -143,8 +143,8 @@ export function EnergyTankVisualization({
                 })
             );
         }
-    }, [engineAccumulations, engineLastBlocks, engineHarvestTimestamps, isGenerating]);
-    
+    }, [engineAccumulations, engineLastBlocks, currentBlock, isGenerating]);
+
     // Fallback real-time update when SSE doesn't provide per-engine data
     useEffect(() => {
         const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
@@ -158,9 +158,9 @@ export function EnergyTankVisualization({
                         return { ...engine, accumulatedEnergy: 0 };
                     }
 
-                    const lastHarvest = engineHarvestTimestamps[engine.engineContractId] || now;
-                    const timeSinceLastHarvest = Math.max(0, (now - lastHarvest) / 1000);
-                    const accumulatedEnergy = timeSinceLastHarvest * engine.contributionRate;
+                    const lastTappedBlock = engineLastBlocks[engine.engineContractId] || currentBlock || 0;
+                    const blocksSinceTap = Math.max(0, (currentBlock || 0) - lastTappedBlock);
+                    const accumulatedEnergy = blocksSinceTap * engine.contributionRate;
 
                     return {
                         ...engine,
@@ -171,7 +171,7 @@ export function EnergyTankVisualization({
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [engineAccumulations, isGenerating, engines.length, engineHarvestTimestamps]);
+    }, [engineAccumulations, isGenerating, engines.length, currentBlock, engineLastBlocks]);
 
     // Load real energy engines from the vault system
     useEffect(() => {
@@ -221,11 +221,6 @@ export function EnergyTankVisualization({
 
                 // Create better display names for engines with robust fallbacks
                 const getEngineName = (vault: any, tokenData: any) => {
-                    console.log(`🔍 Naming debug for vault "${vault.name}":`, {
-                        tokenSymbol: tokenData.symbol,
-                        tokenName: tokenData.name,
-                        vaultName: vault.name
-                    });
 
                     // Create clean token symbol mapping
                     const getCleanSymbol = (symbol: string, name: string) => {
@@ -256,7 +251,6 @@ export function EnergyTankVisualization({
                     }
 
                     const finalName = `${engineName} Engine`;
-                    console.log(`🎯 Final engine name: "${finalName}"`);
                     return finalName;
                 };
 
@@ -454,7 +448,7 @@ export function EnergyTankVisualization({
                         <p className="text-sm text-muted-foreground">Multiple engines feeding central energy tank</p>
                     </div>
                 </div>
-                
+
                 {/* Current Stacks Block */}
                 <div className="text-right">
                     <div className="text-xs text-muted-foreground">Current Block</div>
@@ -494,156 +488,156 @@ export function EnergyTankVisualization({
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3 gap-4">
                             {engines.map((engine) => {
-                            const isHarvesting = harvestingEngines.has(engine.engineContractId);
-                            const isSuccess = successEngines.has(engine.engineContractId);
-                            const canHarvest = walletState.connected && engine.isActive && !isHarvesting;
+                                const isHarvesting = harvestingEngines.has(engine.engineContractId);
+                                const isSuccess = successEngines.has(engine.engineContractId);
+                                const canHarvest = walletState.connected && engine.isActive && !isHarvesting;
 
-                            // Check if user is at capacity - use currentBalance (spendable balance) not currentEnergy (harvestable)
-                            const currentBalancePercentage = maxCapacity > 0 ? (currentBalance / maxCapacity) * 100 : 0;
-                            const isAtCapacity = currentBalancePercentage >= 95; // 95% threshold for warnings
-                            const willWasteEnergy = isAtCapacity && canHarvest;
+                                // Check if user is at capacity - use currentBalance (spendable balance) not currentEnergy (harvestable)
+                                const currentBalancePercentage = maxCapacity > 0 ? (currentBalance / maxCapacity) * 100 : 0;
+                                const isAtCapacity = currentBalancePercentage >= 95; // 95% threshold for warnings
+                                const willWasteEnergy = isAtCapacity && canHarvest;
 
-                            return (
-                                <div
-                                    key={engine.id}
-                                    className={cn(
-                                        "token-card p-4 transition-all duration-300 relative group",
-                                        engine.isActive ? "border-primary/30" : "border-muted/30 opacity-60",
-                                        canHarvest && "cursor-pointer hover:border-primary/60 hover:shadow-lg hover:bg-primary/5 hover:scale-[1.02] hover:-translate-y-1",
-                                        isHarvesting && "bg-yellow-500/10 border-yellow-500/50",
-                                        isSuccess && "bg-green-500/10 border-green-500/50",
-                                        !walletState.connected && "opacity-50"
-                                    )}
-                                    onClick={() => canHarvest && handleHarvestEngine(engine.engineContractId)}
-                                    title={canHarvest ?
-                                        willWasteEnergy ?
-                                            `⚠️ Wallet at capacity! Tap to harvest energy from ${engine.name} (energy may be wasted)` :
-                                            `Tap to harvest energy from ${engine.name}` :
-                                        !walletState.connected ? 'Connect wallet to harvest' :
-                                            !engine.isActive ? 'Engine inactive' :
-                                                isHarvesting ? 'Tapping in progress...' :
-                                                    'Cannot harvest right now'}
-                                >
-                                    {/* Hover glow effect */}
-                                    {canHarvest && (
-                                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                    )}
+                                return (
+                                    <div
+                                        key={engine.id}
+                                        className={cn(
+                                            "token-card p-4 transition-all duration-300 relative group",
+                                            engine.isActive ? "border-primary/30" : "border-muted/30 opacity-60",
+                                            canHarvest && "cursor-pointer hover:border-primary/60 hover:shadow-lg hover:bg-primary/5 hover:scale-[1.02] hover:-translate-y-1",
+                                            isHarvesting && "bg-yellow-500/10 border-yellow-500/50",
+                                            isSuccess && "bg-green-500/10 border-green-500/50",
+                                            !walletState.connected && "opacity-50"
+                                        )}
+                                        onClick={() => canHarvest && handleHarvestEngine(engine.engineContractId)}
+                                        title={canHarvest ?
+                                            willWasteEnergy ?
+                                                `⚠️ Wallet at capacity! Tap to harvest energy from ${engine.name} (energy may be wasted)` :
+                                                `Tap to harvest energy from ${engine.name}` :
+                                            !walletState.connected ? 'Connect wallet to harvest' :
+                                                !engine.isActive ? 'Engine inactive' :
+                                                    isHarvesting ? 'Tapping in progress...' :
+                                                        'Cannot harvest right now'}
+                                    >
+                                        {/* Hover glow effect */}
+                                        {canHarvest && (
+                                            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                        )}
 
-                                    <div className="flex items-center justify-between relative z-10">
-                                        <div className="flex items-center gap-3">
-                                            {/* Vault Image with status indicator */}
-                                            <div className="relative">
-                                                <div className="h-8 w-8 rounded-full overflow-hidden bg-muted/20 flex items-center justify-center">
-                                                    {engine.image ? (
-                                                        <img
-                                                            src={engine.image}
-                                                            alt={engine.name}
-                                                            className="h-full w-full object-cover"
-                                                            onError={(e) => {
-                                                                e.currentTarget.style.display = 'none';
-                                                                const parent = e.currentTarget.parentElement;
-                                                                if (parent) {
-                                                                    parent.innerHTML = `<div class="h-3 w-3 rounded-full ${engine.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}"></div>`;
-                                                                }
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div className={cn(
-                                                            "h-3 w-3 rounded-full transition-all duration-300",
-                                                            engine.isActive ? "bg-green-500 animate-pulse" : "bg-gray-400",
-                                                            canHarvest && "group-hover:bg-primary"
-                                                        )} />
-                                                    )}
-                                                </div>
-
-                                                {/* Status indicator overlay */}
-                                                {isHarvesting && (
-                                                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                                                        <div className="h-2 w-2 bg-white rounded-full animate-ping" />
+                                        <div className="flex items-center justify-between relative z-10">
+                                            <div className="flex items-center gap-3">
+                                                {/* Vault Image with status indicator */}
+                                                <div className="relative">
+                                                    <div className="h-8 w-8 rounded-full overflow-hidden bg-muted/20 flex items-center justify-center">
+                                                        {engine.image ? (
+                                                            <img
+                                                                src={engine.image}
+                                                                alt={engine.name}
+                                                                className="h-full w-full object-cover"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.style.display = 'none';
+                                                                    const parent = e.currentTarget.parentElement;
+                                                                    if (parent) {
+                                                                        parent.innerHTML = `<div class="h-3 w-3 rounded-full ${engine.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}"></div>`;
+                                                                    }
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div className={cn(
+                                                                "h-3 w-3 rounded-full transition-all duration-300",
+                                                                engine.isActive ? "bg-green-500 animate-pulse" : "bg-gray-400",
+                                                                canHarvest && "group-hover:bg-primary"
+                                                            )} />
+                                                        )}
                                                     </div>
-                                                )}
-                                                {isSuccess && (
-                                                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
-                                                        <Zap className="h-2 w-2 text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
 
-                                            <div>
-                                                <div className="font-medium text-sm flex items-center gap-2">
-                                                    {engine.name}
+                                                    {/* Status indicator overlay */}
                                                     {isHarvesting && (
-                                                        <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                                                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                                                            <div className="h-2 w-2 bg-white rounded-full animate-ping" />
+                                                        </div>
                                                     )}
                                                     {isSuccess && (
-                                                        <Zap className="h-3 w-3 text-green-500 animate-pulse" />
+                                                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
+                                                            <Zap className="h-2 w-2 text-white" />
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    Hold {engine.tokenSymbol} tokens
-                                                    {canHarvest && (
-                                                        <span className={cn(
-                                                            "opacity-0 group-hover:opacity-100 transition-opacity duration-300 ml-1",
-                                                            willWasteEnergy ? "text-orange-500" : "text-primary"
-                                                        )}>
-                                                            • {willWasteEnergy ? 'Click to tap (may waste energy)' : 'Click to tap'}
-                                                        </span>
-                                                    )}
+
+                                                <div>
+                                                    <div className="font-medium text-sm flex items-center gap-2">
+                                                        {engine.name}
+                                                        {isHarvesting && (
+                                                            <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                                                        )}
+                                                        {isSuccess && (
+                                                            <Zap className="h-3 w-3 text-green-500 animate-pulse" />
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Hold {engine.tokenSymbol} tokens
+                                                        {canHarvest && (
+                                                            <span className={cn(
+                                                                "opacity-0 group-hover:opacity-100 transition-opacity duration-300 ml-1",
+                                                                willWasteEnergy ? "text-orange-500" : "text-primary"
+                                                            )}>
+                                                                • {willWasteEnergy ? 'Click to tap (may waste energy)' : 'Click to tap'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                {/* Last Tapped Block */}
+                                                <div className="text-right">
+                                                    <div className="text-xs text-muted-foreground">Last Tap</div>
+                                                    <div className="text-sm font-mono text-muted-foreground">
+                                                        {engine.lastTappedBlock ? `#${engine.lastTappedBlock.toLocaleString()}` : 'Never'}
+                                                    </div>
+                                                </div>
+
+                                                {/* Per-Engine Untapped Energy */}
+                                                <div className="text-right">
+                                                    <div className="text-xs text-muted-foreground">Untapped</div>
+                                                    <div className={cn(
+                                                        "text-sm font-mono font-semibold transition-colors duration-300",
+                                                        engine.accumulatedEnergy && engine.accumulatedEnergy > 0 ? "text-green-400" : "text-muted-foreground"
+                                                    )}>
+                                                        {engine.accumulatedEnergy ? formatEnergy(engine.accumulatedEnergy) : '0'}
+                                                    </div>
+                                                </div>
+
+                                                {/* Contribution Rate */}
+                                                <div className="text-right">
+                                                    <div className="text-xs text-muted-foreground">Rate</div>
+                                                    <div className="text-sm font-mono font-semibold">
+                                                        {formatEnergy(engine.contributionRate)}/s
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
-                                            {/* Last Tapped Block */}
-                                            <div className="text-right">
-                                                <div className="text-xs text-muted-foreground">Last Tap</div>
-                                                <div className="text-sm font-mono text-muted-foreground">
-                                                    {engine.lastTappedBlock ? `#${engine.lastTappedBlock.toLocaleString()}` : 'Never'}
+                                        {/* Engine Rate Progress Bar */}
+                                        {engine.isActive && (
+                                            <div className="mt-3 relative z-10">
+                                                <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={cn(
+                                                            "h-full bg-gradient-to-r transition-all duration-1000",
+                                                            engine.color,
+                                                            isGenerating && "animate-pulse",
+                                                        )}
+                                                        style={{
+                                                            width: `${Math.min((engine.contributionRate / maxEngineRate) * 100, 100)}%`,
+                                                            boxShadow: canHarvest ? `0 0 10px ${engine.color.includes('orange') ? '#f97316' : engine.color.includes('green') ? '#10b981' : '#8b5cf6'}` : 'none'
+                                                        }}
+                                                    />
                                                 </div>
                                             </div>
-
-                                            {/* Per-Engine Untapped Energy */}
-                                            <div className="text-right">
-                                                <div className="text-xs text-muted-foreground">Untapped</div>
-                                                <div className={cn(
-                                                    "text-sm font-mono font-semibold transition-colors duration-300",
-                                                    engine.accumulatedEnergy && engine.accumulatedEnergy > 0 ? "text-green-400" : "text-muted-foreground"
-                                                )}>
-                                                    {engine.accumulatedEnergy ? formatEnergy(engine.accumulatedEnergy) : '0'}
-                                                </div>
-                                            </div>
-
-                                            {/* Contribution Rate */}
-                                            <div className="text-right">
-                                                <div className="text-xs text-muted-foreground">Rate</div>
-                                                <div className="text-sm font-mono font-semibold">
-                                                    {formatEnergy(engine.contributionRate)}/s
-                                                </div>
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
-
-                                    {/* Engine Rate Progress Bar */}
-                                    {engine.isActive && (
-                                        <div className="mt-3 relative z-10">
-                                            <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
-                                                <div
-                                                    className={cn(
-                                                        "h-full bg-gradient-to-r transition-all duration-1000",
-                                                        engine.color,
-                                                        isGenerating && "animate-pulse",
-                                                    )}
-                                                    style={{
-                                                        width: `${Math.min((engine.contributionRate / maxEngineRate) * 100, 100)}%`,
-                                                        boxShadow: canHarvest ? `0 0 10px ${engine.color.includes('orange') ? '#f97316' : engine.color.includes('green') ? '#10b981' : '#8b5cf6'}` : 'none'
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
