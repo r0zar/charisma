@@ -41,6 +41,7 @@ interface EnergyTankProps {
     totalEnergyRate: number;
     isGenerating: boolean;
     capacityZone: 'safe' | 'warning' | 'critical' | 'overflow';
+    engineAccumulations?: Record<string, number>; // Per-engine accumulated energy from SSE
     onEnergyHarvested?: (amount: number, engineContractId?: string) => void;
 }
 
@@ -53,6 +54,7 @@ export function EnergyTankVisualization({
     totalEnergyRate,
     isGenerating,
     capacityZone,
+    engineAccumulations = {},
     onEnergyHarvested
 }: EnergyTankProps) {
     const [engines, setEngines] = useState<EnergyEngine[]>([]);
@@ -106,53 +108,70 @@ export function EnergyTankVisualization({
         }
     }, [engineLastBlocks]);
 
-    // Real-time update for per-engine accumulated energy
+    // Update engines with SSE-provided accumulated energy data or fallback calculation
     useEffect(() => {
-        if (!isGenerating || engines.length === 0) return;
+        const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
+        
+        if (hasEngineAccumulations) {
+            // Use SSE-provided per-engine accumulated data
+            setEngines(prevEngines =>
+                prevEngines.map(engine => ({
+                    ...engine,
+                    accumulatedEnergy: engineAccumulations[engine.engineContractId] || 0,
+                    lastTappedBlock: engineLastBlocks[engine.engineContractId]
+                }))
+            );
+        } else {
+            // Fallback: restore local calculation until backend provides per-engine data
+            const now = Date.now();
+            setEngines(prevEngines =>
+                prevEngines.map(engine => {
+                    if (!engine.isActive || engine.contributionRate <= 0) {
+                        return { ...engine, accumulatedEnergy: 0, lastTappedBlock: engineLastBlocks[engine.engineContractId] };
+                    }
+
+                    // Simple time-based accumulation (fallback calculation)
+                    const lastHarvest = engineHarvestTimestamps[engine.engineContractId] || now;
+                    const timeSinceLastHarvest = Math.max(0, (now - lastHarvest) / 1000); // seconds
+                    const accumulatedEnergy = timeSinceLastHarvest * engine.contributionRate;
+
+                    return {
+                        ...engine,
+                        accumulatedEnergy: Math.round(accumulatedEnergy),
+                        lastTappedBlock: engineLastBlocks[engine.engineContractId]
+                    };
+                })
+            );
+        }
+    }, [engineAccumulations, engineLastBlocks, engineHarvestTimestamps, isGenerating]);
+    
+    // Fallback real-time update when SSE doesn't provide per-engine data
+    useEffect(() => {
+        const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
+        if (hasEngineAccumulations || !isGenerating || engines.length === 0) return;
 
         const interval = setInterval(() => {
             const now = Date.now();
             setEngines(prevEngines =>
                 prevEngines.map(engine => {
                     if (!engine.isActive || engine.contributionRate <= 0) {
-                        return { ...engine, accumulatedEnergy: 0, timeSinceLastHarvest: 0 };
+                        return { ...engine, accumulatedEnergy: 0 };
                     }
 
-                    // Calculate accumulated energy based on blocks since last tap + real-time accumulation
-                    const lastTappedBlock = engineLastBlocks[engine.engineContractId];
                     const lastHarvest = engineHarvestTimestamps[engine.engineContractId] || now;
-                    let accumulatedEnergy = 0;
-                    
-                    if (lastTappedBlock && currentBlock && currentBlock > lastTappedBlock) {
-                        // Base accumulation from blocks passed since last tap
-                        const blocksSinceLastTap = currentBlock - lastTappedBlock;
-                        const blockBasedAccumulation = blocksSinceLastTap * engine.contributionRate;
-                        
-                        // Add real-time accumulation for the current partial block
-                        // Assume ~10 minutes per block, add proportional accumulation for time within current block
-                        const timeSinceLastHarvest = Math.max(0, (now - lastHarvest) / 1000); // seconds
-                        const timeBasedAccumulation = (timeSinceLastHarvest % 600) * engine.contributionRate; // 600s = 10min
-                        
-                        accumulatedEnergy = blockBasedAccumulation + timeBasedAccumulation;
-                    } else if (!lastTappedBlock && currentBlock) {
-                        // If never tapped, just use time-based accumulation from component start
-                        const timeSinceLastHarvest = Math.max(0, (now - lastHarvest) / 1000);
-                        accumulatedEnergy = timeSinceLastHarvest * engine.contributionRate;
-                    }
+                    const timeSinceLastHarvest = Math.max(0, (now - lastHarvest) / 1000);
+                    const accumulatedEnergy = timeSinceLastHarvest * engine.contributionRate;
 
                     return {
                         ...engine,
-                        accumulatedEnergy: Math.round(accumulatedEnergy),
-                        lastHarvestTimestamp: lastHarvest,
-                        timeSinceLastHarvest: Math.max(0, (now - lastHarvest) / 1000),
-                        lastTappedBlock: engineLastBlocks[engine.engineContractId]
+                        accumulatedEnergy: Math.round(accumulatedEnergy)
                     };
                 })
             );
-        }, 1000); // Update every second
+        }, 1000);
 
         return () => clearInterval(interval);
-    }, [isGenerating, engines.length, engineHarvestTimestamps]);
+    }, [engineAccumulations, isGenerating, engines.length, engineHarvestTimestamps]);
 
     // Load real energy engines from the vault system
     useEffect(() => {

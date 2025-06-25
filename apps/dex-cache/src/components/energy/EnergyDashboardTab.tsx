@@ -76,7 +76,7 @@ export function EnergyDashboardTab() {
     const optimisticUpdatesRef = useRef({
         balanceIncrease: 0,
         harvestableDecrease: 0,
-        accumulatedDecrease: 0, // Track accumulated energy decreases separately
+        engineAccumulatedDecrease: {} as Record<string, number>, // Track per-engine accumulated decreases
         pendingTaps: new Map<string, number>() // track pending taps by transaction ID
     });
 
@@ -142,7 +142,34 @@ export function EnergyDashboardTab() {
         // Ensure all values are numbers and not NaN
         const safeCurrentBalance = isNaN(energyState.currentEnergyBalance) ? 0 : (energyState.currentEnergyBalance || 0);
         const safeTotalHarvestable = isNaN(energyState.totalHarvestableEnergy) ? 0 : (energyState.totalHarvestableEnergy || 0);
-        const safeAccumulated = isNaN(energyState.accumulatedSinceLastHarvest) ? 0 : (energyState.accumulatedSinceLastHarvest || 0);
+        
+        // Calculate total accumulated as sum of individual engine accumulations
+        const engineAccumulations = energyState.engineAccumulations || {};
+        const hasEngineAccumulations = Object.keys(engineAccumulations).length > 0;
+        
+        let safeAccumulated: number;
+        
+        if (hasEngineAccumulations) {
+            // New per-engine system: sum up individual engine accumulations
+            const baseAccumulated = Object.values(engineAccumulations).reduce((sum, acc) => {
+                return sum + (isNaN(acc) ? 0 : acc);
+            }, 0);
+            
+            // Apply optimistic per-engine decreases
+            const optimisticEngineDecreases = optimistic.engineAccumulatedDecrease;
+            const totalOptimisticDecrease = Object.entries(optimisticEngineDecreases).reduce((sum, [engineId, decrease]) => {
+                return sum + (engineAccumulations[engineId] ? Math.min(decrease, engineAccumulations[engineId]) : 0);
+            }, 0);
+            
+            safeAccumulated = Math.max(0, baseAccumulated - totalOptimisticDecrease);
+        } else {
+            // Fallback to old global accumulated system (for backward compatibility)
+            const fallbackAccumulated = isNaN(energyState.accumulatedSinceLastHarvest) ? 0 : (energyState.accumulatedSinceLastHarvest || 0);
+            // Note: For fallback, we still need to handle optimistic decreases, but we can't do it per-engine
+            // So we'll sum up all per-engine decreases and apply them to the global value
+            const totalOptimisticDecrease = Object.values(optimistic.engineAccumulatedDecrease).reduce((sum, decrease) => sum + decrease, 0);
+            safeAccumulated = Math.max(0, fallbackAccumulated - totalOptimisticDecrease);
+        }
         const safeEnergyRate = isNaN(energyState.energyRatePerSecond) ? 0 : (energyState.energyRatePerSecond || 0);
         const safeMaxCapacity = isNaN(energyState.maxCapacity) ? (baseCapacity + actualCapacityBonus) : (energyState.maxCapacity || (baseCapacity + actualCapacityBonus));
 
@@ -155,7 +182,7 @@ export function EnergyDashboardTab() {
             Math.max(0, safeTotalHarvestable - optimistic.harvestableDecrease),
             safeMaxCapacity // Hard cap: total harvestable cannot exceed max capacity
         );
-        const optimisticAccumulated = Math.max(0, safeAccumulated - optimistic.accumulatedDecrease);
+        const optimisticAccumulated = safeAccumulated; // Already calculated with optimistic decreases above
 
         return {
             ...energyState,
@@ -382,9 +409,16 @@ export function EnergyDashboardTab() {
 
         optimisticUpdatesRef.current.balanceIncrease += balanceIncrease;
         optimisticUpdatesRef.current.harvestableDecrease += harvestableDecrease;
-        optimisticUpdatesRef.current.accumulatedDecrease += accumulatedEnergyReduction;
+        
+        // Track per-engine accumulated decrease
+        if (engineContractId) {
+            if (!optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId]) {
+                optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] = 0;
+            }
+            optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] += accumulatedEnergyReduction;
+        }
 
-        console.log(`Optimistic updates: balance +${balanceIncrease}, harvestable -${harvestableDecrease}, accumulated -${accumulatedEnergyReduction}`);
+        console.log(`Optimistic updates: balance +${balanceIncrease}, harvestable -${harvestableDecrease}, engine ${engineContractId} accumulated -${accumulatedEnergyReduction}`);
 
         // Show harvest animation
         setHarvestAnimation({ show: true, amount: actualHarvestedAmount });
@@ -394,8 +428,19 @@ export function EnergyDashboardTab() {
         setTimeout(() => {
             optimisticUpdatesRef.current.balanceIncrease = Math.max(0, optimisticUpdatesRef.current.balanceIncrease - balanceIncrease);
             optimisticUpdatesRef.current.harvestableDecrease = Math.max(0, optimisticUpdatesRef.current.harvestableDecrease - harvestableDecrease);
-            optimisticUpdatesRef.current.accumulatedDecrease = Math.max(0, optimisticUpdatesRef.current.accumulatedDecrease - accumulatedEnergyReduction);
-            console.log('Cleared optimistic harvest update');
+            
+            // Clear per-engine accumulated decrease
+            if (engineContractId && optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId]) {
+                optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] = Math.max(0, 
+                    optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] - accumulatedEnergyReduction);
+                
+                // Remove entry if it's now zero
+                if (optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId] === 0) {
+                    delete optimisticUpdatesRef.current.engineAccumulatedDecrease[engineContractId];
+                }
+            }
+            
+            console.log('Cleared optimistic harvest update for engine:', engineContractId);
         }, 30000); // Clear after 30 seconds
     };
 
@@ -619,6 +664,7 @@ export function EnergyDashboardTab() {
                     totalEnergyRate={displayEnergyState.energyRatePerSecond || 0}
                     isGenerating={connectionState.isConnected && (displayEnergyState.energyRatePerSecond || 0) > 0}
                     capacityZone={harvestableZone}
+                    engineAccumulations={displayEnergyState.engineAccumulations || {}}
                     onEnergyHarvested={handleEnergyHarvested}
                 />
             )}
