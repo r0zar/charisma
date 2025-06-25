@@ -322,13 +322,6 @@ export function EnergyDashboardTab() {
                     amount: humanReadableAmount,
                     contractId: token.contractId
                 });
-
-                console.log('[Balance Debug] Added to holdings:', {
-                    symbol: symbol,
-                    originalSymbol: token.symbol,
-                    amount: humanReadableAmount,
-                    rawBalance: foundBalance
-                });
             }
         }
         return holdings;
