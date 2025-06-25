@@ -49,8 +49,6 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
         confidence: 0.8 // Default confidence
     };
 
-    console.log('[APY Calculator] Converting price map to Energy token prices. Available contracts:', Object.keys(priceMap));
-
     // Look for energy token prices by contract ID
     const hootPrice = priceMap[ENERGY_TOKENS.HOOT];
     const energyPrice = priceMap[ENERGY_TOKENS.ENERGY];
@@ -66,7 +64,6 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             confidence: 0.8,
             lastUpdated: now
         };
-        console.log(`[APY Calculator] Found HOOT price: $${hootPrice}`);
     }
 
     if (energyPrice !== undefined) {
@@ -78,7 +75,6 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             confidence: 0.8,
             lastUpdated: now
         };
-        console.log(`[APY Calculator] Found Energy price: $${energyPrice}`);
     }
 
     if (charismaPrice !== undefined) {
@@ -90,7 +86,6 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             confidence: 0.8,
             lastUpdated: now
         };
-        console.log(`[APY Calculator] Found Charisma price: $${charismaPrice}`);
     }
 
     if (dexterityPrice !== undefined) {
@@ -102,7 +97,6 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             confidence: 0.8,
             lastUpdated: now
         };
-        console.log(`[APY Calculator] Found Dexterity price: $${dexterityPrice}`);
     }
 
     // Calculate average confidence
@@ -110,8 +104,6 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
     if (availablePrices.length > 0) {
         result.confidence = availablePrices.reduce((sum, price) => sum + (price?.confidence || 0), 0) / availablePrices.length;
     }
-
-    console.log('[APY Calculator] Converted price map to Energy token prices:', result);
 
     return result;
 }
@@ -139,10 +131,6 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
         confidence: 0.8 // Default confidence
     };
 
-    console.log('[APY Calculator] Looking for token prices in Kraxel data:', {
-        totalPrices: kraxelPrices.length,
-        availableContracts: kraxelPrices.map(p => p.contractId)
-    });
 
     if (hootPrice) {
         result.hoot = {
@@ -194,8 +182,6 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
         result.confidence = availablePrices.reduce((sum, price) => sum + (price?.confidence || 0), 0) / availablePrices.length;
     }
 
-    console.log('[APY Calculator] Converted Kraxel prices to Energy token prices:', result);
-
     return result;
 }
 
@@ -205,7 +191,6 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
 export function calculateEnergyAPY(params: APYCalculationParams): APYCalculationResult {
     const { energyData, prices: rawPrices, tokenHoldings = [], nftBonuses = {} } = params;
 
-    console.log('[APY Calculator] === Starting APY Calculation ===');
     // Determine price format
     const pricesType = Array.isArray(rawPrices)
         ? 'KraxelPriceData[]'
@@ -213,20 +198,9 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
             ? 'PriceMap'
             : 'EnergyTokenPrices';
 
-    console.log('[APY Calculator] Input parameters:', {
-        energyRatePerSecond: energyData.energyRatePerSecond,
-        pricesAvailable: !!rawPrices,
-        pricesType,
-        pricesLength: Array.isArray(rawPrices) ? rawPrices.length : 'N/A',
-        pricesKeyCount: (pricesType === 'PriceMap') ? Object.keys(rawPrices as Record<string, number>).length : 'N/A',
-        tokenHoldingsCount: tokenHoldings.length,
-        nftBonuses
-    });
-
     const warnings: string[] = [];
 
     // Convert prices to EnergyTokenPrices format if needed
-    console.log('[APY Calculator] Converting prices - Type:', pricesType);
     let prices: EnergyTokenPrices;
 
     if (Array.isArray(rawPrices)) {
@@ -237,18 +211,9 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
         prices = rawPrices as EnergyTokenPrices;
     }
 
-    console.log('[APY Calculator] Final prices object:', prices);
-
     // Get energy value in USD (using HOOT price as baseline)
     const energyPriceUSD = getEnergyValueUSD(prices);
 
-    console.log('[APY Calculator] Price information:', {
-        hootPriceUSD: prices.hoot?.usdPrice,
-        energyPriceUSD: prices.energy?.usdPrice,
-        selectedEnergyPriceUSD: energyPriceUSD,
-        priceConfidence: prices.confidence,
-        pricesIsStale: prices.isStale
-    });
 
     if (energyPriceUSD === 0) {
         warnings.push('Energy price unavailable, calculations may be inaccurate');
@@ -259,22 +224,12 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
     const energyRatePerDay = energyRatePerSecond * 86400; // 24 * 60 * 60
     const energyRatePerYear = energyRatePerDay * 365;
 
-    console.log('[APY Calculator] Energy rate calculations (micro-units):', {
-        energyRatePerSecond,
-        energyRatePerDay,
-        energyRatePerYear
-    });
 
     // Apply NFT bonuses to generation rate
     const generationMultiplier = 1 + (nftBonuses.generationMultiplier || 0);
     const adjustedDailyRate = energyRatePerDay * generationMultiplier;
     const adjustedAnnualRate = energyRatePerYear * generationMultiplier;
 
-    console.log('[APY Calculator] After NFT bonuses:', {
-        generationMultiplier,
-        adjustedDailyRate,
-        adjustedAnnualRate
-    });
 
     // Calculate energy values in USD
     // Note: energyRatePerSecond is in micro-units, so convert to human-readable units
@@ -283,13 +238,6 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
     const dailyEnergyValue = dailyEnergyTokens * energyPriceUSD;
     const annualEnergyValue = annualEnergyTokens * energyPriceUSD;
 
-    console.log('[APY Calculator] Energy value calculations:', {
-        dailyEnergyTokens: dailyEnergyTokens.toFixed(6),
-        annualEnergyTokens: annualEnergyTokens.toFixed(6),
-        energyPriceUSD,
-        dailyEnergyValueUSD: dailyEnergyValue.toFixed(4),
-        annualEnergyValueUSD: annualEnergyValue.toFixed(2)
-    });
 
     // Calculate token investment value
     let tokenInvestmentValue = 0;
@@ -313,28 +261,13 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
         }
     }
 
-    console.log('[APY Calculator] Token holdings analysis:', {
-        tokenHoldingsCount: tokenHoldings.length,
-        holdingDetails,
-        totalInvestmentValueUSD: tokenInvestmentValue.toFixed(2)
-    });
 
     // Calculate APY
     let apy = 0;
     if (tokenInvestmentValue > 0) {
         apy = (annualEnergyValue / tokenInvestmentValue) * 100;
-        console.log('[APY Calculator] Real APY calculation:', {
-            annualEnergyValueUSD: annualEnergyValue.toFixed(2),
-            tokenInvestmentValueUSD: tokenInvestmentValue.toFixed(2),
-            calculatedAPY: apy.toFixed(2) + '%'
-        });
     } else {
         // No token holdings found - show energy value but note that APY calculation requires holdings
-        console.log('[APY Calculator] No token holdings found for APY calculation:', {
-            tokenHoldingsCount: tokenHoldings.length,
-            hasEnergyGeneration: adjustedAnnualRate > 0,
-            hasEnergyPrice: energyPriceUSD > 0
-        });
 
         if (adjustedAnnualRate > 0 && energyPriceUSD > 0) {
             warnings.push('Hold energy-generating tokens to see actual APY based on your investment');
@@ -347,11 +280,6 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
     // Daily profit is simply the daily energy value (no costs factored in for now)
     const dailyProfit = dailyEnergyValue;
 
-    console.log('[APY Calculator] Final daily profit calculation:', {
-        dailyEnergyTokens: dailyEnergyTokens.toFixed(6),
-        energyPriceUSD,
-        dailyProfitUSD: dailyProfit.toFixed(4)
-    });
 
     // Account for capacity limitations
     const maxCapacity = energyData.maxCapacity || 100000000; // 100 energy default
@@ -394,15 +322,6 @@ export function calculateEnergyAPY(params: APYCalculationParams): APYCalculation
         warnings: warnings.length > 0 ? warnings : undefined
     };
 
-    console.log('[APY Calculator] === Final Result ===');
-    console.log('[APY Calculator] Result summary:', {
-        finalAPY: result.apy.toFixed(2) + '%',
-        finalDailyProfit: '$' + result.dailyProfit.toFixed(4),
-        finalConfidence: result.confidence.toFixed(2),
-        warningsCount: warnings.length,
-        warnings
-    });
-    console.log('[APY Calculator] === Calculation Complete ===');
 
     return result;
 }
