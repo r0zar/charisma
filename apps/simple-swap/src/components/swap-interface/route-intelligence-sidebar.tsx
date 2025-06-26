@@ -158,8 +158,8 @@ export function RouteIntelligenceSidebar() {
                 </div>
             </div>
 
-            {/* Burn-Swap Routing - Show for LP tokens in swap mode when forced OR when routes available */}
-            {isLPToken && mode === 'swap' && lpTokenInfo && (forceBurnSwap || (showRouteDetails && (isLoadingBurnSwapRoutes || burnSwapRoutes.tokenA || burnSwapRoutes.tokenB))) && (
+            {/* Burn-Swap Routing - Show for LP tokens in swap mode when forced OR when profitable */}
+            {isLPToken && mode === 'swap' && lpTokenInfo && (forceBurnSwap || isBurnSwapProfitable) && (
                 <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] transition-all duration-200">
                     <div className="flex items-center space-x-2 mb-3">
                         <TrendingUp className="w-4 h-4 text-blue-400" />

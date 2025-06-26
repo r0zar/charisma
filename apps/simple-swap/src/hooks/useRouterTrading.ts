@@ -18,6 +18,7 @@ import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
 import { buildPostConditions } from 'blaze-sdk';
 import { buildSwapPostConditions } from 'dexterity-sdk';
+import { toast } from '@/components/ui/sonner';
 
 interface BalanceCheckResult {
   hasEnoughSubnet: boolean;
@@ -235,9 +236,19 @@ export function useRouterTrading() {
     return null;
   }, [selectedFromToken, isLPToken]);
 
-  // Burn-swap pathfinding using BurnSwapper client
+  // Burn-swap pathfinding using BurnSwapper client - only when forced or potentially profitable
   useEffect(() => {
+    // Reset burn-swap routes if not an LP token or not in swap mode
     if (!isLPToken || !selectedToToken || !lpTokenInfo || mode !== 'swap' || !microAmount || !burnSwapper.current) {
+      setBurnSwapRoutes({});
+      return;
+    }
+
+    // Only attempt burn-swap routing if forced OR if we don't have a regular quote yet (optimistic check)
+    // or if there's no regular quote available for comparison
+    if (!forceBurnSwap && quote && quote.amountOut) {
+      // We have a regular quote - only proceed if user forced burn-swap
+      // Clear burn-swap routes since we're not forcing and have a regular quote to compare against
       setBurnSwapRoutes({});
       return;
     }
@@ -246,6 +257,12 @@ export function useRouterTrading() {
       setIsLoadingBurnSwapRoutes(true);
       try {
         console.log('Finding burn-swap routes with BurnSwapper client, LP amount:', microAmount);
+
+        // Validate required LP token info
+        if (!lpTokenInfo.tokenAContract || !lpTokenInfo.tokenBContract) {
+          console.error('Missing tokenA or tokenB contract info:', lpTokenInfo);
+          throw new Error('Invalid LP token structure - missing underlying token contracts');
+        }
 
         // Create burn-swap vault info
         const lpVault = {
@@ -297,7 +314,7 @@ export function useRouterTrading() {
     };
 
     findBurnSwapRoutes();
-  }, [isLPToken, selectedToToken, lpTokenInfo, microAmount, mode]);
+  }, [isLPToken, selectedToToken, lpTokenInfo, microAmount, mode, forceBurnSwap, quote]);
 
   // Fetch quote when tokens or amount change
   const fetchQuote = useCallback(async () => {
@@ -444,9 +461,8 @@ export function useRouterTrading() {
     setSwapping(true);
 
     try {
-      // Determine if we should use burn-swap
-      const shouldUseBurnSwap = isLPToken && (forceBurnSwap ||
-        (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB));
+      // Determine if we should use burn-swap (only if forced OR more profitable)
+      const shouldUseBurnSwap = isLPToken && (forceBurnSwap || isBurnSwapProfitable);
 
       let txCfg;
 
@@ -497,6 +513,16 @@ export function useRouterTrading() {
       }
 
       setSwapSuccessInfo(res);
+
+      // Show success toast
+      const swapType = shouldUseBurnSwap ? 'Burn-Swap' : 'Swap';
+      toast.success(`${swapType} successful!`, {
+        description: `Transaction submitted: ${res.txid}`,
+        action: {
+          label: "View in Explorer",
+          onClick: () => window.open(`https://explorer.stacks.co/txid/${res.txid}?chain=mainnet`, '_blank')
+        },
+      });
     } catch (err) {
       console.error('Swap failed:', err);
       setError(err instanceof Error ? err.message : "Swap failed");
