@@ -328,15 +328,15 @@ export function RouteIntelligenceSidebar() {
                                                         {formatTokenAmount(Number(burnSwapRoutes.tokenA.amountOut || burnSwapRoutes.tokenA.expectedAmountOut || 0), selectedToToken?.decimals || 6)} {selectedToToken?.symbol}
                                                     </span>
                                                     <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">
-                                                        {burnSwapRoutes.tokenA.hops?.length || 0}-hop
+                                                        {burnSwapRoutes.tokenA.hops?.hops?.length || 0}-hop
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-blue-300 mb-1">
                                                     {lpTokens.tokenA?.symbol || lpTokenInfo?.tokenA} → {selectedToToken?.symbol}
                                                 </div>
-                                                {burnSwapRoutes.tokenA.hops && burnSwapRoutes.tokenA.hops.length > 0 && (
+                                                {burnSwapRoutes.tokenA.hops?.hops && burnSwapRoutes.tokenA.hops.hops.length > 0 && (
                                                     <div className="text-xs text-blue-400/60">
-                                                        via {burnSwapRoutes.tokenA.hops.map((hop: any) => hop.vault?.name || 'Pool').join(' → ')}
+                                                        via {burnSwapRoutes.tokenA.hops.hops.map((hop: any) => hop.vault?.name || 'Pool').join(' → ')}
                                                     </div>
                                                 )}
                                             </div>
@@ -367,15 +367,15 @@ export function RouteIntelligenceSidebar() {
                                                         {formatTokenAmount(Number(burnSwapRoutes.tokenB.amountOut || burnSwapRoutes.tokenB.expectedAmountOut || 0), selectedToToken?.decimals || 6)} {selectedToToken?.symbol}
                                                     </span>
                                                     <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
-                                                        {burnSwapRoutes.tokenB.hops?.length || 0}-hop
+                                                        {burnSwapRoutes.tokenB.hops?.hops?.length || 0}-hop
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-green-300 mb-1">
                                                     {lpTokens.tokenB?.symbol || lpTokenInfo?.tokenB} → {selectedToToken?.symbol}
                                                 </div>
-                                                {burnSwapRoutes.tokenB.hops && burnSwapRoutes.tokenB.hops.length > 0 && (
+                                                {burnSwapRoutes.tokenB.hops?.hops && burnSwapRoutes.tokenB.hops.hops.length > 0 && (
                                                     <div className="text-xs text-green-400/60">
-                                                        via {burnSwapRoutes.tokenB.hops.map((hop: any) => hop.vault?.name || 'Pool').join(' → ')}
+                                                        via {burnSwapRoutes.tokenB.hops.hops.map((hop: any) => hop.vault?.name || 'Pool').join(' → ')}
                                                     </div>
                                                 )}
                                             </div>
