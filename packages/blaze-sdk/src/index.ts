@@ -5,6 +5,7 @@ export * from './solvers';
 export * from './sip10';
 export * from './core';
 export * from './auth';
+export * from './types/shared';
 
 // Real-time data module - export explicitly to avoid BalanceData conflict
 export { 

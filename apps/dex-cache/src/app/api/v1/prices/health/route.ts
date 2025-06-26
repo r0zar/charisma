@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getOracleHealth, getBtcPrice } from '@/lib/pricing/btc-oracle';
 import { getPriceGraph } from '@/lib/pricing/price-graph';
-import { listVaultTokens } from '@/lib/pool-service';
+import { listVaultTokens, listVaults } from '@/lib/pool-service';
+import { getMultipleTokenPrices } from '@/lib/pricing/price-calculator';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,75 @@ const headers = {
     // Cache for 1 minute on CDN
     'Cache-Control': 'public, s-maxage=60'
 };
+
+/**
+ * Calculate total pool value from all vault reserves
+ */
+async function calculateTotalPoolValue(): Promise<{ totalValue: number; poolCount: number }> {
+    try {
+        // Get all vaults and filter for pools
+        const allVaults = await listVaults();
+        const poolVaults = allVaults.filter(vault => vault.type === 'POOL');
+        
+        if (poolVaults.length === 0) {
+            return { totalValue: 0, poolCount: 0 };
+        }
+        
+        // Get all unique token IDs from pools
+        const tokenIds = new Set<string>();
+        poolVaults.forEach(vault => {
+            if (vault.tokenA?.contractId) tokenIds.add(vault.tokenA.contractId);
+            if (vault.tokenB?.contractId) tokenIds.add(vault.tokenB.contractId);
+        });
+        
+        // Get current prices for all tokens
+        const priceMap = await getMultipleTokenPrices(Array.from(tokenIds));
+        const prices: Record<string, number> = {};
+        priceMap.forEach((priceData, tokenId) => {
+            if (priceData.usdPrice > 0) {
+                prices[tokenId] = priceData.usdPrice;
+            }
+        });
+        
+        // Calculate total value across all pools
+        let totalValue = 0;
+        let validPools = 0;
+        
+        for (const vault of poolVaults) {
+            if (!vault.tokenA || !vault.tokenB || vault.reservesA === undefined || vault.reservesB === undefined) {
+                continue;
+            }
+            
+            const priceA = prices[vault.tokenA.contractId];
+            const priceB = prices[vault.tokenB.contractId];
+            
+            if (!priceA || !priceB || vault.reservesA === 0 || vault.reservesB === 0) {
+                continue;
+            }
+            
+            // Calculate token amounts in proper decimal representation
+            const tokenADecimals = vault.tokenA.decimals || 6;
+            const tokenBDecimals = vault.tokenB.decimals || 6;
+            
+            const tokenAAmount = vault.reservesA / Math.pow(10, tokenADecimals);
+            const tokenBAmount = vault.reservesB / Math.pow(10, tokenBDecimals);
+            
+            // Calculate pool value
+            const poolValueA = tokenAAmount * priceA;
+            const poolValueB = tokenBAmount * priceB;
+            const poolValue = poolValueA + poolValueB;
+            
+            totalValue += poolValue;
+            validPools++;
+        }
+        
+        return { totalValue, poolCount: validPools };
+        
+    } catch (error) {
+        console.error('[Health API] Error calculating total pool value:', error);
+        return { totalValue: 0, poolCount: 0 };
+    }
+}
 
 export async function OPTIONS() {
     return new NextResponse(null, { status: 204, headers });
@@ -23,9 +93,10 @@ export async function GET(request: Request) {
         console.log('[Price Health API] Checking system health...');
 
         // Get BTC oracle health
-        const [oracleHealth, btcPrice] = await Promise.all([
+        const [oracleHealth, btcPrice, poolValueData] = await Promise.all([
             getOracleHealth(),
-            getBtcPrice()
+            getBtcPrice(),
+            calculateTotalPoolValue()
         ]);
 
         // Get price graph statistics
@@ -75,6 +146,12 @@ export async function GET(request: Request) {
                 tokensWithPricing: graphStats.totalTokens,
                 pricingCoverage: graphStats.totalTokens > 0 ? 
                     Math.round((graphStats.totalTokens / allTokens.length) * 100) : 0
+            },
+            poolValue: {
+                totalPoolValue: poolValueData.totalValue,
+                validPools: poolValueData.poolCount,
+                averagePoolSize: poolValueData.poolCount > 0 ? 
+                    poolValueData.totalValue / poolValueData.poolCount : 0
             }
         };
 

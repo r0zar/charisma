@@ -207,7 +207,11 @@ export function useRouterTrading() {
   // LP token detection and burn-swap pathfinding
   const isLPToken = useMemo(() => {
     if (!selectedFromToken) return false;
-    // Check both possible structures for compatibility
+    // Check for type = "POOL" first (covers all LP tokens including older ones like CORGI)
+    if (selectedFromToken.type === 'POOL') {
+      return true;
+    }
+    // Fallback to legacy detection for compatibility
     // @ts-ignore
     return (selectedFromToken.properties?.tokenAContract && selectedFromToken.properties?.tokenBContract) ||
       (selectedFromToken.tokenAContract && selectedFromToken.tokenBContract);

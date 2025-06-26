@@ -95,7 +95,24 @@ export default function TokenSelectorButton({
                             token={{ ...currentToken, image: currentToken.image ?? undefined }}
                             size={logoSize}
                         />
-                        <span className="font-medium">{currentToken.symbol}</span>
+                        <div className="flex items-center space-x-2">
+                            <span className="font-medium">{currentToken.symbol}</span>
+                            {currentToken.type === 'POOL' && typeof (currentToken as any).nestLevel === 'number' && (
+                                <div className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                                    (currentToken as any).nestLevel === 0 
+                                        ? 'bg-gray-100 text-gray-600 border border-gray-200'
+                                        : (currentToken as any).nestLevel === 1
+                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                        : (currentToken as any).nestLevel === 2
+                                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                                        : (currentToken as any).nestLevel === 3
+                                        ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                                        : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                                }`}>
+                                    L{(currentToken as any).nestLevel}
+                                </div>
+                            )}
+                        </div>
                     </>
                 ) : (
                     <span className="text-gray-500">{placeholder}</span>

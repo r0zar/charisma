@@ -8,46 +8,32 @@ import {
     type EnhancedTokenRecord
 } from "../balances-lib";
 import type { BalanceUpdateMessage } from "blaze-sdk/realtime";
-
-interface BalanceSubscription {
-    type: 'SUBSCRIBE' | 'UNSUBSCRIBE';
-    userIds: string[];
-    clientId: string;
-}
-
-interface ClientSubscription {
-    userIds: Set<string>;
-    lastSeen: number;
-    subscribeToAll: boolean;
-}
-
-// Simple balance data structure - one entry per mainnet token per user
-interface TokenBalance {
-    userId: string;
-    mainnetContractId: string;
-    mainnetBalance: number;
-    mainnetTotalSent: string;
-    mainnetTotalReceived: string;
-    subnetBalance?: number;
-    subnetTotalSent?: string;
-    subnetTotalReceived?: string;
-    subnetContractId?: string;
-    lastUpdated: number;
-}
+import type {
+    WebSocketTokenBalance,
+    BalanceSubscription,
+    ClientSubscription,
+    BalancesLibFormat,
+    SubnetBalanceInfo,
+    UserBalanceInfo
+} from "../types/balance-types";
+import {
+    TOKEN_TYPES,
+    isSubnetToken,
+    hasValidBaseMapping
+} from "../types/balance-types";
 
 // Constants
 const BALANCE_UPDATE_INTERVAL = 300_000; // 5 minutes
 const INITIAL_FETCH_DELAY = 3_000; // 3 seconds
 const DEFAULT_DECIMALS = 6;
-const SUBNET_TOKEN_TYPE = 'SUBNET';
 
 export default class BalancesParty implements Party.Server {
     private subscriptions = new Map<string, ClientSubscription>();
     private tokenRecords = new Map<string, EnhancedTokenRecord>();
     private watchedUsers = new Set<string>();
 
-    // SINGLE source of truth: `${userId}:${mainnetContractId}` -> TokenBalance
-    private balances = new Map<string, TokenBalance>();
+    // SINGLE source of truth: `${userId}:${mainnetContractId}` -> WebSocketTokenBalance
+    private balances = new Map<string, WebSocketTokenBalance>();
 
     private localInterval: NodeJS.Timeout | null = null;
     private isLocalDev = false;
@@ -76,16 +62,9 @@ export default class BalancesParty implements Party.Server {
     }
 
     private validateTokenRecord(tokenRecord: EnhancedTokenRecord, contractId: string): boolean {
-        const isSubnet = tokenRecord.tokenType === SUBNET_TOKEN_TYPE;
-
-        if (isSubnet) {
-            if (!tokenRecord.baseToken) {
-                console.warn(`⚠️ Subnet token ${contractId} missing baseToken`);
-                return false;
-            }
-
-            if (!this.tokenRecords.has(tokenRecord.baseToken)) {
-                console.warn(`⚠️ Subnet token ${contractId} has invalid baseToken: ${tokenRecord.baseToken}`);
+        if (isSubnetToken(tokenRecord)) {
+            if (!hasValidBaseMapping(tokenRecord, this.tokenRecords)) {
+                console.warn(`⚠️ Subnet token ${contractId} has invalid base mapping: ${tokenRecord.base || 'undefined'}`);
                 return false;
             }
         }
@@ -108,7 +87,7 @@ export default class BalancesParty implements Party.Server {
             description: null,
             image: null,
             total_supply: null,
-            tokenType: 'SIP10',
+            type: TOKEN_TYPES.SIP10,
             identifier: '',
             token_uri: null,
             lastUpdated: Date.now(),
@@ -117,7 +96,7 @@ export default class BalancesParty implements Party.Server {
             lpRebatePercent: null,
             externalPoolId: null,
             engineContractId: null,
-            baseToken: null,
+            base: null,
             userBalances: {},
             timestamp: Date.now(),
             metadataSource: 'fallback'
@@ -371,7 +350,7 @@ export default class BalancesParty implements Party.Server {
 
         // For each mainnet token, create a message for each user (even if zero balance)
         for (const tokenRecord of this.tokenRecords.values()) {
-            if (tokenRecord.tokenType === SUBNET_TOKEN_TYPE) continue; // Skip subnet tokens
+            if (isSubnetToken(tokenRecord)) continue; // Skip subnet tokens
 
             for (const userId of userIds) {
                 const key = `${userId}:${tokenRecord.contractId}`;
@@ -389,10 +368,10 @@ export default class BalancesParty implements Party.Server {
         return messages;
     }
 
-    private createBalanceMessage(balance: TokenBalance): BalanceUpdateMessage {
+    private createBalanceMessage(balance: WebSocketTokenBalance): BalanceUpdateMessage {
         const mainnetRecord = this.getOrCreateFallbackRecord(balance.mainnetContractId);
 
-        const mainnetBalance = {
+        const mainnetBalance: UserBalanceInfo = {
             balance: balance.mainnetBalance,
             totalSent: balance.mainnetTotalSent,
             totalReceived: balance.mainnetTotalReceived,
@@ -401,7 +380,7 @@ export default class BalancesParty implements Party.Server {
             source: 'hiro-api'
         };
 
-        const subnetBalanceInfo = balance.subnetBalance !== undefined ? {
+        const subnetBalanceInfo: SubnetBalanceInfo | undefined = balance.subnetBalance !== undefined ? {
             contractId: balance.subnetContractId!,
             balance: balance.subnetBalance,
             totalSent: balance.subnetTotalSent!,
@@ -411,11 +390,19 @@ export default class BalancesParty implements Party.Server {
             source: 'subnet-contract-call'
         } : undefined;
 
-        return createBalanceUpdateMessage(mainnetRecord, balance.userId, mainnetBalance, subnetBalanceInfo);
+        // Use the proven auto-discovery logic from balances-lib
+        return createBalanceUpdateMessage(
+            mainnetRecord, 
+            balance.userId, 
+            mainnetBalance, 
+            this.tokenRecords,
+            this.createAllBalanceUpdatesMap(),
+            subnetBalanceInfo
+        );
     }
 
     private createZeroBalanceMessage(userId: string, mainnetRecord: EnhancedTokenRecord): BalanceUpdateMessage {
-        const mainnetBalance = {
+        const mainnetBalance: UserBalanceInfo = {
             balance: 0,
             totalSent: '0',
             totalReceived: '0',
@@ -424,24 +411,52 @@ export default class BalancesParty implements Party.Server {
             source: 'default-zero'
         };
 
-        // Look for subnet token
-        let subnetBalanceInfo = undefined;
-        for (const record of this.tokenRecords.values()) {
-            if (record.tokenType === SUBNET_TOKEN_TYPE && record.baseToken === mainnetRecord.contractId) {
-                subnetBalanceInfo = {
-                    contractId: record.contractId,
-                    balance: 0,
-                    totalSent: '0',
-                    totalReceived: '0',
-                    formattedBalance: 0,
-                    timestamp: Date.now(),
-                    source: 'default-zero'
+        // Use the proven auto-discovery logic from balances-lib to find subnet balances
+        return createBalanceUpdateMessage(
+            mainnetRecord, 
+            userId, 
+            mainnetBalance, 
+            this.tokenRecords,
+            this.createAllBalanceUpdatesMap()
+        );
+    }
+
+    /**
+     * Create balance updates map in the format expected by balances-lib auto-discovery
+     */
+    private createAllBalanceUpdatesMap(): Record<string, BalancesLibFormat> {
+        const allBalanceUpdates: Record<string, BalancesLibFormat> = {};
+        
+        // Convert our internal WebSocketTokenBalance format to the format expected by balances-lib
+        for (const [, balance] of this.balances) {
+            // Add mainnet balance entry
+            const mainnetKey = `${balance.userId}:${balance.mainnetContractId}`;
+            allBalanceUpdates[mainnetKey] = {
+                userId: balance.userId,
+                contractId: balance.mainnetContractId,
+                balance: balance.mainnetBalance,
+                totalSent: balance.mainnetTotalSent,
+                totalReceived: balance.mainnetTotalReceived,
+                timestamp: balance.lastUpdated,
+                source: 'hiro-api'
+            };
+
+            // Add subnet balance entry if it exists
+            if (balance.subnetBalance !== undefined && balance.subnetContractId) {
+                const subnetKey = `${balance.userId}:${balance.subnetContractId}`;
+                allBalanceUpdates[subnetKey] = {
+                    userId: balance.userId,
+                    contractId: balance.subnetContractId,
+                    balance: balance.subnetBalance,
+                    totalSent: balance.subnetTotalSent || '0',
+                    totalReceived: balance.subnetTotalReceived || '0',
+                    timestamp: balance.lastUpdated,
+                    source: 'subnet-contract-call'
                 };
-                break;
             }
         }
 
-        return createBalanceUpdateMessage(mainnetRecord, userId, mainnetBalance, subnetBalanceInfo);
+        return allBalanceUpdates;
     }
 
     private async fetchAndBroadcastBalances() {
@@ -454,7 +469,7 @@ export default class BalancesParty implements Party.Server {
 
             console.log(`💰 Fetched ${Object.keys(rawBalances).length} balance entries for ${userIds.length} users`);
 
-            const updatedBalances: TokenBalance[] = [];
+            const updatedBalances: WebSocketTokenBalance[] = [];
 
             // Process each raw balance
             for (const [, balanceData] of Object.entries(rawBalances)) {
@@ -472,10 +487,10 @@ export default class BalancesParty implements Party.Server {
                     continue;
                 }
 
-                const isSubnet = tokenRecord.tokenType === SUBNET_TOKEN_TYPE;
+                const isSubnet = isSubnetToken(tokenRecord);
                 // For mainnet tokens, use the base contract ID (tokenRecord.contractId) as the key
                 // This ensures tokens with identifiers get grouped under their base contract
-                const mainnetContractId = isSubnet ? tokenRecord.baseToken! : tokenRecord.contractId;
+                const mainnetContractId = isSubnet ? tokenRecord.base! : tokenRecord.contractId;
 
                 const key = `${userId}:${mainnetContractId}`;
 

@@ -7,7 +7,7 @@ import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useBlaze } from 'blaze-sdk/realtime';
-import { formatPriceUSD, hasValidPrice } from '@/lib/utils';
+import { formatPriceUSD } from '@/lib/utils';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
@@ -35,11 +35,22 @@ export default function TokenOutputSection() {
 
     // Get balance data from BlazeProvider with user-specific balances
     const { address } = useWallet();
-    const { balances, prices } = useBlaze({ userId: address });
+    const { balances } = useBlaze({ userId: address });
 
     // Get enhanced balance data for the current token
-    const toTokenBalance = selectedToToken && address ? balances[`${address}:${selectedToToken.contractId}`] : null;
-    const price = prices[selectedToToken?.contractId ?? ''];
+    // For subnet tokens, we need to look up the base token's balance data
+    const getBaseContractId = (token: TokenCacheData | null) => {
+        if (!token) return null;
+        // If it's a subnet token, use the base contract, otherwise use the token's contract
+        return token.type === 'SUBNET' && token.base ? token.base : token.contractId;
+    };
+
+    const baseContractId = getBaseContractId(selectedToToken);
+    const toTokenBalance = baseContractId && address ? balances[`${address}:${baseContractId}`] : null;
+
+    // Get price from enriched balance metadata
+    const priceData = toTokenBalance?.metadata?.price;
+    const change24h = toTokenBalance?.metadata?.change24h;
 
 
     // Determine props based on mode and state
@@ -55,7 +66,9 @@ export default function TokenOutputSection() {
 
     // Calculate compact balance display and tooltip content
     const { compactBalance, tooltipData } = React.useMemo(() => {
-        if (!toTokenBalance) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined } };
+        if (!toTokenBalance) {
+            return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined } };
+        }
 
         const mainnetBalance = Number(toTokenBalance.formattedBalance ?? 0);
         const subnetBalance = Number(toTokenBalance.formattedSubnetBalance ?? 0);
@@ -79,12 +92,12 @@ export default function TokenOutputSection() {
             compactBalance: compact,
             tooltipData
         };
-    }, [toTokenBalance, isSubnetSelected]);
+    }, [toTokenBalance, isSubnetSelected, selectedToToken, baseContractId, address]);
 
     // Calculate output amount - use burn-swap total when active
     const outputAmount = React.useMemo(() => {
         if (!selectedToToken) return "0.00";
-        
+
         // Check if burn-swap should be used (either more profitable OR forced by user)
         const isBurnSwapProfitable = isLPToken && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB) && quote ? (() => {
             const burnSwapTotal = Number(burnSwapRoutes.tokenA?.amountOut || burnSwapRoutes.tokenA?.expectedAmountOut || 0) +
@@ -92,9 +105,9 @@ export default function TokenOutputSection() {
             const regularQuoteAmount = Number(quote?.amountOut || quote?.expectedAmountOut || 0);
             return burnSwapTotal > regularQuoteAmount;
         })() : false;
-        
+
         const shouldUseBurnSwap = forceBurnSwap || isBurnSwapProfitable;
-        
+
         if (shouldUseBurnSwap && mode === 'swap' && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB)) {
             // Use burn-swap total
             const burnSwapTotal = Number(burnSwapRoutes.tokenA?.amountOut || burnSwapRoutes.tokenA?.expectedAmountOut || 0) +
@@ -104,7 +117,7 @@ export default function TokenOutputSection() {
             // Use regular quote
             return formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0);
         }
-        
+
         return "0.00";
     }, [quote, selectedToToken, isLPToken, burnSwapRoutes, forceBurnSwap, mode]);
 
@@ -144,7 +157,7 @@ export default function TokenOutputSection() {
                         <p className="text-xs text-white/60 hidden sm:block">Expected output amount</p>
                     </div>
                 </div>
-                
+
                 {selectedToToken && (
                     <button
                         type="button"
@@ -189,7 +202,7 @@ export default function TokenOutputSection() {
                                     <TokenLogo token={selectedToToken} size="md" />
                                 )}
                             </div>
-                            
+
                             <div className="min-w-0">
                                 <div className="text-sm font-medium text-white/95">{selectedToToken.symbol}</div>
                                 <div className="text-xs text-white/60 truncate">{selectedToToken.name}</div>
@@ -215,17 +228,21 @@ export default function TokenOutputSection() {
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
                             <div className="h-2 w-2 rounded-full bg-green-400 flex-shrink-0"></div>
                             <span className="text-xs text-white/70 truncate">
-                                Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
+                                Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {priceData ? formatPriceUSD(priceData) : 'Price loading...'}
+                                {change24h !== null && change24h !== undefined && (
+                                    <span className={`ml-2 ${change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%
+                                    </span>
+                                )}
                             </span>
                         </div>
-                        
+
                         {/* Price Impact Display */}
                         {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
-                            <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
-                                totalPriceImpact.priceImpact > 0
+                            <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${totalPriceImpact.priceImpact > 0
                                     ? 'text-green-400 bg-green-500/20 border border-green-500/30'
                                     : 'text-red-400 bg-red-500/20 border border-red-500/30'
-                            }`}>
+                                }`}>
                                 {totalPriceImpact.priceImpact > 0 ? '+' : ''}
                                 {totalPriceImpact.priceImpact.toFixed(2)}%
                             </div>
@@ -253,12 +270,12 @@ export default function TokenOutputSection() {
                                 </div>
                                 <div className="text-sm text-white/60 mt-1">
                                     {(() => {
-                                        const hasPrice = hasValidPrice(price);
+                                        const hasPrice = priceData !== null && priceData !== undefined;
                                         const hasOutput = outputAmount;
                                         // Remove commas and any other formatting from outputAmount before converting to number
                                         const cleanOutputAmount = typeof outputAmount === 'string' ? outputAmount.replace(/,/g, '') : outputAmount;
                                         const numericOutput = Number(cleanOutputAmount);
-                                        const calculation = hasPrice && hasOutput ? price.price * numericOutput : null;
+                                        const calculation = hasPrice && hasOutput ? priceData * numericOutput : null;
                                         return hasPrice && hasOutput && !isNaN(numericOutput) && !isNaN(calculation!) ? formatPriceUSD(calculation!) : 'Enter amount';
                                     })()}
                                 </div>
@@ -295,7 +312,7 @@ export default function TokenOutputSection() {
                             <span className="text-sm font-medium text-white/90">Price Chart</span>
                         </div>
                         <div className="text-xs text-white/60 flex-shrink-0">
-                            {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Loading...'}
+                            {priceData ? formatPriceUSD(priceData) : 'Loading...'}
                         </div>
                     </div>
                     <ConditionTokenChartWrapper token={selectedToToken} targetPrice="" onTargetPriceChange={() => { }} />

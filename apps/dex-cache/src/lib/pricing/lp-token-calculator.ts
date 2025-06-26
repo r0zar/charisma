@@ -1,4 +1,4 @@
-import { Vault } from '@/lib/pool-service';
+import { Vault, getAllVaultData } from '@/lib/pool-service';
 
 /**
  * LP Token pricing analysis results
@@ -30,7 +30,7 @@ export interface LpTokenPriceAnalysis {
  * @param lpTokenAmount - Amount of LP tokens to calculate value for (default: 1)
  * @returns Intrinsic value per LP token or null if calculation not possible
  */
-export const calculateLpIntrinsicValue = (
+export const calculateLpIntrinsicValueFromVault = (
     vault: Vault,
     prices: Record<string, number>,
     lpTokenAmount: number = 1
@@ -148,7 +148,7 @@ export const analyzeLpTokenPricing = (
     const marketPrice = prices[vault.contractId] || null;
     
     // Calculate intrinsic value
-    const intrinsicValue = calculateLpIntrinsicValue(vault, prices, lpTokenAmount);
+    const intrinsicValue = calculateLpIntrinsicValueFromVault(vault, prices, lpTokenAmount);
     
     // Calculate asset breakdown
     const assetBreakdown = calculateAssetBreakdown(vault, prices, lpTokenAmount);
@@ -199,4 +199,82 @@ export const formatLpPriceAnalysis = (analysis: LpTokenPriceAnalysis) => {
         absoluteDifference: formatCurrency(analysis.absoluteDifference),
         isArbitrageOpportunity: analysis.isArbitrageOpportunity
     };
+};
+
+/**
+ * Calculate LP intrinsic value by contract ID (wrapper function)
+ * NOTE: This function is now deprecated - use calculateAllLpIntrinsicValues for dependency-aware processing
+ * @param contractId - LP token contract ID
+ * @param prices - Token prices keyed by contract ID
+ * @param lpTokenAmount - Amount of LP tokens to calculate value for (default: 1)
+ * @returns Pricing result with USD price, sBTC ratio and confidence
+ */
+export const calculateLpIntrinsicValue = async (
+    contractId: string,
+    prices: Record<string, number>,
+    lpTokenAmount: number = 1
+): Promise<{ usdPrice: number; sbtcRatio: number; confidence: number } | null> => {
+    try {
+        // Find the vault by contract ID
+        const allVaults = await getAllVaultData();
+        const vault = allVaults.find(v => v.contractId === contractId);
+        
+        if (!vault) {
+            console.warn(`[LP Calculator] Vault not found for contract: ${contractId}`);
+            return null;
+        }
+
+        // Use the original function
+        const intrinsicUsdPrice = calculateLpIntrinsicValueFromVault(vault, prices, lpTokenAmount);
+        
+        if (intrinsicUsdPrice === null) {
+            console.warn(`[LP Calculator] Failed to calculate intrinsic value for: ${contractId}`);
+            return null;
+        }
+
+        // Convert to sBTC ratio (assuming sBTC price is available)
+        const sbtcPrice = prices['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'] || 100000; // fallback price
+        const sbtcRatio = intrinsicUsdPrice / sbtcPrice;
+        
+        // Set confidence based on data quality
+        const confidence = 0.8; // High confidence for intrinsic calculation
+        
+        return {
+            usdPrice: intrinsicUsdPrice,
+            sbtcRatio,
+            confidence
+        };
+        
+    } catch (error) {
+        console.error(`[LP Calculator] Error calculating intrinsic value for ${contractId}:`, error);
+        return null;
+    }
+};
+
+/**
+ * Calculate all LP token intrinsic values with dependency resolution
+ * @param basePrices - Base token prices (non-LP tokens)
+ * @returns Map of contract ID to intrinsic pricing results
+ */
+export const calculateAllLpIntrinsicValues = async (
+    basePrices: Record<string, number>
+): Promise<Map<string, { usdPrice: number; sbtcRatio: number; confidence: number; level: number }>> => {
+    // Import here to avoid circular dependency
+    const { calculateAllLpIntrinsicValues: processAllLp } = await import('./lp-processing-queue');
+    
+    const results = await processAllLp(basePrices);
+    
+    // Convert from LpIntrinsicResult to the expected format
+    const converted = new Map<string, { usdPrice: number; sbtcRatio: number; confidence: number; level: number }>();
+    
+    results.forEach((result, contractId) => {
+        converted.set(contractId, {
+            usdPrice: result.usdPrice,
+            sbtcRatio: result.sbtcRatio,
+            confidence: result.confidence,
+            level: result.level
+        });
+    });
+    
+    return converted;
 };

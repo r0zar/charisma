@@ -12,7 +12,11 @@ export default function LPArbitrageAlert() {
   // Check if the from token is an LP token
   const isLPToken = useMemo(() => {
     if (!selectedFromToken) return false;
-    // Check both possible structures for compatibility
+    // Check for type = "POOL" first (covers all LP tokens including older ones like CORGI)
+    if (selectedFromToken.type === 'POOL') {
+      return true;
+    }
+    // Fallback to legacy detection for compatibility
     return (selectedFromToken.properties?.tokenAContract && selectedFromToken.properties?.tokenBContract) ||
       (selectedFromToken.tokenAContract && selectedFromToken.tokenBContract);
   }, [selectedFromToken]);

@@ -11,12 +11,14 @@ import {
   User,
   Palette,
   Globe,
-  Smartphone
+  Smartphone,
+  Wallet
 } from 'lucide-react';
 
 // Import components for each settings category
 import ApiKeysSettings from './components/api-keys-settings';
 import NotificationsSettings from './components/notifications-settings';
+import BalancesSettings from './components/balances-settings';
 
 interface SettingsTab {
   id: string;
@@ -27,6 +29,13 @@ interface SettingsTab {
 }
 
 const settingsTabs: SettingsTab[] = [
+  {
+    id: 'balances',
+    label: 'Balances',
+    icon: <Wallet className="w-4 h-4" />,
+    component: BalancesSettings,
+    description: 'View your wallet token balances'
+  },
   {
     id: 'api-keys',
     label: 'API Keys',
@@ -88,7 +97,7 @@ function ComingSoonPlaceholder({ title }: { title: string }) {
 
 export default function SettingsPage() {
   const { connected } = useWallet();
-  const [activeTab, setActiveTab] = useState('api-keys');
+  const [activeTab, setActiveTab] = useState('balances');
 
   const activeTabData = settingsTabs.find(tab => tab.id === activeTab);
   const ActiveComponent = activeTabData?.component;

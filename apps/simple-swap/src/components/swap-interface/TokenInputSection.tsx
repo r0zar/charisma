@@ -7,7 +7,7 @@ import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
 import { useBlaze } from 'blaze-sdk/realtime';
-import { formatPriceUSD, hasValidPrice } from '@/lib/utils';
+import { formatPriceUSD } from '@/lib/utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
@@ -34,8 +34,7 @@ export default function TokenInputSection() {
 
     const { address } = useWallet();
 
-    const { prices, balances } = useBlaze({ userId: address });
-    const price = prices[selectedFromToken?.contractId ?? ''];
+    const { balances } = useBlaze({ userId: address });
 
     // Get enhanced balance data for the current token
     // For subnet tokens, we need to look up the base token's balance data
@@ -44,26 +43,19 @@ export default function TokenInputSection() {
         // If it's a subnet token, use the base contract, otherwise use the token's contract
         return token.type === 'SUBNET' && token.base ? token.base : token.contractId;
     };
-    
+
     const baseContractId = getBaseContractId(selectedFromToken);
     const fromTokenBalance = baseContractId ? balances[`${address}:${baseContractId}`] : null;
-    
-    // Debug logging for balance lookup
-    React.useEffect(() => {
-        console.log('🔍 TokenInputSection balance lookup:', {
-            selectedFromToken: selectedFromToken?.contractId,
-            selectedFromTokenType: selectedFromToken?.type,
-            selectedFromTokenBase: selectedFromToken?.base,
-            baseContractId,
-            hasBalance: !!fromTokenBalance,
-            useSubnetFrom,
-            mode
-        });
-    }, [selectedFromToken, baseContractId, fromTokenBalance, useSubnetFrom, mode]);
+
+    // Get price from enriched balance metadata
+    const priceData = fromTokenBalance?.metadata?.price;
+    const change24h = fromTokenBalance?.metadata?.change24h;
 
     // Calculate compact balance display and tooltip content
     const { compactBalance, tooltipData, rawActiveBalance } = React.useMemo(() => {
-        if (!fromTokenBalance) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined }, rawActiveBalance: 0 };
+        if (!fromTokenBalance) {
+            return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined }, rawActiveBalance: 0 };
+        }
 
         const mainnetBalance = Number(fromTokenBalance.formattedBalance ?? 0);
         const subnetBalance = Number(fromTokenBalance.formattedSubnetBalance ?? 0);
@@ -75,7 +67,7 @@ export default function TokenInputSection() {
         // Create compact display
         const compact = formatCompactNumber(activeBalance);
 
-        // Create tooltip data
+        // Create tooltip data with proper subnet detection
         const activeLabel = (mode === 'order' || useSubnetFrom) && hasSubnet ? 'Subnet' : 'Mainnet';
         const tooltipData = {
             mainnet: mainnetBalance.toLocaleString(),
@@ -88,7 +80,7 @@ export default function TokenInputSection() {
             tooltipData,
             rawActiveBalance: activeBalance
         };
-    }, [fromTokenBalance, mode, useSubnetFrom]);
+    }, [fromTokenBalance, mode, useSubnetFrom, selectedFromToken, baseContractId, address]);
 
     // Determine which tokens to show and other props based on mode
     const label = 'You send';
@@ -120,15 +112,15 @@ export default function TokenInputSection() {
 
     const handleBalancePercentageClick = (percentage: number) => {
         if (!selectedFromToken || !fromTokenBalance) return;
-        
+
         // Get the appropriate balance based on current subnet selection
-        const balance = isSubnetSelected && fromTokenBalance.subnetBalance !== undefined 
+        const balance = isSubnetSelected && fromTokenBalance.subnetBalance !== undefined
             ? Number(fromTokenBalance.formattedSubnetBalance || 0)
             : Number(fromTokenBalance.formattedBalance || 0);
-        
+
         // Calculate the amount based on percentage
         const amount = balance * percentage;
-        
+
         // Set the display amount
         setDisplayAmount(amount.toString());
     };
@@ -155,7 +147,7 @@ export default function TokenInputSection() {
                         <p className="text-xs text-white/60 hidden sm:block">Select asset and amount</p>
                     </div>
                 </div>
-                
+
                 {selectedFromToken && (
                     <button
                         type="button"
@@ -228,7 +220,7 @@ export default function TokenInputSection() {
                                     </div>
                                 </div>
                             </BalanceTooltip>
-                            
+
                             {/* Quick Balance Actions */}
                             <div className="flex items-center gap-1 mt-2">
                                 <button
@@ -257,7 +249,12 @@ export default function TokenInputSection() {
                     <div className="flex items-center space-x-2 pt-3 border-t border-white/[0.08]">
                         <div className="h-2 w-2 rounded-full bg-green-400"></div>
                         <span className="text-xs text-white/70">
-                            Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
+                            Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {priceData ? formatPriceUSD(priceData) : 'Price loading...'}
+                            {change24h !== null && change24h !== undefined && (
+                                <span className={`ml-2 ${change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%
+                                </span>
+                            )}
                         </span>
                     </div>
                 </div>
@@ -279,10 +276,10 @@ export default function TokenInputSection() {
                             className="bg-transparent border-none text-xl sm:text-2xl lg:text-3xl font-semibold focus:outline-none w-full placeholder:text-white/30 text-white/95"
                         />
                         <div className="text-sm text-white/60 mt-1">
-                            {hasValidPrice(price) && displayAmount ? (() => {
+                            {priceData && displayAmount ? (() => {
                                 const cleanAmount = typeof displayAmount === 'string' ? displayAmount.replace(/,/g, '') : displayAmount;
                                 const numericAmount = Number(cleanAmount);
-                                return !isNaN(numericAmount) ? formatPriceUSD(price.price * numericAmount) : 'Enter amount';
+                                return !isNaN(numericAmount) ? formatPriceUSD(priceData * numericAmount) : 'Enter amount';
                             })() : 'Enter amount'}
                         </div>
                     </div>
@@ -316,7 +313,7 @@ export default function TokenInputSection() {
                             <span className="text-sm font-medium text-white/90">Price Chart</span>
                         </div>
                         <div className="text-xs text-white/60 flex-shrink-0">
-                            {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Loading...'}
+                            {priceData ? formatPriceUSD(priceData) : 'Loading...'}
                         </div>
                     </div>
                     <ConditionTokenChartWrapper token={selectedFromToken} targetPrice="" onTargetPriceChange={() => { }} />

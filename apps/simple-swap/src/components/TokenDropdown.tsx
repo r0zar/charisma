@@ -195,6 +195,21 @@ export default function TokenDropdown({
                                                                     SUBNET
                                                                 </div>
                                                             )}
+                                                            {token.type === 'POOL' && typeof (token as any).nestLevel === 'number' && (
+                                                                <div className={`px-2 py-1 text-xs rounded-md font-medium border ${
+                                                                    (token as any).nestLevel === 0 
+                                                                        ? 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                                                                        : (token as any).nestLevel === 1
+                                                                        ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                                                                        : (token as any).nestLevel === 2
+                                                                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                                                                        : (token as any).nestLevel === 3
+                                                                        ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+                                                                        : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                                                                }`}>
+                                                                    L{(token as any).nestLevel} LP
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <p className="text-xs sm:text-sm text-white/60 truncate">{token.name}</p>
                                                         <p className="text-xs text-white/40 truncate font-mono mt-1 hidden sm:block">{token.contractId}</p>
@@ -251,8 +266,25 @@ export default function TokenDropdown({
                                 <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 bg-purple-500 rounded-full border border-white/20" />
                             )}
                         </div>
-                        <div className="text-left">
-                            <div className="font-semibold text-white/95 text-sm">{selected.symbol}</div>
+                        <div className="text-left flex-1">
+                            <div className="flex items-center space-x-2">
+                                <div className="font-semibold text-white/95 text-sm">{selected.symbol}</div>
+                                {selected.type === 'POOL' && typeof (selected as any).nestLevel === 'number' && (
+                                    <div className={`px-1.5 py-0.5 text-xs rounded font-medium ${
+                                        (selected as any).nestLevel === 0 
+                                            ? 'bg-gray-500/20 text-gray-300'
+                                            : (selected as any).nestLevel === 1
+                                            ? 'bg-blue-500/20 text-blue-300'
+                                            : (selected as any).nestLevel === 2
+                                            ? 'bg-purple-500/20 text-purple-300'
+                                            : (selected as any).nestLevel === 3
+                                            ? 'bg-orange-500/20 text-orange-300'
+                                            : 'bg-yellow-500/20 text-yellow-300'
+                                    }`}>
+                                        L{(selected as any).nestLevel}
+                                    </div>
+                                )}
+                            </div>
                             <div className="text-xs text-white/60">{selected.name}</div>
                         </div>
                     </div>

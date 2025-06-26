@@ -418,6 +418,8 @@ export function SwapTokensProvider({
   // ---------------------- Simplified Token Logic ----------------------
   // Simple token filtering - no complex mapping needed since BlazeProvider handles balance data
   const { displayTokens, subnetDisplayTokens } = useMemo(() => {
+    console.log('[SwapTokensContext] Computing displayTokens, selectedTokens.length:', selectedTokens.length);
+    
     if (!selectedTokens || selectedTokens.length === 0) {
       return {
         displayTokens: [],
@@ -425,13 +427,33 @@ export function SwapTokensProvider({
       };
     }
 
+    // Log CORGI in selectedTokens
+    const corgiInSelected = selectedTokens.find(t => 
+      t.contractId?.includes('charismatic-corgi-liquidity') || t.symbol === 'CORGI'
+    );
+    console.log('[SwapTokensContext] CORGI in selectedTokens:', corgiInSelected);
+
     // Mainnet tokens: type !== 'SUBNET'
     const mainnetTokens = selectedTokens.filter(t => t.type !== 'SUBNET');
     // Subnet tokens: type === 'SUBNET'
     const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
 
+    console.log('[SwapTokensContext] Token filtering:', {
+      total: selectedTokens.length,
+      mainnet: mainnetTokens.length,
+      subnet: subnetTokens.length
+    });
+
+    // Check if CORGI makes it through the filter
+    const corgiInMainnet = mainnetTokens.find(t => 
+      t.contractId?.includes('charismatic-corgi-liquidity') || t.symbol === 'CORGI'
+    );
+    console.log('[SwapTokensContext] CORGI in mainnet tokens:', corgiInMainnet);
+
     const sortedDisplayTokens = mainnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
     const sortedSubnetTokens = subnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
+
+    console.log('[SwapTokensContext] Final displayTokens count:', sortedDisplayTokens.length);
 
     return {
       displayTokens: sortedDisplayTokens,
@@ -539,6 +561,12 @@ export function SwapTokensProvider({
         // Step 1: Fetch all tokens with full metadata
         const allTokensResult = await fetchAllTokensServerAction();
 
+        console.log('[SwapTokensContext] Token fetch result:', {
+          success: allTokensResult.success,
+          tokensCount: allTokensResult.tokens?.length,
+          error: allTokensResult.error
+        });
+
         if (!allTokensResult.success || !allTokensResult.tokens) {
           setError("Failed to load token list.");
           setIsLoadingTokens(false); // Ensure loading state is reset
@@ -546,8 +574,16 @@ export function SwapTokensProvider({
           return;
         }
 
+        // Log CORGI specifically
+        const corgiToken = allTokensResult.tokens.find(t => 
+          t.contractId?.includes('charismatic-corgi-liquidity') || t.symbol === 'CORGI'
+        );
+        console.log('[SwapTokensContext] CORGI token in results:', corgiToken);
+
         // Use all tokens for now; routeableTokenIds will be filtered by useRouter hook
         setSelectedTokens(allTokensResult.tokens || []);
+        
+        console.log('[SwapTokensContext] Set selectedTokens:', allTokensResult.tokens?.length);
 
       } catch (err) {
         setError("Failed to load tokens. Please try again later.");

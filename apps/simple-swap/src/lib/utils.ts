@@ -6,16 +6,21 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Converts IPFS hash to full IPFS gateway URL
- * @param ipfsHash - IPFS hash like "QmRaKvxkd2GHieKjd7GtWhgtAftQwsfZC2hWvzFCixRpSb/01.jpeg"
+ * Converts IPFS hash to full IPFS gateway URL or handles data URLs
+ * @param ipfsHash - IPFS hash, HTTP URL, or base64 data URL
  * @param gateway - IPFS gateway URL (defaults to ipfs.io)
- * @returns Full IPFS URL
+ * @returns Full IPFS URL, HTTP URL, or data URL
  */
 export function getIpfsUrl(ipfsHash: string, gateway: string = 'https://ipfs.io/ipfs'): string {
   if (!ipfsHash) return '';
   
-  // If it's already a full URL, return as-is
+  // If it's already a full HTTP URL, return as-is
   if (ipfsHash.startsWith('http')) {
+    return ipfsHash;
+  }
+  
+  // If it's a base64 data URL, return as-is
+  if (ipfsHash.startsWith('data:')) {
     return ipfsHash;
   }
   

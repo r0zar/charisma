@@ -22,9 +22,10 @@ interface HealthData {
     pricedTokens: number;
     totalTokens: number;
   };
-  performance: {
-    avgResponseTime: number;
-    uptime: number;
+  poolValue: {
+    totalValue: number;
+    validPools: number;
+    averagePoolSize: number;
   };
 }
 
@@ -73,9 +74,10 @@ export default function PriceSystemHealthCards() {
             pricedTokens: data.dataAvailability.tokensWithPricing || 0,
             totalTokens: data.dataAvailability.totalTokensInSystem || 0
           },
-          performance: {
-            avgResponseTime: 250, // Placeholder - would come from metrics
-            uptime: 99.8 // Placeholder - would come from monitoring
+          poolValue: {
+            totalValue: data.poolValue?.totalPoolValue || 0,
+            validPools: data.poolValue?.validPools || 0,
+            averagePoolSize: data.poolValue?.averagePoolSize || 0
           }
         };
         
@@ -87,7 +89,7 @@ export default function PriceSystemHealthCards() {
           btcOracle: { price: 0, sources: 0, confidence: 0, status: 'error' },
           priceGraph: { totalTokens: 0, totalPools: 0, sbtcPairs: 0, status: 'error' },
           pricingCoverage: { percentage: 0, pricedTokens: 0, totalTokens: 0 },
-          performance: { avgResponseTime: 0, uptime: 0 }
+          poolValue: { totalValue: 0, validPools: 0, averagePoolSize: 0 }
         });
       } finally {
         setIsLoading(false);
@@ -145,13 +147,16 @@ export default function PriceSystemHealthCards() {
         size="sm"
       />
 
-      {/* Performance */}
+      {/* Total Pool Value */}
       <StatCard
-        title="Performance"
-        value={`${healthData.performance.avgResponseTime}ms`}
-        icon="clock"
-        description={`${healthData.performance.uptime}% uptime`}
-        colorScheme="primary"
+        title="Total Pool Value"
+        value={healthData.poolValue.totalValue > 0 ? 
+          `$${(healthData.poolValue.totalValue / 1e6).toFixed(1)}M` : 
+          '$0'}
+        icon="activity"
+        description={`${healthData.poolValue.validPools} pools • $${(healthData.poolValue.averagePoolSize / 1e3).toFixed(0)}K avg`}
+        colorScheme={healthData.poolValue.totalValue > 1e6 ? 'success' : 
+                    healthData.poolValue.totalValue > 1e5 ? 'warning' : 'primary'}
         size="sm"
       />
     </div>

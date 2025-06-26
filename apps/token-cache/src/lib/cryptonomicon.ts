@@ -318,6 +318,7 @@ export class Cryptonomicon {
                 description: externalData.description,
                 image: externalData.image || externalData.image_uri, // Accept common variations
                 identifier: externalData.identifier, // Look for identifier field
+                type: externalData.type, // Include type field for LP token detection
                 lpRebatePercent: externalData.lpRebatePercent || externalData.properties?.swapFeePercent || externalData.properties?.lpRebatePercent, // Include top-level fee
                 tokenAContract: externalData.tokenAContract || externalData.properties?.tokenAContract,
                 tokenBContract: externalData.tokenBContract || externalData.properties?.tokenBContract,

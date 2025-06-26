@@ -90,6 +90,7 @@ export async function getRoutableTokens(): Promise<{
 
 /**
  * Server action to retrieve full token metadata (not just contract IDs).
+ * For swap mode, includes both tradeable tokens and L1 LP tokens (and down).
  * The client can render token names/symbols immediately without extra processing.
  */
 export async function listTokens(): Promise<{
@@ -97,11 +98,90 @@ export async function listTokens(): Promise<{
     tokens?: TokenCacheData[];
     error?: string;
 }> {
-    // TODO: Implement this
-    const tokens = await listSwappableTokens();
-    return {
-        success: true, tokens: tokens as any as TokenCacheData[]
-    };
+    try {
+        // For swap mode, we want tradeable tokens + L0 LP tokens and down
+        // since LP tokens can now be "burned" as part of swaps
+        const dexCacheApiUrl = process.env.DEX_CACHE_API_URL ||
+            (process.env.NODE_ENV === 'development' ? 'http://localhost:3003' : 'https://invest.charisma.rocks');
+        const response = await fetch(`${dexCacheApiUrl}/api/v1/tokens/all?type=all&nestLevel=0&includePricing=false`, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // for some reason this is failing good data responses
+        // if (!result.success || !result.data) {
+        //     throw new Error(result.error || 'Failed to fetch tokens');
+        // }
+
+        // Transform the unified token format to TokenCacheData format
+        const tokens: TokenCacheData[] = result.data.map((token: any) => ({
+            contractId: token.contractId,
+            symbol: token.symbol,
+            name: token.name,
+            decimals: token.decimals,
+            image: token.image,
+            description: token.description,
+            supply: token.supply,
+            // Determine type based on whether it's an LP token
+            type: token.isLpToken ? 'POOL' : 'FT',
+            // Add nest level information for LP tokens
+            nestLevel: token.nestLevel,
+            // Add pricing if available
+            usdPrice: token.usdPrice,
+            confidence: token.confidence,
+            marketPrice: token.marketPrice,
+            intrinsicValue: token.intrinsicValue,
+            totalLiquidity: token.totalLiquidity,
+            lastUpdated: token.lastUpdated,
+            // Mark as LP token with additional properties if applicable
+            ...(token.isLpToken && {
+                properties: {
+                    isLpToken: true,
+                    nestLevel: token.nestLevel,
+                    // Include LP metadata for burn-swap operations
+                    lpMetadata: token.lpMetadata,
+                    // Include underlying token info for LP tokens
+                    tokenAContract: token.lpMetadata?.tokenA?.contractId,
+                    tokenBContract: token.lpMetadata?.tokenB?.contractId
+                }
+            }),
+            // Add trading metadata if available
+            ...(token.tradingMetadata && {
+                tradingMetadata: token.tradingMetadata
+            })
+        }));
+
+        console.log(`[listTokens] Loaded ${tokens.length} tokens from unified API (${result.metadata.tradeableTokens} tradeable, ${result.metadata.lpTokens} LP)`);
+
+        return {
+            success: true,
+            tokens
+        };
+    } catch (error) {
+        console.error('[listTokens] Error fetching from unified API, falling back to dexterity SDK:', error);
+
+        // Fallback to existing implementation
+        try {
+            const tokens = await listSwappableTokens();
+            return {
+                success: true,
+                tokens: tokens as any as TokenCacheData[]
+            };
+        } catch (fallbackError) {
+            console.error('[listTokens] Fallback also failed:', fallbackError);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Failed to fetch tokens'
+            };
+        }
+    }
 }
 
 

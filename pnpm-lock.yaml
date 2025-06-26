@@ -239,9 +239,15 @@ importers:
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.7
       partykit:
         specifier: ^0.0.110
         version: 0.0.110
+      tsx:
+        specifier: ^4.19.4
+        version: 4.19.4
       typescript:
         specifier: ^5.5.4
         version: 5.8.2
