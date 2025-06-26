@@ -1,89 +1,43 @@
 import { ClarityValue, cvToHex, cvToValue, hexToCV } from "@stacks/transactions";
 import { apiClient } from "./blockchain-api-client";
-import { TransactionEventsResponse, TransactionResults, Transaction } from "@stacks/stacks-blockchain-api-types";
+import { TransactionEventsResponse } from "@stacks/stacks-blockchain-api-types";
 
-// Define the structure for the contract interface based on the API docs
-export interface ContractInterface {
-  functions: unknown[]; // Replace unknown with specific types if available
-  variables: unknown[];
-  maps: unknown[];
-  fungible_tokens: unknown[];
-  non_fungible_tokens: unknown[];
-}
+// Import all types from the types module
+export type {
+  ContractInterface,
+  ContractInfo,
+  ContractAbi,
+  ContractInfoWithParsedAbi,
+  ClarityType,
+  StxBalanceInfo,
+  FungibleTokenBalances,
+  NonFungibleTokenBalances,
+  AccountBalancesResponse,
+  BnsNamesResponse,
+  BnsNameResolutionResponse,
+  TransactionResults,
+  Transaction,
+  BaseTransaction,
+  CoinbaseTransaction,
+  TenureChangeTransaction,
+  TokenTransferTransaction,
+  ContractCallTransaction,
+  SmartContractTransaction,
+  PoisonMicroblockTransaction,
+  PostCondition,
+} from "./types";
 
-// Define the structure for the contract info based on the API docs
-export interface ContractInfo {
-  tx_id: string;
-  canonical: boolean;
-  contract_id: string;
-  block_height: number;
-  clarity_version: number;
-  source_code: string;
-  abi: string; // This is a JSON string, could be parsed into a more specific type if needed
-}
-
-/**
- * Interface for STX token balance information 
- */
-export interface StxBalanceInfo {
-  balance: string;
-  total_sent: string;
-  total_received: string;
-  lock_tx_id?: string;
-  locked?: string;
-  lock_height?: number;
-  burnchain_lock_height?: number;
-  burnchain_unlock_height?: number;
-}
-
-/**
- * Interface for fungible token balances 
- */
-export interface FungibleTokenBalances {
-  [key: string]: {
-    balance: string;
-    total_sent: string;
-    total_received: string;
-  };
-}
-
-/**
- * Interface for non-fungible token balances 
- */
-export interface NonFungibleTokenBalances {
-  [key: string]: {
-    count: string;
-    total_sent: string;
-    total_received: string;
-  };
-}
-
-/**
- * Interface for account balances response 
- */
-export interface AccountBalancesResponse {
-  stx: StxBalanceInfo;
-  fungible_tokens: FungibleTokenBalances;
-  non_fungible_tokens: NonFungibleTokenBalances;
-}
-
-/**
- * Interface for BNS names response
- */
-export interface BnsNamesResponse {
-  names: string[];
-}
-
-/**
- * Interface for BNS name resolution response
- */
-export interface BnsNameResolutionResponse {
-  address: string;
-  zonefile_hash?: string;
-  zonefile?: string;
-  expire_block?: number;
-  grace_period?: boolean;
-}
+import type {
+  ContractInterface,
+  ContractInfo,
+  ContractAbi,
+  ContractInfoWithParsedAbi,
+  AccountBalancesResponse,
+  BnsNamesResponse,
+  BnsNameResolutionResponse,
+  TransactionResults,
+  Transaction,
+} from "./types";
 
 /**
  * Fetches the interface for a specified smart contract.
@@ -191,6 +145,21 @@ export async function callReadOnly(
 }
 
 /**
+ * Parses the ABI string from contract info into a typed ContractAbi object
+ * @param abiString The JSON string from the contract info's abi field
+ * @returns Parsed ContractAbi object or null if parsing fails
+ */
+export function parseContractAbi(abiString: string): ContractAbi | null {
+  try {
+    return JSON.parse(abiString) as ContractAbi;
+  } catch (error) {
+    console.error("Failed to parse contract ABI:", error);
+    return null;
+  }
+}
+
+
+/**
  * Fetches the information for a specified smart contract.
  * @param contract_id The Stacks address and name of the contract (e.g., SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.satoshibles).
  * @param unanchored Optional boolean to include transaction data from unanchored microblocks.
@@ -221,6 +190,29 @@ export async function getContractInfo(
     console.error("Error fetching contract info:", error);
     throw new Error("Failed to fetch contract info.");
   }
+}
+
+/**
+ * Fetches contract information with parsed ABI for easier type-safe access
+ * @param contract_id The Stacks address and name of the contract
+ * @param unanchored Optional boolean to include transaction data from unanchored microblocks
+ * @returns A promise that resolves to contract information with parsed ABI
+ */
+export async function getContractInfoWithParsedAbi(
+  contract_id: string,
+  unanchored: boolean = false
+): Promise<ContractInfoWithParsedAbi | null> {
+  const contractInfo = await getContractInfo(contract_id, unanchored);
+  if (!contractInfo) {
+    return null;
+  }
+
+  const parsed_abi = parseContractAbi(contractInfo.abi);
+
+  return {
+    ...contractInfo,
+    parsed_abi,
+  };
 }
 
 /**
@@ -265,14 +257,18 @@ export const getRecentTransactions = async (params?: {
   offset?: number;
   type?: Array<"coinbase" | "token_transfer" | "smart_contract" | "contract_call" | "poison_microblock">;
   unanchored?: boolean;
-}) => {
-  const txs = await apiClient.GET(`/v2/transactions/list` as any, {
-    limit: params?.limit ?? 96,
-    offset: params?.offset,
-    type: params?.type,
-    unanchored: params?.unanchored ?? false,
+}): Promise<TransactionResults> => {
+  const txs = await apiClient.GET(`/extended/v1/tx` as any, {
+    params: {
+      query: {
+        limit: params?.limit ?? 96,
+        offset: params?.offset,
+        type: params?.type,
+        unanchored: params?.unanchored ?? false,
+      },
+    },
   });
-  return txs as unknown as TransactionResults;
+  return txs.data as TransactionResults;
 };
 
 export const getMempoolTransactions = async (params?: {
@@ -282,16 +278,20 @@ export const getMempoolTransactions = async (params?: {
   limit?: number;
   offset?: number;
   unanchored?: boolean;
-}) => {
-  const txs = await apiClient.GET(`/v2/transactions/mempool` as any, {
-    limit: params?.limit ?? 20,
-    offset: params?.offset,
-    senderAddress: params?.sender_address,
-    recipientAddress: params?.recipient_address,
-    address: params?.address,
-    unanchored: params?.unanchored ?? false,
+}): Promise<TransactionResults> => {
+  const txs = await apiClient.GET(`/extended/v1/tx/mempool` as any, {
+    params: {
+      query: {
+        limit: params?.limit ?? 20,
+        offset: params?.offset,
+        sender_address: params?.sender_address,
+        recipient_address: params?.recipient_address,
+        address: params?.address,
+        unanchored: params?.unanchored ?? false,
+      },
+    },
   });
-  return txs as unknown as TransactionResults;
+  return txs.data as TransactionResults;
 };
 
 export async function fetchStxBalance(address: string): Promise<number> {

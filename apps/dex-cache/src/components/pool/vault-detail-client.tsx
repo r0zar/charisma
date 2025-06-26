@@ -37,6 +37,7 @@ import { MetadataEditForm } from '@/components/pool/metadata-edit-form';
 import TokenInfoCard from '@/components/pool/token-info-card';
 import APYSimulator from '@/components/pool/apy-simulator';
 import ProfitSimulator from '@/components/pool/profit-simulator';
+import LpTokenPriceAnalysis from '@/components/pool/LpTokenPriceAnalysis';
 
 // Renamed local Vault interface to avoid potential naming collisions
 export interface ClientDisplayVault {
@@ -456,6 +457,16 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                         {currentVaultData.tokenB &&
                                             <TokenInfoCard token={currentVaultData.tokenB} reserves={currentVaultData.reservesB} price={prices[currentVaultData.tokenB.contractId]} />
                                         }
+                                    </div>
+
+                                    {/* LP Token Pricing Analysis */}
+                                    <div>
+                                        <LpTokenPriceAnalysis 
+                                            vault={currentVaultData as any} 
+                                            prices={prices}
+                                            analytics={analytics}
+                                            className="mb-6"
+                                        />
                                     </div>
 
                                     {/* Investment Simulators */}

@@ -771,6 +771,122 @@ export async function getContractSourceDetails(contractId: string): Promise<any>
     }
 }
 
+/**
+ * LP Token Helper Functions
+ * These functions support LP token pricing analysis and calculations
+ */
+
+/**
+ * Check if a vault represents an LP token (has both tokenA and tokenB)
+ * @param vault - The vault to check
+ * @returns True if the vault is an LP token
+ */
+export const isLpToken = (vault: Vault): boolean => {
+    return !!(vault.tokenA && vault.tokenB && vault.reservesA !== undefined && vault.reservesB !== undefined);
+};
+
+/**
+ * Get the estimated total supply of LP tokens for a vault
+ * Note: This is a simplified estimation. In production, this should query the actual contract
+ * @param vault - The vault to calculate total supply for
+ * @returns Estimated total supply or null if calculation not possible
+ */
+export const getEstimatedLpTokenSupply = (vault: Vault): number | null => {
+    if (!isLpToken(vault) || !vault.reservesA || !vault.reservesB) {
+        return null;
+    }
+    
+    // Simplified estimation: sum of reserves
+    // In reality, LP token supply is tracked separately by the contract
+    return vault.reservesA + vault.reservesB;
+};
+
+/**
+ * Calculate the pool share represented by a given amount of LP tokens
+ * @param vault - The vault/pool
+ * @param lpTokenAmount - Amount of LP tokens
+ * @returns Pool share as a decimal (0.1 = 10%) or null if calculation not possible
+ */
+export const calculatePoolShare = (vault: Vault, lpTokenAmount: number): number | null => {
+    const totalSupply = getEstimatedLpTokenSupply(vault);
+    
+    if (!totalSupply || totalSupply === 0) {
+        return null;
+    }
+    
+    return lpTokenAmount / totalSupply;
+};
+
+/**
+ * Calculate the underlying token amounts for a given LP token amount
+ * @param vault - The vault/pool
+ * @param lpTokenAmount - Amount of LP tokens
+ * @returns Object with tokenA and tokenB amounts, or null if calculation not possible
+ */
+export const calculateUnderlyingTokenAmounts = (
+    vault: Vault, 
+    lpTokenAmount: number
+): { tokenA: number; tokenB: number } | null => {
+    const poolShare = calculatePoolShare(vault, lpTokenAmount);
+    
+    if (!poolShare || !vault.reservesA || !vault.reservesB) {
+        return null;
+    }
+    
+    // Calculate token amounts in proper decimal representation
+    const tokenADecimals = vault.tokenA?.decimals || 0;
+    const tokenBDecimals = vault.tokenB?.decimals || 0;
+    
+    const tokenAInPool = vault.reservesA / Math.pow(10, tokenADecimals);
+    const tokenBInPool = vault.reservesB / Math.pow(10, tokenBDecimals);
+    
+    return {
+        tokenA: tokenAInPool * poolShare,
+        tokenB: tokenBInPool * poolShare
+    };
+};
+
+/**
+ * Check if a vault contract ID might represent a tradable LP token
+ * This is a heuristic check based on naming patterns
+ * @param contractId - The contract ID to check
+ * @returns True if the contract might be a tradable LP token
+ */
+export const mightBeTradableLpToken = (contractId: string): boolean => {
+    const lowerCaseId = contractId.toLowerCase();
+    
+    // Common patterns for LP tokens
+    const lpTokenPatterns = [
+        'lp-token',
+        'liquidity-token',
+        'pool-token',
+        '-lp-',
+        '-pool-',
+        'vault-wrapper'
+    ];
+    
+    return lpTokenPatterns.some(pattern => lowerCaseId.includes(pattern));
+};
+
+/**
+ * Get vault metadata for LP token pricing display
+ * @param vault - The vault to get metadata for
+ * @returns Formatted metadata object
+ */
+export const getLpTokenMetadata = (vault: Vault) => {
+    return {
+        name: vault.name || 'Unnamed LP Token',
+        symbol: vault.symbol || 'LP',
+        contractId: vault.contractId,
+        isLpToken: isLpToken(vault),
+        mightBeTradable: mightBeTradableLpToken(vault.contractId),
+        tokenPair: vault.tokenA && vault.tokenB ? 
+            `${vault.tokenA.symbol}-${vault.tokenB.symbol}` : 
+            null,
+        decimals: vault.decimals || 6
+    };
+};
+
 
 // Example usage (uncomment to run once, then re-comment):
 /*
