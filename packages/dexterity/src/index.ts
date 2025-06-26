@@ -805,3 +805,15 @@ export const fetchQuote = async (
   }
   throw lastError || new Error('Failed to fetch quote after 5 attempts');
 };
+
+/***************************************************************
+ *                   Burn-Swapper Re-exports                  *
+ ***************************************************************/
+export { 
+  BurnSwapper, 
+  createBurnSwapper,
+  type BurnSwapRouteResult,
+  type BurnSwapConfig,
+  type BurnSwapQuote,
+  type BurnSwapToken,
+} from './burn-swapper-standalone';

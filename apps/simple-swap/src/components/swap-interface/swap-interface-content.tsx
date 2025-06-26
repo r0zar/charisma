@@ -25,7 +25,7 @@ interface SwapInterfaceContentProps {
 }
 
 // Inner component that uses the swap context
-function SwapInterfaceContentInner() {
+function SwapInterfaceContentInner({ initialTokens = [], searchParams }: SwapInterfaceContentProps) {
   // Get swap token state from context
   const {
     mode,
@@ -104,6 +104,7 @@ function SwapInterfaceContentInner() {
   if (isInitializing || isLoadingTokens) {
     return <LoadingState />;
   }
+
 
   return (
     <div className="space-y-6">
@@ -219,7 +220,7 @@ export default function SwapInterfaceContent({ initialTokens = [], searchParams 
     <OrderConditionsProvider
       availableTokens={displayTokens}
     >
-      <SwapInterfaceContentInner />
+      <SwapInterfaceContentInner initialTokens={initialTokens} searchParams={searchParams} />
     </OrderConditionsProvider>
   );
 }

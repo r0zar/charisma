@@ -6,6 +6,7 @@ import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import TokenLogo from '@/components/TokenLogo';
 import ErrorAlert from '@/components/swap-interface/error-alert';
 import ValidationAlert from '@/components/swap-interface/validation-alert';
+import LPArbitrageAlert from '@/components/swap-interface/lp-arbitrage-alert';
 import { formatTokenAmount } from '@/lib/swap-utils';
 
 export function SwapInformationSidebar() {
@@ -106,6 +107,9 @@ export function SwapInformationSidebar() {
                     </div>
                 </div>
             )}
+
+            {/* LP Arbitrage Alert - Shows when swapping from LP tokens */}
+            <LPArbitrageAlert />
 
             {/* Route Summary */}
             {quote && (

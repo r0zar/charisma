@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { Flame } from 'lucide-react';
 
 export default function SwapButton() {
     // Get swap state from context
@@ -12,6 +13,9 @@ export default function SwapButton() {
         isLoadingQuote,
         handleSwap,
         swapping,
+        isLPToken,
+        burnSwapRoutes,
+        isBurnSwapProfitable,
     } = useRouterTrading();
 
     const {
@@ -19,6 +23,8 @@ export default function SwapButton() {
         selectedToToken,
         displayAmount,
         triggerValidationAlert,
+        forceBurnSwap,
+        mode,
     } = useSwapTokens();
 
     const isDisabled = !quote || isLoadingQuote || swapping;
@@ -36,6 +42,10 @@ export default function SwapButton() {
     };
 
     const shiftDirection = getShiftDirection();
+
+    // Determine if we're in burn-swap mode
+    const shouldUseBurnSwap = isLPToken && mode === 'swap' && (forceBurnSwap || 
+        (isBurnSwapProfitable && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB)));
 
     let buttonContent;
     if (isLoadingQuote) {
@@ -81,7 +91,13 @@ export default function SwapButton() {
     } else {
         buttonContent = (
             <span className="flex items-center justify-center">
-                {isSubnetShift ? (
+                {shouldUseBurnSwap ? (
+                    // Burn-swap flame icon and text
+                    <>
+                        <Flame className="mr-2 h-5 w-5" />
+                        Execute Burn Swap
+                    </>
+                ) : isSubnetShift ? (
                     // Subnet shift icon and text
                     <>
                         <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -118,15 +134,22 @@ export default function SwapButton() {
             onClick={handleClick}
             className={`w-full py-3.5 rounded-xl font-medium text-white shadow-lg transition-all transform relative overflow-hidden ${isDisabled
                 ? 'bg-primary/60 cursor-pointer opacity-70 hover:opacity-80'
-                : isSubnetShift
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-600 hover:to-purple-600 active:scale-[0.99]'
-                    : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary hover:to-primary/80 active:scale-[0.99]'
+                : shouldUseBurnSwap
+                    ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-600 hover:to-red-500 active:scale-[0.99]'
+                    : isSubnetShift
+                        ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-600 hover:to-purple-600 active:scale-[0.99]'
+                        : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary hover:to-primary/80 active:scale-[0.99]'
                 }`}
         >
             {buttonContent}
             {showShimmer && (
                 <div className="absolute top-0 right-0 bottom-0 left-0 opacity-10">
                     <div className="absolute inset-0 bg-white h-full w-1/3 blur-xl transform -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]"></div>
+                </div>
+            )}
+            {shouldUseBurnSwap && !isDisabled && (
+                <div className="absolute inset-0 opacity-20">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-400 to-transparent h-full w-1/3 blur-sm transform -skew-x-12 translate-x-full animate-[burnPulse_3s_infinite]"></div>
                 </div>
             )}
         </Button>

@@ -28,9 +28,10 @@ export default function TokenOutputSection() {
         setUseSubnetTo,
         setSelectedToToken,
         setBaseSelectedToToken,
+        forceBurnSwap,
     } = useSwapTokens();
 
-    const { quote, isLoadingQuote, totalPriceImpact, toLabel } = useRouterTrading();
+    const { quote, isLoadingQuote, totalPriceImpact, toLabel, isLPToken, burnSwapRoutes, isLoadingBurnSwapRoutes } = useRouterTrading();
 
     // Get balance data from BlazeProvider with user-specific balances
     const { address } = useWallet();
@@ -80,7 +81,32 @@ export default function TokenOutputSection() {
         };
     }, [toTokenBalance, isSubnetSelected]);
 
-    const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
+    // Calculate output amount - use burn-swap total when active
+    const outputAmount = React.useMemo(() => {
+        if (!selectedToToken) return "0.00";
+        
+        // Check if burn-swap should be used (either more profitable OR forced by user)
+        const isBurnSwapProfitable = isLPToken && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB) && quote ? (() => {
+            const burnSwapTotal = Number(burnSwapRoutes.tokenA?.amountOut || burnSwapRoutes.tokenA?.expectedAmountOut || 0) +
+                Number(burnSwapRoutes.tokenB?.amountOut || burnSwapRoutes.tokenB?.expectedAmountOut || 0);
+            const regularQuoteAmount = Number(quote?.amountOut || quote?.expectedAmountOut || 0);
+            return burnSwapTotal > regularQuoteAmount;
+        })() : false;
+        
+        const shouldUseBurnSwap = forceBurnSwap || isBurnSwapProfitable;
+        
+        if (shouldUseBurnSwap && mode === 'swap' && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB)) {
+            // Use burn-swap total
+            const burnSwapTotal = Number(burnSwapRoutes.tokenA?.amountOut || burnSwapRoutes.tokenA?.expectedAmountOut || 0) +
+                Number(burnSwapRoutes.tokenB?.amountOut || burnSwapRoutes.tokenB?.expectedAmountOut || 0);
+            return formatTokenAmount(burnSwapTotal, selectedToToken.decimals || 0);
+        } else if (quote) {
+            // Use regular quote
+            return formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0);
+        }
+        
+        return "0.00";
+    }, [quote, selectedToToken, isLPToken, burnSwapRoutes, forceBurnSwap, mode]);
 
     const handleSelectToken = (t: TokenCacheData) => {
         console.log("Selected TO token:", t.symbol);

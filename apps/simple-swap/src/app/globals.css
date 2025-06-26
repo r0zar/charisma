@@ -264,6 +264,15 @@
       transform: scale(1);
     }
   }
+
+  @keyframes burnPulse {
+    0% {
+      transform: translateX(-100%) skewX(-15deg);
+    }
+    100% {
+      transform: translateX(100%) skewX(-15deg);
+    }
+  }
 }
 
 /* FLUID CONTAINER ------------------------------------------- */

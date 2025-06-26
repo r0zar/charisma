@@ -3,7 +3,8 @@
 import { kv } from "@vercel/kv";
 import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Adjust path as needed
 import { callReadOnlyFunction } from "@repo/polyglot";
-import { principalCV } from "@stacks/transactions";
+import { principalCV, uintCV, optionalCVOf } from "@stacks/transactions";
+import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
 import { TokenCacheData } from "@repo/tokens";
 
@@ -38,7 +39,7 @@ export async function getQuote(
 ) {
     console.log(`[Server] Getting quote for ${fromTokenId} -> ${toTokenId} with amount ${amount}`);
     console.log(`[Server] Vaults loaded: ${vaultsLoaded}`);
-    
+
     if (!vaultsLoaded) {
         console.log(`[Server] Vaults not loaded, attempting to load...`);
         try {
@@ -50,7 +51,7 @@ export async function getQuote(
             return { success: false, error: 'Failed to load vault data' };
         }
     }
-    
+
     try {
         const route = await router.findBestRoute(fromTokenId, toTokenId, Number(amount));
         console.log(`[Server] Route result:`, { route, isError: route instanceof Error });
@@ -99,7 +100,7 @@ export async function listTokens(): Promise<{
     // TODO: Implement this
     const tokens = await listSwappableTokens();
     return {
-        success: true, tokens
+        success: true, tokens: tokens as any as TokenCacheData[]
     };
 }
 
@@ -185,7 +186,7 @@ export async function getTokenBalance(tokenContractId: string, holderPrincipal: 
             "get-balance",
             [principalCV(holderPrincipal)]
         );
-        return Number(result.value);
+        return Number(result?.value);
     } catch (error) {
         console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}`);
         return 0;
@@ -254,6 +255,60 @@ export async function checkBidderBalance(
             requiredAmount,
             humanReadableBalance: 0,
             humanReadableRequired: parseFloat(requiredAmount) / Math.pow(10, 6)
+        };
+    }
+}
+
+const OP_REMOVE_LIQUIDITY = '03'; // Opcode for remove liquidity
+
+/**
+ * Server action to get remove liquidity quote for LP burn-swap calculations
+ */
+export async function getRemoveLiquidityQuote(
+    vaultContractId: string,
+    targetLpAmountToBurn: number
+): Promise<{ success: boolean; error?: string; quote?: { dx: number; dy: number; dk: number } | null }> {
+    try {
+        if (targetLpAmountToBurn <= 0) {
+            return { success: true, quote: null };
+        }
+
+        const [contractAddress, contractName] = vaultContractId.split('.');
+        if (!contractAddress || !contractName) {
+            throw new Error(`Invalid vault contract ID: ${vaultContractId}`);
+        }
+
+        const result = await callReadOnlyFunction(
+            contractAddress,
+            contractName,
+            'quote',
+            [
+                uintCV(targetLpAmountToBurn),
+                optionalCVOf(bufferFromHex(OP_REMOVE_LIQUIDITY))
+            ]
+        );
+
+        if (result && typeof result === 'object' && 'value' in result) {
+            const quoteValue = result.value as any;
+            // Parse the response structure to match dex-cache implementation
+            if (quoteValue && quoteValue.dx !== undefined && quoteValue.dy !== undefined) {
+                return {
+                    success: true,
+                    quote: {
+                        dx: Number(quoteValue.dx.value || quoteValue.dx || 0),
+                        dy: Number(quoteValue.dy.value || quoteValue.dy || 0),
+                        dk: Number(quoteValue.dk?.value || quoteValue.dk || targetLpAmountToBurn)
+                    }
+                };
+            }
+        }
+
+        return { success: true, quote: null };
+    } catch (error: any) {
+        console.error("Error in getRemoveLiquidityQuote:", error);
+        return {
+            success: false,
+            error: error.message || "Failed to fetch remove liquidity quote"
         };
     }
 }

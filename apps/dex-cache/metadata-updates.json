@@ -1,0 +1,558 @@
+[
+  {
+    "contractId": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.dmghoot-lp-token",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=DMG-HOOT&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://charisma.rocks/sip10/hooter/body.png",
+    "kvKey": "token-metadata:SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.dmghoot-lp-token",
+    "metadata": {
+      "name": "DMG-HOOT LP Token",
+      "symbol": "DMG-HOOT",
+      "decimals": 6,
+      "description": "DMG-HOOT LP Token (DMG-HOOT) is a fungible token on the Stacks blockchain. Contract: SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.dmghoot-lp-token",
+      "image": "https://charisma.rocks/sip10/hooter/body.png",
+      "identifier": "DMG-HOOT",
+      "contractId": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.dmghoot-lp-token",
+      "total_supply": 2431847752407,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=STX-SHARK&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://assets.hiro.so/api/mainnet/token-metadata-api/SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark/1.png",
+    "kvKey": "token-metadata:SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark",
+    "metadata": {
+      "name": "STX-SHARK LP Token",
+      "symbol": "STX-SHARK",
+      "decimals": 6,
+      "description": "STX-SHARK LP Token (STX-SHARK) is a fungible token on the Stacks blockchain. Contract: SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark",
+      "image": "https://assets.hiro.so/api/mainnet/token-metadata-api/SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark/1.png",
+      "identifier": "STX-SHARK",
+      "contractId": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark",
+      "total_supply": 83174430907,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.night-owl",
+    "action": "update",
+    "currentImage": null,
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/night-owl-6OoxqzCqSBP5O8WdXSFdmCoxHiP6nR.jpeg",
+    "kvKey": "token-metadata:SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.night-owl",
+    "metadata": {
+      "name": "Night Owl",
+      "symbol": "OWL",
+      "decimals": "6",
+      "identifier": "OWL",
+      "contractId": "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.night-owl",
+      "total_supply": 1868547878,
+      "lastUpdated": 1750913233229,
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/night-owl-6OoxqzCqSBP5O8WdXSFdmCoxHiP6nR.jpeg"
+    }
+  },
+  {
+    "contractId": "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.nocturnal-tendencies",
+    "action": "update",
+    "currentImage": null,
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.nocturnal-tendencies-1737525988693-9kvpTAjTBGhstdPT9FE3M3qpne48S4.png",
+    "kvKey": "token-metadata:SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.nocturnal-tendencies",
+    "metadata": {
+      "name": "Nocturnal Tendencies",
+      "symbol": "NTEN",
+      "decimals": "6",
+      "identifier": "NTEN",
+      "contractId": "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.nocturnal-tendencies",
+      "total_supply": 134149993787,
+      "lastUpdated": 1750913233229,
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.nocturnal-tendencies-1737525988693-9kvpTAjTBGhstdPT9FE3M3qpne48S4.png"
+    }
+  },
+  {
+    "contractId": "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.old-faithful",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=FAITH&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/b9f9a6b4-b757-4754-b069-41fe187d676f-qT56oZpvFSVFWBPWHyHnLM4D8gTu2k.png",
+    "kvKey": "token-metadata:SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.old-faithful",
+    "metadata": {
+      "name": "Old Faithful",
+      "symbol": "FAITH",
+      "decimals": 6,
+      "description": "Old Faithful (FAITH) is a fungible token on the Stacks blockchain. Contract: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.old-faithful",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/b9f9a6b4-b757-4754-b069-41fe187d676f-qT56oZpvFSVFWBPWHyHnLM4D8gTu2k.png",
+      "identifier": "old-faithful",
+      "contractId": "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.old-faithful",
+      "total_supply": 680800446903,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.anonymous-welsh-cvlt",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=CVLT&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.anonymous-welsh-cvlt-1734485587555-OYki3BGwYEuRsjzWUTpcgXk9DoPxBb.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.anonymous-welsh-cvlt",
+    "metadata": {
+      "name": "ANONYMOUS WELSH CVLT",
+      "symbol": "CVLT",
+      "decimals": 6,
+      "description": "ANONYMOUS WELSH CVLT (CVLT) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.anonymous-welsh-cvlt",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.anonymous-welsh-cvlt-1734485587555-OYki3BGwYEuRsjzWUTpcgXk9DoPxBb.png",
+      "identifier": "CVLT",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.anonymous-welsh-cvlt",
+      "total_supply": 4544019,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitgear-genesis-fund",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=BGF&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitgear-genesis-fund-1736465345594-V74e3kC2x0wQZ1OyT27jVsZ6zcOE1f.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitgear-genesis-fund",
+    "metadata": {
+      "name": "Bitgear Genesis Fund",
+      "symbol": "BGF",
+      "decimals": 6,
+      "description": "Bitgear Genesis Fund (BGF) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitgear-genesis-fund",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitgear-genesis-fund-1736465345594-V74e3kC2x0wQZ1OyT27jVsZ6zcOE1f.png",
+      "identifier": "BGF",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitgear-genesis-fund",
+      "total_supply": 36788106,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.black-hole-investments",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=VOID&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.black-hole-investments-1736283308340-HVjo8L3tWYDIP4kIFqLCIJCJgCI0D1.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.black-hole-investments",
+    "metadata": {
+      "name": "Black Hole Investments",
+      "symbol": "VOID",
+      "decimals": 6,
+      "description": "Black Hole Investments (VOID) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.black-hole-investments",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.black-hole-investments-1736283308340-HVjo8L3tWYDIP4kIFqLCIJCJgCI0D1.png",
+      "identifier": "VOID",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.black-hole-investments",
+      "total_supply": 662524795,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=CORGI&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity-1734454214533-VAMB0007tsGG6OscAyD0lIFICyg5Xa.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity",
+    "metadata": {
+      "name": "Charismatic Corgi Liquidity",
+      "symbol": "CORGI",
+      "decimals": 6,
+      "description": "Charismatic Corgi Liquidity (CORGI) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity-1734454214533-VAMB0007tsGG6OscAyD0lIFICyg5Xa.png",
+      "identifier": "CORGI",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity",
+      "total_supply": 1290057999,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=SXC&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://charisma.rocks/sip10/charismatic-flow.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow",
+    "metadata": {
+      "name": "Charismatic Flow",
+      "symbol": "SXC",
+      "decimals": 6,
+      "description": "Charismatic Flow (SXC) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow",
+      "image": "https://charisma.rocks/sip10/charismatic-flow.png",
+      "identifier": "SXC",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow",
+      "total_supply": 2441093338,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dex-corgi-lp-v1",
+    "action": "create",
+    "currentImage": null,
+    "newImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAALdJREFUeF7t2zERgDAQRNFEAJ7SIoIOWUECBqgwg4IICEOBin0VdWYyt//nlrpe2+yjlX25S+K3PucxUw//nbu6AW6AGWAGJE7/f/BLASkgBaSAFJACoSLEBUYrOAAH4AAcgANwAA7wKhz5JI4EkaC9ABewGbIbtB22HdYP0A/QEMmsx3ABLsAFuAAX4AJcgAtwAS7ABbiA/wVSF6RIEAkiQSSIBJEgEkSCSBAJhlbltMW1xcPb4i8yi1NJNXGnngAAAABJRU5ErkJggg==",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dex-corgi-lp-v1",
+    "metadata": {
+      "type": "POOL",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dex-corgi-lp-v1",
+      "name": "dex-corgi-lp-v1",
+      "symbol": "LP",
+      "identifier": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dex-corgi-lp-v1",
+      "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAALdJREFUeF7t2zERgDAQRNFEAJ7SIoIOWUECBqgwg4IICEOBin0VdWYyt//nlrpe2+yjlX25S+K3PucxUw//nbu6AW6AGWAGJE7/f/BLASkgBaSAFJACoSLEBUYrOAAH4AAcgANwAA7wKhz5JI4EkaC9ABewGbIbtB22HdYP0A/QEMmsx3ABLsAFuAAX4AJcgAtwAS7ABbiA/wVSF6RIEAkiQSSIBJEgEkSCSBAJhlbltMW1xcPb4i8yi1NJNXGnngAAAABJRU5ErkJggg==",
+      "lastUpdated": 1750913233229,
+      "decimals": 6
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=DEX&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://charisma.rocks/sip10/dexterity.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1",
+    "metadata": {
+      "name": "Dexterity",
+      "symbol": "DEX",
+      "decimals": 6,
+      "description": "Dexterity (DEX) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1",
+      "image": "https://charisma.rocks/sip10/dexterity.png",
+      "identifier": "DEX",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1",
+      "total_supply": 427270742690,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.gamakichi",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=GAMA&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/77f5d65e58ca8180f00ac072357aa0d3-OUXn7NMK1YuH2lan3yN9PvKLRwqgHh.jpg",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.gamakichi",
+    "metadata": {
+      "name": "Gamakichi",
+      "symbol": "GAMA",
+      "decimals": 6,
+      "description": "Gamakichi (GAMA) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.gamakichi",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/77f5d65e58ca8180f00ac072357aa0d3-OUXn7NMK1YuH2lan3yN9PvKLRwqgHh.jpg",
+      "identifier": "GAMA",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.gamakichi",
+      "total_supply": 55737475,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-unchained-lp",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=LUCID&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-unchained-lp-1735279474930-7wUNiDqSImHbNkUDe4N7qSSTrweCAd.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-unchained-lp",
+    "metadata": {
+      "name": "Leo Unchained LP",
+      "symbol": "LUCID",
+      "decimals": 6,
+      "description": "Leo Unchained LP (LUCID) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-unchained-lp",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-unchained-lp-1735279474930-7wUNiDqSImHbNkUDe4N7qSSTrweCAd.png",
+      "identifier": "LUCID",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-unchained-lp",
+      "total_supply": 1324187412,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.ornithoptor",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=ORNI&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.ornothoptor-1736746774104-Q2AbcufSH7z1BOKsDFieXQ48nejRoB.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.ornithoptor",
+    "metadata": {
+      "name": "Ornithoptor",
+      "symbol": "ORNI",
+      "decimals": 6,
+      "description": "Ornithoptor (ORNI) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.ornithoptor",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.ornothoptor-1736746774104-Q2AbcufSH7z1BOKsDFieXQ48nejRoB.png",
+      "identifier": "ORNI",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.ornithoptor",
+      "total_supply": 41218186,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.owlbear-form",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=OBF&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.owlbear-form-1735270705795-HsrOeDT530WSYUzJUNGQAiBCsA71de.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.owlbear-form",
+    "metadata": {
+      "name": "Owlbear Form",
+      "symbol": "OBF",
+      "decimals": 6,
+      "description": "Owlbear Form (OBF) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.owlbear-form",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.owlbear-form-1735270705795-HsrOeDT530WSYUzJUNGQAiBCsA71de.png",
+      "identifier": "OBF",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.owlbear-form",
+      "total_supply": 33313000217728,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=POV&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit-1736361981424-Tr5UYMgl6lfN8091aKSoIFzEkdUvq9.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit",
+    "metadata": {
+      "name": "Perseverantia Omnia Vincit",
+      "symbol": "POV",
+      "decimals": 6,
+      "description": "Perseverantia Omnia Vincit (POV) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit-1736361981424-Tr5UYMgl6lfN8091aKSoIFzEkdUvq9.png",
+      "identifier": "POV",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit",
+      "total_supply": 1860585129,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.president-pepe-lp",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=CHA-PEPE&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.president-pepe-lp-1735315735465-tiExo5uf8bDL2j0LjRHhS6ebD0V3cj.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.president-pepe-lp",
+    "metadata": {
+      "name": "President Pepe LP",
+      "symbol": "CHA-PEPE",
+      "decimals": 6,
+      "description": "President Pepe LP (CHA-PEPE) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.president-pepe-lp",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.president-pepe-lp-1735315735465-tiExo5uf8bDL2j0LjRHhS6ebD0V3cj.png",
+      "identifier": "CHA-PEPE",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.president-pepe-lp",
+      "total_supply": 3058482300,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=sBTC-STX&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key-1734459899113-2SgyeQPzEN9UtnSmrjc73g9BTe2Hec.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key",
+    "metadata": {
+      "name": "Satoshi's Private Key",
+      "symbol": "sBTC-STX",
+      "decimals": 6,
+      "description": "Satoshi's Private Key (sBTC-STX) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key-1734459899113-2SgyeQPzEN9UtnSmrjc73g9BTe2Hec.png",
+      "identifier": "sBTC-STX",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key",
+      "total_supply": 9406139,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stone-mask",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=SKA&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stone-mask-1735272455381-HAE2OVAfv4dmPiQc3wK6zovT3xEcpp.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stone-mask",
+    "metadata": {
+      "name": "Stone Mask",
+      "symbol": "SKA",
+      "decimals": 6,
+      "description": "Stone Mask (SKA) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stone-mask",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stone-mask-1735272455381-HAE2OVAfv4dmPiQc3wK6zovT3xEcpp.png",
+      "identifier": "SKA",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stone-mask",
+      "total_supply": 795016974,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-hoot-lp-token",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=SHOOT&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-hoot-lp-token-1734435207753-Gueul0zq2XpbgFt6pVg7m0pPczgYzO.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-hoot-lp-token",
+    "metadata": {
+      "name": "STX HOOT LP Token",
+      "symbol": "SHOOT",
+      "decimals": 6,
+      "description": "STX HOOT LP Token (SHOOT) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-hoot-lp-token",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-hoot-lp-token-1734435207753-Gueul0zq2XpbgFt6pVg7m0pPczgYzO.png",
+      "identifier": "SHOOT",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-hoot-lp-token",
+      "total_supply": 95305771,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.techno-anarchism",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=TNA&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtcdmg-lp-token-1736463531677-67IElELefN00VN6fahHsrZiehgt86D.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.techno-anarchism",
+    "metadata": {
+      "name": "Techno Anarchism",
+      "symbol": "TNA",
+      "decimals": 6,
+      "description": "Techno Anarchism (TNA) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.techno-anarchism",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtcdmg-lp-token-1736463531677-67IElELefN00VN6fahHsrZiehgt86D.png",
+      "identifier": "TNA",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.techno-anarchism",
+      "total_supply": 90866,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-lost-lands",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=LOST&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.lost-lands-1737146694307-wXojs8ailwiHFBGkSSguad3yOYV9nK.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-lost-lands",
+    "metadata": {
+      "name": "The Lost Lands",
+      "symbol": "LOST",
+      "decimals": 6,
+      "description": "The Lost Lands (LOST) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-lost-lands",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.lost-lands-1737146694307-wXojs8ailwiHFBGkSSguad3yOYV9nK.png",
+      "identifier": "LOST",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-lost-lands",
+      "total_supply": 831413600,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=SLNK&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/2-ahegao-danilov-ilya-ZWu6bk6XlzDDG3qdfY1X1X5Yjmx9ui.jpg",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link",
+    "metadata": {
+      "name": "The Sneaky Link",
+      "symbol": "SLNK",
+      "decimals": 6,
+      "description": "The Sneaky Link (SLNK) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/2-ahegao-danilov-ilya-ZWu6bk6XlzDDG3qdfY1X1X5Yjmx9ui.jpg",
+      "identifier": "SLNK",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.the-sneaky-link",
+      "total_supply": 11986251,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=STX-WELSH&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp-1734444867488-jMsQNrQe3wPsmjRcs2DS0KlubgNqaO.png",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp",
+    "metadata": {
+      "name": "Welsh Community LP",
+      "symbol": "STX-WELSH",
+      "decimals": 6,
+      "description": "Welsh Community LP (STX-WELSH) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp-1734444867488-jMsQNrQe3wPsmjRcs2DS0KlubgNqaO.png",
+      "identifier": "STX-WELSH",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp",
+      "total_supply": 7782104284,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-susdh-amm-lp-v1",
+    "action": "update",
+    "currentImage": null,
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS-1QgHao6Ya7vdnoSLBLq81hRQ8lg7eT.welsh-susdh-subnet-amm-lp-v1-1747178611002",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-susdh-amm-lp-v1",
+    "metadata": {
+      "name": "WELSH-sUSDh Liquidity",
+      "symbol": "WELSH-sUSDh",
+      "decimals": 6,
+      "description": "Liquidity pool token for the WELSH-sUSDh pair",
+      "lpRebatePercent": 1,
+      "tokenAContract": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1",
+      "tokenBContract": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v1",
+      "total_supply": 42910399814,
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-susdh-amm-lp-v1",
+      "lastUpdated": 1750913233229,
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS-1QgHao6Ya7vdnoSLBLq81hRQ8lg7eT.welsh-susdh-subnet-amm-lp-v1-1747178611002"
+    }
+  },
+  {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.whats-up-dog",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=UPDOG&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://charisma.rocks/sip10/up-dog/logo.gif",
+    "kvKey": "token-metadata:SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.whats-up-dog",
+    "metadata": {
+      "name": "What's up, dog?",
+      "symbol": "UPDOG",
+      "decimals": 6,
+      "description": "What's up, dog? (UPDOG) is a fungible token on the Stacks blockchain. Contract: SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.whats-up-dog",
+      "image": "https://charisma.rocks/sip10/up-dog/logo.gif",
+      "identifier": "UPDOG",
+      "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.whats-up-dog",
+      "total_supply": 4563829498446,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP3T1M18J3VX038KSYPP5G450WVWWG9F9G6GAZA4Q.mecha-meme",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=MECHA&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP3T1M18J3VX038KSYPP5G450WVWWG9F9G6GAZA4Q.mecha-meme-1734448222329-Y3dlgn2TKFo9dRx3LWt6IqcioKJO60.png",
+    "kvKey": "token-metadata:SP3T1M18J3VX038KSYPP5G450WVWWG9F9G6GAZA4Q.mecha-meme",
+    "metadata": {
+      "name": "MECHA MEME",
+      "symbol": "MECHA",
+      "decimals": 6,
+      "description": "MECHA MEME (MECHA) is a fungible token on the Stacks blockchain. Contract: SP3T1M18J3VX038KSYPP5G450WVWWG9F9G6GAZA4Q.mecha-meme",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SP3T1M18J3VX038KSYPP5G450WVWWG9F9G6GAZA4Q.mecha-meme-1734448222329-Y3dlgn2TKFo9dRx3LWt6IqcioKJO60.png",
+      "identifier": "MECHA",
+      "contractId": "SP3T1M18J3VX038KSYPP5G450WVWWG9F9G6GAZA4Q.mecha-meme",
+      "total_supply": 1039207060,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.usda-faktory-pool",
+    "action": "create",
+    "currentImage": null,
+    "newImage": "https://charisma.rocks/sip10/ststx-pepe/logo.png",
+    "kvKey": "token-metadata:SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.usda-faktory-pool",
+    "metadata": {
+      "type": "POOL",
+      "contractId": "SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.usda-faktory-pool",
+      "name": "usda-faktory-pool",
+      "symbol": "LP",
+      "identifier": "SP3XXMS38VTAWTVPE5682XSBFXPTH7XCPEBTX8AN2.usda-faktory-pool",
+      "image": "https://charisma.rocks/sip10/ststx-pepe/logo.png",
+      "lastUpdated": 1750913233229,
+      "decimals": 6
+    }
+  },
+  {
+    "contractId": "SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.compact-disc",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=CD&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.compact-disc-1737160723551-9HzSpSLboJ98CTc2vlRsfSkR0OueZB.png",
+    "kvKey": "token-metadata:SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.compact-disc",
+    "metadata": {
+      "name": "Compact Disc",
+      "symbol": "CD",
+      "decimals": 6,
+      "description": "Compact Disc (CD) is a fungible token on the Stacks blockchain. Contract: SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.compact-disc",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.compact-disc-1737160723551-9HzSpSLboJ98CTc2vlRsfSkR0OueZB.png",
+      "identifier": "CD",
+      "contractId": "SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.compact-disc",
+      "total_supply": 724037262,
+      "lastUpdated": 1750913233229
+    }
+  },
+  {
+    "contractId": "SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.upgraded-shark",
+    "action": "update",
+    "currentImage": "https://ui-avatars.com/api/?name=upS&size=200&background=6366f1&color=ffffff&format=png&bold=true",
+    "newImage": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.upgraded-shark-1734441274898-78wqbVuWSg4hdfefOYf3UK60UmNrrM.png",
+    "kvKey": "token-metadata:SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.upgraded-shark",
+    "metadata": {
+      "name": "Upgraded Shark",
+      "symbol": "upS",
+      "decimals": 6,
+      "description": "Upgraded Shark (upS) is a fungible token on the Stacks blockchain. Contract: SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.upgraded-shark",
+      "image": "https://kghatiwehgh3dclz.public.blob.vercel-storage.com/SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.upgraded-shark-1734441274898-78wqbVuWSg4hdfefOYf3UK60UmNrrM.png",
+      "identifier": "upS",
+      "contractId": "SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE.upgraded-shark",
+      "total_supply": 8309643334,
+      "lastUpdated": 1750913233229
+    }
+  }
+]

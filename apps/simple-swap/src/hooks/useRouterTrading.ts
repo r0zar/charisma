@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { getQuote, getRoutableTokens } from '../app/actions';
-import { buildSwapTransaction, loadVaults, Route, Router } from 'dexterity-sdk';
+import { getQuote, getRoutableTokens, getRemoveLiquidityQuote } from '../app/actions';
+import { buildSwapTransaction, loadVaults, Route, Router, BurnSwapper, createBurnSwapper, Vault } from 'dexterity-sdk';
 import { request } from '@stacks/connect';
 import { TransactionResult } from '@stacks/connect/dist/types/methods';
 import { TokenCacheData } from '@repo/tokens';
@@ -70,6 +70,7 @@ export function useRouterTrading() {
     useSubnetFrom,
     useSubnetTo,
     mode,
+    forceBurnSwap,
   } = useSwapTokens();
 
   // Get trigger state from order conditions context
@@ -128,6 +129,9 @@ export function useRouterTrading() {
     routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',
   }));
 
+  // Burn-swapper initialization
+  const burnSwapper = useRef<BurnSwapper | null>(null);
+
   // State
   const [routeableTokenIds, setRouteableTokenIds] = useState<Set<string>>(new Set());
   const [quote, setQuote] = useState<Route | null>(null);
@@ -143,9 +147,38 @@ export function useRouterTrading() {
   // Pro mode state
   const [isProMode, setIsProMode] = useState(false);
 
-  // Initialize router with vaults
+  // Burn-swap state
+  const [burnSwapRoutes, setBurnSwapRoutes] = useState<{ tokenA?: any, tokenB?: any, totalOutput?: number, pattern?: string }>({});
+  const [isLoadingBurnSwapRoutes, setIsLoadingBurnSwapRoutes] = useState(false);
+
+  // Initialize router with vaults and burn-swapper
   useEffect(() => {
     loadVaults(router.current);
+
+    // Initialize burn-swapper with the router and LP removal quote function
+    burnSwapper.current = createBurnSwapper(
+      'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.burn-swapper-rc2',
+      router.current,
+      {
+        debug: process.env.NODE_ENV === 'development',
+        getQuote: async (fromToken, toToken, amount) => {
+          // Use the existing server action that proxies through backend
+          return await getQuote(fromToken, toToken, amount);
+        },
+        getLPRemovalQuote: async (lpVault, lpAmount) => {
+          // Use the existing server action
+          const result = await getRemoveLiquidityQuote(lpVault.contractId, lpAmount);
+          if (result.success && result.quote) {
+            return {
+              dx: result.quote.dx,
+              dy: result.quote.dy,
+              dk: result.quote.dk,
+            };
+          }
+          return null;
+        }
+      }
+    );
   }, []);
 
   // Load routeable tokens
@@ -169,6 +202,102 @@ export function useRouterTrading() {
       isMounted = false;
     };
   }, []);
+
+  // LP token detection and burn-swap pathfinding
+  const isLPToken = useMemo(() => {
+    if (!selectedFromToken) return false;
+    // Check both possible structures for compatibility
+    // @ts-ignore
+    return (selectedFromToken.properties?.tokenAContract && selectedFromToken.properties?.tokenBContract) ||
+      (selectedFromToken.tokenAContract && selectedFromToken.tokenBContract);
+  }, [selectedFromToken]);
+
+  const lpTokenInfo = useMemo(() => {
+    if (!selectedFromToken || !isLPToken) return null;
+
+    // Check both possible structures for compatibility
+    // @ts-ignore
+    const tokenAContract = selectedFromToken.properties?.tokenAContract || selectedFromToken.tokenAContract;
+    // @ts-ignore
+    const tokenBContract = selectedFromToken.properties?.tokenBContract || selectedFromToken.tokenBContract;
+
+    if (tokenAContract && tokenBContract) {
+      const tokenA = tokenAContract.split('.').pop()?.toUpperCase() || 'TOKEN-A';
+      const tokenB = tokenBContract.split('.').pop()?.toUpperCase() || 'TOKEN-B';
+      return {
+        tokenA,
+        tokenB,
+        tokenAContract,
+        tokenBContract
+      };
+    }
+
+    return null;
+  }, [selectedFromToken, isLPToken]);
+
+  // Burn-swap pathfinding using BurnSwapper client
+  useEffect(() => {
+    if (!isLPToken || !selectedToToken || !lpTokenInfo || mode !== 'swap' || !microAmount || !burnSwapper.current) {
+      setBurnSwapRoutes({});
+      return;
+    }
+
+    const findBurnSwapRoutes = async () => {
+      setIsLoadingBurnSwapRoutes(true);
+      try {
+        console.log('Finding burn-swap routes with BurnSwapper client, LP amount:', microAmount);
+
+        // Create burn-swap vault info
+        const lpVault = {
+          contractId: selectedFromToken!.contractId,
+          tokenA: {
+            contractId: lpTokenInfo.tokenAContract,
+            symbol: lpTokenInfo.tokenA,
+            identifier: lpTokenInfo.tokenAContract,
+          },
+          tokenB: {
+            contractId: lpTokenInfo.tokenBContract,
+            symbol: lpTokenInfo.tokenB,
+            identifier: lpTokenInfo.tokenBContract,
+          },
+          identifier: selectedFromToken!.identifier || selectedFromToken!.contractId,
+        };
+
+        // Use BurnSwapper client to find routes
+        const burnSwapResult = await burnSwapper.current?.findBurnSwapRoutes(
+          lpVault,
+          Number(microAmount),
+          selectedToToken.contractId
+        );
+
+        console.log('BurnSwapper routes found:', burnSwapResult);
+
+        if (burnSwapResult) {
+          setBurnSwapRoutes({
+            tokenA: burnSwapResult.tokenA ? {
+              ...burnSwapResult.tokenA,
+              amountOut: burnSwapResult.tokenA.finalAmount
+            } : null,
+            tokenB: burnSwapResult.tokenB ? {
+              ...burnSwapResult.tokenB,
+              amountOut: burnSwapResult.tokenB.finalAmount
+            } : null,
+            totalOutput: burnSwapResult.totalOutput,
+            pattern: burnSwapResult.pattern
+          });
+        } else {
+          setBurnSwapRoutes({});
+        }
+      } catch (error) {
+        console.error('Error finding burn-swap routes:', error);
+        setBurnSwapRoutes({});
+      } finally {
+        setIsLoadingBurnSwapRoutes(false);
+      }
+    };
+
+    findBurnSwapRoutes();
+  }, [isLPToken, selectedToToken, lpTokenInfo, microAmount, mode]);
 
   // Fetch quote when tokens or amount change
   const fetchQuote = useCallback(async () => {
@@ -307,14 +436,57 @@ export function useRouterTrading() {
     }
   }, [quote, mode, walletAddress]);
 
-  // Execute swap transaction
+  // Execute swap transaction (supports both regular swaps and burn-swaps)
   const handleSwap = useCallback(async () => {
-    if (!quote || !walletAddress) return;
+    if (!walletAddress) return;
     setError(null);
     setSwapSuccessInfo(null);
     setSwapping(true);
+
     try {
-      const txCfg = await buildSwapTransaction(router.current, quote, walletAddress);
+      // Determine if we should use burn-swap
+      const shouldUseBurnSwap = isLPToken && (forceBurnSwap ||
+        (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB));
+
+      let txCfg;
+
+      if (shouldUseBurnSwap && burnSwapper.current && lpTokenInfo && selectedFromToken && selectedToToken) {
+        console.log('Executing burn-swap transaction');
+
+        // Create burn-swap vault info
+        const lpVault: Vault = selectedFromToken as Vault;
+
+        console.log('lpVault', lpVault);
+
+        // Get fresh burn-swap routes
+        const burnSwapResult = await burnSwapper.current.findBurnSwapRoutes(
+          lpVault,
+          Number(microAmount),
+          selectedToToken.contractId
+        );
+
+        if (!burnSwapResult) {
+          throw new Error('Failed to find burn-swap routes');
+        }
+
+        // Build burn-swap transaction
+        txCfg = await burnSwapper.current.buildBurnSwapTransaction(
+          burnSwapResult,
+          lpVault,
+          Number(microAmount),
+          walletAddress,
+          0.05 // 5% slippage tolerance
+        );
+        //testing
+        // txCfg.postConditions = [];
+        // txCfg.postConditionMode = 'allow';
+      } else if (quote) {
+        console.log('Executing regular swap transaction');
+        txCfg = await buildSwapTransaction(router.current, quote, walletAddress);
+      } else {
+        throw new Error('No valid quote or burn-swap route available');
+      }
+
       const res = await request('stx_callContract', txCfg);
       console.log("Swap result:", res);
 
@@ -331,7 +503,7 @@ export function useRouterTrading() {
     } finally {
       setSwapping(false);
     }
-  }, [quote, walletAddress]);
+  }, [quote, walletAddress, isLPToken, forceBurnSwap, burnSwapRoutes, lpTokenInfo, selectedFromToken, selectedToToken, microAmount]);
 
   // Helper function to get quote for specific tokens and amount (used in balance checking)
   const getQuoteForTokens = useCallback(async (
@@ -935,6 +1107,17 @@ export function useRouterTrading() {
     return triggerValidation.isValid;
   }, [selectedFromToken, selectedToToken, walletAddress, displayAmount, validateTriggers]);
 
+  // Burn-swap profitability check
+  const isBurnSwapProfitable = useMemo(() => {
+    if (!isLPToken || !quote || !burnSwapRoutes.totalOutput) return false;
+
+    // Compare burn-swap total output with regular swap output
+    const regularSwapOutput = Number(quote.amountOut);
+    const burnSwapOutput = Number(burnSwapRoutes.totalOutput);
+
+    return burnSwapOutput > regularSwapOutput;
+  }, [isLPToken, quote, burnSwapRoutes.totalOutput]);
+
   return {
     // Router instance (for advanced usage)
     router: router.current,
@@ -1003,5 +1186,13 @@ export function useRouterTrading() {
     // Pro mode
     isProMode,
     setIsProMode,
+
+    // Burn-swap routing
+    isLPToken,
+    lpTokenInfo,
+    burnSwapRoutes,
+    isLoadingBurnSwapRoutes,
+    isBurnSwapProfitable,
+    burnSwapper: burnSwapper.current,
   };
 }

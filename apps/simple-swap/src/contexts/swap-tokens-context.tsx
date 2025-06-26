@@ -98,6 +98,10 @@ interface SwapTokensContextType {
   // DCA dialog
   isDcaDialogOpen: boolean;
   setIsDcaDialogOpen: (open: boolean) => void;
+
+  // Burn-swap forcing
+  forceBurnSwap: boolean;
+  setForceBurnSwap: (force: boolean) => void;
 }
 
 const SwapTokensContext = createContext<SwapTokensContextType | undefined>(undefined);
@@ -145,6 +149,9 @@ export function SwapTokensProvider({
 
   // DCA dialog state
   const [isDcaDialogOpen, setIsDcaDialogOpen] = useState(false);
+
+  // Burn-swap forcing state
+  const [forceBurnSwap, setForceBurnSwap] = useState(false);
 
   // Ref to track previous mode for order mode defaults
   const prevModeRef = useRef<string>(mode);
@@ -671,6 +678,10 @@ export function SwapTokensProvider({
     // DCA dialog
     isDcaDialogOpen,
     setIsDcaDialogOpen,
+
+    // Burn-swap forcing
+    forceBurnSwap,
+    setForceBurnSwap,
   };
 
   return (
