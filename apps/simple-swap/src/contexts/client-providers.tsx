@@ -5,7 +5,7 @@ import { WalletProvider } from '@/contexts/wallet-context';
 import { ComparisonTokenProvider } from '@/contexts/comparison-token-context';
 import { OrderConditionsProvider } from '@/contexts/order-conditions-context';
 import { BlazeProvider } from 'blaze-sdk/realtime';
-import { TokenCacheData } from '@repo/tokens';
+import { listTokens, TokenCacheData } from '@repo/tokens';
 
 interface ClientProvidersProps {
     children: React.ReactNode;
@@ -95,25 +95,29 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
         // Fetch tokens for OrderConditionsProvider
         async function fetchTokens() {
             try {
+                const t = await listTokens();
+
+                const subnetTokens = t.filter(t => t.type === 'SUBNET')
+
                 const isDev = typeof window !== 'undefined' &&
                     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-                
+
                 // Use the enhanced dex-cache API with comprehensive pricing
                 const endpoint = isDev
                     ? 'http://localhost:3003/api/v1/tokens?includePricing=true'
                     : 'https://invest.charisma.rocks/api/v1/tokens?includePricing=true';
-                
+
                 console.log('[TokenFetch] Fetching tokens from enhanced dex-cache API:', endpoint);
-                
+
                 const response = await fetch(endpoint);
                 if (response.ok) {
                     const result = await response.json();
-                    
+
                     // Handle both old format (data array) and new format (success + data)
                     const tokensArray = result.success ? result.data : result.data || result;
-                    
+
                     console.log(`[TokenFetch] Received ${tokensArray.length} tokens from dex-cache`);
-                    
+
                     const tokenData = tokensArray.map((token: any) => ({
                         contractId: token.contractId,
                         name: token.name,
@@ -126,7 +130,7 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
                         token_uri: token.token_uri,
                         total_supply: token.total_supply,
                         lastUpdated: token.lastUpdated,
-                        
+
                         // LP metadata - enhanced structure
                         tokenAContract: token.lpMetadata?.tokenA?.contractId,
                         tokenBContract: token.lpMetadata?.tokenB?.contractId,
@@ -134,7 +138,7 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
                         externalPoolId: token.lpMetadata?.poolId,
                         engineContractId: token.lpMetadata?.engineContractId,
                         isLpToken: token.isLpToken,
-                        
+
                         // Enhanced pricing fields from dex-cache
                         price: token.usdPrice ?? token.price,
                         usdPrice: token.usdPrice,
@@ -147,32 +151,25 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
                         totalLiquidity: token.totalLiquidity,
                         nestLevel: token.nestLevel,
                         dependencies: token.dependencies,
-                        
+
                         // Legacy fields for backwards compatibility
                         base: token.base
                     }));
-                    
-                    console.log(`[TokenFetch] Processed tokens:`, {
-                        total: tokenData.length,
-                        withPricing: tokenData.filter(t => t.price !== null && t.price !== undefined).length,
-                        lpTokens: tokenData.filter(t => t.isLpToken).length,
-                        intrinsicPricing: tokenData.filter(t => t.priceSource === 'intrinsic').length
-                    });
-                    
-                    setTokens(tokenData);
+
+                    setTokens([...tokenData, ...subnetTokens]);
                 } else {
                     console.error('[TokenFetch] API response not ok:', response.status, response.statusText);
                     throw new Error(`API responded with ${response.status}`);
                 }
             } catch (error) {
                 console.error('[TokenFetch] Failed to fetch tokens from dex-cache API:', error);
-                
+
                 // Fallback to old endpoint if dex-cache fails
                 try {
                     console.log('[TokenFetch] Trying fallback endpoint...');
                     const fallbackEndpoint = 'https://invest.charisma.rocks/api/v1/tokens/all?includePricing=true';
                     const fallbackResponse = await fetch(fallbackEndpoint);
-                    
+
                     if (fallbackResponse.ok) {
                         const fallbackResult = await fallbackResponse.json();
                         const fallbackTokenData = fallbackResult.data.map((token: any) => ({
@@ -195,7 +192,7 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
                             price: token.usdPrice ?? token.price,
                             base: token.base
                         }));
-                        
+
                         console.log(`[TokenFetch] Fallback successful: ${fallbackTokenData.length} tokens`);
                         setTokens(fallbackTokenData);
                     } else {

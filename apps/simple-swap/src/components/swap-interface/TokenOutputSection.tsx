@@ -35,7 +35,7 @@ export default function TokenOutputSection() {
 
     // Get balance data from BlazeProvider with user-specific balances
     const { address } = useWallet();
-    const { balances, getPrice } = useBlaze({ userId: address });
+    const { balances } = useBlaze({ userId: address });
 
     // Get enhanced balance data for the current token
     // For subnet tokens, we need to look up the base token's balance data
@@ -64,6 +64,16 @@ export default function TokenOutputSection() {
     const tokensToShow = displayTokens.filter(token => routeableTokenIds.has(token.contractId));
     const isSubnetSelected = useSubnetTo;
     const hasBothVersionsForToken = hasBothVersions(selectedToToken);
+
+    // Debug logging
+    React.useEffect(() => {
+        console.log('[TokenOutputSection] Subnet toggle state:', {
+            selectedToToken: selectedToToken?.symbol,
+            hasBothVersionsForToken,
+            isSubnetSelected,
+            mode
+        });
+    }, [selectedToToken, hasBothVersionsForToken, isSubnetSelected, mode]);
 
     // Calculate compact balance display and tooltip content
     const { compactBalance, tooltipData } = React.useMemo(() => {
@@ -136,6 +146,11 @@ export default function TokenOutputSection() {
     };
 
     const handleToggleSubnet = () => {
+        console.log('[TokenOutputSection] handleToggleSubnet called', {
+            selectedToToken: selectedToToken?.symbol,
+            hasBothVersionsForToken,
+            useSubnetTo
+        });
         if (selectedToToken && hasBothVersionsForToken) {
             // Simply toggle the subnet flag - no need to change tokens
             // The enhanced balance feed handles both mainnet and subnet balances
@@ -180,7 +195,7 @@ export default function TokenOutputSection() {
                                 {hasBothVersionsForToken && selectedToToken && (
                                     <button
                                         onClick={handleToggleSubnet}
-                                        className="relative transition-all duration-200 cursor-pointer hover:scale-105"
+                                        className="relative transition-all duration-200 cursor-pointer hover:scale-105 z-10"
                                         title={
                                             isSubnetSelected
                                                 ? "Using Subnet Token - Click to use Mainnet"

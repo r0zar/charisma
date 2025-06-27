@@ -125,13 +125,6 @@ export default function TokenInputSection() {
         setDisplayAmount(amount.toString());
     };
 
-    const handleSetMax = () => {
-        if (!selectedFromToken || !fromTokenBalance) return;
-
-        // Use the raw active balance (already calculated based on subnet toggle state)
-        setDisplayAmount(rawActiveBalance.toString());
-    };
-
     return (
         <div className="space-y-4">
             {/* Premium Header with Analytics */}

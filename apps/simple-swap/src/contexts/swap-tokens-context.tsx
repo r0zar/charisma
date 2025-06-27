@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { TokenCacheData } from '@repo/tokens';
+import { listTokens, TokenCacheData } from '@repo/tokens';
 import { saveSwapPreferences, loadBasicPreferences, loadTokenPreferences as loadTokenPreferencesFromStorage, clearTokenPreferences } from '../lib/swap-storage';
 import { listTokens as fetchAllTokensServerAction } from '../app/actions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
@@ -126,6 +126,7 @@ export function SwapTokensProvider({
   const [baseToken, setBaseToken] = useState<TokenCacheData | null>(null);
   const [baseSelectedFromToken, setBaseSelectedFromToken] = useState<TokenCacheData | null>(null);
   const [baseSelectedToToken, setBaseSelectedToToken] = useState<TokenCacheData | null>(null);
+  const [allSubnetTokens, setAllSubnetTokens] = useState<TokenCacheData[]>([]);
 
   // Mode and UI state
   const [mode, setMode] = useState<'swap' | 'order'>('swap');
@@ -216,7 +217,7 @@ export function SwapTokensProvider({
   // Load basic preferences (mode and subnet toggles) immediately on mount
   const loadBasicPreferencesOnMount = useCallback(() => {
     // Only apply saved preferences if no URL parameters are present
-    const hasUrlParams = !!(urlParams.fromSymbol || urlParams.toSymbol || urlParams.from || urlParams.to || 
+    const hasUrlParams = !!(urlParams.fromSymbol || urlParams.toSymbol || urlParams.from || urlParams.to ||
       urlParams.mode || urlParams.fromSubnet || urlParams.toSubnet);
 
     console.debug('localStorage loading check:', {
@@ -317,7 +318,7 @@ export function SwapTokensProvider({
         console.debug('Found from token by symbol:', { symbol: fromSymbol, token: fromToken });
       }
     }
-    
+
     if (fromToken) {
       setBaseSelectedFromToken(fromToken);
       setSelectedFromToken(fromToken);
@@ -338,7 +339,7 @@ export function SwapTokensProvider({
         console.debug('Found to token by symbol:', { symbol: toSymbol, token: toToken });
       }
     }
-    
+
     if (toToken) {
       setBaseSelectedToToken(toToken);
       setSelectedToToken(toToken);
@@ -377,6 +378,14 @@ export function SwapTokensProvider({
   }, [initDone, selectedTokens, urlParams, findTokenByContractId, findTokenBySymbol]);
 
   // ---------------------- Token Switching Functions ----------------------
+
+  useEffect(() => {
+    const fetchAllSubnetTokens = async () => {
+      const t = await listTokens();
+      setAllSubnetTokens(t.filter(t => t.type === 'SUBNET'));
+    }
+    fetchAllSubnetTokens();
+  }, []);
 
   // Token switching with optional amount calculations
   const handleSwitchTokens = useCallback((quote?: any, microAmount?: string, setDisplayAmount?: (amount: string) => void, setMicroAmount?: (amount: string) => void) => {
@@ -497,14 +506,11 @@ export function SwapTokensProvider({
   const hasBothVersions = useCallback((token: TokenCacheData | null): boolean => {
     if (!token) return false;
 
-    if (token.type === 'SUBNET') {
-      // Subnet token: check if mainnet version exists
-      return !!(token.base && selectedTokens.find(t => t.contractId === token.base && t.type !== 'SUBNET'));
-    } else {
-      // Mainnet token: check if subnet version exists
-      return !!selectedTokens.find(t => t.base === token.contractId && t.type === 'SUBNET');
-    }
-  }, [selectedTokens]);
+    // Mainnet token: check if subnet version exists
+    const subnetVersion = allSubnetTokens.find(t => t.base === token.contractId && t.type === 'SUBNET');
+    const hasSubnet = !!subnetVersion;
+    return hasSubnet;
+  }, [allSubnetTokens]);
 
   // Safe setter that optionally forces subnet version if in order mode
   const setSelectedFromTokenSafe = useCallback((t: TokenCacheData) => {
@@ -611,6 +617,18 @@ export function SwapTokensProvider({
         setSelectedTokens(allTokensResult.tokens || []);
 
         console.log('[SwapTokensContext] Set selectedTokens:', allTokensResult.tokens?.length);
+
+        // Debug subnet tokens
+        const subnetTokens = allTokensResult.tokens?.filter(t => t.type === 'SUBNET') || [];
+        console.log('[SwapTokensContext] Subnet tokens loaded:', {
+          count: subnetTokens.length,
+          examples: subnetTokens.slice(0, 3).map(t => ({
+            symbol: t.symbol,
+            contractId: t.contractId,
+            base: t.base,
+            type: t.type
+          }))
+        });
 
       } catch (err) {
         setError("Failed to load tokens. Please try again later.");
