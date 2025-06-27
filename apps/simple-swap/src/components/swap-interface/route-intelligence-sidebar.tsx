@@ -48,12 +48,12 @@ export function RouteIntelligenceSidebar() {
         return burnSwapTotal > regularQuoteAmount;
     }, [isLPToken, burnSwapRoutes, quote]);
 
-    // Check if burn-swap should be shown (profitable OR forced)
+    // Check if burn-swap should be shown (profitable OR forced) AND we have an LP token
     const shouldUseBurnSwap = useMemo(() => {
-        const result = forceBurnSwap || isBurnSwapProfitable;
-        console.log('Route Intelligence: shouldUseBurnSwap =', result, '(forceBurnSwap:', forceBurnSwap, ', isBurnSwapProfitable:', isBurnSwapProfitable, ')');
+        const result = isLPToken && (forceBurnSwap || isBurnSwapProfitable);
+        console.log('Route Intelligence: shouldUseBurnSwap =', result, '(isLPToken:', isLPToken, ', forceBurnSwap:', forceBurnSwap, ', isBurnSwapProfitable:', isBurnSwapProfitable, ')');
         return result;
-    }, [forceBurnSwap, isBurnSwapProfitable]);
+    }, [isLPToken, forceBurnSwap, isBurnSwapProfitable]);
 
     const showRouteDetails = (quote && !isLoadingQuote) || (shouldUseBurnSwap && !isLoadingBurnSwapRoutes && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB));
 
