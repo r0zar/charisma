@@ -241,7 +241,8 @@ export default function TokenOutputSection() {
                         {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
                             <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${totalPriceImpact.priceImpact > 0
                                 ? 'text-green-400 bg-green-500/20 border border-green-500/30'
-                                : 'text-red-400 bg-red-500/20 border border-red-500/30'
+                                : totalPriceImpact.priceImpact < -10 ? 'text-red-400 bg-red-500/20 border border-red-500/30'
+                                    : 'text-gray-400 bg-gray-500/20 border border-gray-500/30'
                                 }`}>
                                 {totalPriceImpact.priceImpact > 0 ? '+' : ''}
                                 {totalPriceImpact.priceImpact.toFixed(2)}%
