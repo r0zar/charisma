@@ -72,25 +72,29 @@ export default function BalancesSettings() {
   const [isPricingLoaded, setIsPricingLoaded] = useState(false);
 
 
-  // Fetch pricing data from dex-cache
+  // Fetch pricing data from backend API (cached hourly)
   useEffect(() => {
     async function fetchPricingData() {
       if (isPricingLoaded) return;
       try {
-        const isDev = process.env.NODE_ENV === 'development';
-        const response = await fetch(isDev ? 'http://localhost:3003/api/v1/prices' : 'https://invest.charisma.rocks/api/v1/prices');
+        // Use the local backend API which caches dex-cache data for 1 hour
+        const response = await fetch('/api/pricing');
         if (response.ok) {
           const result = await response.json();
-          // Convert array to object keyed by contractId for easy lookup
-          const priceMap = result.data.reduce((acc: Record<string, any>, item: any) => {
-            acc[item.tokenId] = item;
-            return acc;
-          }, {});
-          setPricingData(priceMap);
-          console.log(`[BalancesSettings] Loaded pricing data for ${Object.keys(priceMap).length} tokens`);
+          if (result.data) {
+            // Convert array to object keyed by contractId for easy lookup
+            const priceMap = result.data.reduce((acc: Record<string, any>, item: any) => {
+              acc[item.tokenId] = item;
+              return acc;
+            }, {});
+            setPricingData(priceMap);
+            console.log(`[BalancesSettings] Loaded pricing data for ${Object.keys(priceMap).length} tokens from backend cache`);
+          }
+        } else {
+          console.error('[BalancesSettings] Backend pricing API response not ok:', response.status);
         }
       } catch (error) {
-        console.error('[BalancesSettings] Failed to fetch pricing data:', error);
+        console.error('[BalancesSettings] Failed to fetch pricing data from backend:', error);
       } finally {
         setIsPricingLoaded(true);
       }
