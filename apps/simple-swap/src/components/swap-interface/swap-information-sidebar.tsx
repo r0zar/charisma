@@ -13,6 +13,7 @@ export function SwapInformationSidebar() {
     const { quote, isLoadingQuote, totalPriceImpact, error, burnSwapRoutes } = useRouterTrading();
     const { selectedToToken, mode, forceBurnSwap } = useSwapTokens();
 
+
     return (
         <div className="space-y-4">
             {/* Vault-level Isolation */}
@@ -154,9 +155,8 @@ export function SwapInformationSidebar() {
                             <h3 className="text-sm font-medium text-white/95">Expected Profit</h3>
                             <div className="flex items-center justify-between mt-2">
                                 <span className="text-xs text-white/70">Extra profit from this trade</span>
-                                <span className={`text-xs font-medium ${totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-orange-400'
-                                    }`}>
-                                    {totalPriceImpact.priceImpact > 0 ? '+' : ''}${Math.abs(totalPriceImpact.outputValueUsd - totalPriceImpact.inputValueUsd).toFixed(2)}
+                                <span className="text-xs font-medium text-green-400">
+                                    +${Math.abs(totalPriceImpact.outputValueUsd - totalPriceImpact.inputValueUsd).toFixed(2)}
                                 </span>
                             </div>
                         </div>
@@ -181,8 +181,8 @@ export function SwapInformationSidebar() {
                                 <span className="text-green-400 font-medium text-xs">
                                     {(() => {
                                         // Use burn swap output if available and active, otherwise use regular quote
-                                        const outputAmount = (forceBurnSwap && burnSwapRoutes.totalOutput !== undefined) 
-                                            ? burnSwapRoutes.totalOutput 
+                                        const outputAmount = (forceBurnSwap && burnSwapRoutes.totalOutput !== undefined)
+                                            ? burnSwapRoutes.totalOutput
                                             : (quote ? Number(quote.amountOut) : 0);
                                         const guaranteedAmount = outputAmount * 0.99; // 1% slippage tolerance
                                         return `${formatTokenAmount(guaranteedAmount, selectedToToken.decimals || 0)} ${selectedToToken.symbol}`;

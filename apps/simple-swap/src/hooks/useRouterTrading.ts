@@ -1087,8 +1087,21 @@ export function useRouterTrading() {
     // Calculate total price impact - support both regular quotes and burn swaps
     let totalImpact: TotalPriceImpact | null = null;
     if (selectedFromToken && selectedToToken && microAmount) {
-      const fromPrice = getPrice(selectedFromToken.contractId);
+      // Get prices - for LP tokens, try to use intrinsic value or calculate from burn swap
+      let fromPrice = getPrice(selectedFromToken.contractId);
       const toPrice = getPrice(selectedToToken.contractId);
+      
+      // If fromPrice is undefined and we're dealing with an LP token, try to get intrinsic value
+      if (fromPrice === undefined && isLPToken && selectedFromToken.usdPrice) {
+        fromPrice = selectedFromToken.usdPrice;
+      }
+      
+      // If still no price and we have burn swap data, calculate implied price
+      if (fromPrice === undefined && forceBurnSwap && burnSwapRoutes.totalOutput !== undefined && toPrice !== undefined && microAmount) {
+        const outputValueUsd = burnSwapRoutes.totalOutput * toPrice / (10 ** selectedToToken.decimals!);
+        const inputAmount = Number(microAmount) / (10 ** selectedFromToken.decimals!);
+        fromPrice = outputValueUsd / inputAmount;
+      }
 
       if (fromPrice !== undefined && toPrice !== undefined) {
         const inputValueUsd = Number(microAmount) * fromPrice / (10 ** selectedFromToken.decimals!);
