@@ -31,7 +31,7 @@ export default function TokenOutputSection() {
         forceBurnSwap,
     } = useSwapTokens();
 
-    const { quote, isLoadingQuote, totalPriceImpact, toLabel, isLPToken, burnSwapRoutes, isLoadingBurnSwapRoutes } = useRouterTrading();
+    const { quote, isLoadingQuote, totalPriceImpact, toLabel, isLPToken, burnSwapRoutes, isLoadingBurnSwapRoutes, routeableTokenIds } = useRouterTrading();
 
     // Get balance data from BlazeProvider with user-specific balances
     const { address } = useWallet();
@@ -60,7 +60,8 @@ export default function TokenOutputSection() {
         ...displayedToToken,
         type: useSubnetTo ? 'SUBNET' as const : displayedToToken.type
     } : null;
-    const tokensToShow = displayTokens;
+    // Filter tokens to only show those with routing paths available
+    const tokensToShow = displayTokens.filter(token => routeableTokenIds.has(token.contractId));
     const isSubnetSelected = useSubnetTo;
     const hasBothVersionsForToken = hasBothVersions(selectedToToken);
 
