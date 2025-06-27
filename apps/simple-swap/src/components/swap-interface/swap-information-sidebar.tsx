@@ -19,7 +19,7 @@ export function SwapInformationSidebar() {
             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                 <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                        <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.37 0 4.52.92 6.11 2.42"/></svg>
+                        <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.37 0 4.52.92 6.11 2.42" /></svg>
                     </div>
                     <div>
                         <h3 className="text-sm font-medium text-white/95">Your Funds Stay Safe</h3>
@@ -32,7 +32,7 @@ export function SwapInformationSidebar() {
             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                 <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                        <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2" ry="2" /><circle cx="12" cy="16" r="1" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                     </div>
                     <div>
                         <h3 className="text-sm font-medium text-white/95">Built-in Trade Protection</h3>
@@ -45,7 +45,7 @@ export function SwapInformationSidebar() {
             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                 <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                        <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></svg>
                     </div>
                     <div>
                         <h3 className="text-sm font-medium text-white/95">Access All Markets</h3>
@@ -59,8 +59,8 @@ export function SwapInformationSidebar() {
                 <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
                         <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="19" x2="12" y2="5"/>
-                            <polyline points="5,12 12,5 19,12"/>
+                            <line x1="12" y1="19" x2="12" y2="5" />
+                            <polyline points="5,12 12,5 19,12" />
                         </svg>
                     </div>
                     <div>
@@ -76,9 +76,9 @@ export function SwapInformationSidebar() {
                     <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
                             <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 12h18l-3-3m0 6l3-3"/>
-                                <path d="M14 7V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v4"/>
-                                <path d="M8 12v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-8"/>
+                                <path d="M3 12h18l-3-3m0 6l3-3" />
+                                <path d="M14 7V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v4" />
+                                <path d="M8 12v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-8" />
                             </svg>
                         </div>
                         <div>
@@ -95,9 +95,9 @@ export function SwapInformationSidebar() {
                     <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
                             <svg className="w-5 h-5 text-white/90" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                                <path d="M12 17h.01"/>
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                <path d="M12 17h.01" />
                             </svg>
                         </div>
                         <div>
@@ -112,7 +112,7 @@ export function SwapInformationSidebar() {
             <LPArbitrageAlert />
 
             {/* Route Summary */}
-            {quote && (
+            {quote && quote.path.length > 0 && (
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                     <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
@@ -148,15 +148,14 @@ export function SwapInformationSidebar() {
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                     <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                            <svg className="w-5 h-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            <svg className="w-5 h-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
                         </div>
                         <div className="flex-1">
                             <h3 className="text-sm font-medium text-white/95">Expected Profit</h3>
                             <div className="flex items-center justify-between mt-2">
                                 <span className="text-xs text-white/70">Extra profit from this trade</span>
-                                <span className={`text-xs font-medium ${
-                                    totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-orange-400'
-                                }`}>
+                                <span className={`text-xs font-medium ${totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-orange-400'
+                                    }`}>
                                     {totalPriceImpact.priceImpact > 0 ? '+' : ''}${Math.abs(totalPriceImpact.outputValueUsd - totalPriceImpact.inputValueUsd).toFixed(2)}
                                 </span>
                             </div>
@@ -166,7 +165,8 @@ export function SwapInformationSidebar() {
             )}
 
             {/* Minimum Guaranteed */}
-            {quote && selectedToToken && (
+            {/* workaorund until this works with burn swapper */}
+            {quote && selectedToToken && quote.path.length > 0 && (
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                     <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
@@ -208,28 +208,25 @@ export function SwapInformationSidebar() {
 
             {/* High Price Impact Warning */}
             {totalPriceImpact && totalPriceImpact.priceImpact !== null && Math.abs(totalPriceImpact.priceImpact) > 20 && (
-                <div className={`p-4 rounded-xl border backdrop-blur-sm ${
-                    totalPriceImpact.priceImpact > 0 
-                        ? 'bg-green-500/[0.08] border-green-500/[0.15]' 
-                        : 'bg-yellow-500/[0.08] border-yellow-500/[0.15]'
-                }`}>
+                <div className={`p-4 rounded-xl border backdrop-blur-sm ${totalPriceImpact.priceImpact > 0
+                    ? 'bg-green-500/[0.08] border-green-500/[0.15]'
+                    : 'bg-yellow-500/[0.08] border-yellow-500/[0.15]'
+                    }`}>
                     <div className="flex items-center space-x-3">
-                        <div className={`h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm ${
-                            totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-yellow-400'
-                        }`}>
+                        <div className={`h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm ${totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-yellow-400'
+                            }`}>
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
                         <div>
-                            <h3 className={`text-sm font-medium ${
-                                totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-yellow-400'
-                            }`}>
+                            <h3 className={`text-sm font-medium ${totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-yellow-400'
+                                }`}>
                                 {totalPriceImpact.priceImpact > 0 ? 'Positive Price Impact!' : 'High Price Impact Warning'}
                             </h3>
                             <p className="text-xs text-white/70 mt-1">
-                                {totalPriceImpact.priceImpact > 0 
-                                    ? 'You are receiving significantly more than expected!' 
+                                {totalPriceImpact.priceImpact > 0
+                                    ? 'You are receiving significantly more than expected!'
                                     : 'You are receiving significantly less than expected!'}
                             </p>
                         </div>
@@ -239,7 +236,7 @@ export function SwapInformationSidebar() {
 
             {/* Validation Alert */}
             <ValidationAlert />
-            
+
             {/* Error Alert */}
             <ErrorAlert />
         </div>

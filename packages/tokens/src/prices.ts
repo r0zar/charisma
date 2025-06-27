@@ -350,7 +350,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
             console.log(`Successfully fetched ${Object.keys(kraxelPrices).length} prices from Kraxel API`);
         } else {
             const reason = (results[resultIndex] as PromiseRejectedResult).reason;
-            console.error('Failed to fetch from Kraxel API:', reason && reason.message ? reason.message : reason);
+            console.warn('Failed to fetch from Kraxel API:', reason && reason.message ? reason.message : reason);
         }
         resultIndex++;
     } else {
@@ -363,7 +363,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
             console.log(`Successfully fetched ${Object.keys(stxToolsPrices).length} prices from STXTools API`);
         } else {
             const reason = (results[resultIndex] as PromiseRejectedResult).reason;
-            console.error('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
+            console.warn('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
         }
         resultIndex++;
     } else {
@@ -376,7 +376,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
             console.log(`Successfully fetched ${Object.keys(internalPrices).length} prices from Internal API`);
         } else {
             const reason = (results[resultIndex] as PromiseRejectedResult).reason;
-            console.error('Failed to fetch from Internal API:', reason && reason.message ? reason.message : reason);
+            console.warn('Failed to fetch from Internal API:', reason && reason.message ? reason.message : reason);
         }
     } else {
         console.log('Internal API disabled');

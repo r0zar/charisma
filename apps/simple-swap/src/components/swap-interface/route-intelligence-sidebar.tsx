@@ -34,8 +34,6 @@ export function RouteIntelligenceSidebar() {
         return { tokenA, tokenB };
     }, [lpTokenInfo, displayTokens]);
 
-    const showRouteDetails = quote && !isLoadingQuote;
-
     const routeHops = quote?.path || [];
     const totalHops = routeHops.length - 1;
 
@@ -56,6 +54,9 @@ export function RouteIntelligenceSidebar() {
         console.log('Route Intelligence: shouldUseBurnSwap =', result, '(forceBurnSwap:', forceBurnSwap, ', isBurnSwapProfitable:', isBurnSwapProfitable, ')');
         return result;
     }, [forceBurnSwap, isBurnSwapProfitable]);
+
+    const showRouteDetails = (quote && !isLoadingQuote) || (shouldUseBurnSwap && !isLoadingBurnSwapRoutes && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB));
+
 
     return (
         <div className="space-y-4">
@@ -317,13 +318,12 @@ export function RouteIntelligenceSidebar() {
                                 <div className="space-y-3">
                                     {/* Token A Route */}
                                     {burnSwapRoutes.tokenA ? (
-                                        <div className="flex items-start space-x-3 p-3 rounded-lg bg-blue-500/[0.05] border border-blue-500/[0.15]">
+                                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-blue-500/[0.05] border border-blue-500/[0.15]">
                                             <div className="h-6 w-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                                                 A
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-2 mb-1">
-                                                    <TokenLogo token={selectedToToken} size="sm" />
                                                     <span className="text-xs font-medium text-white/90">
                                                         {formatTokenAmount(Number(burnSwapRoutes.tokenA.amountOut || burnSwapRoutes.tokenA.expectedAmountOut || 0), selectedToToken?.decimals || 6)} {selectedToToken?.symbol}
                                                     </span>
@@ -331,24 +331,35 @@ export function RouteIntelligenceSidebar() {
                                                         {burnSwapRoutes.tokenA.hops?.hops?.length || 0}-hop
                                                     </span>
                                                 </div>
-                                                <div className="text-xs text-blue-300 mb-1">
-                                                    {lpTokens.tokenA?.symbol || lpTokenInfo?.tokenA} → {selectedToToken?.symbol}
+                                                {/* Compact Token Chain */}
+                                                <div className="text-xs text-blue-300 flex items-center flex-wrap gap-x-1 gap-y-0.5">
+                                                    <span className="font-medium">{lpTokens.tokenA?.symbol || lpTokenInfo?.tokenA}</span>
+                                                    {burnSwapRoutes.tokenA.hops?.path && burnSwapRoutes.tokenA.hops.path.length > 1 && (
+                                                        <>
+                                                            {burnSwapRoutes.tokenA.hops.path.slice(1, -1).map((token: any, index: number) => (
+                                                                <React.Fragment key={index}>
+                                                                    <ChevronRight className="w-3 h-3 text-blue-400/60 flex-shrink-0" />
+                                                                    <span className="text-blue-400/80">{token.symbol}</span>
+                                                                </React.Fragment>
+                                                            ))}
+                                                            <ChevronRight className="w-3 h-3 text-blue-400/60 flex-shrink-0" />
+                                                        </>
+                                                    )}
+                                                    {(!burnSwapRoutes.tokenA.hops?.path || burnSwapRoutes.tokenA.hops.path.length <= 1) && (
+                                                        <ChevronRight className="w-3 h-3 text-blue-400/60 flex-shrink-0" />
+                                                    )}
+                                                    <span className="font-medium">{selectedToToken?.symbol}</span>
                                                 </div>
-                                                {burnSwapRoutes.tokenA.hops?.hops && burnSwapRoutes.tokenA.hops.hops.length > 0 && (
-                                                    <div className="text-xs text-blue-400/60">
-                                                        via {burnSwapRoutes.tokenA.hops.hops.map((hop: any) => hop.vault?.name || 'Pool').join(' → ')}
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex items-start space-x-3 p-3 rounded-lg bg-red-500/[0.05] border border-red-500/[0.15]">
+                                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-red-500/[0.05] border border-red-500/[0.15]">
                                             <div className="h-6 w-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                                                 A
                                             </div>
                                             <div className="flex-1">
                                                 <div className="text-xs text-red-400">
-                                                    No route found for {lpTokens.tokenA?.symbol || lpTokenInfo?.tokenA} → {selectedToToken?.symbol}
+                                                    No route: {lpTokens.tokenA?.symbol || lpTokenInfo?.tokenA} → {selectedToToken?.symbol}
                                                 </div>
                                             </div>
                                         </div>
@@ -356,13 +367,12 @@ export function RouteIntelligenceSidebar() {
 
                                     {/* Token B Route */}
                                     {burnSwapRoutes.tokenB ? (
-                                        <div className="flex items-start space-x-3 p-3 rounded-lg bg-green-500/[0.05] border border-green-500/[0.15]">
+                                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-green-500/[0.05] border border-green-500/[0.15]">
                                             <div className="h-6 w-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                                                 B
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-2 mb-1">
-                                                    <TokenLogo token={selectedToToken} size="sm" />
                                                     <span className="text-xs font-medium text-white/90">
                                                         {formatTokenAmount(Number(burnSwapRoutes.tokenB.amountOut || burnSwapRoutes.tokenB.expectedAmountOut || 0), selectedToToken?.decimals || 6)} {selectedToToken?.symbol}
                                                     </span>
@@ -370,24 +380,35 @@ export function RouteIntelligenceSidebar() {
                                                         {burnSwapRoutes.tokenB.hops?.hops?.length || 0}-hop
                                                     </span>
                                                 </div>
-                                                <div className="text-xs text-green-300 mb-1">
-                                                    {lpTokens.tokenB?.symbol || lpTokenInfo?.tokenB} → {selectedToToken?.symbol}
+                                                {/* Compact Token Chain */}
+                                                <div className="text-xs text-green-300 flex items-center flex-wrap gap-x-1 gap-y-0.5">
+                                                    <span className="font-medium">{lpTokens.tokenB?.symbol || lpTokenInfo?.tokenB}</span>
+                                                    {burnSwapRoutes.tokenB.hops?.path && burnSwapRoutes.tokenB.hops.path.length > 1 && (
+                                                        <>
+                                                            {burnSwapRoutes.tokenB.hops.path.slice(1, -1).map((token: any, index: number) => (
+                                                                <React.Fragment key={index}>
+                                                                    <ChevronRight className="w-3 h-3 text-green-400/60 flex-shrink-0" />
+                                                                    <span className="text-green-400/80">{token.symbol}</span>
+                                                                </React.Fragment>
+                                                            ))}
+                                                            <ChevronRight className="w-3 h-3 text-green-400/60 flex-shrink-0" />
+                                                        </>
+                                                    )}
+                                                    {(!burnSwapRoutes.tokenB.hops?.path || burnSwapRoutes.tokenB.hops.path.length <= 1) && (
+                                                        <ChevronRight className="w-3 h-3 text-green-400/60 flex-shrink-0" />
+                                                    )}
+                                                    <span className="font-medium">{selectedToToken?.symbol}</span>
                                                 </div>
-                                                {burnSwapRoutes.tokenB.hops?.hops && burnSwapRoutes.tokenB.hops.hops.length > 0 && (
-                                                    <div className="text-xs text-green-400/60">
-                                                        via {burnSwapRoutes.tokenB.hops.hops.map((hop: any) => hop.vault?.name || 'Pool').join(' → ')}
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex items-start space-x-3 p-3 rounded-lg bg-red-500/[0.05] border border-red-500/[0.15]">
+                                        <div className="flex items-center space-x-3 p-3 rounded-lg bg-red-500/[0.05] border border-red-500/[0.15]">
                                             <div className="h-6 w-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                                                 B
                                             </div>
                                             <div className="flex-1">
                                                 <div className="text-xs text-red-400">
-                                                    No route found for {lpTokens.tokenB?.symbol || lpTokenInfo?.tokenB} → {selectedToToken?.symbol}
+                                                    No route: {lpTokens.tokenB?.symbol || lpTokenInfo?.tokenB} → {selectedToToken?.symbol}
                                                 </div>
                                             </div>
                                         </div>
@@ -408,7 +429,7 @@ export function RouteIntelligenceSidebar() {
             )}
 
             {/* Loading State - Show when analyzing routes */}
-            {!showRouteDetails && (
+            {!showRouteDetails && (isLoadingQuote || (isLPToken && mode === 'swap' && isLoadingBurnSwapRoutes)) && (
                 <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
                     <div className="flex items-center space-x-3 mb-4">
                         <div className="h-3 w-3 bg-blue-400 rounded-full animate-pulse" />
@@ -553,8 +574,27 @@ export function RouteIntelligenceSidebar() {
                 <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] transition-all duration-200">
                     <div className="flex items-center space-x-2 mb-4">
                         <Clock className="w-4 h-4 text-orange-400" />
-                        <span className="text-sm font-semibold text-white/95">Liquidity Pools</span>
+                        <span className="text-sm font-semibold text-white/95">Route Breakdown</span>
                     </div>
+
+                    {/* Compact Token Chain */}
+                    <div className="mb-4 p-3 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+                        <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5 text-sm text-white/90">
+                            {quote.path.map((token, index) => (
+                                <React.Fragment key={token.contractId || index}>
+                                    <span className="font-medium">{token.symbol}</span>
+                                    {index < quote.path.length - 1 && (
+                                        <ChevronRight className="w-3 h-3 text-white/40 flex-shrink-0" />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                        <div className="text-xs text-white/60 mt-1">
+                            {quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'} through {quote.hops.length} {quote.hops.length === 1 ? 'pool' : 'pools'}
+                        </div>
+                    </div>
+
+                    <div className="text-xs font-medium text-white/80 mb-2">Liquidity Pools</div>
 
                     <div className="space-y-2">
                         {quote?.hops?.map((hop, index) => (

@@ -188,7 +188,7 @@ export function formatBalance(balance: string, decimals: number): number {
 export async function fetchTokenSummariesFromAPI(): Promise<TokenSummary[]> {
   const endpoint = process.env.TOKEN_SUMMARIES_URL ||
     process.env.NEXT_PUBLIC_TOKEN_SUMMARIES_URL ||
-    'https://swap.charisma.rocks/api/token-summaries';
+    'https://invest.charisma.rocks/api/v1/tokens/all?includePricing=true';
 
   try {
     console.log(`🔗 Fetching token summaries from ${endpoint}`);
@@ -203,8 +203,34 @@ export async function fetchTokenSummariesFromAPI(): Promise<TokenSummary[]> {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const summaries: TokenSummary[] = await response.json();
-    console.log(`✅ Fetched ${summaries.length} token summaries with price data`);
+    const result = await response.json();
+    console.log('🔍 fetchTokenSummariesFromAPI: result', result);
+    const summaries: TokenSummary[] = result.data.map((token: any) => ({
+      contractId: token.contractId,
+      name: token.name,
+      symbol: token.symbol,
+      decimals: token.decimals,
+      type: token.type,
+      identifier: token.identifier || token.contractId,
+      description: token.description,
+      image: token.image,
+      token_uri: token.token_uri,
+      total_supply: token.total_supply,
+      lastUpdated: token.lastUpdated,
+      tokenAContract: token.lpMetadata?.tokenA?.contractId,
+      tokenBContract: token.lpMetadata?.tokenB?.contractId,
+      lpRebatePercent: token.lpMetadata?.rebatePercent,
+      externalPoolId: token.lpMetadata?.poolId,
+      engineContractId: token.lpMetadata?.engineContractId,
+      base: token.base,
+      price: token.usdPrice ?? token.price,
+      change1h: token.priceChange1h,
+      change24h: token.priceChange24h,
+      change7d: token.priceChange7d,
+      marketCap: token.marketCap,
+      verified: token.verified || false
+    }));
+    console.log(`✅ Fetched ${summaries.length} token summaries with price data from unified API`);
     return summaries;
 
   } catch (error) {
@@ -424,14 +450,11 @@ export function createBalanceUpdateMessage(
   }
 ): BalanceUpdateMessage {
 
-  console.log(`🔍 [BALANCE-MSG-DEBUG] Creating balance update for ${enhancedRecord.symbol} (${enhancedRecord.contractId})`);
-  console.log(`🔍 [BALANCE-MSG-DEBUG] Token type: ${enhancedRecord.type}, base: ${enhancedRecord.base || 'undefined'}`);
 
   // Auto-discover subnet balance if not provided but we have the necessary data
   let finalSubnetBalanceInfo = subnetBalanceInfo;
 
   if (!finalSubnetBalanceInfo && enhancedRecord.type !== 'SUBNET' && enhancedTokenRecords && allBalanceUpdates) {
-    console.log(`🔍 [BALANCE-MSG-DEBUG] Auto-discovering subnet balance for mainnet token ${enhancedRecord.symbol}...`);
     finalSubnetBalanceInfo = findSubnetBalanceForMainnetToken(
       enhancedRecord.contractId,
       userId,
@@ -440,7 +463,6 @@ export function createBalanceUpdateMessage(
     );
   }
 
-  console.log(`🔍 [BALANCE-MSG-DEBUG] Final subnet balance info: ${finalSubnetBalanceInfo ? `${finalSubnetBalanceInfo.balance} (${finalSubnetBalanceInfo.contractId})` : 'none'}`);
 
   return {
     type: 'BALANCE_UPDATE',

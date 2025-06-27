@@ -1,4 +1,5 @@
 import { Vault, getAllVaultData } from '@/lib/pool-service';
+import { getRemoveLiquidityQuote } from '@/app/actions';
 
 /**
  * LP Token pricing analysis results
@@ -24,134 +25,152 @@ export interface LpTokenPriceAnalysis {
 }
 
 /**
- * Calculate the intrinsic value of an LP token based on underlying reserves
+ * Calculate the intrinsic value of an LP token using remove liquidity quotes
+ * This uses actual contract logic instead of geometric mean estimation
  * @param vault - The vault/pool data
  * @param prices - Token prices keyed by contract ID
  * @param lpTokenAmount - Amount of LP tokens to calculate value for (default: 1)
  * @returns Intrinsic value per LP token or null if calculation not possible
  */
-export const calculateLpIntrinsicValueFromVault = (
+export const calculateLpIntrinsicValueFromVault = async (
     vault: Vault,
     prices: Record<string, number>,
     lpTokenAmount: number = 1
-): number | null => {
-    if (!vault.tokenA || !vault.tokenB || vault.reservesA === undefined || vault.reservesB === undefined) {
+): Promise<number | null> => {
+    if (!vault.tokenA || !vault.tokenB) {
+        console.warn(`[LP Calculator] Missing token info for vault: ${vault.contractId}`);
         return null;
     }
 
     const priceA = prices[vault.tokenA.contractId];
     const priceB = prices[vault.tokenB.contractId];
 
-    if (!priceA || !priceB || vault.reservesA === 0 || vault.reservesB === 0) {
+    if (!priceA || !priceB) {
+        console.warn(`[LP Calculator] Missing prices for vault ${vault.contractId}: tokenA=${priceA}, tokenB=${priceB}`);
         return null;
     }
 
-    // Calculate token amounts in proper decimal representation
-    const tokenADecimals = vault.tokenA.decimals || 6;
-    const tokenBDecimals = vault.tokenB.decimals || 6;
-    
-    const tokenAAmount = vault.reservesA / Math.pow(10, tokenADecimals);
-    const tokenBAmount = vault.reservesB / Math.pow(10, tokenBDecimals);
+    try {
+        // Use actual remove liquidity quote to get accurate token amounts
+        // Convert lpTokenAmount to microunits for the quote
+        const lpDecimals = vault.decimals || 6;
+        const lpAmountMicroUnits = Math.round(lpTokenAmount * Math.pow(10, lpDecimals));
+        
+        console.log(`[LP Calculator] Getting remove liquidity quote for ${vault.contractId}, amount: ${lpAmountMicroUnits}`);
+        
+        const quoteResult = await getRemoveLiquidityQuote(vault.contractId, lpAmountMicroUnits);
+        
+        if (!quoteResult.success || !quoteResult.quote) {
+            console.warn(`[LP Calculator] Failed to get remove liquidity quote for ${vault.contractId}: ${quoteResult.error}`);
+            return null;
+        }
 
-    // Calculate total pool value in USD
-    const poolValueA = tokenAAmount * priceA;
-    const poolValueB = tokenBAmount * priceB;
-    const totalPoolValue = poolValueA + poolValueB;
+        const { dx, dy } = quoteResult.quote;
+        
+        // Convert token amounts from microunits to display units
+        const tokenADecimals = vault.tokenA.decimals || 6;
+        const tokenBDecimals = vault.tokenB.decimals || 6;
+        
+        const tokenAAmount = dx / Math.pow(10, tokenADecimals);
+        const tokenBAmount = dy / Math.pow(10, tokenBDecimals);
 
-    // Better estimation of total LP supply based on geometric mean of reserves
-    // This is a more realistic approach for AMM pools
-    const lpDecimals = vault.decimals || 6;
-    const estimatedTotalSupply = Math.sqrt(vault.reservesA * vault.reservesB) / Math.pow(10, lpDecimals);
-    
-    if (estimatedTotalSupply === 0 || totalPoolValue === 0) {
+        // Calculate total value in USD
+        const totalValue = (tokenAAmount * priceA) + (tokenBAmount * priceB);
+        
+        console.log(`[LP Calculator] ${vault.contractId}: ${lpTokenAmount} LP = ${tokenAAmount.toFixed(6)} ${vault.tokenA.symbol} + ${tokenBAmount.toFixed(6)} ${vault.tokenB.symbol} = $${totalValue.toFixed(6)}`);
+        
+        return totalValue;
+
+    } catch (error) {
+        console.error(`[LP Calculator] Error calculating intrinsic value for ${vault.contractId}:`, error);
         return null;
     }
-
-    // Calculate intrinsic value per LP token
-    return (totalPoolValue / estimatedTotalSupply) * lpTokenAmount;
 };
 
 /**
- * Calculate detailed asset breakdown for LP token value
+ * Calculate detailed asset breakdown for LP token value using remove liquidity quotes
  * @param vault - The vault/pool data
  * @param prices - Token prices keyed by contract ID
  * @param lpTokenAmount - Amount of LP tokens to analyze (default: 1)
  * @returns Asset breakdown or null if calculation not possible
  */
-export const calculateAssetBreakdown = (
+export const calculateAssetBreakdown = async (
     vault: Vault,
     prices: Record<string, number>,
     lpTokenAmount: number = 1
-): LpTokenPriceAnalysis['assetBreakdown'] => {
-    if (!vault.tokenA || !vault.tokenB || vault.reservesA === undefined || vault.reservesB === undefined) {
+): Promise<LpTokenPriceAnalysis['assetBreakdown']> => {
+    if (!vault.tokenA || !vault.tokenB) {
         return null;
     }
 
     const priceA = prices[vault.tokenA.contractId];
     const priceB = prices[vault.tokenB.contractId];
 
-    if (!priceA || !priceB || vault.reservesA === 0 || vault.reservesB === 0) {
+    if (!priceA || !priceB) {
         return null;
     }
 
-    // Calculate token amounts in proper decimal representation
-    const tokenADecimals = vault.tokenA.decimals || 6;
-    const tokenBDecimals = vault.tokenB.decimals || 6;
-    
-    const tokenAAmount = vault.reservesA / Math.pow(10, tokenADecimals);
-    const tokenBAmount = vault.reservesB / Math.pow(10, tokenBDecimals);
-
-    // Use the same LP supply calculation as intrinsic value
-    const lpDecimals = vault.decimals || 6;
-    const estimatedTotalSupply = Math.sqrt(vault.reservesA * vault.reservesB) / Math.pow(10, lpDecimals);
-    
-    if (estimatedTotalSupply === 0) {
-        return null;
-    }
-
-    // Calculate share of pool represented by lpTokenAmount
-    const poolShare = lpTokenAmount / estimatedTotalSupply;
-
-    // Calculate token amounts and values for this LP amount
-    const lpTokenAAmount = tokenAAmount * poolShare;
-    const lpTokenBAmount = tokenBAmount * poolShare;
-
-    return {
-        tokenA: {
-            symbol: vault.tokenA.symbol,
-            value: lpTokenAAmount * priceA,
-            price: priceA,
-            amount: lpTokenAAmount
-        },
-        tokenB: {
-            symbol: vault.tokenB.symbol,
-            value: lpTokenBAmount * priceB,
-            price: priceB,
-            amount: lpTokenBAmount
+    try {
+        // Use actual remove liquidity quote to get accurate token amounts
+        const lpDecimals = vault.decimals || 6;
+        const lpAmountMicroUnits = Math.round(lpTokenAmount * Math.pow(10, lpDecimals));
+        
+        const quoteResult = await getRemoveLiquidityQuote(vault.contractId, lpAmountMicroUnits);
+        
+        if (!quoteResult.success || !quoteResult.quote) {
+            return null;
         }
-    };
+
+        const { dx, dy } = quoteResult.quote;
+        
+        // Convert token amounts from microunits to display units
+        const tokenADecimals = vault.tokenA.decimals || 6;
+        const tokenBDecimals = vault.tokenB.decimals || 6;
+        
+        const lpTokenAAmount = dx / Math.pow(10, tokenADecimals);
+        const lpTokenBAmount = dy / Math.pow(10, tokenBDecimals);
+
+        return {
+            tokenA: {
+                symbol: vault.tokenA.symbol,
+                value: lpTokenAAmount * priceA,
+                price: priceA,
+                amount: lpTokenAAmount
+            },
+            tokenB: {
+                symbol: vault.tokenB.symbol,
+                value: lpTokenBAmount * priceB,
+                price: priceB,
+                amount: lpTokenBAmount
+            }
+        };
+
+    } catch (error) {
+        console.error(`[LP Calculator] Error calculating asset breakdown for ${vault.contractId}:`, error);
+        return null;
+    }
 };
 
 /**
- * Compare LP token market price with intrinsic value
+ * Compare LP token market price with intrinsic value using remove liquidity quotes
  * @param vault - The vault/pool data
  * @param prices - Token prices keyed by contract ID (should include LP token price if tradable)
  * @param lpTokenAmount - Amount of LP tokens to analyze (default: 1)
  * @returns Complete price analysis
  */
-export const analyzeLpTokenPricing = (
+export const analyzeLpTokenPricing = async (
     vault: Vault,
     prices: Record<string, number>,
     lpTokenAmount: number = 1
-): LpTokenPriceAnalysis => {
+): Promise<LpTokenPriceAnalysis> => {
     // Get market price of LP token if it exists as a tradable token
     const marketPrice = prices[vault.contractId] || null;
     
-    // Calculate intrinsic value
-    const intrinsicValue = calculateLpIntrinsicValueFromVault(vault, prices, lpTokenAmount);
+    // Calculate intrinsic value using remove liquidity quote
+    const intrinsicValue = await calculateLpIntrinsicValueFromVault(vault, prices, lpTokenAmount);
     
-    // Calculate asset breakdown
-    const assetBreakdown = calculateAssetBreakdown(vault, prices, lpTokenAmount);
+    // Calculate asset breakdown using remove liquidity quote
+    const assetBreakdown = await calculateAssetBreakdown(vault, prices, lpTokenAmount);
     
     // Calculate differences if both prices are available
     let priceDifference: number | null = null;
@@ -166,8 +185,8 @@ export const analyzeLpTokenPricing = (
         isArbitrageOpportunity = Math.abs(priceDifference) > 5;
     }
 
-    // Estimate total supply (in a real implementation, this would be queried from contract)
-    const totalSupply = vault.reservesA && vault.reservesB ? vault.reservesA + vault.reservesB : null;
+    // For total supply, we could make another contract call, but for now keep it simple
+    const totalSupply = null; // Would need separate contract call to get accurate total supply
 
     return {
         marketPrice,
@@ -202,7 +221,7 @@ export const formatLpPriceAnalysis = (analysis: LpTokenPriceAnalysis) => {
 };
 
 /**
- * Calculate LP intrinsic value by contract ID (wrapper function)
+ * Calculate LP intrinsic value by contract ID using remove liquidity quotes
  * NOTE: This function is now deprecated - use calculateAllLpIntrinsicValues for dependency-aware processing
  * @param contractId - LP token contract ID
  * @param prices - Token prices keyed by contract ID
@@ -224,8 +243,8 @@ export const calculateLpIntrinsicValue = async (
             return null;
         }
 
-        // Use the original function
-        const intrinsicUsdPrice = calculateLpIntrinsicValueFromVault(vault, prices, lpTokenAmount);
+        // Use the new quote-based function
+        const intrinsicUsdPrice = await calculateLpIntrinsicValueFromVault(vault, prices, lpTokenAmount);
         
         if (intrinsicUsdPrice === null) {
             console.warn(`[LP Calculator] Failed to calculate intrinsic value for: ${contractId}`);
@@ -236,8 +255,8 @@ export const calculateLpIntrinsicValue = async (
         const sbtcPrice = prices['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token'] || 100000; // fallback price
         const sbtcRatio = intrinsicUsdPrice / sbtcPrice;
         
-        // Set confidence based on data quality
-        const confidence = 0.8; // High confidence for intrinsic calculation
+        // Set confidence higher since we're now using actual contract logic
+        const confidence = 0.9; // Higher confidence for quote-based calculation
         
         return {
             usdPrice: intrinsicUsdPrice,

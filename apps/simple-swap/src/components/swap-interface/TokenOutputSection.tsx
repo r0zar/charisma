@@ -35,7 +35,7 @@ export default function TokenOutputSection() {
 
     // Get balance data from BlazeProvider with user-specific balances
     const { address } = useWallet();
-    const { balances } = useBlaze({ userId: address });
+    const { balances, getPrice } = useBlaze({ userId: address });
 
     // Get enhanced balance data for the current token
     // For subnet tokens, we need to look up the base token's balance data
@@ -48,8 +48,8 @@ export default function TokenOutputSection() {
     const baseContractId = getBaseContractId(selectedToToken);
     const toTokenBalance = baseContractId && address ? balances[`${address}:${baseContractId}`] : null;
 
-    // Get price from enriched balance metadata
-    const priceData = toTokenBalance?.metadata?.price;
+    // Get price from enriched balance metadata OR token's usdPrice
+    const priceData = selectedToToken?.usdPrice;
     const change24h = toTokenBalance?.metadata?.change24h;
 
 
@@ -240,8 +240,8 @@ export default function TokenOutputSection() {
                         {/* Price Impact Display */}
                         {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
                             <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${totalPriceImpact.priceImpact > 0
-                                    ? 'text-green-400 bg-green-500/20 border border-green-500/30'
-                                    : 'text-red-400 bg-red-500/20 border border-red-500/30'
+                                ? 'text-green-400 bg-green-500/20 border border-green-500/30'
+                                : 'text-red-400 bg-red-500/20 border border-red-500/30'
                                 }`}>
                                 {totalPriceImpact.priceImpact > 0 ? '+' : ''}
                                 {totalPriceImpact.priceImpact.toFixed(2)}%

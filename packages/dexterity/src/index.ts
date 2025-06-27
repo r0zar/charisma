@@ -565,7 +565,12 @@ export class Router {
 
     // Find all possible paths
     const paths = this.findAllPaths(from, to);
-    if (!paths.length) return new Error('no paths');
+    if (!paths.length) return {
+      path: [],
+      hops: [],
+      amountIn: 0,
+      amountOut: 0
+    };
 
     if (this.config.debug) {
       console.log(`[router] found ${paths.length} paths from ${from} to ${to}`);
@@ -809,8 +814,8 @@ export const fetchQuote = async (
 /***************************************************************
  *                   Burn-Swapper Re-exports                  *
  ***************************************************************/
-export { 
-  BurnSwapper, 
+export {
+  BurnSwapper,
   createBurnSwapper,
   type BurnSwapRouteResult,
   type BurnSwapConfig,

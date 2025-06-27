@@ -47,8 +47,8 @@ export default function TokenInputSection() {
     const baseContractId = getBaseContractId(selectedFromToken);
     const fromTokenBalance = baseContractId ? balances[`${address}:${baseContractId}`] : null;
 
-    // Get price from enriched balance metadata
-    const priceData = fromTokenBalance?.metadata?.price;
+    // Get price from enriched balance metadata OR token's usdPrice
+    const priceData = selectedFromToken?.usdPrice;
     const change24h = fromTokenBalance?.metadata?.change24h;
 
     // Calculate compact balance display and tooltip content

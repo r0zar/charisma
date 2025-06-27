@@ -374,10 +374,6 @@ export function SwapTokensProvider({
   const handleSwitchTokensEnhanced = useCallback((quote?: any, microAmount?: string, setDisplayAmount?: (amount: string) => void, setMicroAmount?: (amount: string) => void) => {
     if (!selectedFromToken || !selectedToToken) return;
 
-    // Store the current tokens before switching for amount calculations
-    const currentFromToken = selectedFromToken;
-    const currentToToken = selectedToToken;
-
     // Basic token switch (with amount calculations if provided)
     handleSwitchTokens(quote, microAmount, setDisplayAmount, setMicroAmount);
 
@@ -419,7 +415,7 @@ export function SwapTokensProvider({
   // Simple token filtering - no complex mapping needed since BlazeProvider handles balance data
   const { displayTokens, subnetDisplayTokens } = useMemo(() => {
     console.log('[SwapTokensContext] Computing displayTokens, selectedTokens.length:', selectedTokens.length);
-    
+
     if (!selectedTokens || selectedTokens.length === 0) {
       return {
         displayTokens: [],
@@ -428,7 +424,7 @@ export function SwapTokensProvider({
     }
 
     // Log CORGI in selectedTokens
-    const corgiInSelected = selectedTokens.find(t => 
+    const corgiInSelected = selectedTokens.find(t =>
       t.contractId?.includes('charismatic-corgi-liquidity') || t.symbol === 'CORGI'
     );
     console.log('[SwapTokensContext] CORGI in selectedTokens:', corgiInSelected);
@@ -445,7 +441,7 @@ export function SwapTokensProvider({
     });
 
     // Check if CORGI makes it through the filter
-    const corgiInMainnet = mainnetTokens.find(t => 
+    const corgiInMainnet = mainnetTokens.find(t =>
       t.contractId?.includes('charismatic-corgi-liquidity') || t.symbol === 'CORGI'
     );
     console.log('[SwapTokensContext] CORGI in mainnet tokens:', corgiInMainnet);
@@ -463,7 +459,7 @@ export function SwapTokensProvider({
 
   const hasBothVersions = useCallback((token: TokenCacheData | null): boolean => {
     if (!token) return false;
-    
+
     if (token.type === 'SUBNET') {
       // Subnet token: check if mainnet version exists
       return !!(token.base && selectedTokens.find(t => t.contractId === token.base && t.type !== 'SUBNET'));
@@ -494,20 +490,20 @@ export function SwapTokensProvider({
   // Determine which tokens are currently displayed in dropdowns (show base/mainnet versions for dropdowns)
   const displayedFromToken = useMemo(() => {
     if (!selectedFromToken) return null;
-    
+
     // If it's already a mainnet token, return it
     if (selectedFromToken.type !== 'SUBNET') return selectedFromToken;
-    
+
     // If it's a subnet token, find the mainnet version
     return displayTokens.find(dt => dt.contractId === selectedFromToken.base) || selectedFromToken;
   }, [selectedFromToken, displayTokens]);
 
   const displayedToToken = useMemo(() => {
     if (!selectedToToken) return null;
-    
+
     // If it's already a mainnet token, return it
     if (selectedToToken.type !== 'SUBNET') return selectedToToken;
-    
+
     // If it's a subnet token, find the mainnet version
     return displayTokens.find(dt => dt.contractId === selectedToToken.base) || selectedToToken;
   }, [selectedToToken, displayTokens]);
@@ -574,15 +570,9 @@ export function SwapTokensProvider({
           return;
         }
 
-        // Log CORGI specifically
-        const corgiToken = allTokensResult.tokens.find(t => 
-          t.contractId?.includes('charismatic-corgi-liquidity') || t.symbol === 'CORGI'
-        );
-        console.log('[SwapTokensContext] CORGI token in results:', corgiToken);
-
         // Use all tokens for now; routeableTokenIds will be filtered by useRouter hook
         setSelectedTokens(allTokensResult.tokens || []);
-        
+
         console.log('[SwapTokensContext] Set selectedTokens:', allTokensResult.tokens?.length);
 
       } catch (err) {

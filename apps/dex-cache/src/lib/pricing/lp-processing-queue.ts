@@ -43,7 +43,7 @@ export class LpProcessingQueue {
             this.calculatedPrices.set(contractId, price);
         });
 
-        console.log(`[LpProcessingQueue] Initialized with ${basePrices.length} base prices and ${allVaults.length} vaults`);
+        console.log(`[LpProcessingQueue] Initialized with ${Object.keys(basePrices).length} base prices and ${allVaults.length} vaults`);
     }
 
     /**
@@ -106,8 +106,8 @@ export class LpProcessingQueue {
             // Create price lookup that includes both base tokens and previously calculated LP tokens
             const pricesForCalculation = Object.fromEntries(this.calculatedPrices.entries());
             
-            // Calculate intrinsic value using the existing function
-            const intrinsicUsdPrice = calculateLpIntrinsicValueFromVault(vault, pricesForCalculation, 1);
+            // Calculate intrinsic value using the new quote-based function
+            const intrinsicUsdPrice = await calculateLpIntrinsicValueFromVault(vault, pricesForCalculation, 1);
             
             if (intrinsicUsdPrice === null) {
                 console.warn(`[LpProcessingQueue] Failed to calculate intrinsic value for: ${contractId} (${dependency.symbol})`);

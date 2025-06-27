@@ -89,10 +89,12 @@ export async function GET(request: Request) {
 
         let allTokens: UnifiedToken[] = [];
 
-        // Get tradeable tokens
+        // Get tradeable tokens (excluding subnet tokens)
         if (typeFilter === 'all' || typeFilter === 'tradeable') {
             const tradeableTokens = await listVaultTokens();
-            const unifiedTradeableTokens: UnifiedToken[] = tradeableTokens.map(token => ({
+            // Filter out subnet tokens - only include mainnet tokens
+            const mainnetTokens = tradeableTokens.filter(token => token.type !== 'SUBNET');
+            const unifiedTradeableTokens: UnifiedToken[] = mainnetTokens.map(token => ({
                 contractId: token.contractId,
                 symbol: token.symbol,
                 name: token.name,

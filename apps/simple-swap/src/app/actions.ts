@@ -103,7 +103,7 @@ export async function listTokens(): Promise<{
         // since LP tokens can now be "burned" as part of swaps
         const dexCacheApiUrl = process.env.DEX_CACHE_API_URL ||
             (process.env.NODE_ENV === 'development' ? 'http://localhost:3003' : 'https://invest.charisma.rocks');
-        const response = await fetch(`${dexCacheApiUrl}/api/v1/tokens/all?type=all&nestLevel=0&includePricing=false`, {
+        const response = await fetch(`${dexCacheApiUrl}/api/v1/tokens/all?type=all&nestLevel=0&includePricing=true`, {
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -134,7 +134,7 @@ export async function listTokens(): Promise<{
             // Add nest level information for LP tokens
             nestLevel: token.nestLevel,
             // Add pricing if available
-            usdPrice: token.usdPrice,
+            usdPrice: token.usdPrice ?? token.price,
             confidence: token.confidence,
             marketPrice: token.marketPrice,
             intrinsicValue: token.intrinsicValue,
@@ -170,6 +170,8 @@ export async function listTokens(): Promise<{
         // Fallback to existing implementation
         try {
             const tokens = await listSwappableTokens();
+
+            console.log('🔍 listTokens: tokens', tokens);
             return {
                 success: true,
                 tokens: tokens as any as TokenCacheData[]

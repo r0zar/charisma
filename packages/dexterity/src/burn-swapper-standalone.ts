@@ -243,6 +243,7 @@ export class BurnSwapper {
         return null;
       }
 
+      console.log(lpVault.tokenA)
       // Step 2: Find routes for both underlying tokens
       const [routeA, routeB] = await Promise.all([
         lpQuote.dx > 0
@@ -505,7 +506,7 @@ export class BurnSwapper {
 
     if (this.config.debug) {
       console.log('🔒 Simple Post Conditions Summary (Real Input/Output, GTE 0 for hops):');
-      for (const [key, pc] of pcMap.entries()) {
+      for (const [key, pc] of Array.from(pcMap.entries())) {
         const [principal, asset, conditionType] = key.split('|');
         const shortPrincipal = principal.length > 20 ? `${principal.slice(0, 10)}...${principal.slice(-16)}` : principal;
         let shortAsset;

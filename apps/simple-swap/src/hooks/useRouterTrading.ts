@@ -72,6 +72,7 @@ export function useRouterTrading() {
     useSubnetTo,
     mode,
     forceBurnSwap,
+    setForceBurnSwap,
   } = useSwapTokens();
 
   // Get trigger state from order conditions context
@@ -144,6 +145,7 @@ export function useRouterTrading() {
   const [orderSuccessInfo, setOrderSuccessInfo] = useState<any>(null);
   const [balanceCheckResult, setBalanceCheckResult] = useState<BalanceCheckResult | null>(null);
   const [isLoadingSwapOptions, setIsLoadingSwapOptions] = useState(false);
+  const [vaults, setVaults] = useState<Vault[]>([]);
 
   // Pro mode state
   const [isProMode, setIsProMode] = useState(false);
@@ -154,7 +156,9 @@ export function useRouterTrading() {
 
   // Initialize router with vaults and burn-swapper
   useEffect(() => {
-    loadVaults(router.current);
+    loadVaults(router.current).then(vaults => {
+      setVaults(vaults);
+    });
 
     // Initialize burn-swapper with the router and LP removal quote function
     burnSwapper.current = createBurnSwapper(
@@ -262,36 +266,30 @@ export function useRouterTrading() {
       try {
         console.log('Finding burn-swap routes with BurnSwapper client, LP amount:', microAmount);
 
+        // Validate that tokens are still selected (async function could run after tokens change)
+        if (!selectedFromToken || !selectedToToken) {
+          console.log('Tokens no longer selected, aborting burn-swap route finding');
+          setBurnSwapRoutes({});
+          return;
+        }
+
         // Validate required LP token info
         if (!lpTokenInfo.tokenAContract || !lpTokenInfo.tokenBContract) {
           console.error('Missing tokenA or tokenB contract info:', lpTokenInfo);
           throw new Error('Invalid LP token structure - missing underlying token contracts');
         }
 
+        // console.log(vaults)
+
         // Create burn-swap vault info
-        const lpVault = {
-          contractId: selectedFromToken!.contractId,
-          tokenA: {
-            contractId: lpTokenInfo.tokenAContract,
-            symbol: lpTokenInfo.tokenA,
-            identifier: lpTokenInfo.tokenAContract,
-          },
-          tokenB: {
-            contractId: lpTokenInfo.tokenBContract,
-            symbol: lpTokenInfo.tokenB,
-            identifier: lpTokenInfo.tokenBContract,
-          },
-          identifier: selectedFromToken!.identifier || selectedFromToken!.contractId,
-        };
+        const lpVault = vaults.find(v => v.contractId === selectedFromToken.contractId);
 
         // Use BurnSwapper client to find routes
         const burnSwapResult = await burnSwapper.current?.findBurnSwapRoutes(
-          lpVault,
+          lpVault as Vault,
           Number(microAmount),
           selectedToToken.contractId
         );
-
-        console.log('BurnSwapper routes found:', burnSwapResult);
 
         if (burnSwapResult) {
           setBurnSwapRoutes({
@@ -361,6 +359,20 @@ export function useRouterTrading() {
     }
     fetchQuote();
   }, [selectedFromToken, selectedToToken, microAmount, useSubnetFrom, useSubnetTo, fetchQuote]);
+
+  // Auto-enable burn-swap mode when LP tokens are selected but have no swappable routes
+  useEffect(() => {
+    // Only run this effect if we have an LP token selected and we're in swap mode
+    if (!isLPToken || mode !== 'swap' || forceBurnSwap) return;
+
+    // Check if we've attempted to fetch a quote and it failed or returned null
+    // We only auto-enable if there's no regular swap route available
+    if (selectedFromToken && selectedToToken && microAmount && !isLoadingQuote && (!quote || error)) {
+      console.log('Auto-enabling burn-swap mode: LP token selected with no swappable routes', { quote: !!quote, error });
+      setForceBurnSwap(true);
+    }
+  }, [isLPToken, mode, forceBurnSwap, selectedFromToken, selectedToToken, microAmount, isLoadingQuote, quote, error, setForceBurnSwap]);
+
 
   // Generate post conditions data when quote is available
   const postConditionsData = useMemo(() => {
@@ -474,13 +486,13 @@ export function useRouterTrading() {
         console.log('Executing burn-swap transaction');
 
         // Create burn-swap vault info
-        const lpVault: Vault = selectedFromToken as Vault;
+        const lpVault = vaults.find(v => v.contractId === selectedFromToken.contractId);
 
         console.log('lpVault', lpVault);
 
         // Get fresh burn-swap routes
         const burnSwapResult = await burnSwapper.current.findBurnSwapRoutes(
-          lpVault,
+          lpVault as Vault,
           Number(microAmount),
           selectedToToken.contractId
         );
@@ -492,7 +504,7 @@ export function useRouterTrading() {
         // Build burn-swap transaction
         txCfg = await burnSwapper.current.buildBurnSwapTransaction(
           burnSwapResult,
-          lpVault,
+          lpVault as Vault,
           Number(microAmount),
           walletAddress,
           0.05 // 5% slippage tolerance
@@ -1147,6 +1159,27 @@ export function useRouterTrading() {
 
     return burnSwapOutput > regularSwapOutput;
   }, [isLPToken, quote, burnSwapRoutes.totalOutput]);
+
+  // Set "no paths" error when both regular and burn-swap routes fail
+  useEffect(() => {
+    if (!selectedFromToken || !selectedToToken || !microAmount) return;
+
+    // Check if both regular quote and burn-swap routes have failed
+    const regularQuoteFailed = !isLoadingQuote && !quote && error;
+    const shouldUseBurnSwap = forceBurnSwap || isBurnSwapProfitable;
+    const burnSwapFailed = shouldUseBurnSwap && !isLoadingBurnSwapRoutes && !burnSwapRoutes.tokenA && !burnSwapRoutes.tokenB;
+    const bothFailed = regularQuoteFailed && burnSwapFailed;
+
+    // If only regular quote failed but burn-swap is working, clear the error
+    const burnSwapWorking = shouldUseBurnSwap && !isLoadingBurnSwapRoutes && (burnSwapRoutes.tokenA || burnSwapRoutes.tokenB);
+
+    if (bothFailed) {
+      setError(`No trading paths available between ${selectedFromToken.symbol} and ${selectedToToken.symbol}`);
+    } else if (burnSwapWorking && error && error.includes('No route found')) {
+      // Clear regular route error if burn-swap is working
+      setError(null);
+    }
+  }, [selectedFromToken, selectedToToken, microAmount, isLoadingQuote, quote, error, forceBurnSwap, isBurnSwapProfitable, isLoadingBurnSwapRoutes, burnSwapRoutes, setError]);
 
   return {
     // Router instance (for advanced usage)

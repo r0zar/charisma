@@ -95,9 +95,34 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
         // Fetch tokens for OrderConditionsProvider
         async function fetchTokens() {
             try {
-                const response = await fetch('/api/token-summaries');
+                const isDev = typeof window !== 'undefined' &&
+                    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                const endpoint = isDev
+                    ? 'http://localhost:3003/api/v1/tokens/all?includePricing=true'
+                    : 'https://invest.charisma.rocks/api/v1/tokens/all?includePricing=true';
+                const response = await fetch(endpoint);
                 if (response.ok) {
-                    const tokenData = await response.json();
+                    const result = await response.json();
+                    const tokenData = result.data.map((token: any) => ({
+                        contractId: token.contractId,
+                        name: token.name,
+                        symbol: token.symbol,
+                        decimals: token.decimals,
+                        type: token.type,
+                        identifier: token.identifier || token.contractId,
+                        description: token.description,
+                        image: token.image,
+                        token_uri: token.token_uri,
+                        total_supply: token.total_supply,
+                        lastUpdated: token.lastUpdated,
+                        tokenAContract: token.lpMetadata?.tokenA?.contractId,
+                        tokenBContract: token.lpMetadata?.tokenB?.contractId,
+                        lpRebatePercent: token.lpMetadata?.rebatePercent,
+                        externalPoolId: token.lpMetadata?.poolId,
+                        engineContractId: token.lpMetadata?.engineContractId,
+                        price: token.usdPrice ?? token.price,
+                        base: token.base
+                    }));
                     setTokens(tokenData);
                 }
             } catch (error) {
