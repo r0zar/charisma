@@ -97,13 +97,24 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
             try {
                 const isDev = typeof window !== 'undefined' &&
                     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                
+                // Use the enhanced dex-cache API with comprehensive pricing
                 const endpoint = isDev
-                    ? 'http://localhost:3003/api/v1/tokens/all?includePricing=true'
-                    : 'https://invest.charisma.rocks/api/v1/tokens/all?includePricing=true';
+                    ? 'http://localhost:3003/api/v1/tokens?includePricing=true'
+                    : 'https://invest.charisma.rocks/api/v1/tokens?includePricing=true';
+                
+                console.log('[TokenFetch] Fetching tokens from enhanced dex-cache API:', endpoint);
+                
                 const response = await fetch(endpoint);
                 if (response.ok) {
                     const result = await response.json();
-                    const tokenData = result.data.map((token: any) => ({
+                    
+                    // Handle both old format (data array) and new format (success + data)
+                    const tokensArray = result.success ? result.data : result.data || result;
+                    
+                    console.log(`[TokenFetch] Received ${tokensArray.length} tokens from dex-cache`);
+                    
+                    const tokenData = tokensArray.map((token: any) => ({
                         contractId: token.contractId,
                         name: token.name,
                         symbol: token.symbol,
@@ -115,18 +126,84 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
                         token_uri: token.token_uri,
                         total_supply: token.total_supply,
                         lastUpdated: token.lastUpdated,
+                        
+                        // LP metadata - enhanced structure
                         tokenAContract: token.lpMetadata?.tokenA?.contractId,
                         tokenBContract: token.lpMetadata?.tokenB?.contractId,
                         lpRebatePercent: token.lpMetadata?.rebatePercent,
                         externalPoolId: token.lpMetadata?.poolId,
                         engineContractId: token.lpMetadata?.engineContractId,
+                        isLpToken: token.isLpToken,
+                        
+                        // Enhanced pricing fields from dex-cache
                         price: token.usdPrice ?? token.price,
+                        usdPrice: token.usdPrice,
+                        intrinsicValue: token.intrinsicValue,
+                        marketPrice: token.marketPrice,
+                        confidence: token.confidence,
+                        priceSource: token.priceSource,
+                        sbtcRatio: token.sbtcRatio,
+                        change24h: token.change24h,
+                        totalLiquidity: token.totalLiquidity,
+                        nestLevel: token.nestLevel,
+                        dependencies: token.dependencies,
+                        
+                        // Legacy fields for backwards compatibility
                         base: token.base
                     }));
+                    
+                    console.log(`[TokenFetch] Processed tokens:`, {
+                        total: tokenData.length,
+                        withPricing: tokenData.filter(t => t.price !== null && t.price !== undefined).length,
+                        lpTokens: tokenData.filter(t => t.isLpToken).length,
+                        intrinsicPricing: tokenData.filter(t => t.priceSource === 'intrinsic').length
+                    });
+                    
                     setTokens(tokenData);
+                } else {
+                    console.error('[TokenFetch] API response not ok:', response.status, response.statusText);
+                    throw new Error(`API responded with ${response.status}`);
                 }
             } catch (error) {
-                console.error('Failed to fetch tokens for OrderConditionsProvider:', error);
+                console.error('[TokenFetch] Failed to fetch tokens from dex-cache API:', error);
+                
+                // Fallback to old endpoint if dex-cache fails
+                try {
+                    console.log('[TokenFetch] Trying fallback endpoint...');
+                    const fallbackEndpoint = 'https://invest.charisma.rocks/api/v1/tokens/all?includePricing=true';
+                    const fallbackResponse = await fetch(fallbackEndpoint);
+                    
+                    if (fallbackResponse.ok) {
+                        const fallbackResult = await fallbackResponse.json();
+                        const fallbackTokenData = fallbackResult.data.map((token: any) => ({
+                            contractId: token.contractId,
+                            name: token.name,
+                            symbol: token.symbol,
+                            decimals: token.decimals,
+                            type: token.type,
+                            identifier: token.identifier || token.contractId,
+                            description: token.description,
+                            image: token.image,
+                            token_uri: token.token_uri,
+                            total_supply: token.total_supply,
+                            lastUpdated: token.lastUpdated,
+                            tokenAContract: token.lpMetadata?.tokenA?.contractId,
+                            tokenBContract: token.lpMetadata?.tokenB?.contractId,
+                            lpRebatePercent: token.lpMetadata?.rebatePercent,
+                            externalPoolId: token.lpMetadata?.poolId,
+                            engineContractId: token.lpMetadata?.engineContractId,
+                            price: token.usdPrice ?? token.price,
+                            base: token.base
+                        }));
+                        
+                        console.log(`[TokenFetch] Fallback successful: ${fallbackTokenData.length} tokens`);
+                        setTokens(fallbackTokenData);
+                    } else {
+                        throw new Error('Fallback also failed');
+                    }
+                } catch (fallbackError) {
+                    console.error('[TokenFetch] Both primary and fallback endpoints failed:', fallbackError);
+                }
             } finally {
                 setIsLoadingTokens(false);
             }

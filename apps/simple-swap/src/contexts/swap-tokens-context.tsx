@@ -162,6 +162,8 @@ export function SwapTokensProvider({
     return {
       fromSymbol: searchParams.get('fromSymbol') ?? undefined,
       toSymbol: searchParams.get('toSymbol') ?? undefined,
+      from: searchParams.get('from') ?? undefined, // Contract ID support
+      to: searchParams.get('to') ?? undefined, // Contract ID support
       amount: searchParams.get('amount') ?? undefined,
       mode: searchParams.get('mode') as 'swap' | 'order' | undefined,
       targetPrice: searchParams.get('targetPrice') ?? undefined,
@@ -202,11 +204,20 @@ export function SwapTokensProvider({
     });
   }, [selectedFromToken, selectedToToken, conditionToken, baseToken, mode, useSubnetFrom, useSubnetTo]);
 
+  // ---------------------- Token Lookup Helper Functions ----------------------
+  const findTokenByContractId = useCallback((contractId: string): TokenCacheData | undefined => {
+    return selectedTokens.find(token => token.contractId === contractId);
+  }, [selectedTokens]);
+
+  const findTokenBySymbol = useCallback((symbol: string): TokenCacheData | undefined => {
+    return selectedTokens.find(token => token.symbol.toLowerCase() === symbol.toLowerCase());
+  }, [selectedTokens]);
+
   // Load basic preferences (mode and subnet toggles) immediately on mount
   const loadBasicPreferencesOnMount = useCallback(() => {
     // Only apply saved preferences if no URL parameters are present
-    const hasUrlParams = !!(urlParams.fromSymbol || urlParams.toSymbol || urlParams.mode ||
-      urlParams.fromSubnet || urlParams.toSubnet);
+    const hasUrlParams = !!(urlParams.fromSymbol || urlParams.toSymbol || urlParams.from || urlParams.to || 
+      urlParams.mode || urlParams.fromSubnet || urlParams.toSubnet);
 
     console.debug('localStorage loading check:', {
       hasUrlParams,
@@ -253,7 +264,7 @@ export function SwapTokensProvider({
     if (!selectedTokens.length) return;
 
     // Only apply saved preferences if no URL parameters are present
-    const hasUrlParams = urlParams.fromSymbol || urlParams.toSymbol || urlParams.mode;
+    const hasUrlParams = urlParams.fromSymbol || urlParams.toSymbol || urlParams.from || urlParams.to || urlParams.mode;
     if (hasUrlParams) return;
 
     const tokenPrefs = loadTokenPreferencesFromStorage(selectedTokens);
@@ -283,7 +294,7 @@ export function SwapTokensProvider({
   const initializeFromUrlParams = useCallback(() => {
     if (initDone || !selectedTokens.length) return;
 
-    const { mode: m, targetPrice: tp, direction: dir, fromSymbol, toSymbol, amount } = urlParams;
+    const { mode: m, targetPrice: tp, direction: dir, fromSymbol, toSymbol, from, to, amount } = urlParams;
 
     if (m === 'order') {
       setMode('order');
@@ -291,20 +302,46 @@ export function SwapTokensProvider({
     if (tp) setTargetPrice(tp);
     if (dir === 'lt' || dir === 'gt') setConditionDir(dir);
 
-    if (fromSymbol) {
-      const t = selectedTokens.find(tok => tok.symbol.toLowerCase() === fromSymbol.toLowerCase());
-      if (t) {
-        setBaseSelectedFromToken(t);
-        setSelectedFromToken(t);
+    // Handle "from" token selection - contract ID takes precedence over symbol
+    let fromToken: TokenCacheData | undefined;
+    if (from) {
+      fromToken = findTokenByContractId(from);
+      if (fromToken) {
+        console.debug('Found from token by contract ID:', { contractId: from, token: fromToken });
+      } else {
+        console.warn('Token not found by contract ID:', from);
+      }
+    } else if (fromSymbol) {
+      fromToken = findTokenBySymbol(fromSymbol);
+      if (fromToken) {
+        console.debug('Found from token by symbol:', { symbol: fromSymbol, token: fromToken });
       }
     }
+    
+    if (fromToken) {
+      setBaseSelectedFromToken(fromToken);
+      setSelectedFromToken(fromToken);
+    }
 
-    if (toSymbol) {
-      const t = selectedTokens.find(tok => tok.symbol.toLowerCase() === toSymbol.toLowerCase());
-      if (t) {
-        setBaseSelectedToToken(t);
-        setSelectedToToken(t);
+    // Handle "to" token selection - contract ID takes precedence over symbol
+    let toToken: TokenCacheData | undefined;
+    if (to) {
+      toToken = findTokenByContractId(to);
+      if (toToken) {
+        console.debug('Found to token by contract ID:', { contractId: to, token: toToken });
+      } else {
+        console.warn('Token not found by contract ID:', to);
       }
+    } else if (toSymbol) {
+      toToken = findTokenBySymbol(toSymbol);
+      if (toToken) {
+        console.debug('Found to token by symbol:', { symbol: toSymbol, token: toToken });
+      }
+    }
+    
+    if (toToken) {
+      setBaseSelectedToToken(toToken);
+      setSelectedToToken(toToken);
     }
 
     if (amount && !isNaN(Number(amount))) {
@@ -337,7 +374,7 @@ export function SwapTokensProvider({
     }
 
     setInitDone(true);
-  }, [initDone, selectedTokens, urlParams]);
+  }, [initDone, selectedTokens, urlParams, findTokenByContractId, findTokenBySymbol]);
 
   // ---------------------- Token Switching Functions ----------------------
 

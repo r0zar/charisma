@@ -8,6 +8,7 @@ import { formatTokenAmount } from '@/lib/swap-utils';
 import { Wallet, TrendingUp, TrendingDown, Eye, EyeOff, ChevronDown, ChevronRight, DollarSign, X, ExternalLink, BarChart3, ArrowUpDown } from 'lucide-react';
 import { TokenCacheData } from '@repo/tokens';
 import { BalanceData } from 'blaze-sdk/realtime';
+import { useRouter } from 'next/navigation';
 import {
   Select,
   SelectContent,
@@ -15,6 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+} from '@/components/ui/context-menu';
 
 // Local interface for processed token balance display
 interface ProcessedTokenBalance {
@@ -39,20 +47,57 @@ interface ProcessedTokenBalance {
     tokenBContract: string;
     rebatePercent: string;
   };
-  // Price data now available from enriched metadata
+  // Enhanced price data from merged pricing sources
   priceData?: {
     price?: number | null;
+    marketPrice?: number | null;
+    intrinsicValue?: number | null;
     change24h?: number | null;
     marketCap?: number | null;
+    confidence?: number | null;
+    priceSource?: string;
   };
 }
 
 export default function BalancesSettings() {
   const { address: walletAddress } = useWallet();
-  const { getUserBalances } = useBlaze({ userId: walletAddress });
+  const { getUserBalances, prices } = useBlaze({ userId: walletAddress });
+  const router = useRouter();
 
   // Get balances for the current user (safely handles null/undefined walletAddress)
   const balances = getUserBalances(walletAddress);
+
+  // State for pricing data
+  const [pricingData, setPricingData] = useState<Record<string, any>>({});
+  const [isPricingLoaded, setIsPricingLoaded] = useState(false);
+
+
+  // Fetch pricing data from dex-cache
+  useEffect(() => {
+    async function fetchPricingData() {
+      if (isPricingLoaded) return;
+      try {
+        const isDev = process.env.NODE_ENV === 'development';
+        const response = await fetch(isDev ? 'http://localhost:3003/api/v1/prices' : 'https://invest.charisma.rocks/api/v1/prices');
+        if (response.ok) {
+          const result = await response.json();
+          // Convert array to object keyed by contractId for easy lookup
+          const priceMap = result.data.reduce((acc: Record<string, any>, item: any) => {
+            acc[item.tokenId] = item;
+            return acc;
+          }, {});
+          setPricingData(priceMap);
+          console.log(`[BalancesSettings] Loaded pricing data for ${Object.keys(priceMap).length} tokens`);
+        }
+      } catch (error) {
+        console.error('[BalancesSettings] Failed to fetch pricing data:', error);
+      } finally {
+        setIsPricingLoaded(true);
+      }
+    }
+
+    fetchPricingData();
+  }, []);
 
   const [showZeroBalances, setShowZeroBalances] = useState(false);
   const [debugExpanded, setDebugExpanded] = useState(false);
@@ -133,12 +178,26 @@ export default function BalancesSettings() {
           tokenBContract: metadata.tokenBContract,
           rebatePercent: metadata.lpRebatePercent?.toString() || '0'
         } : undefined,
-        // Price information now available directly
-        priceData: {
-          price: metadata.price,
-          change24h: metadata.change24h,
-          marketCap: metadata.marketCap
-        }
+        // Enhanced price information with merged pricing data
+        priceData: (() => {
+          const contractId = metadata.contractId;
+          const enhancedPricing = pricingData[contractId];
+
+
+          // Use enhanced pricing if available, fallback to metadata
+          return {
+            price: enhancedPricing?.intrinsicValue || enhancedPricing?.usdPrice || metadata.intrinsicValue || metadata.usdPrice || metadata.price || null,
+            marketPrice: enhancedPricing?.marketPrice || metadata.marketPrice || null,
+            intrinsicValue: enhancedPricing?.intrinsicValue || metadata.intrinsicValue || null,
+            change24h: metadata.change24h,
+            marketCap: metadata.marketCap,
+            confidence: enhancedPricing?.confidence || metadata.confidence || null,
+            priceSource: enhancedPricing?.calculationDetails?.priceSource || metadata.priceSource || 'unknown',
+            sbtcRatio: enhancedPricing?.sbtcRatio,
+            nestLevel: enhancedPricing?.nestLevel,
+            isArbitrageOpportunity: enhancedPricing?.isArbitrageOpportunity
+          };
+        })()
       };
 
       balanceData.push(processedBalance);
@@ -151,12 +210,12 @@ export default function BalancesSettings() {
           // When sorting by value, put excluded tokens at the bottom
           const aExcluded = excludedTokens.has(a.token.contractId);
           const bExcluded = excludedTokens.has(b.token.contractId);
-          
+
           if (aExcluded !== bExcluded) {
             return aExcluded ? 1 : -1; // Excluded tokens go to bottom
           }
-          
-          // Sort by USD value (descending)
+
+          // Sort by USD value (descending) - use the enhanced pricing data
           const aValue = a.priceData?.price ? (a.balance / Math.pow(10, a.token.decimals)) * a.priceData.price : 0;
           const bValue = b.priceData?.price ? (b.balance / Math.pow(10, b.token.decimals)) * b.priceData.price : 0;
           if (aValue !== bValue) {
@@ -189,11 +248,11 @@ export default function BalancesSettings() {
           break;
         }
       }
-      
+
       // Secondary sort by symbol
       return a.token.symbol.localeCompare(b.token.symbol);
     });
-  }, [balances, showZeroBalances, sortBy, excludedTokens]);
+  }, [balances, showZeroBalances, sortBy, excludedTokens, pricingData]);
 
   // Portfolio value and change calculations
   const portfolioStats = useMemo(() => {
@@ -276,9 +335,9 @@ export default function BalancesSettings() {
       {/* Portfolio Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Total Portfolio Value */}
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 col-span-2">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
             <div>
@@ -290,70 +349,10 @@ export default function BalancesSettings() {
           </div>
         </div>
 
-        {/* 24h Change */}
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${portfolioStats.change24hUsd >= 0
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-red-500/20 text-red-400'
-              }`}>
-              {portfolioStats.change24hUsd >= 0 ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-            </div>
-            <div>
-              <div className="text-sm text-white/60">24h Change</div>
-              <div className={`text-xl font-semibold ${portfolioStats.change24hUsd >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                {portfolioStats.tokensWithPrice > 0 ? (
-                  <>
-                    <div>{formatUsdAmount(portfolioStats.change24hUsd)}</div>
-                    <div className="text-xs opacity-80">{formatPercentChange(portfolioStats.change24hPercent)}</div>
-                  </>
-                ) : (
-                  'N/A'
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 7d Change */}
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${portfolioStats.change7dUsd >= 0
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-red-500/20 text-red-400'
-              }`}>
-              {portfolioStats.change7dUsd >= 0 ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-            </div>
-            <div>
-              <div className="text-sm text-white/60">7d Change</div>
-              <div className={`text-xl font-semibold ${portfolioStats.change7dUsd >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                {portfolioStats.tokensWithPrice > 0 ? (
-                  <>
-                    <div>{formatUsdAmount(portfolioStats.change7dUsd)}</div>
-                    <div className="text-xs opacity-80">{formatPercentChange(portfolioStats.change7dPercent)}</div>
-                  </>
-                ) : (
-                  'N/A'
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Portfolio Summary */}
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 col-span-2">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
               <Wallet className="w-4 h-4" />
             </div>
             <div>
@@ -375,7 +374,7 @@ export default function BalancesSettings() {
       {/* Controls */}
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-lg font-semibold text-white/90">Token Balances</h3>
-        
+
         <div className="flex items-center gap-3">
           {/* Sort Options */}
           <div className="flex items-center gap-2">
@@ -392,7 +391,7 @@ export default function BalancesSettings() {
               </SelectContent>
             </Select>
           </div>
-          
+
           {/* Zero Balance Toggle */}
           <button
             onClick={() => setShowZeroBalances(!showZeroBalances)}
@@ -424,98 +423,134 @@ export default function BalancesSettings() {
             const hasPrice = item.priceData?.price !== null && item.priceData?.price !== undefined;
 
             return (
-              <div
-                key={`${item.token.contractId}-${index}`}
-                className={`flex items-center justify-between p-4 border rounded-lg transition-all duration-200 ${isExcluded
-                    ? 'bg-red-500/[0.05] border-red-500/20 opacity-75'
-                    : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'
-                  } ${hasPrice && item.balance > 0 ? 'cursor-pointer' : ''}`}
-                onClick={() => {
-                  if (hasPrice && item.balance > 0) {
-                    toggleTokenExclusion(item.token.contractId);
-                  }
-                }}
-                title={hasPrice && item.balance > 0 ?
-                  (isExcluded ? 'Click to include in portfolio calculations' : 'Click to exclude from portfolio calculations')
-                  : 'No price data available'
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <TokenLogo
-                    token={item.token as TokenCacheData}
-                    size="md"
-                    className="flex-shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-white/90">{item.token.symbol}</span>
-                      {item.isSubnet && (
-                        <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded border border-purple-500/30">
-                          SUBNET
-                        </span>
-                      )}
-                      {isExcluded && (
-                        <span className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 rounded border border-red-500/30 flex items-center gap-1">
-                          <X className="w-3 h-3" />
-                          EXCLUDED
-                        </span>
-                      )}
+              <ContextMenu key={`${item.token.contractId}-${index}`}>
+                <ContextMenuTrigger asChild>
+                  <div
+                    className={`flex items-center justify-between p-4 border rounded-lg transition-all duration-200 cursor-context-menu ${isExcluded
+                      ? 'bg-red-500/[0.05] border-red-500/20 opacity-75'
+                      : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <TokenLogo
+                        token={item.token as TokenCacheData}
+                        size="md"
+                        className="flex-shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white/90">{item.token.symbol}</span>
+                          {item.isSubnet && (
+                            <span className="px-2 py-0.5 text-xs bg-purple-500/20 text-purple-400 rounded border border-purple-500/30">
+                              SUBNET
+                            </span>
+                          )}
+                          {isExcluded && (
+                            <span className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 rounded border border-red-500/30 flex items-center gap-1">
+                              <X className="w-3 h-3" />
+                              EXCLUDED
+                            </span>
+                          )}
 
-                      {/* Navigation Links */}
-                      <div className="flex items-center gap-1 ml-auto">
-                        {/* Token Detail Page Link */}
-                        <a
-                          href={`/tokens/${encodeURIComponent(item.token.contractId)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1 rounded hover:bg-white/[0.05] text-white/50 hover:text-white/80 transition-colors"
-                          title="View token details"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-
-                        {/* Prices Detail Page Link */}
-                        <a
-                          href={`https://invest.charisma.rocks/prices/${encodeURIComponent(item.token.contractId)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1 rounded hover:bg-white/[0.05] text-white/50 hover:text-white/80 transition-colors"
-                          title="View price analytics"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <BarChart3 className="w-3 h-3" />
-                        </a>
+                        </div>
+                        <div className="text-sm text-white/60 truncate">
+                          {item.token.name}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm text-white/60 truncate">
-                      {item.token.name}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="text-right flex-shrink-0">
-                  <div className="font-medium text-white/90">
-                    {item.formattedBalance}
-                  </div>
-                  {item.priceData?.price && item.balance > 0 && (
-                    <div className={`text-xs ${isExcluded ? 'text-white/40 line-through' : 'text-green-400'}`}>
-                      ${(item.balance * item.priceData.price / Math.pow(10, item.token.decimals)).toFixed(2)} USD
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-medium text-white/90">
+                        {item.formattedBalance}
+                      </div>
+                      {item.priceData?.price && item.balance > 0 && (
+                        <div className={`text-xs ${isExcluded ? 'text-white/40 line-through' : 'text-green-400'}`}>
+                          ${(item.balance * item.priceData.price / Math.pow(10, item.token.decimals)).toFixed(2)} USD
+                          {item.priceData.priceSource === 'intrinsic' && (
+                            <span className="ml-1 text-purple-400 font-medium" title="Intrinsic value calculated from LP tokens">⚗️</span>
+                          )}
+                          {item.priceData.confidence && item.priceData.confidence < 0.7 && (
+                            <span className="ml-1 text-yellow-400" title={`Price confidence: ${(item.priceData.confidence * 100).toFixed(0)}%`}>⚠️</span>
+                          )}
+                          {item.priceData.isArbitrageOpportunity && (
+                            <span className="ml-1 text-green-400 font-medium" title="Potential arbitrage opportunity detected">💰</span>
+                          )}
+                        </div>
+                      )}
+                      {item.priceData?.change24h && (
+                        <div className={`text-xs ${isExcluded
+                          ? 'text-white/40'
+                          : item.priceData.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                          {item.priceData.change24h >= 0 ? '+' : ''}{item.priceData.change24h.toFixed(2)}%
+                        </div>
+                      )}
+                      <div className="text-xs text-white/50 font-mono">
+                        {item.token.contractId.split('.')[1] || 'native'}
+                      </div>
                     </div>
-                  )}
-                  {item.priceData?.change24h && (
-                    <div className={`text-xs ${isExcluded
-                        ? 'text-white/40'
-                        : item.priceData.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                      {item.priceData.change24h >= 0 ? '+' : ''}{item.priceData.change24h.toFixed(2)}%
-                    </div>
-                  )}
-                  <div className="text-xs text-white/50 font-mono">
-                    {item.token.contractId.split('.')[1] || 'native'}
                   </div>
-                </div>
-              </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-56 bg-black/90 border-white/[0.08] text-white/90">
+                  {/* Portfolio Management */}
+                  {hasPrice && item.balance > 0 && (
+                    <>
+                      <ContextMenuItem
+                        onClick={() => toggleTokenExclusion(item.token.contractId)}
+                        className="cursor-pointer hover:bg-white/[0.08] focus:bg-white/[0.08]"
+                      >
+                        {isExcluded ? (
+                          <>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Include in Portfolio
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-4 h-4 mr-2" />
+                            Exclude from Portfolio
+                          </>
+                        )}
+                      </ContextMenuItem>
+                      <ContextMenuSeparator className="bg-white/[0.08]" />
+                    </>
+                  )}
+
+                  {/* Navigation Options */}
+                  <ContextMenuItem
+                    onClick={() => router.push(`/tokens/${encodeURIComponent(item.token.contractId)}`)}
+                    className="cursor-pointer hover:bg-white/[0.08] focus:bg-white/[0.08]"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    View Token Details
+                  </ContextMenuItem>
+
+                  <ContextMenuItem
+                    onClick={() => window.open(`https://invest.charisma.rocks/prices/${encodeURIComponent(item.token.contractId)}`, '_blank')}
+                    className="cursor-pointer hover:bg-white/[0.08] focus:bg-white/[0.08]"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    View Price Analytics
+                  </ContextMenuItem>
+
+                  <ContextMenuItem
+                    onClick={() => navigator.clipboard.writeText(item.token.contractId)}
+                    className="cursor-pointer hover:bg-white/[0.08] focus:bg-white/[0.08]"
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Copy Contract ID
+                  </ContextMenuItem>
+
+                  {/* Trading Options */}
+                  <ContextMenuSeparator className="bg-white/[0.08]" />
+                  <ContextMenuItem
+                    onClick={() => router.push(`/swap?from=${encodeURIComponent(item.token.contractId)}`)}
+                    className="cursor-pointer hover:bg-white/[0.08] focus:bg-white/[0.08]"
+                  >
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    Trade Token
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           })
         )}
