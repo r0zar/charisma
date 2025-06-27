@@ -10,8 +10,8 @@ import LPArbitrageAlert from '@/components/swap-interface/lp-arbitrage-alert';
 import { formatTokenAmount } from '@/lib/swap-utils';
 
 export function SwapInformationSidebar() {
-    const { quote, isLoadingQuote, totalPriceImpact, error } = useRouterTrading();
-    const { selectedToToken, mode } = useSwapTokens();
+    const { quote, isLoadingQuote, totalPriceImpact, error, burnSwapRoutes } = useRouterTrading();
+    const { selectedToToken, mode, forceBurnSwap } = useSwapTokens();
 
     return (
         <div className="space-y-4">
@@ -164,9 +164,8 @@ export function SwapInformationSidebar() {
                 </div>
             )}
 
-            {/* Minimum Guaranteed */}
-            {/* workaorund until this works with burn swapper */}
-            {quote && selectedToToken && quote.path.length > 0 && (
+            {/* Minimum Guaranteed - now works with burn swaps */}
+            {selectedToToken && ((quote && quote.path.length > 0) || (forceBurnSwap && burnSwapRoutes.totalOutput !== undefined)) && (
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200">
                     <div className="flex items-center space-x-3">
                         <div className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
@@ -180,7 +179,14 @@ export function SwapInformationSidebar() {
                             <div className="flex items-center justify-between mt-2">
                                 <span className="text-xs text-white/70">Minimum you'll receive</span>
                                 <span className="text-green-400 font-medium text-xs">
-                                    {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
+                                    {(() => {
+                                        // Use burn swap output if available and active, otherwise use regular quote
+                                        const outputAmount = (forceBurnSwap && burnSwapRoutes.totalOutput !== undefined) 
+                                            ? burnSwapRoutes.totalOutput 
+                                            : (quote ? Number(quote.amountOut) : 0);
+                                        const guaranteedAmount = outputAmount * 0.99; // 1% slippage tolerance
+                                        return `${formatTokenAmount(guaranteedAmount, selectedToToken.decimals || 0)} ${selectedToToken.symbol}`;
+                                    })()}
                                 </span>
                             </div>
                         </div>

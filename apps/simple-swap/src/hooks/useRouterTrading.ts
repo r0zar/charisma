@@ -1046,7 +1046,7 @@ export function useRouterTrading() {
 
   // ---------------------- Price Impact Calculations ----------------------
   const { priceImpacts, totalPriceImpact } = useMemo(() => {
-    if (!quote || !prices) {
+    if (!prices) {
       return { priceImpacts: [], totalPriceImpact: null };
     }
 
@@ -1055,8 +1055,8 @@ export function useRouterTrading() {
       return contractId === '.stx' ? prices['stx']?.price : prices[contractId]?.price;
     };
 
-    // Calculate price impact for each hop
-    const hopImpacts: PriceImpact[] = quote.hops.map((hop, index) => {
+    // Calculate price impact for each hop (only if we have a regular quote)
+    const hopImpacts: PriceImpact[] = quote ? quote.hops.map((hop, index) => {
       const fromToken = quote.path[index];
       const toToken = quote.path[index + 1];
 
@@ -1082,9 +1082,9 @@ export function useRouterTrading() {
         fromValueUsd,
         toValueUsd
       };
-    });
+    }) : [];
 
-    // Calculate total price impact
+    // Calculate total price impact - support both regular quotes and burn swaps
     let totalImpact: TotalPriceImpact | null = null;
     if (selectedFromToken && selectedToToken && microAmount) {
       const fromPrice = getPrice(selectedFromToken.contractId);
@@ -1092,21 +1092,32 @@ export function useRouterTrading() {
 
       if (fromPrice !== undefined && toPrice !== undefined) {
         const inputValueUsd = Number(microAmount) * fromPrice / (10 ** selectedFromToken.decimals!);
-        const outputValueUsd = Number(quote.amountOut) * toPrice / (10 ** selectedToToken.decimals!);
+        
+        // Use burn swap output if available and active, otherwise use regular quote
+        let outputAmount: number | null = null;
+        if (forceBurnSwap && burnSwapRoutes.totalOutput !== undefined) {
+          outputAmount = burnSwapRoutes.totalOutput;
+        } else if (quote) {
+          outputAmount = Number(quote.amountOut);
+        }
 
-        if (!isNaN(inputValueUsd) && !isNaN(outputValueUsd) && inputValueUsd !== 0) {
-          const priceImpact = ((outputValueUsd / inputValueUsd) - 1) * 100;
-          totalImpact = {
-            inputValueUsd,
-            outputValueUsd,
-            priceImpact: isNaN(priceImpact) ? null : priceImpact
-          };
+        if (outputAmount !== null) {
+          const outputValueUsd = outputAmount * toPrice / (10 ** selectedToToken.decimals!);
+
+          if (!isNaN(inputValueUsd) && !isNaN(outputValueUsd) && inputValueUsd !== 0) {
+            const priceImpact = ((outputValueUsd / inputValueUsd) - 1) * 100;
+            totalImpact = {
+              inputValueUsd,
+              outputValueUsd,
+              priceImpact: isNaN(priceImpact) ? null : priceImpact
+            };
+          }
         }
       }
     }
 
     return { priceImpacts: hopImpacts, totalPriceImpact: totalImpact };
-  }, [quote, prices, selectedFromToken, selectedToToken, microAmount]);
+  }, [quote, prices, selectedFromToken, selectedToToken, microAmount, forceBurnSwap, burnSwapRoutes.totalOutput]);
 
   // ---------------------- Security Level ----------------------
   const securityLevel = useMemo((): 'high' | 'medium' | 'low' => {
