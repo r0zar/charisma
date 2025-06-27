@@ -243,7 +243,6 @@ export class BurnSwapper {
         return null;
       }
 
-      console.log(lpVault.tokenA)
       // Step 2: Find routes for both underlying tokens
       const [routeA, routeB] = await Promise.all([
         lpQuote.dx > 0
