@@ -1,9 +1,4 @@
 {
-    "functions": {
-        "app/api/v1/prices/route.ts": {
-            "maxDuration": 30
-        }
-    },
     "crons": [
         {
             "path": "/api/v1/cron/energy-data",
