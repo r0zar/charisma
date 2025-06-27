@@ -5,7 +5,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { useBlaze } from 'blaze-sdk/realtime';
 import TokenLogo from '@/components/TokenLogo';
 import { formatTokenAmount } from '@/lib/swap-utils';
-import { Wallet, TrendingUp, TrendingDown, Eye, EyeOff, ChevronDown, ChevronRight, DollarSign, X, ExternalLink, BarChart3, ArrowUpDown } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Eye, EyeOff, ChevronDown, ChevronRight, DollarSign, X, ExternalLink, BarChart3, ArrowUpDown, EyeIcon } from 'lucide-react';
 import { TokenCacheData } from '@repo/tokens';
 import { BalanceData } from 'blaze-sdk/realtime';
 import { useRouter } from 'next/navigation';
@@ -106,6 +106,7 @@ export default function BalancesSettings() {
   const [showZeroBalances, setShowZeroBalances] = useState(false);
   const [debugExpanded, setDebugExpanded] = useState(false);
   const [sortBy, setSortBy] = useState<'value' | 'balance' | 'symbol' | 'change24h'>('value');
+  const [isBalancesMasked, setIsBalancesMasked] = useState(true);
 
   // Excluded tokens state (persisted in localStorage)
   const [excludedTokens, setExcludedTokens] = useState<Set<string>>(() => {
@@ -317,6 +318,7 @@ export default function BalancesSettings() {
 
   // Utility function to format USD amounts
   const formatUsdAmount = (amount: number): string => {
+    if (isBalancesMasked) return '***';
     if (amount === 0) return '$0.00';
     if (Math.abs(amount) < 0.01) return amount >= 0 ? '<$0.01' : '>-$0.01';
     return new Intl.NumberFormat('en-US', {
@@ -329,9 +331,22 @@ export default function BalancesSettings() {
 
   // Utility function to format percentage changes
   const formatPercentChange = (percent: number): string => {
+    if (isBalancesMasked) return '***%';
     if (percent === 0) return '0.00%';
     const sign = percent >= 0 ? '+' : '';
     return `${sign}${percent.toFixed(2)}%`;
+  };
+
+  // Utility function to format token balances
+  const formatBalance = (balance: string): string => {
+    if (isBalancesMasked) return '***';
+    return balance;
+  };
+
+  // Utility function to format USD values for individual tokens
+  const formatTokenUsdValue = (value: number): string => {
+    if (isBalancesMasked) return '$***';
+    return `$${value.toFixed(2)} USD`;
   };
 
   return (
@@ -395,6 +410,17 @@ export default function BalancesSettings() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Mask Toggle */}
+          <button
+            onClick={() => setIsBalancesMasked(!isBalancesMasked)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-white/70 hover:text-white/90"
+          >
+            {isBalancesMasked ? <EyeOff className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+            <span className="text-sm">
+              {isBalancesMasked ? 'Show Balances' : 'Hide Balances'}
+            </span>
+          </button>
 
           {/* Zero Balance Toggle */}
           <button
@@ -465,18 +491,18 @@ export default function BalancesSettings() {
 
                     <div className="text-right flex-shrink-0">
                       <div className="font-medium text-white/90">
-                        {item.formattedBalance}
+                        {formatBalance(item.formattedBalance)}
                       </div>
                       {item.priceData?.price && item.balance > 0 && (
                         <div className={`text-xs ${isExcluded ? 'text-white/40 line-through' : 'text-green-400'}`}>
-                          ${(item.balance * item.priceData.price / Math.pow(10, item.token.decimals)).toFixed(2)} USD
-                          {item.priceData.priceSource === 'intrinsic' && (
+                          {formatTokenUsdValue(item.balance * item.priceData.price / Math.pow(10, item.token.decimals))}
+                          {!isBalancesMasked && item.priceData.priceSource === 'intrinsic' && (
                             <span className="ml-1 text-purple-400 font-medium" title="Intrinsic value calculated from LP tokens">⚗️</span>
                           )}
-                          {item.priceData.confidence && item.priceData.confidence < 0.7 && (
+                          {!isBalancesMasked && item.priceData.confidence && item.priceData.confidence < 0.7 && (
                             <span className="ml-1 text-yellow-400" title={`Price confidence: ${(item.priceData.confidence * 100).toFixed(0)}%`}>⚠️</span>
                           )}
-                          {item.priceData.isArbitrageOpportunity && (
+                          {!isBalancesMasked && item.priceData.isArbitrageOpportunity && (
                             <span className="ml-1 text-green-400 font-medium" title="Potential arbitrage opportunity detected">💰</span>
                           )}
                         </div>
@@ -486,7 +512,7 @@ export default function BalancesSettings() {
                           ? 'text-white/40'
                           : item.priceData.change24h >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                          {item.priceData.change24h >= 0 ? '+' : ''}{item.priceData.change24h.toFixed(2)}%
+                          {formatPercentChange(item.priceData.change24h)}
                         </div>
                       )}
                       <div className="text-xs text-white/50 font-mono">
