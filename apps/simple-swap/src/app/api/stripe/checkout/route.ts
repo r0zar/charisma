@@ -2,9 +2,14 @@ import { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { getTokenMetadataCached, listPrices } from "@repo/tokens";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-04-30.basil",
-});
+function getStripe() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: "2025-04-30.basil",
+    });
+}
 
 export async function POST(req: NextRequest) {
     const { userId, tokenAmount, tokenType, amount } = await req.json();
@@ -50,6 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const stripe = getStripe();
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency: "usd",
