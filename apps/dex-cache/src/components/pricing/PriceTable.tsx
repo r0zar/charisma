@@ -23,6 +23,7 @@ interface CalculationDetails {
   btcPrice: number;
   pathsUsed: number;
   priceVariation: number;
+  priceSource?: 'market' | 'intrinsic' | 'hybrid';
 }
 
 interface PrimaryPath {
@@ -48,13 +49,20 @@ interface PriceTableData {
   calculationDetails?: CalculationDetails;
   primaryPath?: PrimaryPath;
   alternativePathCount?: number;
+  // Enhanced pricing fields
+  isLpToken?: boolean;
+  intrinsicValue?: number;
+  marketPrice?: number;
+  priceDeviation?: number;
+  isArbitrageOpportunity?: boolean;
+  nestLevel?: number;
 }
 
 interface PriceTableProps {
   data: PriceTableData[];
   sortBy: string;
   sortDir: 'asc' | 'desc';
-  onSort: (column: 'symbol' | 'price' | 'confidence' | 'liquidity' | 'lastUpdated') => void;
+  onSort: (column: 'symbol' | 'price' | 'marketPrice' | 'intrinsicValue' | 'confidence' | 'liquidity' | 'lastUpdated' | 'nestLevel') => void;
   showDetails: boolean;
   isRefreshing: boolean;
   priceDisplay: 'usd' | 'sat';
@@ -150,6 +158,44 @@ const getTimeAgo = (timestamp: number): string => {
   return `${days}d ago`;
 };
 
+const getNestLevelStyle = (level: number): { className: string; variant: 'outline' | 'default' | 'secondary' | 'destructive'; icon?: string } => {
+  switch (level) {
+    case 0:
+      return {
+        className: 'text-xs bg-gray-50 text-gray-600 border-gray-200',
+        variant: 'outline'
+      };
+    case 1:
+      return {
+        className: 'text-xs bg-blue-50 text-blue-700 border-blue-200 font-medium',
+        variant: 'outline'
+      };
+    case 2:
+      return {
+        className: 'text-xs bg-purple-50 text-purple-700 border-purple-200 font-medium shadow-sm',
+        variant: 'outline'
+      };
+    case 3:
+      return {
+        className: 'text-xs bg-gradient-to-r from-orange-50 to-red-50 text-orange-700 border-orange-300 font-semibold shadow-md',
+        variant: 'outline',
+        icon: '🔥'
+      };
+    case 4:
+      return {
+        className: 'text-xs bg-gradient-to-r from-yellow-50 to-orange-50 text-yellow-800 border-yellow-400 font-bold shadow-lg animate-pulse',
+        variant: 'default',
+        icon: '⚡'
+      };
+    default: // Level 5+
+      return {
+        className: 'text-xs bg-gradient-to-r from-purple-100 to-pink-100 text-purple-900 border-purple-400 font-bold shadow-xl animate-pulse border-2',
+        variant: 'default',
+        icon: '💎'
+      };
+  }
+};
+
 export default function PriceTable({ 
   data, 
   sortBy, 
@@ -162,7 +208,7 @@ export default function PriceTable({
 }: PriceTableProps) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const SortHeader = ({ column, children }: { column: 'symbol' | 'price' | 'confidence' | 'liquidity' | 'lastUpdated'; children: React.ReactNode }) => (
+  const SortHeader = ({ column, children }: { column: 'symbol' | 'price' | 'marketPrice' | 'intrinsicValue' | 'confidence' | 'liquidity' | 'lastUpdated' | 'nestLevel'; children: React.ReactNode }) => (
     <th 
       className="p-4 font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
       onClick={() => onSort(column)}
@@ -207,13 +253,16 @@ export default function PriceTable({
                   className="h-6 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
                   {priceDisplay === 'usd' ? (
-                    <><DollarSign className="w-3 h-3 mr-1" />USD Price</>
+                    <><DollarSign className="w-3 h-3 mr-1" />Final Price</>
                   ) : (
-                    <><Bitcoin className="w-3 h-3 mr-1" />SAT Price</>
+                    <><Bitcoin className="w-3 h-3 mr-1" />Final Price (SAT)</>
                   )}
                 </Button>
               </div>
             </th>
+            <SortHeader column="marketPrice">Market Price</SortHeader>
+            <SortHeader column="intrinsicValue">Intrinsic Price</SortHeader>
+            <SortHeader column="nestLevel">Nest Level</SortHeader>
             <SortHeader column="liquidity">Total Liquidity</SortHeader>
             <SortHeader column="confidence">Confidence</SortHeader>
             <th className="p-4 font-semibold text-muted-foreground">Path Type</th>
@@ -249,7 +298,9 @@ export default function PriceTable({
                         )}
                       </div>
                       <div>
-                        <div className="font-semibold text-foreground">{item.symbol}</div>
+                        <div className="font-semibold text-foreground">
+                          {item.symbol}
+                        </div>
                         <div className="text-xs text-muted-foreground truncate max-w-32">
                           {item.name}
                         </div>
@@ -257,10 +308,48 @@ export default function PriceTable({
                     </div>
                   </td>
 
-                  {/* Unified Price */}
+                  {/* Final Price */}
                   <td className="p-4 whitespace-nowrap">
                     <div className="text-lg font-bold text-foreground">
                       {formatUnifiedPrice(item.usdPrice, priceDisplay)}
+                      {item.calculationDetails?.priceSource && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {item.calculationDetails.priceSource === 'market' && 'Market'}
+                          {item.calculationDetails.priceSource === 'intrinsic' && 'Intrinsic'}
+                          {item.calculationDetails.priceSource === 'hybrid' && 'Hybrid'}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Market Price */}
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="text-sm font-semibold text-foreground">
+                      {item.marketPrice ? formatUnifiedPrice(item.marketPrice, priceDisplay) : '—'}
+                    </div>
+                  </td>
+
+                  {/* Intrinsic Price */}
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="text-sm font-semibold text-foreground">
+                      {item.intrinsicValue ? formatUnifiedPrice(item.intrinsicValue, priceDisplay) : '—'}
+                    </div>
+                  </td>
+
+                  {/* Nest Level */}
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="text-sm font-semibold text-foreground">
+                      {item.isLpToken && item.nestLevel !== undefined ? (() => {
+                        const style = getNestLevelStyle(item.nestLevel);
+                        return (
+                          <Badge variant={style.variant} className={style.className}>
+                            {style.icon && <span className="mr-1">{style.icon}</span>}
+                            L{item.nestLevel}
+                          </Badge>
+                        );
+                      })() : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </div>
                   </td>
 
@@ -328,7 +417,7 @@ export default function PriceTable({
                 {/* Expanded Details Row */}
                 {isExpanded && showDetails && item.primaryPath && (
                   <tr className="bg-muted/10">
-                    <td colSpan={6} className="p-4">
+                    <td colSpan={10} className="p-4">
                       <div className="bg-card border border-border rounded-lg p-4 space-y-4">
                         <h4 className="font-semibold text-foreground mb-3">Price Discovery Details</h4>
                         
@@ -361,6 +450,45 @@ export default function PriceTable({
                                 <div>Price Variation: {((item.calculationDetails.priceVariation || 0) * 100).toFixed(2)}%</div>
                                 <div>Alternative Paths: {item.alternativePathCount || 0}</div>
                                 <div>Total Liquidity: {formatLiquidity(item.totalLiquidity)}</div>
+                                {item.calculationDetails.priceSource && (
+                                  <div>
+                                    <span className="font-medium">Price Source: </span>
+                                    <Badge variant={
+                                      item.calculationDetails.priceSource === 'intrinsic' ? 'default' :
+                                      item.calculationDetails.priceSource === 'market' ? 'secondary' : 'outline'
+                                    } className="text-xs ml-1">
+                                      {item.calculationDetails.priceSource}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Enhanced Pricing Info */}
+                          {(item.intrinsicValue || item.marketPrice || item.isArbitrageOpportunity) && (
+                            <div>
+                              <h5 className="text-sm font-medium text-foreground mb-2">Enhanced Pricing</h5>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                {item.intrinsicValue && (
+                                  <div>Intrinsic Value: ${item.intrinsicValue.toFixed(6)}</div>
+                                )}
+                                {item.marketPrice && (
+                                  <div>Market Price: ${item.marketPrice.toFixed(6)}</div>
+                                )}
+                                {item.priceDeviation !== undefined && item.priceDeviation !== 0 && (
+                                  <div>Price Deviation: {(item.priceDeviation * 100).toFixed(2)}%</div>
+                                )}
+                                {item.isArbitrageOpportunity && (
+                                  <div className="text-orange-500 font-medium">
+                                    🔄 Arbitrage Opportunity Detected
+                                  </div>
+                                )}
+                                {item.isLpToken && (
+                                  <div className="text-blue-500 font-medium">
+                                    💧 LP Token (Liquidity Provider)
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}

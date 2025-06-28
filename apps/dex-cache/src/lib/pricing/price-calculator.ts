@@ -6,6 +6,12 @@ import {
     getTokenDecimals,
     isValidDecimalConversion
 } from './decimal-utils';
+import {
+    calculateLpIntrinsicValue,
+    calculateAssetBreakdown,
+    analyzeLpTokenPricing,
+    type LpTokenPriceAnalysis
+} from './lp-token-calculator';
 
 // Cache keys
 const TOKEN_PRICE_CACHE_PREFIX = 'token-price:';
@@ -26,11 +32,19 @@ export interface TokenPriceData {
     lastUpdated: number;
     primaryPath?: PricePath;
     alternativePaths?: PricePath[];
+    // Enhanced fields for intrinsic pricing
+    intrinsicValue?: number;
+    marketPrice?: number;
+    priceDeviation?: number;
+    isArbitrageOpportunity?: boolean;
+    isLpToken?: boolean;
+    nestLevel?: number;
     calculationDetails?: {
         btcPrice: number;
         pathsUsed: number;
         totalLiquidity: number;
         priceVariation: number;
+        priceSource?: 'market' | 'intrinsic' | 'hybrid';
     };
 }
 
@@ -75,6 +89,7 @@ export class PriceCalculator {
                     sbtcRatio: 1,
                     confidence: btcPrice.confidence,
                     lastUpdated: Date.now(),
+                    isLpToken: false,
                     calculationDetails: {
                         btcPrice: btcPrice.price,
                         pathsUsed: 0,
@@ -86,7 +101,13 @@ export class PriceCalculator {
                 return { success: true, price: sbtcPrice };
             }
 
-            // Get token info to check if it's a stablecoin
+            // Check if this is an LP token and mark it (intrinsic pricing handled at API level)
+            const isLp = await this.isLpToken(tokenId);
+            if (isLp) {
+                console.log(`[PriceCalculator] ${tokenId} identified as LP token (vault type: POOL)`);
+            }
+
+            // For non-LP tokens, get the price graph and continue with normal flow
             const graph = await getPriceGraph();
             const tokenNode = graph.getNode(tokenId);
             
@@ -104,6 +125,7 @@ export class PriceCalculator {
                     sbtcRatio: 1.0 / btcPrice.price, // Convert to sBTC ratio
                     confidence: 1.0, // High confidence for stablecoin assumption
                     lastUpdated: Date.now(),
+                    isLpToken: false,
                     calculationDetails: {
                         btcPrice: btcPrice.price,
                         pathsUsed: 0,
@@ -135,12 +157,16 @@ export class PriceCalculator {
                 return { success: false, error: 'Token not found in liquidity graph' };
             }
 
-            // Find paths to sBTC
+            // Find paths to sBTC for market pricing
             const paths = graph.findPathsToSbtc(tokenId);
             
             console.log(`[PriceCalculator] Found ${paths.length} paths for ${tokenNode.symbol} to sBTC`);
             
             if (paths.length === 0) {
+                // If no paths found and not an LP token, or LP intrinsic pricing failed
+                if (isLp) {
+                    return { success: false, error: 'LP token intrinsic pricing failed and no market paths available' };
+                }
                 return { success: false, error: 'No liquidity paths found to sBTC' };
             }
 
@@ -151,18 +177,31 @@ export class PriceCalculator {
                 return { success: false, error: 'Failed to calculate price from paths' };
             }
 
+            // Enhance price data with market/intrinsic analysis
+            priceData.marketPrice = priceData.usdPrice;
+            priceData.intrinsicValue = null; // Market-based pricing, no intrinsic value calculated
+            priceData.priceDeviation = 0;
+            priceData.isArbitrageOpportunity = false;
+            priceData.isLpToken = isLp; // Mark if this is an LP token
+            
+            // Set price source to market
+            if (priceData.calculationDetails) {
+                priceData.calculationDetails.priceSource = 'market';
+            }
+
             // Cache the result
             await this.cachePrice(tokenId, priceData);
 
             const calculationTime = Date.now() - startTime;
-            console.log(`[PriceCalculator] Calculated ${tokenNode.symbol} price in ${calculationTime}ms: $${priceData.usdPrice.toFixed(6)}`);
+            console.log(`[PriceCalculator] Calculated ${tokenNode.symbol} market price in ${calculationTime}ms: $${priceData.usdPrice.toFixed(6)}`);
 
             return { 
                 success: true, 
                 price: priceData,
                 debugInfo: {
                     calculationTimeMs: calculationTime,
-                    pathsFound: paths.length
+                    pathsFound: paths.length,
+                    usedMarketPricing: true
                 }
             };
 
@@ -626,6 +665,279 @@ export class PriceCalculator {
         } catch (error) {
             console.error('[PriceCalculator] Failed to clear cache:', error);
         }
+    }
+
+    /**
+     * Check if a token is an LP token by checking if it exists as a POOL type vault
+     */
+    private async isLpToken(tokenId: string): Promise<boolean> {
+        try {
+            // Check if this token ID exists in the vault list with type 'POOL'
+            const { listVaults } = await import('../pool-service');
+            const vaults = await listVaults();
+            
+            const vault = vaults.find(vault => vault.contractId === tokenId);
+            if (vault && vault.type === 'POOL') {
+                console.log(`[PriceCalculator] ${tokenId} identified as LP token (vault type: ${vault.type})`);
+                return true;
+            }
+
+            // Fallback: Check if contract ID contains typical LP token indicators
+            const contractIdIndicators = ['lp-token', 'amm-lp', 'pool-token'];
+            if (contractIdIndicators.some(indicator => tokenId.toLowerCase().includes(indicator))) {
+                console.log(`[PriceCalculator] ${tokenId} identified as LP token (naming pattern)`);
+                return true;
+            }
+
+            // Fallback: Get token metadata to check symbol
+            const graph = await getPriceGraph();
+            const tokenNode = graph.getNode(tokenId);
+            if (tokenNode) {
+                const symbolIndicators = ['lp', 'pool', 'amm'];
+                if (symbolIndicators.some(indicator => tokenNode.symbol.toLowerCase().includes(indicator))) {
+                    console.log(`[PriceCalculator] ${tokenId} identified as LP token (symbol pattern)`);
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (error) {
+            console.warn(`[PriceCalculator] Failed to check LP token status for ${tokenId}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Calculate intrinsic price for LP tokens using underlying assets
+     */
+    private async calculateLpIntrinsicPrice(tokenId: string, prices: Record<string, number>): Promise<TokenPriceData | null> {
+        try {
+            console.log(`[PriceCalculator] Calculating intrinsic price for LP token ${tokenId}`);
+
+            // Get vault data for the LP token
+            const { listVaults } = await import('../pool-service');
+            const vaults = await listVaults();
+            const vault = vaults.find(v => v.contractId === tokenId);
+
+            if (!vault) {
+                console.log(`[PriceCalculator] No vault found for LP token ${tokenId}`);
+                return null;
+            }
+
+            // Calculate intrinsic value using LP calculator
+            const intrinsicValue = calculateLpIntrinsicValue(vault, prices);
+            if (!intrinsicValue) {
+                console.log(`[PriceCalculator] Could not calculate intrinsic value for ${tokenId}`);
+                return null;
+            }
+
+            // Get BTC price for ratio calculation
+            const btcPrice = await getBtcPrice();
+            if (!btcPrice) {
+                throw new Error('Failed to get BTC price for LP intrinsic calculation');
+            }
+
+            const sbtcRatio = intrinsicValue / btcPrice.price;
+
+            // Calculate asset breakdown for detailed analysis
+            const assetBreakdown = calculateAssetBreakdown(vault, prices);
+
+            return {
+                tokenId,
+                symbol: vault.tokenA?.symbol && vault.tokenB?.symbol 
+                    ? `${vault.tokenA.symbol}-${vault.tokenB.symbol} LP`
+                    : 'LP',
+                usdPrice: intrinsicValue,
+                sbtcRatio,
+                confidence: 0.8, // High confidence for intrinsic calculation
+                lastUpdated: Date.now(),
+                intrinsicValue,
+                marketPrice: null, // LP tokens typically don't have market prices
+                priceDeviation: 0,
+                isArbitrageOpportunity: false,
+                calculationDetails: {
+                    btcPrice: btcPrice.price,
+                    pathsUsed: 0,
+                    totalLiquidity: (vault.reservesA || 0) + (vault.reservesB || 0),
+                    priceVariation: 0,
+                    priceSource: 'intrinsic'
+                }
+            };
+        } catch (error) {
+            console.error(`[PriceCalculator] Failed to calculate LP intrinsic price for ${tokenId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Calculate confidence score considering market vs intrinsic deviation
+     */
+    private calculateEnhancedConfidence(
+        baseConfidence: number,
+        marketPrice: number | null,
+        intrinsicValue: number | null
+    ): number {
+        if (!marketPrice || !intrinsicValue) {
+            return baseConfidence;
+        }
+
+        const deviation = Math.abs(marketPrice - intrinsicValue) / intrinsicValue;
+        const deviationPenalty = Math.min(0.5, deviation); // Max 50% penalty
+        return baseConfidence * (1 - deviationPenalty);
+    }
+
+    /**
+     * Combine market and intrinsic prices using a configurable hybrid strategy
+     */
+    private combineMarketAndIntrinsicPrices(
+        marketPrice: TokenPriceData | null,
+        intrinsicPrice: TokenPriceData | null,
+        btcPrice: { price: number; confidence: number }
+    ): TokenPriceData | null {
+        // Configuration for hybrid pricing strategy
+        const HYBRID_STRATEGY = 'fallback'; // 'fallback', 'average', or 'weighted'
+        const MARKET_WEIGHT = 0.7; // For weighted average
+        const DEVIATION_THRESHOLD = 0.1; // 10% deviation threshold for arbitrage detection
+
+        console.log(`[PriceCalculator] Combining prices using ${HYBRID_STRATEGY} strategy`);
+        console.log(`[PriceCalculator] Market: ${marketPrice ? `$${marketPrice.usdPrice.toFixed(6)}` : 'N/A'}`);
+        console.log(`[PriceCalculator] Intrinsic: ${intrinsicPrice ? `$${intrinsicPrice.usdPrice.toFixed(6)}` : 'N/A'}`);
+
+        if (!marketPrice && !intrinsicPrice) {
+            return null;
+        }
+
+        // If only one price is available, use it
+        if (!marketPrice && intrinsicPrice) {
+            console.log(`[PriceCalculator] Using intrinsic price (market unavailable)`);
+            return {
+                ...intrinsicPrice,
+                intrinsicValue: intrinsicPrice.usdPrice,
+                marketPrice: null,
+                priceDeviation: 0,
+                isArbitrageOpportunity: false,
+                calculationDetails: {
+                    ...intrinsicPrice.calculationDetails,
+                    priceSource: 'intrinsic'
+                }
+            };
+        }
+
+        if (marketPrice && !intrinsicPrice) {
+            console.log(`[PriceCalculator] Using market price (intrinsic unavailable)`);
+            return {
+                ...marketPrice,
+                intrinsicValue: null,
+                marketPrice: marketPrice.usdPrice,
+                priceDeviation: 0,
+                isArbitrageOpportunity: false,
+                calculationDetails: {
+                    ...marketPrice.calculationDetails,
+                    priceSource: 'market'
+                }
+            };
+        }
+
+        // Both prices are available - apply hybrid strategy
+        if (marketPrice && intrinsicPrice) {
+            const arbitrageAnalysis = this.detectArbitrageOpportunity(
+                marketPrice.usdPrice,
+                intrinsicPrice.usdPrice,
+                DEVIATION_THRESHOLD
+            );
+
+            let finalPrice: TokenPriceData;
+            let priceSource: 'market' | 'intrinsic' | 'hybrid';
+
+            switch (HYBRID_STRATEGY) {
+                case 'fallback':
+                    // Prefer market price, fallback to intrinsic
+                    finalPrice = { ...marketPrice };
+                    priceSource = 'market';
+                    console.log(`[PriceCalculator] Using market price (fallback strategy)`);
+                    break;
+
+                case 'average':
+                    // Simple average
+                    const avgPrice = (marketPrice.usdPrice + intrinsicPrice.usdPrice) / 2;
+                    const avgSbtcRatio = avgPrice / btcPrice.price;
+                    finalPrice = {
+                        ...marketPrice,
+                        usdPrice: avgPrice,
+                        sbtcRatio: avgSbtcRatio,
+                        confidence: Math.min(marketPrice.confidence, intrinsicPrice.confidence)
+                    };
+                    priceSource = 'hybrid';
+                    console.log(`[PriceCalculator] Using average price: $${avgPrice.toFixed(6)}`);
+                    break;
+
+                case 'weighted':
+                    // Weighted average based on confidence
+                    const marketWeight = MARKET_WEIGHT * marketPrice.confidence;
+                    const intrinsicWeight = (1 - MARKET_WEIGHT) * intrinsicPrice.confidence;
+                    const totalWeight = marketWeight + intrinsicWeight;
+                    
+                    const weightedPrice = (
+                        marketPrice.usdPrice * marketWeight + 
+                        intrinsicPrice.usdPrice * intrinsicWeight
+                    ) / totalWeight;
+                    const weightedSbtcRatio = weightedPrice / btcPrice.price;
+                    
+                    finalPrice = {
+                        ...marketPrice,
+                        usdPrice: weightedPrice,
+                        sbtcRatio: weightedSbtcRatio,
+                        confidence: totalWeight / (marketPrice.confidence + intrinsicPrice.confidence)
+                    };
+                    priceSource = 'hybrid';
+                    console.log(`[PriceCalculator] Using weighted average: $${weightedPrice.toFixed(6)} (market: ${marketWeight.toFixed(2)}, intrinsic: ${intrinsicWeight.toFixed(2)})`);
+                    break;
+
+                default:
+                    finalPrice = { ...marketPrice };
+                    priceSource = 'market';
+            }
+
+            // Enhance with market vs intrinsic analysis
+            finalPrice.marketPrice = marketPrice.usdPrice;
+            finalPrice.intrinsicValue = intrinsicPrice.usdPrice;
+            finalPrice.priceDeviation = arbitrageAnalysis.deviation;
+            finalPrice.isArbitrageOpportunity = arbitrageAnalysis.isOpportunity;
+            
+            if (finalPrice.calculationDetails) {
+                finalPrice.calculationDetails.priceSource = priceSource;
+            }
+
+            console.log(`[PriceCalculator] Price deviation: ${arbitrageAnalysis.deviation.toFixed(2)}%`);
+            if (arbitrageAnalysis.isOpportunity) {
+                console.log(`[PriceCalculator] ⚡ Arbitrage opportunity detected!`);
+            }
+
+            return finalPrice;
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect arbitrage opportunities based on market vs intrinsic price deviation
+     */
+    private detectArbitrageOpportunity(
+        marketPrice: number | null,
+        intrinsicValue: number | null,
+        threshold: number = 0.05
+    ): { isOpportunity: boolean; deviation: number } {
+        if (!marketPrice || !intrinsicValue) {
+            return { isOpportunity: false, deviation: 0 };
+        }
+
+        const deviation = (marketPrice - intrinsicValue) / intrinsicValue;
+        const absDeviation = Math.abs(deviation);
+        
+        return {
+            isOpportunity: absDeviation > threshold,
+            deviation: deviation * 100 // Convert to percentage
+        };
     }
 
     /**

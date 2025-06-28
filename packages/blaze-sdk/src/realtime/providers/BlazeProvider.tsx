@@ -139,33 +139,65 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
               setBalances(prev => ({
                 ...prev,
                 [`${data.userId}:${baseContractId}`]: {
+                  // Core balance fields
                   balance: String(data.balance || 0),
                   totalSent: data.totalSent || '0',
                   totalReceived: data.totalReceived || '0',
+                  formattedBalance: data.formattedBalance || 0,
                   timestamp: data.timestamp || Date.now(),
                   source: data.source || 'realtime',
+                  
                   // Subnet balance fields
                   subnetBalance: data.subnetBalance,
                   formattedSubnetBalance: data.formattedSubnetBalance,
                   subnetContractId: data.subnetContractId,
-                  // Enhanced metadata fields
-                  name: data.name,
-                  symbol: data.symbol,
-                  decimals: data.decimals,
-                  description: data.description,
-                  image: data.image,
-                  total_supply: data.total_supply,
-                  type: data.tokenType,
-                  identifier: data.identifier,
-                  token_uri: data.token_uri,
-                  lastUpdated: data.lastUpdated,
-                  tokenAContract: data.tokenAContract,
-                  tokenBContract: data.tokenBContract,
-                  lpRebatePercent: data.lpRebatePercent,
-                  externalPoolId: data.externalPoolId,
-                  engineContractId: data.engineContractId,
-                  base: data.baseToken,
-                  formattedBalance: data.formattedBalance
+                  
+                  // NEW: Structured metadata (includes price data, market data, etc.)
+                  metadata: data.metadata || {
+                    // Fallback metadata if structured metadata not available
+                    contractId: baseContractId,
+                    name: data.name || 'Unknown Token',
+                    symbol: data.symbol || 'TKN',
+                    decimals: data.decimals || 6,
+                    type: data.tokenType || 'SIP10',
+                    identifier: data.identifier || '',
+                    description: data.description,
+                    image: data.image,
+                    token_uri: data.token_uri,
+                    total_supply: data.total_supply,
+                    lastUpdated: data.lastUpdated,
+                    tokenAContract: data.tokenAContract,
+                    tokenBContract: data.tokenBContract,
+                    lpRebatePercent: data.lpRebatePercent,
+                    externalPoolId: data.externalPoolId,
+                    engineContractId: data.engineContractId,
+                    base: data.baseToken,
+                    verified: false,
+                    // Price data will be null if not available in legacy messages
+                    price: null,
+                    change1h: null,
+                    change24h: null,
+                    change7d: null,
+                    marketCap: null
+                  },
+                  
+                  // Legacy fields for backward compatibility (populated from metadata)
+                  name: data.metadata?.name || data.name,
+                  symbol: data.metadata?.symbol || data.symbol,
+                  decimals: data.metadata?.decimals || data.decimals,
+                  description: data.metadata?.description || data.description,
+                  image: data.metadata?.image || data.image,
+                  total_supply: data.metadata?.total_supply || data.total_supply,
+                  type: data.metadata?.type || data.tokenType,
+                  identifier: data.metadata?.identifier || data.identifier,
+                  token_uri: data.metadata?.token_uri || data.token_uri,
+                  lastUpdated: data.metadata?.lastUpdated || data.lastUpdated,
+                  tokenAContract: data.metadata?.tokenAContract || data.tokenAContract,
+                  tokenBContract: data.metadata?.tokenBContract || data.tokenBContract,
+                  lpRebatePercent: data.metadata?.lpRebatePercent || data.lpRebatePercent,
+                  externalPoolId: data.metadata?.externalPoolId || data.externalPoolId,
+                  engineContractId: data.metadata?.engineContractId || data.engineContractId,
+                  base: data.metadata?.base || data.baseToken
                 }
               }));
               setLastUpdate(Date.now());
@@ -180,33 +212,65 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                 const baseContractId = balance.contractId?.split('::')[0];
                 if (baseContractId && balance.userId && balance.balance !== undefined) {
                   newBalances[`${balance.userId}:${baseContractId}`] = {
+                    // Core balance fields
                     balance: String(balance.balance || 0),
                     totalSent: balance.totalSent || '0',
                     totalReceived: balance.totalReceived || '0',
+                    formattedBalance: balance.formattedBalance || 0,
                     timestamp: balance.timestamp || Date.now(),
                     source: balance.source || 'realtime',
+                    
                     // Subnet balance fields
                     subnetBalance: balance.subnetBalance,
                     formattedSubnetBalance: balance.formattedSubnetBalance,
                     subnetContractId: balance.subnetContractId,
-                    // Enhanced metadata fields
-                    name: balance.name,
-                    symbol: balance.symbol,
-                    decimals: balance.decimals,
-                    description: balance.description,
-                    image: balance.image,
-                    total_supply: balance.total_supply,
-                    type: balance.tokenType,
-                    identifier: balance.identifier,
-                    token_uri: balance.token_uri,
-                    lastUpdated: balance.lastUpdated,
-                    tokenAContract: balance.tokenAContract,
-                    tokenBContract: balance.tokenBContract,
-                    lpRebatePercent: balance.lpRebatePercent,
-                    externalPoolId: balance.externalPoolId,
-                    engineContractId: balance.engineContractId,
-                    base: balance.baseToken,
-                    formattedBalance: balance.formattedBalance
+                    
+                    // NEW: Structured metadata (includes price data, market data, etc.)
+                    metadata: balance.metadata || {
+                      // Fallback metadata if structured metadata not available
+                      contractId: baseContractId,
+                      name: balance.name || 'Unknown Token',
+                      symbol: balance.symbol || 'TKN',
+                      decimals: balance.decimals || 6,
+                      type: balance.tokenType || 'SIP10',
+                      identifier: balance.identifier || '',
+                      description: balance.description,
+                      image: balance.image,
+                      token_uri: balance.token_uri,
+                      total_supply: balance.total_supply,
+                      lastUpdated: balance.lastUpdated,
+                      tokenAContract: balance.tokenAContract,
+                      tokenBContract: balance.tokenBContract,
+                      lpRebatePercent: balance.lpRebatePercent,
+                      externalPoolId: balance.externalPoolId,
+                      engineContractId: balance.engineContractId,
+                      base: balance.baseToken,
+                      verified: false,
+                      // Price data will be null if not available in legacy messages
+                      price: null,
+                      change1h: null,
+                      change24h: null,
+                      change7d: null,
+                      marketCap: null
+                    },
+                    
+                    // Legacy fields for backward compatibility (populated from metadata)
+                    name: balance.metadata?.name || balance.name,
+                    symbol: balance.metadata?.symbol || balance.symbol,
+                    decimals: balance.metadata?.decimals || balance.decimals,
+                    description: balance.metadata?.description || balance.description,
+                    image: balance.metadata?.image || balance.image,
+                    total_supply: balance.metadata?.total_supply || balance.total_supply,
+                    type: balance.metadata?.type || balance.tokenType,
+                    identifier: balance.metadata?.identifier || balance.identifier,
+                    token_uri: balance.metadata?.token_uri || balance.token_uri,
+                    lastUpdated: balance.metadata?.lastUpdated || balance.lastUpdated,
+                    tokenAContract: balance.metadata?.tokenAContract || balance.tokenAContract,
+                    tokenBContract: balance.metadata?.tokenBContract || balance.tokenBContract,
+                    lpRebatePercent: balance.metadata?.lpRebatePercent || balance.lpRebatePercent,
+                    externalPoolId: balance.metadata?.externalPoolId || balance.externalPoolId,
+                    engineContractId: balance.metadata?.engineContractId || balance.engineContractId,
+                    base: balance.metadata?.base || balance.baseToken
                   };
                 }
               });
@@ -239,16 +303,53 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   }, [prices]);
 
   const getBalance = useCallback((userId: string, contractId: string): BalanceData | undefined => {
-    return balances[`${userId}:${contractId}`];
+    // Defensive checks
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      return undefined;
+    }
+    if (!contractId || typeof contractId !== 'string' || contractId.trim() === '') {
+      return undefined;
+    }
+    
+    return balances[`${userId.trim()}:${contractId.trim()}`];
   }, [balances]);
 
   const getMetadata = useCallback((contractId: string): TokenMetadata | undefined => {
     return metadata[contractId];
   }, [metadata]);
 
+  // Helper function to get all balances for a specific user
+  const getUserBalances = useCallback((userId?: string | null): Record<string, BalanceData> => {
+    // Return empty object if userId is not provided or invalid
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      return {};
+    }
+
+    const trimmedUserId = userId.trim();
+    const userBalances: Record<string, BalanceData> = {};
+    
+    // Filter balances for the specific user
+    Object.entries(balances).forEach(([key, balance]) => {
+      if (key.startsWith(`${trimmedUserId}:`)) {
+        // Extract contract ID from key (remove userId prefix)
+        const contractId = key.substring(trimmedUserId.length + 1);
+        userBalances[contractId] = balance;
+      }
+    });
+
+    return userBalances;
+  }, [balances]);
+
   // Internal function to manage balance subscriptions (memoized)
   const subscribeToUserBalances = useCallback((userId: string) => {
-    if (currentUserSubscription.current === userId) return;
+    // Defensive checks
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.warn('⚠️ BlazeProvider: Cannot subscribe - invalid userId provided:', userId);
+      return;
+    }
+
+    const trimmedUserId = userId.trim();
+    if (currentUserSubscription.current === trimmedUserId) return;
 
     // Unsubscribe from previous user if any
     if (currentUserSubscription.current && balancesSocket) {
@@ -260,15 +361,15 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     }
 
     // Subscribe to new user
-    currentUserSubscription.current = userId;
+    currentUserSubscription.current = trimmedUserId;
     if (balancesSocket && balancesSocket.readyState === WebSocket.OPEN) {
       const subscribeMessage = {
         type: 'SUBSCRIBE',
-        userIds: [userId],
+        userIds: [trimmedUserId],
         clientId: 'blaze-provider'
       };
       balancesSocket.send(JSON.stringify(subscribeMessage));
-      console.log(`📊 BlazeProvider: Subscribed to balances for user: ${userId}`, subscribeMessage);
+      console.log(`📊 BlazeProvider: Subscribed to balances for user: ${trimmedUserId}`, subscribeMessage);
     } else {
       console.warn(`⚠️ BlazeProvider: Cannot subscribe to balances - socket not ready. State: ${balancesSocket?.readyState}`);
     }
@@ -295,9 +396,10 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     getPrice,
     getBalance,
     getMetadata,
+    getUserBalances,
     _subscribeToUserBalances: subscribeToUserBalances,
     _unsubscribeFromUserBalances: unsubscribeFromUserBalances
-  }), [prices, balances, metadata, isConnected, lastUpdate, getPrice, getBalance, getMetadata, subscribeToUserBalances, unsubscribeFromUserBalances]);
+  }), [prices, balances, metadata, isConnected, lastUpdate, getPrice, getBalance, getMetadata, getUserBalances, subscribeToUserBalances, unsubscribeFromUserBalances]);
 
   return (
     <BlazeContext.Provider value={contextValue}>
@@ -316,20 +418,22 @@ export function useBlaze(config?: BlazeConfig): BlazeData {
 
   // Handle balance subscription based on config
   useEffect(() => {
-    if (config?.userId) {
+    // Only subscribe if userId is a non-empty string
+    if (config?.userId && typeof config.userId === 'string' && config.userId.trim() !== '') {
       context._subscribeToUserBalances(config.userId);
     } else {
+      // Unsubscribe if userId is null, undefined, empty string, or invalid
       context._unsubscribeFromUserBalances();
     }
 
     // Cleanup on unmount or userId change
     return () => {
-      if (config?.userId) {
+      if (config?.userId && typeof config.userId === 'string' && config.userId.trim() !== '') {
         // Don't unsubscribe on unmount - let other components continue using the subscription
         // Only unsubscribe when userId actually changes or is removed
       }
     };
-  }, [config?.userId]); // Remove context from dependencies to prevent re-subscription loops
+  }, [config?.userId, context]); // Include context to ensure we have the latest functions
 
   return context;
 }

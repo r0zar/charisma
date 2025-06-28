@@ -26,6 +26,11 @@ export interface TokenCacheData {
     externalPoolId?: string | null;
     engineContractId?: string | null;
     base?: string | null;
+    usdPrice?: number | null;
+    confidence?: number | null;
+    marketPrice?: number | null;
+    intrinsicValue?: number | null;
+    totalLiquidity?: number | null;
 }
 
 interface TokenCacheResponse {

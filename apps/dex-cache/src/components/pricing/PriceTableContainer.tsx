@@ -22,7 +22,7 @@ interface PriceFilters {
   search: string;
   minConfidence: number;
   pathType: 'all' | 'direct' | 'single-hop' | 'multi-hop';
-  sortBy: 'symbol' | 'price' | 'confidence' | 'liquidity' | 'lastUpdated';
+  sortBy: 'symbol' | 'price' | 'marketPrice' | 'intrinsicValue' | 'confidence' | 'liquidity' | 'lastUpdated' | 'nestLevel';
   sortDir: 'asc' | 'desc';
   priceDisplay: 'usd' | 'sat';
 }
@@ -31,6 +31,7 @@ interface CalculationDetails {
   btcPrice: number;
   pathsUsed: number;
   priceVariation: number;
+  priceSource?: 'market' | 'intrinsic' | 'hybrid';
 }
 
 interface PrimaryPath {
@@ -56,6 +57,13 @@ interface TokenData {
   calculationDetails?: CalculationDetails;
   primaryPath?: PrimaryPath;
   alternativePathCount?: number;
+  // Enhanced pricing fields
+  isLpToken?: boolean;
+  intrinsicValue?: number;
+  marketPrice?: number;
+  priceDeviation?: number;
+  isArbitrageOpportunity?: boolean;
+  nestLevel?: number;
 }
 
 interface ApiResponse {
@@ -64,7 +72,12 @@ interface ApiResponse {
   metadata: {
     count: number;
     totalTokensAvailable: number;
+    individualTokensAvailable?: number;
+    lpTokensAvailable?: number;
     processingTimeMs: number;
+    servedFromCache?: boolean;
+    cacheAge?: number;
+    revalidating?: boolean;
   };
 }
 
@@ -106,7 +119,7 @@ export default function PriceTableContainer() {
       });
 
       const response = await fetch(`/api/v1/prices?${params}`, {
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(30000) // 30 second timeout for LP dependency processing
       });
       
       if (!response.ok) {
@@ -147,14 +160,51 @@ export default function PriceTableContainer() {
     fetchPriceData();
   }, [filters.minConfidence]);
 
-  // Auto-refresh every 5 minutes
+  // Smart polling: More frequent when page is active, less when in background
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchPriceData(true);
-    }, 5 * 60 * 1000);
+    let interval: NodeJS.Timeout;
+    let isTabActive = true;
+    
+    // Smart polling based on tab visibility and data freshness
+    const startPolling = () => {
+      const pollInterval = isTabActive ? 30 * 1000 : 60 * 1000; // 30s active, 60s background
+      
+      interval = setInterval(() => {
+        // Only poll if tab is active or data is getting stale
+        const dataAge = priceData?.metadata?.cacheAge || 0;
+        const shouldPoll = isTabActive || dataAge > 90 * 1000; // Poll if > 90s old
+        
+        if (shouldPoll) {
+          fetchPriceData(true);
+        }
+      }, pollInterval);
+    };
+    
+    // Handle tab visibility changes
+    const handleVisibilityChange = () => {
+      isTabActive = !document.hidden;
+      
+      // Clear existing interval and restart with new frequency
+      if (interval) clearInterval(interval);
+      startPolling();
+      
+      // Immediately fetch fresh data when tab becomes active
+      if (isTabActive && priceData) {
+        const dataAge = priceData.metadata?.cacheAge || 0;
+        if (dataAge > 30 * 1000) { // If data is > 30s old, refresh immediately
+          fetchPriceData(true);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    startPolling();
 
-    return () => clearInterval(interval);
-  }, [filters.minConfidence]);
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [filters.minConfidence, priceData]);
 
   // Filter and sort the price data
   const filteredAndSortedData = useMemo(() => {
@@ -209,6 +259,48 @@ export default function PriceTableContainer() {
           break;
         case 'price':
           compareValue = a.usdPrice - b.usdPrice;
+          break;
+        case 'marketPrice':
+          const aMarket = a.marketPrice || 0;
+          const bMarket = b.marketPrice || 0;
+          // Handle null values - put them at the bottom
+          if (aMarket === 0 && bMarket === 0) {
+            compareValue = 0;
+          } else if (aMarket === 0) {
+            return 1; // a goes to bottom
+          } else if (bMarket === 0) {
+            return -1; // b goes to bottom
+          } else {
+            compareValue = aMarket - bMarket;
+          }
+          break;
+        case 'intrinsicValue':
+          const aIntrinsic = a.intrinsicValue || 0;
+          const bIntrinsic = b.intrinsicValue || 0;
+          // Handle null values - put them at the bottom
+          if (aIntrinsic === 0 && bIntrinsic === 0) {
+            compareValue = 0;
+          } else if (aIntrinsic === 0) {
+            return 1; // a goes to bottom
+          } else if (bIntrinsic === 0) {
+            return -1; // b goes to bottom
+          } else {
+            compareValue = aIntrinsic - bIntrinsic;
+          }
+          break;
+        case 'nestLevel':
+          const aNest = a.nestLevel || 0;
+          const bNest = b.nestLevel || 0;
+          // Handle null values - put them at the bottom (non-LP tokens)
+          if (aNest === 0 && bNest === 0) {
+            compareValue = 0;
+          } else if (aNest === 0) {
+            return 1; // a goes to bottom
+          } else if (bNest === 0) {
+            return -1; // b goes to bottom
+          } else {
+            compareValue = aNest - bNest;
+          }
           break;
         case 'confidence':
           compareValue = a.confidence - b.confidence;
@@ -317,12 +409,36 @@ export default function PriceTableContainer() {
               {priceData && (
                 <span className="ml-2">
                   • {priceData.metadata.processingTimeMs}ms response time
+                  {priceData.metadata.servedFromCache && (
+                    <span className="ml-2">
+                      • <span className="text-green-600">Cached</span>
+                      {priceData.metadata.cacheAge && (
+                        <span className="ml-1">
+                          ({Math.round(priceData.metadata.cacheAge / 1000)}s old)
+                        </span>
+                      )}
+                      {priceData.metadata.revalidating && (
+                        <span className="ml-1 text-blue-600">• Updating...</span>
+                      )}
+                    </span>
+                  )}
+                  {priceData.metadata.lpTokensAvailable !== undefined && (
+                    <span className="ml-2">
+                      • {priceData.metadata.lpTokensAvailable} LP tokens
+                    </span>
+                  )}
                 </span>
               )}
             </p>
           </div>
           
           <div className="flex items-center gap-2">
+            {priceData?.metadata?.revalidating && (
+              <div className="flex items-center text-sm text-blue-600">
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <span>Updating...</span>
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"

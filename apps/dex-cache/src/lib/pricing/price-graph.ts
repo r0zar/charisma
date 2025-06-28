@@ -13,6 +13,7 @@ export interface TokenNode {
     decimals: number;
     totalLiquidity: number; // Total USD liquidity across all pools
     poolCount: number;
+    isLpToken?: boolean; // Flag to identify LP tokens
 }
 
 export interface PoolEdge {
@@ -52,7 +53,8 @@ export class PriceGraph {
             name: 'Stacked Bitcoin',
             decimals: 8,
             totalLiquidity: 0,
-            poolCount: 0
+            poolCount: 0,
+            isLpToken: false
         });
     }
 
@@ -142,7 +144,8 @@ export class PriceGraph {
                 name: 'Stacked Bitcoin',
                 decimals: 8,
                 totalLiquidity: 0,
-                poolCount: 0
+                poolCount: 0,
+                isLpToken: false
             });
 
             // First pass: Create nodes and edges
@@ -167,7 +170,8 @@ export class PriceGraph {
                         name: vault.tokenA.name,
                         decimals: vault.tokenA.decimals,
                         totalLiquidity: 0,
-                        poolCount: 0
+                        poolCount: 0,
+                        isLpToken: false
                     });
                 }
 
@@ -178,7 +182,8 @@ export class PriceGraph {
                         name: vault.tokenB.name,
                         decimals: vault.tokenB.decimals,
                         totalLiquidity: 0,
-                        poolCount: 0
+                        poolCount: 0,
+                        isLpToken: false
                     });
                 }
 

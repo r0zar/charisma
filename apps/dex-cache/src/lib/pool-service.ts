@@ -16,6 +16,7 @@ export interface Token {
     supply?: number;
     image?: string;
     description?: string;
+    isLpToken?: boolean; // Flag to identify LP tokens
 }
 
 /**
@@ -641,17 +642,30 @@ export const listVaultTokens = async (): Promise<Token[]> => {
         // Process tokenA if it exists
         if (vault.tokenA && vault.tokenA.contractId) { // Ensure token and contractId exist
             if (!tokenMap.has(vault.tokenA.contractId)) {
-                tokenMap.set(vault.tokenA.contractId, vault.tokenA);
+                tokenMap.set(vault.tokenA.contractId, {
+                    ...vault.tokenA,
+                    isLpToken: false // Regular tokens are not LP tokens
+                });
             }
         }
         // Process tokenB if it exists
         if (vault.tokenB && vault.tokenB.contractId) { // Ensure token and contractId exist
             if (!tokenMap.has(vault.tokenB.contractId)) {
-                tokenMap.set(vault.tokenB.contractId, vault.tokenB);
+                tokenMap.set(vault.tokenB.contractId, {
+                    ...vault.tokenB,
+                    isLpToken: false // Regular tokens are not LP tokens
+                });
             }
         }
     }
     return Array.from(tokenMap.values());
+}
+
+export const listVaults = async (): Promise<Vault[]> => {
+    return await getAllVaultData({
+        protocol: 'CHARISMA',
+        type: 'POOL'
+    });
 }
 
 // --- Added functions from actions.ts logic ---
@@ -777,11 +791,16 @@ export async function getContractSourceDetails(contractId: string): Promise<any>
  */
 
 /**
- * Check if a vault represents an LP token (has both tokenA and tokenB)
+ * Check if a vault represents an LP token (has both tokenA and tokenB, or is marked as type POOL)
  * @param vault - The vault to check
  * @returns True if the vault is an LP token
  */
 export const isLpToken = (vault: Vault): boolean => {
+    // Check for type = "POOL" first (covers newer and older LP tokens)
+    if (vault.type === 'POOL') {
+        return true;
+    }
+    // Fallback to legacy detection (has both tokenA and tokenB with reserves)
     return !!(vault.tokenA && vault.tokenB && vault.reservesA !== undefined && vault.reservesB !== undefined);
 };
 

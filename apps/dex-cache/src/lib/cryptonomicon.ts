@@ -163,6 +163,7 @@ export class Cryptonomicon {
                 description: externalData.description,
                 image: externalData.image || externalData.image_uri, // Accept common variations
                 identifier: externalData.identifier, // Look for identifier field
+                type: externalData.type, // Include type field for LP token detection
                 lpRebatePercent: externalData.lpRebatePercent || externalData.properties?.swapFeePercent || externalData.properties?.lpRebatePercent, // Include top-level fee
                 tokenAContract: externalData.tokenAContract || externalData.properties?.tokenAContract,
                 tokenBContract: externalData.tokenBContract || externalData.properties?.tokenBContract,
@@ -314,12 +315,12 @@ export class Cryptonomicon {
     /**
      * Get a token's decimals from contract
      */
-    async getTokenDecimals(contractId: string): Promise<number> {
+    async getTokenDecimals(contractId: string): Promise<number | null> {
         try {
             const [contractAddress, contractName] = contractId.split('.');
             if (!contractAddress || !contractName) {
                 if (this.config.debug) console.warn(`Invalid contractId for getTokenDecimals: ${contractId}`);
-                return 6; // Original fallback
+                return null;
             }
             const result = await callReadOnlyFunction(
                 contractAddress,
@@ -327,12 +328,18 @@ export class Cryptonomicon {
                 "get-decimals",
                 []
             );
-            return result?.value;
+            if (result?.value !== undefined && result?.value !== null) {
+                const decimals = Number(result.value);
+                if (!isNaN(decimals) && decimals >= 0) {
+                    return decimals;
+                }
+            }
+            return null; // Return null if we can't get valid decimals
         } catch (error) {
             if (this.config.debug) {
                 console.warn(`Failed to get decimals for ${contractId}:`, error);
             }
-            return 6; // Default to 6 decimals if contract call fails
+            return null; // Return null if contract call fails
         }
     }
 
@@ -352,7 +359,7 @@ export class Cryptonomicon {
                 "get-total-supply",
                 []
             );
-            return result?.value;
+            return Number(result?.value) || 0;
         } catch (error) {
             if (this.config.debug) {
                 console.warn(`Failed to get total supply for ${contractId}:`, error);
