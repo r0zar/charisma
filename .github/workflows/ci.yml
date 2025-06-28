@@ -16,111 +16,20 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
-  setup:
-    name: Setup
+  # Single setup and dependency build job
+  setup-and-build:
+    name: Setup & Build Dependencies
     runs-on: ubuntu-latest
-    outputs:
-      apps: ${{ steps.get-packages.outputs.apps }}
-      packages: ${{ steps.get-packages.outputs.packages }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+      - name: Setup project
+        uses: ./.github/actions/setup
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Get package lists
-        id: get-packages
-        run: |
-          # Get apps list - use compact JSON output
-          apps=$(find ./apps -maxdepth 2 -name "package.json" | grep -v node_modules | xargs -I {} dirname {} | sed 's|./apps/||' | sort | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "apps=$apps" >> $GITHUB_OUTPUT
-          
-          # Get packages list - use compact JSON output
-          packages=$(find ./packages -maxdepth 2 -name "package.json" | grep -v node_modules | xargs -I {} dirname {} | sed 's|./packages/||' | sort | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "packages=$packages" >> $GITHUB_OUTPUT
-          
-          # Debug output
-          echo "Found apps: $apps"
-          echo "Found packages: $packages"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-  # Build packages that other packages depend on
-  build-deps:
-    name: Build Dependencies
-    runs-on: ubuntu-latest
-    needs: [setup]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Build packages (dependencies only)
+      - name: Build dependencies
         run: pnpm --filter="@repo/*" --filter="@charisma/*" --filter="dexterity-sdk" --filter="blaze-sdk" --filter="clarity" build
-        
+
       - name: Cache built packages
         uses: actions/cache/save@v4
         with:
@@ -129,48 +38,61 @@ jobs:
             packages/*/build
           key: built-packages-${{ github.sha }}
 
-  # Type checking in parallel
-  typecheck:
-    name: Type Check
+  # Quality checks in parallel - Turbo handles internal parallelization
+  lint:
+    name: Lint All Packages
     runs-on: ubuntu-latest
-    needs: [build-deps]
+    needs: [setup-and-build]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup project
+        uses: ./.github/actions/setup
+
+      - name: Restore built packages
+        uses: actions/cache/restore@v4
         with:
-          node-version: '18'
+          path: |
+            packages/*/dist
+            packages/*/build
+          key: built-packages-${{ github.sha }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - name: Lint all packages
+        run: pnpm lint
+
+  test:
+    name: Test All Packages
+    runs-on: ubuntu-latest
+    needs: [setup-and-build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup project
+        uses: ./.github/actions/setup
+
+      - name: Restore built packages
+        uses: actions/cache/restore@v4
         with:
-          version: 8.15.6
+          path: |
+            packages/*/dist
+            packages/*/build
+          key: built-packages-${{ github.sha }}
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - name: Test all packages
+        run: pnpm test
 
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+  typecheck:
+    name: Type Check All Packages
+    runs-on: ubuntu-latest
+    needs: [setup-and-build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+      - name: Setup project
+        uses: ./.github/actions/setup
 
       - name: Restore built packages
         uses: actions/cache/restore@v4
@@ -183,311 +105,32 @@ jobs:
       - name: Type check all packages
         run: pnpm check-types
 
-  # Linting for apps in parallel
-  lint-apps:
-    name: Lint Apps
-    runs-on: ubuntu-latest
-    needs: [setup, build-deps]
-    strategy:
-      fail-fast: false
-      matrix:
-        app: ${{ fromJson(needs.setup.outputs.apps) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Restore built packages
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/build
-          key: built-packages-${{ github.sha }}
-
-      - name: Lint ${{ matrix.app }}
-        run: |
-          # Run lint from root to ensure workspace dependencies are available
-          if [ -f "apps/${{ matrix.app }}/package.json" ] && jq -e '.scripts.lint' "apps/${{ matrix.app }}/package.json" > /dev/null; then
-            pnpm --filter="${{ matrix.app }}" lint
-          else
-            echo "No lint script found for ${{ matrix.app }}, skipping..."
-          fi
-
-  # Linting for packages in parallel
-  lint-packages:
-    name: Lint Packages
-    runs-on: ubuntu-latest
-    needs: [setup, build-deps]
-    strategy:
-      fail-fast: false
-      matrix:
-        package: ${{ fromJson(needs.setup.outputs.packages) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Restore built packages
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/build
-          key: built-packages-${{ github.sha }}
-
-      - name: Lint ${{ matrix.package }}
-        run: |
-          # Run lint from root to ensure workspace dependencies are available
-          if [ -f "packages/${{ matrix.package }}/package.json" ] && jq -e '.scripts.lint' "packages/${{ matrix.package }}/package.json" > /dev/null; then
-            pnpm --filter="${{ matrix.package }}" lint
-          else
-            echo "No lint script found for ${{ matrix.package }}, skipping..."
-          fi
-
-  # Testing for apps in parallel
-  test-apps:
-    name: Test Apps
-    runs-on: ubuntu-latest
-    needs: [setup, build-deps]
-    strategy:
-      fail-fast: false
-      matrix:
-        app: ${{ fromJson(needs.setup.outputs.apps) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Restore built packages
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/build
-          key: built-packages-${{ github.sha }}
-
-      - name: Test ${{ matrix.app }}
-        run: |
-          # Run test from root to ensure workspace dependencies are available
-          if [ -f "apps/${{ matrix.app }}/package.json" ] && jq -e '.scripts.test' "apps/${{ matrix.app }}/package.json" > /dev/null; then
-            pnpm --filter="${{ matrix.app }}" test
-          else
-            echo "No test script found for ${{ matrix.app }}, skipping..."
-          fi
-
-  # Testing for packages in parallel
-  test-packages:
-    name: Test Packages
-    runs-on: ubuntu-latest
-    needs: [setup, build-deps]
-    strategy:
-      fail-fast: false
-      matrix:
-        package: ${{ fromJson(needs.setup.outputs.packages) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Restore built packages
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/build
-          key: built-packages-${{ github.sha }}
-
-      - name: Test ${{ matrix.package }}
-        run: |
-          # Run test from root to ensure workspace dependencies are available
-          if [ -f "packages/${{ matrix.package }}/package.json" ] && jq -e '.scripts.test' "packages/${{ matrix.package }}/package.json" > /dev/null; then
-            pnpm --filter="${{ matrix.package }}" test
-          else
-            echo "No test script found for ${{ matrix.package }}, skipping..."
-          fi
-
-  # Coverage reporting
+  # Coverage reporting (runs after tests complete)
   coverage:
-    name: Coverage
+    name: Coverage Report
     runs-on: ubuntu-latest
-    needs: [test-apps, test-packages]
-    if: always()
+    needs: [test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'failure')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup project
+        uses: ./.github/actions/setup
+
+      - name: Restore built packages
+        uses: actions/cache/restore@v4
         with:
-          node-version: '18'
+          path: |
+            packages/*/dist
+            packages/*/build
+          key: built-packages-${{ github.sha }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Test with Coverage
+      - name: Generate coverage
         run: pnpm test:coverage
         continue-on-error: true
 
-      - name: Upload Coverage Reports
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: always()
         with:
@@ -498,6 +141,7 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
           verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Coverage Summary
         if: always()
@@ -514,56 +158,17 @@ jobs:
           done
           echo "========================"
 
-  # Build step to ensure everything compiles
+  # Full build after quality checks pass
   build:
-    name: Build
+    name: Build All Packages
     runs-on: ubuntu-latest
-    needs: [typecheck, lint-apps, lint-packages]
+    needs: [lint, test, typecheck]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.15.6
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache Turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - name: Restore built packages
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            packages/*/dist
-            packages/*/build
-          key: built-packages-${{ github.sha }}
+      - name: Setup project
+        uses: ./.github/actions/setup
 
       - name: Build all packages and apps
         run: pnpm build
@@ -575,31 +180,29 @@ jobs:
           HIRO_API_KEY: ${{ secrets.HIRO_API_KEY }}
           NEXT_PUBLIC_TOKEN_CACHE_URL: ${{ secrets.NEXT_PUBLIC_TOKEN_CACHE_URL }}
 
-  # Summary job that depends on all others
+  # Summary job
   ci-complete:
     name: CI Complete
     runs-on: ubuntu-latest
-    needs: [typecheck, lint-apps, lint-packages, test-apps, test-packages, coverage, build]
+    needs: [lint, test, typecheck, build]
     if: always()
     steps:
-      - name: Check job results
+      - name: Check results
         run: |
-          echo "Type check: ${{ needs.typecheck.result }}"
-          echo "Lint apps: ${{ needs.lint-apps.result }}"
-          echo "Lint packages: ${{ needs.lint-packages.result }}"
-          echo "Test apps: ${{ needs.test-apps.result }}"
-          echo "Test packages: ${{ needs.test-packages.result }}"
-          echo "Coverage: ${{ needs.coverage.result }}"
+          echo "🔍 CI Results Summary"
+          echo "===================="
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Type Check: ${{ needs.typecheck.result }}"
           echo "Build: ${{ needs.build.result }}"
+          echo "===================="
           
-          # Fail if essential checks failed
-          if [[ "${{ needs.typecheck.result }}" != "success" ]] || \
-             [[ "${{ needs.lint-apps.result }}" != "success" ]] || \
-             [[ "${{ needs.lint-packages.result }}" != "success" ]] || \
-             [[ "${{ needs.test-apps.result }}" != "success" ]] || \
-             [[ "${{ needs.test-packages.result }}" != "success" ]] || \
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.typecheck.result }}" != "success" ]] || \
              [[ "${{ needs.build.result }}" != "success" ]]; then
-            echo "❌ Essential checks failed"
+            echo "❌ CI Failed - One or more checks failed"
             exit 1
           fi
-          echo "✅ All essential checks passed!"
+          
+          echo "✅ CI Passed - All checks successful!"
