@@ -73,7 +73,7 @@ export async function resolveExecutionStatus(execution: TwitterTriggerExecution)
                 // Add confirmation metadata
                 if (newExecutionStatus === 'order_confirmed' && enhanced.blockHeight && enhanced.blockTime) {
                     updateData.metadata = {
-                        ...execution.metadata,
+                        ...(execution as any).metadata,
                         confirmation: {
                             blockHeight: enhanced.blockHeight,
                             blockTime: enhanced.blockTime,
@@ -120,7 +120,7 @@ export async function resolveExecutionStatus(execution: TwitterTriggerExecution)
                     // Add confirmation metadata
                     if (newExecutionStatus === 'order_confirmed' && enhanced.blockHeight && enhanced.blockTime) {
                         updateData.metadata = {
-                            ...execution.metadata,
+                            ...(execution as any).metadata,
                             confirmation: {
                                 blockHeight: enhanced.blockHeight,
                                 blockTime: enhanced.blockTime,
@@ -165,7 +165,7 @@ async function checkOrderStoreStatus(orderUuid: string): Promise<{
         }
         
         return {
-            status: order.status,
+            status: order.status as 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled',
             blockHeight: order.blockHeight,
             blockTime: order.blockTime
         };

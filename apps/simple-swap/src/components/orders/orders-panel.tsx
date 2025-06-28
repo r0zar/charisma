@@ -354,8 +354,8 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                         {o.direction === 'gt' ? (
                             <>
                                 <span className="text-white/80">1</span>
-                                <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
-                                <span className="text-white/80">{o.conditionTokenMeta.symbol}</span>
+                                <TokenLogo token={{ ...(o.conditionTokenMeta as any), image: (o.conditionTokenMeta as any)?.image ?? undefined }} size="sm" />
+                                <span className="text-white/80">{(o.conditionTokenMeta as any)?.symbol}</span>
                                 <span className="text-lg text-white/60">≥</span>
                                 <span className="text-white/90">{Number(o.targetPrice).toLocaleString()}</span>
                                 {o.baseAsset === 'USD' || !o.baseAsset ? (
@@ -392,8 +392,8 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                 )}
                                 <span className="text-lg text-white/60">≥</span>
                                 <span className="text-white/90">{Number(o.targetPrice).toLocaleString()}</span>
-                                <TokenLogo token={{ ...o.conditionTokenMeta, image: o.conditionTokenMeta.image ?? undefined }} size="sm" />
-                                <span className="text-white/80">{o.conditionTokenMeta.symbol}</span>
+                                <TokenLogo token={{ ...(o.conditionTokenMeta as any), image: (o.conditionTokenMeta as any)?.image ?? undefined }} size="sm" />
+                                <span className="text-white/80">{(o.conditionTokenMeta as any)?.symbol}</span>
                             </>
                         )}
                     </div>
@@ -520,7 +520,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                                             <span className="text-white/60">Condition:</span>
                                             <span className="text-white/90 font-medium">
                                                 {o.direction === 'gt' ? (
-                                                    <>1 {o.conditionTokenMeta.symbol} ≥ ${Number(o.targetPrice).toLocaleString()}</>
+                                                    <>1 {(o.conditionTokenMeta as any)?.symbol} ≥ ${Number(o.targetPrice).toLocaleString()}</>
                                                 ) : (
                                                     <>1 {o.baseAssetMeta?.symbol || 'USD'} ≥ ${Number(o.targetPrice).toLocaleString()}</>
                                                 )}
@@ -843,7 +843,7 @@ export default function OrdersPanel() {
             tokenMetaMap.set(order.inputToken, order.inputTokenMeta);
             tokenMetaMap.set(order.outputToken, order.outputTokenMeta);
             if (order.conditionToken) {
-                tokenMetaMap.set(order.conditionToken, order.conditionTokenMeta);
+                tokenMetaMap.set(order.conditionToken, order.conditionTokenMeta as any);
             }
             if (order.baseAssetMeta) {
                 tokenMetaMap.set(order.baseAsset || 'USD', order.baseAssetMeta);
@@ -865,7 +865,7 @@ export default function OrdersPanel() {
         uniqueConditionTokens.forEach(token => {
             const price = getPrice(token);
             if (price !== null) {
-                priceMap.set(token, price);
+                priceMap.set(token, price as number);
             }
         });
         

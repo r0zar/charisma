@@ -144,7 +144,8 @@ export function classifyOrderTypes(
     // First pass: classify each order
     const classifiedOrders: ClassifiedOrder[] = orders.map(order => ({
         ...order,
-        orderType: classifyOrderType(order, orders)
+        orderType: classifyOrderType(order, orders),
+        conditionTokenMeta: order.inputTokenMeta // Use input token as fallback for condition token
     }));
     
     // Count by type

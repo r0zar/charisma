@@ -194,6 +194,7 @@ describe('API Key Middleware', () => {
         keyRecord: {
           id: 'key-123',
           keyHash: 'hash123',
+          keyPreview: 'sk_test_****',
           walletAddress: 'SP1ABC123DEF456',
           name: 'Test Key',
           permissions: ['execute'],
@@ -276,6 +277,7 @@ describe('API Key Middleware', () => {
         keyRecord: {
           id: 'key-123',
           keyHash: 'hash123',
+          keyPreview: 'sk_test_****',
           walletAddress: 'SP1ABC123DEF456',
           name: 'Test Key',
           permissions: ['execute'],
@@ -323,6 +325,7 @@ describe('API Key Middleware', () => {
         keyRecord: {
           id: 'key-456',
           keyHash: 'hash456',
+          keyPreview: 'sk_test_****',
           walletAddress: 'SP1ABC123DEF456',
           name: 'Creation Bot',
           permissions: ['create', 'execute'],

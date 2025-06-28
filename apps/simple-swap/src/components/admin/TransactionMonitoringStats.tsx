@@ -37,7 +37,8 @@ async function fetchTransactionStats(): Promise<TransactionStats> {
             
             return {
                 ...rawStats,
-                processingHealth
+                processingHealth,
+                lastCheckTime: rawStats.lastCheckTime
             };
         }
         
@@ -50,19 +51,14 @@ async function fetchTransactionStats(): Promise<TransactionStats> {
             pendingTransactions: 0,
             confirmedTransactions: 0,
             failedTransactions: 0,
-            processingHealth: 'error'
+            processingHealth: 'error' as const,
+            lastCheckTime: undefined
         };
     }
 }
 
 interface TransactionMonitoringStatsProps {
-    stats: {
-        totalOrders: number;
-        ordersNeedingMonitoring: number;
-        pendingTransactions: number;
-        confirmedTransactions: number;
-        failedTransactions: number;
-    };
+    stats: TransactionStats;
 }
 
 export function TransactionMonitoringStats({ stats }: TransactionMonitoringStatsProps) {

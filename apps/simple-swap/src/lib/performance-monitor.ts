@@ -130,7 +130,7 @@ export function monitor(name?: string) {
                 timer.end({ success: true });
                 return result;
             } catch (error) {
-                timer.end({ success: false, error: error.message });
+                timer.end({ success: false, error: error instanceof Error ? error.message : String(error) });
                 throw error;
             }
         };
@@ -153,7 +153,7 @@ export async function withMonitoring<T>(
         timer.end({ ...metadata, success: true });
         return result;
     } catch (error) {
-        timer.end({ ...metadata, success: false, error: error.message });
+        timer.end({ ...metadata, success: false, error: error instanceof Error ? error.message : String(error) });
         throw error;
     }
 }

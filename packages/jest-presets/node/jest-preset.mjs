@@ -11,6 +11,24 @@ const config = {
     "<rootDir>/dist",
   ],
   preset: "ts-jest",
+  collectCoverage: false, // Enable with --coverage flag
+  collectCoverageFrom: [
+    "src/**/*.{ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/*.test.{ts,tsx}",
+    "!src/**/__tests__/**",
+    "!src/**/index.ts", // Usually just re-exports
+  ],
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "json", "html", "lcov"],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
 };
 
 export default config;

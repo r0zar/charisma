@@ -58,7 +58,7 @@ export async function POST(request: NextRequest, context: Context) {
         }
 
         // Validate file is an image
-        if (!file.type.startsWith('image/')) {
+        if (!(file instanceof File) || !file.type.startsWith('image/')) {
             return NextResponse.json(
                 { error: 'File must be an image' },
                 { status: 400, headers }
@@ -76,7 +76,11 @@ export async function POST(request: NextRequest, context: Context) {
             await deleteOldBlobIfExists(contractId, blob.url);
 
             // Update metadata with new image URL
-            await MetadataService.set(contractId, { image: blob.url });
+            const existingMetadata = await MetadataService.get(contractId);
+            await MetadataService.set(contractId, { 
+                ...existingMetadata,
+                image: blob.url 
+            });
 
             return NextResponse.json({
                 url: blob.url,

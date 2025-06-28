@@ -44,7 +44,7 @@ export async function GET() {
         console.error('[TOKEN-SUMMARIES-API] Error:', error);
         timer.end({ 
             source: 'error',
-            error: error.message 
+            error: error instanceof Error ? error.message : 'Unknown error' 
         });
         
         // Try to return stale cache data if available

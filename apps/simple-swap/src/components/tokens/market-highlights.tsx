@@ -161,7 +161,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     token={token}
                                     rank={index + 1}
                                     type="gainer"
-                                    getPrice={getPrice}
+                                    getPrice={(contractId: string) => getPrice(contractId) ?? null}
                                 />
                             ))}
                         </div>
@@ -181,7 +181,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     token={token}
                                     rank={index + 1}
                                     type="loser"
-                                    getPrice={getPrice}
+                                    getPrice={(contractId: string) => getPrice(contractId) ?? null}
                                 />
                             ))}
                         </div>
@@ -201,7 +201,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     token={token}
                                     rank={index + 1}
                                     type="active"
-                                    getPrice={getPrice}
+                                    getPrice={(contractId: string) => getPrice(contractId) ?? null}
                                 />
                             ))}
                         </div>

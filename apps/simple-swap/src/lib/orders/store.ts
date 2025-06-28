@@ -62,7 +62,7 @@ export async function listOrdersPaginated(
     limit: number = 10,
     sortBy: 'createdAt' | 'status' = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'desc',
-    statusFilter?: 'all' | 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled',
+    statusFilter?: 'all' | 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled',
     searchQuery?: string
 ): Promise<PaginatedOrdersResult> {
     const map = await kv.hgetall<Record<string, unknown>>(HASH_KEY);
@@ -107,7 +107,7 @@ export async function listOrdersPaginated(
             return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         } else if (sortBy === 'status') {
             // Sort by status priority: open > broadcasted > confirmed > failed > cancelled
-            const statusPriority = { open: 5, broadcasted: 4, confirmed: 3, failed: 2, cancelled: 1 };
+            const statusPriority = { open: 5, broadcasted: 4, confirmed: 3, filled: 3, failed: 2, cancelled: 1 };
             const priorityA = statusPriority[a.status] || 0;
             const priorityB = statusPriority[b.status] || 0;
             if (priorityA !== priorityB) {

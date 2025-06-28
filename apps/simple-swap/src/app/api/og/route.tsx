@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
     const fromToken = tokens.find(token => {
       if (token.symbol !== fromSymbol) return false;
       const wantSubnet = fromSubnetFlag === '1' || fromSubnetFlag === 'true';
-      const isSubnet = token.contractId.type === 'SUBNET';
+      const isSubnet = (token.contractId as any)?.type === 'SUBNET';
       return wantSubnet ? isSubnet : !isSubnet;
     });
 
     const toToken = tokens.find(token => {
       if (token.symbol !== toSymbol) return false;
       const wantSubnet = toSubnetFlag === '1' || toSubnetFlag === 'true';
-      const isSubnet = token.contractId.type === 'SUBNET';
+      const isSubnet = (token.contractId as any)?.type === 'SUBNET';
       return wantSubnet ? isSubnet : !isSubnet;
     });
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     if (fromToken && toToken) {
       try {
         // Convert amount to base units
-        const amountInBaseUnits = (parseFloat(amount) * Math.pow(10, fromToken.decimals)).toString();
+        const amountInBaseUnits = (parseFloat(amount) * Math.pow(10, fromToken.decimals || 6)).toString();
 
         // Call internal REST quote endpoint so edge bundle stays small
         const quoteRes = await fetch(`${request.nextUrl.origin}/api/v1/quote?tokenIn=${encodeURIComponent(fromToken.contractId)}&tokenOut=${encodeURIComponent(toToken.contractId)}&amount=${amountInBaseUnits}`);
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
         if (quoteJson.success && quoteJson.data) {
           const rawOutput = Number(quoteJson.data.amountOut);
-          outputAmount = (rawOutput / Math.pow(10, toToken.decimals)).toFixed(6);
+          outputAmount = (rawOutput / Math.pow(10, toToken.decimals || 6)).toFixed(6);
 
           if (parseFloat(outputAmount) > 1000) {
             outputAmount = parseFloat(outputAmount).toLocaleString('en-US', { maximumFractionDigits: 2 });

@@ -134,7 +134,7 @@ export async function GET(request: Request) {
                 
                 results.totalPoints += series.length;
             } catch (error) {
-                console.warn(`[BULK-API] Failed to process token ${contractId.substring(0, 10)}...:`, error.message);
+                console.warn(`[BULK-API] Failed to process token ${contractId.substring(0, 10)}...:`, error instanceof Error ? error.message : 'Unknown error');
                 result[contractId] = [];
                 results.errors++;
             }

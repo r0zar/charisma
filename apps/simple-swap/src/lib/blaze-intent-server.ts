@@ -132,7 +132,7 @@ async function processAndBroadcastBlazeIntent(
         const recoveredResult = await callReadOnlyFunction(
             BLAZE_SIGNER_ADDRESS, BLAZE_SIGNER_NAME, 'recover', recoverArgs, BLAZE_SIGNER_ADDRESS
         );
-        if (recoveredResult.value && typeof recoveredResult.value === 'string' && validateStacksAddress(recoveredResult.value)) {
+        if (recoveredResult && recoveredResult.value && typeof recoveredResult.value === 'string' && validateStacksAddress(recoveredResult.value)) {
             recoveredSignerAddress = recoveredResult.value;
             console.log(`Recovered signer: ${recoveredSignerAddress}.`);
         } else {

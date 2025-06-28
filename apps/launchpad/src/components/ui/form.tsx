@@ -42,7 +42,7 @@ const FormLabel = React.forwardRef<
             {...props}
         />
     )
-}) as any
+});
 FormLabel.displayName = "FormLabel"
 
 const FormControl = React.forwardRef<

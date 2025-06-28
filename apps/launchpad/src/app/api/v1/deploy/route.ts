@@ -144,7 +144,8 @@ export async function POST(request: NextRequest) {
             initialLiquidityB: 0,
             tokenADecimals: baseTokens.token1Meta?.decimals!,
             tokenBDecimals: baseTokens.token2Meta?.decimals!,
-            contractIdentifier: lpContractIdForMetadata
+            contractIdentifier: lpContractIdForMetadata,
+            lpTokenIdentifier: lpContractIdForMetadata
         }
 
         const poolCodeBody = generateLiquidityPoolContract(liquidityPoolOptions);

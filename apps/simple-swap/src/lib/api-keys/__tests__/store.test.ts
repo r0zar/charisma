@@ -159,7 +159,7 @@ describe('API Key Store', () => {
       vi.mocked(kv.hgetall).mockResolvedValueOnce(mockKeyRecord); // key data
       vi.mocked(kv.get).mockResolvedValueOnce(0); // rate limit count
       vi.mocked(kv.incr).mockResolvedValueOnce(1);
-      vi.mocked(kv.expire).mockResolvedValueOnce(true);
+      vi.mocked(kv.expire).mockResolvedValueOnce(1);
 
       const result = await validateApiKey(apiKey, walletAddress, 'execute');
 
@@ -298,7 +298,7 @@ describe('API Key Store', () => {
       vi.mocked(kv.hgetall).mockResolvedValueOnce(mockKeyRecord); // key data
       vi.mocked(kv.get).mockResolvedValueOnce(0); // rate limit count
       vi.mocked(kv.incr).mockResolvedValueOnce(1);
-      vi.mocked(kv.expire).mockResolvedValueOnce(true);
+      vi.mocked(kv.expire).mockResolvedValueOnce(1);
 
       const result = await validateApiKey(apiKey, 'SP1ABC123DEF456', 'create');
       expect(result.valid).toBe(true);

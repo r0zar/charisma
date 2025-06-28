@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.6
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Turbo
+        uses: actions/cache@v3
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm check-types
+
+      - name: Test
+        run: pnpm test
+
+      - name: Test with Coverage
+        run: pnpm test:coverage
+        continue-on-error: true
+
+      - name: Upload Coverage Reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: |
+            **/coverage/lcov.info
+            **/coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Coverage Summary
+        if: always()
+        run: |
+          echo "📊 Test Coverage Summary"
+          echo "========================"
+          find . -name "coverage-final.json" | head -5 | while read file; do
+            if [ -f "$file" ]; then
+              echo "Coverage report found: $file"
+              if command -v jq >/dev/null 2>&1; then
+                jq -r '.total | "Lines: \(.lines.pct)% | Functions: \(.functions.pct)% | Branches: \(.branches.pct)% | Statements: \(.statements.pct)%"' "$file" 2>/dev/null || echo "Could not parse coverage data"
+              fi
+            fi
+          done
+          echo "========================"
+
+      - name: Build
+        run: pnpm build
+        env:
+          KV_URL: ${{ secrets.KV_URL }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          KV_REST_API_READ_ONLY_TOKEN: ${{ secrets.KV_REST_API_READ_ONLY_TOKEN }}
+          HIRO_API_KEY: ${{ secrets.HIRO_API_KEY }}
+          NEXT_PUBLIC_TOKEN_CACHE_URL: ${{ secrets.NEXT_PUBLIC_TOKEN_CACHE_URL }}

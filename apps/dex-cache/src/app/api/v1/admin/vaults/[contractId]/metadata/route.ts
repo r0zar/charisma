@@ -39,7 +39,7 @@ const handleUpdateMetadata = async (request: NextRequest, { params }: { params: 
     try {
         // --- Fetch Existing Vault Data --- 
         // No need to check ownership here, middleware verified admin status
-        const existingVault = await getVaultData(vaultId, true); // Force refresh
+        const existingVault = await (getVaultData as any)(vaultId, true); // Force refresh
         if (!existingVault) {
             return NextResponse.json({ success: false, error: 'Vault not found' }, { status: 404 });
         }

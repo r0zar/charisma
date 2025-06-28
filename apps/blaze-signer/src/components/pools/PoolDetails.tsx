@@ -124,7 +124,7 @@ export const PoolDetails: React.FC<PoolDetailsProps> = ({ contractId }) => {
                         contractId: contractId,
                         name: lpMeta.name,
                         symbol: lpMeta.symbol,
-                        decimals: lpMeta.decimals,
+                        decimals: lpMeta.decimals || 6,
                         userBalance: lpBalance,
                         description: lpMeta.description,
                         token_uri: lpMeta.token_uri
@@ -132,14 +132,14 @@ export const PoolDetails: React.FC<PoolDetailsProps> = ({ contractId }) => {
                     tokenA: {
                         contractId: TOKEN_A_CONTRACT_ID,
                         symbol: tokenAMeta.symbol,
-                        decimals: tokenAMeta.decimals,
+                        decimals: tokenAMeta.decimals || 6,
                         description: tokenAMeta.description,
                         token_uri: tokenAMeta.token_uri
                     },
                     tokenB: {
                         contractId: TOKEN_B_CONTRACT_ID,
                         symbol: tokenBMeta.symbol,
-                        decimals: tokenBMeta.decimals,
+                        decimals: tokenBMeta.decimals || 6,
                         description: tokenBMeta.description,
                         token_uri: tokenBMeta.token_uri
                     },
@@ -162,7 +162,7 @@ export const PoolDetails: React.FC<PoolDetailsProps> = ({ contractId }) => {
 
         return (
             <Avatar className="h-8 w-8 bg-primary/10">
-                <AvatarImage src={token.image} alt={symbol} />
+                <AvatarImage src={token.image || undefined} alt={symbol} />
                 <AvatarFallback className={cn(
                     "text-xs font-bold",
                     isLp ? "bg-primary/20 text-primary" : "bg-muted"

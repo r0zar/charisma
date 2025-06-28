@@ -27,6 +27,8 @@
         "lint": "eslint src/",
         "check-types": "tsc --noEmit",
         "test": "jest",
+        "test:coverage": "jest --coverage",
+        "test:watch": "jest --watch",
         "clean": "rm -rf dist node_modules"
     },
     "jest": {

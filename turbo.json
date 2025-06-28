@@ -33,6 +33,12 @@
       ],
       "dependsOn": []
     },
+    "test:coverage": {
+      "outputs": [
+        "coverage/**"
+      ],
+      "dependsOn": []
+    },
     "lint": {
       "dependsOn": [
         "^build",

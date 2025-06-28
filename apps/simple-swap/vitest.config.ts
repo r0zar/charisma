@@ -10,7 +10,26 @@ export default defineConfig({
         environment: 'node',
         globals: true,
         coverage: {
-            enabled: false,
+            provider: 'v8',
+            reporter: ['text', 'json', 'html', 'lcov'],
+            exclude: [
+                'node_modules/',
+                'dist/',
+                '.next/',
+                '**/*.config.*',
+                '**/*.test.*',
+                'tests/setup.ts',
+                'src/**/*.d.ts',
+                'src/**/index.ts', // Usually just re-exports
+            ],
+            thresholds: {
+                global: {
+                    branches: 70,
+                    functions: 70,
+                    lines: 70,
+                    statements: 70,
+                },
+            },
         },
     },
 }); 

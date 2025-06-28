@@ -213,7 +213,7 @@ export default function OrderManagement() {
                             </div>
                         </div>
                     ) : adminStats ? (
-                        <TransactionMonitoringStats stats={adminStats} />
+                        <TransactionMonitoringStats stats={adminStats as any} />
                     ) : null}
 
                     {/* Order Types Breakdown */}

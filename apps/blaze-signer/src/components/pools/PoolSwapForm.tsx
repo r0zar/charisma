@@ -351,7 +351,7 @@ export const PoolSwapForm: React.FC<PoolSwapFormProps> = ({ poolInfo, contractId
 
     // Disabled state if user has insufficient balance
     const hasInsufficientBalance =
-        amountInput && parseUnits(amountInput, inputToken.decimals)! > currentInputBalance;
+        Boolean(amountInput) && parseUnits(amountInput, inputToken.decimals)! > currentInputBalance;
 
 
     return (

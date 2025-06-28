@@ -22,7 +22,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
         displayAmount,
         setDisplayAmount,
         tokenCounterparts,
-    } = useSwapTokens();
+    } = useSwapTokens() as any;
 
     const {
         balanceCheckResult,

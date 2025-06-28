@@ -147,9 +147,9 @@ export function RouteIntelligenceSidebar() {
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-white/60">Price Impact</span>
                             <span className={`font-medium ${
-                                totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-red-400'
+                                (totalPriceImpact.priceImpact || 0) > 0 ? 'text-green-400' : 'text-red-400'
                             }`}>
-                                {totalPriceImpact.priceImpact > 0 ? '+' : ''}{totalPriceImpact.priceImpact.toFixed(2)}%
+                                {(totalPriceImpact.priceImpact || 0) > 0 ? '+' : ''}{(totalPriceImpact.priceImpact || 0).toFixed(2)}%
                             </span>
                         </div>
                     )}
@@ -175,7 +175,7 @@ export function RouteIntelligenceSidebar() {
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-2 mb-1">
-                                                <TokenLogo token={operation.token} size="sm" />
+                                                <TokenLogo token={operation.token!} size="sm" />
                                                 <span className="text-xs font-medium text-white/90">
                                                     {formatTokenAmount(Number(operation.amount), operation.token?.decimals || 0)} {operation.token?.symbol}
                                                 </span>
@@ -195,7 +195,7 @@ export function RouteIntelligenceSidebar() {
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-2 mb-1">
-                                                <TokenLogo token={operation.token} size="sm" />
+                                                <TokenLogo token={operation.token!} size="sm" />
                                                 <span className="text-xs font-medium text-white/90">
                                                     {formatTokenAmount(Number(operation.amount), operation.token?.decimals || 0)} {operation.token?.symbol}
                                                 </span>

@@ -56,7 +56,8 @@ const PRICE_SOURCES = [
             const price = data.bitcoin?.usd;
             return typeof price === 'number' ? price : null;
         },
-        priority: 1
+        priority: 1,
+        headers: {}
     },
     {
         name: 'kraken',
@@ -67,7 +68,8 @@ const PRICE_SOURCES = [
             const price = lastPrice ? parseFloat(lastPrice) : null;
             return price && !isNaN(price) ? price : null;
         },
-        priority: 2
+        priority: 2,
+        headers: {}
     }
 ];
 

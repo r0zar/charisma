@@ -91,7 +91,7 @@ export function extractContractRelationships(sourceContract: string, sourceCode:
     // Pattern 1: Direct contract calls with quotes
     // Example: contract-call? 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn tap
     const contractCallPattern = /contract-call\?\s+'([A-Z0-9]{26,40}\.[a-zA-Z0-9-]+)(?:\s+([a-zA-Z0-9-]+))?/g;
-    let match;
+    let match: RegExpExecArray | null;
     while ((match = contractCallPattern.exec(sourceCode)) !== null) {
         relationships.push({
             sourceContract,
@@ -119,13 +119,13 @@ export function extractContractRelationships(sourceContract: string, sourceCode:
     const directContractPattern = /SP[A-Z0-9]{39}\.[a-zA-Z][a-zA-Z0-9-]*/g;
     while ((match = directContractPattern.exec(sourceCode)) !== null) {
         // Avoid duplicates from contract-call patterns
-        const existing = relationships.find(r => r.targetContract === match[0]);
+        const existing = relationships.find(r => r.targetContract === match![0]);
         if (!existing) {
             relationships.push({
                 sourceContract,
-                targetContract: match[0],
+                targetContract: match![0],
                 relationshipType: 'direct-reference',
-                extractedFrom: match[0]
+                extractedFrom: match![0]
             });
         }
     }

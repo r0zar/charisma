@@ -1203,7 +1203,7 @@ const ProModeChart = React.memo(function ProModeChart({
         // Group orders by price level to avoid overlapping lines
         const ordersByPrice = new Map<string, DisplayOrder[]>();
         ordersToShow.forEach(order => {
-            const priceKey = order.targetPrice;
+            const priceKey = order.targetPrice || '0';
             if (!ordersByPrice.has(priceKey)) {
                 ordersByPrice.set(priceKey, []);
             }

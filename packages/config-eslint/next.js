@@ -50,7 +50,7 @@ export const config = [
   {
     rules: {
       // Disable TypeScript JSX element type errors that occur with React 19
-      "@typescript-eslint/ban-types": "warn",
+      // Note: @typescript-eslint/ban-types is deprecated, using @typescript-eslint/no-restricted-types instead
       "@typescript-eslint/no-explicit-any": "off",
 
       // Turn off JSX element type checking to allow Next.js and Lucide components

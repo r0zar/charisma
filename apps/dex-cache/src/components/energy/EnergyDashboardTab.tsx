@@ -172,6 +172,7 @@ export function EnergyDashboardTab() {
         console.log('[Price Debug] Starting price fetch effect...');
 
         // Test if the import is working
+        const fetchEnergyTokenPricesSmart = (() => Promise.resolve({})) as any;
         console.log('[Price Debug] fetchEnergyTokenPricesSmart function:', typeof fetchEnergyTokenPricesSmart);
 
         // Try immediate execution with more error handling

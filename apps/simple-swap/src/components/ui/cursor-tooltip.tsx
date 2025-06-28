@@ -25,7 +25,7 @@ export const CursorTooltip: React.FC<CursorTooltipProps> = ({
     const [showTooltip, setShowTooltip] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
-    const timeoutRef = React.useRef<NodeJS.Timeout>();
+    const timeoutRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
 
     const { position } = useCursorPosition(triggerRef);
 

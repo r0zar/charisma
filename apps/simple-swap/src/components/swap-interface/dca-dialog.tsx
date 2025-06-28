@@ -31,7 +31,7 @@ export const DcaDialog: React.FC = () => {
         hasTimeTrigger,
         timeStartTime,
         timeEndTime,
-    } = useOrderConditions();
+    } = useOrderConditions() as any;
 
     const {
         createSingleOrder,

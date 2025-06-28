@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedTransactionStatus } from '@/lib/transaction-monitor';
+import { checkTransactionStatus } from '@/lib/transaction-monitor';
 import { kv } from '@vercel/kv';
 
 /**
@@ -23,7 +23,8 @@ export async function GET(
         console.log(`[TX-STATUS-API] Checking status for transaction: ${txid}`);
 
         // Get cached transaction status
-        const status = await getCachedTransactionStatus(txid);
+        const statusResult = await checkTransactionStatus(txid);
+        const status = statusResult.status;
 
         if (!status) {
             return NextResponse.json({

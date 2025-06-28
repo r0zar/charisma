@@ -16,7 +16,7 @@ export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post
 export interface TransactionMonitorResult {
     txid: string;
     orderId: string;
-    previousStatus: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled';
+    previousStatus: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled';
     currentStatus: TransactionStatus;
     orderUpdated: boolean;
     error?: string;
@@ -283,6 +283,8 @@ export async function getTransactionMonitoringStats(): Promise<{
     pendingTransactions: number;
     confirmedTransactions: number;
     failedTransactions: number;
+    processingHealth: 'healthy' | 'warning' | 'error';
+    lastCheckTime: string;
     orderTypes: {
         single: number;
         dca: number;
@@ -357,12 +359,18 @@ export async function getTransactionMonitoringStats(): Promise<{
         // Classify orders by type using the new classification utility
         const orderTypeCounts = await countOrdersByType(allOrders, getTokenMetadataCached);
 
+        const healthStatus: 'healthy' | 'warning' | 'error' = 
+            failedTransactions > confirmedTransactions * 2 ? 'error' :
+            failedTransactions > confirmedTransactions ? 'warning' : 'healthy';
+
         return {
             totalOrders,
             ordersNeedingMonitoring,
             pendingTransactions,
             confirmedTransactions,
             failedTransactions,
+            processingHealth: healthStatus,
+            lastCheckTime: new Date().toISOString(),
             orderTypes: {
                 single: orderTypeCounts.single,
                 dca: orderTypeCounts.dca,

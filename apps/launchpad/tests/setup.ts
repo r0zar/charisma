@@ -1,0 +1,1 @@
+import "@testing-library/jest-dom"; import { beforeAll, afterEach, vi } from "vitest"; import { cleanup } from "@testing-library/react"; beforeAll(() => { process.env.NODE_ENV = "test" }); afterEach(() => { cleanup(); vi.clearAllMocks() });

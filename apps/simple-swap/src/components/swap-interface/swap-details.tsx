@@ -151,20 +151,20 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                 <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg">
                     <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-1">
-                            {quote.path.slice(0, 3).map((token: TokenCacheData, index: number) => (
+                            {quote?.path.slice(0, 3).map((token: TokenCacheData, index: number) => (
                                 <React.Fragment key={token.contractId || index}>
                                     <TokenLogo token={token} size="sm" />
-                                    {index < Math.min(quote.path.length - 1, 2) && (
+                                    {index < Math.min((quote?.path.length || 0) - 1, 2) && (
                                         <svg className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     )}
                                 </React.Fragment>
                             ))}
-                            {quote.path.length > 3 && <span className="text-xs text-white/60">+{quote.path.length - 3}</span>}
+                            {(quote?.path.length || 0) > 3 && <span className="text-xs text-white/60">+{(quote?.path.length || 0) - 3}</span>}
                         </div>
                         <div className="text-xs text-white/70">
-                            {quote.path.length - 1} {quote.path.length - 1 === 1 ? 'hop' : 'hops'}
+                            {(quote?.path.length || 0) - 1} {(quote?.path.length || 0) - 1 === 1 ? 'hop' : 'hops'}
                         </div>
                     </div>
                     <div className="flex items-center space-x-2 text-xs">
@@ -260,12 +260,12 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                             </svg>
                         </div>
                         <span className="text-lg font-semibold text-white/90">
-                            {quote.path.length - 1}
+                            {(quote?.path.length || 0) - 1}
                         </span>
                     </div>
                     <div className="text-sm text-white/90 font-medium">Network Hops</div>
                     <div className="text-xs text-white/60 mt-1">
-                        {quote.path.length - 1 === 1 ? 'Single hop route' : `Multi-hop via ${quote.path.length - 2} pools`}
+                        {(quote?.path.length || 0) - 1 === 1 ? 'Single hop route' : `Multi-hop via ${(quote?.path.length || 0) - 2} pools`}
                     </div>
                 </div>
 
@@ -318,17 +318,17 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                     <div className="flex items-center space-x-3">
                         {/* Token flow preview */}
                         <div className="hidden sm:flex items-center space-x-1">
-                            {quote.path.slice(0, 4).map((token: TokenCacheData, index: number) => (
+                            {quote?.path.slice(0, 4).map((token: TokenCacheData, index: number) => (
                                 <React.Fragment key={token.contractId || index}>
                                     <TokenLogo token={token} size="sm" />
-                                    {index < Math.min(quote.path.length - 1, 3) && (
+                                    {index < Math.min((quote?.path.length || 0) - 1, 3) && (
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                         </svg>
                                     )}
                                 </React.Fragment>
                             ))}
-                            {quote.path.length > 4 && <span className="text-xs text-white/60">+{quote.path.length - 4}</span>}
+                            {(quote?.path.length || 0) > 4 && <span className="text-xs text-white/60">+{(quote?.path.length || 0) - 4}</span>}
                         </div>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

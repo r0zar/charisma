@@ -592,9 +592,9 @@ const SpinAnimationOverlay = React.memo(({
                                 : '';
 
                             return (
-                                <animated.div
+                                <div
                                     key={card.uniqueKey}
-                                    style={style}
+                                    style={style as React.CSSProperties}
                                     className={`
                                         relative aspect-square p-2 rounded-lg 
                                         flex flex-col items-center justify-center text-center
@@ -607,13 +607,11 @@ const SpinAnimationOverlay = React.memo(({
                                 >
                                     {/* Spotlight overlay - only show if this is exactly the spotlight index */}
                                     {isSpotlight && !hasLanded && (
-                                        <animated.div
+                                        <div
                                             className="absolute inset-0 rounded-lg animate-pulse-medium"
                                             style={{
-                                                background: spotlightSpring.glow.to(g =>
-                                                    `radial-gradient(circle, rgba(var(--color-primary), ${0.5 + g * 0.3}) 0%, rgba(var(--color-primary), ${0.2 + g * 0.1}) 70%, rgba(var(--color-primary), 0) 100%)`
-                                                ),
-                                                opacity: spotlightSpring.pulseOpacity
+                                                background: `radial-gradient(circle, rgba(var(--color-primary), 0.5) 0%, rgba(var(--color-primary), 0.2) 70%, rgba(var(--color-primary), 0) 100%)`,
+                                                opacity: 0.8
                                             }}
                                         />
                                     )}
@@ -631,7 +629,7 @@ const SpinAnimationOverlay = React.memo(({
                                     <p className="text-[10px] md:text-xs font-semibold truncate w-full text-foreground mt-1">
                                         {card.token.symbol}
                                     </p>
-                                </animated.div>
+                                </div>
                             );
                         })}
                     </div>

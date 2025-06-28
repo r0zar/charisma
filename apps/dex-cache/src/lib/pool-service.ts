@@ -751,7 +751,7 @@ export async function getLiquidityOperationQuote(
             optionalCVOf(bufferFromHex(operationHex))
         ]
         );
-        const quoteValue = quoteResultCV.value;
+        const quoteValue = quoteResultCV?.value;
         if (quoteValue && quoteValue.dx !== undefined && quoteValue.dy !== undefined && quoteValue.dk !== undefined) {
             return {
                 dx: Number(quoteValue.dx.value),
