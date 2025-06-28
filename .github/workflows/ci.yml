@@ -52,13 +52,17 @@ jobs:
       - name: Get package lists
         id: get-packages
         run: |
-          # Get apps list
-          apps=$(find ./apps -maxdepth 2 -name "package.json" | grep -v node_modules | xargs -I {} dirname {} | sed 's|./apps/||' | jq -R -s 'split("\n") | map(select(length > 0))')
+          # Get apps list - use compact JSON output
+          apps=$(find ./apps -maxdepth 2 -name "package.json" | grep -v node_modules | xargs -I {} dirname {} | sed 's|./apps/||' | sort | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "apps=$apps" >> $GITHUB_OUTPUT
           
-          # Get packages list
-          packages=$(find ./packages -maxdepth 2 -name "package.json" | grep -v node_modules | xargs -I {} dirname {} | sed 's|./packages/||' | jq -R -s 'split("\n") | map(select(length > 0))')
+          # Get packages list - use compact JSON output
+          packages=$(find ./packages -maxdepth 2 -name "package.json" | grep -v node_modules | xargs -I {} dirname {} | sed 's|./packages/||' | sort | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "packages=$packages" >> $GITHUB_OUTPUT
+          
+          # Debug output
+          echo "Found apps: $apps"
+          echo "Found packages: $packages"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
