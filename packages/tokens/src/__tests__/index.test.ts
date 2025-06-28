@@ -6,7 +6,6 @@ import {
   listPricesSTXTools,
   listPricesInternal,
   listTokens,
-  Token
 } from "..";
 
 describe("@repo/tokens", () => {
