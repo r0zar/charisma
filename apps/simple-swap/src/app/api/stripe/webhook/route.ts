@@ -4,11 +4,21 @@ import { kv } from '@vercel/kv';
 import { buildAndSignBlazeIntent } from '@/lib/blaze-intent-server';
 import { BLAZE_SIGNER_PRIVATE_KEY, RESERVES_PRIVATE_KEY } from '@/lib/constants';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-04-30.basil',
-});
+function getStripe() {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-04-30.basil',
+    });
+}
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+function getEndpointSecret() {
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        throw new Error("STRIPE_WEBHOOK_SECRET is not configured");
+    }
+    return process.env.STRIPE_WEBHOOK_SECRET;
+}
 
 export const config = {
     api: {
@@ -21,6 +31,9 @@ export async function POST(req: NextRequest) {
     let event: Stripe.Event;
 
     try {
+        const stripe = getStripe();
+        const endpointSecret = getEndpointSecret();
+        
         rawBody = await req.arrayBuffer();
         const sig = req.headers.get('stripe-signature');
 
