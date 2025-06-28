@@ -66,7 +66,6 @@ describe('Token Cache', () => {
     const tokenObjects = tokens
       .filter((token) => token.identifier)
       .filter((token) => token.contractId !== '.stx')
-      .map((token) => new Token(token as any));
 
     console.log('Token contract IDs:', tokenObjects.map((token) => token.contractId));
     expect(tokenObjects.length).toBeGreaterThan(0);
@@ -203,7 +202,7 @@ describe('Token Cache', () => {
     try {
       // Test that the internal API only includes tokens with confidence > 0.1
       const internalPrices = await listPricesInternal();
-      
+
       // Since we can't directly test the confidence filtering without mocking,
       // we just verify the function runs and returns valid data
       expect(internalPrices).toBeDefined();
@@ -234,11 +233,11 @@ describe('Token Cache', () => {
         const prices = await listPrices(config);
         expect(prices).toBeDefined();
         expect(typeof prices).toBe('object');
-        
+
         const enabledSources = Object.entries(config.sources)
           .filter(([, enabled]) => enabled)
           .map(([source]) => source);
-        
+
         console.log(`Mixed source test (${enabledSources.join(', ')}) returned ${Object.keys(prices).length} prices`);
       } catch (error) {
         console.log(`Mixed source test failed for config ${JSON.stringify(config)}:`, error);
