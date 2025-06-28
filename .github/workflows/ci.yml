@@ -216,9 +216,9 @@ jobs:
 
       - name: Lint ${{ matrix.app }}
         run: |
-          cd apps/${{ matrix.app }}
-          if [ -f "package.json" ] && jq -e '.scripts.lint' package.json > /dev/null; then
-            pnpm lint
+          # Run lint from root to ensure workspace dependencies are available
+          if [ -f "apps/${{ matrix.app }}/package.json" ] && jq -e '.scripts.lint' "apps/${{ matrix.app }}/package.json" > /dev/null; then
+            pnpm --filter="${{ matrix.app }}" lint
           else
             echo "No lint script found for ${{ matrix.app }}, skipping..."
           fi
@@ -272,9 +272,9 @@ jobs:
 
       - name: Lint ${{ matrix.package }}
         run: |
-          cd packages/${{ matrix.package }}
-          if [ -f "package.json" ] && jq -e '.scripts.lint' package.json > /dev/null; then
-            pnpm lint
+          # Run lint from root to ensure workspace dependencies are available
+          if [ -f "packages/${{ matrix.package }}/package.json" ] && jq -e '.scripts.lint' "packages/${{ matrix.package }}/package.json" > /dev/null; then
+            pnpm --filter="${{ matrix.package }}" lint
           else
             echo "No lint script found for ${{ matrix.package }}, skipping..."
           fi
@@ -328,9 +328,9 @@ jobs:
 
       - name: Test ${{ matrix.app }}
         run: |
-          cd apps/${{ matrix.app }}
-          if [ -f "package.json" ] && jq -e '.scripts.test' package.json > /dev/null; then
-            pnpm test
+          # Run test from root to ensure workspace dependencies are available
+          if [ -f "apps/${{ matrix.app }}/package.json" ] && jq -e '.scripts.test' "apps/${{ matrix.app }}/package.json" > /dev/null; then
+            pnpm --filter="${{ matrix.app }}" test
           else
             echo "No test script found for ${{ matrix.app }}, skipping..."
           fi
@@ -384,9 +384,9 @@ jobs:
 
       - name: Test ${{ matrix.package }}
         run: |
-          cd packages/${{ matrix.package }}
-          if [ -f "package.json" ] && jq -e '.scripts.test' package.json > /dev/null; then
-            pnpm test
+          # Run test from root to ensure workspace dependencies are available
+          if [ -f "packages/${{ matrix.package }}/package.json" ] && jq -e '.scripts.test' "packages/${{ matrix.package }}/package.json" > /dev/null; then
+            pnpm --filter="${{ matrix.package }}" test
           else
             echo "No test script found for ${{ matrix.package }}, skipping..."
           fi
