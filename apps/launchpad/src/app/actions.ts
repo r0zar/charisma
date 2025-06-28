@@ -1,8 +1,7 @@
 'use server';
 
-import { getTokenMetadataCached, TokenCacheData, listTokens, SIP10 } from "@repo/tokens";
+import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { kv } from '@vercel/kv';
-import { TokenMetadata } from "@/lib/metadata-service";
 
 /**
  * Server Action to fetch metadata for a pair of tokens directly.
@@ -74,8 +73,8 @@ export interface Vault {
     description: string;
     image: string;
     fee: number;
-    tokenA: SIP10;
-    tokenB: SIP10;
+    tokenA: any;
+    tokenB: any;
 }
 
 /**
