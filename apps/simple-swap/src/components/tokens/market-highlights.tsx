@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, DollarSign, Flame, Star, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Info } from "lucide-react";
 import Image from "next/image";
 import type { TokenSummary } from "@/app/token-actions";
 import { cn, getIpfsUrl } from "@/lib/utils";

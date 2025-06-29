@@ -10,7 +10,7 @@ import { useBlaze } from 'blaze-sdk/realtime';
 import { toast } from 'sonner';
 import { formatUsd } from '@/lib/swap-utils';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
-import { classifyOrderTypes, groupOrdersIntoStrategies, type ClassifiedOrder } from '@/lib/orders/classification';
+import { classifyOrderTypes, type ClassifiedOrder } from '@/lib/orders/classification';
 
 // Use the ClassifiedOrder type from the shared utility
 export type DisplayOrder = ClassifiedOrder;

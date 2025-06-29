@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useWallet } from "@/contexts/wallet-context";
 import type { LimitOrder } from "@/lib/orders/types";
-import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../ui/dialog";
 import TokenLogo from "../TokenLogo";
@@ -16,12 +15,10 @@ import { useTransactionStatus } from "@/hooks/useTransactionStatus";
 import PremiumPagination, { type PaginationInfo } from "./premium-pagination";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { groupOrdersByStrategy, StrategyDisplayData } from "@/lib/orders/strategy-formatter";
-import { formatOrderCondition } from "@/lib/orders/condition-formatter";
-import { CompactOrderCard, StrategyProgressBar, ConditionStatusIndicator, PriceProgressBar } from "./order-progress-indicators";
 import { useBlaze } from 'blaze-sdk/realtime';
 import { StrategyCardFactory } from "./strategy-cards";
 import { truncateAddress } from "@/lib/address-utils";
-import { formatOrderDate, formatRelativeTime, formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
+import { formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
 
 interface BadgeProps {
     status: LimitOrder["status"];

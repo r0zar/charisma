@@ -6,10 +6,10 @@ import { BaseStrategyCard } from '../base/BaseStrategyCard';
 import { getStrategyStatusTime, getStrategyConditionIcon, getBadgeStatus } from '../utils/shared-utilities';
 import { PremiumStatusBadge } from '../../orders-panel';
 import { StrategyProgressBar } from '../../order-progress-indicators';
-import { formatExecWindowHuman, getOrderTimestamps } from '@/lib/date-utils';
+import { getOrderTimestamps } from '@/lib/date-utils';
 import { truncateAddress, truncateSmartContract } from '@/lib/address-utils';
 import TokenLogo from '../../../TokenLogo';
-import { ChevronDown, ChevronUp, ExternalLink, Copy, Check, Zap, Trash2, MessageCircle, Users, Clock } from 'lucide-react';
+import { ChevronDown, ExternalLink, Copy, Check, Zap, Trash2, MessageCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**

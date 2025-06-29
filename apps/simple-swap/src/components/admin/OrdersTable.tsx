@@ -31,7 +31,6 @@ import {
 import { formatLocalDateTime, formatRelativeTime } from '@/lib/admin-config';
 import type { LimitOrder } from '@/lib/orders/types';
 import { getTokenMetadataCached, TokenCacheData, listPrices } from '@repo/tokens';
-import { useTransactionStatus } from '@/hooks/useTransactionStatus';
 import { classifyOrderType } from '@/lib/orders/classification';
 import PremiumPagination, { type PaginationInfo } from '../orders/premium-pagination';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';

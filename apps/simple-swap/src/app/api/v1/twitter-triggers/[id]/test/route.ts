@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         let bnsNamesFound = 0;
         let ordersExecuted = 0;
         let status = 'No new replies with .btc names found';
-        let realExecutions = [];
+        const realExecutions = [];
         
         try {
             // Import required functions

@@ -2,8 +2,8 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Database, Clock, DollarSign, Download, Zap, Filter, Search, RefreshCw } from 'lucide-react';
-import { ADMIN_CONFIG, getPageSize, getAutoRefreshSeconds } from '@/lib/admin-config';
+import { ArrowLeft, Database, Download, Zap, RefreshCw } from 'lucide-react';
+import { ADMIN_CONFIG, getPageSize } from '@/lib/admin-config';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { RefreshButton } from '@/components/admin/RefreshButton';

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createTwitterTrigger } from '@/lib/twitter-triggers/store';
 import { validateTweetUrl } from '@/lib/twitter-triggers/twitter-scraper';
-import { getAddressFromPrivateKey } from '@stacks/transactions';
 
 interface BulkSignatureData {
     uuid: string;

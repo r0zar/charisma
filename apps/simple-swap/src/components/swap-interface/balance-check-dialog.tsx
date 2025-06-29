@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import TokenLogo from '../TokenLogo';
 import { AlertTriangle, ArrowRight, Wallet, Zap, TrendingUp } from 'lucide-react';
-import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 

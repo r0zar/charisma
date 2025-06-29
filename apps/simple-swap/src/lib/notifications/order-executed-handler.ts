@@ -43,7 +43,7 @@ function getSimpleTokenName(contractId: string): string {
     if (!contractName) return contractId;
 
     // Remove common token prefixes/suffixes
-    let tokenName = contractName
+    const tokenName = contractName
         .replace(/^token-/, '')
         .replace(/-token$/, '')
         .replace(/^t/, '') // Remove single 't' prefix

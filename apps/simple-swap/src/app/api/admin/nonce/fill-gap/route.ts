@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { makeContractCall, broadcastTransaction, AnchorMode, PostConditionMode, uintCV } from '@stacks/transactions';
+import { broadcastTransaction, AnchorMode } from '@stacks/transactions';
 import { STACKS_MAINNET } from '@stacks/network';
-import { ADMIN_ADDRESS, BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
+import { ADMIN_ADDRESS, BLAZE_SIGNER_PRIVATE_KEY } from '@/lib/constants';
 
 // POST /api/admin/nonce/fill-gap - Submit a transaction with specific nonce to fill gap
 export async function POST(request: NextRequest) {

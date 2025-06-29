@@ -3,7 +3,7 @@
 import React, { useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { CheckCircle, XCircle, Clock, Loader2, Repeat, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Loader2, Repeat } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useWallet } from '../../contexts/wallet-context';
 import { toast } from 'sonner';

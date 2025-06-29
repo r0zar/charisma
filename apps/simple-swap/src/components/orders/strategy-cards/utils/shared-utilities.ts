@@ -1,4 +1,4 @@
-import { StrategyDisplayData, DisplayOrder } from '@/lib/orders/strategy-formatter';
+import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
 import { formatOrderStatusTime, formatStrategyStatusTime, getConditionIcon } from '@/lib/date-utils';
 
 /**

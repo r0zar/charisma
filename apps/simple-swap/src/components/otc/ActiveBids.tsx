@@ -6,7 +6,7 @@ import { TokenDef } from "@/types/otc";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, Check, X, User, CheckCircle, XCircle, Wallet, ExternalLink } from "lucide-react";
+import { AlertCircle, Clock, User, CheckCircle, XCircle, Wallet, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/wallet-context";
 import { signedFetch } from 'blaze-sdk';

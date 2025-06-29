@@ -5,18 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
     ShoppingCart,
-    ExternalLink,
-    Info,
-    ArrowRight,
     CreditCard,
-    Zap,
     Coins,
     ImageIcon,
     TrendingUp,
     Clock,
     Star
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
     Dialog,
@@ -27,8 +22,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { request } from '@stacks/connect';
-import { bufferCV, optionalCVOf, Pc, stringAsciiCV, uintCV } from '@stacks/transactions';
-import { bufferFromHex } from '@stacks/transactions/dist/cl';
+import { Pc, uintCV } from '@stacks/transactions';
 import { useWallet } from '@/contexts/wallet-context';
 import { SHOP_CONTRACTS, SHOP_CATEGORIES } from '@/lib/shop/constants';
 

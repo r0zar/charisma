@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getAllIntents } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { manuallyProcessBlazeIntentAction } from "@/app/actions";
@@ -16,8 +14,6 @@ import {
     ExternalLinkIcon,
     ShieldCheckIcon,
     ClockIcon,
-    ArrowRightIcon,
-    CreditCardIcon,
     CheckCircleIcon,
     ArrowRightCircleIcon
 } from "lucide-react";

@@ -1,22 +1,17 @@
-import { headers } from "next/headers";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import OfferDetails from "@/components/otc/OfferDetails";
 import BidForm from "@/components/otc/BidForm";
-import { toast, Toaster } from "sonner";
 import { getOffer } from "@/lib/otc/kv";
 import { OfferDetailContent } from "@/components/otc/OfferDetailContent";
 import SocialShare from "@/components/otc/SocialShare";
 import { WalletProvider } from "@/contexts/wallet-context";
 import { Header } from "@/components/layout/header";
 import { Offer as SchemaOffer } from "@/lib/otc/schema";
-import { CancelOffer } from "@/components/otc/CancelOffer";
 import { ShopService } from "@/lib/shop/shop-service";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
     ArrowLeft,
     TrendingUp,
@@ -25,10 +20,8 @@ import {
     ExternalLink,
     Users,
     Zap,
-    Package,
     Shield,
     CheckCircle2,
-    XCircle,
     Timer
 } from "lucide-react";
 import Link from "next/link";

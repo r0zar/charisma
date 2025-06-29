@@ -3,8 +3,6 @@ import {
   generateApiKey, 
   hashApiKey, 
   createApiKey,
-  getApiKeyById,
-  getApiKeyByHash,
   validateApiKey,
   deleteApiKey
 } from '../store';

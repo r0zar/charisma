@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { TrendingUp, Clock, DollarSign, Activity, CheckCircle, XCircle, Timer, Target, ClipboardList } from 'lucide-react';
+import React from 'react';
+import { Clock, CheckCircle, Target, ClipboardList } from 'lucide-react';
 
 interface OrdersStat {
     title: string;

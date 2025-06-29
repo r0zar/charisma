@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Activity, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import React from 'react';
+import { Activity, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/tooltip';
 
 interface TransactionStats {

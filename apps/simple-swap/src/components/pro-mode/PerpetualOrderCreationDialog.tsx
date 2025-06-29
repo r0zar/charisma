@@ -4,7 +4,7 @@ import React, { useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { CheckCircle, XCircle, Clock, TrendingUp, TrendingDown, Info, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, TrendingUp, TrendingDown, Info, AlertTriangle } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useWallet } from '../../contexts/wallet-context';
 import { useTradingState } from '../../hooks/useTradingState';

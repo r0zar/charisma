@@ -4,7 +4,6 @@ import {
   ApiKey,
   CreateApiKeyMessage,
   ApiKeyPermission,
-  ApiKeyStatus,
   ApiKeyUsageRecord,
   RateLimitInfo,
   API_KEY_PREFIX,

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     Dialog,
     DialogContent,
@@ -15,28 +14,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     LineChart,
     TrendingUp,
     TrendingDown,
     DollarSign,
-    Clock,
     User,
     Wallet,
-    Shield,
     AlertCircle,
-    CheckCircle,
-    Calendar,
-    ArrowRight,
-    Target,
-    Percent,
     Info
 } from 'lucide-react';
 import { PerpFundingRequest, FundingOffer } from '@/types/shop';

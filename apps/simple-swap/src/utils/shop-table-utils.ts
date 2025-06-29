@@ -1,4 +1,4 @@
-import { ShopItem, OfferItem, PurchasableItem, PerpFundingRequest, isOfferItem, isPurchasableItem, isPerpFundingRequest, OfferAsset } from '@/types/shop';
+import { ShopItem, OfferItem, isOfferItem, isPurchasableItem, isPerpFundingRequest, OfferAsset } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CATEGORIES } from '@/lib/shop/constants';
 import { TrendingUp, Coins, ImageIcon, Star, LineChart } from 'lucide-react';

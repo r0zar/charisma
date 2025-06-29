@@ -16,8 +16,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { 
     enhanceSparseTokenData, 
     calculateResilientRatioData, 
-    type ChartDataPoint,
-    type TimeRange
+    type ChartDataPoint
 } from '@/lib/chart-data-utils';
 
 interface TokenChartProps {

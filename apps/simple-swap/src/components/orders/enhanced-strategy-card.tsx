@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
 import { formatOrderCondition } from '@/lib/orders/condition-formatter';
 import { StrategyProgressBar, ConditionStatusIndicator, PriceProgressBar } from './order-progress-indicators';
 import { PremiumStatusBadge } from './orders-panel';
 import TokenLogo from '../TokenLogo';
-import { Button } from '../ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
-import { Copy, Check, Zap, Trash2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Copy, Check, Zap, Trash2, ChevronDown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { truncateAddress } from '@/lib/address-utils';
-import { formatOrderDate, formatRelativeTime, formatExecWindow, formatOrderStatusTime, formatStrategyStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
+import { formatOrderDate, formatExecWindow, formatOrderStatusTime, formatStrategyStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
 
 interface EnhancedStrategyCardProps {
     strategyData: StrategyDisplayData;

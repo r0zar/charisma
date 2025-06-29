@@ -1,7 +1,7 @@
 import { TokenCacheData, listTokens, getTokenMetadataCached } from '@repo/tokens';
 import { kv } from '@vercel/kv';
 import { getOffer } from '@/lib/otc/kv';
-import { ShopItem, PurchasableItem, OfferItem, OfferAsset, PerpFundingRequest, LegacyShopItem } from '@/types/shop';
+import { ShopItem, PurchasableItem, OfferItem, OfferAsset, PerpFundingRequest } from '@/types/shop';
 import { TokenDef } from '@/types/otc';
 import { SHOP_CONTRACTS, FEATURED_ITEMS, OFFER_STATUS } from './constants';
 import { getAllFundingRequests } from '@/lib/perps/p2p-kv';

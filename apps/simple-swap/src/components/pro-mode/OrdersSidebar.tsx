@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Trash2, ChevronDown, ChevronRight, ArrowRight, Loader2, TrendingUp, TrendingDown, LogOut, Info } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronRight, Loader2, TrendingUp, TrendingDown, LogOut, Info } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';

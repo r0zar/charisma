@@ -17,7 +17,6 @@ import {
     calculateResilientRatioData, 
     enhanceSparseTokenData, 
     isValidDataPoint,
-    getDefaultTimeRange,
     type ChartDataPoint 
 } from "@/lib/chart-data-utils";
 import { useBlaze } from 'blaze-sdk/realtime';

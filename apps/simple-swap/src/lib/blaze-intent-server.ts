@@ -2,14 +2,12 @@
 
 import {
     stringAsciiCV, someCV, noneCV, uintCV, principalCV, tupleCV, signStructuredData,
-    ClarityValue, cvToHex, hexToCV, bufferCV, ClarityType, cvToValue,
+    ClarityValue,
     validateStacksAddress,
     makeContractCall,
     broadcastTransaction,
     PostConditionMode,
-    TxBroadcastResult,
-    StacksTransactionWire,
-    TxRejectedReason
+    StacksTransactionWire
 } from '@stacks/transactions';
 import { STACKS_MAINNET, STACKS_TESTNET, StacksNetwork } from '@stacks/network';
 import { getPublicKeyFromPrivate } from '@stacks/encryption';

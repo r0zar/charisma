@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { Metadata } from 'next';
 import ShopPage from '@/components/shop/ShopPage';
 import { ShopService } from '@/lib/shop/shop-service';

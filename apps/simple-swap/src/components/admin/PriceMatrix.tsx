@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Eye, EyeOff, ChevronLeft, ChevronRight, Copy, ExternalLink, RefreshCw, Flame } from 'lucide-react';
+import { AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import type { PriceStats } from '@/lib/price/metrics';
-import { getPageSize, getAutoRefreshSeconds, formatLocalDateTime } from '@/lib/admin-config';
-import { Button } from '@/components/ui/button';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { PriceMatrixDetailed } from './PriceMatrixDetailed';
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { CheckCircle, XCircle, Clock, Loader2, TrendingUp, AlertTriangle, Info } from 'lucide-react';

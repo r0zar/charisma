@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import type { TokenSummary } from '@/app/token-actions';
 import { cn } from '@/lib/utils';
 import { useComparisonToken } from '@/contexts/comparison-token-context';

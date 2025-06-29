@@ -16,8 +16,6 @@ import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useOrderConditions } from '../contexts/order-conditions-context';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
-import { buildPostConditions } from 'blaze-sdk';
-import { buildSwapPostConditions } from 'dexterity-sdk';
 
 interface BalanceCheckResult {
   hasEnoughSubnet: boolean;

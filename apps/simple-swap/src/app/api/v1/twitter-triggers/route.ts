@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listTwitterTriggers, createTwitterTrigger } from '@/lib/twitter-triggers/store';
-import { extractTweetId, validateTweetUrl } from '@/lib/twitter-triggers/twitter-scraper';
+import { validateTweetUrl } from '@/lib/twitter-triggers/twitter-scraper';
 import { CreateTwitterTriggerRequest } from '@/lib/twitter-triggers/types';
 
 // GET /api/v1/twitter-triggers - List all triggers

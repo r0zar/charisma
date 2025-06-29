@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getApiKeyById, deleteApiKey, getApiKeyUsageLogs } from '@/lib/api-keys/store';
 import { 
   authenticateSignature,
@@ -9,8 +9,7 @@ import {
 } from '@/lib/api-keys/middleware';
 import { 
   DeleteApiKeyRequest,
-  DeleteApiKeyResponse,
-  ApiKeyErrorCode
+  DeleteApiKeyResponse
 } from '@/lib/api-keys/types';
 
 /**

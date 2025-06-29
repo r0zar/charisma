@@ -3,13 +3,11 @@
 import React, { useState, Suspense } from 'react';
 import SwapInterface from '@/components/swap-interface/swap-interface';
 import SwapInterfaceContent from '@/components/swap-interface/swap-interface-content';
-import SwapDetails from '@/components/swap-interface/swap-details';
 import { Header } from '@/components/layout/header';
 import { SwapTokensProvider } from '@/contexts/swap-tokens-context';
-import { OrderConditionsProvider } from '@/contexts/order-conditions-context';
 import { SwapInformationSidebar } from '@/components/swap-interface/swap-information-sidebar';
 import { RouteIntelligenceSidebar } from '@/components/swap-interface/route-intelligence-sidebar';
-import { Menu, X, BarChart3, Info } from 'lucide-react';
+import { X, BarChart3, Info } from 'lucide-react';
 
 interface SwapPageClientProps {
     tokens: any[];

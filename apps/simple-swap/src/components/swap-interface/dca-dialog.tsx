@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
-import { Button } from '../ui/button';
 import TokenLogo from '../TokenLogo';
 import { Loader2, Check, X as XIcon } from 'lucide-react';
-import { TokenCacheData } from '@repo/tokens';
 import { useRouter } from 'next/navigation';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useOrderConditions } from '@/contexts/order-conditions-context';

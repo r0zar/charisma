@@ -3,8 +3,8 @@ import { z } from "zod";
 import { Offer, Bid, acceptBidSchema } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
 import { verifySignatureAndGetSigner } from 'blaze-sdk';
-import { createRedeem, createTransfer, recoverSigner, fetchTokenBalance } from "blaze-sdk";
-import { BLAZE_SIGNER_CONTRACT_ID, BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from "@/lib/constants";
+import { createRedeem, createTransfer, fetchTokenBalance } from "blaze-sdk";
+import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from "@/lib/constants";
 import { broadcastTransaction, fetchNonce, makeContractCall } from "@stacks/transactions";
 import { revalidatePath } from "next/cache";
 

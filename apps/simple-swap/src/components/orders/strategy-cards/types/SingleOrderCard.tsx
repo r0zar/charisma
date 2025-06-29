@@ -5,13 +5,11 @@ import { SingleOrderCardProps } from '../base/shared-types';
 import { BaseStrategyCard } from '../base/BaseStrategyCard';
 import { getStrategyStatusTime, getStrategyConditionIcon, shouldShowActionButtons, getBadgeStatus, getTxId, getFailureReason } from '../utils/shared-utilities';
 import { PremiumStatusBadge } from '../../orders-panel';
-import { StrategyProgressBar, ConditionStatusIndicator, PriceProgressBar } from '../../order-progress-indicators';
+import { ConditionStatusIndicator, PriceProgressBar } from '../../order-progress-indicators';
 import { formatOrderCondition } from '@/lib/orders/condition-formatter';
 import TokenLogo from '../../../TokenLogo';
-import { Button } from '../../../ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../../../ui/tooltip';
-import { Copy, Check, Zap, Trash2, ExternalLink } from 'lucide-react';
-import { truncateAddress } from '@/lib/address-utils';
+import { Copy, Check, Zap, Trash2 } from 'lucide-react';
 
 /**
  * Component for displaying individual orders (non-strategy orders)

@@ -59,7 +59,6 @@ import { useWallet } from '@/contexts/wallet-context';
 import {
     getTypeConfig,
     formatPrice,
-    formatCreator,
     formatTokenAmount as utilFormatTokenAmount
 } from '@/utils/shop-table-utils';
 import { useShopTable } from '@/hooks/useShopTable';

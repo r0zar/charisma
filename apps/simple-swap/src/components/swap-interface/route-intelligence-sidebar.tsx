@@ -5,7 +5,7 @@ import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useWallet } from '@/contexts/wallet-context';
 import TokenLogo from '@/components/TokenLogo';
-import { ArrowRight, Zap, TrendingUp, Shield, Clock } from 'lucide-react';
+import { ArrowRight, Zap, Shield, Clock } from 'lucide-react';
 import { formatTokenAmount } from '@/lib/swap-utils';
 
 export function RouteIntelligenceSidebar() {

@@ -1,6 +1,6 @@
 'use server';
 
-import { listTokens as listMetadata, getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
+import { listTokens as listMetadata, TokenCacheData } from '@repo/tokens';
 import { getPriceStats, PriceStats, getBulkPriceStats } from '@/lib/price/metrics';
 import { getAllTrackedTokens, getBulkLatestPrices } from '@/lib/price/store';
 

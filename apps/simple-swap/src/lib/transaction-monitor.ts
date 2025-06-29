@@ -2,7 +2,7 @@ import { kv } from '@vercel/kv';
 import { getTransactionDetails } from '@repo/polyglot';
 import type { LimitOrder } from './orders/types';
 import { confirmOrder, failOrder, cancelOrder } from './orders/store';
-import { countOrdersByType, type OrderTypeCounts } from './orders/classification';
+import { countOrdersByType } from './orders/classification';
 import { getTokenMetadataCached } from '@repo/tokens';
 
 /**

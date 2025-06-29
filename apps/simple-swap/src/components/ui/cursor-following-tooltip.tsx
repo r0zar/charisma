@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 

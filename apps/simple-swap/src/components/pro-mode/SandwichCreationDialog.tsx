@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { CheckCircle, XCircle, Clock, Loader2, TrendingDown, TrendingUp, ArrowRight } from 'lucide-react';

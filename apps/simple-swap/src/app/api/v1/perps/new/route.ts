@@ -3,15 +3,8 @@ import { z } from 'zod';
 import { NewPerpetualPositionRequest } from '@/lib/perps/types';
 import { addPosition } from '@/lib/perps/store';
 import { getMarginAccount, canOpenPosition, updateMarginUsage } from '@/lib/margin/store';
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { bufferFromHex } from '@stacks/transactions/dist/cl';
-import {
-    principalCV,
-    stringAsciiCV,
-    uintCV,
-    noneCV,
-    optionalCVOf,
-} from '@stacks/transactions';
+
+
 
 const schema = z.object({
     owner: z.string().min(3),
