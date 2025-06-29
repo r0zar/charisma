@@ -1,5 +1,5 @@
 import { NotifierClient } from './index';
-import { Notification, NotificationChannel, NotificationRecipient, IChannelSender } from './interfaces';
+import { Notification, NotificationChannel, IChannelSender } from './interfaces';
 import { TelegramSender } from './channels/telegram';
 // import { DiscordSender } from './channels/discord';
 import { SMSSender } from './channels/sms';
