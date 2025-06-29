@@ -1,4 +1,4 @@
-import { getTokenPrice, getMultipleTokenPrices, type TokenPriceData } from '@/lib/pricing/price-calculator';
+import { getMultipleTokenPrices, type TokenPriceData } from '@/lib/pricing/price-calculator';
 
 // Energy-related token contract IDs
 export const ENERGY_TOKENS = {

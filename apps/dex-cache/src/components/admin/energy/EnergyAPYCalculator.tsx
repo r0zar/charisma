@@ -1,14 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, Zap, Target, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { EnergyRateBreakdown } from '../EnergyRateBreakdown';
 import { EnergySimulation } from './EnergySimulation';
 import { getTokenMetadataCached, type TokenCacheData } from '@repo/tokens';
 

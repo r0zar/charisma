@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 // import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { Search, Download, Filter, RefreshCw, TrendingUp, Users, Clock, Zap } from 'lucide-react';
+import { Search, Download, RefreshCw, TrendingUp, Users, Clock, Zap } from 'lucide-react';
 import type { EnergyAnalyticsData, EnergyLog, UserEnergyStats } from '@/lib/energy/analytics';
 import { formatEnergyValue, formatEnergyCompact, getEnergyTokenSymbol } from '@/lib/format-energy';
 import type { TokenCacheData } from '@repo/tokens';

@@ -1,4 +1,4 @@
-import { listVaults, Vault } from '@/lib/pool-service';
+import { listVaults } from '@/lib/pool-service';
 
 /**
  * LP token dependency information

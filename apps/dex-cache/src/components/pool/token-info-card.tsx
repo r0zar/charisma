@@ -1,6 +1,5 @@
-import { TrendingUp, ExternalLink, Clock, DollarSign, Package } from "lucide-react";
+import { TrendingUp, ExternalLink, DollarSign, Package } from "lucide-react";
 import Image from "next/image";
-import { Badge } from "../ui/badge";
 import { Card } from "../ui/card";
 import { TokenCacheData } from "@repo/tokens";
 import { useState, useEffect } from "react";

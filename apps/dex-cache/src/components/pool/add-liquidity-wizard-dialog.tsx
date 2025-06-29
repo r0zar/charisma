@@ -6,13 +6,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Search, Wallet, AlertCircle, CheckCircle, Loader2, Sparkle, Sparkles, Copy } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
+import { Plus, Search, Wallet, CheckCircle, Loader2, Sparkles, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { getFungibleTokenBalance, Vault, listVaultTokens } from '@/lib/pool-service';
+import { Vault } from '@/lib/pool-service';
 import { AddLiquidityModal } from '@/components/pool/add-liquidity-modal';
 import { ClientDisplayVault } from '@/components/pool/vault-detail-client';
 import { listTokens, TokenCacheData } from '@repo/tokens';

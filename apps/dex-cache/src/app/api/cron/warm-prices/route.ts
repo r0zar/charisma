@@ -206,7 +206,7 @@ async function generatePriceDataForWarming(config: {
             // Calculate liquidity: use pool value for LP tokens, graph liquidity for regular tokens
             let totalLiquidity = 0;
             
-            if (!!(tokenMeta as any).isLpToken) {
+            if ((tokenMeta as any).isLpToken) {
                 // For LP tokens, calculate pool value from vault reserves
                 const vault = sortedVaults.find(v => v.contractId === tokenId);
                 if (vault) {

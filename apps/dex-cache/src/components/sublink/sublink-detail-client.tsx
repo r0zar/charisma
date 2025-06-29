@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Info, ShieldCheck, TrendingUp, DollarSign, Layers, Wallet, RefreshCw, Flame, ArrowRightLeft, ExternalLinkIcon, Settings } from 'lucide-react';
+import { ArrowLeft, Info, ShieldCheck, DollarSign, Layers, Wallet, RefreshCw, Flame, ArrowRightLeft, ExternalLinkIcon, Settings } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";

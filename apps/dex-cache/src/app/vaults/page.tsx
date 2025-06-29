@@ -1,5 +1,4 @@
 import React from 'react';
-import { getVaultIds, getVault } from "../actions";
 import VaultList from '@/components/VaultList';
 import { Metadata } from 'next';
 import { Coins } from 'lucide-react';

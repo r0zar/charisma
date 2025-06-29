@@ -2,23 +2,18 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
   PieChart,
   AlertTriangle,
   Target,
   Droplets
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { PoolEdge } from '@/lib/pricing/price-graph';
 import { TokenNode } from '@/lib/pricing/price-graph';
+
+
 import {
-  getTokenDecimals,
-  convertAtomicToDecimal
-} from '@/lib/pricing/decimal-utils';
-import {
-  type TokenMeta as UITokenMeta,
-  getTokenDecimalsFromMeta
+  type TokenMeta as UITokenMeta
 } from '@/lib/ui-decimal-utils';
 
 interface LiquidityAnalysisProps {

@@ -1,16 +1,13 @@
 import { kv } from "@vercel/kv";
 import { getBtcPrice, SBTC_CONTRACT_ID, isStablecoin, type BtcPriceData } from './btc-oracle';
-import { getPriceGraph, type PricePath, type PoolEdge } from './price-graph';
+import { getPriceGraph, type PricePath } from './price-graph';
 import {
-    calculateDecimalAwareExchangeRate,
     getTokenDecimals,
     isValidDecimalConversion
 } from './decimal-utils';
 import {
     calculateLpIntrinsicValueFromVault,
-    calculateAssetBreakdown,
-    analyzeLpTokenPricing,
-    type LpTokenPriceAnalysis
+    calculateAssetBreakdown
 } from './lp-token-calculator';
 
 // Cache keys

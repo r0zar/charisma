@@ -1,10 +1,10 @@
 'use server'
 
-import { getAllVaultData, Vault } from "../pool-service";
+import { getAllVaultData } from "../pool-service";
 import { revalidatePath } from "next/cache";
 import { kv } from "@vercel/kv";
 import { processAllEnergyData, EnergyAnalyticsData } from "@/lib/energy/analytics";
-import { getUserEnergyStatsV2, EnergyAnalyticsData as EnergyAnalyticsDataV2 } from "@/lib/energy/analytics-v2";
+import { getUserEnergyStatsV2 } from "@/lib/energy/analytics-v2";
 import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
 import { callReadOnlyFunction } from "@repo/polyglot";
 import { principalCV } from "@stacks/transactions";

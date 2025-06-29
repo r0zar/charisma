@@ -16,7 +16,7 @@ interface RavenCache {
 }
 
 // Cache instance
-let ravenCache: RavenCache = {
+const ravenCache: RavenCache = {
     ownership: new Map(),
     userToRavens: new Map(),
     lastFullUpdate: 0,

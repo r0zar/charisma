@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { StatCard } from '@/components/ui/stat-card';
-import { AlertCircle, CheckCircle, Clock, Activity } from 'lucide-react';
 
 interface HealthData {
   btcOracle: {

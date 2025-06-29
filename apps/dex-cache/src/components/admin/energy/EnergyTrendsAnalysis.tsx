@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TrendingUp, BarChart3, RefreshCw, Calendar, Users, Activity } from 'lucide-react';
+import { TrendingUp, BarChart3, RefreshCw, Calendar, Activity } from 'lucide-react';
 import type { TokenRateHistory, TokenEnergyRate } from '@/lib/energy/rate-analytics';
 import { formatEnergyValue } from '@/lib/format-energy';
 import type { TokenCacheData } from '@repo/tokens';

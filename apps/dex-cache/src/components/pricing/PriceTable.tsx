@@ -9,7 +9,6 @@ import {
   ChevronDown, 
   ChevronUp,
   Bitcoin,
-  TrendingUp,
   Clock,
   Activity,
   Coins,

@@ -10,12 +10,8 @@ import {
     TrendingDown,
     AlertCircle,
     Info,
-    DollarSign,
     Scale,
-    Target,
-    Users,
-    CheckCircle,
-    Shield
+    Target
 } from 'lucide-react';
 import { analyzeLpTokenPricing, formatLpPriceAnalysis, type LpTokenPriceAnalysis } from '@/lib/pricing/lp-token-calculator';
 import { Vault } from '@/lib/pool-service';

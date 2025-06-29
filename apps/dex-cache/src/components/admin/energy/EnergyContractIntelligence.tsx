@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Brain, Network, Search, ExternalLink, Copy, 
-  GitBranch, Link, Info, AlertTriangle, 
-  CheckCircle, Code, Database, Activity 
+  Brain, Network, ExternalLink, Copy, 
+  GitBranch, Info, AlertTriangle, Code, Database, Activity 
 } from 'lucide-react';
 
 interface ContractRelationship {

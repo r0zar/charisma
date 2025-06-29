@@ -1,6 +1,5 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { ListPlus, Loader2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { ArrowRightLeft, Flame } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { getAllVaultData, Vault } from '@/lib/pool-service';
 import SublinkList from '@/components/SublinkList';
 import { getTokenBalanceForContract } from '@/lib/server/subnets';

@@ -177,8 +177,8 @@ export function generateEnergyRateTimeSeries(
 
         // Calculate average energy per block for this day
         let totalEnergyForDay = 0;
-        let totalUsersForDay = new Set<string>();
-        let totalBlocksForDay = blockGroups.size;
+        const totalUsersForDay = new Set<string>();
+        const totalBlocksForDay = blockGroups.size;
 
         blockGroups.forEach((blockLogs, blockHeight) => {
             const blockEnergy = blockLogs.reduce((sum, log) => sum + log.energy, 0);

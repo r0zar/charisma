@@ -2,21 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { request } from '@stacks/connect';
-import { Wifi, WifiOff, Zap, Battery, Clock, AlertTriangle, Settings2, Flame, TrendingUp, Coins } from 'lucide-react';
+import { Wifi, WifiOff, Zap, Battery, AlertTriangle, Flame, TrendingUp, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { getTokenMetadataCached, listPrices, type TokenCacheData, type KraxelPriceData } from '@repo/tokens';
+import { getTokenMetadataCached, listPrices, type TokenCacheData } from '@repo/tokens';
 import { useApp } from '@/lib/context/app-context';
 import { getAccountBalances } from '@repo/polyglot';
 import { EnergyTankVisualization } from '@/components/admin/energy/EnergyTankVisualization';
-import { EnergyFlowVisualization, AnimatedCounter } from '@/components/admin/energy/EnergyParticles';
-import { NFTBonusDisplay } from '@/components/admin/energy/NFTBonusDisplay';
 import { useNFTBonuses } from '@/lib/nft-service';
-import { formatEnergyValue, formatTimeDuration, getCapacityZoneStyles, type RealTimeEnergyData } from '@/lib/energy/real-time';
-import { ENERGY_TOKENS } from '@/lib/energy/price-service';
+import { type RealTimeEnergyData } from '@/lib/energy/real-time';
 import {
     calculateEnergyAPY,
     formatAPY,

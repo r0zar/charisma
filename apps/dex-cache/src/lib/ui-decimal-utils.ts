@@ -4,7 +4,7 @@
  * liquidity values, and share percentages correctly after the decimal conversion fix.
  */
 
-import { convertAtomicToDecimal, getTokenDecimals } from './pricing/decimal-utils';
+import { convertAtomicToDecimal } from './pricing/decimal-utils';
 
 /**
  * Interface for token metadata with decimals

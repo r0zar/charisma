@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Shield, RefreshCw, Clock, AlertTriangle, CheckCircle, 
+  Shield, RefreshCw, Clock, AlertTriangle, 
   Zap, Link, ExternalLink, Timer, Activity 
 } from 'lucide-react';
 import { 
   useEnergyHealth, 
   getHealthStatusIcon, 
-  getHealthStatusColor, 
   getFunctionStatusIcon, 
   formatResponseTime 
 } from '@/hooks/useEnergyHealth';

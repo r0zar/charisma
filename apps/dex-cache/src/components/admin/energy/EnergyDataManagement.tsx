@@ -6,13 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     Plus, Trash2, Play, Pause, RefreshCw, Settings, AlertTriangle, 
-    CheckCircle, Database, Download, Filter, Search, FileText, Server, GitCompare 
+    CheckCircle, Database, Download, Search, FileText, Server 
 } from 'lucide-react';
 import { formatEnergyCompact } from '@/lib/format-energy';
 import type { TokenCacheData } from '@repo/tokens';

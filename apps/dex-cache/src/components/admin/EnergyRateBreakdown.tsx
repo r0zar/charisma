@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calculator, TrendingUp, Zap, Clock, Target, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Calculator, TrendingUp, Zap, Target, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import type { TokenCacheData } from '@repo/tokens';
@@ -21,7 +20,7 @@ import {
     type EnergyRateBreakdown as EnergyRateBreakdownType,
     type EnergyCalculationParams
 } from '@/lib/energy/rate-calculations';
-import { formatEnergyValue, formatEnergyRate } from '@/lib/format-energy';
+import { formatEnergyRate } from '@/lib/format-energy';
 
 interface EnergyRateBreakdownProps {
     tokenData?: TokenCacheData[];

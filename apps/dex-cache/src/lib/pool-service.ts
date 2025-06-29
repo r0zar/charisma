@@ -1,6 +1,6 @@
 import { kv } from "@vercel/kv";
 import { callReadOnlyFunction, getContractInfo } from '@repo/polyglot';
-import { principalCV, cvToValue, ClarityType, uintCV, bufferCVFromString, optionalCVOf } from '@stacks/transactions';
+import { principalCV, uintCV, optionalCVOf } from '@stacks/transactions';
 import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { OPCODES, opcodeCV } from "dexterity-sdk";
 

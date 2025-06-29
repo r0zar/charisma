@@ -4,7 +4,6 @@ import {
     Coins, DollarSign, Database, Banknote,
     Zap, Clock, Users, BarChart2, Activity,
     TrendingUp, Layers, ArrowUp, ArrowDown,
-    type LucideIcon,
     BatteryCharging
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
