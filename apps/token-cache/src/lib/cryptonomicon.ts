@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 import { callReadOnlyFunction, getContractInterface } from "@repo/polyglot";
 import { TokenCacheData } from "@repo/tokens";

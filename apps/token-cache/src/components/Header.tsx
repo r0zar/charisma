@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DatabaseZap, Search } from 'lucide-react'; // Example icons
+import { DatabaseZap } from 'lucide-react'; // Example icons
 
 export default function Header() {
     return (
