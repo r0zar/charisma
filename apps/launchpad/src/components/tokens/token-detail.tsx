@@ -7,8 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, Layers, Save, ArrowLeft, RefreshCcw, Loader2, PencilLine, Check, X, Upload, ImageIcon } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Sparkles, Layers, Save, ArrowLeft, Loader2, PencilLine, Check, X, Upload, ImageIcon } from 'lucide-react';
 
 interface TokenDetailProps {
     contractId: string;

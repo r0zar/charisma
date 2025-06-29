@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Loader2, HelpCircle, Search, X } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { TokenCacheData } from "@repo/tokens";
 import { fetchSingleTokenMetadataDirectly } from "@/app/actions";
 

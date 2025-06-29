@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle, ExternalLink, ArrowLeft, Layers, Droplets } from "lucide-react";
+import { CheckCircle, ExternalLink, ArrowLeft, Droplets } from "lucide-react";
 // import { ઉત્પાદનLines } from "@/components/ui/misc"; // Assuming this is a custom component for underlines/dividers - REMOVED
 import Link from "next/link";
 

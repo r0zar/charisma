@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { broadcastTransaction, fetchCallReadOnlyFunction, getAddressFromPrivateKey, getAddressFromPublicKey, makeContractDeploy, PostConditionMode } from '@stacks/transactions';
+import { broadcastTransaction, getAddressFromPrivateKey, makeContractDeploy, PostConditionMode } from '@stacks/transactions';
 import { z } from 'zod';
 import { generateLiquidityPoolContract, LiquidityPoolOptions } from '@/lib/templates/liquidity-pool-contract-template';
 import { fetchTokenMetadataPairDirectly } from '@/app/actions';

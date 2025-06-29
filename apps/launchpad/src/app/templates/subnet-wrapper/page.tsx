@@ -32,7 +32,7 @@ function generateBoldRandomColor(): string {
     return boldColors[Math.floor(Math.random() * boldColors.length)];
 }
 
-import { useState, ChangeEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useApp } from '@/lib/context/app-context';
@@ -43,17 +43,12 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     Card,
     CardContent,
-    CardDescription,
     CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+
+
 import {
     ArrowLeft,
     ArrowRight,
@@ -65,7 +60,6 @@ import {
     Network,
     Rocket,
     Zap,
-    Clock,
     FileSignature,
     Loader2,
     ExternalLinkIcon,

@@ -6,7 +6,7 @@ import { ArrowLeft, Loader2, Globe, ExternalLink, Sparkles, Info } from "lucide-
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { generatePixelArtDataUri, generateOptimizedOnChainMetadata } from "../../lib/utils/image-utils";
+import { generateOptimizedOnChainMetadata } from "../../lib/utils/image-utils";
 import {
     Tooltip,
     TooltipContent,

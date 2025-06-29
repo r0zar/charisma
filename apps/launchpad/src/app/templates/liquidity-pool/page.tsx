@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast as sonnerToast } from "sonner";
 import { useApp } from "@/lib/context/app-context";
-import { ArrowLeft, HelpCircle, Layers, ExternalLink, Search, X } from "lucide-react";
+import { ArrowLeft, Layers, ExternalLink } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -15,7 +15,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { truncateAddress } from "@/lib/utils/token-utils";
-import { generateLiquidityPoolContract, LiquidityPoolOptions } from "@/lib/templates/liquidity-pool-contract-template";
+import { generateLiquidityPoolContract } from "@/lib/templates/liquidity-pool-contract-template";
 import { TokenMetadata } from "@/lib/metadata-service";
 import { Check } from "lucide-react";
 import { PostCondition } from "@stacks/connect/dist/types/methods";
@@ -23,9 +23,8 @@ import { TokenSelectionStep } from "@/components/liquidity-pool-wizard/token-sel
 import { PoolConfigStep } from "@/components/liquidity-pool-wizard/pool-config-step";
 import { InitializePoolStep } from "@/components/liquidity-pool-wizard/initialize-pool-step";
 import { ReviewDeployStep } from "@/components/liquidity-pool-wizard/review-deploy-step";
-import { getTokenMetadataCached, listTokens, TokenCacheData, listPrices, KraxelPriceData } from "@repo/tokens";
-import { fetchTokenMetadataPairDirectly, fetchSingleTokenMetadataDirectly, saveMetadataToDexCache, Vault } from '@/app/actions';
-import { generatePixelArtDataUri } from "@/lib/utils/image-utils";
+import { TokenCacheData, listPrices } from "@repo/tokens";
+import { fetchTokenMetadataPairDirectly, saveMetadataToDexCache, Vault } from '@/app/actions';
 
 // Metadata constants
 const METADATA_BASE_URL = process.env.NEXT_PUBLIC_METADATA_BASE_URL || 'https://metadata.charisma.rocks'

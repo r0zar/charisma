@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle, ExternalLink, ArrowLeft, Globe, Settings } from "lucide-react"; // Using Globe as a relevant icon for sublinks
+import { CheckCircle, ExternalLink, ArrowLeft, Globe } from "lucide-react"; // Using Globe as a relevant icon for sublinks
 import Link from "next/link";
 
 // This could be an environment variable if the sublink management page is on a different domain/app

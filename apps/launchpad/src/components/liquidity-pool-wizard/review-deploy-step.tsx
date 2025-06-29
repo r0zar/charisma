@@ -6,7 +6,6 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
@@ -30,7 +29,6 @@ import {
     X
 } from "lucide-react";
 import { TokenMetadata } from "@/lib/metadata-service"; // Assuming this type lives here or is globally defined
-import { truncateAddress } from "@/lib/utils/token-utils";
 import Image from "next/image";
 
 // Define InitialTokenRatio locally
