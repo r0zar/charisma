@@ -305,7 +305,7 @@ export class BurnSwapper {
 
     // Build function arguments based on pattern
     const functionName = getFunctionName(pattern);
-    let functionArgs: ClarityValue[] = [
+    const functionArgs: ClarityValue[] = [
       principalCV(lpVault.contractId), // lp-pool
       principalCV(lpVault.contractId), // lp-token (same as pool for most cases)
       uintCV(lpAmount), // lp-amount
