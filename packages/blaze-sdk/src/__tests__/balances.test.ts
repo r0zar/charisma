@@ -29,7 +29,7 @@ describe('getUserTokenBalance', () => {
             samples.map(({ contractId, address }) => getUserTokenBalance(contractId, address)),
         );
 
-        results.forEach((result, _idx) => {
+        results.forEach((result) => {
             console.log(result);
 
             // Ensure types
