@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { useApp } from '@/lib/context/app-context';
 import { Button } from '@/components/ui/button';
-import { Plus, Info, Loader2, ClipboardCopy, ExternalLink } from 'lucide-react';
+import { Plus, ClipboardCopy, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';

@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { TokenMetadata } from '@/lib/metadata-service';
 import { constructSip16MetadataObject } from '@/lib/metadata-service';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, Layers, Save, ArrowLeft, RefreshCcw, Loader2, PencilLine, Check, X, Upload, ImageIcon, Edit, FileJson, Copy, LinkIcon } from 'lucide-react';
+import { Sparkles, Layers, Save, ArrowLeft, RefreshCcw, Loader2, PencilLine, Check, X, Upload, ImageIcon, Edit, Copy, LinkIcon } from 'lucide-react';
 import { generateRandomSvgDataUri, genImageDataUri } from '@/lib/image-utils';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ui/use-toast';
@@ -150,7 +150,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
 
                     const parsedAttributes = Array.isArray(data.attributes) ? data.attributes : [];
 
-                    let parsedLocalization = { ...defaultLocalization };
+                    const parsedLocalization = { ...defaultLocalization };
                     if (data.localization && typeof data.localization === 'object') {
                         parsedLocalization.uri = typeof data.localization.uri === 'string' ? data.localization.uri : '';
                         parsedLocalization.default = typeof data.localization.default === 'string' ? data.localization.default : 'en';
@@ -614,7 +614,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
             const parsedAttributes = Array.isArray(parsed.attributes) ? parsed.attributes : [];
             const parsedIdentifier = parsed.properties?.identifier || '';
 
-            let parsedLocalization = { ...defaultLocalization };
+            const parsedLocalization = { ...defaultLocalization };
             if (parsed.localization && typeof parsed.localization === 'object') {
                 parsedLocalization.uri = typeof parsed.localization.uri === 'string' ? parsed.localization.uri : '';
                 parsedLocalization.default = typeof parsed.localization.default === 'string' ? parsed.localization.default : 'en';

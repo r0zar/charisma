@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { MetadataService } from '@/lib/metadata-service';
-import { kv } from '@vercel/kv';
 import { generateCorsHeaders } from '@/lib/cors-helper';
 
 type Context = {
