@@ -238,7 +238,7 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
         const amount = parseFloat(order.amountIn || '0');
 
         let groupKey = null;
-        for (const [key, group] of dcaGroups.entries()) {
+        for (const [key] of dcaGroups.entries()) {
             const [existingTime, existingPair, existingAmount] = key.split('|');
             if (Math.abs(creationTime - parseInt(existingTime)) < 300000 && // Within 5 minutes
                 tokenPair === existingPair &&
