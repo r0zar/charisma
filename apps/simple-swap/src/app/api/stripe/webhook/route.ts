@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { kv } from '@vercel/kv';
 import { buildAndSignBlazeIntent } from '@/lib/blaze-intent-server';
-import { BLAZE_SIGNER_PRIVATE_KEY, RESERVES_PRIVATE_KEY } from '@/lib/constants';
+import { BLAZE_SIGNER_PRIVATE_KEY } from '@/lib/constants';
 
 function getStripe() {
     if (!process.env.STRIPE_SECRET_KEY) {
