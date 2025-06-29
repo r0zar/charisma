@@ -45,6 +45,12 @@
         "^lint"
       ]
     },
+    "lint:fix": {
+      "dependsOn": [
+        "^build",
+        "^lint:fix"
+      ]
+    },
     "check-types": {
       "dependsOn": [
         "^build",
