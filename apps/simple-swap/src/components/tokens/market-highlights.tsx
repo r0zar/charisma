@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, DollarSign, Flame, Star, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Info } from "lucide-react";
 import Image from "next/image";
 import type { TokenSummary } from "@/app/token-actions";
 import { cn, getIpfsUrl } from "@/lib/utils";
@@ -161,7 +161,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     token={token}
                                     rank={index + 1}
                                     type="gainer"
-                                    getPrice={getPrice}
+                                    getPrice={(contractId: string) => getPrice(contractId) ?? null}
                                 />
                             ))}
                         </div>
@@ -181,7 +181,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     token={token}
                                     rank={index + 1}
                                     type="loser"
-                                    getPrice={getPrice}
+                                    getPrice={(contractId: string) => getPrice(contractId) ?? null}
                                 />
                             ))}
                         </div>
@@ -201,7 +201,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     token={token}
                                     rank={index + 1}
                                     type="active"
-                                    getPrice={getPrice}
+                                    getPrice={(contractId: string) => getPrice(contractId) ?? null}
                                 />
                             ))}
                         </div>

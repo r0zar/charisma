@@ -1,5 +1,5 @@
 import { TokenCacheData } from "@repo/tokens";
-import { Offer, Bid } from "@/lib/otc/schema";
+import { Bid } from "@/lib/otc/schema";
 
 // Base interface for all marketplace items
 interface BaseShopItem {

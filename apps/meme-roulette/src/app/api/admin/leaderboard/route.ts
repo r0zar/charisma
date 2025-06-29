@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeIntegratedSystem, getUserProfile, getComprehensiveLeaderboard } from '@/lib/leaderboard-integration';
-import { getUserStats, getBnsNameForUser } from '@/lib/leaderboard-kv';
+import { initializeIntegratedSystem, getComprehensiveLeaderboard } from '@/lib/leaderboard-integration';
+import { getBnsNameForUser } from '@/lib/leaderboard-kv';
 import { getAllUserVotes } from '@/lib/state';
 import { verifySignatureAndGetSigner } from 'blaze-sdk';
 

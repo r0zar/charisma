@@ -73,7 +73,7 @@ export class LpProcessingQueue {
             
             // Process all tokens at this level (can be done in parallel since no interdependencies)
             const levelResults = await Promise.all(
-                tokensAtLevel.map(contractId => this.processLpToken(contractId))
+                tokensAtLevel.map((contractId: string) => this.processLpToken(contractId))
             );
 
             // Store results and update calculated prices for next level

@@ -5,8 +5,6 @@ import {
     buildXSwapTransaction,
     broadcastMultihopTransaction,
     SwapMetadata,
-    TransactionConfig,
-    MULTIHOP_CONTRACT_ID,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
 import { fetchQuote } from 'dexterity-sdk';
 import { fetchNonce, PostConditionMode } from '@stacks/transactions';

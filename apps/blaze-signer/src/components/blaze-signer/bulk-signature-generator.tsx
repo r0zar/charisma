@@ -2,17 +2,14 @@
 
 import React, { useState, ChangeEvent, useCallback, useEffect, useRef } from "react"
 import {
-    tupleCV, stringAsciiCV, uintCV,
-    bufferCV, optionalCVOf, noneCV,
+    tupleCV, stringAsciiCV, uintCV, optionalCVOf, noneCV,
     principalCV, signStructuredData,
-    getAddressFromPrivateKey, cvToString,
+    getAddressFromPrivateKey,
     ClarityType, cvToValue, fetchCallReadOnlyFunction
 } from "@stacks/transactions"
 import { bufferFromHex } from "@stacks/transactions/dist/cl"
 import { StacksNetwork } from "@stacks/network"
-import { request } from "@stacks/connect"
 import { generateWallet, restoreWalletAccounts } from '@stacks/wallet-sdk'
-import type { Wallet } from '@stacks/wallet-sdk'
 import {
     Card,
     CardHeader,

@@ -8,8 +8,6 @@ import {
     getKVTokenBets,
     setKVWinningToken,
     resetKVForNextSpin,
-    buildKVDataPacket,
-    TOKEN_REFRESH_INTERVAL,
     UPDATE_INTERVAL, // Get interval constants from state module
     KV_TOKEN_BETS, // Import the KV key for token bets
     getLockDuration,
@@ -83,7 +81,7 @@ export { broadcast };
 const updateAndBroadcast = async () => {
     const now = Date.now();
     let status = await getKVSpinStatus();
-    let lastTokenFetch = await getKVLastTokenFetchTime();
+    const lastTokenFetch = await getKVLastTokenFetchTime();
 
     // --- Token Refresh Logic (no longer needed, using listTokens directly) ---
 

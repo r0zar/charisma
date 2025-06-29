@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@/contexts/wallet-context';
-import { UserNotificationSettings, OrderExecutedPreferences, BidEventPreferences, OfferEventPreferences, ChannelSpecificPreference } from '@/types/notification-settings';
+import { UserNotificationSettings, ChannelSpecificPreference } from '@/types/notification-settings';
 import { signMessage, type SignedMessage } from 'blaze-sdk';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ExternalLink } from 'lucide-react';
 
 // Helper to get default channel preference to avoid repetition
 const getDefaultChannelPref = (): ChannelSpecificPreference => ({ enabled: false, recipientId: '' });

@@ -4,7 +4,6 @@ import {
     broadcastTransaction,
     uintCV,
     stringAsciiCV,
-    type TxBroadcastResult,
     PostConditionMode,
 } from '@stacks/transactions';
 import { STACKS_MAINNET, type StacksNetwork } from '@stacks/network';

@@ -5,8 +5,7 @@ import {
     TestTube, 
     Activity, 
     Search, 
-    CheckCircle, 
-    Settings,
+    CheckCircle,
     ArrowLeft,
     RotateCcw,
     Clock

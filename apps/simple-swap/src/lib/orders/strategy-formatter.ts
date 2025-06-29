@@ -11,7 +11,7 @@ export interface DisplayOrder extends LimitOrder {
 
 export interface StrategyDisplayData {
     id: string;
-    type: 'dca' | 'single' | 'twitter';
+    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch';
     description: string;
     orders: DisplayOrder[];
     totalOrders: number;
@@ -27,6 +27,38 @@ export interface StrategyDisplayData {
         maxTriggers?: number;
         triggeredCount?: number;
         recentReplies?: any[];
+    };
+}
+
+/**
+ * Enriches an order with token metadata to create a DisplayOrder
+ */
+function enrichOrderWithMetadata(order: LimitOrder, tokenMetadata: Map<string, TokenCacheData>): DisplayOrder {
+    const inputTokenMeta = tokenMetadata.get(order.inputToken) || createFallbackTokenMeta(order.inputToken);
+    const outputTokenMeta = tokenMetadata.get(order.outputToken) || createFallbackTokenMeta(order.outputToken);
+    
+    return {
+        ...order,
+        inputTokenMeta,
+        outputTokenMeta,
+        conditionTokenMeta: inputTokenMeta // Use input token as fallback
+    };
+}
+
+/**
+ * Creates fallback token metadata when not available
+ */
+function createFallbackTokenMeta(contractId: string): TokenCacheData {
+    return {
+        type: 'token',
+        contractId,
+        name: 'Unknown Token',
+        symbol: 'UNK',
+        decimals: 6,
+        identifier: '',
+        description: null,
+        image: null,
+        lastUpdated: null
     };
 }
 
@@ -131,7 +163,7 @@ function createStrategyDisplayData(
         id: strategyId,
         type: strategyType,
         description,
-        orders: sortedOrders,
+        orders: sortedOrders.map(order => enrichOrderWithMetadata(order, tokenMetadata)),
         totalOrders,
         completedOrders,
         progressPercent,
@@ -174,7 +206,7 @@ function createSingleOrderDisplayData(
         id: order.uuid,
         type: 'single',
         description,
-        orders: [order],
+        orders: [enrichOrderWithMetadata(order, tokenMetadata)],
         totalOrders: 1,
         completedOrders: status === 'completed' ? 1 : 0,
         progressPercent: status === 'completed' ? 100 : 0,

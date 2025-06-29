@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle, TestTube, FileSignature, Key, Wallet } from 'lucide-react';
+import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle, TestTube, Key, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import TokenDropdown from '@/components/TokenDropdown';
@@ -9,7 +9,6 @@ import { TokenCacheData } from '@repo/tokens';
 import { useWallet } from '@/contexts/wallet-context';
 import { request } from '@stacks/connect';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV, signStructuredData, getAddressFromPrivateKey } from '@stacks/transactions';
-import { STACKS_MAINNET } from '@stacks/network';
 
 interface TwitterTrigger {
     id: string;

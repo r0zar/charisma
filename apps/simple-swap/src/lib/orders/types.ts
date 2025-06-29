@@ -20,7 +20,7 @@ export interface LimitOrder {
     recipient: string;
     signature: string; // 65-byte hex without 0x
     uuid: string; // uuid from signed message
-    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled';
+    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled';
     createdAt: string; // ISO
     txid?: string;
     
@@ -73,6 +73,19 @@ export interface LimitOrder {
      * e.g., "Split $1000 into 4 orders", "DCA $100 weekly for 10 weeks"
      */
     strategyDescription?: string;
+    
+    /**
+     * Order conditions for conditional orders.
+     */
+    conditions?: {
+        type: 'price' | 'ratio' | 'dca' | 'manual';
+        params: {
+            conditionToken?: string;
+            targetPrice?: string;
+            direction?: 'lt' | 'gt';
+            baseAsset?: string;
+        };
+    };
     
     /**
      * Optional metadata for additional order information.

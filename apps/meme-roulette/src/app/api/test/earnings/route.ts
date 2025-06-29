@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         const tokenPrice = await getTokenPrice(tokenId);
 
         // Calculate earnings
-        const earnings = await calculateEarningsUSD(chaAmount, tokensReceived, tokenId);
+        const earnings = await calculateEarningsUSD(chaAmount, tokensReceived, tokenId, 6, 6);
 
         return NextResponse.json({
             success: true,

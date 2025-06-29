@@ -19,7 +19,6 @@ import {
     ClarityValue,
 } from "@stacks/transactions"
 import { request, SignatureData } from "@stacks/connect"
-import { Loader2 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { getTokenMetadataCached } from "@repo/tokens"
@@ -102,7 +101,7 @@ export default function StablecoinPage() {
             const json = await res.json()
             if (res.ok) {
                 setBalance(json.balance)
-                setSupply(json.total_supply)
+                setSupply(json.totalSupply)
                 setStableBal(json.stableBalance)
                 setStableSupply(json.stableSupply)
                 setFeePoolUsd(json.usdFeePool)

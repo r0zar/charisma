@@ -1,5 +1,5 @@
 import { NotifierClient } from './index';
-import { Notification, NotificationChannel, NotificationRecipient, IChannelSender } from './interfaces';
+import { Notification, NotificationChannel, IChannelSender } from './interfaces';
 import { TelegramSender } from './channels/telegram';
 // import { DiscordSender } from './channels/discord';
 import { SMSSender } from './channels/sms';
@@ -80,25 +80,25 @@ describe('NotifierClient', () => {
             expect(mockTelegramSenderInstance.send).not.toHaveBeenCalled();
         });
 
-        it('should call discordSender.send for discord channel if ready', async () => {
-            (mockDiscordSenderInstance.isReady as jest.Mock).mockReturnValue(true);
-            (mockDiscordSenderInstance.send as jest.Mock).mockResolvedValue(undefined);
+        it('should fallback to telegram for discord channel (discord is commented out)', async () => {
+            (mockTelegramSenderInstance.isReady as jest.Mock).mockReturnValue(true);
+            (mockTelegramSenderInstance.send as jest.Mock).mockResolvedValue(undefined);
 
             const client = new NotifierClient();
             const notification = createNotification('Hello Discord', 'discordUser123');
             await client.send('discord', notification);
 
-            expect(mockDiscordSenderInstance.isReady).toHaveBeenCalledTimes(1);
-            expect(mockDiscordSenderInstance.send).toHaveBeenCalledWith(notification);
+            expect(mockTelegramSenderInstance.isReady).toHaveBeenCalledTimes(1);
+            expect(mockTelegramSenderInstance.send).toHaveBeenCalledWith(notification);
         });
 
-        it('should reject if discordSender is not ready', async () => {
-            (mockDiscordSenderInstance.isReady as jest.Mock).mockReturnValue(false);
+        it('should reject if telegram sender is not ready (discord fallback)', async () => {
+            (mockTelegramSenderInstance.isReady as jest.Mock).mockReturnValue(false);
             const client = new NotifierClient();
             const notification = createNotification('Hello Discord', 'discordUser123');
             await expect(client.send('discord', notification))
                 .rejects.toThrow('Sender for channel discord is not ready.');
-            expect(mockDiscordSenderInstance.send).not.toHaveBeenCalled();
+            expect(mockTelegramSenderInstance.send).not.toHaveBeenCalled();
         });
 
         it('should call smsSender.send for sms channel if ready', async () => {
@@ -131,10 +131,10 @@ describe('NotifierClient', () => {
     });
 
     describe('destroyAll method', () => {
-        it('should call destroy on discordSender if it exists and is a function', async () => {
+        it('should call destroy on smsSender if it exists and is a function', async () => {
             const client = new NotifierClient();
             await client.destroyAll();
-            expect(mockDiscordSenderInstance.destroy).toHaveBeenCalledTimes(1);
+            expect(mockSMSSenderInstance.destroy).toHaveBeenCalledTimes(1);
         });
     });
 }); 

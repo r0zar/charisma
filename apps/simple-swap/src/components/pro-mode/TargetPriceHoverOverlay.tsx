@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import type { IChartApi, ISeriesApi } from 'lightweight-charts';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';

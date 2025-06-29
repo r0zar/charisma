@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Coins, ExternalLink, Copy, Info, Zap, 
-  TrendingUp, Users, Clock, CheckCircle 
+  TrendingUp, Clock, CheckCircle 
 } from 'lucide-react';
 
 interface TokenRequirement {

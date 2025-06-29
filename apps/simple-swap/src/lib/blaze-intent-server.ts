@@ -2,14 +2,12 @@
 
 import {
     stringAsciiCV, someCV, noneCV, uintCV, principalCV, tupleCV, signStructuredData,
-    ClarityValue, cvToHex, hexToCV, bufferCV, ClarityType, cvToValue,
+    ClarityValue,
     validateStacksAddress,
     makeContractCall,
     broadcastTransaction,
     PostConditionMode,
-    TxBroadcastResult,
-    StacksTransactionWire,
-    TxRejectedReason
+    StacksTransactionWire
 } from '@stacks/transactions';
 import { STACKS_MAINNET, STACKS_TESTNET, StacksNetwork } from '@stacks/network';
 import { getPublicKeyFromPrivate } from '@stacks/encryption';
@@ -132,7 +130,7 @@ async function processAndBroadcastBlazeIntent(
         const recoveredResult = await callReadOnlyFunction(
             BLAZE_SIGNER_ADDRESS, BLAZE_SIGNER_NAME, 'recover', recoverArgs, BLAZE_SIGNER_ADDRESS
         );
-        if (recoveredResult.value && typeof recoveredResult.value === 'string' && validateStacksAddress(recoveredResult.value)) {
+        if (recoveredResult && recoveredResult.value && typeof recoveredResult.value === 'string' && validateStacksAddress(recoveredResult.value)) {
             recoveredSignerAddress = recoveredResult.value;
             console.log(`Recovered signer: ${recoveredSignerAddress}.`);
         } else {

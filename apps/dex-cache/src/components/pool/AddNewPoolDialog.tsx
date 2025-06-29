@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, AlertCircle, Loader2, Search, CheckCircle, X } from 'lucide-react';
+import { Plus, AlertCircle, Loader2, CheckCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTokenMetadata } from '@/app/actions';
 import { debounce } from 'lodash';

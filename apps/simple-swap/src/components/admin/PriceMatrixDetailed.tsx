@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Eye, EyeOff, ChevronRight, RefreshCw, Flame } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Eye, EyeOff, Flame } from 'lucide-react';
 import { formatLocalDateTime } from '@/lib/admin-config';
 import { TokenActions } from './PriceMatrix';
 

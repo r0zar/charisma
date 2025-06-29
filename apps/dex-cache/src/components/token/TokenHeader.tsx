@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -9,8 +8,6 @@ import {
   Bitcoin,
   DollarSign,
   ExternalLink,
-  TrendingUp,
-  TrendingDown,
   Star,
   Copy,
   CheckCircle,

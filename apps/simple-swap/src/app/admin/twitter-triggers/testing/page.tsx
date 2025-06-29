@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { FlaskConical, TestTube, Activity, Settings } from 'lucide-react';
+import { FlaskConical, TestTube } from 'lucide-react';
 import TwitterTriggersTestingClient from './testing-client';
 
 export const metadata: Metadata = {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Sparkles, RefreshCw, Shield, Coins, Layers, Wallet, Activity, Twitter, Github, MessageSquare, Mail, ExternalLink } from 'lucide-react';
+import { ArrowRight, Sparkles, RefreshCw, Shield, Coins, Layers, Activity, Twitter, Github, MessageSquare, Mail, ExternalLink } from 'lucide-react';
 import { Header } from "../components/layout/header";
 import Link from 'next/link';
 import CharismaQuote from "../components/charisma-quote";

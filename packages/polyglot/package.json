@@ -24,9 +24,12 @@
   "scripts": {
     "build": "bunchee",
     "dev": "bunchee --watch",
-    "lint": "eslint src/",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "check-types": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch"
   },
   "jest": {
     "preset": "@repo/jest-presets/node"

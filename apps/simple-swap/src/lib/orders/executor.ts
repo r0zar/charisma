@@ -4,7 +4,7 @@ import { getLatestPrice } from '@/lib/price/store';
 import { getQuote } from '@/app/actions';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
-import { fetchNonce, makeSTXTokenTransfer, broadcastTransaction, AnchorMode, PostConditionMode } from '@stacks/transactions';
+import { fetchNonce } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 import { kv } from '@vercel/kv';
 

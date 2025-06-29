@@ -17,7 +17,6 @@ import {
     calculateResilientRatioData, 
     enhanceSparseTokenData, 
     isValidDataPoint,
-    getDefaultTimeRange,
     type ChartDataPoint 
 } from "@/lib/chart-data-utils";
 import { useBlaze } from 'blaze-sdk/realtime';
@@ -51,7 +50,7 @@ function convertToChartDataPoint(data: LineData[]): ChartDataPoint[] {
 // Convert ChartDataPoint back to LineData format - lightweight-charts expects seconds
 function convertToLineData(data: ChartDataPoint[]): LineData[] {
     return data.map(point => ({
-        time: Math.floor(point.time / 1000), // Always convert to seconds for lightweight-charts
+        time: Math.floor(point.time / 1000) as any, // Always convert to seconds for lightweight-charts
         value: point.value
     }));
 }
@@ -288,7 +287,7 @@ export default function ConditionTokenChart({
                 tokenPriceValue,
                 currentTokenPrice,
                 isNumber: typeof tokenPriceValue === 'number',
-                isPositive: tokenPriceValue > 0
+                isPositive: (tokenPriceValue as number) > 0
             });
             return;
         }
@@ -312,7 +311,7 @@ export default function ConditionTokenChart({
                 basePriceValue,
                 currentBasePrice,
                 isNumber: typeof basePriceValue === 'number',
-                isPositive: basePriceValue > 0
+                isPositive: basePriceValue ? (basePriceValue as number) > 0 : false
             });
         } else {
             console.log('[REAL-TIME] Single token mode, using raw price:', {
@@ -335,7 +334,10 @@ export default function ConditionTokenChart({
             });
 
             // Update our refs
-            lastPricesRef.current = { token: tokenPriceValue, base: basePriceValue };
+            lastPricesRef.current = { 
+                token: tokenPriceValue as number, 
+                base: basePriceValue as number | null 
+            };
             setLastUpdateTime(now);
             
             console.log('[REAL-TIME] Chart update successful:', {
@@ -395,7 +397,7 @@ export default function ConditionTokenChart({
                     lockVisibleTimeRangeOnResize: false,
                     rightBarStaysOnScroll: false,
                     shiftVisibleRangeOnNewBar: false, // Don't auto-follow to allow free zoom
-                    allowShiftVisibleRangeOnWhitespaceClick: true, // Allow clicking to move
+                    allowShiftVisibleRangeOnWhitespaceReplacement: true, // Allow clicking to move
                 },
                 leftPriceScale: {
                     visible: true,

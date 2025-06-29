@@ -1,13 +1,11 @@
-import { DollarSign, CheckCircle, AlertCircle, Settings, Settings2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Settings2 } from 'lucide-react';
 import { kv } from '@vercel/kv';
 import {
     getRetentionDays,
     getPriceEpsilonPercent,
     getCronFrequencyMinutes,
-    getPageSize,
     isDevelopment,
-    formatLocalDateTime,
-    formatRelativeTime
+    formatLocalDateTime
 } from '@/lib/admin-config';
 import { InfoTooltip } from '@/components/ui/tooltip';
 

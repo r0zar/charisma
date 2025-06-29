@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 import { callReadOnlyFunction, getContractInterface } from "@repo/polyglot";
-import { Token, TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@repo/tokens";
 
 /**
  * Configuration for the metadata service
@@ -67,7 +67,7 @@ export class Cryptonomicon {
                 const response = await fetch(metadataApiUrl, {
                     headers: { 'Accept': 'application/json' }
                 });
-                
+
                 if (response.ok) {
                     metadataApiData = await response.json();
                     if (this.config.debug) console.debug(`[${contractId}] Metadata API Data:`, metadataApiData);
@@ -95,8 +95,8 @@ export class Cryptonomicon {
             console.log(`[${contractId}] Metadata API Data:`, metadataApiData);
 
             // 3. Fetch essential data (name, symbol, decimals, identifier) directly from contract if needed
-            if (!metadataApiData.name || !offChainMetadata.name || !metadataApiData.symbol || !offChainMetadata.symbol || 
-                metadataApiData.decimals === undefined || offChainMetadata.decimals === undefined || 
+            if (!metadataApiData.name || !offChainMetadata.name || !metadataApiData.symbol || !offChainMetadata.symbol ||
+                metadataApiData.decimals === undefined || offChainMetadata.decimals === undefined ||
                 !metadataApiData.identifier || !offChainMetadata.identifier) {
                 try {
                     if (this.config.debug) console.debug(`[${contractId}] Fetching basic contract data as fallback...`);
@@ -181,10 +181,10 @@ export class Cryptonomicon {
      */
     private generateDefaultMetadata(contractId: string, contractData: any): Record<string, any> {
         const [contractAddress, contractName] = contractId.split('.');
-        
+
         // Generate a deterministic default image based on contract ID
         const imageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(contractData.symbol || contractName || 'TOKEN')}&size=200&background=6366f1&color=ffffff&format=png&bold=true`;
-        
+
         // Generate a basic description
         const tokenName = contractData.name || contractName || 'Unknown Token';
         const tokenSymbol = contractData.symbol || 'TOKEN';
@@ -192,7 +192,7 @@ export class Cryptonomicon {
 
         return {
             name: contractData.name || contractName || 'Unknown Token',
-            symbol: contractData.symbol || 'TOKEN', 
+            symbol: contractData.symbol || 'TOKEN',
             decimals: contractData.decimals || 6,
             description,
             image: imageUrl,
@@ -225,12 +225,12 @@ export class Cryptonomicon {
             }
 
             const contractInterface = await getContractInterface(contractAddress, contractName);
-            
+
             if (contractInterface && contractInterface.fungible_tokens && Array.isArray(contractInterface.fungible_tokens) && contractInterface.fungible_tokens.length > 0) {
                 if (this.config.debug) {
                     console.debug(`[${contractId}] Found ${contractInterface.fungible_tokens.length} fungible tokens in contract interface`);
                 }
-                
+
                 // Extract the first fungible token identifier
                 // In most cases, contracts have a single fungible token
                 const fungibleToken = contractInterface.fungible_tokens[0] as any;

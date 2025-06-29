@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback } from 'react';
-import { Share2, Repeat, TrendingUp, Monitor, AlarmCheck } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Share2, Repeat, Monitor, AlarmCheck } from 'lucide-react';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';

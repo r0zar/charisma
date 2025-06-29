@@ -116,7 +116,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
 
     // Helper to find price by contract ID
     const findPrice = (contractId: string) => {
-        return kraxelPrices.find(p => p.contractId === contractId);
+        return kraxelPrices.find(p => (p as any).contractId === contractId);
     };
 
     // Get prices for energy tokens using constants
@@ -134,7 +134,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
 
     if (hootPrice) {
         result.hoot = {
-            tokenId: hootPrice.contractId,
+            tokenId: String(hootPrice.contractId),
             symbol: 'HOOT',
             usdPrice: hootPrice.usdPrice,
             sbtcRatio: hootPrice.usdPrice / 65000, // Assume BTC ~$65k
@@ -145,7 +145,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
 
     if (energyPrice) {
         result.energy = {
-            tokenId: energyPrice.contractId,
+            tokenId: String(energyPrice.contractId),
             symbol: 'ENERGY',
             usdPrice: energyPrice.usdPrice,
             sbtcRatio: energyPrice.usdPrice / 65000,
@@ -156,7 +156,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
 
     if (charismaPrice) {
         result.charisma = {
-            tokenId: charismaPrice.contractId,
+            tokenId: String(charismaPrice.contractId),
             symbol: 'CHARISMA',
             usdPrice: charismaPrice.usdPrice,
             sbtcRatio: charismaPrice.usdPrice / 65000,
@@ -167,7 +167,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
 
     if (dexterityPrice) {
         result.dexterity = {
-            tokenId: dexterityPrice.contractId,
+            tokenId: String(dexterityPrice.contractId),
             symbol: 'DEXTERITY',
             usdPrice: dexterityPrice.usdPrice,
             sbtcRatio: dexterityPrice.usdPrice / 65000,

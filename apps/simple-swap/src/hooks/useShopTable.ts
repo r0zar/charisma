@@ -99,7 +99,7 @@ export const useShopTable = (items: ShopItem[], subnetTokens: TokenDef[]) => {
 
     // Filtering and sorting logic - Fixed for new type system
     const filteredAndSortedItems = useMemo(() => {
-        let filtered = items.filter(item => {
+        const filtered = items.filter(item => {
             // Basic search on title and description
             const matchesBasicSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.description.toLowerCase().includes(searchTerm.toLowerCase());

@@ -1,8 +1,6 @@
 import {
     uintCV,
     stringAsciiCV,
-    bufferCV,
-    noneCV,
     PostConditionMode,
     principalCV,
 } from "@stacks/transactions";

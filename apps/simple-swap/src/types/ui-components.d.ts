@@ -1,5 +1,4 @@
 // Type declarations for custom UI components to work with React 19
-import React from 'react';
 
 // Fix for custom UI components in React 19
 // declare module '@/components/ui/*' {

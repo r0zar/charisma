@@ -16,7 +16,7 @@ import {
     type TupleData,
     type TxBroadcastResult,
 } from '@stacks/transactions';
-import { BLAZE_SIGNER_CONTRACT, BLAZE_PROTOCOL_NAME, BLAZE_PROTOCOL_VERSION } from "@/constants/contracts";
+import { BLAZE_PROTOCOL_NAME, BLAZE_PROTOCOL_VERSION } from "@/constants/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { request } from "@stacks/connect";
 import { Input } from '@/components/ui/input';
@@ -351,7 +351,7 @@ export const PoolSwapForm: React.FC<PoolSwapFormProps> = ({ poolInfo, contractId
 
     // Disabled state if user has insufficient balance
     const hasInsufficientBalance =
-        amountInput && parseUnits(amountInput, inputToken.decimals)! > currentInputBalance;
+        Boolean(amountInput) && parseUnits(amountInput, inputToken.decimals)! > currentInputBalance;
 
 
     return (

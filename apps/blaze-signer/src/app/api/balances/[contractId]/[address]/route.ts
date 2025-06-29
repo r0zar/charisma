@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { validateStacksAddress } from '@stacks/transactions/dist/esm/utils';
-import { cvToValue, principalCV, ClarityValue, deserializeCV, cvToHex, hexToCV } from '@stacks/transactions';
+import { cvToValue, principalCV, cvToHex, hexToCV } from '@stacks/transactions';
 import { apiClient } from '@/lib/stacks-api-client'; // Import shared client
 import { calculatePendingBalanceDiff } from '@/lib/balance-diff';
 import type { QueuedTxIntent } from '@/lib/types'; // Added type import

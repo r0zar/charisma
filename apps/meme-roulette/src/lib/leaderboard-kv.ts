@@ -1,6 +1,4 @@
 import { kv } from '@vercel/kv';
-import type { Vote } from '@/types/spin';
-import { v4 as uuidv4 } from 'uuid';
 import { getPrimaryBnsName } from '@repo/polyglot';
 
 // ========================================

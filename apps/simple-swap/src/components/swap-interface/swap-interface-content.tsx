@@ -3,13 +3,11 @@
 import React, { useEffect } from "react";
 import TokenInputSection from './TokenInputSection';
 import TokenOutputSection from './TokenOutputSection';
-import SwapDetails from './swap-details';
 import LoadingState from './loading-state';
 import SwapButton from './swap-button';
 import LimitConditionSection from './LimitConditionSection';
 import OrderButton from './order-button';
 import ReverseTokensButton from './reverse-tokens-button';
-import ErrorAlert from './error-alert';
 import BalanceCheckDialog from './balance-check-dialog';
 import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@repo/tokens";

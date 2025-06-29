@@ -5,7 +5,7 @@
  * Handles trigger types, validation, and trigger-specific logic
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { TokenCacheData } from '@repo/tokens';
 import { signTriggeredSwap } from 'blaze-sdk';
 

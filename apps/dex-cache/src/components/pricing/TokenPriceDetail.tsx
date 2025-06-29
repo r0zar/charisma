@@ -16,10 +16,8 @@ import {
   CheckCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   formatTokenReserve,
-  getTokenDecimalsFromMeta,
   formatNumber
 } from '@/lib/ui-decimal-utils';
 

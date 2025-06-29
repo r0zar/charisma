@@ -1,9 +1,8 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, Clock, DollarSign, Download, Zap } from 'lucide-react';
-import { ADMIN_CONFIG, getPageSize, getAutoRefreshSeconds } from '@/lib/admin-config';
-import { InfoTooltip } from '@/components/ui/tooltip';
+import { ArrowLeft, TrendingUp, Download, Zap } from 'lucide-react';
+import { ADMIN_CONFIG, getPageSize } from '@/lib/admin-config';
 import { Button } from '@/components/ui/button';
 import { PriceStats } from '@/components/admin/PriceStats';
 import { PriceMatrix } from '@/components/admin/PriceMatrix';

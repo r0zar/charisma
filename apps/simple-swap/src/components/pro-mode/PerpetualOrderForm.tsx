@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { TrendingUp, TrendingDown, HelpCircle, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import TokenSelectorButton from './TokenSelectorButton';

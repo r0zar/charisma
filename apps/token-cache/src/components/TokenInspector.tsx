@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Search, RefreshCw, Database, Server, Save, Edit } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Database, Server, Save } from 'lucide-react';
 import { toast } from "sonner";
 
 // Dynamically import ReactJson with SSR disabled

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import type { Token } from '@/types/spin';
-import { useSpring, animated, config } from 'react-spring';
+import { useSpring, config } from 'react-spring';
 import { TrendingUp, Rocket } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 
@@ -108,7 +108,7 @@ const SpinAnimationOverlay = React.memo(({
         const gridFactors = [4, 5, 6];
 
         // Create a base number of cards that's proportional to available tokens
-        let initialTargetCount = Math.min(60, Math.max(20, idsWithBets.length * 3));
+        const initialTargetCount = Math.min(60, Math.max(20, idsWithBets.length * 3));
 
         // Round to nearest multiple of a grid factor to ensure even grid
         let bestFactor = gridFactors[0];
@@ -296,7 +296,7 @@ const SpinAnimationOverlay = React.memo(({
         const seed = simpleHash(`${winningTokenId}-step-${currentStepRef.current}`);
 
         // Normal selection - avoid the same card twice in a row
-        let candidates = [...Array(tokenCardsRef.current.length).keys()]
+        const candidates = [...Array(tokenCardsRef.current.length).keys()]
             .filter(idx => idx !== currentIndex);
 
         // Early in the animation, prefer indices closer to the current one for smoother movement
@@ -592,9 +592,9 @@ const SpinAnimationOverlay = React.memo(({
                                 : '';
 
                             return (
-                                <animated.div
+                                <div
                                     key={card.uniqueKey}
-                                    style={style}
+                                    style={style as React.CSSProperties}
                                     className={`
                                         relative aspect-square p-2 rounded-lg 
                                         flex flex-col items-center justify-center text-center
@@ -607,13 +607,11 @@ const SpinAnimationOverlay = React.memo(({
                                 >
                                     {/* Spotlight overlay - only show if this is exactly the spotlight index */}
                                     {isSpotlight && !hasLanded && (
-                                        <animated.div
+                                        <div
                                             className="absolute inset-0 rounded-lg animate-pulse-medium"
                                             style={{
-                                                background: spotlightSpring.glow.to(g =>
-                                                    `radial-gradient(circle, rgba(var(--color-primary), ${0.5 + g * 0.3}) 0%, rgba(var(--color-primary), ${0.2 + g * 0.1}) 70%, rgba(var(--color-primary), 0) 100%)`
-                                                ),
-                                                opacity: spotlightSpring.pulseOpacity
+                                                background: `radial-gradient(circle, rgba(var(--color-primary), 0.5) 0%, rgba(var(--color-primary), 0.2) 70%, rgba(var(--color-primary), 0) 100%)`,
+                                                opacity: 0.8
                                             }}
                                         />
                                     )}
@@ -631,7 +629,7 @@ const SpinAnimationOverlay = React.memo(({
                                     <p className="text-[10px] md:text-xs font-semibold truncate w-full text-foreground mt-1">
                                         {card.token.symbol}
                                     </p>
-                                </animated.div>
+                                </div>
                             );
                         })}
                     </div>

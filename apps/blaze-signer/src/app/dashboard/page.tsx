@@ -3,10 +3,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { PendingMessagesTable } from "@/components/dashboard/PendingMessagesTable";
 import { Toaster } from "@/components/ui/sonner";
 import type { QueuedTxIntent } from "@/lib/types";
-import { calculatePendingBalanceDiff } from "@/lib/balance-diff"; // Keep if calling directly
+// Keep if calling directly
 import { validateStacksAddress } from "@stacks/transactions/dist/esm/utils";
-import { cn } from "@/lib/utils"; // For potential styling
-import { Badge } from "@/components/ui/badge"; // For displaying balance
+// For potential styling
+// For displaying balance
 import { Suspense } from "react"; // For loading states
 import { Skeleton } from "@/components/ui/skeleton"; // For loading states
 import { getTokenMetadataCached, type TokenCacheData } from "@repo/tokens";

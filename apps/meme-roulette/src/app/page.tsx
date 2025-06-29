@@ -23,8 +23,6 @@ import SpinReadyDisplay from '@/components/SpinReadyDisplay';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { InstructionsButton } from '@/components/InstructionsButton';
-import { useWallet } from '@/contexts/wallet-context';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 import ReferralRedemptionClient from '@/components/ReferralRedemptionClient';
 

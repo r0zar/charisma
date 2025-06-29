@@ -10,7 +10,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 // Remove collapsible import - using simple expand/collapse instead
 import { Users, Search, ChevronDown, ChevronUp, HandCoins, Clock } from 'lucide-react';
 import Image from 'next/image';

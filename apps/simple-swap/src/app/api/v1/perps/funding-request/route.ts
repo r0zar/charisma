@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { fundingRequestCreateSchema, FundingRequest } from "@/lib/perps/p2p-schema";
 import { getFundingRequest, saveFundingRequest } from "@/lib/perps/p2p-kv";
-import { recoverSigner } from "blaze-sdk";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from 'uuid';
 

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { incrementKVTokenBet, buildKVDataPacket } from '@/lib/state';
+import { buildKVDataPacket } from '@/lib/state';
 import { recordVoteWithLeaderboard } from '@/lib/leaderboard-integration';
 import { listTokens } from 'dexterity-sdk';
 import type { SpinFeedData } from '@/types/spin';

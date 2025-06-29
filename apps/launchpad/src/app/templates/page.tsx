@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from 'react';
-import { Rocket, Layers, ArrowRight, Coins, Globe, Network, Vault } from 'lucide-react';
+import { Rocket, Layers, ArrowRight, Coins, Globe, Vault } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ContractType } from '@/components/contracts/contracts-list';
 import { useApp } from '@/lib/context/app-context';

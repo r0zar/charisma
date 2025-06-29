@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch token metadata for enrichment
-        let tokenMetadataMap = new Map();
+        const tokenMetadataMap = new Map();
         try {
             const tokensModule = await import('@repo/tokens');
             const allTokens = await tokensModule.listTokens();

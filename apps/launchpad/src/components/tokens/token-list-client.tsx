@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useState } from 'react';
 import { useApp } from '@/lib/context/app-context';
 import { useRouter } from 'next/navigation';
-import { TokenMetadata } from '@/lib/metadata-service';
 import { Button } from '../ui/button';
 
 export function TokenListClient() {

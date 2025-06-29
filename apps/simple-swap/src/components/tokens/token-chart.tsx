@@ -16,8 +16,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { 
     enhanceSparseTokenData, 
     calculateResilientRatioData, 
-    type ChartDataPoint,
-    type TimeRange
+    type ChartDataPoint
 } from '@/lib/chart-data-utils';
 
 interface TokenChartProps {
@@ -147,7 +146,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
     // Helper function to convert ChartDataPoint back to LineData format
     const convertToLineData = (data: ChartDataPoint[]): LineData[] => {
         return data.map(point => ({
-            time: Math.floor(point.time / 1000), // Convert back to seconds
+            time: Math.floor(point.time / 1000) as any, // Convert back to seconds
             value: point.value
         }));
     };
@@ -255,7 +254,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         setTimeout(() => {
                             if (chartRef.current) {
                                 // Apply the default 7D time range
-                                const range = timeRanges[activeTimeRange];
+                                const range = (timeRanges as any)[activeTimeRange];
                                 if (range && range.from && range.to) {
                                     chartRef.current.timeScale().setVisibleRange({
                                         from: range.from,
@@ -275,14 +274,18 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         leftPriceScale: {
                             ...chartConfig.leftPriceScale,
                             // Format as ratio when in comparison mode
-                            priceFormat: useRatioMode ? { 
-                                type: 'price', 
-                                precision: 6,
-                                minMove: 0.000001
+                            ...(useRatioMode ? { 
+                                priceFormat: {
+                                    type: 'price' as const, 
+                                    precision: 6,
+                                    minMove: 0.000001
+                                }
                             } : { 
-                                type: 'price', 
-                                precision: 4 
-                            }
+                                priceFormat: {
+                                    type: 'price' as const, 
+                                    precision: 4
+                                }
+                            })
                         }
                     });
                 }
@@ -322,10 +325,10 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             const now = Math.floor(Date.now() / 1000);
             try {
                 primarySeriesRef.current.update({
-                    time: now,
+                    time: now as any,
                     value: primaryPrice
                 });
-                lastPrimaryPriceRef.current = primaryPrice;
+                lastPrimaryPriceRef.current = primaryPrice ?? null;
                 console.log('[TOKEN-CHART] Updated primary price:', primaryPrice);
             } catch (error) {
                 console.warn('[TOKEN-CHART] Failed to update primary price:', error);
@@ -337,10 +340,10 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             const now = Math.floor(Date.now() / 1000);
             try {
                 compareSeriesRef.current.update({
-                    time: now,
+                    time: now as any,
                     value: comparePrice
                 });
-                lastComparePriceRef.current = comparePrice;
+                lastComparePriceRef.current = comparePrice ?? null;
                 console.log('[TOKEN-CHART] Updated compare price:', comparePrice);
             } catch (error) {
                 console.warn('[TOKEN-CHART] Failed to update compare price:', error);
@@ -359,8 +362,8 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             if (range.from && range.to) {
                 // Set visible range for specific time periods
                 chartRef.current.timeScale().setVisibleRange({
-                    from: range.from,
-                    to: range.to
+                    from: range.from as any,
+                    to: range.to as any
                 });
             } else {
                 // For 'ALL', fit all data with proper margins

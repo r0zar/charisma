@@ -54,7 +54,7 @@
 import { TokenMetadata, PriceData, EnhancedBalanceData } from '../types/shared';
 
 // Re-export shared interfaces for backward compatibility
-export { TokenMetadata, PriceData, EnhancedBalanceData };
+export type { TokenMetadata, PriceData, EnhancedBalanceData };
 
 // Updated BalanceData interface with structured metadata
 export interface BalanceData {

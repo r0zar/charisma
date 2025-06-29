@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { kv } from '@vercel/kv';
-import _ from 'lodash';
 
 const PropertiesSchema = z.object({
     lpRebatePercent: z.number().optional(),

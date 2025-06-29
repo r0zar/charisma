@@ -185,7 +185,7 @@ export async function getTokenBalance(tokenContractId: string, holderPrincipal: 
             "get-balance",
             [principalCV(holderPrincipal)]
         );
-        return Number(result.value);
+        return Number(result?.value || 0);
     } catch (error) {
         console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}`);
         return 0;

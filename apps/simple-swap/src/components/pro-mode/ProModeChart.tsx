@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { useLayoutObserver } from '../../hooks/useLayoutObserver';

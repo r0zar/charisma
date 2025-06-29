@@ -3,12 +3,9 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { TokenMetadata } from '@/lib/metadata-service';
 import { useApp } from '@/lib/context/app-context';
+import { TokenCacheData } from '@repo/tokens';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { SkeletonCard } from '@/components/ui/skeleton-card';
-import { Plus, Info, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
@@ -179,7 +176,7 @@ export function TokensList({ limit }: TokensListProps) {
 }
 
 interface TokenCardProps {
-    token: TokenMetadata;
+    token: TokenCacheData;
     index: number;
 }
 

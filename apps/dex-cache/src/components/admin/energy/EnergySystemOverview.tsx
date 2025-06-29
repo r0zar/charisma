@@ -1,11 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Users, TrendingUp, Database, AlertTriangle, CheckCircle, Clock, BarChart3, Zap, Activity, RefreshCw, Shield, Link } from 'lucide-react';
+import { Users, TrendingUp, Database, AlertTriangle, CheckCircle, Clock, BarChart3, Zap, Activity, RefreshCw } from 'lucide-react';
 import { getAllEnergyAnalyticsData, fetchHoldToEarnVaults, getEnergyTokenMetadata } from '@/lib/server/energy';
 import type { EnergyAnalyticsData } from '@/lib/energy/analytics';
-import { fetchMetadata, type TokenCacheData } from '@repo/tokens';
 import { formatEnergyValue, formatEnergyCompact, getEnergyTokenSymbol } from '@/lib/format-energy';
 import { EnergyContractHealthMonitor } from './EnergyContractHealthMonitor';
 import { EnergizeVaultHeader } from './EnergizeVaultHeader';

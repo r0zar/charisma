@@ -31,7 +31,6 @@ import {
 import { formatLocalDateTime, formatRelativeTime } from '@/lib/admin-config';
 import type { LimitOrder } from '@/lib/orders/types';
 import { getTokenMetadataCached, TokenCacheData, listPrices } from '@repo/tokens';
-import { useTransactionStatus } from '@/hooks/useTransactionStatus';
 import { classifyOrderType } from '@/lib/orders/classification';
 import PremiumPagination, { type PaginationInfo } from '../orders/premium-pagination';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -47,7 +46,7 @@ interface EnrichedOrder {
 interface DisplayOrder {
     id: string;
     type: 'single' | 'dca' | 'perpetual' | 'sandwich';
-    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled';
+    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled';
     owner: string;
     ownerFull: string;
     inputToken: string;
@@ -77,7 +76,7 @@ interface DisplayOrder {
 function getConditionTokenContract(order: LimitOrder): string {
     if (order.conditions) {
         if (order.conditions.type === 'price' || order.conditions.type === 'ratio') {
-            return order.conditions.params.conditionToken;
+            return order.conditions.params.conditionToken || order.inputToken;
         } else if (order.conditions.type === 'dca') {
             return order.conditions.params.conditionToken || order.inputToken; // Fallback to input token for market DCA
         } else if (order.conditions.type === 'manual') {
@@ -330,6 +329,7 @@ const StatusBadge = ({ status }: { status: DisplayOrder['status'] }) => {
         open: { icon: Clock, color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Open' },
         broadcasted: { icon: Timer, color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Broadcasted' },
         confirmed: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200', label: 'Confirmed' },
+        filled: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200', label: 'Filled' },
         failed: { icon: AlertTriangle, color: 'bg-red-100 text-red-700 border-red-200', label: 'Failed' },
         cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Cancelled' }
     };

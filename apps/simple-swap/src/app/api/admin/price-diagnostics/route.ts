@@ -4,7 +4,6 @@ import { listTokens } from "@/app/actions";
 import { 
     calculateResilientRatioData, 
     extrapolateDataPoints,
-    isValidDataPoint,
     type ChartDataPoint,
     type TimeRange 
 } from "@/lib/chart-data-utils";

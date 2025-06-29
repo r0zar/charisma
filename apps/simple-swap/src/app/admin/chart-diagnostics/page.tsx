@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import type { Metadata } from 'next';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
 import ChartDataDiagnostics from '@/components/admin/ChartDataDiagnostics';
 

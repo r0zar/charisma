@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Filter, SortAsc, SortDesc, Download, Heart, Flame, Info } from "lucide-react";
+import { Download, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TokenFiltersProps {

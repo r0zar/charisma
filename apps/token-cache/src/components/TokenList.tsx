@@ -14,10 +14,8 @@ import {
     RefreshCw,
     Trash2,
     ChevronDown,
-    ExternalLink, // Added ExternalLink
-    InspectionPanel,
-    Pencil,
-    ClipboardCopy, // Added ClipboardCopy
+    ExternalLink,
+    Pencil, // Added ClipboardCopy
     Ban // Added Ban for blacklist
 } from 'lucide-react'; // Added icons
 import { TokenCacheData } from '@repo/tokens';

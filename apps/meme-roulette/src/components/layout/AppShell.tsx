@@ -1,13 +1,13 @@
 'use client'; // Mark as client component
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
 import { useSpinFeed } from '@/hooks/useSpinFeed';
 import { useWallet } from '@/contexts/wallet-context';
 import VoteModal from '@/components/VoteModal';
 import { Button } from '@/components/ui/button';
-import { Rocket, LogOut, Menu } from 'lucide-react';
+import { Rocket, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
 import { PendingReferralIndicator } from '@/components/ui/PendingReferralIndicator';

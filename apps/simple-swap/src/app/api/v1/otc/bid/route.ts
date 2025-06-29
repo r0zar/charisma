@@ -3,10 +3,9 @@ import {
     bidCreateSchema,
     bidCancelSchema,
     Bid,
-    Offer,
 } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
-import { recoverSigner, verifySignatureAndGetSigner } from "blaze-sdk";
+import { verifySignatureAndGetSigner } from "blaze-sdk";
 
 /* POST ────────────────────────────────────────────────*/
 export async function POST(req: NextRequest) {

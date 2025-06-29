@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { fetchCallReadOnlyFunction, cvToValue, principalCV } from '@stacks/transactions';
 import { STACKS_MAINNET, type StacksNetwork } from '@stacks/network'; // Assuming mainnet, adjust if needed
 import { Skeleton } from '@/components/ui/skeleton'; // For loading state
@@ -7,7 +7,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // 
 import { formatUnits, cn } from '@/lib/utils'; // Assuming a utility for formatting
 import { useWallet } from '@/context/wallet-context'; // Import wallet context
 import { getTokenMetadataCached } from '@repo/tokens'; // Import from tokens package
-import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PoolActionsTabs } from './PoolActionsTabs'; // Import the new tabs component
@@ -20,8 +19,7 @@ import {
     Coins,
     Wallet,
     Scale,
-    BarChart3,
-    ArrowDown
+    BarChart3
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -124,7 +122,7 @@ export const PoolDetails: React.FC<PoolDetailsProps> = ({ contractId }) => {
                         contractId: contractId,
                         name: lpMeta.name,
                         symbol: lpMeta.symbol,
-                        decimals: lpMeta.decimals,
+                        decimals: lpMeta.decimals || 6,
                         userBalance: lpBalance,
                         description: lpMeta.description,
                         token_uri: lpMeta.token_uri
@@ -132,14 +130,14 @@ export const PoolDetails: React.FC<PoolDetailsProps> = ({ contractId }) => {
                     tokenA: {
                         contractId: TOKEN_A_CONTRACT_ID,
                         symbol: tokenAMeta.symbol,
-                        decimals: tokenAMeta.decimals,
+                        decimals: tokenAMeta.decimals || 6,
                         description: tokenAMeta.description,
                         token_uri: tokenAMeta.token_uri
                     },
                     tokenB: {
                         contractId: TOKEN_B_CONTRACT_ID,
                         symbol: tokenBMeta.symbol,
-                        decimals: tokenBMeta.decimals,
+                        decimals: tokenBMeta.decimals || 6,
                         description: tokenBMeta.description,
                         token_uri: tokenBMeta.token_uri
                     },
@@ -162,7 +160,7 @@ export const PoolDetails: React.FC<PoolDetailsProps> = ({ contractId }) => {
 
         return (
             <Avatar className="h-8 w-8 bg-primary/10">
-                <AvatarImage src={token.image} alt={symbol} />
+                <AvatarImage src={token.image || undefined} alt={symbol} />
                 <AvatarFallback className={cn(
                     "text-xs font-bold",
                     isLp ? "bg-primary/20 text-primary" : "bg-muted"

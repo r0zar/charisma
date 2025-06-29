@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Image from "next/image";
 import { searchContracts, deleteSearch, getSavedSearches, ContractData, SearchResult } from '@/app/actions';
 
 // Helper to check if a string looks like a Stacks contract ID (basic check)

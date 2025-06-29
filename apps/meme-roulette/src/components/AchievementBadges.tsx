@@ -3,11 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trophy, Search, Crown, Star, Flame, Users, Gift, Zap, Clock, Lock, X, Calendar, Circle, Hexagon, Diamond, Sparkles } from 'lucide-react';
+import { Trophy, Search, Crown, Star, Flame, Users, Gift, Zap, Lock, Calendar, Circle, Hexagon, Diamond, Sparkles } from 'lucide-react';
 import { useAchievements, useUserAchievements } from '@/hooks/useLeaderboard';
-import type { AchievementDefinition, UserAchievement } from '@/hooks/useLeaderboard';
+import type { AchievementDefinition } from '@/hooks/useLeaderboard';
 import { useWallet } from '@/contexts/wallet-context';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 

@@ -1,18 +1,8 @@
 /**
  * Service for executing signed messages through the API
  */
-import { request } from "@stacks/connect";
-import {
-    stringAsciiCV,
-    uintCV,
-    principalCV,
-    contractPrincipalCV,
-    tupleCV,
-    ClarityValue,
-    PostCondition,
-    Pc,
-} from "@stacks/transactions";
-import { bufferFromHex } from "@stacks/transactions/dist/cl";
+
+
 import { z } from "zod";
 
 interface ExecuteMessageParams {

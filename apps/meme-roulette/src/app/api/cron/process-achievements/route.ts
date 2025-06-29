@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import {
     checkAndAwardAchievements,
-    getUserStats,
-    getAchievementDefinitions,
     checkReferralAchievements
 } from '@/lib/leaderboard-kv';
 import { getReferralStats } from '@/lib/referrals-kv';
@@ -28,7 +26,7 @@ export async function GET(request: NextRequest) {
             'leaderboard:total_votes'
         ];
 
-        let allUserIds = new Set<string>();
+        const allUserIds = new Set<string>();
 
         for (const key of leaderboardKeys) {
             try {

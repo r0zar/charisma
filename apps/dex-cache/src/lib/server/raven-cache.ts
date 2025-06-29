@@ -17,7 +17,7 @@ interface ServerRavenCache {
 }
 
 // Server-side cache instance
-let serverRavenCache: ServerRavenCache = {
+const serverRavenCache: ServerRavenCache = {
     ownership: new Map(),
     userToRavens: new Map(),
     lastFullUpdate: 0,

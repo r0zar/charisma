@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useEffect, useState } from 'react';
-import { Trophy, TrendingUp, Target, Zap, Crown, Star } from 'lucide-react';
+import { Trophy, TrendingUp, Target, Crown, Star } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface BetProgressProps {

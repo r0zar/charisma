@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { broadcastTransaction, fetchCallReadOnlyFunction, getAddressFromPrivateKey, getAddressFromPublicKey, makeContractDeploy, PostConditionMode } from '@stacks/transactions';
+import { broadcastTransaction, getAddressFromPrivateKey, makeContractDeploy, PostConditionMode } from '@stacks/transactions';
 import { z } from 'zod';
 import { generateLiquidityPoolContract, LiquidityPoolOptions } from '@/lib/templates/liquidity-pool-contract-template';
 import { fetchTokenMetadataPairDirectly } from '@/app/actions';
@@ -144,7 +144,8 @@ export async function POST(request: NextRequest) {
             initialLiquidityB: 0,
             tokenADecimals: baseTokens.token1Meta?.decimals!,
             tokenBDecimals: baseTokens.token2Meta?.decimals!,
-            contractIdentifier: lpContractIdForMetadata
+            contractIdentifier: lpContractIdForMetadata,
+            lpTokenIdentifier: lpContractIdForMetadata
         }
 
         const poolCodeBody = generateLiquidityPoolContract(liquidityPoolOptions);

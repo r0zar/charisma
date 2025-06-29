@@ -17,7 +17,6 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useWallet } from '@/contexts/wallet-context';
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
-import { Route } from 'dexterity-sdk';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { VariantProps } from 'class-variance-authority';
 import { Coins, RefreshCw, Repeat } from 'lucide-react';

@@ -5,10 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Button } from "@/components/ui/button";
 import { 
-  ExternalLink, Copy, Eye, EyeOff, Zap, 
-  CheckCircle, AlertTriangle, Clock 
+  ExternalLink, Copy, Eye, EyeOff, Zap, AlertTriangle, Clock 
 } from 'lucide-react';
-import { useEnergyHealth, getHealthStatusIcon, getHealthStatusColor } from '@/hooks/useEnergyHealth';
+import { useEnergyHealth, getHealthStatusIcon } from '@/hooks/useEnergyHealth';
 
 interface EnergizeVaultHeaderProps {
   showDetails?: boolean;

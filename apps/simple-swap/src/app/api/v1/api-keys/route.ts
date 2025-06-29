@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createApiKey, getApiKeysByWallet } from '@/lib/api-keys/store';
 import { 
   authenticateSignature,
@@ -10,7 +10,6 @@ import {
 } from '@/lib/api-keys/middleware';
 import { 
   CreateApiKeyRequest,
-  ListApiKeysRequest,
   CreateApiKeyResponse,
   ListApiKeysResponse,
   DEFAULT_RATE_LIMIT,

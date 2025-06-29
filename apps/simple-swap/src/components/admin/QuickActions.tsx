@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { RefreshCw, Trash2, Bug, CheckCircle, AlertCircle } from 'lucide-react';
+import { RefreshCw, Trash2, Bug } from 'lucide-react';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
 import { Button } from '@/components/ui/button';
 import { InfoTooltip } from '@/components/ui/tooltip';

@@ -1,16 +1,4 @@
-// TypeScript declaration for colorthief since @types/colorthief doesn't exist
-declare module 'colorthief' {
-  interface ColorThief {
-    getColor(img: HTMLImageElement, quality?: number): [number, number, number];
-    getPalette(img: HTMLImageElement, colorCount?: number, quality?: number): Array<[number, number, number]>;
-  }
-  
-  const ColorThief: {
-    new (): ColorThief;
-  };
-  
-  export = ColorThief;
-}
+// TypeScript declaration handled in src/types/colorthief.d.ts
 
 import ColorThief from 'colorthief';
 
@@ -53,11 +41,11 @@ export async function extractDominantColor(
       img.onload = () => {
         try {
           // Get the dominant color
-          const dominantColor = colorThief.getColor(img, 10);
+          const dominantColor = (colorThief as any).getColor(img, 10);
           
           // If the dominant color isn't usable, try to get a palette and find a better one
           if (!isColorUsable(dominantColor)) {
-            const palette = colorThief.getPalette(img, 5, 10);
+            const palette = (colorThief as any).getPalette(img, 5, 10);
             const usableColor = palette.find(isColorUsable);
             
             if (usableColor) {
@@ -83,10 +71,10 @@ export async function extractDominantColor(
       img.src = imageSource;
     } else {
       try {
-        const dominantColor = colorThief.getColor(imageSource, 10);
+        const dominantColor = (colorThief as any).getColor(imageSource, 10);
         
         if (!isColorUsable(dominantColor)) {
-          const palette = colorThief.getPalette(imageSource, 5, 10);
+          const palette = (colorThief as any).getPalette(imageSource, 5, 10);
           const usableColor = palette.find(isColorUsable);
           
           if (usableColor) {

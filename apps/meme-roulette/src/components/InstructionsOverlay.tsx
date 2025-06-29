@@ -1,6 +1,4 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 
 // This component might be deprecated or refactored further.
 // It no longer needs props if the state is managed by the Dialog in InstructionsButton.

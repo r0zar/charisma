@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { addOrder, getOrder, listOrders, cancelOrder } from './store';
 import { NewOrderRequest } from './types';
 

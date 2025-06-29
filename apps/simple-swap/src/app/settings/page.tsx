@@ -9,9 +9,7 @@ import {
   Bell, 
   Shield,
   User,
-  Palette,
-  Globe,
-  Smartphone
+  Palette
 } from 'lucide-react';
 
 // Import components for each settings category

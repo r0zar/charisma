@@ -1,8 +1,6 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { Metadata } from 'next';
 import { listTokens } from '../actions';
-import SwapInterface from '@/components/swap-interface/swap-interface';
-import { Header } from '@/components/layout/header';
 import SwapPageClient from './swap-page-client';
 
 type Props = {

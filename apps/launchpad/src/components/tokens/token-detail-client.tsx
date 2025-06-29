@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { TokenMetadata } from '@/lib/metadata-service';
 import * as React from 'react';
 import { useApp } from '@/lib/context/app-context';

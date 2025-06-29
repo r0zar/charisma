@@ -47,7 +47,7 @@ export default function TokenSelectionDialog({
         setSelectedToToken,
         setConditionToken,
         tokenCounterparts
-    } = useSwapTokens();
+    } = useSwapTokens() as any;
 
     const { address: userAddress } = useWallet();
 
@@ -72,7 +72,7 @@ export default function TokenSelectionDialog({
         if (!searchQuery.trim()) return availableTokens;
 
         const query = searchQuery.toLowerCase();
-        return availableTokens.filter(token =>
+        return availableTokens.filter((token: any) =>
             token.symbol.toLowerCase().includes(query) ||
             token.name.toLowerCase().includes(query) ||
             token.contractId.toLowerCase().includes(query)
@@ -173,7 +173,7 @@ export default function TokenSelectionDialog({
 
         // Fetch balances for filtered tokens (limit to first 20 to avoid too many requests)
         const tokensToFetch = filteredTokens.slice(0, 20);
-        tokensToFetch.forEach(token => {
+        tokensToFetch.forEach((token: any) => {
             if (!tokenBalances.has(token.contractId) && !loadingBalances.has(token.contractId)) {
                 fetchTokenBalance(token);
             }
@@ -277,7 +277,7 @@ export default function TokenSelectionDialog({
         const pairs: Array<{ mainnet: TokenCacheData | null; subnet: TokenCacheData | null }> = [];
         const processedTokens = new Set<string>();
 
-        filteredTokens.forEach(token => {
+        filteredTokens.forEach((token: any) => {
             if (processedTokens.has(token.contractId)) return;
 
             const counterparts = getTokenCounterparts(token);

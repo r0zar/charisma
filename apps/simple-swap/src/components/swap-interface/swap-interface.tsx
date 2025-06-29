@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import TokenInputSection from './TokenInputSection';
 import TokenOutputSection from './TokenOutputSection';
 import SwapDetails from './swap-details';

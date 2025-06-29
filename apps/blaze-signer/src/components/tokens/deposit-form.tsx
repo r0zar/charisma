@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { request } from "@stacks/connect"
-import { noneCV, Pc, PostConditionMode, uintCV } from "@stacks/transactions"
+import { noneCV, Pc, uintCV } from "@stacks/transactions"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Form, FormItem, FormLabel, FormControl, FormField, FormMessage } from "@/components/ui/form"

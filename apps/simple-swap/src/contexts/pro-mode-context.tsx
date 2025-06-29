@@ -10,7 +10,7 @@ import { useBlaze } from 'blaze-sdk/realtime';
 import { toast } from 'sonner';
 import { formatUsd } from '@/lib/swap-utils';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
-import { classifyOrderTypes, groupOrdersIntoStrategies, type ClassifiedOrder } from '@/lib/orders/classification';
+import { classifyOrderTypes, type ClassifiedOrder } from '@/lib/orders/classification';
 
 // Use the ClassifiedOrder type from the shared utility
 export type DisplayOrder = ClassifiedOrder;
@@ -633,8 +633,8 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                     }
 
                     // Get condition token metadata
-                    let conditionMeta = tokenMetaCache.get(order.conditionToken);
-                    if (!conditionMeta) {
+                    let conditionMeta = tokenMetaCache.get(order.conditionToken || '');
+                    if (!conditionMeta && order.conditionToken) {
                         conditionMeta = await getTokenMetadataCached(order.conditionToken);
                         tokenMetaCache.set(order.conditionToken, conditionMeta);
                     }
@@ -662,7 +662,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
                 // Add condition token and base asset metadata to classified orders
                 const enrichedOrders: DisplayOrder[] = classifiedOrders.map(order => ({
                     ...order,
-                    conditionTokenMeta: tokenMetaCache.get(order.conditionToken)!,
+                    conditionTokenMeta: tokenMetaCache.get(order.conditionToken || '')!,
                     baseAssetMeta: order.baseAsset && order.baseAsset !== 'USD' ? tokenMetaCache.get(order.baseAsset) || null : null
                 }));
 

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast as sonnerToast } from "sonner";
 import { useApp } from "@/lib/context/app-context";
-import { ArrowLeft, HelpCircle, Globe, ExternalLink, Search, X, Check, Network, FileSignature, Loader2 } from "lucide-react";
+import { ArrowLeft, Globe, ExternalLink } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -274,7 +273,7 @@ export default function SublinkWizard() {
             }
         };
         updateContractCode();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [currentStep, config.metadataUri, config.tokenContract, config.subnetContract, selectedToken?.symbol]);
 
     // Handle authentication flow

@@ -1,7 +1,4 @@
 // Enhanced energy analytics with proper rate calculations
-import { getTransactionDetails } from "@repo/polyglot";
-import { fetchContractEvents } from "@repo/polyglot";
-import { hexToCV } from "@stacks/transactions";
 
 // ---- Updated Interfaces for Accurate Energy Analytics ----
 

@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { 
     CheckCircle, 
     XCircle, 
-    AlertTriangle, 
     TestTube, 
     Loader2,
     Play
@@ -100,7 +99,7 @@ export default function ValidationTester() {
             for (const testCase of test.testCases) {
                 try {
                     let actual: 'valid' | 'invalid' = 'invalid';
-                    let details: any = {};
+                    const details: any = {};
 
                     // Run the specific validation based on test type
                     if (testName === 'Tweet URL Validation') {

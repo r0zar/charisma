@@ -5,11 +5,8 @@ import { validateStacksAddress } from "@stacks/transactions/dist/esm/utils"
 import {
     cvToValue,
     principalCV,
-    ClarityValue,
-    deserializeCV,
     cvToHex,
     hexToCV,
-    bufferCV,
     stringAsciiCV,
     uintCV,
     optionalCVOf,

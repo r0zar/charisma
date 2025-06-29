@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
             success: true,
             data: {
                 bnsName: cleanName,
-                ...resolution
+                resolution
             }
         });
         

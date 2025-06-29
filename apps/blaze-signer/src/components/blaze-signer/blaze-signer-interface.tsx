@@ -3,13 +3,11 @@
 import React, { useState, useEffect } from "react"
 import { STACKS_MAINNET } from "@stacks/network"
 import { useRouter, usePathname } from "next/navigation"
-import { CompactWalletConnector } from "./compact-wallet-connector"
 import { HashGenerator } from "./hash-generator"
 import { UuidChecker } from "./uuid-checker"
 import { SignatureVerifier } from "./signature-verifier"
 import { VerifySignature } from "./verify-signature"
 import { SubmitSignature } from "./submit-signature"
-import { BLAZE_SIGNER_CONTRACT, WELSH_CREDITS_CONTRACT, CHARISMA_CREDITS_CONTRACT } from "../../constants/contracts"
 import {
     NavigationMenu,
     NavigationMenuList,

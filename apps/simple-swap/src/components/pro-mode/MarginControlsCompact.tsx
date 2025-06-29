@@ -10,8 +10,7 @@ import {
     Minus,
     RotateCcw,
     AlertTriangle,
-    HelpCircle,
-    RefreshCw
+    HelpCircle
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useTradingState } from '../../hooks/useTradingState';

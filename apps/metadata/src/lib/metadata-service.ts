@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { kv } from '@vercel/kv';
-import _ from 'lodash';
 
 const PropertiesSchema = z.object({
     // Moved from MetadataSchema top-level
@@ -292,7 +291,7 @@ export class MetadataService {
         // Helper to scan all keys for a given prefix
         async function scanAllKeys(matchPattern: string): Promise<string[]> {
             let cursor = 0;
-            let keys: string[] = [];
+            const keys: string[] = [];
             do {
                 // kv.scan returns [nextCursor, keys]
                 const [nextCursor, batch] = await kv.scan(cursor, { match: matchPattern, count: 1000 });
@@ -312,7 +311,7 @@ export class MetadataService {
         const uniqueKeys: string[] = [];
 
         allKeys.forEach(key => {
-            let prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
+            const prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
             const contractId = key.replace(prefix, '');
 
             if (!uniqueContractIds.has(contractId)) {
@@ -324,7 +323,7 @@ export class MetadataService {
         // Filter by address if provided
         const filteredKeys = address
             ? uniqueKeys.filter(key => {
-                let prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
+                const prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
                 const contractId = key.replace(prefix, '');
                 return contractId.startsWith(address);
             })
@@ -332,7 +331,7 @@ export class MetadataService {
 
         // Get all metadata
         const metadataPromises = filteredKeys.map(async (key) => {
-            let prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
+            const prefix = key.startsWith(this.KEY_PREFIX) ? this.KEY_PREFIX : this.LEGACY_KEY_PREFIX;
             const contractId = key.replace(prefix, '');
             const metadata = await kv.get<TokenMetadata>(key);
             if (!metadata) return { contractId } as TokenMetadata;

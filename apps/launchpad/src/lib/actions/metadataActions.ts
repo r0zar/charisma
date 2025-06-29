@@ -1,7 +1,7 @@
 'use server';
 
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
-import { revalidateTag } from 'next/cache'; // Or revalidatePath if more appropriate
+// Or revalidatePath if more appropriate
 import { kv } from "@vercel/kv"; // Import Vercel KV
 
 // --- Placeholder for actual metadata persistence --- 

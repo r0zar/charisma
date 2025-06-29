@@ -8,7 +8,7 @@ export async function fetchTokenBalance(tokenContractId: string, address: string
         } else {
             const [addr, name] = tokenContractId.split('.');
             const balanceCV = await callReadOnlyFunction(addr, name, 'get-balance', [principalCV(address)]);
-            return Number(balanceCV.value);
+            return balanceCV?.value ? Number(balanceCV.value) : 0;
         }
     } catch (error) {
         console.error(`Failed fetching token balance for ${tokenContractId}:`, error);
@@ -20,7 +20,7 @@ export async function fetchTotalSupply(vaultContractId: string): Promise<number>
     try {
         const [addr, name] = vaultContractId.split('.');
         const supplyCV = await callReadOnlyFunction(addr, name, 'get-total-supply', []);
-        return Number(supplyCV.value);
+        return supplyCV?.value ? Number(supplyCV.value) : 0;
     } catch (error) {
         console.error(`Failed fetching total supply for ${vaultContractId}:`, error);
         return 0;

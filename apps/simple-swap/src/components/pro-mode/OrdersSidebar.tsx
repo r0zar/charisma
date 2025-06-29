@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Trash2, ChevronDown, ChevronRight, ArrowRight, Loader2, TrendingUp, TrendingDown, LogOut, Info } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronRight, Loader2, TrendingUp, TrendingDown, LogOut, Info } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
@@ -88,7 +88,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
             const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
 
             let groupKey = null;
-            for (const [key, group] of sandwichGroups.entries()) {
+            for (const [key] of sandwichGroups.entries()) {
                 const [existingTime, existingPair] = key.split('|');
                 if (Math.abs(creationTime - parseInt(existingTime)) < 60000 && // Within 1 minute
                     (tokenPair === existingPair || tokenPair === existingPair.split('-').reverse().join('-'))) {
@@ -141,7 +141,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
             const amount = parseFloat(order.amountIn || '0');
 
             let groupKey = null;
-            for (const [key, group] of dcaGroups.entries()) {
+            for (const [key] of dcaGroups.entries()) {
                 const [existingTime, existingPair, existingAmount] = key.split('|');
                 if (Math.abs(creationTime - parseInt(existingTime)) < 300000 && // Within 5 minutes
                     tokenPair === existingPair &&

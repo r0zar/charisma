@@ -3,12 +3,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/lib/context/app-context';
 import { request } from '@stacks/connect';
-import { STACKS_MAINNET } from "@stacks/network";
 import { toast } from "sonner";
 import debounce from 'lodash/debounce';
 import { getRemoveLiquidityQuote, getLpTokenBalance } from '@/app/actions';
-import { uintCV, bufferCVFromString, principalCV, cvToValue, Pc, optionalCVOf } from '@stacks/transactions';
-import { callReadOnlyFunction } from '@repo/polyglot';
+import { uintCV, Pc, optionalCVOf } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -19,7 +17,6 @@ import { ArrowUpDown, Minus, AlertCircle, Loader2 } from 'lucide-react';
 
 // Import the centralized vault type definition and TokenCacheData
 import { ClientDisplayVault } from './vault-detail-client';
-import { TokenCacheData } from '@repo/tokens';
 
 // Remove local Token and Vault interfaces
 // interface Token { ... }

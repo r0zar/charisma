@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Shield, RefreshCw, Clock, AlertTriangle, CheckCircle, 
+  Shield, RefreshCw, Clock, AlertTriangle, 
   Zap, Link, ExternalLink, Timer, Activity 
 } from 'lucide-react';
 import { 
   useEnergyHealth, 
   getHealthStatusIcon, 
-  getHealthStatusColor, 
   getFunctionStatusIcon, 
   formatResponseTime 
 } from '@/hooks/useEnergyHealth';
@@ -247,7 +246,7 @@ export function EnergyContractHealthMonitor() {
                       <div className="flex items-center gap-2">
                         <span>{getFunctionStatusIcon(contract.functions.quote.working)}</span>
                         <span className="text-sm font-medium">quote()</span>
-                        <Badge variant="outline" size="sm">read-only</Badge>
+                        <Badge variant="outline" {...({ size: "sm" } as any)}>read-only</Badge>
                       </div>
                       {contract.functions.quote.responseTime && (
                         <p className="text-xs text-muted-foreground">
@@ -264,7 +263,7 @@ export function EnergyContractHealthMonitor() {
                       <div className="flex items-center gap-2">
                         <span>{getFunctionStatusIcon(contract.functions.tokenUri.working)}</span>
                         <span className="text-sm font-medium">get-token-uri()</span>
-                        <Badge variant="outline" size="sm">read-only</Badge>
+                        <Badge variant="outline" {...({ size: "sm" } as any)}>read-only</Badge>
                       </div>
                       {contract.functions.tokenUri.responseTime && (
                         <p className="text-xs text-muted-foreground">
@@ -281,7 +280,7 @@ export function EnergyContractHealthMonitor() {
                       <div className="flex items-center gap-2">
                         <span>{getFunctionStatusIcon(contract.functions.engineTap.working)}</span>
                         <span className="text-sm font-medium">engine-tap()</span>
-                        <Badge variant="outline" size="sm">read-only</Badge>
+                        <Badge variant="outline" {...({ size: "sm" } as any)}>read-only</Badge>
                       </div>
                       {contract.functions.engineTap.responseTime && (
                         <p className="text-xs text-muted-foreground">

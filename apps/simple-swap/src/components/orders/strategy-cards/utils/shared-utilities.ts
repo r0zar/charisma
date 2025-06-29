@@ -1,4 +1,4 @@
-import { StrategyDisplayData, DisplayOrder } from '@/lib/orders/strategy-formatter';
+import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
 import { formatOrderStatusTime, formatStrategyStatusTime, getConditionIcon } from '@/lib/date-utils';
 
 /**
@@ -42,7 +42,7 @@ export function getBadgeStatus(strategyData: StrategyDisplayData): 'open' | 'con
     const { type, status, orders } = strategyData;
     
     if (type === 'single') {
-        return orders[0].status;
+        return orders[0].status as 'open' | 'confirmed' | 'cancelled' | 'broadcasted' | 'failed';
     } else {
         // Map strategy status to badge status
         switch (status) {

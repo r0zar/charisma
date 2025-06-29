@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import type { EnergyRateTimePoint, TokenRateHistory } from '@/lib/energy/rate-analytics';
+import type { TokenRateHistory } from '@/lib/energy/rate-analytics';
 import { formatEnergyValue } from '@/lib/format-energy';
 import type { TokenCacheData } from '@repo/tokens';
 

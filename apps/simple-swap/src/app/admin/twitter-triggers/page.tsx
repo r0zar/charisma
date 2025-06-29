@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { TwitterIcon, Users, Zap, Settings } from 'lucide-react';
+import { TwitterIcon, Zap } from 'lucide-react';
 import TwitterTriggersClient from './twitter-triggers-client';
 
 export const metadata: Metadata = {

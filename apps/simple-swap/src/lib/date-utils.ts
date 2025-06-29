@@ -207,7 +207,7 @@ export function formatExecWindowHuman(validFrom?: string, validTo?: string, orde
  * Interface for order-like objects with status and timestamps
  */
 interface OrderLike {
-    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled';
+    status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled';
     createdAt: string;
     confirmedAt?: string;
     failedAt?: string;
@@ -235,6 +235,13 @@ export function formatOrderStatusTime(order: OrderLike): { text: string; tooltip
             return {
                 text: `Executed ${formatRelativeTime(confirmedDate)}`,
                 tooltip: `Executed: ${formatOrderDate(confirmedDate)}\nCreated: ${formatOrderDate(createdDate)}`
+            };
+        }
+        case 'filled': {
+            const filledDate = order.confirmedAt ? new Date(order.confirmedAt) : createdDate;
+            return {
+                text: `Filled ${formatRelativeTime(filledDate)}`,
+                tooltip: `Filled: ${formatOrderDate(filledDate)}\nCreated: ${formatOrderDate(createdDate)}`
             };
         }
         case 'failed': {
@@ -406,7 +413,7 @@ interface OrderConditionInfo {
  */
 export function getConditionIcon(
     order: OrderConditionInfo, 
-    strategyType?: 'dca' | 'single' | 'twitter'
+    strategyType?: 'dca' | 'single' | 'twitter' | 'split' | 'batch'
 ): string | null {
     // For Twitter strategy orders, prioritize Twitter-based execution
     if (strategyType === 'twitter') {
@@ -416,6 +423,15 @@ export function getConditionIcon(
     // For DCA strategy orders, prioritize time-based execution
     if (strategyType === 'dca') {
         return '⏰';
+    }
+    
+    // For split/batch strategy orders
+    if (strategyType === 'split') {
+        return '🔀';
+    }
+    
+    if (strategyType === 'batch') {
+        return '📦';
     }
     
     // Check for immediate execution (wildcard condition)

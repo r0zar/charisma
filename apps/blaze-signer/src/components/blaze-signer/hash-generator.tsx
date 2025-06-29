@@ -2,7 +2,7 @@
 
 import React, { useState, ChangeEvent, useEffect } from "react"
 import { StacksNetwork } from "@stacks/network"
-import { fetchCallReadOnlyFunction, stringAsciiCV, cvToHex, ClarityValue, principalCV, tupleCV, uintCV, cvToValue, bufferCV, optionalCVOf, noneCV, ClarityType } from "@stacks/transactions"
+import { fetchCallReadOnlyFunction, stringAsciiCV, principalCV, tupleCV, uintCV, cvToValue, bufferCV, optionalCVOf, noneCV } from "@stacks/transactions"
 import { Copy, Loader2, CheckCircle2 } from "lucide-react"
 import { request } from "@stacks/connect"
 import { QRCodeSVG } from 'qrcode.react'

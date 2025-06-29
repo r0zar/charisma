@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TrendingUp, TrendingDown, Minus, Activity, Zap, Clock, BarChart3, RefreshCw } from 'lucide-react';
-import type { EnergyAnalyticsData } from '@/lib/energy/analytics';
-import type { TokenRateHistory, TokenEnergyRate, EnergyRateTimePoint } from '@/lib/energy/rate-analytics';
-import { formatEnergyValue, formatEnergyCompact, getEnergyTokenSymbol } from '@/lib/format-energy';
+import type { TokenRateHistory, TokenEnergyRate } from '@/lib/energy/rate-analytics';
+import { formatEnergyValue, formatEnergyCompact } from '@/lib/format-energy';
 import type { TokenCacheData } from '@repo/tokens';
 import EnergyRateChart from './EnergyRateChart';
 import { EnergyRateBreakdown } from './EnergyRateBreakdown';

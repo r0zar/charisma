@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getTokenPrice, usdToTokens, getTokenDecimals } from "../utils"
-import { subBalance, getBalance, subStable, getStable, addUsdFees, getUsdFees, total_supply, totalStableSupply } from "@/lib/stablecoin/state"
+import { subBalance, getBalance, subStable, getStable, addUsdFees, getUsdFees } from "@/lib/stablecoin/state"
 
 export async function POST(req: Request) {
     try {

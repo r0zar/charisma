@@ -1,8 +1,6 @@
-import { getAllVaultData, type Vault } from '../pool-service';
+import { getAllVaultData } from '../pool-service';
 import { SBTC_CONTRACT_ID, isStablecoin } from './btc-oracle';
 import {
-    getTokenDecimals,
-    isValidDecimalConversion,
     convertAtomicToDecimal
 } from './decimal-utils';
 

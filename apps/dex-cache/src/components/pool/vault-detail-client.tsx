@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '@/lib/context/app-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,25 +10,18 @@ import {
     Wallet,
     LineChart,
     ArrowUpDown,
-    Users,
     Info,
-    Settings,
     Loader2,
     TrendingUp,
-    ArrowRightCircle,
     Shield as ShieldIcon,
-    Clock,
     PieChart,
-    AlertCircle,
     ChevronRight,
     CheckCircle,
-    Package,
     DollarSign
 } from 'lucide-react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { TokenCacheData } from '@repo/tokens';
-import Link from 'next/link';
 
 // Import the modals
 import { AddLiquidityModal } from '@/components/pool/add-liquidity-modal';

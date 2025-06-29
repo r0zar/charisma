@@ -15,8 +15,6 @@ import { useWallet } from "@/contexts/wallet-context";
 import { IntentInput, signIntentWithWallet } from "blaze-sdk";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from 'next/navigation';
-import TokenLogo from "@/components/TokenLogo";
-import { CancelOffer } from "./CancelOffer";
 
 interface Props {
     intentUuid: string;

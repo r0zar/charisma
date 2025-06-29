@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Zap, Droplets, ArrowRight, Settings2, TrendingUp, AlertTriangle, Flame, Coins, HandCoins } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Zap, Droplets, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { fetchHoldToEarnVaults, fetchEngineRates } from '@/lib/server/energy';
 import { getTokenMetadataCached } from '@repo/tokens';
 import { request } from '@stacks/connect';

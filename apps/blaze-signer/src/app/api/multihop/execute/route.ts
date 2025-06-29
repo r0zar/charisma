@@ -72,7 +72,10 @@ export async function POST(request: Request) {
             ],
         );
 
-        const signerCV = response.value;
+        const signerCV = response?.value;
+        if (!signerCV) {
+            throw new Error('No signer returned from contract call');
+        }
         const signer = cvToValue(signerCV) as string;
 
         // --- Verbose Debug Logging ---

@@ -10,12 +10,8 @@ import {
     TrendingDown,
     AlertCircle,
     Info,
-    DollarSign,
     Scale,
-    Target,
-    Users,
-    CheckCircle,
-    Shield
+    Target
 } from 'lucide-react';
 import { analyzeLpTokenPricing, formatLpPriceAnalysis, type LpTokenPriceAnalysis } from '@/lib/pricing/lp-token-calculator';
 import { Vault } from '@/lib/pool-service';
@@ -109,19 +105,59 @@ const AssetBreakdownItem = ({
 );
 
 export default function LpTokenPriceAnalysis({ vault, prices, analytics, className = "" }: LpTokenPriceAnalysisProps) {
+    const [analysis, setAnalysis] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
     // Analyze LP token pricing
-    const analysis = React.useMemo(() =>
-        analyzeLpTokenPricing(vault, prices),
-        [vault, prices]
-    );
+    React.useEffect(() => {
+        let isMounted = true;
+        
+        analyzeLpTokenPricing(vault, prices).then(result => {
+            if (isMounted) {
+                setAnalysis(result);
+                setLoading(false);
+            }
+        }).catch(error => {
+            console.error('Error analyzing LP token pricing:', error);
+            if (isMounted) {
+                setLoading(false);
+            }
+        });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [vault, prices]);
 
     const formatted = React.useMemo(() =>
-        formatLpPriceAnalysis(analysis),
+        analysis ? formatLpPriceAnalysis(analysis) : null,
         [analysis]
     );
 
+    // Early return if no formatted data
+    if (!formatted) {
+        return (
+            <Card className={`p-6 border border-border/50 ${className}`}>
+                <div className="flex items-center justify-center p-8">
+                    <div className="text-sm text-muted-foreground">Unable to format price analysis</div>
+                </div>
+            </Card>
+        );
+    }
+
+    // Show loading state
+    if (loading) {
+        return (
+            <Card className={`p-6 border border-border/50 ${className}`}>
+                <div className="flex items-center justify-center p-8">
+                    <div className="text-sm text-muted-foreground">Loading price analysis...</div>
+                </div>
+            </Card>
+        );
+    }
+
     // Don't render if we can't calculate intrinsic value
-    if (!analysis.intrinsicValue) {
+    if (!analysis?.intrinsicValue) {
         return (
             <Card className={`p-6 border border-border/50 ${className}`}>
                 <div className="flex items-center space-x-3 mb-4">

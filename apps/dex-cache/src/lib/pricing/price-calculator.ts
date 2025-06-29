@@ -1,16 +1,13 @@
 import { kv } from "@vercel/kv";
 import { getBtcPrice, SBTC_CONTRACT_ID, isStablecoin, type BtcPriceData } from './btc-oracle';
-import { getPriceGraph, type PricePath, type PoolEdge } from './price-graph';
+import { getPriceGraph, type PricePath } from './price-graph';
 import {
-    calculateDecimalAwareExchangeRate,
     getTokenDecimals,
     isValidDecimalConversion
 } from './decimal-utils';
 import {
-    calculateLpIntrinsicValue,
-    calculateAssetBreakdown,
-    analyzeLpTokenPricing,
-    type LpTokenPriceAnalysis
+    calculateLpIntrinsicValueFromVault,
+    calculateAssetBreakdown
 } from './lp-token-calculator';
 
 // Cache keys
@@ -179,7 +176,7 @@ export class PriceCalculator {
 
             // Enhance price data with market/intrinsic analysis
             priceData.marketPrice = priceData.usdPrice;
-            priceData.intrinsicValue = null; // Market-based pricing, no intrinsic value calculated
+            priceData.intrinsicValue = undefined; // Market-based pricing, no intrinsic value calculated
             priceData.priceDeviation = 0;
             priceData.isArbitrageOpportunity = false;
             priceData.isLpToken = isLp; // Mark if this is an LP token
@@ -725,7 +722,7 @@ export class PriceCalculator {
             }
 
             // Calculate intrinsic value using LP calculator
-            const intrinsicValue = calculateLpIntrinsicValue(vault, prices);
+            const intrinsicValue = await calculateLpIntrinsicValueFromVault(vault, prices);
             if (!intrinsicValue) {
                 console.log(`[PriceCalculator] Could not calculate intrinsic value for ${tokenId}`);
                 return null;
@@ -740,7 +737,7 @@ export class PriceCalculator {
             const sbtcRatio = intrinsicValue / btcPrice.price;
 
             // Calculate asset breakdown for detailed analysis
-            const assetBreakdown = calculateAssetBreakdown(vault, prices);
+            const assetBreakdown = await calculateAssetBreakdown(vault, prices);
 
             return {
                 tokenId,
@@ -752,7 +749,7 @@ export class PriceCalculator {
                 confidence: 0.8, // High confidence for intrinsic calculation
                 lastUpdated: Date.now(),
                 intrinsicValue,
-                marketPrice: null, // LP tokens typically don't have market prices
+                marketPrice: undefined, // LP tokens typically don't have market prices
                 priceDeviation: 0,
                 isArbitrageOpportunity: false,
                 calculationDetails: {
@@ -795,7 +792,7 @@ export class PriceCalculator {
         btcPrice: { price: number; confidence: number }
     ): TokenPriceData | null {
         // Configuration for hybrid pricing strategy
-        const HYBRID_STRATEGY = 'fallback'; // 'fallback', 'average', or 'weighted'
+        const HYBRID_STRATEGY = 'fallback' as const; // 'fallback', 'average', or 'weighted'
         const MARKET_WEIGHT = 0.7; // For weighted average
         const DEVIATION_THRESHOLD = 0.1; // 10% deviation threshold for arbitrage detection
 
@@ -813,11 +810,14 @@ export class PriceCalculator {
             return {
                 ...intrinsicPrice,
                 intrinsicValue: intrinsicPrice.usdPrice,
-                marketPrice: null,
+                marketPrice: undefined,
                 priceDeviation: 0,
                 isArbitrageOpportunity: false,
                 calculationDetails: {
-                    ...intrinsicPrice.calculationDetails,
+                    btcPrice: intrinsicPrice.calculationDetails?.btcPrice || 0,
+                    pathsUsed: intrinsicPrice.calculationDetails?.pathsUsed || 0,
+                    totalLiquidity: intrinsicPrice.calculationDetails?.totalLiquidity || 0,
+                    priceVariation: intrinsicPrice.calculationDetails?.priceVariation || 0,
                     priceSource: 'intrinsic'
                 }
             };
@@ -827,12 +827,15 @@ export class PriceCalculator {
             console.log(`[PriceCalculator] Using market price (intrinsic unavailable)`);
             return {
                 ...marketPrice,
-                intrinsicValue: null,
+                intrinsicValue: undefined,
                 marketPrice: marketPrice.usdPrice,
                 priceDeviation: 0,
                 isArbitrageOpportunity: false,
                 calculationDetails: {
-                    ...marketPrice.calculationDetails,
+                    btcPrice: marketPrice.calculationDetails?.btcPrice || 0,
+                    pathsUsed: marketPrice.calculationDetails?.pathsUsed || 0,
+                    totalLiquidity: marketPrice.calculationDetails?.totalLiquidity || 0,
+                    priceVariation: marketPrice.calculationDetails?.priceVariation || 0,
                     priceSource: 'market'
                 }
             };
@@ -849,53 +852,46 @@ export class PriceCalculator {
             let finalPrice: TokenPriceData;
             let priceSource: 'market' | 'intrinsic' | 'hybrid';
 
-            switch (HYBRID_STRATEGY) {
-                case 'fallback':
-                    // Prefer market price, fallback to intrinsic
-                    finalPrice = { ...marketPrice };
-                    priceSource = 'market';
-                    console.log(`[PriceCalculator] Using market price (fallback strategy)`);
-                    break;
-
-                case 'average':
-                    // Simple average
-                    const avgPrice = (marketPrice.usdPrice + intrinsicPrice.usdPrice) / 2;
-                    const avgSbtcRatio = avgPrice / btcPrice.price;
-                    finalPrice = {
-                        ...marketPrice,
-                        usdPrice: avgPrice,
-                        sbtcRatio: avgSbtcRatio,
-                        confidence: Math.min(marketPrice.confidence, intrinsicPrice.confidence)
-                    };
-                    priceSource = 'hybrid';
-                    console.log(`[PriceCalculator] Using average price: $${avgPrice.toFixed(6)}`);
-                    break;
-
-                case 'weighted':
-                    // Weighted average based on confidence
-                    const marketWeight = MARKET_WEIGHT * marketPrice.confidence;
-                    const intrinsicWeight = (1 - MARKET_WEIGHT) * intrinsicPrice.confidence;
-                    const totalWeight = marketWeight + intrinsicWeight;
-                    
-                    const weightedPrice = (
-                        marketPrice.usdPrice * marketWeight + 
-                        intrinsicPrice.usdPrice * intrinsicWeight
-                    ) / totalWeight;
-                    const weightedSbtcRatio = weightedPrice / btcPrice.price;
-                    
-                    finalPrice = {
-                        ...marketPrice,
-                        usdPrice: weightedPrice,
-                        sbtcRatio: weightedSbtcRatio,
-                        confidence: totalWeight / (marketPrice.confidence + intrinsicPrice.confidence)
-                    };
-                    priceSource = 'hybrid';
-                    console.log(`[PriceCalculator] Using weighted average: $${weightedPrice.toFixed(6)} (market: ${marketWeight.toFixed(2)}, intrinsic: ${intrinsicWeight.toFixed(2)})`);
-                    break;
-
-                default:
-                    finalPrice = { ...marketPrice };
-                    priceSource = 'market';
+            if (HYBRID_STRATEGY === 'fallback') {
+                // Prefer market price, fallback to intrinsic
+                finalPrice = { ...marketPrice };
+                priceSource = 'market';
+                console.log(`[PriceCalculator] Using market price (fallback strategy)`);
+            } else if (HYBRID_STRATEGY === 'average') {
+                // Simple average
+                const avgPrice = (marketPrice.usdPrice + intrinsicPrice.usdPrice) / 2;
+                const avgSbtcRatio = avgPrice / btcPrice.price;
+                finalPrice = {
+                    ...marketPrice,
+                    usdPrice: avgPrice,
+                    sbtcRatio: avgSbtcRatio,
+                    confidence: Math.min(marketPrice.confidence, intrinsicPrice.confidence)
+                };
+                priceSource = 'hybrid';
+                console.log(`[PriceCalculator] Using average price: $${avgPrice.toFixed(6)}`);
+            } else if (HYBRID_STRATEGY === 'weighted') {
+                // Weighted average based on confidence
+                const marketWeight = MARKET_WEIGHT * marketPrice.confidence;
+                const intrinsicWeight = (1 - MARKET_WEIGHT) * intrinsicPrice.confidence;
+                const totalWeight = marketWeight + intrinsicWeight;
+                
+                const weightedPrice = (
+                    marketPrice.usdPrice * marketWeight + 
+                    intrinsicPrice.usdPrice * intrinsicWeight
+                ) / totalWeight;
+                const weightedSbtcRatio = weightedPrice / btcPrice.price;
+                
+                finalPrice = {
+                    ...marketPrice,
+                    usdPrice: weightedPrice,
+                    sbtcRatio: weightedSbtcRatio,
+                    confidence: totalWeight / (marketPrice.confidence + intrinsicPrice.confidence)
+                };
+                priceSource = 'hybrid';
+                console.log(`[PriceCalculator] Using weighted average: $${weightedPrice.toFixed(6)} (market: ${marketWeight.toFixed(2)}, intrinsic: ${intrinsicWeight.toFixed(2)})`);
+            } else {
+                finalPrice = { ...marketPrice };
+                priceSource = 'market';
             }
 
             // Enhance with market vs intrinsic analysis

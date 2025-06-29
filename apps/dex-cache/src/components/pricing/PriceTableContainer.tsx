@@ -7,16 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
   Search, 
-  Filter, 
-  ArrowUp, 
-  ArrowDown, 
   RefreshCw, 
   Loader2,
   TrendingUp,
   AlertTriangle
 } from 'lucide-react';
 import PriceTable from './PriceTable';
-import { TokenPriceData } from '@/lib/pricing/price-calculator';
 
 interface PriceFilters {
   search: string;
@@ -217,7 +213,7 @@ export default function PriceTableContainer() {
     
     if (!priceData?.data) return [];
 
-    let filtered = priceData.data.filter(item => {
+    const filtered = priceData.data.filter(item => {
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();

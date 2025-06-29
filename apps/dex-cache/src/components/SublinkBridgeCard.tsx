@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { ArrowRightLeft, TrendingDown, TrendingUp, ExternalLinkIcon, Loader2, Re
 import Link from 'next/link';
 import { useApp } from '@/lib/context/app-context';
 import { request } from '@stacks/connect';
-import { uintCV, bufferCV, optionalCVOf, Pc, PostCondition, cvToValue } from '@stacks/transactions';
+import { uintCV, bufferCV, optionalCVOf, Pc, PostCondition } from '@stacks/transactions';
 import { callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV } from '@stacks/transactions';
 import { toast } from "sonner";

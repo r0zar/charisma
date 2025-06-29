@@ -2,17 +2,9 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import {
-    TrendingUp,
-    ZoomIn,
-    ZoomOut,
-    RotateCcw,
-    Crosshair,
     TrendingDown,
-    Activity,
-    BarChart3,
-    Settings
+    Activity
 } from 'lucide-react';
 import { TokenCacheData } from '@repo/tokens';
 import type { LimitOrder } from '../../lib/orders/types';
@@ -24,7 +16,6 @@ import {
     type CandlestickData,
     LineSeries,
     CandlestickSeries,
-    AreaSeries,
     ColorType,
     type IPriceLine,
     LineStyle,
@@ -1203,7 +1194,7 @@ const ProModeChart = React.memo(function ProModeChart({
         // Group orders by price level to avoid overlapping lines
         const ordersByPrice = new Map<string, DisplayOrder[]>();
         ordersToShow.forEach(order => {
-            const priceKey = order.targetPrice;
+            const priceKey = order.targetPrice || '0';
             if (!ordersByPrice.has(priceKey)) {
                 ordersByPrice.set(priceKey, []);
             }
@@ -1713,13 +1704,13 @@ const ProModeChart = React.memo(function ProModeChart({
             const baseOrderOfMagnitude = Math.min(rangeOrderOfMagnitude, avgOrderOfMagnitude);
 
             // Start with a base interval
-            let baseInterval = Math.pow(10, baseOrderOfMagnitude);
+            const baseInterval = Math.pow(10, baseOrderOfMagnitude);
 
             // Adjust the interval to get a reasonable number of grid lines (15-40 lines)
             // Reduced target since we're covering a larger range now
             const targetGridLines = 25;
             let interval = baseInterval;
-            let estimatedLines = range / interval;
+            const estimatedLines = range / interval;
 
             // Fine-tune the interval
             if (estimatedLines > 50) {

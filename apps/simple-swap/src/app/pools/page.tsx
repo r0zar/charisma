@@ -1,7 +1,6 @@
 import React from 'react';
 import { Header } from "../../components/layout/header";
 import { Layers, Plus, ArrowUpDown } from "lucide-react";
-import Link from 'next/link';
 
 export const metadata = {
     title: 'Liquidity Pools | SimpleSwap',

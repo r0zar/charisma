@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { kv } from "@vercel/kv";
 import { getPriceGraph } from '@/lib/pricing/price-graph';
-import { getMultipleTokenPrices, getTokenPrice } from '@/lib/pricing/price-calculator';
+import { getMultipleTokenPrices } from '@/lib/pricing/price-calculator';
 import { listVaultTokens, listVaults, getLpTokenMetadata } from '@/lib/pool-service';
 
 // Cache keys and durations for SWR strategy
@@ -384,7 +384,7 @@ async function generatePriceData(
                 // Calculate liquidity: use pool value for LP tokens, graph liquidity for regular tokens
                 let totalLiquidity = 0;
                 
-                if (!!(tokenMeta as any).isLpToken) {
+                if ((tokenMeta as any).isLpToken) {
                     // For LP tokens, calculate pool value from vault reserves
                     const vault = sortedVaults.find(v => v.contractId === tokenId);
                     if (vault) {

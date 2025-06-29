@@ -3,11 +3,8 @@ export const revalidate = 300; // Revalidate this page at most every 5 minutes
 import { EnergyDashboardTab } from '@/components/energy/EnergyDashboardTab';
 import { NFTBonusesTab } from '@/components/energy/NFTBonusesTab';
 import { HelpTab } from '@/components/energy/HelpTab';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Zap, Info, Clock, Shield, HandCoins, Battery, Crown, Cpu, HelpCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Zap, Crown, HelpCircle } from 'lucide-react';
 
 // https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.power-cells?chain=mainnet
 

@@ -1,9 +1,7 @@
 'use client';
 
 import { NFTBonusDisplay } from '@/components/admin/energy/NFTBonusDisplay';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Crown, Info, Cpu, Battery, Zap, TrendingUp, Calculator } from 'lucide-react';
+import { Crown, Info, Battery, Zap, TrendingUp, Calculator } from 'lucide-react';
 import { useApp } from '@/lib/context/app-context';
 import { Badge } from '@/components/ui/badge';
 

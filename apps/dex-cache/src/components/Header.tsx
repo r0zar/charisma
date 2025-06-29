@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { WalletConnector } from "@/components/wallet-connector";
-import { HandCoinsIcon, Menu, X } from 'lucide-react';
+import { HandCoinsIcon, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
