@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import type { Token, SpinFeedData, Vote } from '@/types/spin';
+import type { SpinFeedData, Vote } from '@/types/spin';
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Constants ---

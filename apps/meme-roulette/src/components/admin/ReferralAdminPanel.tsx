@@ -12,8 +12,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import {
-    getReferralConfig,
-    getReferralSystemStats,
     getAllReferrals,
     getReferralStats
 } from '@/lib/admin-api';

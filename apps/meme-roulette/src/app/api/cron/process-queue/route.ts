@@ -3,9 +3,7 @@ import {
     getKVSpinStatus,
     setKVWinningToken,
     validateUserBalancesBeforeSpin,
-    resetKVForNextSpin,
-    updateATHIfNeeded,
-    setPreviousRoundAmount
+    resetKVForNextSpin
 } from '@/lib/state';
 import { listTokens } from 'dexterity-sdk';
 import { cleanInvalidIntentsFromQueue } from '@/lib/state';

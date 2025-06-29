@@ -4,10 +4,9 @@ import React, { createContext, useState, useContext, useEffect, ReactNode, useRe
 import { connect, request } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
-import { signIntentWithWallet, IntentInput, MULTIHOP_CONTRACT_ID, broadcastMultihopTransaction, getUserTokenBalance } from "blaze-sdk"; // Reverting to relative path
+import { signIntentWithWallet, MULTIHOP_CONTRACT_ID, getUserTokenBalance } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
-import { fetchQuote, Router, loadVaults, buildSwapTransaction, Quote, Route } from 'dexterity-sdk';
-import { broadcastTransaction, makeContractCall } from '@stacks/transactions';
+import { fetchQuote, Router, loadVaults, buildSwapTransaction, Route } from 'dexterity-sdk';
 
 // Default Charisma token contract (mainnet) – override in env if necessary
 const CHARISMA_TOKEN_CONTRACT_ID =

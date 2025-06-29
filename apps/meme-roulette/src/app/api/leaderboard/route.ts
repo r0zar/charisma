@@ -6,10 +6,8 @@ import {
 } from '@/lib/leaderboard-integration';
 import {
     getUserStats,
-    getLeaderboard,
     getAchievementDefinitions,
-    getUserAchievements,
-    type LeaderboardEntry
+    getUserAchievements
 } from '@/lib/leaderboard-kv';
 
 // ========================================

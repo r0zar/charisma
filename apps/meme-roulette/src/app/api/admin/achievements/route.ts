@@ -94,7 +94,7 @@ async function handleRetroactiveAwards(params: { userLimit?: number; dryRun?: bo
             'leaderboard:total_votes'
         ];
 
-        let allUserIds = new Set<string>();
+        const allUserIds = new Set<string>();
 
         for (const key of leaderboardKeys) {
             const userIds = await kv.zrange(key, 0, -1);

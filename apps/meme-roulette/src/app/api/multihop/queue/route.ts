@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { incrementKVTokenBet } from '@/lib/state';
 import { listTokens } from 'dexterity-sdk';
 import { recoverMultihopSigner } from 'blaze-sdk';
 import { recordVoteWithLeaderboard } from '@/lib/leaderboard-integration';

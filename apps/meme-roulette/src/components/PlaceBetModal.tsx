@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { Token, Vote } from '@/types/spin';
+import { Token } from '@/types/spin';
 import { useWallet } from '@/contexts/wallet-context';
-import { useSpin } from '@/contexts/SpinContext';
 import { X, Search, Rocket, TrendingUp, Coins, Flame } from 'lucide-react';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose,
     DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -16,11 +15,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from '@/components/ui/sonner';
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DepositCharismaButton } from '@/components/DepositCharismaButton';
-import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
-import { z } from 'zod';
-import { buttonVariants } from '@/components/ui/button';
-import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 // import { Quote } from 'dexterity-sdk'; // Not used, can be removed if truly unused
 
 // CHA Token specific constants - ideally, CHA token info (like decimals) would be more globally available

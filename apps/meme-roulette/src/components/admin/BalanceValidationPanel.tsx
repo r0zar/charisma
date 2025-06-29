@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/sonner';
 import { validateUserBalances } from '@/lib/admin-api';
 import { useTokenPrices } from '@/hooks/useTokenPrices';
-import { useBnsCache } from '@/hooks/useBnsCache';
 import SpinValidationDisplay from '@/components/SpinValidationDisplay';
 import SpinReadyDisplay from '@/components/SpinReadyDisplay';
 import SpinAnimationOverlay from '@/components/SpinAnimationOverlay';

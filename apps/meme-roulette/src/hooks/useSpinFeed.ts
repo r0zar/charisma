@@ -147,7 +147,7 @@ export function useSpinFeed(): UseSpinFeedResult {
                 clearTimeout(offlineTimeoutRef.current);
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [connect]); // Re-run effect if connect function identity changes (due to dependencies)
 
     // Return the base state 

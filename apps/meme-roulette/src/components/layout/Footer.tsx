@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Github } from 'lucide-react';
 
 // Define props for Footer

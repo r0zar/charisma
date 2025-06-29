@@ -4,9 +4,9 @@ import React, { useMemo } from 'react';
 import { useSpin } from '@/contexts/SpinContext'; // Import the hook for tokenBets
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton"; // Assuming Skeleton component exists
+// Assuming Skeleton component exists
 import type { Token } from '@/types/spin'; // Import Token type if needed for leaderboard item type
-import { Trophy, RefreshCw, Rocket, TrendingUp, Medal } from 'lucide-react';
+import { Trophy, RefreshCw, Medal } from 'lucide-react';
 
 // Helper function to format atomic amounts (consider moving to a shared utils file)
 const formatAtomicToWholeUnit = (atomicAmount: number | undefined | null, decimalsInput: number | undefined | null, tokenId?: string): string => {

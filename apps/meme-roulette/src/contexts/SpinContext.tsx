@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useMemo, ReactNode, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import type { SpinFeedData, Token, Vote } from '@/types/spin';
 import { toast } from '@/components/ui/sonner';
 import { Rocket } from 'lucide-react';

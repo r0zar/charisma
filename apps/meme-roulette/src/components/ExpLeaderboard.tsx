@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Search, Trophy, ArrowUp, ArrowDown, Sparkles, Flame, Clock, Users, RefreshCw, HandCoins, TrendingUp, Zap, History } from 'lucide-react';
+import { Search, Trophy, Sparkles, Clock, Users, RefreshCw, HandCoins, TrendingUp, Zap, History } from 'lucide-react';
 import { useSpin } from '@/contexts/SpinContext';
 import { useTokenPrices } from '@/hooks/useTokenPrices';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
@@ -20,7 +20,6 @@ import TokenAmountDisplay from '@/components/TokenAmountDisplay';
 import HistoricSpinResults from '@/components/HistoricSpinResults';
 import AchievementBadges from '@/components/AchievementBadges';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
-import type { Vote } from '@/types/spin';
 
 // CHA decimals constant
 const CHA_DECIMALS = 6;
