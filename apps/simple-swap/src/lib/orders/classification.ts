@@ -50,12 +50,12 @@ export function classifyOrderType(
     if (order.validFrom || order.validTo) {
         const validFromDate = order.validFrom ? new Date(order.validFrom) : null;
         const now = new Date();
-        
+
         // If validFrom is in the future, likely part of DCA sequence
         if (validFromDate && validFromDate > now) {
             return 'dca';
         }
-        
+
         // If we have all orders, check for DCA patterns
         if (allOrders) {
             const isDCACandidate = checkForDCAPattern(order, allOrders);
@@ -64,7 +64,7 @@ export function classifyOrderType(
             }
         }
     }
-    
+
     // Check for sandwich patterns if we have all orders
     if (allOrders) {
         const isSandwichCandidate = checkForSandwichPattern(order, allOrders);
@@ -72,7 +72,7 @@ export function classifyOrderType(
             return 'sandwich';
         }
     }
-    
+
     // Default to single/limit order
     return 'single';
 }
@@ -87,21 +87,21 @@ function checkForDCAPattern(
     const creationTime = new Date(order.createdAt).getTime();
     const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
     const amount = parseFloat(order.amountIn || '0');
-    
+
     // Look for similar orders created around the same time with similar amounts
     const similarOrders = allOrders.filter(o => {
         if (o.uuid === order.uuid) return false;
-        
+
         const otherCreationTime = new Date(o.createdAt).getTime();
         const otherTokenPair = `${o.inputTokenMeta.contractId}-${o.outputTokenMeta.contractId}`;
         const otherAmount = parseFloat(o.amountIn || '0');
-        
+
         // Within 5 minutes, same token pair, similar amount (within 10%)
         return Math.abs(creationTime - otherCreationTime) < 300000 &&
-               tokenPair === otherTokenPair &&
-               Math.abs(amount - otherAmount) < (amount * 0.1);
+            tokenPair === otherTokenPair &&
+            Math.abs(amount - otherAmount) < (amount * 0.1);
     });
-    
+
     // If we find 1+ similar orders, this is likely part of a DCA sequence
     return similarOrders.length >= 1;
 }
@@ -116,21 +116,21 @@ function checkForSandwichPattern(
     const creationTime = new Date(order.createdAt).getTime();
     const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
     const reverseTokenPair = `${order.outputTokenMeta.contractId}-${order.inputTokenMeta.contractId}`;
-    
+
     // Look for complementary orders (opposite direction) created around same time
     const complementaryOrders = allOrders.filter(o => {
         if (o.uuid === order.uuid) return false;
-        
+
         const otherCreationTime = new Date(o.createdAt).getTime();
         const otherTokenPair = `${o.inputTokenMeta.contractId}-${o.outputTokenMeta.contractId}`;
-        
+
         // Within 1 minute, same or reverse token pair, opposite direction
         return Math.abs(creationTime - otherCreationTime) < 60000 &&
-               (tokenPair === otherTokenPair || tokenPair === reverseTokenPair || 
+            (tokenPair === otherTokenPair || tokenPair === reverseTokenPair ||
                 reverseTokenPair === otherTokenPair) &&
-               order.direction !== o.direction;
+            order.direction !== o.direction;
     });
-    
+
     // If we find complementary orders, this is likely part of a sandwich
     return complementaryOrders.length >= 1;
 }
@@ -147,7 +147,7 @@ export function classifyOrderTypes(
         orderType: classifyOrderType(order, orders),
         conditionTokenMeta: order.inputTokenMeta // Use input token as fallback for condition token
     }));
-    
+
     // Count by type
     const counts: OrderTypeCounts = {
         single: 0,
@@ -155,12 +155,12 @@ export function classifyOrderTypes(
         sandwich: 0,
         total: 0
     };
-    
+
     classifiedOrders.forEach(order => {
         counts[order.orderType]++;
         counts.total++;
     });
-    
+
     return { classifiedOrders, counts };
 }
 
@@ -173,17 +173,17 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
 } {
     const strategies: OrderStrategy[] = [];
     const usedOrderIds = new Set<string>();
-    
+
     // Group sandwich orders
     const sandwichOrders = classifiedOrders.filter(o => o.orderType === 'sandwich' && !usedOrderIds.has(o.uuid));
     const sandwichGroups = new Map<string, ClassifiedOrder[]>();
-    
+
     sandwichOrders.forEach(order => {
         const creationTime = new Date(order.createdAt).getTime();
         const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
-        
+
         let groupKey = null;
-        for (const [key, group] of sandwichGroups.entries()) {
+        for (const [key] of sandwichGroups.entries()) {
             const [existingTime, existingPair] = key.split('|');
             if (Math.abs(creationTime - parseInt(existingTime)) < 60000 && // Within 1 minute
                 (tokenPair === existingPair || tokenPair === existingPair.split('-').reverse().join('-'))) {
@@ -191,22 +191,22 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
                 break;
             }
         }
-        
+
         if (!groupKey) {
             groupKey = `${creationTime}|${tokenPair}`;
             sandwichGroups.set(groupKey, []);
         }
-        
+
         sandwichGroups.get(groupKey)!.push(order);
         usedOrderIds.add(order.uuid);
     });
-    
+
     // Create sandwich strategy objects
     sandwichGroups.forEach((orders, key) => {
         if (orders.length >= 2) {
             const buyOrder = orders.find(o => o.direction === 'lt'); // Buy low
             const sellOrder = orders.find(o => o.direction === 'gt'); // Sell high
-            
+
             strategies.push({
                 type: 'sandwich',
                 id: `sandwich-${key}`,
@@ -215,7 +215,7 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
                 sellOrder,
                 createdAt: orders[0].createdAt,
                 status: orders.every(o => o.status === 'filled') ? 'completed' :
-                        orders.some(o => o.status === 'filled') ? 'partial' : 'pending',
+                    orders.some(o => o.status === 'filled') ? 'partial' : 'pending',
                 tokenA: orders[0].inputTokenMeta,
                 tokenB: orders[0].outputTokenMeta,
                 totalInvested: orders.reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
@@ -227,16 +227,16 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
             orders.forEach(order => usedOrderIds.delete(order.uuid));
         }
     });
-    
+
     // Group DCA orders
     const dcaOrders = classifiedOrders.filter(o => o.orderType === 'dca' && !usedOrderIds.has(o.uuid));
     const dcaGroups = new Map<string, ClassifiedOrder[]>();
-    
+
     dcaOrders.forEach(order => {
         const creationTime = new Date(order.createdAt).getTime();
         const tokenPair = `${order.inputTokenMeta.contractId}-${order.outputTokenMeta.contractId}`;
         const amount = parseFloat(order.amountIn || '0');
-        
+
         let groupKey = null;
         for (const [key, group] of dcaGroups.entries()) {
             const [existingTime, existingPair, existingAmount] = key.split('|');
@@ -247,16 +247,16 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
                 break;
             }
         }
-        
+
         if (!groupKey) {
             groupKey = `${creationTime}|${tokenPair}|${amount}`;
             dcaGroups.set(groupKey, []);
         }
-        
+
         dcaGroups.get(groupKey)!.push(order);
         usedOrderIds.add(order.uuid);
     });
-    
+
     // Create DCA strategy objects
     dcaGroups.forEach((orders, key) => {
         if (orders.length >= 2) { // Only group if there are multiple orders
@@ -266,7 +266,7 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
                 orders: orders.sort((a, b) => new Date(a.validFrom || a.createdAt).getTime() - new Date(b.validFrom || b.createdAt).getTime()),
                 createdAt: orders[0].createdAt,
                 status: orders.every(o => o.status === 'filled') ? 'completed' :
-                        orders.some(o => o.status === 'filled') ? 'active' : 'pending',
+                    orders.some(o => o.status === 'filled') ? 'active' : 'pending',
                 totalInvested: orders.filter(o => o.status === 'filled').reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
                 totalPlanned: orders.reduce((sum, o) => sum + parseFloat(o.amountIn || '0') / (10 ** (o.inputTokenMeta.decimals || 6)), 0),
                 filledOrders: orders.filter(o => o.status === 'filled').length,
@@ -278,10 +278,10 @@ export function groupOrdersIntoStrategies(classifiedOrders: ClassifiedOrder[]): 
             orders.forEach(order => usedOrderIds.delete(order.uuid));
         }
     });
-    
+
     // Add remaining individual orders (single, ungrouped DCA/sandwich)
     const individualOrders = classifiedOrders.filter(o => !usedOrderIds.has(o.uuid));
-    
+
     return { strategies, individualOrders };
 }
 
@@ -294,14 +294,14 @@ export async function countOrdersByType(
 ): Promise<OrderTypeCounts> {
     // Enrich orders with token metadata for classification
     const enrichedOrders: (LimitOrder & { inputTokenMeta: TokenCacheData; outputTokenMeta: TokenCacheData })[] = [];
-    
+
     for (const order of orders) {
         try {
             const [inputTokenMeta, outputTokenMeta] = await Promise.all([
                 getTokenMetadata(order.inputToken),
                 getTokenMetadata(order.outputToken)
             ]);
-            
+
             enrichedOrders.push({
                 ...order,
                 inputTokenMeta,
@@ -312,7 +312,7 @@ export async function countOrdersByType(
             // Skip orders with missing metadata
         }
     }
-    
+
     const { counts } = classifyOrderTypes(enrichedOrders);
     return counts;
 }
