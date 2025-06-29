@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 import { callReadOnlyFunction, getContractInterface, getContractInfo, fetchContractEvents, fetcHoldToEarnLogs, callReadOnly } from "../index";
-import { cvToHex, hexToCV, principalCV } from "@stacks/transactions";
+import { cvToHex, principalCV } from "@stacks/transactions";
 
 // Mock the API client
 jest.mock('../blockchain-api-client', () => ({
