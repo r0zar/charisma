@@ -9,7 +9,11 @@
     "partykit": "partykit dev",
     "deploy": "partykit deploy",
     "script": "node scripts/run.js",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@repo/polyglot": "workspace:*",
@@ -25,11 +29,14 @@
     "@types/react": "^18.2.70",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/ui": "^1.6.1",
     "concurrently": "^8.2.2",
     "dotenv": "^16.4.5",
     "partykit": "^0.0.110",
     "tsx": "^4.19.4",
     "typescript": "^5.5.4",
-    "vite": "^5.2.0"
+    "vite": "^5.2.0",
+    "vitest": "^1.6.1"
   }
 }

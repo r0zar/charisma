@@ -121,6 +121,10 @@ export default class BalancesParty implements Party.Server {
 
     private detectLocalDev(): boolean {
         try {
+            // Check for test environment first
+            if (process.env.NODE_ENV === 'test' || process.env.PARTYKIT_ENV === 'test') {
+                return true;
+            }
             // Check if we're running on localhost (port 1999 is dev server)
             // In PartyKit, we can detect dev environment by checking the hostname
             return process.env.NODE_ENV === 'development' ||

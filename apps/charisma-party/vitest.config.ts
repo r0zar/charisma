@@ -2,13 +2,28 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
 export default defineConfig({
+  root: '.',
   test: {
     environment: 'node',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
-    timeout: 30000, // 30 seconds for performance tests
-    testTimeout: 60000, // 1 minute for long-running tests
-    hookTimeout: 10000, // 10 seconds for setup/teardown
+    typecheck: {
+      include: ['tests/**/*.test.ts', 'tests/global.d.ts']
+    },
+    include: [
+      'tests/**/*.test.ts',
+      'tests/**/*.test.js',
+      'tests/**/*.spec.ts',
+      'tests/**/*.spec.js'
+    ],
+    exclude: [
+      'node_modules/',
+      'dist/',
+      '.git/',
+      '.vite/'
+    ],
+    testTimeout: 60000,
+    hookTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -29,16 +44,7 @@ export default defineConfig({
           statements: 70,
         },
       },
-    },
-    include: [
-      'tests/**/*.test.ts'
-    ],
-    exclude: [
-      'node_modules/',
-      'dist/',
-      '.git/',
-      '.vite/'
-    ]
+    }
   },
   resolve: {
     alias: {
