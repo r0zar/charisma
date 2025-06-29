@@ -19,18 +19,34 @@ vi.mock('@repo/tokens', () => ({
   fetchMetadata: vi.fn()
 }));
 
-// Mock balances-lib functions (partially)
-vi.mock('../src/balances-lib', async () => {
-  const actual = await vi.importActual('../src/balances-lib') as any;
-  return {
-    ...actual,
-    loadTokenMetadata: vi.fn(),
-    fetchUserBalances: vi.fn().mockImplementation(actual.fetchUserBalances),
-    isValidUserAddress: vi.fn().mockImplementation((address: string) => 
-      address.startsWith('SP') || address.startsWith('ST')
-    )
-  };
-});
+// Mock @stacks/transactions
+vi.mock('@stacks/transactions', () => ({
+  principalCV: vi.fn().mockImplementation((address: string) => ({ type: 'principal', address }))
+}));
+
+// Mock balances-lib functions completely for testing
+vi.mock('../src/balances-lib', () => ({
+  loadTokenMetadata: vi.fn().mockResolvedValue(new Map()),
+  fetchUserBalances: vi.fn().mockResolvedValue({}),
+  formatBalance: vi.fn().mockImplementation((balance: string, decimals: number = 6) => 
+    parseFloat(balance) / Math.pow(10, decimals)
+  ),
+  createBalanceUpdateMessage: vi.fn().mockImplementation((tokenRecord, userId, balance) => ({
+    type: 'BALANCE_UPDATE',
+    userId,
+    contractId: tokenRecord.contractId,
+    balance: balance.balance,
+    totalSent: balance.totalSent,
+    totalReceived: balance.totalReceived,
+    formattedBalance: balance.formattedBalance,
+    timestamp: balance.timestamp,
+    source: balance.source,
+    metadata: tokenRecord
+  })),
+  isValidUserAddress: vi.fn().mockImplementation((address: string) => 
+    address.startsWith('SP') || address.startsWith('ST')
+  )
+}));
 
 // Mock PartyKit server classes for testing
 vi.mock('partykit/server', () => ({

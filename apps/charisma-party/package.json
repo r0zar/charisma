@@ -19,6 +19,7 @@
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@stacks/connect": "^8.1.9",
+    "@stacks/transactions": "^6.13.0",
     "blaze-sdk": "workspace:*",
     "lucide-react": "^0.522.0",
     "partysocket": "^1.0.2",
