@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { fetchCallReadOnlyFunction, cvToValue, principalCV } from '@stacks/transactions';
 import { STACKS_MAINNET, type StacksNetwork } from '@stacks/network'; // Assuming mainnet, adjust if needed
 import { Skeleton } from '@/components/ui/skeleton'; // For loading state
@@ -7,7 +7,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // 
 import { formatUnits, cn } from '@/lib/utils'; // Assuming a utility for formatting
 import { useWallet } from '@/context/wallet-context'; // Import wallet context
 import { getTokenMetadataCached } from '@repo/tokens'; // Import from tokens package
-import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PoolActionsTabs } from './PoolActionsTabs'; // Import the new tabs component
@@ -20,8 +19,7 @@ import {
     Coins,
     Wallet,
     Scale,
-    BarChart3,
-    ArrowDown
+    BarChart3
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 

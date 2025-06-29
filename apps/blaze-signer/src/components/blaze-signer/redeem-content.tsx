@@ -7,14 +7,11 @@ import {
     fetchCallReadOnlyFunction,
     stringAsciiCV,
     uintCV,
-    optionalCVOf,
-    noneCV,
     principalCV,
     ClarityType
 } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { connect } from "@stacks/connect";
-import type { FinishedTxData } from '@stacks/connect';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import {
     Card,
@@ -44,7 +41,6 @@ import { Badge } from "../ui/badge";
 import { BLAZE_SIGNER_CONTRACT, parseContract } from '../../constants/contracts';
 import { Separator } from '../ui/separator';
 import { request } from '@stacks/connect';
-import { bufferCV } from '@stacks/transactions';
 import Image from 'next/image';
 
 // This component will safely use the useSearchParams hook

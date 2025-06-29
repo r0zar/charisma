@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { listPrices, listTokens } from "@repo/tokens";
-import { CHARISMA_TOKEN_CONTRACT } from "@/constants/contracts";
+import { listPrices } from "@repo/tokens";
 
 export const revalidate = 60; // revalidate at most every 60s
 

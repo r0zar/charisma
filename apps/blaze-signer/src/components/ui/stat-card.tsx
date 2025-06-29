@@ -1,6 +1,6 @@
 import React from 'react'
 import { Card, CardContent } from './card'
-import { Coins, DollarSign, Database, Banknote, Icon } from 'lucide-react'
+import { Coins, DollarSign, Database, Banknote } from 'lucide-react'
 
 const iconMap: Record<string, React.ReactNode> = {
     coins: <Coins className="h-5 w-5 text-primary" />,

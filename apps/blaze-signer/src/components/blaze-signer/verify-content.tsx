@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { fetchCallReadOnlyFunction, stringAsciiCV, principalCV, ClarityType } from '@stacks/transactions';
+import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType } from '@stacks/transactions';
 import { STACKS_MAINNET } from '@stacks/network';
 import { BLAZE_SIGNER_CONTRACT, parseContract } from '../../constants/contracts';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';

@@ -1,9 +1,8 @@
 'use client'
 
-import React, { Suspense } from 'react'
+import React from 'react'
 import { STACKS_MAINNET } from '@stacks/network'
 import { BulkSignatureGenerator } from '@/components/blaze-signer/bulk-signature-generator'
-import { Header } from '@/components/header'
 
 export default function BulkPage() {
     return (

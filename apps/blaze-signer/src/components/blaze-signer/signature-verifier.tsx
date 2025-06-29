@@ -4,12 +4,8 @@ import React, { useState, ChangeEvent } from "react"
 import { StacksNetwork } from "@stacks/network"
 import {
     ClarityType,
-    ClarityValue,
     bufferCV,
     fetchCallReadOnlyFunction,
-    ResponseOkCV,
-    PrincipalCV,
-    StandardPrincipalCV,
     stringAsciiCV,
     uintCV,
     optionalCVOf,

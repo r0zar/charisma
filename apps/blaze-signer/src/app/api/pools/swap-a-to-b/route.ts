@@ -4,7 +4,6 @@ import {
     broadcastTransaction,
     uintCV,
     stringAsciiCV,
-    type TxBroadcastResult,
     PostConditionMode,
     principalCV,
     fetchCallReadOnlyFunction,
@@ -12,7 +11,7 @@ import {
     optionalCVOf,
     cvToValue,
 } from '@stacks/transactions';
-import { STACKS_MAINNET, type StacksNetwork } from '@stacks/network';
+import { STACKS_MAINNET } from '@stacks/network';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 const TOKEN_A_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-rc6";

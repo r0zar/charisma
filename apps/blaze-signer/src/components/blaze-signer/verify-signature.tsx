@@ -2,8 +2,7 @@
 
 import React, { useState, ChangeEvent } from "react"
 import { StacksNetwork } from "@stacks/network"
-import { fetchCallReadOnlyFunction, stringAsciiCV, ClarityType, principalCV, cvToValue, bufferCV } from "@stacks/transactions"
-import { bufferFromHex } from "@stacks/transactions/dist/cl"
+import { fetchCallReadOnlyFunction, ClarityType, cvToValue, bufferCV } from "@stacks/transactions"
 import { Loader2 } from "lucide-react"
 import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
 import { Button } from "../ui/button"

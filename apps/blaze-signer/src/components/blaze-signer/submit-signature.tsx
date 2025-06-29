@@ -2,14 +2,13 @@
 
 import React, { useState, ChangeEvent } from "react"
 import { StacksNetwork } from "@stacks/network"
-import { ClarityType, stringAsciiCV, bufferCV, optionalCVOf, noneCV, uintCV, principalCV } from "@stacks/transactions"
-import { bufferFromHex } from "@stacks/transactions/dist/cl"
+import { stringAsciiCV, bufferCV, optionalCVOf, noneCV, uintCV, principalCV } from "@stacks/transactions"
 import { Loader2 } from "lucide-react"
 import { request } from "@stacks/connect"
 import { Button } from "../ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card"
 import { cn } from "../ui/utils"
-import { BLAZE_SIGNER_CONTRACT, generateUUID } from "../../constants/contracts"
+import { BLAZE_SIGNER_CONTRACT } from "../../constants/contracts"
 
 interface SubmitSignatureProps {
     network: StacksNetwork

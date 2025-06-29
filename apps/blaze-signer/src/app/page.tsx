@@ -2,7 +2,6 @@ import React from 'react'
 import { Button } from '@/components/ui/button'
 import { ChevronRight, Zap, Lock, Layers, Check, ArrowRight, Github } from 'lucide-react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
 import "./globals.css"
 import { Header } from '@/components/header'
 

@@ -4,7 +4,6 @@ import {
     broadcastTransaction,
     uintCV,
     stringAsciiCV,
-    type TxBroadcastResult,
     PostConditionMode,
     Pc,
     fetchCallReadOnlyFunction,

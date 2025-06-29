@@ -4,7 +4,6 @@ import {
     validateStacksAddress
 } from "@stacks/transactions/dist/esm/utils";
 import {
-    bufferCV,
     stringAsciiCV,
     uintCV,
     principalCV,

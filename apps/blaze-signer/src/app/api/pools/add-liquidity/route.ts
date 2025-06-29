@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
     makeContractCall,
     broadcastTransaction,
-    AnchorMode,
-    bufferCVFromString,
     uintCV,
     stringAsciiCV,
-    type TxBroadcastResult,
     PostConditionMode,
     principalCV,
 } from '@stacks/transactions';
-import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
+import { STACKS_MAINNET } from '@stacks/network';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 
 // Server-side private key for signing transactions (must be set via environment variable)

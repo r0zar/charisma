@@ -1,17 +1,13 @@
 import {
     cvToValue,
     principalCV,
-    ClarityValue,
-    deserializeCV,
     cvToHex,
     hexToCV,
-    bufferCV,
     stringAsciiCV,
     uintCV,
     optionalCVOf,
     noneCV,
-    ClarityType,
-    validateStacksAddress
+    ClarityType
 } from "@stacks/transactions";
 import { apiClient } from "@/lib/stacks-api-client";
 import type { QueuedTxIntent } from "@/lib/types";

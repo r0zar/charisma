@@ -19,7 +19,6 @@ import {
     ClarityValue,
 } from "@stacks/transactions"
 import { request, SignatureData } from "@stacks/connect"
-import { Loader2 } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { getTokenMetadataCached } from "@repo/tokens"
