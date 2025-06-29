@@ -11,5 +11,9 @@ dist-ssr
 server/dist
 public/dist
 
+# test coverage
+coverage
+*.lcov
+
 # analytics
 .env.sentry-build-plugin

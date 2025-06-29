@@ -47,6 +47,6 @@ export const config = [
     },
   },
   {
-    ignores: ["dist/**"],
+    ignores: ["dist/**", "coverage/**", "**/*.lcov"],
   },
 ];
