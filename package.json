@@ -13,9 +13,9 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
-    "@types/node": "^24.0.4",
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.0"
+    "@types/node": "^24.0.7",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.4"
   },
   "packageManager": "pnpm@8.15.6",
   "engines": {
