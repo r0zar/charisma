@@ -143,26 +143,24 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                 
                 // Create merged balance data
                 const updatedBalance: BalanceData = {
-                  // Core fields - always update
-                  balance: String(data.balance || 0),
-                  totalSent: data.totalSent || '0',
-                  totalReceived: data.totalReceived || '0',
-                  formattedBalance: data.formattedBalance || 0,
+                  // Core fields - only update if this is NOT a subnet token (i.e., mainnet)
+                  balance: isSubnet ? (existingBalance?.balance || '0') : String(data.balance || 0),
+                  totalSent: isSubnet ? (existingBalance?.totalSent || '0') : (data.totalSent || '0'),
+                  totalReceived: isSubnet ? (existingBalance?.totalReceived || '0') : (data.totalReceived || '0'),
+                  formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (data.formattedBalance || 0),
                   timestamp: data.timestamp || Date.now(),
                   source: data.source || 'realtime',
                   
                   // Subnet fields - only update if this is a subnet token
-                  ...(isSubnet && {
+                  ...(isSubnet ? {
                     subnetBalance: data.balance,
                     formattedSubnetBalance: data.formattedBalance,
                     subnetContractId: data.contractId,
-                  }),
-                  
-                  // Preserve existing subnet fields if this is not a subnet update
-                  ...(existingBalance && !isSubnet && {
-                    subnetBalance: existingBalance.subnetBalance,
-                    formattedSubnetBalance: existingBalance.formattedSubnetBalance,
-                    subnetContractId: existingBalance.subnetContractId,
+                  } : {
+                    // Preserve existing subnet fields if this is a mainnet update
+                    subnetBalance: existingBalance?.subnetBalance,
+                    formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
+                    subnetContractId: existingBalance?.subnetContractId,
                   }),
                   
                   // Metadata - prioritize new data, fallback to existing
@@ -214,26 +212,24 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                     
                     // Create merged balance data
                     const mergedBalance: BalanceData = {
-                      // Core fields - always update
-                      balance: String(balance.balance || 0),
-                      totalSent: balance.totalSent || '0',
-                      totalReceived: balance.totalReceived || '0',
-                      formattedBalance: balance.formattedBalance || 0,
+                      // Core fields - only update if this is NOT a subnet token (i.e., mainnet)
+                      balance: isSubnet ? (existingBalance?.balance || '0') : String(balance.balance || 0),
+                      totalSent: isSubnet ? (existingBalance?.totalSent || '0') : (balance.totalSent || '0'),
+                      totalReceived: isSubnet ? (existingBalance?.totalReceived || '0') : (balance.totalReceived || '0'),
+                      formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (balance.formattedBalance || 0),
                       timestamp: balance.timestamp || Date.now(),
                       source: balance.source || 'realtime',
                       
                       // Subnet fields - only update if this is a subnet token
-                      ...(isSubnet && {
+                      ...(isSubnet ? {
                         subnetBalance: balance.balance,
                         formattedSubnetBalance: balance.formattedBalance,
                         subnetContractId: balance.contractId,
-                      }),
-                      
-                      // Preserve existing subnet fields if this is not a subnet update
-                      ...(existingBalance && !isSubnet && {
-                        subnetBalance: existingBalance.subnetBalance,
-                        formattedSubnetBalance: existingBalance.formattedSubnetBalance,
-                        subnetContractId: existingBalance.subnetContractId,
+                      } : {
+                        // Preserve existing subnet fields if this is a mainnet update
+                        subnetBalance: existingBalance?.subnetBalance,
+                        formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
+                        subnetContractId: existingBalance?.subnetContractId,
                       }),
                       
                       // Metadata - prioritize new data, fallback to existing

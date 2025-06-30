@@ -9,12 +9,14 @@ import {
   Bell, 
   Shield,
   User,
-  Palette
+  Palette,
+  Wallet
 } from 'lucide-react';
 
 // Import components for each settings category
 import ApiKeysSettings from './components/api-keys-settings';
 import NotificationsSettings from './components/notifications-settings';
+import PortfolioSettings from './components/portfolio-settings';
 
 interface SettingsTab {
   id: string;
@@ -25,6 +27,13 @@ interface SettingsTab {
 }
 
 const settingsTabs: SettingsTab[] = [
+  {
+    id: 'portfolio',
+    label: 'Portfolio',
+    icon: <Wallet className="w-4 h-4" />,
+    component: PortfolioSettings,
+    description: 'View your token balances and portfolio analytics'
+  },
   {
     id: 'api-keys',
     label: 'API Keys',
@@ -86,7 +95,7 @@ function ComingSoonPlaceholder({ title }: { title: string }) {
 
 export default function SettingsPage() {
   const { connected } = useWallet();
-  const [activeTab, setActiveTab] = useState('api-keys');
+  const [activeTab, setActiveTab] = useState('portfolio');
 
   const activeTabData = settingsTabs.find(tab => tab.id === activeTab);
   const ActiveComponent = activeTabData?.component;
