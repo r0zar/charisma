@@ -1444,6 +1444,9 @@ importers:
       '@stacks/transactions':
         specifier: latest
         version: 7.0.6
+      '@swc/helpers':
+        specifier: ^0.5.17
+        version: 0.5.17
       partysocket:
         specifier: ^1.0.2
         version: 1.1.4
@@ -1495,7 +1498,7 @@ importers:
         version: 19.1.0(react@19.1.0)
       ts-jest:
         specifier: ^29.3.0
-        version: 29.3.0(@babel/core@7.26.10)(jest@29.7.0)(typescript@5.8.3)
+        version: 29.3.0(@babel/core@7.27.4)(jest@29.7.0)(typescript@5.8.3)
       tsx:
         specifier: ^4.19.2
         version: 4.19.4
@@ -1710,6 +1713,9 @@ importers:
       '@stacks/transactions':
         specifier: ^7.0.5
         version: 7.0.6
+      '@swc/helpers':
+        specifier: ^0.5.17
+        version: 0.5.17
     devDependencies:
       '@jest/globals':
         specifier: ^29.7.0
@@ -1746,12 +1752,16 @@ importers:
         version: 29.7.0(@types/node@24.0.7)
       ts-jest:
         specifier: ^29.3.0
-        version: 29.3.0(@babel/core@7.27.4)(jest@29.7.0)(typescript@5.8.3)
+        version: 29.3.0(@babel/core@7.26.10)(jest@29.7.0)(typescript@5.8.3)
       typescript:
         specifier: 5.8.3
         version: 5.8.3
 
   packages/tokens:
+    dependencies:
+      '@swc/helpers':
+        specifier: ^0.5.17
+        version: 0.5.17
     devDependencies:
       '@jest/globals':
         specifier: ^29.7.0
@@ -10183,7 +10193,6 @@ packages:
     resolution: {integrity: sha512-5IKx/Y13RsYd+sauPb2x+U/xZikHjolzfuDgTAl/Tdf3Q8rslRvC19NKDLgAJQ6wsqADk10ntlv08nPFw/gO/A==}
     dependencies:
       tslib: 2.8.1
-    dev: true
 
   /@swc/types@0.1.23:
     resolution: {integrity: sha512-u1iIVZV9Q0jxY+yM2vw/hZGDNudsN85bBpTqzAQ9rzkxW9D+e3aEM4Han+ow518gSewkXgjmEK0BD79ZcNVgPw==}
