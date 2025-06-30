@@ -14,8 +14,13 @@ export function cn(...inputs: ClassValue[]) {
 export function getIpfsUrl(ipfsHash: string, gateway: string = 'https://ipfs.io/ipfs'): string {
   if (!ipfsHash) return '';
   
-  // If it's already a full URL, return as-is
+  // If it's already a full URL (http/https), return as-is
   if (ipfsHash.startsWith('http')) {
+    return ipfsHash;
+  }
+  
+  // If it's a base64 data URI, return as-is
+  if (ipfsHash.startsWith('data:')) {
     return ipfsHash;
   }
   

@@ -363,7 +363,7 @@ export default class BalancesParty implements Party.Server {
                 const balance = this.balances.get(key);
 
                 if (balance) {
-                    messages.push(this.createBalanceMessage(balance));
+                    messages.push(...this.createBalanceMessage(balance));
                 } else {
                     // Create zero balance with metadata
                     messages.push(this.createZeroBalanceMessage(userId, tokenRecord));

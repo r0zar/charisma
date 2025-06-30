@@ -45,5 +45,8 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.3.0",
     "typescript": "5.8.3"
+  },
+  "dependencies": {
+    "@swc/helpers": "^0.5.17"
   }
 }

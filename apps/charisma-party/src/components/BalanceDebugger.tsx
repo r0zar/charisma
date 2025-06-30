@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useBlaze } from 'blaze-sdk/realtime';
 
 interface BalanceDebuggerProps {
@@ -44,7 +44,7 @@ const BalanceDebugger: React.FC<BalanceDebuggerProps> = ({
     name: balance.name || balance.metadata?.name || 'Unknown Token',
     balance: balance.balance || '0',
     formattedBalance: balance.formattedBalance || 0,
-    subnetBalance: balance.subnetBalance,
+    subnetBalance: balance.subnetBalance?.toString(),
     formattedSubnetBalance: balance.formattedSubnetBalance,
     subnetContractId: balance.subnetContractId,
     timestamp: balance.timestamp || 0,

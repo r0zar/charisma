@@ -136,95 +136,61 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
           case 'BALANCE_UPDATE':
             if (data.contractId && data.userId && data.balance !== undefined) {
               setBalances(prev => {
-                // Use token utilities to determine the balance key
+                // Use token utilities to determine the balance key for merging
                 const key = getBalanceKey(data.userId, data.contractId, data.metadata);
                 const existingBalance = prev[key];
                 const isSubnet = isSubnetToken(data.contractId, data.metadata);
                 
-                // Debug logging
-                const tokenFamily = getTokenFamily(data.contractId, data.metadata);
-                console.log(`🔄 BlazeProvider: Processing ${isSubnet ? 'subnet' : 'mainnet'} token:`, tokenFamily);
-                
-                // Merge logic: preserve existing data and update only relevant fields
-                const mergedBalance = {
-                  // Start with existing balance or create new one
-                  ...existingBalance,
-                  
-                  // Update core fields only if this is a mainnet update OR no existing mainnet data
-                  ...((!isSubnet || !existingBalance?.balance) && {
-                    balance: String(data.balance || 0),
-                    totalSent: data.totalSent || '0',
-                    totalReceived: data.totalReceived || '0',
-                    formattedBalance: data.formattedBalance || 0,
-                    source: data.source || 'realtime'
-                  }),
-                  
-                  // Always update timestamp
+                // Create merged balance data
+                const updatedBalance: BalanceData = {
+                  // Core fields - only update if this is NOT a subnet token (i.e., mainnet)
+                  balance: isSubnet ? (existingBalance?.balance || '0') : String(data.balance || 0),
+                  totalSent: isSubnet ? (existingBalance?.totalSent || '0') : (data.totalSent || '0'),
+                  totalReceived: isSubnet ? (existingBalance?.totalReceived || '0') : (data.totalReceived || '0'),
+                  formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (data.formattedBalance || 0),
                   timestamp: data.timestamp || Date.now(),
+                  source: data.source || 'realtime',
                   
-                  // Update subnet fields only if this is a subnet update
-                  ...(isSubnet && {
+                  // Subnet fields - only update if this is a subnet token
+                  ...(isSubnet ? {
                     subnetBalance: data.balance,
                     formattedSubnetBalance: data.formattedBalance,
                     subnetContractId: data.contractId,
+                  } : {
+                    // Preserve existing subnet fields if this is a mainnet update
+                    subnetBalance: existingBalance?.subnetBalance,
+                    formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
+                    subnetContractId: existingBalance?.subnetContractId,
                   }),
                   
-                  // Merge metadata (prioritize new metadata but preserve existing if not provided)
+                  // Metadata - prioritize new data, fallback to existing
                   metadata: {
-                    // Start with existing metadata
                     ...existingBalance?.metadata,
-                    // Merge in new metadata
-                    ...(data.metadata || {
-                      // Fallback metadata if structured metadata not available
-                      contractId: tokenFamily.baseContractId,
-                      name: data.name || 'Unknown Token',
-                      symbol: data.symbol || 'TKN',
-                      decimals: data.decimals || 6,
-                      type: data.tokenType || 'SIP10',
-                      identifier: data.identifier || '',
-                      description: data.description,
-                      image: data.image,
-                      token_uri: data.token_uri,
-                      total_supply: data.total_supply,
-                      lastUpdated: data.lastUpdated,
-                      tokenAContract: data.tokenAContract,
-                      tokenBContract: data.tokenBContract,
-                      lpRebatePercent: data.lpRebatePercent,
-                      externalPoolId: data.externalPoolId,
-                      engineContractId: data.engineContractId,
-                      base: data.baseToken || tokenFamily.baseContractId,
-                      verified: false,
-                      // Price data will be null if not available in legacy messages
-                      price: null,
-                      change1h: null,
-                      change24h: null,
-                      change7d: null,
-                      marketCap: null
-                    })
+                    ...data.metadata,
                   },
                   
-                  // Legacy fields for backward compatibility (prioritize metadata then new data then existing)
-                  name: data.metadata?.name || data.name || existingBalance?.name,
-                  symbol: data.metadata?.symbol || data.symbol || existingBalance?.symbol,
-                  decimals: data.metadata?.decimals || data.decimals || existingBalance?.decimals,
-                  description: data.metadata?.description || data.description || existingBalance?.description,
-                  image: data.metadata?.image || data.image || existingBalance?.image,
-                  total_supply: data.metadata?.total_supply || data.total_supply || existingBalance?.total_supply,
-                  type: data.metadata?.type || data.tokenType || existingBalance?.type,
-                  identifier: data.metadata?.identifier || data.identifier || existingBalance?.identifier,
-                  token_uri: data.metadata?.token_uri || data.token_uri || existingBalance?.token_uri,
-                  lastUpdated: data.metadata?.lastUpdated || data.lastUpdated || existingBalance?.lastUpdated,
-                  tokenAContract: data.metadata?.tokenAContract || data.tokenAContract || existingBalance?.tokenAContract,
-                  tokenBContract: data.metadata?.tokenBContract || data.tokenBContract || existingBalance?.tokenBContract,
-                  lpRebatePercent: data.metadata?.lpRebatePercent || data.lpRebatePercent || existingBalance?.lpRebatePercent,
-                  externalPoolId: data.metadata?.externalPoolId || data.externalPoolId || existingBalance?.externalPoolId,
-                  engineContractId: data.metadata?.engineContractId || data.engineContractId || existingBalance?.engineContractId,
-                  base: data.metadata?.base || data.baseToken || existingBalance?.base
+                  // Legacy fields for backward compatibility
+                  name: data.name,
+                  symbol: data.symbol,
+                  decimals: data.decimals || 6,
+                  description: data.description,
+                  image: data.image,
+                  total_supply: data.total_supply,
+                  type: data.tokenType,
+                  identifier: data.identifier,
+                  token_uri: data.token_uri,
+                  lastUpdated: data.lastUpdated,
+                  tokenAContract: data.tokenAContract,
+                  tokenBContract: data.tokenBContract,
+                  lpRebatePercent: data.lpRebatePercent,
+                  externalPoolId: data.externalPoolId,
+                  engineContractId: data.engineContractId,
+                  base: data.baseToken
                 };
                 
                 return {
                   ...prev,
-                  [key]: mergedBalance
+                  [key]: updatedBalance
                 };
               });
               setLastUpdate(Date.now());
@@ -234,96 +200,68 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
           case 'BALANCE_BATCH':
             console.log('📊 BlazeProvider: Received BALANCE_BATCH:', data);
             if (data.balances && Array.isArray(data.balances)) {
-<<<<<<< HEAD
               setBalances(prev => {
                 const updatedBalances = { ...prev };
                 
                 data.balances.forEach((balance: any) => {
                   if (balance.contractId && balance.userId && balance.balance !== undefined) {
-                    // Use token utilities to determine the balance key
+                    // Use token utilities to determine the balance key for merging
                     const key = getBalanceKey(balance.userId, balance.contractId, balance.metadata);
                     const existingBalance = updatedBalances[key];
                     const isSubnet = isSubnetToken(balance.contractId, balance.metadata);
-                    const tokenFamily = getTokenFamily(balance.contractId, balance.metadata);
                     
-                    // Apply same merge logic as BALANCE_UPDATE
-                    const mergedBalance = {
-                      // Start with existing balance or create new one
-                      ...existingBalance,
-                      
-                      // Update core fields only if this is a mainnet update OR no existing mainnet data
-                      ...((!isSubnet || !existingBalance?.balance) && {
-                        balance: String(balance.balance || 0),
-                        totalSent: balance.totalSent || '0',
-                        totalReceived: balance.totalReceived || '0',
-                        formattedBalance: balance.formattedBalance || 0,
-                        source: balance.source || 'realtime'
-                      }),
-                      
-                      // Always update timestamp
+                    // Create merged balance data
+                    const mergedBalance: BalanceData = {
+                      // Core fields - only update if this is NOT a subnet token (i.e., mainnet)
+                      balance: isSubnet ? (existingBalance?.balance || '0') : String(balance.balance || 0),
+                      totalSent: isSubnet ? (existingBalance?.totalSent || '0') : (balance.totalSent || '0'),
+                      totalReceived: isSubnet ? (existingBalance?.totalReceived || '0') : (balance.totalReceived || '0'),
+                      formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (balance.formattedBalance || 0),
                       timestamp: balance.timestamp || Date.now(),
+                      source: balance.source || 'realtime',
                       
-                      // Update subnet fields only if this is a subnet update
-                      ...(isSubnet && {
+                      // Subnet fields - only update if this is a subnet token
+                      ...(isSubnet ? {
                         subnetBalance: balance.balance,
                         formattedSubnetBalance: balance.formattedBalance,
                         subnetContractId: balance.contractId,
+                      } : {
+                        // Preserve existing subnet fields if this is a mainnet update
+                        subnetBalance: existingBalance?.subnetBalance,
+                        formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
+                        subnetContractId: existingBalance?.subnetContractId,
                       }),
                       
-                      // Merge metadata
+                      // Metadata - prioritize new data, fallback to existing
                       metadata: {
                         ...existingBalance?.metadata,
-                        ...(balance.metadata || {
-                          contractId: tokenFamily.baseContractId,
-                          name: balance.name || 'Unknown Token',
-                          symbol: balance.symbol || 'TKN',
-                          decimals: balance.decimals || 6,
-                          type: balance.tokenType || 'SIP10',
-                          identifier: balance.identifier || '',
-                          description: balance.description,
-                          image: balance.image,
-                          token_uri: balance.token_uri,
-                          total_supply: balance.total_supply,
-                          lastUpdated: balance.lastUpdated,
-                          tokenAContract: balance.tokenAContract,
-                          tokenBContract: balance.tokenBContract,
-                          lpRebatePercent: balance.lpRebatePercent,
-                          externalPoolId: balance.externalPoolId,
-                          engineContractId: balance.engineContractId,
-                          base: balance.baseToken || tokenFamily.baseContractId,
-                          verified: false,
-                          price: null,
-                          change1h: null,
-                          change24h: null,
-                          change7d: null,
-                          marketCap: null
-                        })
+                        ...balance.metadata,
                       },
                       
-                      // Legacy fields (prioritize metadata then new data then existing)
-                      name: balance.metadata?.name || balance.name || existingBalance?.name,
-                      symbol: balance.metadata?.symbol || balance.symbol || existingBalance?.symbol,
-                      decimals: balance.metadata?.decimals || balance.decimals || existingBalance?.decimals,
-                      description: balance.metadata?.description || balance.description || existingBalance?.description,
-                      image: balance.metadata?.image || balance.image || existingBalance?.image,
-                      total_supply: balance.metadata?.total_supply || balance.total_supply || existingBalance?.total_supply,
-                      type: balance.metadata?.type || balance.tokenType || existingBalance?.type,
-                      identifier: balance.metadata?.identifier || balance.identifier || existingBalance?.identifier,
-                      token_uri: balance.metadata?.token_uri || balance.token_uri || existingBalance?.token_uri,
-                      lastUpdated: balance.metadata?.lastUpdated || balance.lastUpdated || existingBalance?.lastUpdated,
-                      tokenAContract: balance.metadata?.tokenAContract || balance.tokenAContract || existingBalance?.tokenAContract,
-                      tokenBContract: balance.metadata?.tokenBContract || balance.tokenBContract || existingBalance?.tokenBContract,
-                      lpRebatePercent: balance.metadata?.lpRebatePercent || balance.lpRebatePercent || existingBalance?.lpRebatePercent,
-                      externalPoolId: balance.metadata?.externalPoolId || balance.externalPoolId || existingBalance?.externalPoolId,
-                      engineContractId: balance.metadata?.engineContractId || balance.engineContractId || existingBalance?.engineContractId,
-                      base: balance.metadata?.base || balance.baseToken || existingBalance?.base
+                      // Legacy fields for backward compatibility
+                      name: balance.name,
+                      symbol: balance.symbol,
+                      decimals: balance.decimals || 6,
+                      description: balance.description,
+                      image: balance.image,
+                      total_supply: balance.total_supply,
+                      type: balance.tokenType,
+                      identifier: balance.identifier,
+                      token_uri: balance.token_uri,
+                      lastUpdated: balance.lastUpdated,
+                      tokenAContract: balance.tokenAContract,
+                      tokenBContract: balance.tokenBContract,
+                      lpRebatePercent: balance.lpRebatePercent,
+                      externalPoolId: balance.externalPoolId,
+                      engineContractId: balance.engineContractId,
+                      base: balance.baseToken
                     };
                     
                     updatedBalances[key] = mergedBalance;
                   }
                 });
                 
-                console.log(`📊 BlazeProvider: Processed ${data.balances.length} balance entries with client-side merging`);
+                console.log(`📊 BlazeProvider: Processed ${data.balances.length} balance entries with subnet merging`);
                 return updatedBalances;
               });
               setLastUpdate(Date.now());

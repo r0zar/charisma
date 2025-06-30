@@ -3,6 +3,10 @@ import { fetchMetadata } from '@repo/tokens';
 import { principalCV } from '@stacks/transactions';
 import type { BalanceUpdateMessage, TokenMetadata } from 'blaze-sdk/realtime';
 import type { TokenSummary } from 'blaze-sdk';
+import {
+  loadAllTokenMetadata,
+  getTokenStats
+} from './lib/token-metadata';
 
 export interface BalanceData {
   userId: string;
@@ -205,13 +209,13 @@ export async function fetchTokenSummariesFromAPI(): Promise<TokenSummary[]> {
 
     const result = await response.json();
     console.log('🔍 fetchTokenSummariesFromAPI: result', result);
-    
+
     // Handle both response formats: direct array or wrapped in data property
     const tokens = Array.isArray(result) ? result : result.data;
     if (!tokens || !Array.isArray(tokens)) {
       throw new Error('API response does not contain token array');
     }
-    
+
     const summaries: TokenSummary[] = tokens.map((token: any) => ({
       contractId: token.contractId,
       name: token.name,
@@ -277,173 +281,74 @@ export async function fetchTokenSummariesFromAPI(): Promise<TokenSummary[]> {
   }
 }
 
-/**
- * Known subnet token mappings for fallback when API data is missing
- */
-const KNOWN_SUBNET_MAPPINGS = new Map([
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-token-subnet-v1', 'SP1AY6K3PQV5MRT6R4S671NWW2FRVPKM0BR162CT6.leo-token'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.kangaroo-subnet', 'SP2C1WREHGM75C7TGFAEJPFKTFTEGZKF6DFT6E2GE.kangaroo'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1', 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usda-token-subnet', 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmtoken-subnet', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmtoken'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nope-subnet', 'SP32AEEF6WW5Y0NMJ1S8SBSZDAY8R5J32NBZFPKKZ.nope'],
-  ['SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C.world-peace-stacks-stxcity-subnet', 'SP14J806BWEPQAXVA0G6RYZN7GNA126B7JFRRYTEM.world-peace-stacks-stxcity'],
-  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.token-aeusdc-subnet', 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc']
-]);
+
 
 /**
- * Fix subnet base mappings using known mappings when API data is incomplete
- */
-function fixSubnetMappings(enhancedTokenRecords: Map<string, EnhancedTokenRecord>): void {
-  console.log('🔧 [SUBNET-FIX] Checking for missing subnet base mappings...');
-
-  let fixedCount = 0;
-
-  for (const [contractId, record] of enhancedTokenRecords) {
-    if (record.type === 'SUBNET' && (!record.base || record.base === 'undefined')) {
-      const knownBase = KNOWN_SUBNET_MAPPINGS.get(contractId);
-
-      if (knownBase) {
-        console.log(`🔧 [SUBNET-FIX] Fixing ${record.symbol} (${contractId}): undefined → ${knownBase}`);
-        record.base = knownBase;
-        fixedCount++;
-      } else {
-        console.log(`⚠️  [SUBNET-FIX] No known mapping for subnet token ${record.symbol} (${contractId})`);
-      }
-    }
-  }
-
-  console.log(`🔧 [SUBNET-FIX] Fixed ${fixedCount} subnet base mappings`);
-}
-
-/**
- * Create synthetic subnet token records from known mappings
- * This is needed because the API doesn't return subnet tokens
- */
-function createSyntheticSubnetTokens(enhancedTokenRecords: Map<string, EnhancedTokenRecord>): void {
-  console.log('🏗️ [SUBNET-SYNTHETIC] Creating synthetic subnet token records...');
-
-  let createdCount = 0;
-  const now = Date.now();
-
-  for (const [subnetContractId, baseContractId] of KNOWN_SUBNET_MAPPINGS) {
-    // Skip if subnet token already exists
-    if (enhancedTokenRecords.has(subnetContractId)) {
-      console.log(`🔧 [SUBNET-SYNTHETIC] Subnet token ${subnetContractId} already exists, skipping`);
-      continue;
-    }
-
-    // Find the base token record
-    const baseRecord = enhancedTokenRecords.get(baseContractId);
-    if (!baseRecord) {
-      console.log(`⚠️  [SUBNET-SYNTHETIC] Base token ${baseContractId} not found for subnet ${subnetContractId}`);
-      continue;
-    }
-
-    // Create synthetic subnet token record based on base token
-    const syntheticSubnetRecord: EnhancedTokenRecord = {
-      // Core metadata copied from base token
-      contractId: subnetContractId,
-      name: `${baseRecord.name} (Subnet)`,
-      symbol: `${baseRecord.symbol}`,
-      decimals: baseRecord.decimals,
-      type: 'SUBNET', // Mark as subnet type
-      identifier: baseRecord.identifier,
-      description: `${baseRecord.description} [Subnet version]`,
-      image: baseRecord.image,
-      token_uri: baseRecord.token_uri,
-      total_supply: baseRecord.total_supply,
-      lastUpdated: now,
-      tokenAContract: baseRecord.tokenAContract,
-      tokenBContract: baseRecord.tokenBContract,
-      lpRebatePercent: baseRecord.lpRebatePercent,
-      externalPoolId: baseRecord.externalPoolId,
-      engineContractId: baseRecord.engineContractId,
-      base: baseContractId, // Point to base token
-      verified: baseRecord.verified,
-
-      // Price data from base token (subnet should have same price)
-      price: baseRecord.price,
-      change1h: baseRecord.change1h,
-      change24h: baseRecord.change24h,
-      change7d: baseRecord.change7d,
-      marketCap: null, // Subnet tokens don't have separate market cap
-
-      // Internal tracking
-      userBalances: {}, // Start with empty balances
-      timestamp: now,
-      metadataSource: 'synthetic-subnet-mapping'
-    };
-
-    enhancedTokenRecords.set(subnetContractId, syntheticSubnetRecord);
-    createdCount++;
-
-    console.log(`🏗️ [SUBNET-SYNTHETIC] Created subnet token: ${syntheticSubnetRecord.symbol} (${subnetContractId}) → base: ${baseContractId}`);
-  }
-
-  console.log(`🏗️ [SUBNET-SYNTHETIC] Created ${createdCount} synthetic subnet token records`);
-}
-
-/**
- * Load token metadata and create enhanced token records
- * Now uses enriched token summaries with price data
+ * Load token metadata using the comprehensive token metadata library
+ * This aggregates data from all possible sources for maximum coverage
  */
 export async function loadTokenMetadata(): Promise<Map<string, EnhancedTokenRecord>> {
   try {
-    console.log('🏷️ Loading enriched token metadata with price data...');
-    const tokenSummaries = await fetchTokenSummariesFromAPI();
+    console.log('🏷️ Loading comprehensive token metadata from all sources...');
+
+    // Use the new comprehensive token metadata library
+    const allTokenMetadata = await loadAllTokenMetadata();
     const now = Date.now();
 
     const enhancedTokenRecords = new Map<string, EnhancedTokenRecord>();
 
-    for (const summary of tokenSummaries) {
-      if (!summary.contractId) continue;
-
-      // Create enhanced token record with enriched metadata (including prices)
+    // Convert EnhancedTokenMetadata to EnhancedTokenRecord format
+    for (const [contractId, metadata] of allTokenMetadata) {
       const enhancedRecord: EnhancedTokenRecord = {
-        // Core metadata from TokenSummary (extends TokenMetadata)
-        contractId: summary.contractId,
-        name: summary.name,
-        symbol: summary.symbol,
-        decimals: summary.decimals,
-        type: summary.type,
-        identifier: summary.identifier,
-        description: summary.description,
-        image: summary.image,
-        token_uri: summary.token_uri,
-        total_supply: summary.total_supply,
-        lastUpdated: summary.lastUpdated,
-        tokenAContract: summary.tokenAContract,
-        tokenBContract: summary.tokenBContract,
-        lpRebatePercent: summary.lpRebatePercent,
-        externalPoolId: summary.externalPoolId,
-        engineContractId: summary.engineContractId,
-        base: summary.base,
-        verified: summary.verified,
+        // Core metadata from comprehensive library
+        contractId: metadata.contractId,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        decimals: metadata.decimals,
+        type: metadata.type || 'SIP10',
+        identifier: metadata.identifier || '',
+        description: metadata.description,
+        image: metadata.image,
+        token_uri: metadata.token_uri,
+        total_supply: metadata.totalSupply,
+        lastUpdated: metadata.lastUpdated,
+        tokenAContract: metadata.tokenAContract,
+        tokenBContract: metadata.tokenBContract,
+        lpRebatePercent: metadata.lpRebatePercent,
+        externalPoolId: metadata.externalPoolId,
+        engineContractId: metadata.engineContractId,
+        base: metadata.base,
+        verified: metadata.verified,
 
-        // Price and market data from token-summaries
-        price: summary.price,
-        change1h: summary.change1h,
-        change24h: summary.change24h,
-        change7d: summary.change7d,
-        marketCap: summary.marketCap,
+        // Price and market data
+        price: metadata.price || metadata.usdPrice,
+        change1h: metadata.change1h,
+        change24h: metadata.change24h,
+        change7d: metadata.change7d,
+        marketCap: metadata.marketCap,
 
         // Internal tracking
         userBalances: {}, // Start with empty balances
         timestamp: now,
-        metadataSource: summary.price !== null ? 'token-summaries-api' : 'fallback-metadata'
+        metadataSource: metadata.source || 'comprehensive-aggregator'
       };
 
-      enhancedTokenRecords.set(summary.contractId, enhancedRecord);
+      enhancedTokenRecords.set(contractId, enhancedRecord);
     }
 
-    // Create synthetic subnet token records from known mappings
-    // This is needed because the API doesn't return subnet tokens
-    createSyntheticSubnetTokens(enhancedTokenRecords);
+    // Log statistics about loaded tokens
+    const stats = getTokenStats(allTokenMetadata);
+    console.log('📊 Token metadata statistics:');
+    console.log(`   Total tokens: ${stats.total}`);
+    console.log(`   Regular tokens: ${stats.regular}`);
+    console.log(`   LP tokens: ${stats.lp}`);
+    console.log(`   Subnet tokens: ${stats.subnet}`);
+    console.log(`   Verified tokens: ${stats.verified}`);
+    console.log(`   Tokens with pricing: ${stats.withPricing}`);
+    console.log(`   Data sources: ${stats.sources.join(', ')}`);
 
-    // Fix missing subnet base mappings using known mappings
-    fixSubnetMappings(enhancedTokenRecords);
+    // Note: No need for additional subnet generation or fixing since 
+    // the comprehensive library handles all of this automatically
 
     console.log(`🏷️ Created enhanced records for ${enhancedTokenRecords.size} tokens`);
     console.log(`📊 ${Array.from(enhancedTokenRecords.values()).filter(r => r.price !== null).length} tokens have price data`);
