@@ -481,8 +481,8 @@ importers:
         specifier: ^1.21.3
         version: 1.21.3(@types/react@19.0.10)(react-dom@19.1.0)(react@19.1.0)
       react-spring:
-        specifier: ^9.7.5
-        version: 9.7.5(@react-three/fiber@9.1.4)(konva@9.3.20)(react-dom@19.1.0)(react-konva@18.2.10)(react-native@0.80.0)(react-zdog@1.2.2)(react@19.1.0)(three@0.177.0)(zdog@1.1.3)
+        specifier: ^10.0.1
+        version: 10.0.1(@react-three/fiber@9.1.4)(konva@9.3.20)(react-dom@19.1.0)(react-konva@19.0.6)(react-native@0.80.0)(react-zdog@1.2.2)(react@19.1.0)(three@0.177.0)(zdog@1.1.3)
       recharts:
         specifier: ^3.0.0
         version: 3.0.0(@types/react@19.0.10)(react-dom@19.1.0)(react-is@19.1.0)(react@19.1.0)(redux@5.0.1)
@@ -889,8 +889,8 @@ importers:
         specifier: ^5.5.0
         version: 5.5.0(react@19.1.0)
       react-spring:
-        specifier: ^9.7.5
-        version: 9.7.5(@react-three/fiber@9.1.4)(konva@9.3.20)(react-dom@19.1.0)(react-konva@18.2.10)(react-native@0.80.0)(react-zdog@1.2.2)(react@19.1.0)(three@0.177.0)(zdog@1.1.3)
+        specifier: ^10.0.1
+        version: 10.0.1(@react-three/fiber@9.1.4)(konva@9.3.20)(react-dom@19.1.0)(react-konva@19.0.6)(react-native@0.80.0)(react-zdog@1.2.2)(react@19.1.0)(three@0.177.0)(zdog@1.1.3)
       sonner:
         specifier: ^2.0.3
         version: 2.0.3(react-dom@19.1.0)(react@19.1.0)
@@ -9267,13 +9267,13 @@ packages:
       react: 19.1.0
     dev: false
 
-  /@react-spring/animated@9.7.5(react@19.1.0):
-    resolution: {integrity: sha512-Tqrwz7pIlsSDITzxoLS3n/v/YCUHQdOIKtOJf4yL6kYVSDTSmVK1LI1Q3M/uu2Sx4X3pIWF3xLUhlsA6SPNTNg==}
+  /@react-spring/animated@10.0.1(react@19.1.0):
+    resolution: {integrity: sha512-BGL3hA66Y8Qm3KmRZUlfG/mFbDPYajgil2/jOP0VXf2+o2WPVmcDps/eEgdDqgf5Pv9eBbyj7LschLMuSjlW3Q==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       react: 19.1.0
     dev: false
 
@@ -9288,43 +9288,43 @@ packages:
       react: 19.1.0
     dev: false
 
-  /@react-spring/core@9.7.5(react@19.1.0):
-    resolution: {integrity: sha512-rmEqcxRcu7dWh7MnCcMXLvrf6/SDlSokLaLTxiPlAYi11nN3B5oiCUAblO72o+9z/87j2uzxa2Inm8UbLjXA+w==}
+  /@react-spring/core@10.0.1(react@19.1.0):
+    resolution: {integrity: sha512-KaMMsN1qHuVTsFpg/5ajAVye7OEqhYbCq0g4aKM9bnSZlDBBYpO7Uf+9eixyXN8YEbF+YXaYj9eoWDs+npZ+sA==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
-      '@react-spring/animated': 9.7.5(react@19.1.0)
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/animated': 10.0.1(react@19.1.0)
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       react: 19.1.0
     dev: false
 
-  /@react-spring/konva@9.7.5(konva@9.3.20)(react-konva@18.2.10)(react@19.1.0):
-    resolution: {integrity: sha512-BelrmyY6w0FGoNSEfSJltjQDUoW0Prxf+FzGjyLuLs+V9M9OM/aHnYqOlvQEfQsZx6C/ZiDOn5BZl8iH8SDf+Q==}
+  /@react-spring/konva@10.0.1(konva@9.3.20)(react-konva@19.0.6)(react@19.1.0):
+    resolution: {integrity: sha512-mxy9dmfq2gcY3fisWBqGkbks5EmNDvwU5ya8w44xjVcDm7fI7ANsoDjJSS6d51JElO5fL3LYaAFi1urqQ2BjrQ==}
     peerDependencies:
       konva: '>=2.6'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-konva: ^16.8.0 || ^16.8.7-0 || ^16.9.0-0 || ^16.10.1-0 || ^16.12.0-0 || ^16.13.0-0 || ^17.0.0-0 || ^17.0.1-0 || ^17.0.2-0 || ^18.0.0-0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-konva: ^19
     dependencies:
-      '@react-spring/animated': 9.7.5(react@19.1.0)
-      '@react-spring/core': 9.7.5(react@19.1.0)
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/animated': 10.0.1(react@19.1.0)
+      '@react-spring/core': 10.0.1(react@19.1.0)
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       konva: 9.3.20
       react: 19.1.0
-      react-konva: 18.2.10(@types/react@19.0.10)(konva@9.3.20)(react-dom@19.1.0)(react@19.1.0)
+      react-konva: 19.0.6(@types/react@19.0.10)(konva@9.3.20)(react-dom@19.1.0)(react@19.1.0)
     dev: false
 
-  /@react-spring/native@9.7.5(react-native@0.80.0)(react@19.1.0):
-    resolution: {integrity: sha512-C1S500BNP1I05MftElyLv2nIqaWQ0MAByOAK/p4vuXcUK3XcjFaAJ385gVLgV2rgKfvkqRoz97PSwbh+ZCETEg==}
+  /@react-spring/native@10.0.1(react-native@0.80.0)(react@19.1.0):
+    resolution: {integrity: sha512-uslIO25XugK9SugvQRVsmXoSiApmQzV2JWWcbhPJUvArqPyZ1yuPQvgNqjvHubauu5kXWWOya9MIuVEo7EMKUw==}
     peerDependencies:
-      react: 16.8.0  || >=17.0.0 || >=18.0.0
-      react-native: '>=0.58'
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-native: '>=0.78'
     dependencies:
-      '@react-spring/animated': 9.7.5(react@19.1.0)
-      '@react-spring/core': 9.7.5(react@19.1.0)
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/animated': 10.0.1(react@19.1.0)
+      '@react-spring/core': 10.0.1(react@19.1.0)
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       react: 19.1.0
       react-native: 0.80.0(@babel/core@7.27.1)(@types/react@19.0.10)(react@19.1.0)
     dev: false
@@ -9333,8 +9333,8 @@ packages:
     resolution: {integrity: sha512-j8cwCiJKGNDw1DQLYo/3Z+RIGC+6yZiyDqmvwv3uAJHjL0b+xnLwpKz4SW94kIJcJBNetkYDrwzTMFv4U3JVQA==}
     dev: false
 
-  /@react-spring/rafz@9.7.5:
-    resolution: {integrity: sha512-5ZenDQMC48wjUzPAm1EtwQ5Ot3bLIAwwqP2w2owG5KoNdNHpEJV263nGhCeKKmuA3vG2zLLOdu3or6kuDjA6Aw==}
+  /@react-spring/rafz@10.0.1:
+    resolution: {integrity: sha512-UrzG/d6Is+9i0aCAjsjWRqIlFFiC4lFqFHrH63zK935z2YDU95TOFio4VKGISJ5SG0xq4ULy7c1V3KU+XvL+Yg==}
     dev: false
 
   /@react-spring/shared@10.0.0(react@19.1.0):
@@ -9347,27 +9347,27 @@ packages:
       react: 19.1.0
     dev: false
 
-  /@react-spring/shared@9.7.5(react@19.1.0):
-    resolution: {integrity: sha512-wdtoJrhUeeyD/PP/zo+np2s1Z820Ohr/BbuVYv+3dVLW7WctoiN7std8rISoYoHpUXtbkpesSKuPIw/6U1w1Pw==}
+  /@react-spring/shared@10.0.1(react@19.1.0):
+    resolution: {integrity: sha512-KR2tmjDShPruI/GGPfAZOOLvDgkhFseabjvxzZFFggJMPkyICLjO0J6mCIoGtdJSuHywZyc4Mmlgi+C88lS00g==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
-      '@react-spring/rafz': 9.7.5
-      '@react-spring/types': 9.7.5
+      '@react-spring/rafz': 10.0.1
+      '@react-spring/types': 10.0.1
       react: 19.1.0
     dev: false
 
-  /@react-spring/three@9.7.5(@react-three/fiber@9.1.4)(react@19.1.0)(three@0.177.0):
-    resolution: {integrity: sha512-RxIsCoQfUqOS3POmhVHa1wdWS0wyHAUway73uRLp3GAL5U2iYVNdnzQsep6M2NZ994BlW8TcKuMtQHUqOsy6WA==}
+  /@react-spring/three@10.0.1(@react-three/fiber@9.1.4)(react@19.1.0)(three@0.177.0):
+    resolution: {integrity: sha512-JAgA573EqG1WkDGameWv0HYlPL5KYwVCRhXroBq5Ed0Chc9xXuAZU8fyNg9/uup8Pc32iGSW0PHRt0msvPNg+w==}
     peerDependencies:
       '@react-three/fiber': '>=6.0'
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       three: '>=0.126'
     dependencies:
-      '@react-spring/animated': 9.7.5(react@19.1.0)
-      '@react-spring/core': 9.7.5(react@19.1.0)
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/animated': 10.0.1(react@19.1.0)
+      '@react-spring/core': 10.0.1(react@19.1.0)
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       '@react-three/fiber': 9.1.4(@types/react@19.0.10)(react-dom@19.1.0)(react-native@0.80.0)(react@19.1.0)(three@0.177.0)
       react: 19.1.0
       three: 0.177.0
@@ -9377,8 +9377,8 @@ packages:
     resolution: {integrity: sha512-dCvBpZA38MGfOqLVvsfOrmKig1NR9jD0BjEmFn5dPPaGgtgEU8QjBrxTnU282Fgf+SOBJfPtOsHRa/uHGBza5Q==}
     dev: false
 
-  /@react-spring/types@9.7.5:
-    resolution: {integrity: sha512-HVj7LrZ4ReHWBimBvu2SKND3cDVUPWKLqRTmWe/fNY6o1owGOX0cAHbdPDTMelgBlVbrTKrre6lFkhqGZErK/g==}
+  /@react-spring/types@10.0.1:
+    resolution: {integrity: sha512-Fk1wYVAKL+ZTYK+4YFDpHf3Slsy59pfFFvnnTfRjQQFGlyIo4VejPtDs3CbDiuBjM135YztRyZjIH2VbycB+ZQ==}
     dev: false
 
   /@react-spring/web@10.0.0(react-dom@19.1.0)(react@19.1.0):
@@ -9395,32 +9395,32 @@ packages:
       react-dom: 19.1.0(react@19.1.0)
     dev: false
 
-  /@react-spring/web@9.7.5(react-dom@19.1.0)(react@19.1.0):
-    resolution: {integrity: sha512-lmvqGwpe+CSttsWNZVr+Dg62adtKhauGwLyGE/RRyZ8AAMLgb9x3NDMA5RMElXo+IMyTkPp7nxTB8ZQlmhb6JQ==}
+  /@react-spring/web@10.0.1(react-dom@19.1.0)(react@19.1.0):
+    resolution: {integrity: sha512-FgQk02OqFrYyJBTTnBTWAU0WPzkHkKXauc6aeexcvATvLapUxwnfGuLlsLYF8BYjEVfkivPT04ziAue6zyRBtQ==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
-      '@react-spring/animated': 9.7.5(react@19.1.0)
-      '@react-spring/core': 9.7.5(react@19.1.0)
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/animated': 10.0.1(react@19.1.0)
+      '@react-spring/core': 10.0.1(react@19.1.0)
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
     dev: false
 
-  /@react-spring/zdog@9.7.5(react-dom@19.1.0)(react-zdog@1.2.2)(react@19.1.0)(zdog@1.1.3):
-    resolution: {integrity: sha512-VV7vmb52wGHgDA1ry6hv+QgxTs78fqjKEQnj+M8hiBg+dwOsTtqqM24ADtc4cMAhPW+eZhVps8ZNKtjt8ouHFA==}
+  /@react-spring/zdog@10.0.1(react-dom@19.1.0)(react-zdog@1.2.2)(react@19.1.0)(zdog@1.1.3):
+    resolution: {integrity: sha512-yEU2vf4C5FPxcnbYqnYtEMLElaoaepL5l9oAZI5/hK40EAQjo9uW6rtznOvbmL8z8RLM0PUCym0FtNHTlu0Ysw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
       react-zdog: '>=1.0'
       zdog: '>=1.0'
     dependencies:
-      '@react-spring/animated': 9.7.5(react@19.1.0)
-      '@react-spring/core': 9.7.5(react@19.1.0)
-      '@react-spring/shared': 9.7.5(react@19.1.0)
-      '@react-spring/types': 9.7.5
+      '@react-spring/animated': 10.0.1(react@19.1.0)
+      '@react-spring/core': 10.0.1(react@19.1.0)
+      '@react-spring/shared': 10.0.1(react@19.1.0)
+      '@react-spring/types': 10.0.1
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
       react-zdog: 1.2.2
@@ -11734,6 +11734,14 @@ packages:
 
   /@types/react-reconciler@0.28.9(@types/react@19.0.10):
     resolution: {integrity: sha512-HHM3nxyUZ3zAylX8ZEyrDNd2XZOnQ0D5XfunJF5FLQnZbHHYq4UWvW1QfelQNXv1ICNkwYhfxjwfnqivYB6bFg==}
+    peerDependencies:
+      '@types/react': '*'
+    dependencies:
+      '@types/react': 19.0.10
+    dev: false
+
+  /@types/react-reconciler@0.32.0(@types/react@19.0.10):
+    resolution: {integrity: sha512-+WHarFkJevhH1s655qeeSEf/yxFST0dVRsmSqUgxG8mMOKqycgYBv2wVpyubBY7MX8KiX5FQ03rNIwrxfm7Bmw==}
     peerDependencies:
       '@types/react': '*'
     dependencies:
@@ -17669,17 +17677,6 @@ packages:
       set-function-name: 2.0.2
     dev: true
 
-  /its-fine@1.2.5(@types/react@19.0.10)(react@19.1.0):
-    resolution: {integrity: sha512-fXtDA0X0t0eBYAGLVM5YsgJGsJ5jEmqZEPrGbzdf5awjv0xE7nqv3TVnvtUF060Tkes15DbDAKW/I48vsb6SyA==}
-    peerDependencies:
-      react: '>=18.0'
-    dependencies:
-      '@types/react-reconciler': 0.28.9(@types/react@19.0.10)
-      react: 19.1.0
-    transitivePeerDependencies:
-      - '@types/react'
-    dev: false
-
   /its-fine@2.0.0(@types/react@19.0.10)(react@19.1.0):
     resolution: {integrity: sha512-KLViCmWx94zOvpLwSlsx6yOCeMhZYaxrJV87Po5k/FoZzcPSahvK5qJ7fYhS61sZi5ikmh2S3Hz55A2l3U69ng==}
     peerDependencies:
@@ -22052,20 +22049,20 @@ packages:
       - encoding
     dev: false
 
-  /react-konva@18.2.10(@types/react@19.0.10)(konva@9.3.20)(react-dom@19.1.0)(react@19.1.0):
-    resolution: {integrity: sha512-ohcX1BJINL43m4ynjZ24MxFI1syjBdrXhqVxYVDw2rKgr3yuS0x/6m1Y2Z4sl4T/gKhfreBx8KHisd0XC6OT1g==}
+  /react-konva@19.0.6(@types/react@19.0.10)(konva@9.3.20)(react-dom@19.1.0)(react@19.1.0):
+    resolution: {integrity: sha512-6jsjU1QAStwP4AulaE2BqNlO3Oq+YwvC7OfeEfrj4RSr/CiACojYvdAuQ8Fm7XoALwQOGWf9fqeGvDWD4/c2Cg==}
     peerDependencies:
       konva: ^8.0.1 || ^7.2.5 || ^9.0.0
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
+      react: ^18.3.1 || ^19.0.0
+      react-dom: ^18.3.1 || ^19.0.0
     dependencies:
-      '@types/react-reconciler': 0.28.9(@types/react@19.0.10)
-      its-fine: 1.2.5(@types/react@19.0.10)(react@19.1.0)
+      '@types/react-reconciler': 0.32.0(@types/react@19.0.10)
+      its-fine: 2.0.0(@types/react@19.0.10)(react@19.1.0)
       konva: 9.3.20
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
-      react-reconciler: 0.29.2(react@19.1.0)
-      scheduler: 0.23.2
+      react-reconciler: 0.32.0(react@19.1.0)
+      scheduler: 0.26.0
     transitivePeerDependencies:
       - '@types/react'
     dev: false
@@ -22141,17 +22138,6 @@ packages:
       - utf-8-validate
     dev: false
 
-  /react-reconciler@0.29.2(react@19.1.0):
-    resolution: {integrity: sha512-zZQqIiYgDCTP/f1N/mAR10nJGrPD2ZR+jDSEsKWJHYC7Cm2wodlwbR3upZRdC3cjIjSlTLNVyO7Iu0Yy7t2AYg==}
-    engines: {node: '>=0.10.0'}
-    peerDependencies:
-      react: ^18.3.1
-    dependencies:
-      loose-envify: 1.4.0
-      react: 19.1.0
-      scheduler: 0.23.2
-    dev: false
-
   /react-reconciler@0.31.0(react@19.1.0):
     resolution: {integrity: sha512-7Ob7Z+URmesIsIVRjnLoDGwBEG/tVitidU0nMsqX/eeJaLY89RISO/10ERe0MqmzuKUUB1rmY+h1itMbUHg9BQ==}
     engines: {node: '>=0.10.0'}
@@ -22160,6 +22146,16 @@ packages:
     dependencies:
       react: 19.1.0
       scheduler: 0.25.0
+    dev: false
+
+  /react-reconciler@0.32.0(react@19.1.0):
+    resolution: {integrity: sha512-2NPMOzgTlG0ZWdIf3qG+dcbLSoAc/uLfOwckc3ofy5sSK0pLJqnQLpUFxvGcN2rlXSjnVtGeeFLNimCQEj5gOQ==}
+    engines: {node: '>=0.10.0'}
+    peerDependencies:
+      react: ^19.1.0
+    dependencies:
+      react: 19.1.0
+      scheduler: 0.26.0
     dev: false
 
   /react-redux@9.2.0(@types/react@19.0.10)(react@19.1.0)(redux@5.0.1):
@@ -22266,18 +22262,18 @@ packages:
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
-  /react-spring@9.7.5(@react-three/fiber@9.1.4)(konva@9.3.20)(react-dom@19.1.0)(react-konva@18.2.10)(react-native@0.80.0)(react-zdog@1.2.2)(react@19.1.0)(three@0.177.0)(zdog@1.1.3):
-    resolution: {integrity: sha512-oG6DkDZIASHzPiGYw5KwrCvoFZqsaO3t2R7KE37U6S/+8qWSph/UjRQalPpZxlbgheqV9LT62H6H9IyoopHdug==}
+  /react-spring@10.0.1(@react-three/fiber@9.1.4)(konva@9.3.20)(react-dom@19.1.0)(react-konva@19.0.6)(react-native@0.80.0)(react-zdog@1.2.2)(react@19.1.0)(three@0.177.0)(zdog@1.1.3):
+    resolution: {integrity: sha512-N4TGwmMYtqC6DX6AcMbldH0WCvZm3r7OuilNFSjeP6sijwKLjMFmHpdXOSnbKBdg1LQudLRmk9uqpguf2oa/sg==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     dependencies:
-      '@react-spring/core': 9.7.5(react@19.1.0)
-      '@react-spring/konva': 9.7.5(konva@9.3.20)(react-konva@18.2.10)(react@19.1.0)
-      '@react-spring/native': 9.7.5(react-native@0.80.0)(react@19.1.0)
-      '@react-spring/three': 9.7.5(@react-three/fiber@9.1.4)(react@19.1.0)(three@0.177.0)
-      '@react-spring/web': 9.7.5(react-dom@19.1.0)(react@19.1.0)
-      '@react-spring/zdog': 9.7.5(react-dom@19.1.0)(react-zdog@1.2.2)(react@19.1.0)(zdog@1.1.3)
+      '@react-spring/core': 10.0.1(react@19.1.0)
+      '@react-spring/konva': 10.0.1(konva@9.3.20)(react-konva@19.0.6)(react@19.1.0)
+      '@react-spring/native': 10.0.1(react-native@0.80.0)(react@19.1.0)
+      '@react-spring/three': 10.0.1(@react-three/fiber@9.1.4)(react@19.1.0)(three@0.177.0)
+      '@react-spring/web': 10.0.1(react-dom@19.1.0)(react@19.1.0)
+      '@react-spring/zdog': 10.0.1(react-dom@19.1.0)(react-zdog@1.2.2)(react@19.1.0)(zdog@1.1.3)
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
     transitivePeerDependencies:
