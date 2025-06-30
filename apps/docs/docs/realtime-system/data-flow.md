@@ -53,9 +53,9 @@ BalancesParty → Hiro API (fetch user balances)
     ↓
 BalancesParty → Subnet Contracts (fetch subnet balances)
     ↓
-BalancesParty → BlazeProvider (BALANCE_UPDATE message)
+BalancesParty → BlazeProvider (separate BALANCE_UPDATE messages for each token)
     ↓
-BlazeProvider → Client (update balances state)
+BlazeProvider → Client (merge mainnet + subnet data using token utilities)
 ```
 
 ## Price Data Flow
@@ -261,9 +261,9 @@ export async function fetchUserBalances(
 }
 ```
 
-### 3. Balance Processing and Aggregation
+### 3. Balance Processing and Message Creation
 
-The BalancesParty processes raw balance data and creates rich balance messages:
+The BalancesParty processes raw balance data and creates separate messages for each token:
 
 ```typescript
 // src/parties/balances.ts
@@ -273,18 +273,15 @@ private async fetchAndBroadcastBalances() {
   
   const updatedBalances: WebSocketTokenBalance[] = [];
   
-  // Process each raw balance
+  // Process each raw balance (internally aggregates for efficiency)
   for (const [, balanceData] of Object.entries(rawBalances)) {
     const { userId, contractId } = balanceData;
     
-    // Find token record
     const tokenRecord = this.findTokenRecord(contractId);
     if (!tokenRecord) continue;
     
     const isSubnet = isSubnetToken(tokenRecord);
-    // For subnet tokens, use their mainnet base as the key
     const mainnetContractId = isSubnet ? tokenRecord.base! : tokenRecord.contractId;
-    
     const key = `${userId}:${mainnetContractId}`;
     
     let balance = this.balances.get(key);
@@ -299,11 +296,9 @@ private async fetchAndBroadcastBalances() {
       };
     }
     
-    // Update mainnet or subnet portion
+    // Update mainnet or subnet portion (internal aggregation)
     if (isSubnet) {
       balance.subnetBalance = balanceData.balance;
-      balance.subnetTotalSent = balanceData.totalSent;
-      balance.subnetTotalReceived = balanceData.totalReceived;
       balance.subnetContractId = contractId;
     } else {
       balance.mainnetBalance = balanceData.balance;
@@ -316,19 +311,23 @@ private async fetchAndBroadcastBalances() {
     updatedBalances.push(balance);
   }
   
-  // Broadcast updates
+  // Create separate messages for each token type
   if (updatedBalances.length > 0) {
-    const messages = updatedBalances.map(balance => this.createBalanceMessage(balance));
+    const allMessages: BalanceUpdateMessage[] = [];
+    for (const balance of updatedBalances) {
+      // createBalanceMessage now returns array of separate messages
+      allMessages.push(...this.createBalanceMessage(balance));
+    }
     
-    // Send individual updates
-    messages.forEach(message => {
+    // Broadcast each message individually
+    allMessages.forEach(message => {
       this.room.broadcast(JSON.stringify(message));
     });
     
-    // Send batch update
+    // Also send batch for initial loading
     this.room.broadcast(JSON.stringify({
       type: 'BALANCE_BATCH',
-      balances: messages,
+      balances: allMessages,
       timestamp: Date.now()
     }));
   }
@@ -337,7 +336,7 @@ private async fetchAndBroadcastBalances() {
 
 ## Subnet Token Flow
 
-Subnet tokens require special handling to aggregate mainnet and L2 balances:
+Subnet tokens are now handled with separate messages for mainnet and subnet balances:
 
 ### 1. Detection
 ```typescript
@@ -349,12 +348,9 @@ Subnet tokens require special handling to aggregate mainnet and L2 balances:
 }
 ```
 
-### 2. Balance Aggregation
+### 2. Server-side Processing
 ```typescript
-// Internal storage uses mainnet contract as key
-const key = `${userId}:${mainnetContractId}`;
-
-// Balance object contains both mainnet and subnet data
+// Server aggregates internally for efficiency but sends separate messages
 interface WebSocketTokenBalance {
   userId: string;
   mainnetContractId: string;
@@ -372,29 +368,76 @@ interface WebSocketTokenBalance {
   
   lastUpdated: number;
 }
+
+// createBalanceMessage() returns array of separate messages
+private createBalanceMessage(balance: WebSocketTokenBalance): BalanceUpdateMessage[] {
+  const messages: BalanceUpdateMessage[] = [];
+  
+  // Always create mainnet message
+  messages.push(createBalanceUpdateMessage(mainnetRecord, balance.userId, mainnetBalance));
+  
+  // Create separate subnet message if exists
+  if (balance.subnetBalance !== undefined && balance.subnetContractId) {
+    messages.push(createBalanceUpdateMessage(subnetRecord, balance.userId, subnetBalance));
+  }
+  
+  return messages;
+}
 ```
 
-### 3. Message Creation
+### 3. Separate Messages Sent to Client
 ```typescript
-// Client receives combined balance message
+// Client receives separate messages for each token type
+
+// Mainnet token message
 {
   type: 'BALANCE_UPDATE',
   userId: 'SP...',
-  contractId: 'SP...charisma-token', // Mainnet contract
-  
-  // Mainnet data
+  contractId: 'SP...charisma-token',
   balance: 1000000,
   totalSent: '0',
   totalReceived: '1000000',
   formattedBalance: 1.0,
-  
-  // Subnet data
-  subnetBalance: 500000,
-  formattedSubnetBalance: 0.5,
-  subnetContractId: 'SP...charisma-token-subnet-v1',
-  
-  metadata: { /* complete token metadata */ }
+  metadata: { type: 'SIP10', base: null, ... }
 }
+
+// Subnet token message (sent separately)
+{
+  type: 'BALANCE_UPDATE',
+  userId: 'SP...',
+  contractId: 'SP...charisma-token-subnet-v1',
+  balance: 500000,
+  totalSent: '0',
+  totalReceived: '0',
+  formattedBalance: 0.5,
+  metadata: { type: 'SUBNET', base: 'SP...charisma-token', ... }
+}
+```
+
+### 4. Client-side Merging
+```typescript
+// BlazeProvider merges tokens using token utilities
+import { getBalanceKey, isSubnetToken, getTokenFamily } from '../utils/token-utils';
+
+case 'BALANCE_UPDATE':
+  const key = getBalanceKey(data.userId, data.contractId, data.metadata);
+  const existingBalance = prev[key];
+  const isSubnet = isSubnetToken(data.contractId, data.metadata);
+  
+  const mergedBalance = {
+    ...existingBalance,
+    // Update core fields only if mainnet OR no existing data
+    ...((!isSubnet || !existingBalance?.balance) && {
+      balance: String(data.balance),
+      formattedBalance: data.formattedBalance
+    }),
+    // Update subnet fields only if subnet update
+    ...(isSubnet && {
+      subnetBalance: data.balance,
+      formattedSubnetBalance: data.formattedBalance,
+      subnetContractId: data.contractId
+    })
+  };
 ```
 
 ## Error Handling Flow
@@ -443,18 +486,25 @@ onMessage(message: string, sender: Party.Connection) {
 - Only broadcast prices that have actually changed
 - Compare with last broadcasted values
 
-### 2. Batch Processing
+### 2. Separate Token Messages
+- Send individual messages for mainnet and subnet tokens
+- Reduce message complexity and enable independent updates
+- Client-side merging reduces server memory usage
+
+### 3. Batch Processing
 - Process multiple users in parallel with `Promise.allSettled`
 - Send both individual and batch balance updates
+- Batch contains all separate token messages
 
-### 3. Subscription Management
+### 4. Subscription Management
 - Track watched users/tokens efficiently
 - Clean up subscriptions when clients disconnect
 
-### 4. Caching
+### 5. Caching
 - Cache token metadata to avoid repeated API calls
 - Store processed balance data for immediate delivery to new clients
+- Internal aggregation for efficiency while sending separate messages
 
-### 5. Rate Limiting
+### 6. Rate Limiting
 - Use fixed intervals (5 minutes) for API calls
 - Implement backoff for API failures

@@ -108,27 +108,71 @@ interface PriceData {
 #### BalanceData
 ```typescript
 interface BalanceData {
-  type: 'BALANCE_UPDATE';
-  userId: string;
-  contractId: string;
+  // User and contract identification
+  userId?: string;
+  contractId?: string;
   
-  // Mainnet balance
-  balance: number;
+  // Balance information
+  balance: string;  // Raw balance as string
   totalSent: string;
   totalReceived: string;
-  formattedBalance: number;
+  formattedBalance: number;  // Formatted with decimals
+  timestamp: number;
+  source: string;  // 'hiro-api' | 'subnet-contract-call' | 'realtime'
   
-  // Subnet balance (optional)
+  // Subnet balance data (merged by client from separate messages)
   subnetBalance?: number;
   formattedSubnetBalance?: number;
   subnetContractId?: string;
   
-  // Complete token metadata
+  // Token metadata (structured)
   metadata: TokenMetadata;
   
-  timestamp: number;
-  source: string;
+  // Legacy fields (for backward compatibility)
+  name?: string;
+  symbol?: string;
+  decimals?: number;
+  description?: string | null;
+  image?: string | null;
+  total_supply?: string | null;
+  type?: string;
+  identifier?: string;
+  token_uri?: string | null;
+  lastUpdated?: number;
+  tokenAContract?: string | null;
+  tokenBContract?: string | null;
+  lpRebatePercent?: number | null;
+  externalPoolId?: string | null;
+  engineContractId?: string | null;
+  base?: string | null;
 }
+
+// Note: The server sends separate BALANCE_UPDATE messages for mainnet and subnet tokens.
+// BlazeProvider automatically merges them using token utilities to create this unified structure.
+```
+
+#### Message Flow Architecture
+
+```typescript
+// Server sends separate messages:
+// 1. Mainnet token message
+{
+  type: 'BALANCE_UPDATE',
+  contractId: 'SP...charisma-token',
+  balance: 1000000,
+  metadata: { type: 'SIP10', base: null }
+}
+
+// 2. Subnet token message (sent separately)
+{
+  type: 'BALANCE_UPDATE', 
+  contractId: 'SP...charisma-token-subnet-v1',
+  balance: 500000,
+  metadata: { type: 'SUBNET', base: 'SP...charisma-token' }
+}
+
+// Client (BlazeProvider) merges them automatically into single balance object
+// using getBalanceKey() and token family detection
 ```
 
 #### TokenMetadata
@@ -175,7 +219,7 @@ import { useBlaze } from 'blaze-sdk/realtime';
 import { useEffect } from 'react';
 
 function UserBalances({ userId }: { userId: string }) {
-  const { balances, _subscribeToUserBalances, _unsubscribeFromUserBalances } = useBlaze();
+  const { getUserBalances, _subscribeToUserBalances, _unsubscribeFromUserBalances } = useBlaze();
   
   useEffect(() => {
     if (userId) {
@@ -187,14 +231,15 @@ function UserBalances({ userId }: { userId: string }) {
     }
   }, [userId, _subscribeToUserBalances, _unsubscribeFromUserBalances]);
   
-  const userBalances = Object.values(balances).filter(b => b.userId === userId);
+  // Use getUserBalances helper for cleaner access
+  const userBalances = getUserBalances(userId);
   
   return (
     <div>
       <h3>Balances for {userId}</h3>
-      {userBalances.map((balance) => (
-        <div key={balance.contractId}>
-          <strong>{balance.metadata.symbol}</strong>: {balance.formattedBalance}
+      {Object.entries(userBalances).map(([contractId, balance]) => (
+        <div key={contractId}>
+          <strong>{balance.metadata?.symbol || balance.symbol}</strong>: {balance.formattedBalance}
           {balance.subnetBalance && (
             <span> (+{balance.formattedSubnetBalance} on subnet)</span>
           )}
@@ -245,6 +290,50 @@ function PriceDisplay({ contractId }: { contractId: string }) {
 
 ## Advanced Usage
 
+### Real-time Balance Monitoring
+
+Monitor balance changes with automatic subnet merging:
+
+```tsx
+import { useBlaze } from 'blaze-sdk/realtime';
+import { useEffect } from 'react';
+
+function BalanceMonitor({ userId, contractId }: { userId: string; contractId: string }) {
+  const { getBalance, lastUpdate } = useBlaze();
+  
+  const balance = getBalance(userId, contractId);
+  
+  useEffect(() => {
+    if (balance) {
+      console.log(`Balance updated for ${contractId}:`, balance.formattedBalance);
+      
+      // Handle subnet balance if present (merged automatically)
+      if (balance.subnetBalance) {
+        console.log(`Subnet balance (auto-merged):`, balance.formattedSubnetBalance);
+        console.log(`Subnet contract:`, balance.subnetContractId);
+      }
+    }
+  }, [balance, lastUpdate]); // Re-run when balance or lastUpdate changes
+  
+  return (
+    <div>
+      {balance ? (
+        <div>
+          <p>Mainnet: {balance.formattedBalance} {balance.metadata?.symbol || balance.symbol}</p>
+          {balance.subnetBalance && (
+            <p>Subnet: {balance.formattedSubnetBalance} {balance.metadata?.symbol || balance.symbol}</p>
+          )}
+          <p>Total: {balance.formattedBalance + (balance.formattedSubnetBalance || 0)}</p>
+          <small>Last updated: {new Date(balance.timestamp).toLocaleTimeString()}</small>
+        </div>
+      ) : (
+        <p>No balance data</p>
+      )}
+    </div>
+  );
+}
+```
+
 ### Multiple Token Prices
 ```tsx
 function TokenPriceGrid({ contractIds }: { contractIds: string[] }) {
@@ -294,17 +383,41 @@ function PriceWithChange({ contractId }: { contractId: string }) {
 }
 ```
 
+### Understanding Token Merging
+
+BlazeProvider automatically merges mainnet and subnet tokens using token utilities:
+
+```typescript
+// Token utilities handle complex balance key generation
+import { getBalanceKey, isSubnetToken, getTokenFamily } from 'blaze-sdk/realtime/utils';
+
+// Examples:
+getBalanceKey('SP...user', 'SP...charisma-token') 
+// → 'SP...user:SP...charisma-token'
+
+getBalanceKey('SP...user', 'SP...charisma-token-subnet-v1', { base: 'SP...charisma-token' })
+// → 'SP...user:SP...charisma-token' (uses base contract for key)
+
+isSubnetToken('SP...charisma-token-subnet-v1', { type: 'SUBNET' })
+// → true
+
+getTokenFamily('SP...charisma-token-subnet-v1', { base: 'SP...charisma-token' })
+// → { baseContractId: 'SP...charisma-token', isSubnet: true }
+```
+
 ### Balance Portfolio
 ```tsx
 function PortfolioValue({ userId }: { userId: string }) {
-  const { balances, metadata } = useBlaze();
+  const { getUserBalances, metadata } = useBlaze();
   
-  const userBalances = Object.values(balances).filter(b => b.userId === userId);
+  // Use getUserBalances helper for cleaner access
+  const userBalances = getUserBalances(userId);
   
-  const totalValue = userBalances.reduce((sum, balance) => {
-    const meta = metadata[balance.contractId];
+  const totalValue = Object.values(userBalances).reduce((sum, balance) => {
+    const meta = balance.metadata || metadata[balance.contractId!];
     if (!meta?.price) return sum;
     
+    // Subnet balances are automatically merged by BlazeProvider
     const totalBalance = balance.formattedBalance + (balance.formattedSubnetBalance || 0);
     return sum + (totalBalance * meta.price);
   }, 0);
@@ -313,16 +426,19 @@ function PortfolioValue({ userId }: { userId: string }) {
     <div className="portfolio">
       <h3>Portfolio Value: ${totalValue.toFixed(2)}</h3>
       <div className="breakdown">
-        {userBalances.map(balance => {
-          const meta = metadata[balance.contractId];
+        {Object.entries(userBalances).map(([contractId, balance]) => {
+          const meta = balance.metadata || metadata[contractId];
           const totalBalance = balance.formattedBalance + (balance.formattedSubnetBalance || 0);
           const value = totalBalance * (meta?.price || 0);
           
           return (
-            <div key={balance.contractId} className="balance-row">
-              <span>{meta?.symbol || balance.contractId}</span>
+            <div key={contractId} className="balance-row">
+              <span>{meta?.symbol || balance.symbol}</span>
               <span>{totalBalance} tokens</span>
               <span>${value.toFixed(2)}</span>
+              {balance.subnetBalance && (
+                <small>({balance.formattedBalance} mainnet + {balance.formattedSubnetBalance} subnet)</small>
+              )}
             </div>
           );
         })}

@@ -71,8 +71,9 @@ External APIs → PartyKit Servers → BlazeProvider → React Applications
 
 ### Subnet Token Support
 - Detects L2 subnet tokens automatically
-- Aggregates mainnet + subnet balances
-- Maps subnet tokens to their mainnet equivalents
+- **Separate messages** for mainnet and subnet balance data
+- **Client-side merging** using token utilities for flexible presentation
+- Maps subnet tokens to their mainnet equivalents using base contract IDs
 
 ### Development Features
 - Price noise generation for testing
