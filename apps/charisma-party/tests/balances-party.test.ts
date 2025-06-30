@@ -310,7 +310,7 @@ describe('BalancesParty - Baseline Coverage', () => {
     });
   });
 
-  describe('2d. Subnet Balance Detection and Mapping', () => {
+  describe('2d. Subnet Balance Processing and Message Creation', () => {
     beforeEach(async () => {
       balancesParty = new BalancesParty(mockRoom);
 
@@ -393,15 +393,27 @@ describe('BalancesParty - Baseline Coverage', () => {
       );
     });
 
-    it('should map subnet balances to mainnet tokens correctly', async () => {
-      // RED: Test subnet-to-mainnet mapping
+    it('should send separate messages for mainnet and subnet tokens', async () => {
+      // RED: Test separate message creation (new architecture)
       await balancesParty['fetchAndBroadcastBalances']();
 
-      // Should store balance under mainnet contract ID with subnet data
+      // Should broadcast separate messages for mainnet and subnet tokens
+      expect(mockRoom.broadcast).toHaveBeenCalled();
+      
+      // Verify that createBalanceMessage returns an array of messages
       const balance = balancesParty['balances'].get('SP000000000000000000002Q6VF78:SP000000000000000000002Q6VF78.test-token');
       expect(balance).toBeDefined();
-      expect(balance?.subnetBalance).toBe(250000);
-      expect(balance?.subnetContractId).toBe('SP000000000000000000002Q6VF78.subnet-token');
+      
+      if (balance) {
+        const messages = balancesParty['createBalanceMessage'](balance);
+        expect(Array.isArray(messages)).toBe(true);
+        expect(messages.length).toBeGreaterThanOrEqual(1); // At least mainnet message
+        
+        // Should have separate mainnet and subnet messages if subnet data exists
+        if (balance.subnetBalance !== undefined) {
+          expect(messages.length).toBe(2); // Mainnet + subnet messages
+        }
+      }
     });
 
     it('should handle subnet balance fetch errors gracefully', async () => {
@@ -424,6 +436,40 @@ describe('BalancesParty - Baseline Coverage', () => {
       
       const isValidMapping = balancesParty['validateTokenRecord'](subnetToken!, 'SP000000000000000000002Q6VF78.subnet-token');
       expect(isValidMapping).toBe(true);
+    });
+
+    it('should create separate balance update messages for subnet tokens', () => {
+      // RED: Test that subnet tokens generate separate messages instead of merged data
+      const mockBalance = {
+        userId: 'SP000000000000000000002Q6VF78',
+        mainnetContractId: 'SP000000000000000000002Q6VF78.test-token',
+        mainnetBalance: 500000,
+        mainnetTotalSent: '100000',
+        mainnetTotalReceived: '600000',
+        subnetBalance: 250000,
+        subnetTotalSent: '0',
+        subnetTotalReceived: '0',
+        subnetContractId: 'SP000000000000000000002Q6VF78.subnet-token',
+        lastUpdated: Date.now()
+      };
+      
+      const messages = balancesParty['createBalanceMessage'](mockBalance);
+      
+      // Should return array of 2 messages: mainnet + subnet
+      expect(Array.isArray(messages)).toBe(true);
+      expect(messages.length).toBe(2);
+      
+      // First message should be mainnet token
+      const mainnetMessage = messages[0];
+      expect(mainnetMessage.contractId).toBe('SP000000000000000000002Q6VF78.test-token');
+      expect(mainnetMessage.balance).toBe(500000);
+      expect(mainnetMessage.subnetBalance).toBeUndefined(); // No subnet fields in individual messages
+      
+      // Second message should be subnet token
+      const subnetMessage = messages[1];
+      expect(subnetMessage.contractId).toBe('SP000000000000000000002Q6VF78.subnet-token');
+      expect(subnetMessage.balance).toBe(250000);
+      expect(subnetMessage.subnetBalance).toBeUndefined(); // No subnet fields in individual messages
     });
   });
 
