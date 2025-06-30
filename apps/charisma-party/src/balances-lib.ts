@@ -281,7 +281,8 @@ const KNOWN_SUBNET_MAPPINGS = new Map([
   ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usda-token-subnet', 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token'],
   ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmtoken-subnet', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmtoken'],
   ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nope-subnet', 'SP32AEEF6WW5Y0NMJ1S8SBSZDAY8R5J32NBZFPKKZ.nope'],
-  ['SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C.world-peace-stacks-stxcity-subnet', 'SP14J806BWEPQAXVA0G6RYZN7GNA126B7JFRRYTEM.world-peace-stacks-stxcity']
+  ['SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C.world-peace-stacks-stxcity-subnet', 'SP14J806BWEPQAXVA0G6RYZN7GNA126B7JFRRYTEM.world-peace-stacks-stxcity'],
+  ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.token-aeusdc-subnet', 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc']
 ]);
 
 /**
@@ -307,6 +308,74 @@ function fixSubnetMappings(enhancedTokenRecords: Map<string, EnhancedTokenRecord
   }
 
   console.log(`🔧 [SUBNET-FIX] Fixed ${fixedCount} subnet base mappings`);
+}
+
+/**
+ * Create synthetic subnet token records from known mappings
+ * This is needed because the API doesn't return subnet tokens
+ */
+function createSyntheticSubnetTokens(enhancedTokenRecords: Map<string, EnhancedTokenRecord>): void {
+  console.log('🏗️ [SUBNET-SYNTHETIC] Creating synthetic subnet token records...');
+
+  let createdCount = 0;
+  const now = Date.now();
+
+  for (const [subnetContractId, baseContractId] of KNOWN_SUBNET_MAPPINGS) {
+    // Skip if subnet token already exists
+    if (enhancedTokenRecords.has(subnetContractId)) {
+      console.log(`🔧 [SUBNET-SYNTHETIC] Subnet token ${subnetContractId} already exists, skipping`);
+      continue;
+    }
+
+    // Find the base token record
+    const baseRecord = enhancedTokenRecords.get(baseContractId);
+    if (!baseRecord) {
+      console.log(`⚠️  [SUBNET-SYNTHETIC] Base token ${baseContractId} not found for subnet ${subnetContractId}`);
+      continue;
+    }
+
+    // Create synthetic subnet token record based on base token
+    const syntheticSubnetRecord: EnhancedTokenRecord = {
+      // Core metadata copied from base token
+      contractId: subnetContractId,
+      name: `${baseRecord.name} (Subnet)`,
+      symbol: `${baseRecord.symbol}`,
+      decimals: baseRecord.decimals,
+      type: 'SUBNET', // Mark as subnet type
+      identifier: baseRecord.identifier,
+      description: `${baseRecord.description} [Subnet version]`,
+      image: baseRecord.image,
+      token_uri: baseRecord.token_uri,
+      total_supply: baseRecord.total_supply,
+      lastUpdated: now,
+      tokenAContract: baseRecord.tokenAContract,
+      tokenBContract: baseRecord.tokenBContract,
+      lpRebatePercent: baseRecord.lpRebatePercent,
+      externalPoolId: baseRecord.externalPoolId,
+      engineContractId: baseRecord.engineContractId,
+      base: baseContractId, // Point to base token
+      verified: baseRecord.verified,
+
+      // Price data from base token (subnet should have same price)
+      price: baseRecord.price,
+      change1h: baseRecord.change1h,
+      change24h: baseRecord.change24h,
+      change7d: baseRecord.change7d,
+      marketCap: null, // Subnet tokens don't have separate market cap
+
+      // Internal tracking
+      userBalances: {}, // Start with empty balances
+      timestamp: now,
+      metadataSource: 'synthetic-subnet-mapping'
+    };
+
+    enhancedTokenRecords.set(subnetContractId, syntheticSubnetRecord);
+    createdCount++;
+
+    console.log(`🏗️ [SUBNET-SYNTHETIC] Created subnet token: ${syntheticSubnetRecord.symbol} (${subnetContractId}) → base: ${baseContractId}`);
+  }
+
+  console.log(`🏗️ [SUBNET-SYNTHETIC] Created ${createdCount} synthetic subnet token records`);
 }
 
 /**
@@ -361,6 +430,10 @@ export async function loadTokenMetadata(): Promise<Map<string, EnhancedTokenReco
 
       enhancedTokenRecords.set(summary.contractId, enhancedRecord);
     }
+
+    // Create synthetic subnet token records from known mappings
+    // This is needed because the API doesn't return subnet tokens
+    createSyntheticSubnetTokens(enhancedTokenRecords);
 
     // Fix missing subnet base mappings using known mappings
     fixSubnetMappings(enhancedTokenRecords);
