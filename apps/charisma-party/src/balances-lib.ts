@@ -382,88 +382,17 @@ export async function loadTokenMetadata(): Promise<Map<string, EnhancedTokenReco
   }
 }
 
-/**
- * Find subnet token balance for a mainnet token
- */
-function findSubnetBalanceForMainnetToken(
-  mainnetContractId: string,
-  userId: string,
-  enhancedTokenRecords: Map<string, EnhancedTokenRecord>,
-  allBalanceUpdates: Record<string, BalanceData>
-): {
-  contractId: string;
-  balance: number;
-  totalSent: string;
-  totalReceived: string;
-  formattedBalance: number;
-  timestamp: number;
-  source: string;
-} | undefined {
-
-  // Find subnet token that has this mainnet token as its base
-  const subnetToken = Array.from(enhancedTokenRecords.values())
-    .find(token => token.type === 'SUBNET' && token.base === mainnetContractId);
-
-  if (!subnetToken) {
-    return undefined;
-  }
-
-  // Look for subnet balance in the balance updates
-  const subnetBalanceKey = `${userId}:${subnetToken.contractId}`;
-  const subnetBalance = allBalanceUpdates[subnetBalanceKey];
-
-  if (!subnetBalance) {
-    return undefined;
-  }
-
-  console.log(`🔗 [SUBNET-LINK] Found subnet balance for ${subnetToken.symbol}: ${subnetBalance.balance}`);
-
-  return {
-    contractId: subnetToken.contractId,
-    balance: subnetBalance.balance,
-    totalSent: subnetBalance.totalSent,
-    totalReceived: subnetBalance.totalReceived,
-    formattedBalance: formatBalance(subnetBalance.balance.toString(), subnetToken.decimals),
-    timestamp: subnetBalance.timestamp,
-    source: subnetBalance.source
-  };
-}
+// REMOVED: Server-side subnet merging logic - now handled client-side
 
 /**
  * Create a BALANCE_UPDATE message from enhanced token record and user balance info
- * Now includes complete token metadata with price data and automatic subnet balance linking
+ * Simplified to send individual token data without server-side subnet merging
  */
 export function createBalanceUpdateMessage(
   enhancedRecord: EnhancedTokenRecord,
   userId: string,
-  balanceInfo: EnhancedTokenRecord['userBalances'][string],
-  enhancedTokenRecords?: Map<string, EnhancedTokenRecord>,
-  allBalanceUpdates?: Record<string, BalanceData>,
-  subnetBalanceInfo?: {
-    contractId: string;
-    balance: number;
-    totalSent: string;
-    totalReceived: string;
-    formattedBalance: number;
-    timestamp: number;
-    source: string;
-  }
+  balanceInfo: EnhancedTokenRecord['userBalances'][string]
 ): BalanceUpdateMessage {
-
-
-  // Auto-discover subnet balance if not provided but we have the necessary data
-  let finalSubnetBalanceInfo = subnetBalanceInfo;
-
-  if (!finalSubnetBalanceInfo && enhancedRecord.type !== 'SUBNET' && enhancedTokenRecords && allBalanceUpdates) {
-    finalSubnetBalanceInfo = findSubnetBalanceForMainnetToken(
-      enhancedRecord.contractId,
-      userId,
-      enhancedTokenRecords,
-      allBalanceUpdates
-    );
-  }
-
-
   return {
     type: 'BALANCE_UPDATE',
     userId,
@@ -477,10 +406,8 @@ export function createBalanceUpdateMessage(
     timestamp: balanceInfo.timestamp,
     source: balanceInfo.source,
 
-    // Subnet balance fields
-    subnetBalance: finalSubnetBalanceInfo?.balance,
-    formattedSubnetBalance: finalSubnetBalanceInfo?.formattedBalance,
-    subnetContractId: finalSubnetBalanceInfo?.contractId,
+    // NO subnet balance fields - each token is sent separately
+    // Client will merge mainnet + subnet tokens by base contract
 
     // Complete token metadata (includes price data, market data, etc.)
     metadata: {

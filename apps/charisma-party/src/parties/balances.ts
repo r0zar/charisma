@@ -12,8 +12,6 @@ import type {
     WebSocketTokenBalance,
     BalanceSubscription,
     ClientSubscription,
-    BalancesLibFormat,
-    SubnetBalanceInfo,
     UserBalanceInfo
 } from "../types/balance-types";
 import {
@@ -346,7 +344,11 @@ export default class BalancesParty implements Party.Server {
     }
 
     private createAllBalanceMessages(): BalanceUpdateMessage[] {
-        return Array.from(this.balances.values()).map(balance => this.createBalanceMessage(balance));
+        const messages: BalanceUpdateMessage[] = [];
+        for (const balance of this.balances.values()) {
+            messages.push(...this.createBalanceMessage(balance));
+        }
+        return messages;
     }
 
     private createBalanceMessagesForUsers(userIds: string[]): BalanceUpdateMessage[] {
@@ -372,9 +374,11 @@ export default class BalancesParty implements Party.Server {
         return messages;
     }
 
-    private createBalanceMessage(balance: WebSocketTokenBalance): BalanceUpdateMessage {
+    private createBalanceMessage(balance: WebSocketTokenBalance): BalanceUpdateMessage[] {
+        const messages: BalanceUpdateMessage[] = [];
         const mainnetRecord = this.getOrCreateFallbackRecord(balance.mainnetContractId);
 
+        // Create mainnet balance message
         const mainnetBalance: UserBalanceInfo = {
             balance: balance.mainnetBalance,
             totalSent: balance.mainnetTotalSent,
@@ -384,25 +388,26 @@ export default class BalancesParty implements Party.Server {
             source: 'hiro-api'
         };
 
-        const subnetBalanceInfo: SubnetBalanceInfo | undefined = balance.subnetBalance !== undefined ? {
-            contractId: balance.subnetContractId!,
-            balance: balance.subnetBalance,
-            totalSent: balance.subnetTotalSent!,
-            totalReceived: balance.subnetTotalReceived!,
-            formattedBalance: formatBalance(balance.subnetBalance.toString(), mainnetRecord.decimals),
-            timestamp: balance.lastUpdated,
-            source: 'subnet-contract-call'
-        } : undefined;
+        messages.push(createBalanceUpdateMessage(mainnetRecord, balance.userId, mainnetBalance));
 
-        // Use the proven auto-discovery logic from balances-lib
-        return createBalanceUpdateMessage(
-            mainnetRecord, 
-            balance.userId, 
-            mainnetBalance, 
-            this.tokenRecords,
-            this.createAllBalanceUpdatesMap(),
-            subnetBalanceInfo
-        );
+        // Create separate subnet balance message if exists
+        if (balance.subnetBalance !== undefined && balance.subnetContractId) {
+            const subnetRecord = this.findTokenRecord(balance.subnetContractId);
+            if (subnetRecord) {
+                const subnetBalance: UserBalanceInfo = {
+                    balance: balance.subnetBalance,
+                    totalSent: balance.subnetTotalSent!,
+                    totalReceived: balance.subnetTotalReceived!,
+                    formattedBalance: formatBalance(balance.subnetBalance.toString(), subnetRecord.decimals),
+                    timestamp: balance.lastUpdated,
+                    source: 'subnet-contract-call'
+                };
+
+                messages.push(createBalanceUpdateMessage(subnetRecord, balance.userId, subnetBalance));
+            }
+        }
+
+        return messages;
     }
 
     private createZeroBalanceMessage(userId: string, mainnetRecord: EnhancedTokenRecord): BalanceUpdateMessage {
@@ -415,53 +420,11 @@ export default class BalancesParty implements Party.Server {
             source: 'default-zero'
         };
 
-        // Use the proven auto-discovery logic from balances-lib to find subnet balances
-        return createBalanceUpdateMessage(
-            mainnetRecord, 
-            userId, 
-            mainnetBalance, 
-            this.tokenRecords,
-            this.createAllBalanceUpdatesMap()
-        );
+        // Only create mainnet zero balance - subnet will be separate if it exists
+        return createBalanceUpdateMessage(mainnetRecord, userId, mainnetBalance);
     }
 
-    /**
-     * Create balance updates map in the format expected by balances-lib auto-discovery
-     */
-    private createAllBalanceUpdatesMap(): Record<string, BalancesLibFormat> {
-        const allBalanceUpdates: Record<string, BalancesLibFormat> = {};
-        
-        // Convert our internal WebSocketTokenBalance format to the format expected by balances-lib
-        for (const [, balance] of this.balances) {
-            // Add mainnet balance entry
-            const mainnetKey = `${balance.userId}:${balance.mainnetContractId}`;
-            allBalanceUpdates[mainnetKey] = {
-                userId: balance.userId,
-                contractId: balance.mainnetContractId,
-                balance: balance.mainnetBalance,
-                totalSent: balance.mainnetTotalSent,
-                totalReceived: balance.mainnetTotalReceived,
-                timestamp: balance.lastUpdated,
-                source: 'hiro-api'
-            };
-
-            // Add subnet balance entry if it exists
-            if (balance.subnetBalance !== undefined && balance.subnetContractId) {
-                const subnetKey = `${balance.userId}:${balance.subnetContractId}`;
-                allBalanceUpdates[subnetKey] = {
-                    userId: balance.userId,
-                    contractId: balance.subnetContractId,
-                    balance: balance.subnetBalance,
-                    totalSent: balance.subnetTotalSent || '0',
-                    totalReceived: balance.subnetTotalReceived || '0',
-                    timestamp: balance.lastUpdated,
-                    source: 'subnet-contract-call'
-                };
-            }
-        }
-
-        return allBalanceUpdates;
-    }
+    // REMOVED: createAllBalanceUpdatesMap - no longer needed with separate token messages
 
     private async fetchAndBroadcastBalances() {
         if (this.watchedUsers.size === 0) return;
@@ -531,19 +494,22 @@ export default class BalancesParty implements Party.Server {
 
             // Broadcast updates
             if (updatedBalances.length > 0) {
-                const messages = updatedBalances.map(balance => this.createBalanceMessage(balance));
+                const allMessages: BalanceUpdateMessage[] = [];
+                for (const balance of updatedBalances) {
+                    allMessages.push(...this.createBalanceMessage(balance));
+                }
 
-                messages.forEach(message => {
+                allMessages.forEach(message => {
                     this.room.broadcast(JSON.stringify(message));
                 });
 
                 this.room.broadcast(JSON.stringify({
                     type: 'BALANCE_BATCH',
-                    balances: messages,
+                    balances: allMessages,
                     timestamp: now
                 }));
 
-                console.log(`📊 Broadcasted ${messages.length} balance updates`);
+                console.log(`📊 Broadcasted ${allMessages.length} balance updates (${updatedBalances.length} merged balances)`);
             }
 
         } catch (err) {
