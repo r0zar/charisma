@@ -40,7 +40,8 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "jest": {
-    "preset": "@repo/jest-presets/node"
+    "preset": "@repo/jest-presets/browser",
+    "setupFilesAfterEnv": ["<rootDir>/src/__tests__/setup.ts"]
   },
   "dependencies": {
     "@repo/polyglot": "workspace:*",
@@ -59,11 +60,14 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/jest-presets": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^14.1.2",
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.8",
     "bunchee": "^6.4.0",
     "eslint": "^9.24.0",
     "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.3.0",
     "typescript": "5.8.2"
   }

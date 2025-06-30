@@ -8,6 +8,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import { BlazeData, BlazeConfig, PriceData, BalanceData, TokenMetadata } from '../types';
+import { getBalanceKey, isSubnetToken, getTokenFamily } from '../utils/token-utils';
 
 interface BlazeContextType extends BlazeData {
   // Internal subscription management
@@ -133,118 +134,65 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
 
         switch (data.type) {
           case 'BALANCE_UPDATE':
-            // Extract base contractId (before :: if present)
-            const baseContractId = data.contractId?.split('::')[0];
-            if (baseContractId && data.userId && data.balance !== undefined) {
-              setBalances(prev => ({
-                ...prev,
-                [`${data.userId}:${baseContractId}`]: {
-                  // Core balance fields
-                  balance: String(data.balance || 0),
-                  totalSent: data.totalSent || '0',
-                  totalReceived: data.totalReceived || '0',
-                  formattedBalance: data.formattedBalance || 0,
+            if (data.contractId && data.userId && data.balance !== undefined) {
+              setBalances(prev => {
+                // Use token utilities to determine the balance key
+                const key = getBalanceKey(data.userId, data.contractId, data.metadata);
+                const existingBalance = prev[key];
+                const isSubnet = isSubnetToken(data.contractId, data.metadata);
+                
+                // Debug logging
+                const tokenFamily = getTokenFamily(data.contractId, data.metadata);
+                console.log(`🔄 BlazeProvider: Processing ${isSubnet ? 'subnet' : 'mainnet'} token:`, tokenFamily);
+                
+                // Merge logic: preserve existing data and update only relevant fields
+                const mergedBalance = {
+                  // Start with existing balance or create new one
+                  ...existingBalance,
+                  
+                  // Update core fields only if this is a mainnet update OR no existing mainnet data
+                  ...((!isSubnet || !existingBalance?.balance) && {
+                    balance: String(data.balance || 0),
+                    totalSent: data.totalSent || '0',
+                    totalReceived: data.totalReceived || '0',
+                    formattedBalance: data.formattedBalance || 0,
+                    source: data.source || 'realtime'
+                  }),
+                  
+                  // Always update timestamp
                   timestamp: data.timestamp || Date.now(),
-                  source: data.source || 'realtime',
                   
-                  // Subnet balance fields
-                  subnetBalance: data.subnetBalance,
-                  formattedSubnetBalance: data.formattedSubnetBalance,
-                  subnetContractId: data.subnetContractId,
+                  // Update subnet fields only if this is a subnet update
+                  ...(isSubnet && {
+                    subnetBalance: data.balance,
+                    formattedSubnetBalance: data.formattedBalance,
+                    subnetContractId: data.contractId,
+                  }),
                   
-                  // NEW: Structured metadata (includes price data, market data, etc.)
-                  metadata: data.metadata || {
-                    // Fallback metadata if structured metadata not available
-                    contractId: baseContractId,
-                    name: data.name || 'Unknown Token',
-                    symbol: data.symbol || 'TKN',
-                    decimals: data.decimals || 6,
-                    type: data.tokenType || 'SIP10',
-                    identifier: data.identifier || '',
-                    description: data.description,
-                    image: data.image,
-                    token_uri: data.token_uri,
-                    total_supply: data.total_supply,
-                    lastUpdated: data.lastUpdated,
-                    tokenAContract: data.tokenAContract,
-                    tokenBContract: data.tokenBContract,
-                    lpRebatePercent: data.lpRebatePercent,
-                    externalPoolId: data.externalPoolId,
-                    engineContractId: data.engineContractId,
-                    base: data.baseToken,
-                    verified: false,
-                    // Price data will be null if not available in legacy messages
-                    price: null,
-                    change1h: null,
-                    change24h: null,
-                    change7d: null,
-                    marketCap: null
-                  },
-                  
-                  // Legacy fields for backward compatibility (populated from metadata)
-                  name: data.metadata?.name || data.name,
-                  symbol: data.metadata?.symbol || data.symbol,
-                  decimals: data.metadata?.decimals || data.decimals,
-                  description: data.metadata?.description || data.description,
-                  image: data.metadata?.image || data.image,
-                  total_supply: data.metadata?.total_supply || data.total_supply,
-                  type: data.metadata?.type || data.tokenType,
-                  identifier: data.metadata?.identifier || data.identifier,
-                  token_uri: data.metadata?.token_uri || data.token_uri,
-                  lastUpdated: data.metadata?.lastUpdated || data.lastUpdated,
-                  tokenAContract: data.metadata?.tokenAContract || data.tokenAContract,
-                  tokenBContract: data.metadata?.tokenBContract || data.tokenBContract,
-                  lpRebatePercent: data.metadata?.lpRebatePercent || data.lpRebatePercent,
-                  externalPoolId: data.metadata?.externalPoolId || data.externalPoolId,
-                  engineContractId: data.metadata?.engineContractId || data.engineContractId,
-                  base: data.metadata?.base || data.baseToken
-                }
-              }));
-              setLastUpdate(Date.now());
-            }
-            break;
-
-          case 'BALANCE_BATCH':
-            console.log('📊 BlazeProvider: Received BALANCE_BATCH:', data);
-            if (data.balances && Array.isArray(data.balances)) {
-              const newBalances: Record<string, BalanceData> = {};
-              data.balances.forEach((balance: any) => {
-                const baseContractId = balance.contractId?.split('::')[0];
-                if (baseContractId && balance.userId && balance.balance !== undefined) {
-                  newBalances[`${balance.userId}:${baseContractId}`] = {
-                    // Core balance fields
-                    balance: String(balance.balance || 0),
-                    totalSent: balance.totalSent || '0',
-                    totalReceived: balance.totalReceived || '0',
-                    formattedBalance: balance.formattedBalance || 0,
-                    timestamp: balance.timestamp || Date.now(),
-                    source: balance.source || 'realtime',
-                    
-                    // Subnet balance fields
-                    subnetBalance: balance.subnetBalance,
-                    formattedSubnetBalance: balance.formattedSubnetBalance,
-                    subnetContractId: balance.subnetContractId,
-                    
-                    // NEW: Structured metadata (includes price data, market data, etc.)
-                    metadata: balance.metadata || {
+                  // Merge metadata (prioritize new metadata but preserve existing if not provided)
+                  metadata: {
+                    // Start with existing metadata
+                    ...existingBalance?.metadata,
+                    // Merge in new metadata
+                    ...(data.metadata || {
                       // Fallback metadata if structured metadata not available
-                      contractId: baseContractId,
-                      name: balance.name || 'Unknown Token',
-                      symbol: balance.symbol || 'TKN',
-                      decimals: balance.decimals || 6,
-                      type: balance.tokenType || 'SIP10',
-                      identifier: balance.identifier || '',
-                      description: balance.description,
-                      image: balance.image,
-                      token_uri: balance.token_uri,
-                      total_supply: balance.total_supply,
-                      lastUpdated: balance.lastUpdated,
-                      tokenAContract: balance.tokenAContract,
-                      tokenBContract: balance.tokenBContract,
-                      lpRebatePercent: balance.lpRebatePercent,
-                      externalPoolId: balance.externalPoolId,
-                      engineContractId: balance.engineContractId,
-                      base: balance.baseToken,
+                      contractId: tokenFamily.baseContractId,
+                      name: data.name || 'Unknown Token',
+                      symbol: data.symbol || 'TKN',
+                      decimals: data.decimals || 6,
+                      type: data.tokenType || 'SIP10',
+                      identifier: data.identifier || '',
+                      description: data.description,
+                      image: data.image,
+                      token_uri: data.token_uri,
+                      total_supply: data.total_supply,
+                      lastUpdated: data.lastUpdated,
+                      tokenAContract: data.tokenAContract,
+                      tokenBContract: data.tokenBContract,
+                      lpRebatePercent: data.lpRebatePercent,
+                      externalPoolId: data.externalPoolId,
+                      engineContractId: data.engineContractId,
+                      base: data.baseToken || tokenFamily.baseContractId,
                       verified: false,
                       // Price data will be null if not available in legacy messages
                       price: null,
@@ -252,30 +200,131 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                       change24h: null,
                       change7d: null,
                       marketCap: null
-                    },
-                    
-                    // Legacy fields for backward compatibility (populated from metadata)
-                    name: balance.metadata?.name || balance.name,
-                    symbol: balance.metadata?.symbol || balance.symbol,
-                    decimals: balance.metadata?.decimals || balance.decimals,
-                    description: balance.metadata?.description || balance.description,
-                    image: balance.metadata?.image || balance.image,
-                    total_supply: balance.metadata?.total_supply || balance.total_supply,
-                    type: balance.metadata?.type || balance.tokenType,
-                    identifier: balance.metadata?.identifier || balance.identifier,
-                    token_uri: balance.metadata?.token_uri || balance.token_uri,
-                    lastUpdated: balance.metadata?.lastUpdated || balance.lastUpdated,
-                    tokenAContract: balance.metadata?.tokenAContract || balance.tokenAContract,
-                    tokenBContract: balance.metadata?.tokenBContract || balance.tokenBContract,
-                    lpRebatePercent: balance.metadata?.lpRebatePercent || balance.lpRebatePercent,
-                    externalPoolId: balance.metadata?.externalPoolId || balance.externalPoolId,
-                    engineContractId: balance.metadata?.engineContractId || balance.engineContractId,
-                    base: balance.metadata?.base || balance.baseToken
-                  };
-                }
+                    })
+                  },
+                  
+                  // Legacy fields for backward compatibility (prioritize metadata then new data then existing)
+                  name: data.metadata?.name || data.name || existingBalance?.name,
+                  symbol: data.metadata?.symbol || data.symbol || existingBalance?.symbol,
+                  decimals: data.metadata?.decimals || data.decimals || existingBalance?.decimals,
+                  description: data.metadata?.description || data.description || existingBalance?.description,
+                  image: data.metadata?.image || data.image || existingBalance?.image,
+                  total_supply: data.metadata?.total_supply || data.total_supply || existingBalance?.total_supply,
+                  type: data.metadata?.type || data.tokenType || existingBalance?.type,
+                  identifier: data.metadata?.identifier || data.identifier || existingBalance?.identifier,
+                  token_uri: data.metadata?.token_uri || data.token_uri || existingBalance?.token_uri,
+                  lastUpdated: data.metadata?.lastUpdated || data.lastUpdated || existingBalance?.lastUpdated,
+                  tokenAContract: data.metadata?.tokenAContract || data.tokenAContract || existingBalance?.tokenAContract,
+                  tokenBContract: data.metadata?.tokenBContract || data.tokenBContract || existingBalance?.tokenBContract,
+                  lpRebatePercent: data.metadata?.lpRebatePercent || data.lpRebatePercent || existingBalance?.lpRebatePercent,
+                  externalPoolId: data.metadata?.externalPoolId || data.externalPoolId || existingBalance?.externalPoolId,
+                  engineContractId: data.metadata?.engineContractId || data.engineContractId || existingBalance?.engineContractId,
+                  base: data.metadata?.base || data.baseToken || existingBalance?.base
+                };
+                
+                return {
+                  ...prev,
+                  [key]: mergedBalance
+                };
               });
-              console.log(`📊 BlazeProvider: Processed ${Object.keys(newBalances).length} balance entries`);
-              setBalances(prev => ({ ...prev, ...newBalances }));
+              setLastUpdate(Date.now());
+            }
+            break;
+
+          case 'BALANCE_BATCH':
+            console.log('📊 BlazeProvider: Received BALANCE_BATCH:', data);
+            if (data.balances && Array.isArray(data.balances)) {
+              setBalances(prev => {
+                const updatedBalances = { ...prev };
+                
+                data.balances.forEach((balance: any) => {
+                  if (balance.contractId && balance.userId && balance.balance !== undefined) {
+                    // Use token utilities to determine the balance key
+                    const key = getBalanceKey(balance.userId, balance.contractId, balance.metadata);
+                    const existingBalance = updatedBalances[key];
+                    const isSubnet = isSubnetToken(balance.contractId, balance.metadata);
+                    const tokenFamily = getTokenFamily(balance.contractId, balance.metadata);
+                    
+                    // Apply same merge logic as BALANCE_UPDATE
+                    const mergedBalance = {
+                      // Start with existing balance or create new one
+                      ...existingBalance,
+                      
+                      // Update core fields only if this is a mainnet update OR no existing mainnet data
+                      ...((!isSubnet || !existingBalance?.balance) && {
+                        balance: String(balance.balance || 0),
+                        totalSent: balance.totalSent || '0',
+                        totalReceived: balance.totalReceived || '0',
+                        formattedBalance: balance.formattedBalance || 0,
+                        source: balance.source || 'realtime'
+                      }),
+                      
+                      // Always update timestamp
+                      timestamp: balance.timestamp || Date.now(),
+                      
+                      // Update subnet fields only if this is a subnet update
+                      ...(isSubnet && {
+                        subnetBalance: balance.balance,
+                        formattedSubnetBalance: balance.formattedBalance,
+                        subnetContractId: balance.contractId,
+                      }),
+                      
+                      // Merge metadata
+                      metadata: {
+                        ...existingBalance?.metadata,
+                        ...(balance.metadata || {
+                          contractId: tokenFamily.baseContractId,
+                          name: balance.name || 'Unknown Token',
+                          symbol: balance.symbol || 'TKN',
+                          decimals: balance.decimals || 6,
+                          type: balance.tokenType || 'SIP10',
+                          identifier: balance.identifier || '',
+                          description: balance.description,
+                          image: balance.image,
+                          token_uri: balance.token_uri,
+                          total_supply: balance.total_supply,
+                          lastUpdated: balance.lastUpdated,
+                          tokenAContract: balance.tokenAContract,
+                          tokenBContract: balance.tokenBContract,
+                          lpRebatePercent: balance.lpRebatePercent,
+                          externalPoolId: balance.externalPoolId,
+                          engineContractId: balance.engineContractId,
+                          base: balance.baseToken || tokenFamily.baseContractId,
+                          verified: false,
+                          price: null,
+                          change1h: null,
+                          change24h: null,
+                          change7d: null,
+                          marketCap: null
+                        })
+                      },
+                      
+                      // Legacy fields (prioritize metadata then new data then existing)
+                      name: balance.metadata?.name || balance.name || existingBalance?.name,
+                      symbol: balance.metadata?.symbol || balance.symbol || existingBalance?.symbol,
+                      decimals: balance.metadata?.decimals || balance.decimals || existingBalance?.decimals,
+                      description: balance.metadata?.description || balance.description || existingBalance?.description,
+                      image: balance.metadata?.image || balance.image || existingBalance?.image,
+                      total_supply: balance.metadata?.total_supply || balance.total_supply || existingBalance?.total_supply,
+                      type: balance.metadata?.type || balance.tokenType || existingBalance?.type,
+                      identifier: balance.metadata?.identifier || balance.identifier || existingBalance?.identifier,
+                      token_uri: balance.metadata?.token_uri || balance.token_uri || existingBalance?.token_uri,
+                      lastUpdated: balance.metadata?.lastUpdated || balance.lastUpdated || existingBalance?.lastUpdated,
+                      tokenAContract: balance.metadata?.tokenAContract || balance.tokenAContract || existingBalance?.tokenAContract,
+                      tokenBContract: balance.metadata?.tokenBContract || balance.tokenBContract || existingBalance?.tokenBContract,
+                      lpRebatePercent: balance.metadata?.lpRebatePercent || balance.lpRebatePercent || existingBalance?.lpRebatePercent,
+                      externalPoolId: balance.metadata?.externalPoolId || balance.externalPoolId || existingBalance?.externalPoolId,
+                      engineContractId: balance.metadata?.engineContractId || balance.engineContractId || existingBalance?.engineContractId,
+                      base: balance.metadata?.base || balance.baseToken || existingBalance?.base
+                    };
+                    
+                    updatedBalances[key] = mergedBalance;
+                  }
+                });
+                
+                console.log(`📊 BlazeProvider: Processed ${data.balances.length} balance entries with client-side merging`);
+                return updatedBalances;
+              });
               setLastUpdate(Date.now());
             } else {
               console.warn('📊 BlazeProvider: BALANCE_BATCH received but no valid balances array');
@@ -311,7 +360,10 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
       return undefined;
     }
     
-    return balances[`${userId.trim()}:${contractId.trim()}`];
+    // Use token utilities to find the correct balance key
+    // This ensures we get the merged balance for both mainnet and subnet tokens
+    const key = getBalanceKey(userId.trim(), contractId.trim());
+    return balances[key];
   }, [balances]);
 
   const getMetadata = useCallback((contractId: string): TokenMetadata | undefined => {
