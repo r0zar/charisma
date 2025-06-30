@@ -9,6 +9,7 @@
     "partykit": "partykit dev",
     "deploy": "partykit deploy",
     "script": "node scripts/run.js",
+    "test-subnet": "tsx scripts/test-subnet-balances.ts",
     "build": "vite build",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
