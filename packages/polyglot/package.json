@@ -35,7 +35,7 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@stacks/blockchain-api-client": "^8.8.0",
+    "@stacks/blockchain-api-client": "^8.11.2",
     "@stacks/connect": "^8.1.9",
     "@stacks/network": "^7",
     "@stacks/stacks-blockchain-api-types": "^7.14.1",
@@ -53,7 +53,7 @@
     "eslint": "^9.30.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.3.0",
-    "typescript": "5.8.2",
+    "typescript": "5.8.3",
     "dotenv": "^16.4.5"
   }
 }
