@@ -35,7 +35,7 @@
     "@vitest/ui": "^1.6.1",
     "concurrently": "^8.2.2",
     "dotenv": "^16.4.5",
-    "partykit": "^0.0.110",
+    "partykit": "^0.0.115",
     "tsx": "^4.19.4",
     "typescript": "^5.5.4",
     "vite": "^5.2.0",
