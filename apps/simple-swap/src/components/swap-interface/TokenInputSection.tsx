@@ -44,22 +44,9 @@ export default function TokenInputSection() {
         // If it's a subnet token, use the base contract, otherwise use the token's contract
         return token.type === 'SUBNET' && token.base ? token.base : token.contractId;
     };
-    
+
     const baseContractId = getBaseContractId(selectedFromToken);
     const fromTokenBalance = baseContractId ? balances[`${address}:${baseContractId}`] : null;
-    
-    // Debug logging for balance lookup
-    React.useEffect(() => {
-        console.log('🔍 TokenInputSection balance lookup:', {
-            selectedFromToken: selectedFromToken?.contractId,
-            selectedFromTokenType: selectedFromToken?.type,
-            selectedFromTokenBase: selectedFromToken?.base,
-            baseContractId,
-            hasBalance: !!fromTokenBalance,
-            useSubnetFrom,
-            mode
-        });
-    }, [selectedFromToken, baseContractId, fromTokenBalance, useSubnetFrom, mode]);
 
     // Calculate compact balance display and tooltip content
     const { compactBalance, tooltipData, rawActiveBalance } = React.useMemo(() => {
@@ -120,15 +107,15 @@ export default function TokenInputSection() {
 
     const handleBalancePercentageClick = (percentage: number) => {
         if (!selectedFromToken || !fromTokenBalance) return;
-        
+
         // Get the appropriate balance based on current subnet selection
-        const balance = isSubnetSelected && fromTokenBalance.subnetBalance !== undefined 
+        const balance = isSubnetSelected && fromTokenBalance.subnetBalance !== undefined
             ? Number(fromTokenBalance.formattedSubnetBalance || 0)
             : Number(fromTokenBalance.formattedBalance || 0);
-        
+
         // Calculate the amount based on percentage
         const amount = balance * percentage;
-        
+
         // Set the display amount
         setDisplayAmount(amount.toString());
     };
@@ -155,7 +142,7 @@ export default function TokenInputSection() {
                         <p className="text-xs text-white/60 hidden sm:block">Select asset and amount</p>
                     </div>
                 </div>
-                
+
                 {selectedFromToken && (
                     <button
                         type="button"
@@ -228,7 +215,7 @@ export default function TokenInputSection() {
                                     </div>
                                 </div>
                             </BalanceTooltip>
-                            
+
                             {/* Quick Balance Actions */}
                             <div className="flex items-center gap-1 mt-2">
                                 <button
