@@ -16,10 +16,10 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@docusaurus/preset-classic": "3.7.0",
+    "@docusaurus/preset-classic": "3.8.1",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
-    "lucide-react": "0.511.0",
+    "lucide-react": "0.525.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -30,7 +30,7 @@
     "@docusaurus/tsconfig": "3.7.0",
     "@docusaurus/types": "3.7.0",
     "@types/node": "^24.0.7",
-    "typescript": "~5.6.2"
+    "typescript": "~5.8.3"
   },
   "browserslist": {
     "production": [

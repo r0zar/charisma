@@ -46,11 +46,11 @@
         "eslint": "^9.30.0",
         "jest": "^29.7.0",
         "ts-jest": "^29.3.0",
-        "typescript": "5.8.2"
+        "typescript": "5.8.3"
     },
     "dependencies": {
-        "lucide-react": "0.511.0",
+        "lucide-react": "0.525.0",
         "telegraf": "^4.16.3",
-        "twilio": "^5.6.0"
+        "twilio": "^5.7.1"
     }
 }

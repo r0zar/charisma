@@ -22,7 +22,7 @@
     "@stacks/connect": "^8.1.9",
     "@stacks/transactions": "^7",
     "blaze-sdk": "workspace:*",
-    "lucide-react": "^0.522.0",
+    "lucide-react": "^0.525.0",
     "partysocket": "^1.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -37,7 +37,7 @@
     "dotenv": "^16.4.5",
     "partykit": "^0.0.115",
     "tsx": "^4.19.4",
-    "typescript": "^5.5.4",
+    "typescript": "^5.8.3",
     "vite": "^5.2.0",
     "vitest": "^1.6.1"
   }
