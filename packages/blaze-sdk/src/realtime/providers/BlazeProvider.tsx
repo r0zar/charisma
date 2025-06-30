@@ -5,7 +5,7 @@
  * Manages WebSocket connections and provides shared state across components
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import { BlazeData, BlazeConfig, PriceData, BalanceData, TokenMetadata } from '../types';
 import { getBalanceKey, isSubnetToken, getTokenFamily } from '../utils/token-utils';
@@ -234,6 +234,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
           case 'BALANCE_BATCH':
             console.log('📊 BlazeProvider: Received BALANCE_BATCH:', data);
             if (data.balances && Array.isArray(data.balances)) {
+<<<<<<< HEAD
               setBalances(prev => {
                 const updatedBalances = { ...prev };
                 
@@ -379,7 +380,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
 
     const trimmedUserId = userId.trim();
     const userBalances: Record<string, BalanceData> = {};
-    
+
     // Filter balances for the specific user
     Object.entries(balances).forEach(([key, balance]) => {
       if (key.startsWith(`${trimmedUserId}:`)) {

@@ -24,9 +24,9 @@ export function isSubnetToken(contractId: string, metadata?: { type?: string; ba
   // Check metadata first if available
   if (metadata?.type === 'SUBNET') {
     return true;
-  } else {
-    return false;
   }
+  // Fall back to known mappings
+  return KNOWN_SUBNET_MAPPINGS.has(contractId);
 }
 
 /**
@@ -37,7 +37,8 @@ export function getBaseContractId(contractId: string, metadata?: { base?: string
   if (metadata?.base) {
     return metadata.base;
   }
-  return contractId;
+  // Fall back to known mappings
+  return KNOWN_SUBNET_MAPPINGS.get(contractId) || contractId;
 }
 
 /**

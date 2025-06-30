@@ -1,3 +1,6 @@
+/* Import Balance Debugger Styles */
+@import url('./styles/BalanceDebugger.css');
+
 /* Enterprise Price Dashboard Styles */
 
 :root {
@@ -441,4 +444,128 @@ body {
 /* Empty States */
 .empty-state {
   text-align: center;
+}
+
+/* Debug App Styles */
+.debug-app {
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #e0e0e0;
+}
+
+.debug-app.light {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-bottom: 3px solid #4ade80;
+  padding: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.app-header .header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left h1 {
+  margin: 0;
+  color: #4ade80;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.host-info {
+  margin: 8px 0 0 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.host-info code {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', monospace;
+}
+
+.theme-toggle {
+  padding: 8px 16px;
+  background: #4ade80;
+  color: #0a0a0a;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: #22c55e;
+  transform: translateY(-1px);
+}
+
+.app-main {
+  min-height: calc(100vh - 140px);
+  padding: 20px 0;
+}
+
+.app-footer {
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  padding: 20px 0;
+  margin-top: 40px;
+}
+
+.app-footer .footer-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-content p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-links a {
+  color: #60a5fa;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: #3b82f6;
+}
+
+/* Responsive Design for Debug App */
+@media (max-width: 768px) {
+  .app-header .header-content, 
+  .app-footer .footer-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .header-left h1 {
+    font-size: 1.5rem;
+  }
+  
+  .footer-links {
+    justify-content: center;
+  }
 }

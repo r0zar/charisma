@@ -205,7 +205,14 @@ export async function fetchTokenSummariesFromAPI(): Promise<TokenSummary[]> {
 
     const result = await response.json();
     console.log('🔍 fetchTokenSummariesFromAPI: result', result);
-    const summaries: TokenSummary[] = result.data.map((token: any) => ({
+    
+    // Handle both response formats: direct array or wrapped in data property
+    const tokens = Array.isArray(result) ? result : result.data;
+    if (!tokens || !Array.isArray(tokens)) {
+      throw new Error('API response does not contain token array');
+    }
+    
+    const summaries: TokenSummary[] = tokens.map((token: any) => ({
       contractId: token.contractId,
       name: token.name,
       symbol: token.symbol,
