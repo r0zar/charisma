@@ -64,6 +64,7 @@ const config: Config = {
     ],
   ],
 
+
   themeConfig: {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
@@ -105,6 +106,12 @@ const config: Config = {
           label: 'Pricing',
         },
         {
+          type: 'docSidebar',
+          sidebarId: 'realtimeSidebar',
+          position: 'left',
+          label: 'Real-time',
+        },
+        {
           href: 'https://github.com/r0zar/charisma',
           label: 'GitHub',
           position: 'right',
@@ -128,6 +135,10 @@ const config: Config = {
             {
               label: 'Pricing',
               to: '/docs/prices/overview',
+            },
+            {
+              label: 'Real-time',
+              to: '/docs/realtime-system/overview',
             },
           ],
         },

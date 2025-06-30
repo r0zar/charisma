@@ -65,9 +65,16 @@ export default class PricesParty implements Party.Server {
 
     private detectLocalDev(): boolean {
         try {
+            // Check for test environment first
+            if (process.env.NODE_ENV === 'test' || process.env.PARTYKIT_ENV === 'test') {
+                return true;
+            }
             // In production PartyKit, use alarms only. In dev, use intervals.
             // Check if we're running on localhost (port 1999 is dev server)
-            return false; // Always use production mode (alarms) for now
+            return process.env.NODE_ENV === 'development' ||
+                process.env.PARTYKIT_ENV === 'development' ||
+                (typeof globalThis !== 'undefined' &&
+                    globalThis.location?.hostname === 'localhost');
         } catch {
             return false;
         }

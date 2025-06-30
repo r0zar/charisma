@@ -1,0 +1,8 @@
+{
+  "label": "Real-time System",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "description": "Real-time WebSocket infrastructure for price and balance data streaming in the Charisma ecosystem."
+  }
+}
