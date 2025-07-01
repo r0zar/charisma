@@ -33,12 +33,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build project
+      - name: Build workspace packages
+        run: pnpm build --filter="@repo/*"
+
+      - name: Build charisma-party
         run: pnpm build
         working-directory: ./apps/charisma-party
 
       - name: Deploy to PartyKit (Production)
-        # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           # Set PartyKit token from secrets
           export PARTYKIT_LOGIN="${{ secrets.PARTYKIT_LOGIN }}"
