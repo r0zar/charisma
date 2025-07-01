@@ -20,6 +20,9 @@ interface WalletContextType {
     addWatchedAddresses: (addresses: string[]) => void;
     removeWatchedAddress: (address: string) => void;
     clearWatchedAddresses: () => void;
+    // Privacy settings
+    privacyMode: boolean;
+    togglePrivacyMode: () => void;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -43,6 +46,9 @@ const WalletContext = createContext<WalletContextType>({
     addWatchedAddresses: () => { },
     removeWatchedAddress: () => { },
     clearWatchedAddresses: () => { },
+    // Privacy settings defaults
+    privacyMode: false,
+    togglePrivacyMode: () => { },
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -54,6 +60,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [balances, setBalances] = useState<AccountBalancesResponse>({} as AccountBalancesResponse);
     const [prices, setPrices] = useState<KraxelPriceData>({} as KraxelPriceData);
     const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
+    const [privacyMode, setPrivacyMode] = useState(false);
 
     // Check for existing wallet connection
     useEffect(() => {
@@ -86,6 +93,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         localStorage.setItem('watchedAddresses', JSON.stringify(watchedAddresses));
     }, [watchedAddresses]);
+
+    // Load privacy mode from localStorage
+    useEffect(() => {
+        const savedPrivacyMode = localStorage.getItem('privacyMode');
+        if (savedPrivacyMode !== null) {
+            setPrivacyMode(savedPrivacyMode === 'true');
+        }
+    }, []);
+
+    // Save privacy mode to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('privacyMode', privacyMode.toString());
+    }, [privacyMode]);
 
     // get wallet balaces
     useEffect(() => {
@@ -149,6 +169,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setWatchedAddresses([]);
     };
 
+    const togglePrivacyMode = () => {
+        setPrivacyMode(prev => !prev);
+    };
+
     return (
         <WalletContext.Provider
             value={{
@@ -162,7 +186,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 watchedAddresses,
                 addWatchedAddresses,
                 removeWatchedAddress,
-                clearWatchedAddresses
+                clearWatchedAddresses,
+                privacyMode,
+                togglePrivacyMode
             }}
         >
             {children}

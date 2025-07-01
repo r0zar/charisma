@@ -64,7 +64,7 @@ const createTokenCacheData = (token: TokenBalanceData): TokenCacheData => ({
 });
 
 export default function PortfolioSettings() {
-  const { address, connected, watchedAddresses, addWatchedAddresses } = useWallet();
+  const { address, connected, watchedAddresses, addWatchedAddresses, privacyMode, togglePrivacyMode } = useWallet();
   
   // Get BlazeProvider data for all wallets (connected + watched)
   const allWalletIds = [address, ...watchedAddresses].filter(Boolean);
@@ -261,6 +261,9 @@ export default function PortfolioSettings() {
   }, [getUserBalances, address, debugSearchTerm]);
 
   const formatCurrency = (value: number) => {
+    if (privacyMode) {
+      return '••••••';
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -269,8 +272,25 @@ export default function PortfolioSettings() {
     }).format(value);
   };
 
+  const formatBalance = (balance: number, decimals?: number) => {
+    if (privacyMode) {
+      return '••••••';
+    }
+    return balance.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: decimals || 6
+    });
+  };
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
+  };
+
+  const formatCompactBalance = (balance: number, symbol: string) => {
+    if (privacyMode) {
+      return '•••••• ' + symbol;
+    }
+    return formatCompactNumber(balance) + ' ' + symbol;
   };
 
   // Handle wallet import
@@ -494,6 +514,15 @@ export default function PortfolioSettings() {
                   />
                   <span className="text-sm text-white/70">Hide dust (&lt;$0.01)</span>
                 </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyMode}
+                    onChange={(e) => togglePrivacyMode()}
+                    className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-white/70">Privacy mode</span>
+                </label>
               </div>
               
               {/* Sort Controls */}
@@ -659,13 +688,13 @@ export default function PortfolioSettings() {
                         {token.hasMainnet && (
                           <div className="flex items-center justify-end gap-1">
                             <span className="text-blue-400">Main:</span>
-                            <span>{formatCompactNumber(token.formattedBalance)} {token.symbol}</span>
+                            <span>{formatCompactBalance(token.formattedBalance, token.symbol || 'TKN')}</span>
                           </div>
                         )}
                         {token.hasSubnet && (
                           <div className="flex items-center justify-end gap-1">
                             <span className="text-purple-400">Sub:</span>
-                            <span>{formatCompactNumber(token.formattedSubnetBalance || 0)} {token.symbol}</span>
+                            <span>{formatCompactBalance(token.formattedSubnetBalance || 0, token.symbol || 'TKN')}</span>
                           </div>
                         )}
                       </div>
@@ -735,7 +764,7 @@ export default function PortfolioSettings() {
                           <p className="text-sm font-medium text-blue-400">Mainnet Balance</p>
                         </div>
                         <p className="font-mono text-foreground text-lg">
-                          {formatCompactNumber(selectedToken.formattedBalance)} {selectedToken.symbol}
+                          {formatCompactBalance(selectedToken.formattedBalance, selectedToken.symbol || 'TKN')}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatCurrency(selectedToken.mainnetUsdValue)}
@@ -749,7 +778,7 @@ export default function PortfolioSettings() {
                           <p className="text-sm font-medium text-purple-400">Subnet Balance</p>
                         </div>
                         <p className="font-mono text-foreground text-lg">
-                          {formatCompactNumber(selectedToken.formattedSubnetBalance || 0)} {selectedToken.symbol}
+                          {formatCompactBalance(selectedToken.formattedSubnetBalance || 0, selectedToken.symbol || 'TKN')}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatCurrency(selectedToken.subnetUsdValue)}

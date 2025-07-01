@@ -276,7 +276,7 @@ function generateSubnetTokens(baseTokens: Map<string, EnhancedTokenMetadata>): M
       const subnetToken: EnhancedTokenMetadata = {
         ...baseToken,
         contractId: subnetId,
-        name: `${baseToken.name} (Subnet)`,
+        name: `${baseToken.name}`,
         symbol: baseToken.symbol,
         type: 'SUBNET',
         base: baseId,

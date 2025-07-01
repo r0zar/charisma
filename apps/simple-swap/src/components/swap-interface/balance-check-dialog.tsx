@@ -146,7 +146,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <TokenLogo token={selectedFromToken} />
-                                    <span className="text-sm">{selectedFromToken.symbol} (Subnet)</span>
+                                    <span className="text-sm">{selectedFromToken.symbol}</span>
                                 </div>
                                 <span className="font-medium">{formatBalance(subnetBalance)}</span>
                             </div>
