@@ -940,7 +940,7 @@ export default function BotsSettings() {
               <div>
                 <p className="text-xs text-white/60 uppercase tracking-wider">Gas</p>
                 <p className="text-xl font-bold text-white/95">
-                  {bots.reduce((sum, bot) => sum + getBotStxBalance(bot.walletAddress), 0).toFixed(1)}
+                  {bots.reduce((sum, bot) => sum + getBotStxBalance(bot.walletAddress), 0).toFixed(3)}
                 </p>
               </div>
               <Fuel className="w-6 h-6 text-yellow-400" />
