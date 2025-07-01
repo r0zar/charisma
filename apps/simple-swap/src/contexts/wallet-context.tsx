@@ -60,7 +60,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [balances, setBalances] = useState<AccountBalancesResponse>({} as AccountBalancesResponse);
     const [prices, setPrices] = useState<KraxelPriceData>({} as KraxelPriceData);
     const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
-    const [privacyMode, setPrivacyMode] = useState(false);
+    const [privacyMode, setPrivacyMode] = useState(true);
 
     // Check for existing wallet connection
     useEffect(() => {
