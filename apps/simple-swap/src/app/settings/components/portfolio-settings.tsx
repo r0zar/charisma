@@ -738,7 +738,12 @@ export default function PortfolioSettings() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Current Price</p>
-                  <p className="font-mono text-foreground">{formatCurrency(selectedToken.price || 0)}</p>
+                  <p className="font-mono text-foreground">{new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: (selectedToken.price || 0) < 0.01 ? 6 : 2,
+                    maximumFractionDigits: (selectedToken.price || 0) < 0.01 ? 6 : 2,
+                  }).format(selectedToken.price || 0)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Value</p>
