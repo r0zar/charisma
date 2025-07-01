@@ -37,7 +37,7 @@
     "openai": "^4.24.0",
     "pngjs": "^7.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.0",
     "react-json-view": "^1.21.3",
     "react-use": "^17.6.0",
     "tailwind-merge": "^2.2.1",
