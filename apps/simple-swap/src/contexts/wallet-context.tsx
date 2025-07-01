@@ -15,6 +15,11 @@ interface WalletContextType {
     disconnectWallet: () => void;
     balances: AccountBalancesResponse;
     prices: any;
+    // Multi-wallet support
+    watchedAddresses: string[];
+    addWatchedAddresses: (addresses: string[]) => void;
+    removeWatchedAddress: (address: string) => void;
+    clearWatchedAddresses: () => void;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -33,6 +38,11 @@ const WalletContext = createContext<WalletContextType>({
         non_fungible_tokens: {}
     },
     prices: {},
+    // Multi-wallet support defaults
+    watchedAddresses: [],
+    addWatchedAddresses: () => { },
+    removeWatchedAddress: () => { },
+    clearWatchedAddresses: () => { },
 });
 
 export const useWallet = () => useContext(WalletContext);
@@ -43,6 +53,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [isConnecting, setIsConnecting] = useState(false);
     const [balances, setBalances] = useState<AccountBalancesResponse>({} as AccountBalancesResponse);
     const [prices, setPrices] = useState<KraxelPriceData>({} as KraxelPriceData);
+    const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
 
     // Check for existing wallet connection
     useEffect(() => {
@@ -55,6 +66,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             }
         }
     }, []);
+
+    // Load watched addresses from localStorage
+    useEffect(() => {
+        const savedWatchedAddresses = localStorage.getItem('watchedAddresses');
+        if (savedWatchedAddresses) {
+            try {
+                const parsed = JSON.parse(savedWatchedAddresses);
+                if (Array.isArray(parsed)) {
+                    setWatchedAddresses(parsed);
+                }
+            } catch (error) {
+                console.warn('Failed to parse watched addresses from localStorage:', error);
+            }
+        }
+    }, []);
+
+    // Save watched addresses to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('watchedAddresses', JSON.stringify(watchedAddresses));
+    }, [watchedAddresses]);
 
     // get wallet balaces
     useEffect(() => {
@@ -101,6 +132,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setConnected(false);
     };
 
+    // Multi-wallet management functions
+    const addWatchedAddresses = (newAddresses: string[]) => {
+        setWatchedAddresses(prev => {
+            const combined = [...prev, ...newAddresses];
+            // Remove duplicates while preserving order
+            return combined.filter((addr, index) => combined.indexOf(addr) === index);
+        });
+    };
+
+    const removeWatchedAddress = (addressToRemove: string) => {
+        setWatchedAddresses(prev => prev.filter(addr => addr !== addressToRemove));
+    };
+
+    const clearWatchedAddresses = () => {
+        setWatchedAddresses([]);
+    };
+
     return (
         <WalletContext.Provider
             value={{
@@ -110,7 +158,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 connectWallet,
                 disconnectWallet,
                 balances,
-                prices
+                prices,
+                watchedAddresses,
+                addWatchedAddresses,
+                removeWatchedAddress,
+                clearWatchedAddresses
             }}
         >
             {children}

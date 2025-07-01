@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Wallet,
   TrendingUp,
@@ -29,6 +30,7 @@ import { formatCompactNumber } from '@/lib/swap-utils';
 import TokenLogo from '@/components/TokenLogo';
 import { TokenCacheData } from '@repo/tokens';
 import { Label } from '@/components/ui/label';
+import BatchWalletImportDialog from '@/components/portfolio/BatchWalletImportDialog';
 
 interface TokenBalanceData {
   contractId: string;
@@ -57,13 +59,38 @@ const createTokenCacheData = (token: TokenBalanceData): TokenCacheData => ({
   symbol: token.symbol || 'TKN',
   decimals: token.decimals || 6,
   image: token.image || token.metadata?.image || '',
-  type: token.isSubnet ? 'SUBNET' : 'MAINNET',
+  type: token.hasSubnet ? 'SUBNET' : 'MAINNET',
   identifier: token.metadata?.identifier || ''
 });
 
 export default function PortfolioSettings() {
-  const { address, connected } = useWallet();
-  const { balances, prices, isConnected, lastUpdate, getUserBalances } = useBlaze({ userId: address });
+  const { address, connected, watchedAddresses, addWatchedAddresses } = useWallet();
+  
+  // Get BlazeProvider data for connected wallet
+  const connectedWalletBlaze = useBlaze({ userId: address });
+  
+  // Get BlazeProvider data for watched wallets
+  const watchedWalletsBlaze = watchedAddresses.map(addr => 
+    useBlaze({ userId: addr })
+  );
+  
+  // Combine all blaze data
+  const { balances, prices, isConnected, lastUpdate } = connectedWalletBlaze;
+  
+  // Create a unified getUserBalances function that works with all wallets
+  const getUserBalances = (walletAddress: string) => {
+    if (walletAddress === address) {
+      return connectedWalletBlaze.getUserBalances(walletAddress);
+    }
+    
+    // Find the corresponding watched wallet blaze instance
+    const watchedIndex = watchedAddresses.indexOf(walletAddress);
+    if (watchedIndex >= 0 && watchedWalletsBlaze[watchedIndex]) {
+      return watchedWalletsBlaze[watchedIndex].getUserBalances(walletAddress);
+    }
+    
+    return {};
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedToken, setSelectedToken] = useState<TokenBalanceData | null>(null);
@@ -73,88 +100,142 @@ export default function PortfolioSettings() {
   const [debugSearchTerm, setDebugSearchTerm] = useState('');
   const [hideZeroBalances, setHideZeroBalances] = useState(true);
   const [hideDustAmounts, setHideDustAmounts] = useState(true);
+  const [selectedWallet, setSelectedWallet] = useState<string>('all');
   
   // Define dust threshold (tokens worth less than $0.01)
   const DUST_THRESHOLD = 0.01;
 
-  // Process user balances into structured data
-  const userBalances = getUserBalances(address);
-
+  // Get all wallet addresses to track
+  const allWallets = [address, ...watchedAddresses].filter(Boolean);
+  
+  // Process balances for all wallets
   const portfolioData = useMemo(() => {
-    if (!address) return { tokens: [], totalValue: 0 };
+    if (!address && watchedAddresses.length === 0) return { tokens: [], totalValue: 0, walletBreakdown: {} };
+    
     const tokens: TokenBalanceData[] = [];
     let totalValue = 0;
+    const walletBreakdown: Record<string, { tokens: TokenBalanceData[], totalValue: number }> = {};
 
-    Object.entries(userBalances).forEach(([contractId, balanceData]) => {
-      const price = prices[contractId]?.price || 0;
-      
-      // Calculate values for both mainnet and subnet
-      const mainnetValue = balanceData.formattedBalance * price;
-      const subnetValue = (balanceData.formattedSubnetBalance || 0) * price;
-      const totalTokenValue = mainnetValue + subnetValue;
-      
-      // Only create token entry if there's any balance (mainnet or subnet)
-      if (balanceData.formattedBalance > 0 || (balanceData.formattedSubnetBalance && balanceData.formattedSubnetBalance > 0)) {
-        const mergedToken: TokenBalanceData = {
-          contractId,
-          name: balanceData.name || balanceData.metadata?.name || 'Unknown Token',
-          symbol: balanceData.symbol || balanceData.metadata?.symbol || 'TKN',
-          decimals: balanceData.decimals || balanceData.metadata?.decimals || 6,
-          balance: balanceData.balance,
-          formattedBalance: balanceData.formattedBalance,
-          subnetBalance: balanceData.subnetBalance,
-          formattedSubnetBalance: balanceData.formattedSubnetBalance,
-          subnetContractId: balanceData.subnetContractId || undefined,
-          mainnetUsdValue: mainnetValue,
-          subnetUsdValue: subnetValue,
-          totalUsdValue: totalTokenValue,
-          price,
-          hasMainnet: balanceData.formattedBalance > 0,
-          hasSubnet: (balanceData.formattedSubnetBalance || 0) > 0,
-          metadata: balanceData.metadata,
-          image: balanceData.metadata?.image || balanceData.image || undefined
-        };
-
-        tokens.push(mergedToken);
-        totalValue += totalTokenValue;
+    // Initialize wallet breakdown
+    allWallets.forEach(walletAddr => {
+      if (walletAddr) {
+        walletBreakdown[walletAddr] = { tokens: [], totalValue: 0 };
       }
+    });
+
+    // Process each wallet's balances
+    allWallets.forEach(walletAddr => {
+      if (!walletAddr) return;
+      
+      const walletBalances = getUserBalances(walletAddr);
+      
+      Object.entries(walletBalances).forEach(([contractId, balanceData]) => {
+        const price = prices[contractId]?.price || 0;
+        
+        // Calculate values for both mainnet and subnet
+        const mainnetValue = balanceData.formattedBalance * price;
+        const subnetValue = (balanceData.formattedSubnetBalance || 0) * price;
+        const totalTokenValue = mainnetValue + subnetValue;
+        
+        // Only create token entry if there's any balance (mainnet or subnet)
+        if (balanceData.formattedBalance > 0 || (balanceData.formattedSubnetBalance && balanceData.formattedSubnetBalance > 0)) {
+          const tokenData: TokenBalanceData = {
+            contractId,
+            name: balanceData.name || balanceData.metadata?.name || 'Unknown Token',
+            symbol: balanceData.symbol || balanceData.metadata?.symbol || 'TKN',
+            decimals: balanceData.decimals || balanceData.metadata?.decimals || 6,
+            balance: balanceData.balance,
+            formattedBalance: balanceData.formattedBalance,
+            subnetBalance: balanceData.subnetBalance,
+            formattedSubnetBalance: balanceData.formattedSubnetBalance,
+            subnetContractId: balanceData.subnetContractId || undefined,
+            mainnetUsdValue: mainnetValue,
+            subnetUsdValue: subnetValue,
+            totalUsdValue: totalTokenValue,
+            price,
+            hasMainnet: balanceData.formattedBalance > 0,
+            hasSubnet: (balanceData.formattedSubnetBalance || 0) > 0,
+            metadata: balanceData.metadata,
+            image: balanceData.metadata?.image || balanceData.image || undefined
+          };
+
+          // Add to wallet-specific breakdown
+          walletBreakdown[walletAddr].tokens.push(tokenData);
+          walletBreakdown[walletAddr].totalValue += totalTokenValue;
+
+          // Add to combined view (only if not already added from another wallet)
+          const existingToken = tokens.find(t => t.contractId === contractId);
+          if (existingToken) {
+            // Aggregate balances for combined view
+            existingToken.formattedBalance += balanceData.formattedBalance;
+            existingToken.formattedSubnetBalance = (existingToken.formattedSubnetBalance || 0) + (balanceData.formattedSubnetBalance || 0);
+            existingToken.mainnetUsdValue += mainnetValue;
+            existingToken.subnetUsdValue += subnetValue;
+            existingToken.totalUsdValue += totalTokenValue;
+            existingToken.hasMainnet = existingToken.hasMainnet || balanceData.formattedBalance > 0;
+            existingToken.hasSubnet = existingToken.hasSubnet || (balanceData.formattedSubnetBalance || 0) > 0;
+          } else {
+            tokens.push({ ...tokenData });
+          }
+          
+          totalValue += totalTokenValue;
+        }
+      });
     });
 
     // Sort tokens based on selected criteria
-    tokens.sort((a, b) => {
-      let aValue: number | string = 0;
-      let bValue: number | string = 0;
+    const sortTokens = (tokensToSort: TokenBalanceData[]) => {
+      return tokensToSort.sort((a, b) => {
+        let aValue: number | string = 0;
+        let bValue: number | string = 0;
 
-      switch (sortBy) {
-        case 'value':
-          aValue = a.totalUsdValue;
-          bValue = b.totalUsdValue;
-          break;
-        case 'balance':
-          aValue = a.formattedBalance + (a.formattedSubnetBalance || 0);
-          bValue = b.formattedBalance + (b.formattedSubnetBalance || 0);
-          break;
-        case 'name':
-          aValue = a.name || '';
-          bValue = b.name || '';
-          break;
-      }
+        switch (sortBy) {
+          case 'value':
+            aValue = a.totalUsdValue;
+            bValue = b.totalUsdValue;
+            break;
+          case 'balance':
+            aValue = a.formattedBalance + (a.formattedSubnetBalance || 0);
+            bValue = b.formattedBalance + (b.formattedSubnetBalance || 0);
+            break;
+          case 'name':
+            aValue = a.name || '';
+            bValue = b.name || '';
+            break;
+        }
 
-      if (typeof aValue === 'string') {
-        return sortOrder === 'desc'
-          ? bValue.toString().localeCompare(aValue.toString())
-          : aValue.toString().localeCompare(bValue.toString());
-      }
+        if (typeof aValue === 'string') {
+          return sortOrder === 'desc'
+            ? bValue.toString().localeCompare(aValue.toString())
+            : aValue.toString().localeCompare(bValue.toString());
+        }
 
-      return sortOrder === 'desc' ? (bValue as number) - (aValue as number) : (aValue as number) - (bValue as number);
+        return sortOrder === 'desc' ? (bValue as number) - (aValue as number) : (aValue as number) - (bValue as number);
+      });
+    };
+
+    // Sort tokens and wallet breakdown tokens
+    sortTokens(tokens);
+    Object.keys(walletBreakdown).forEach(walletAddr => {
+      sortTokens(walletBreakdown[walletAddr].tokens);
     });
 
-    return { tokens, totalValue };
-  }, [userBalances, prices, address, sortBy, sortOrder]);
+    return { tokens, totalValue, walletBreakdown };
+  }, [allWallets, getUserBalances, prices, sortBy, sortOrder]);
+
+  // Get current wallet data and filter tokens
+  const currentWalletData = useMemo(() => {
+    if (selectedWallet === 'all') {
+      return { tokens: portfolioData.tokens, totalValue: portfolioData.totalValue };
+    } else {
+      const walletData = portfolioData.walletBreakdown[selectedWallet];
+      return walletData || { tokens: [], totalValue: 0 };
+    }
+  }, [selectedWallet, portfolioData]);
 
   // Filter tokens based on search and balance filters
   const filteredTokens = useMemo(() => {
-    let filtered = portfolioData.tokens;
+    let filtered = currentWalletData.tokens;
 
     // Apply balance filters first
     if (hideZeroBalances) {
@@ -178,7 +259,7 @@ export default function PortfolioSettings() {
     }
 
     return filtered;
-  }, [portfolioData.tokens, searchTerm, hideZeroBalances, hideDustAmounts, DUST_THRESHOLD]);
+  }, [currentWalletData.tokens, searchTerm, hideZeroBalances, hideDustAmounts, DUST_THRESHOLD]);
 
   // Filter debug balance data based on search
   const filteredDebugBalances = useMemo(() => {
@@ -214,6 +295,16 @@ export default function PortfolioSettings() {
     return new Date(timestamp).toLocaleString();
   };
 
+  // Handle wallet import
+  const handleImportWallets = async (addresses: string[]) => {
+    try {
+      await addWatchedAddresses(addresses);
+    } catch (error) {
+      console.error('Failed to import wallet addresses:', error);
+      throw error; // Re-throw to let the dialog handle the error
+    }
+  };
+
   if (!connected || !address) {
     return (
       <div className="text-center py-8">
@@ -231,13 +322,42 @@ export default function PortfolioSettings() {
       {/* Portfolio Overview */}
       <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-white/95 flex items-center">
-            <Wallet className="w-5 h-5 mr-2" />
-            Portfolio Overview
-          </CardTitle>
-          <CardDescription className="text-white/70">
-            Real-time portfolio analytics powered by BlazeProvider
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white/95 flex items-center">
+                <Wallet className="w-5 h-5 mr-2" />
+                Portfolio Overview
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                Real-time portfolio analytics powered by BlazeProvider
+              </CardDescription>
+            </div>
+            
+            {/* Wallet Selector */}
+            {(watchedAddresses.length > 0) && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-white/60">View:</span>
+                <Select value={selectedWallet} onValueChange={setSelectedWallet}>
+                  <SelectTrigger className="w-48 bg-white/[0.05] border-white/[0.10] text-white/90">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-border">
+                    <SelectItem value="all">All Wallets Combined</SelectItem>
+                    {address && (
+                      <SelectItem value={address}>
+                        Connected Wallet ({address.slice(0, 8)}...{address.slice(-4)})
+                      </SelectItem>
+                    )}
+                    {watchedAddresses.map((addr, index) => (
+                      <SelectItem key={addr} value={addr}>
+                        Watched #{index + 1} ({addr.slice(0, 8)}...{addr.slice(-4)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {!isConnected && (
@@ -262,7 +382,7 @@ export default function PortfolioSettings() {
                 <div>
                   <p className="text-white/60 text-sm">Total Value</p>
                   <p className="text-2xl font-bold text-white/95">
-                    {formatCurrency(portfolioData.totalValue)}
+                    {formatCurrency(currentWalletData.totalValue)}
                   </p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-400" />
@@ -274,7 +394,7 @@ export default function PortfolioSettings() {
                 <div>
                   <p className="text-white/60 text-sm">Total Tokens</p>
                   <p className="text-2xl font-bold text-white/95">
-                    {portfolioData.tokens.length}
+                    {currentWalletData.tokens.length}
                   </p>
                 </div>
                 <Hash className="w-8 h-8 text-blue-400" />
@@ -302,6 +422,11 @@ export default function PortfolioSettings() {
               Last updated: {formatDate(lastUpdate)}
             </div>
             <div className="flex gap-2">
+              <BatchWalletImportDialog
+                onImport={handleImportWallets}
+                existingAddresses={watchedAddresses}
+                maxAddresses={50}
+              />
               <Button
                 onClick={() => window.location.reload()}
                 variant="outline"
@@ -324,6 +449,35 @@ export default function PortfolioSettings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Watched Addresses */}
+      {watchedAddresses.length > 0 && (
+        <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-white/95 flex items-center">
+              <Eye className="w-5 h-5 mr-2" />
+              Watched Addresses ({watchedAddresses.length})
+            </CardTitle>
+            <CardDescription className="text-white/70">
+              Additional wallet addresses you're monitoring
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {watchedAddresses.map((addr, index) => (
+                <div key={addr} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg border border-white/[0.05]">
+                  <code className="text-sm font-mono text-white/90">{addr}</code>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 bg-blue-500/10">
+                      Watching
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search and Filters */}
       <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
@@ -443,16 +597,24 @@ export default function PortfolioSettings() {
               <CardTitle className="text-white/95 flex items-center">
                 <Hash className="w-5 h-5 mr-2" />
                 Token Balances
+                {selectedWallet !== 'all' && (
+                  <span className="ml-2 text-sm font-normal text-white/60">
+                    ({selectedWallet.slice(0, 8)}...{selectedWallet.slice(-4)})
+                  </span>
+                )}
               </CardTitle>
               <CardDescription className="text-white/70">
-                Your token holdings with real-time prices and values
+                {selectedWallet === 'all' 
+                  ? 'Combined token holdings from all wallets with real-time prices'
+                  : 'Token holdings with real-time prices and values'
+                }
               </CardDescription>
             </div>
             {filteredTokens.length > 0 && (
               <Badge variant="outline" className="border-white/20 text-white/70">
                 {filteredTokens.length} token{filteredTokens.length !== 1 ? 's' : ''}
                 {(hideZeroBalances || hideDustAmounts || searchTerm) && 
-                  ` (${portfolioData.tokens.length} total)`
+                  ` (${currentWalletData.tokens.length} total)`
                 }
               </Badge>
             )}
