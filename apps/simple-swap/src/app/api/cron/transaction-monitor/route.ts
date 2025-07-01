@@ -5,6 +5,10 @@ import {
     monitorOrderTransaction,
     type TransactionMonitorResult as SingleTransactionResult
 } from '@/lib/transaction-monitor';
+import { 
+    monitorAllBotActivities,
+    type BotActivityMonitorResult
+} from '@/lib/bot-activity-monitor';
 
 // Environment variable for cron authentication
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -12,11 +16,14 @@ const CRON_SECRET = process.env.CRON_SECRET;
 interface CronTransactionMonitorResult {
     ordersChecked: number;
     ordersUpdated: number;
+    botActivitiesChecked: number;
+    botActivitiesUpdated: number;
     successfulTransactions: number;
     failedTransactions: number;
     stillPending: number;
     errors: string[];
-    results: SingleTransactionResult[];
+    orderResults: SingleTransactionResult[];
+    botActivityResults: BotActivityMonitorResult[];
 }
 
 /**
@@ -37,22 +44,36 @@ export async function GET(request: NextRequest) {
     const result: CronTransactionMonitorResult = {
         ordersChecked: 0,
         ordersUpdated: 0,
+        botActivitiesChecked: 0,
+        botActivitiesUpdated: 0,
         successfulTransactions: 0,
         failedTransactions: 0,
         stillPending: 0,
         errors: [],
-        results: []
+        orderResults: [],
+        botActivityResults: []
     };
 
     try {
         // Get all orders that need transaction monitoring
         const ordersToCheck = await getOrdersNeedingMonitoring();
         
-        if (ordersToCheck.length === 0) {
-            console.log('[TRANSACTION-MONITOR] No orders need monitoring');
+        // Monitor bot activities as well
+        console.log('[TRANSACTION-MONITOR] Monitoring bot activities...');
+        const botActivityResult = await monitorAllBotActivities();
+        result.botActivitiesChecked = botActivityResult.activitiesChecked;
+        result.botActivitiesUpdated = botActivityResult.activitiesUpdated;
+        result.successfulTransactions += botActivityResult.successfulTransactions;
+        result.failedTransactions += botActivityResult.failedTransactions;
+        result.stillPending += botActivityResult.stillPending;
+        result.errors.push(...botActivityResult.errors);
+        result.botActivityResults = botActivityResult.results;
+
+        if (ordersToCheck.length === 0 && botActivityResult.activitiesChecked === 0) {
+            console.log('[TRANSACTION-MONITOR] No orders or bot activities need monitoring');
             return NextResponse.json({
                 success: true,
-                message: 'No orders to monitor',
+                message: 'No transactions to monitor',
                 result,
                 duration: Date.now() - startTime
             });
@@ -67,7 +88,7 @@ export async function GET(request: NextRequest) {
                 console.log(`[TRANSACTION-MONITOR] Checking transaction ${order.txid} for order ${uuid}`);
                 
                 const monitorResult = await monitorOrderTransaction(uuid, order);
-                result.results.push(monitorResult);
+                result.orderResults.push(monitorResult);
                 
                 if (monitorResult.error) {
                     result.errors.push(`Order ${uuid}: ${monitorResult.error}`);
@@ -99,6 +120,8 @@ export async function GET(request: NextRequest) {
         console.log(`[TRANSACTION-MONITOR] Completed in ${duration}ms:`, {
             ordersChecked: result.ordersChecked,
             ordersUpdated: result.ordersUpdated,
+            botActivitiesChecked: result.botActivitiesChecked,
+            botActivitiesUpdated: result.botActivitiesUpdated,
             successfulTransactions: result.successfulTransactions,
             failedTransactions: result.failedTransactions,
             stillPending: result.stillPending,

@@ -38,11 +38,15 @@ export interface BotActivityRecord {
   id: string;
   botId: string;
   timestamp: string;
-  action: 'yield-farming';
+  action: 'yield-farming' | 'withdraw-lp-tokens';
   txid?: string;
   status: 'success' | 'failure' | 'pending';
   contractAddress: string;
   contractName: string;
   functionName: string;
   errorMessage?: string;
+  amount?: number; // For withdrawal records
+  recipient?: string; // For withdrawal records
+  blockHeight?: number; // Block height when confirmed
+  blockTime?: string; // ISO timestamp when confirmed
 }

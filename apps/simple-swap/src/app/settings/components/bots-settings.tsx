@@ -28,7 +28,8 @@ import {
   Fuel,
   TrendingUp,
   History,
-  Zap
+  Zap,
+  ArrowUpLeft
 } from 'lucide-react';
 
 // LP tokens required for yield farming
@@ -122,6 +123,8 @@ export default function BotsSettings() {
   const [fundingBot, setFundingBot] = useState<string | null>(null);
   const [sendingLpTokens, setSendingLpTokens] = useState<string | null>(null);
   const [operatingBot, setOperatingBot] = useState<string | null>(null);
+  const [withdrawingBot, setWithdrawingBot] = useState<string | null>(null);
+  const [withdrawalConfirmBot, setWithdrawalConfirmBot] = useState<string | null>(null);
   const [activityModalBot, setActivityModalBot] = useState<string | null>(null);
   const [activityData, setActivityData] = useState<{ [botId: string]: BotActivityRecord[] }>({});
   const [loadingActivity, setLoadingActivity] = useState<{ [botId: string]: boolean }>({});
@@ -600,6 +603,68 @@ export default function BotsSettings() {
     }
   };
 
+  const handleWithdrawLpTokens = async (botId: string) => {
+    if (!address) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    // Get bot LP tokens
+    const bot = userBots.find(b => b.id === botId);
+    if (!bot) {
+      toast.error('Bot not found');
+      return;
+    }
+
+    const lpTokens = getBotLpTokens(bot.walletAddress);
+    if (lpTokens.length === 0) {
+      toast.error('No LP tokens found in bot wallet');
+      return;
+    }
+
+    // For now, withdraw all of the first LP token type
+    const tokenToWithdraw = lpTokens[0];
+    const withdrawAmount = tokenToWithdraw.balance;
+
+    setWithdrawingBot(botId);
+    
+    try {
+      const response = await signedFetch(`/api/bots/${botId}/withdraw`, {
+        message: address,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: address,
+          contractId: tokenToWithdraw.contractId,
+          amount: withdrawAmount,
+          recipient: address // Withdraw to user's address
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to withdraw LP tokens');
+      }
+
+      const result = await response.json();
+      
+      toast.success(`Withdrawal broadcast! Transaction: ${result.txid?.substring(0, 8)}...`);
+      
+      // Refresh activity data
+      if (activityModalBot === botId) {
+        fetchBotActivity(botId);
+      }
+      
+    } catch (error) {
+      console.error('Failed to withdraw LP tokens:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to withdraw LP tokens');
+    } finally {
+      setWithdrawingBot(null);
+    }
+  };
+
   const formatRelativeTime = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -834,6 +899,13 @@ export default function BotsSettings() {
                                     Farming
                                   </Badge>
                                 );
+                              } else if (activityStatus === 'pending') {
+                                return (
+                                  <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    Broadcasting
+                                  </Badge>
+                                );
                               } else if (activityStatus === 'failure') {
                                 return (
                                   <Badge className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
@@ -880,14 +952,27 @@ export default function BotsSettings() {
                             </Button>
                           )}
                           {bot.strategy === 'yield-farming' && !bot.isExample && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleViewActivity(bot.id)}
-                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0"
-                            >
-                              <History className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleViewActivity(bot.id)}
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0"
+                              >
+                                <History className="w-3 h-3 sm:w-4 sm:h-4" />
+                              </Button>
+                              {getBotLpTokens(bot.walletAddress).length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setWithdrawalConfirmBot(bot.id)}
+                                  disabled={withdrawingBot === bot.id}
+                                  className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 disabled:opacity-50 h-8 w-8 p-0"
+                                >
+                                  <ArrowUpLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -935,6 +1020,13 @@ export default function BotsSettings() {
                                     <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30 shrink-0">
                                       <Zap className="w-3 h-3 mr-1" />
                                       Active Farming
+                                    </Badge>
+                                  );
+                                } else if (activityStatus === 'pending') {
+                                  return (
+                                    <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30 shrink-0">
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      Broadcasting
                                     </Badge>
                                   );
                                 } else if (activityStatus === 'failure') {
@@ -1015,14 +1107,27 @@ export default function BotsSettings() {
                         )}
 
                         {bot.strategy === 'yield-farming' && !bot.isExample && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleViewActivity(bot.id)}
-                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2"
-                          >
-                            <History className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewActivity(bot.id)}
+                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2"
+                            >
+                              <History className="w-4 h-4" />
+                            </Button>
+                            {getBotLpTokens(bot.walletAddress).length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setWithdrawalConfirmBot(bot.id)}
+                                disabled={withdrawingBot === bot.id}
+                                className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 disabled:opacity-50 px-2"
+                              >
+                                <ArrowUpLeft className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1190,6 +1295,81 @@ export default function BotsSettings() {
         </CardContent>
       </Card>
 
+      {/* Withdrawal Confirmation Dialog */}
+      <Dialog open={!!withdrawalConfirmBot} onOpenChange={(open) => !open && setWithdrawalConfirmBot(null)}>
+        <DialogContent className="max-w-md bg-background border border-border backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <ArrowUpLeft className="w-5 h-5 text-purple-400" />
+              Withdraw LP Tokens
+            </DialogTitle>
+          </DialogHeader>
+          
+          {withdrawalConfirmBot && (() => {
+            const bot = userBots.find(b => b.id === withdrawalConfirmBot);
+            const lpTokens = bot ? getBotLpTokens(bot.walletAddress) : [];
+            const tokenToWithdraw = lpTokens[0]; // First LP token
+            
+            return (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mx-auto mb-4">
+                    <ArrowUpLeft className="w-8 h-8 text-purple-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white/95 mb-2">Confirm Withdrawal</h3>
+                  <p className="text-sm text-white/60 mb-4">
+                    This will withdraw all LP tokens from your bot back to your wallet.
+                  </p>
+                </div>
+
+                {tokenToWithdraw && (
+                  <div className="bg-white/[0.02] rounded-lg p-4 border border-white/[0.05]">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Token:</span>
+                        <span className="text-white/90">{tokenToWithdraw.symbol}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Amount:</span>
+                        <span className="text-white/90">{(tokenToWithdraw.balance / 1000000).toFixed(6)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">To:</span>
+                        <span className="text-white/90 font-mono text-xs">
+                          {address?.slice(0, 6)}...{address?.slice(-6)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setWithdrawalConfirmBot(null)}
+                    className="text-white/70"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (withdrawalConfirmBot) {
+                        handleWithdrawLpTokens(withdrawalConfirmBot);
+                        setWithdrawalConfirmBot(null);
+                      }
+                    }}
+                    disabled={withdrawingBot === withdrawalConfirmBot}
+                    className="bg-purple-500 hover:bg-purple-600 text-white"
+                  >
+                    {withdrawingBot === withdrawalConfirmBot ? 'Withdrawing...' : 'Withdraw LP Tokens'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Activity Modal */}
       <Dialog open={!!activityModalBot} onOpenChange={(open) => !open && setActivityModalBot(null)}>
         <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[85vh] p-4 sm:p-6">
@@ -1221,13 +1401,17 @@ export default function BotsSettings() {
                           activity.status === 'failure' ? 'bg-red-400' : 'bg-yellow-400'
                           }`} />
                         <span className="text-sm font-medium text-white/90">
-                          Yield Farming
+                          {activity.action === 'yield-farming' ? 'Yield Farming' : 
+                           activity.action === 'withdraw-lp-tokens' ? 'LP Token Withdrawal' : 
+                           activity.action}
                         </span>
                         <Badge className={`text-xs ${activity.status === 'success' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                           activity.status === 'failure' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
                             'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                           }`}>
-                          {activity.status}
+                          {activity.status === 'pending' ? 'Broadcasting...' : 
+                           activity.status === 'success' ? 'Confirmed' : 
+                           activity.status === 'failure' ? 'Failed' : activity.status}
                         </Badge>
                       </div>
                       <span className="text-xs text-white/50">
@@ -1236,6 +1420,20 @@ export default function BotsSettings() {
                     </div>
 
                     <div className="text-xs text-white/70 space-y-1">
+                      {activity.action === 'withdraw-lp-tokens' && activity.amount && (
+                        <div className="flex items-center gap-2">
+                          <span>Amount:</span>
+                          <span className="text-white/90">{(activity.amount / 1000000).toFixed(6)} LP</span>
+                        </div>
+                      )}
+                      {activity.action === 'withdraw-lp-tokens' && activity.recipient && (
+                        <div className="flex items-center gap-2">
+                          <span>To:</span>
+                          <span className="text-white/90 font-mono text-xs">
+                            {activity.recipient.slice(0, 6)}...{activity.recipient.slice(-6)}
+                          </span>
+                        </div>
+                      )}
                       {activity.txid && (
                         <div className="flex items-center gap-2">
                           <span>TX:</span>
@@ -1248,6 +1446,18 @@ export default function BotsSettings() {
                             {activity.txid.slice(0, 6)}...{activity.txid.slice(-6)}
                             <ExternalLink className="w-3 h-3" />
                           </a>
+                        </div>
+                      )}
+                      {activity.blockHeight && (
+                        <div className="flex items-center gap-2">
+                          <span>Block:</span>
+                          <span className="text-white/90">#{activity.blockHeight}</span>
+                        </div>
+                      )}
+                      {activity.blockTime && (
+                        <div className="flex items-center gap-2">
+                          <span>Confirmed:</span>
+                          <span className="text-white/90">{formatRelativeTime(activity.blockTime)}</span>
                         </div>
                       )}
                       {activity.errorMessage && (

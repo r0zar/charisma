@@ -128,9 +128,9 @@ export async function GET(request: NextRequest) {
 
                 const result = await broadcastTransaction({ transaction });
 
-                // Update activity record with success
+                // Update activity record with broadcast success (but still pending on-chain)
                 activityRecord.txid = result.txid;
-                activityRecord.status = 'success';
+                activityRecord.status = 'pending';
 
                 // Update bot's lastActive timestamp
                 const updatedBot = { ...bot, lastActive: timestamp };
