@@ -38,7 +38,7 @@ jobs:
         working-directory: ./apps/charisma-party
 
       - name: Deploy to PartyKit (Production)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           # Set PartyKit token from secrets
           export PARTYKIT_LOGIN="${{ secrets.PARTYKIT_LOGIN }}"
