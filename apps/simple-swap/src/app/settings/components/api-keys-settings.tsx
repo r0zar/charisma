@@ -10,10 +10,10 @@ import { Label } from '@/components/ui/label';
 import { useWallet } from '@/contexts/wallet-context';
 import { signMessage } from 'blaze-sdk';
 import { toast } from '@/components/ui/sonner';
-import { 
-  Key, 
-  Plus, 
-  Trash2, 
+import {
+  Key,
+  Plus,
+  Trash2,
   Copy,
   Eye,
   EyeOff,
@@ -63,7 +63,7 @@ export default function ApiKeysSettings() {
   // Load API keys manually (not on mount to avoid auto-signing)
   const loadApiKeys = async () => {
     if (!address) return;
-    
+
     setLoading(true);
     try {
       const message = {
@@ -135,7 +135,7 @@ export default function ApiKeysSettings() {
       setNewApiKey(data.apiKey);
       setShowNewKey(true);
       setShowCreateDialog(false);
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -145,7 +145,7 @@ export default function ApiKeysSettings() {
 
       // Reload the list
       await loadApiKeys();
-      
+
       toast.success('API key created successfully! Make sure to copy it now - it won\'t be shown again.');
     } catch (error) {
       console.error('Failed to create API key:', error);
@@ -157,7 +157,7 @@ export default function ApiKeysSettings() {
 
   const deleteApiKey = async (keyId: string, keyName: string) => {
     if (!address) return;
-    
+
     if (!confirm(`Are you sure you want to revoke the API key "${keyName}"? This action cannot be undone.`)) {
       return;
     }
@@ -244,7 +244,7 @@ export default function ApiKeysSettings() {
                 Create a new API key for automated order execution and cancellation.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="name" className="text-foreground">Key Name</Label>
@@ -298,8 +298,8 @@ export default function ApiKeysSettings() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowCreateDialog(false)}
                   className="border-border text-foreground"
                 >
@@ -409,7 +409,7 @@ export default function ApiKeysSettings() {
                           {key.status}
                         </Badge>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-muted-foreground">Permissions</p>
@@ -472,7 +472,7 @@ export default function ApiKeysSettings() {
                         <div className="bg-background/40 p-2 rounded-lg">
                           <p className="text-muted-foreground">Success Rate</p>
                           <p className="text-foreground font-mono">
-                            {key.usageStats.totalRequests > 0 
+                            {key.usageStats.totalRequests > 0
                               ? Math.round((key.usageStats.successfulRequests / key.usageStats.totalRequests) * 100)
                               : 0}%
                           </p>
@@ -500,7 +500,7 @@ export default function ApiKeysSettings() {
       </Card>
 
       {/* Security Notice */}
-      <Card className="bg-yellow-500/10 border-yellow-500/30">
+      <Card className="bg-yellow-500/10 border-yellow-500/30 pt-6">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />

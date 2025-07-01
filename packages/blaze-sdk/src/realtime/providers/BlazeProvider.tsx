@@ -134,7 +134,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                 const key = getBalanceKey(data.userId, data.contractId, data.metadata);
                 const existingBalance = prev[key];
                 const isSubnet = isSubnetToken(data.contractId, data.metadata);
-                
+
                 // Create merged balance data
                 const updatedBalance: BalanceData = {
                   // Core fields - only update if this is NOT a subnet token (i.e., mainnet)
@@ -144,7 +144,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                   formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (data.formattedBalance || 0),
                   timestamp: data.timestamp || Date.now(),
                   source: data.source || 'realtime',
-                  
+
                   // Subnet fields - only update if this is a subnet token
                   ...(isSubnet ? {
                     subnetBalance: data.balance,
@@ -156,13 +156,13 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                     formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
                     subnetContractId: existingBalance?.subnetContractId,
                   }),
-                  
+
                   // Metadata - prioritize new data, fallback to existing
                   metadata: {
                     ...existingBalance?.metadata,
                     ...data.metadata,
                   },
-                  
+
                   // Legacy fields for backward compatibility
                   name: data.name,
                   symbol: data.symbol,
@@ -181,7 +181,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                   engineContractId: data.engineContractId,
                   base: data.baseToken
                 };
-                
+
                 return {
                   ...prev,
                   [key]: updatedBalance
@@ -195,14 +195,14 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
             if (data.balances && Array.isArray(data.balances)) {
               setBalances(prev => {
                 const updatedBalances = { ...prev };
-                
+
                 data.balances.forEach((balance: any) => {
                   if (balance.contractId && balance.userId && balance.balance !== undefined) {
                     // Use token utilities to determine the balance key for merging
                     const key = getBalanceKey(balance.userId, balance.contractId, balance.metadata);
                     const existingBalance = updatedBalances[key];
                     const isSubnet = isSubnetToken(balance.contractId, balance.metadata);
-                    
+
                     // Create merged balance data
                     const mergedBalance: BalanceData = {
                       // Core fields - only update if this is NOT a subnet token (i.e., mainnet)
@@ -212,7 +212,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                       formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (balance.formattedBalance || 0),
                       timestamp: balance.timestamp || Date.now(),
                       source: balance.source || 'realtime',
-                      
+
                       // Subnet fields - only update if this is a subnet token
                       ...(isSubnet ? {
                         subnetBalance: balance.balance,
@@ -224,13 +224,13 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                         formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
                         subnetContractId: existingBalance?.subnetContractId,
                       }),
-                      
+
                       // Metadata - prioritize new data, fallback to existing
                       metadata: {
                         ...existingBalance?.metadata,
                         ...balance.metadata,
                       },
-                      
+
                       // Legacy fields for backward compatibility
                       name: balance.name,
                       symbol: balance.symbol,
@@ -249,11 +249,11 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                       engineContractId: balance.engineContractId,
                       base: balance.baseToken
                     };
-                    
+
                     updatedBalances[key] = mergedBalance;
                   }
                 });
-                
+
                 return updatedBalances;
               });
               setLastUpdate(Date.now());
@@ -287,7 +287,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     if (!contractId || typeof contractId !== 'string' || contractId.trim() === '') {
       return undefined;
     }
-    
+
     // Use token utilities to find the correct balance key
     // This ensures we get the merged balance for both mainnet and subnet tokens
     const key = getBalanceKey(userId.trim(), contractId.trim());
@@ -325,7 +325,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     const validUserIds = userIds
       .filter(id => id && typeof id === 'string' && id.trim() !== '')
       .map(id => id.trim());
-    
+
     if (validUserIds.length === 0) return;
 
     // Add new users to subscription set
@@ -364,7 +364,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
         .filter(id => id && typeof id === 'string' && id.trim() !== '')
         .map(id => id.trim())
         .filter(id => subscribedUsers.current.has(id));
-      
+
       if (validUserIds.length > 0 && balancesSocket) {
         validUserIds.forEach(userId => subscribedUsers.current.delete(userId));
         balancesSocket.send(JSON.stringify({
@@ -409,7 +409,7 @@ export function useBlaze(config?: BlazeConfig & { userIds?: string[] }): BlazeDa
   useEffect(() => {
     const userIds = config?.userIds || (config?.userId ? [config.userId] : []);
     const validUserIds = userIds.filter(id => id && typeof id === 'string' && id.trim() !== '');
-    
+
     if (validUserIds.length > 0) {
       context._subscribeToUserBalances(validUserIds);
     }

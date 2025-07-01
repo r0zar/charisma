@@ -3,20 +3,19 @@
 import React, { useState } from 'react';
 import { Header } from '@/components/layout/header';
 import { useWallet } from '@/contexts/wallet-context';
-import { 
-  Settings, 
-  Key, 
-  Bell, 
-  Shield,
-  User,
-  Palette,
-  Wallet
+import {
+  Key,
+  Bell,
+  Bot,
+  Wallet,
+  Shield
 } from 'lucide-react';
 
 // Import components for each settings category
 import ApiKeysSettings from './components/api-keys-settings';
 import NotificationsSettings from './components/notifications-settings';
 import PortfolioSettings from './components/portfolio-settings';
+import BotsSettings from './components/bots-settings';
 
 interface SettingsTab {
   id: string;
@@ -48,50 +47,14 @@ const settingsTabs: SettingsTab[] = [
     component: NotificationsSettings,
     description: 'Configure notification preferences'
   },
-  // Future settings categories
   {
-    id: 'profile',
-    label: 'Profile',
-    icon: <User className="w-4 h-4" />,
-    component: () => <ComingSoonPlaceholder title="Profile Settings" />,
-    description: 'Manage your profile and preferences'
-  },
-  {
-    id: 'security',
-    label: 'Security',
-    icon: <Shield className="w-4 h-4" />,
-    component: () => <ComingSoonPlaceholder title="Security Settings" />,
-    description: 'Security and privacy settings'
-  },
-  {
-    id: 'appearance',
-    label: 'Appearance',
-    icon: <Palette className="w-4 h-4" />,
-    component: () => <ComingSoonPlaceholder title="Appearance Settings" />,
-    description: 'Customize theme and display options'
-  },
-  {
-    id: 'advanced',
-    label: 'Advanced',
-    icon: <Settings className="w-4 h-4" />,
-    component: () => <ComingSoonPlaceholder title="Advanced Settings" />,
-    description: 'Advanced configuration options'
+    id: 'bots',
+    label: 'Bots',
+    icon: <Bot className="w-4 h-4" />,
+    component: BotsSettings,
+    description: 'Hosted hot wallets for DeFi automation'
   }
 ];
-
-function ComingSoonPlaceholder({ title }: { title: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16">
-      <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-6">
-        <div className="w-8 h-8 text-white/40">🚧</div>
-      </div>
-      <h3 className="text-xl font-medium text-white/90 mb-2">{title}</h3>
-      <p className="text-white/60 text-center max-w-md">
-        This settings section is coming soon. We're working on bringing you more customization options.
-      </p>
-    </div>
-  );
-}
 
 export default function SettingsPage() {
   const { connected } = useWallet();
@@ -122,7 +85,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-black">
       <Header />
-      
+
       <div className="container max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
@@ -141,11 +104,10 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
-                      activeTab === tab.id
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${activeTab === tab.id
                         ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                         : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] border border-transparent'
-                    }`}
+                      }`}
                   >
                     {tab.icon}
                     <div className="flex-1 min-w-0">

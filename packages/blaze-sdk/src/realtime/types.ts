@@ -65,15 +65,15 @@ export interface BalanceData {
   formattedBalance: number;
   timestamp: number;
   source: string;
-  
+
   // Subnet balance fields
   subnetBalance?: number;
   formattedSubnetBalance?: number;
   subnetContractId?: string;
-  
+
   // Structured metadata (includes price data, market data, etc.)
   metadata: TokenMetadata;
-  
+
   // Legacy fields for backward compatibility (deprecated - use metadata instead)
   /** @deprecated Use metadata.name instead */
   name?: string;
@@ -112,6 +112,8 @@ export interface BalanceData {
 // Configuration for useBlaze hook
 export interface BlazeConfig {
   userId?: string | null; // Subscribe to all balances for this user (can be null/undefined)
+  userIds?: string[] | null; // Subscribe to all balances for these users (can be null/undefined)
+  contractIds?: string[] | null; // Subscribe to all balances for these contractIds (can be null/undefined)
 }
 
 // WebSocket message types
@@ -133,7 +135,7 @@ export interface BalanceUpdateMessage {
   type: 'BALANCE_UPDATE';
   userId: string;
   contractId: string;
-  
+
   // Core balance data
   balance: number;
   totalSent: string;
@@ -141,15 +143,15 @@ export interface BalanceUpdateMessage {
   formattedBalance: number;
   timestamp: number;
   source: string;
-  
+
   // Subnet balance fields
   subnetBalance?: number;
   formattedSubnetBalance?: number;
   subnetContractId?: string;
-  
+
   // Complete token metadata (includes price data, market data, etc.)
   metadata: TokenMetadata;
-  
+
   // Legacy fields for backward compatibility (deprecated - use metadata instead)
   /** @deprecated Use metadata.name instead */
   name?: string;
@@ -237,7 +239,7 @@ export interface BlazeData {
   getPrice: (contractId: string) => number | undefined;
   getBalance: (userId: string, contractId: string) => BalanceData | undefined;
   getMetadata: (contractId: string) => TokenMetadata | undefined;
-  
+
   // User-specific helper (returns filtered balances for the current user)
   getUserBalances: (userId?: string | null) => Record<string, BalanceData>;
 }

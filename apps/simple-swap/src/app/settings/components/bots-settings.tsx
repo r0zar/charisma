@@ -1,0 +1,1132 @@
+'use client';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useWallet } from '@/contexts/wallet-context';
+import { useBlaze } from 'blaze-sdk/realtime';
+import CreateBotModal from './CreateBotModal';
+import { signedFetch } from 'blaze-sdk';
+import { request } from '@stacks/connect';
+import { makeSTXTokenTransfer, broadcastTransaction, uintCV, principalCV, noneCV, Pc } from '@stacks/transactions';
+import { STACKS_MAINNET } from '@stacks/network';
+import {
+  Bot,
+  Plus,
+  Play,
+  Pause,
+  Archive,
+  Activity,
+  DollarSign,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Eye,
+  Copy,
+  ExternalLink,
+  Wallet,
+  AlertCircle,
+  Fuel,
+  TrendingUp,
+  History,
+  Zap
+} from 'lucide-react';
+
+// LP tokens required for yield farming
+const YIELD_FARMING_LP_TOKENS = [
+  'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow',
+  'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1',
+  'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit',
+  // Add more contract IDs as needed
+];
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { BotActivityRecord } from '@/types/bot';
+
+interface BotConfig {
+  id: string;
+  name: string;
+  strategy: string;
+  status: 'active' | 'paused' | 'error' | 'inactive';
+  walletAddress: string;
+  dailyPnL: number;
+  totalPnL: number;
+  lastActive: string;
+  createdAt: string;
+  isExample?: boolean;
+}
+
+// Example bots for demonstration
+const exampleBots: BotConfig[] = [
+  {
+    id: 'example-1',
+    name: 'DCA Bitcoin',
+    strategy: 'Dollar Cost Averaging',
+    status: 'active',
+    walletAddress: 'SP1ABC...DEF',
+    dailyPnL: 23.45,
+    totalPnL: 156.78,
+    lastActive: '2 minutes ago',
+    createdAt: '2024-01-15',
+    isExample: true
+  },
+  {
+    id: 'example-2',
+    name: 'Yield Optimizer',
+    strategy: 'Liquidity Pool Automation',
+    status: 'paused',
+    walletAddress: 'SP2XYZ...ABC',
+    dailyPnL: -5.67,
+    totalPnL: 89.12,
+    lastActive: '1 hour ago',
+    createdAt: '2024-01-20',
+    isExample: true
+  },
+  {
+    id: 'example-3',
+    name: 'Arbitrage Scanner',
+    strategy: 'Cross-DEX Arbitrage',
+    status: 'error',
+    walletAddress: 'SP3QRS...XYZ',
+    dailyPnL: 0,
+    totalPnL: -12.34,
+    lastActive: '6 hours ago',
+    createdAt: '2024-01-25',
+    isExample: true
+  }
+];
+
+const statusColors = {
+  active: 'bg-green-500/20 text-green-400 border-green-500/30',
+  paused: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  error: 'bg-red-500/20 text-red-400 border-red-500/30',
+  inactive: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+};
+
+const statusIcons = {
+  active: <CheckCircle className="w-3 h-3" />,
+  paused: <Pause className="w-3 h-3" />,
+  error: <XCircle className="w-3 h-3" />,
+  inactive: <Clock className="w-3 h-3" />
+};
+
+export default function BotsSettings() {
+  const { address } = useWallet();
+  const [bots, setBots] = useState<BotConfig[]>([]);
+  const [userBots, setUserBots] = useState<BotConfig[]>([]);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedBot, setSelectedBot] = useState<string | null>(null);
+  const [fundingBot, setFundingBot] = useState<string | null>(null);
+  const [sendingLpTokens, setSendingLpTokens] = useState<string | null>(null);
+  const [operatingBot, setOperatingBot] = useState<string | null>(null);
+  const [activityModalBot, setActivityModalBot] = useState<string | null>(null);
+  const [activityData, setActivityData] = useState<{ [botId: string]: BotActivityRecord[] }>({});
+  const [loadingActivity, setLoadingActivity] = useState<{ [botId: string]: boolean }>({});
+
+  // Get bot wallet addresses for balance tracking
+  const botWalletAddresses = useMemo(() => {
+    return userBots.map(bot => bot.walletAddress).filter(Boolean);
+  }, [userBots]);
+
+  // Use Blaze to get real-time balances for all bot wallets
+  const { getUserBalances, prices } = useBlaze({
+    userIds: botWalletAddresses.length > 0 ? botWalletAddresses : [],
+  });
+
+  // Load user's bots on component mount
+  useEffect(() => {
+    if (address) {
+      loadUserBots();
+    }
+  }, [address]);
+
+  // Show examples only if user has no real bots
+  useEffect(() => {
+    if (userBots.length === 0) {
+      setBots(exampleBots);
+    } else {
+      setBots(userBots);
+    }
+  }, [userBots]);
+
+  const loadUserBots = async () => {
+    if (!address) return;
+
+    setIsLoading(true);
+    try {
+      // Use regular fetch since auth is removed from list endpoint
+      const response = await fetch(`/api/bots?userAddress=${address}`, {
+        method: 'GET'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserBots(data.bots || []);
+      } else {
+        const error = await response.json();
+        console.error('Failed to load bots:', error.error);
+      }
+    } catch (error) {
+      console.error('Failed to load bots:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBotCreated = (newBot: BotConfig) => {
+    setUserBots(prev => [newBot, ...prev]);
+    setIsCreateModalOpen(false);
+    toast.success('Bot created successfully!', {
+      description: `${newBot.name} is ready to be funded`
+    });
+  };
+
+  const handleStartBot = async (botId: string) => {
+    if (bots.find(bot => bot.id === botId)?.isExample) return;
+
+    setOperatingBot(botId);
+    const bot = bots.find(b => b.id === botId);
+
+    try {
+      toast.loading(`Starting ${bot?.name}...`, { id: 'bot-operation' });
+
+      // Use signed request to start bot
+      const response = await signedFetch(`/api/bots/${botId}/status`, {
+        message: address,
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'active',
+          userAddress: address
+        })
+      });
+
+      if (response.ok) {
+        setBots(prev => prev.map(bot =>
+          bot.id === botId ? { ...bot, status: 'active' as const } : bot
+        ));
+        setUserBots(prev => prev.map(bot =>
+          bot.id === botId ? { ...bot, status: 'active' as const } : bot
+        ));
+        toast.success('Bot started successfully!', {
+          id: 'bot-operation',
+          description: `${bot?.name} is now active`
+        });
+      } else {
+        const error = await response.json();
+        console.error('Failed to start bot:', error.error);
+        toast.error('Failed to start bot', {
+          id: 'bot-operation',
+          description: error.error || 'Please try again'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to start bot:', error);
+      toast.error('Failed to start bot', {
+        id: 'bot-operation',
+        description: error instanceof Error ? error.message : 'Please try again'
+      });
+    } finally {
+      setOperatingBot(null);
+    }
+  };
+
+  const handlePauseBot = async (botId: string) => {
+    if (bots.find(bot => bot.id === botId)?.isExample) return;
+
+    setOperatingBot(botId);
+    const bot = bots.find(b => b.id === botId);
+
+    try {
+      toast.loading(`Pausing ${bot?.name}...`, { id: 'bot-operation' });
+
+      // Use signed request to pause bot
+      const response = await signedFetch(`/api/bots/${botId}/status`, {
+        message: address,
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'paused',
+          userAddress: address
+        })
+      });
+
+      if (response.ok) {
+        setBots(prev => prev.map(bot =>
+          bot.id === botId ? { ...bot, status: 'paused' as const } : bot
+        ));
+        setUserBots(prev => prev.map(bot =>
+          bot.id === botId ? { ...bot, status: 'paused' as const } : bot
+        ));
+        toast.success('Bot paused successfully!', {
+          id: 'bot-operation',
+          description: `${bot?.name} is now paused`
+        });
+      } else {
+        const error = await response.json();
+        console.error('Failed to pause bot:', error.error);
+        toast.error('Failed to pause bot', {
+          id: 'bot-operation',
+          description: error.error || 'Please try again'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to pause bot:', error);
+      toast.error('Failed to pause bot', {
+        id: 'bot-operation',
+        description: error instanceof Error ? error.message : 'Please try again'
+      });
+    } finally {
+      setOperatingBot(null);
+    }
+  };
+
+  const handleDeleteBot = async (botId: string) => {
+    if (bots.find(bot => bot.id === botId)?.isExample) return;
+
+    try {
+      // Use signed request to delete bot
+      const response = await signedFetch(`/api/bots/${botId}/status?userAddress=${address}`, {
+        message: address,
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setBots(prev => prev.filter(bot => bot.id !== botId));
+        setUserBots(prev => prev.filter(bot => bot.id !== botId));
+      } else {
+        const error = await response.json();
+        console.error('Failed to delete bot:', error.error);
+      }
+    } catch (error) {
+      console.error('Failed to delete bot:', error);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  };
+
+  const truncateAddress = (address: string) => {
+    if (address.length <= 12) return address;
+    return `${address.slice(0, 6)}...${address.slice(-6)}`;
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // TODO: Show toast notification
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const openInExplorer = (address: string) => {
+    // Using Stacks Explorer mainnet URL
+    const explorerUrl = `https://explorer.stacks.co/address/${address}`;
+    window.open(explorerUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Get STX balance for a bot wallet
+  const getBotStxBalance = useCallback((walletAddress: string): number => {
+    if (!walletAddress || !getUserBalances) return 0;
+
+    try {
+      const balances = getUserBalances(walletAddress);
+
+      // Try different possible STX keys
+      const stxBalance = balances['.stx'] || balances['stx'] || balances['STX'];
+
+      return stxBalance?.formattedBalance || 0;
+    } catch (error) {
+      console.error('Error getting bot STX balance:', error);
+      return 0;
+    }
+  }, [getUserBalances]);
+
+  // Get LP token balances for a wallet (for yield farming)
+  const getUserLpTokens = useCallback((walletAddress: string) => {
+    if (!walletAddress || !getUserBalances) return [];
+
+    try {
+      const balances = getUserBalances(walletAddress);
+      const lpTokens = [];
+
+      for (const contractId of YIELD_FARMING_LP_TOKENS) {
+        const tokenBalance = balances[contractId];
+        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+          lpTokens.push({
+            contractId,
+            balance: tokenBalance.balance,
+            formattedBalance: tokenBalance.formattedBalance,
+            symbol: tokenBalance.symbol || 'Unknown',
+            name: tokenBalance.name || 'Unknown Token',
+            metadata: tokenBalance
+          });
+        }
+      }
+
+      return lpTokens;
+    } catch (error) {
+      console.error('Error getting LP token balances:', error);
+      return [];
+    }
+  }, [getUserBalances]);
+
+  // Get LP token balances for a bot wallet specifically
+  const getBotLpTokens = useCallback((walletAddress: string) => {
+    if (!walletAddress || !getUserBalances) return [];
+
+    try {
+      const balances = getUserBalances(walletAddress);
+      const lpTokens = [];
+
+      for (const contractId of YIELD_FARMING_LP_TOKENS) {
+        const tokenBalance = balances[contractId];
+        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+          lpTokens.push({
+            contractId,
+            balance: tokenBalance.balance,
+            formattedBalance: tokenBalance.formattedBalance,
+            symbol: tokenBalance.symbol || 'Unknown',
+            name: tokenBalance.name || 'Unknown Token',
+            metadata: tokenBalance
+          });
+        }
+      }
+
+      return lpTokens;
+    } catch (error) {
+      console.error('Error getting bot LP token balances:', error);
+      return [];
+    }
+  }, [getUserBalances]);
+
+  const needsFunding = useCallback((bot: BotConfig) => {
+    if (bot.isExample) return false;
+    const stxBalance = getBotStxBalance(bot.walletAddress);
+    return stxBalance === 0;
+  }, [getBotStxBalance]);
+
+  const needsLpTokens = useCallback((bot: BotConfig) => {
+    if (bot.isExample || bot.strategy !== 'yield-farming') return false;
+
+    // Check if user has any LP tokens
+    const userLpTokens = getUserLpTokens(address || '');
+    return userLpTokens.length === 0;
+  }, [getUserLpTokens, address]);
+
+  // Check if a bot has LP tokens for yield farming
+  const botHasLpTokens = useCallback((bot: BotConfig) => {
+    if (bot.isExample || bot.strategy !== 'yield-farming') return false;
+
+    const botLpTokens = getBotLpTokens(bot.walletAddress);
+    return botLpTokens.length > 0;
+  }, [getBotLpTokens]);
+
+  // Calculate maximum LP token amount for $10 cap
+  const getMaxLpTokenAmount = useCallback((contractId: string, userBalance: number) => {
+    if (!prices) return userBalance * 0.1; // Fallback to 10% if no prices
+
+    const tokenPrice = prices[contractId];
+    if (!tokenPrice || !tokenPrice.price) return userBalance * 0.1;
+
+    // Calculate max tokens worth $10
+    const maxTokensFor10USD = 10 / tokenPrice.price;
+
+    // Return the smaller of: user's 10% balance or $10 worth
+    return Math.min(userBalance * 0.1, maxTokensFor10USD);
+  }, [prices]);
+
+  // Calculate total USD value of all tokens in a bot wallet
+  const getBotTotalValue = useCallback((walletAddress: string): number => {
+    if (!walletAddress || !getUserBalances || !prices) return 0;
+
+    try {
+      const balances = getUserBalances(walletAddress);
+      let totalValue = 0;
+
+      // Add STX value - try different possible keys
+      const stxBalance = balances['.stx'] || balances['stx'] || balances['STX'];
+      if (stxBalance && prices['.stx']?.price) {
+        totalValue += stxBalance.formattedBalance * prices['.stx'].price;
+      }
+
+      // Add all token values (including LP tokens)
+      Object.entries(balances).forEach(([contractId, tokenData]) => {
+        if (contractId === '.stx' || contractId === 'stx' || contractId === 'STX') return; // Already handled above
+
+        const tokenPrice = prices[contractId];
+        if (tokenData && tokenPrice?.price && tokenData.formattedBalance > 0) {
+          totalValue += tokenData.formattedBalance * tokenPrice.price;
+        }
+      });
+
+      return totalValue;
+    } catch (error) {
+      console.error('Error calculating bot total value:', error);
+      return 0;
+    }
+  }, [getUserBalances, prices]);
+
+  const handleFundBot = async (botId: string) => {
+    if (!address) return;
+
+    // Find the bot to get its wallet address
+    const bot = bots.find(b => b.id === botId);
+    if (!bot) return;
+
+    setFundingBot(botId);
+
+    try {
+      toast.loading('Initiating STX transfer...', { id: 'stx-transfer' });
+
+      // Request STX transfer of 5 STX to the bot wallet
+      const result = await request('stx_transferStx', {
+        recipient: bot.walletAddress,
+        amount: '5000000', // 5 STX in microSTX (1 STX = 1,000,000 microSTX)
+        memo: `Fund bot: ${bot.name}`,
+        network: 'mainnet'
+      });
+
+      if (result) {
+        console.log('STX transfer initiated:', result);
+        toast.success('STX transfer initiated successfully!', {
+          id: 'stx-transfer',
+          description: `5 STX sent to ${bot.name}`
+        });
+      }
+    } catch (error) {
+      console.error('Failed to initiate STX transfer:', error);
+      toast.error('Failed to initiate STX transfer', {
+        id: 'stx-transfer',
+        description: error instanceof Error ? error.message : 'Please try again'
+      });
+    } finally {
+      setFundingBot(null);
+    }
+  };
+
+  const handleSendLpTokens = async (botId: string, contractId: string, amount: number) => {
+    if (!address) return;
+
+    // Find the bot to get its wallet address
+    const bot = bots.find(b => b.id === botId);
+    if (!bot) return;
+
+    setSendingLpTokens(botId);
+
+    try {
+      const [contractAddress, contractName] = contractId.split('.');
+      if (!contractAddress || !contractName) {
+        throw new Error('Invalid contract format');
+      }
+
+      // Get token metadata to determine decimals
+      const userLpTokens = getUserLpTokens(address);
+      const token = userLpTokens.find(t => t.contractId === contractId);
+      const decimals = token?.metadata?.decimals || 6;
+
+      // Convert amount to microunits
+      const microAmount = Math.floor(amount * Math.pow(10, decimals));
+
+      toast.loading(`Sending ${token?.symbol || 'LP tokens'}...`, { id: 'lp-transfer' });
+
+      const result = await request('stx_callContract', {
+        contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
+        functionName: 'transfer',
+        functionArgs: [
+          uintCV(microAmount),
+          principalCV(address),
+          principalCV(bot.walletAddress),
+          noneCV()
+        ],
+        network: 'mainnet',
+        postConditions: [Pc.principal(address).willSendEq(microAmount).ft(token?.contractId as `${string}.${string}`, token?.metadata.identifier!)]
+      });
+
+      if (result) {
+        console.log('LP token transfer initiated:', result);
+        toast.success('LP tokens sent successfully!', {
+          id: 'lp-transfer',
+          description: `${token?.symbol} sent to ${bot.name}`
+        });
+      }
+    } catch (error) {
+      console.error('Failed to initiate LP token transfer:', error);
+      toast.error('Failed to send LP tokens', {
+        id: 'lp-transfer',
+        description: error instanceof Error ? error.message : 'Please try again'
+      });
+    } finally {
+      setSendingLpTokens(null);
+    }
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffInSeconds < 60) return 'just now';
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+
+      return date.toLocaleDateString();
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // Fetch bot activity
+  const fetchBotActivity = useCallback(async (botId: string) => {
+    if (!address || loadingActivity[botId]) return;
+
+    setLoadingActivity(prev => ({ ...prev, [botId]: true }));
+
+    try {
+      const response = await fetch(`/api/bots/${botId}/activity?userAddress=${address}&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        setActivityData(prev => ({ ...prev, [botId]: data.activities || [] }));
+      } else {
+        console.error('Failed to fetch bot activity:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error fetching bot activity:', error);
+    } finally {
+      setLoadingActivity(prev => ({ ...prev, [botId]: false }));
+    }
+  }, [address, loadingActivity]);
+
+  // Get recent activity for a bot
+  const getRecentActivity = useCallback((botId: string) => {
+    const activities = activityData[botId] || [];
+    return activities.slice(0, 3); // Show last 3 activities
+  }, [activityData]);
+
+  // Get activity status indicator
+  const getActivityStatus = useCallback((botId: string) => {
+    const activities = activityData[botId] || [];
+    if (activities.length === 0) return 'none';
+    
+    const recentActivity = activities[0];
+    if (recentActivity.status === 'success') return 'success';
+    if (recentActivity.status === 'failure') return 'failure';
+    return 'pending';
+  }, [activityData]);
+
+  // Open activity modal and fetch data
+  const handleViewActivity = useCallback((botId: string) => {
+    setActivityModalBot(botId);
+    if (!activityData[botId]) {
+      fetchBotActivity(botId);
+    }
+  }, [activityData, fetchBotActivity]);
+
+  return (
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white/95 mb-1">DeFi Automation Bots</h3>
+          <p className="text-sm text-white/60">
+            Manage your hosted hot wallets and automated trading strategies
+          </p>
+        </div>
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create Bot
+        </Button>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60 uppercase tracking-wider">Total Bots</p>
+                <p className="text-2xl font-bold text-white/95">{bots.length}</p>
+              </div>
+              <Bot className="w-8 h-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60 uppercase tracking-wider">Active Bots</p>
+                <p className="text-2xl font-bold text-green-400">
+                  {bots.filter(bot => bot.status === 'active').length}
+                </p>
+              </div>
+              <Activity className="w-8 h-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60 uppercase tracking-wider">Total Gas</p>
+                <p className="text-2xl font-bold text-white/95">
+                  {bots.reduce((sum, bot) => sum + getBotStxBalance(bot.walletAddress), 0).toFixed(2)} STX
+                </p>
+              </div>
+              <Fuel className="w-8 h-8 text-yellow-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60 uppercase tracking-wider">Total Value</p>
+                <p className="text-2xl font-bold text-white/95">
+                  {formatCurrency(bots.reduce((sum, bot) => sum + getBotTotalValue(bot.walletAddress), 0))}
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bots List */}
+      <Card className="bg-white/[0.03] border-white/[0.08]">
+        <CardHeader>
+          <CardTitle className="text-white/95 flex items-center gap-2">
+            <Bot className="w-5 h-5" />
+            {userBots.length > 0 ? 'Your Bots' : 'Example Bots'}
+            {userBots.length === 0 && (
+              <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                <Eye className="w-3 h-3 mr-1" />
+                Preview
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto mb-6">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              </div>
+              <h3 className="text-lg font-medium text-white/90 mb-2">Loading bots...</h3>
+              <p className="text-white/60">Fetching your automation bots</p>
+            </div>
+          ) : bots.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto mb-6">
+                <Bot className="w-10 h-10 text-white/40" />
+              </div>
+              <h3 className="text-lg font-medium text-white/90 mb-2">No bots created yet</h3>
+              <p className="text-white/60 max-w-md mx-auto mb-6">
+                Create your first automation bot to start earning with DeFi strategies while you sleep.
+              </p>
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Bot
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {bots.map((bot) => (
+                <div
+                  key={bot.id}
+                  className="relative p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200"
+                >
+                  <div className={`flex items-center justify-between ${needsFunding(bot) ? 'blur-sm' : ''}`}>
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                        <Bot className="w-6 h-6 text-blue-400" />
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h4 className="font-medium text-white/95">{bot.name}</h4>
+                          <Badge className={`text-xs ${statusColors[bot.status]} border`}>
+                            {statusIcons[bot.status]}
+                            <span className="ml-1 capitalize">{bot.status}</span>
+                          </Badge>
+                          {needsFunding(bot) && (
+                            <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Needs Funding
+                            </Badge>
+                          )}
+                          {bot.strategy === 'yield-farming' && botHasLpTokens(bot) && (
+                            <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              LP Funded
+                            </Badge>
+                          )}
+                          {bot.strategy === 'yield-farming' && !bot.isExample && (() => {
+                            const status = getActivityStatus(bot.id);
+                            if (status === 'success') {
+                              return (
+                                <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                                  <Zap className="w-3 h-3 mr-1" />
+                                  Active Farming
+                                </Badge>
+                              );
+                            } else if (status === 'failure') {
+                              return (
+                                <Badge className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Farm Failed
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {bot.isExample && (
+                            <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                              Example
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-white/60 mb-2">{bot.strategy}</p>
+
+                        <div className="flex items-center gap-6 text-xs text-white/50">
+                          <div className="flex items-center gap-2">
+                            <span>Wallet: {truncateAddress(bot.walletAddress)}</span>
+                            <Copy
+                              className="w-3 h-3 text-white/40 hover:text-white/70 cursor-pointer"
+                              onClick={() => copyToClipboard(bot.walletAddress)}
+                            />
+                            <ExternalLink
+                              className="w-3 h-3 text-white/40 hover:text-white/70 cursor-pointer"
+                              onClick={() => openInExplorer(bot.walletAddress)}
+                            />
+                          </div>
+                          <span>STX Balance: {getBotStxBalance(bot.walletAddress).toFixed(2)} STX</span>
+                          {bot.strategy === 'yield-farming' && (() => {
+                            const lpTokens = getBotLpTokens(bot.walletAddress);
+                            return lpTokens.length > 0 ? (
+                              <span>LP Tokens: {lpTokens.map(t => t.symbol).join(', ')}</span>
+                            ) : null;
+                          })()}
+                          <span>Last Active: {formatRelativeTime(bot.lastActive)}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="flex items-center gap-4 mb-1">
+                          <div>
+                            <p className="text-xs text-white/60">Total Value</p>
+                            <p className="text-sm font-medium text-white/95">
+                              {formatCurrency(getBotTotalValue(bot.walletAddress))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-4">
+                      {bot.status === 'active' ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handlePauseBot(bot.id)}
+                          disabled={bot.isExample || operatingBot === bot.id}
+                          className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50"
+                        >
+                          <Pause className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleStartBot(bot.id)}
+                          disabled={bot.isExample || operatingBot === bot.id}
+                          className="text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:opacity-50"
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
+                      )}
+
+                      {bot.strategy === 'yield-farming' && !bot.isExample && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleViewActivity(bot.id)}
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                          title="View farming activity"
+                        >
+                          <History className="w-4 h-4" />
+                        </Button>
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteBot(bot.id)}
+                        disabled={true}
+                        className="text-gray-400 hover:text-gray-300 hover:bg-gray-500/10 disabled:opacity-50"
+                        title="Archive bot (coming soon)"
+                      >
+                        <Archive className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Funding Alert Overlay */}
+                  {needsFunding(bot) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
+                      <div className="bg-yellow-50 dark:bg-yellow-950/80 border border-yellow-200 dark:border-yellow-800/50 rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
+                        <div className="text-center">
+                          <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800/50 flex items-center justify-center mx-auto mb-4">
+                            <Wallet className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Fund Your Bot</h4>
+                          <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                            Transfer STX to your bot wallet to start automation
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              onClick={() => handleFundBot(bot.id)}
+                              disabled={fundingBot === bot.id}
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50"
+                            >
+                              {fundingBot === bot.id ? 'Funding...' : 'Fund with STX'}
+                            </Button>
+                            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                              Wallet: {truncateAddress(bot.walletAddress)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LP Token Alert Overlay for Yield Farming */}
+                  {!needsFunding(bot) && needsLpTokens(bot) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
+                      <div className="bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800/50 rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
+                        <div className="text-center">
+                          <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Need LP Tokens</h4>
+                          <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                            You need LP tokens for yield farming. Get some first via swap.
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              onClick={() => window.open('/swap', '_blank')}
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                            >
+                              Get LP Tokens
+                            </Button>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              Required: ENERGY, POOL, or SUBLINK tokens
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LP Token Available Overlay for Yield Farming */}
+                  {!needsFunding(bot) && !needsLpTokens(bot) && bot.strategy === 'yield-farming' && !botHasLpTokens(bot) && (() => {
+                    const userLpTokens = getUserLpTokens(address || '');
+                    return userLpTokens.length > 0;
+                  })() && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
+                        <div className="bg-green-50 dark:bg-green-950/80 border border-green-200 dark:border-green-800/50 rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
+                          <div className="text-center">
+                            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/50 border border-green-200 dark:border-green-800/50 flex items-center justify-center mx-auto mb-4">
+                              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">Send LP Tokens</h4>
+                            <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                              You have LP tokens! Send some to your bot for yield farming.
+                            </p>
+                            <div className="flex flex-col gap-2">
+                              {(() => {
+                                const userLpTokens = getUserLpTokens(address || '');
+                                const firstToken = userLpTokens[0];
+                                if (!firstToken) return null;
+
+                                const maxAmount = getMaxLpTokenAmount(firstToken.contractId, firstToken.formattedBalance);
+                                const usdValue = prices?.[firstToken.contractId]?.price ?
+                                  (maxAmount * prices[firstToken.contractId].price).toFixed(2) : '?';
+
+                                return (
+                                  <Button
+                                    onClick={() => handleSendLpTokens(bot.id, firstToken.contractId, maxAmount)}
+                                    disabled={sendingLpTokens === bot.id}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50"
+                                  >
+                                    {sendingLpTokens === bot.id ? 'Sending...' : `Send ${firstToken.symbol} (~$${usdValue})`}
+                                  </Button>
+                                );
+                              })()}
+                              <p className="text-xs text-green-600 dark:text-green-400">
+                                Available: {getUserLpTokens(address || '').map(t => t.symbol).join(', ')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create Bot Modal */}
+      <CreateBotModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        onBotCreated={handleBotCreated}
+      />
+
+      {/* Information Card */}
+      <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-6 h-6 text-blue-400" />
+            </div>
+            <div>
+              <h4 className="font-medium text-white/95 mb-2">About DeFi Automation Bots</h4>
+              <p className="text-sm text-white/70 mb-4">
+                Our hosted hot wallets enable you to run automated DeFi strategies 24/7 without keeping your computer online.
+                Each bot operates with its own dedicated wallet and can execute trades, provide liquidity, and harvest yields automatically.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <h5 className="font-medium text-white/90 mb-2">Security Features:</h5>
+                  <ul className="space-y-1 text-white/60">
+                    <li>• Isolated wallet per bot</li>
+                    <li>• Configurable risk limits</li>
+                    <li>• Real-time monitoring</li>
+                    <li>• Emergency stop controls</li>
+                  </ul>
+                </div>
+                <div>
+                  <h5 className="font-medium text-white/90 mb-2">Supported Strategies:</h5>
+                  <ul className="space-y-1 text-white/60">
+                    <li>• Dollar cost averaging</li>
+                    <li>• Liquidity pool optimization</li>
+                    <li>• Cross-DEX arbitrage</li>
+                    <li>• Yield farming automation</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Activity Modal */}
+      <Dialog open={!!activityModalBot} onOpenChange={(open) => !open && setActivityModalBot(null)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-500" />
+              Farming Activity
+              {activityModalBot && (() => {
+                const bot = bots.find(b => b.id === activityModalBot);
+                return bot ? ` - ${bot.name}` : '';
+              })()}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {activityModalBot && loadingActivity[activityModalBot] ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                <span className="ml-3 text-white/60">Loading activity...</span>
+              </div>
+            ) : activityModalBot && activityData[activityModalBot]?.length ? (
+              <div className="space-y-3">
+                {activityData[activityModalBot].map((activity) => (
+                  <div key={activity.id} className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.08]">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          activity.status === 'success' ? 'bg-green-400' :
+                          activity.status === 'failure' ? 'bg-red-400' : 'bg-yellow-400'
+                        }`} />
+                        <span className="text-sm font-medium text-white/90">
+                          {activity.action === 'yield-farming' ? 'Yield Farming' : activity.action}
+                        </span>
+                        <Badge className={`text-xs ${
+                          activity.status === 'success' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                          activity.status === 'failure' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                          'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        }`}>
+                          {activity.status}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-white/50">
+                        {formatRelativeTime(activity.timestamp)}
+                      </span>
+                    </div>
+                    
+                    <div className="text-sm text-white/70 space-y-1">
+                      <div>Contract: {activity.contractName}</div>
+                      <div>Function: {activity.functionName}</div>
+                      {activity.txid && (
+                        <div className="flex items-center gap-2">
+                          <span>Transaction:</span>
+                          <a
+                            href={`https://explorer.stacks.co/txid/${activity.txid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
+                          >
+                            {activity.txid.slice(0, 8)}...{activity.txid.slice(-8)}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+                      {activity.errorMessage && (
+                        <div className="text-red-400 text-xs mt-2 p-2 bg-red-500/10 rounded border border-red-500/20">
+                          Error: {activity.errorMessage}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : activityModalBot ? (
+              <div className="text-center py-8">
+                <History className="w-12 h-12 text-white/40 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-white/90 mb-2">No Activity Yet</h3>
+                <p className="text-white/60">
+                  This bot hasn't performed any farming operations yet. Activity will appear here once the automated farming starts.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
