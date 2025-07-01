@@ -1,4 +1,4 @@
-name: Deploy Charisma Party to PartyKit
+name: Deploy PartyKit
 
 on:
   push:
