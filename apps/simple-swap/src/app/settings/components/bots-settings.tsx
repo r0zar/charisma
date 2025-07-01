@@ -1159,28 +1159,29 @@ export default function BotsSettings() {
               <AlertTriangle className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <h4 className="font-medium text-white/95 mb-2">About DeFi Automation Bots</h4>
+              <h4 className="font-medium text-white/95 mb-2">About Yield Farming Bots</h4>
               <p className="text-sm text-white/70 mb-4">
-                Our hosted hot wallets enable you to run automated DeFi strategies 24/7 without keeping your computer online.
-                Each bot operates with its own dedicated wallet and can execute trades, provide liquidity, and harvest yields automatically.
+                The more LP tokens you hold, the faster you generate reward tokens which can be harvested every fast block. 
+                Because of this fast cycle, it makes sense to have a bot do it automatically. 
+                Send LP tokens directly to your bot to increase its harvesting rate, or use the guided interface to get setup.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <h5 className="font-medium text-white/90 mb-2">Security Features:</h5>
+                  <h5 className="font-medium text-white/90 mb-2">How It Works:</h5>
                   <ul className="space-y-1 text-white/60">
-                    <li>• Isolated wallet per bot</li>
-                    <li>• Configurable risk limits</li>
-                    <li>• Real-time monitoring</li>
-                    <li>• Emergency stop controls</li>
+                    <li>• More LP tokens = faster rewards</li>
+                    <li>• Harvests every fast block automatically</li>
+                    <li>• Runs every hour when active</li>
+                    <li>• Uses STX in bot wallet as gas</li>
                   </ul>
                 </div>
                 <div>
-                  <h5 className="font-medium text-white/90 mb-2">Supported Strategies:</h5>
+                  <h5 className="font-medium text-white/90 mb-2">Setup Options:</h5>
                   <ul className="space-y-1 text-white/60">
-                    <li>• Dollar cost averaging</li>
-                    <li>• Liquidity pool optimization</li>
-                    <li>• Cross-DEX arbitrage</li>
-                    <li>• Yield farming automation</li>
+                    <li>• Send LP tokens directly to bot</li>
+                    <li>• Use guided interface</li>
+                    <li>• Isolated wallet per bot</li>
+                    <li>• Real-time activity monitoring</li>
                   </ul>
                 </div>
               </div>

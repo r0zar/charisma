@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const userAddress = searchParams.get('userAddress');
-    const botId = params.id;
+    const botId = await params.id;
 
     if (!userAddress) {
       return NextResponse.json(
