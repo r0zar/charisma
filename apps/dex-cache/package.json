@@ -41,7 +41,7 @@
     "colorthief": "^2.6.0",
     "blaze-sdk": "workspace:*",
     "dexterity-sdk": "workspace:*",
-    "framer-motion": "^12.19.2",
+    "framer-motion": "^12.20.1",
     "geist": "^1.4.2",
     "lightweight-charts": "^5",
     "lodash": "^4.17.21",
