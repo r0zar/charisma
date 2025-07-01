@@ -300,11 +300,11 @@ export default function BotsSettings() {
     // Check if any bot is in a wait state (recently sent tokens but not yet confirmed)
     const hasWaitingBots = userBots.some(bot => {
       if (bot.isExample || bot.strategy !== 'yield-farming') return false;
-      
+
       const recentlySent = recentlySentTokens[bot.id] || [];
       const hasRecentlySentTokens = recentlySent.length > 0;
       const stillNeedsTokens = !botHasLpTokens(bot);
-      
+
       return hasRecentlySentTokens && stillNeedsTokens;
     });
 
@@ -535,7 +535,7 @@ export default function BotsSettings() {
     const botTokenContracts = botLpTokens.map(token => token.contractId);
     const recentlySent = recentlySentTokens[bot.id] || [];
 
-    return YIELD_FARMING_LP_TOKENS.filter(contractId => 
+    return YIELD_FARMING_LP_TOKENS.filter(contractId =>
       !botTokenContracts.includes(contractId) && !recentlySent.includes(contractId)
     );
   }, [getBotLpTokens, recentlySentTokens]);
@@ -702,13 +702,13 @@ export default function BotsSettings() {
           id: 'lp-transfer',
           description: `${token?.symbol} sent to ${bot.name}`
         });
-        
+
         // Add to recently sent tokens for immediate UI feedback
         setRecentlySentTokens(prev => ({
           ...prev,
           [botId]: [...(prev[botId] || []), contractId]
         }));
-        
+
         // Remove from recently sent after 30 seconds (enough time for potential confirmation)
         setTimeout(() => {
           setRecentlySentTokens(prev => ({
@@ -954,7 +954,7 @@ export default function BotsSettings() {
               <div>
                 <p className="text-xs text-white/60 uppercase tracking-wider">Value</p>
                 <p className="text-xl font-bold text-white/95">
-                  ${(bots.reduce((sum, bot) => sum + getBotTotalValue(bot.walletAddress), 0)).toFixed(0)}
+                  ${(bots.reduce((sum, bot) => sum + getBotTotalValue(bot.walletAddress), 0)).toFixed(2)}
                 </p>
               </div>
               <TrendingUp className="w-6 h-6 text-purple-400" />
@@ -1496,7 +1496,7 @@ export default function BotsSettings() {
                             const missing = getMissingLpTokens(bot).length;
                             const recentlySent = (recentlySentTokens[bot.id] || []).length;
                             const confirmed = getBotLpTokens(bot.walletAddress).length;
-                            
+
                             if (missing === 0 && recentlySent === 0) {
                               return "All tokens confirmed!";
                             } else if (recentlySent > 0) {
@@ -1601,8 +1601,8 @@ export default function BotsSettings() {
                               <div className="flex items-center gap-3">
                                 <div className="relative">
                                   {token.metadata?.image ? (
-                                    <img 
-                                      src={token.metadata.image} 
+                                    <img
+                                      src={token.metadata.image}
                                       alt={token.symbol}
                                       className="w-8 h-8 rounded-full bg-white/10"
                                       onError={(e) => {
@@ -1628,7 +1628,7 @@ export default function BotsSettings() {
                           ))}
                         </>
                       )}
-                      
+
                       {rewardTokens.length > 0 && (
                         <>
                           {lpTokens.length > 0 && <div className="border-t border-white/[0.05] pt-2" />}
@@ -1638,8 +1638,8 @@ export default function BotsSettings() {
                               <div className="flex items-center gap-3">
                                 <div className="relative">
                                   {token.metadata?.image ? (
-                                    <img 
-                                      src={token.metadata.image} 
+                                    <img
+                                      src={token.metadata.image}
                                       alt={token.symbol}
                                       className="w-8 h-8 rounded-full bg-white/10"
                                       onError={(e) => {
@@ -1665,7 +1665,7 @@ export default function BotsSettings() {
                           ))}
                         </>
                       )}
-                      
+
                       <div className="space-y-2 pt-2 border-t border-white/[0.05]">
                         <div className="flex justify-between">
                           <span className="text-white/60 text-sm">Total Value:</span>
