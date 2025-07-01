@@ -201,6 +201,9 @@ export default class BalancesParty implements Party.Server {
                 case 'MANUAL_UPDATE':
                     this.fetchAndBroadcastBalances();
                     break;
+                case 'REFRESH':
+                    this.handleRefresh(data, clientId);
+                    break;
                 case 'REFRESH_METADATA':
                     this.loadTokenMetadata();
                     break;
@@ -329,6 +332,20 @@ export default class BalancesParty implements Party.Server {
         this.cleanupWatchedUsers();
     }
 
+    private handleRefresh(data: any, clientId: string) {
+        // Force refresh balances for specific users
+        if (data.userIds && Array.isArray(data.userIds)) {
+            const validUserIds = data.userIds.filter((userId: string) => isValidUserAddress(userId));
+            if (validUserIds.length > 0) {
+                // Fetch fresh balances for these users and broadcast
+                this.fetchAndBroadcastBalancesForUsers(validUserIds);
+            }
+        } else {
+            // No userIds specified, refresh all
+            this.fetchAndBroadcastBalances();
+        }
+    }
+
     private cleanupWatchedUsers() {
         const activeUsers = new Set<string>();
         this.subscriptions.forEach(subscription => {
@@ -425,6 +442,95 @@ export default class BalancesParty implements Party.Server {
     }
 
     // REMOVED: createAllBalanceUpdatesMap - no longer needed with separate token messages
+
+    private async fetchAndBroadcastBalancesForUsers(userIds: string[]) {
+        if (userIds.length === 0) return;
+
+        try {
+            const validUserIds = userIds.filter(userId => isValidUserAddress(userId));
+            if (validUserIds.length === 0) return;
+
+            const rawBalances = await fetchUserBalances(validUserIds, this.tokenRecords);
+            const now = Date.now();
+
+            console.log(`💰 Fetched ${Object.keys(rawBalances).length} balance entries for ${validUserIds.length} specific users`);
+
+            const updatedBalances: WebSocketTokenBalance[] = [];
+
+            // Process each raw balance (same logic as fetchAndBroadcastBalances)
+            for (const [, balanceData] of Object.entries(rawBalances)) {
+                const { userId, contractId } = balanceData;
+
+                const tokenRecord = this.findTokenRecord(contractId);
+                if (!tokenRecord) {
+                    console.warn(`🔍 No token record found for ${contractId} - balance: ${balanceData.balance}`);
+                    continue;
+                }
+
+                if (!this.validateTokenRecord(tokenRecord, contractId)) {
+                    continue;
+                }
+
+                const isSubnet = isSubnetToken(tokenRecord);
+                const mainnetContractId = isSubnet ? tokenRecord.base! : tokenRecord.contractId;
+
+                const key = `${userId}:${mainnetContractId}`;
+
+                let balance = this.balances.get(key);
+                if (!balance) {
+                    balance = {
+                        userId,
+                        mainnetContractId,
+                        mainnetBalance: 0,
+                        mainnetTotalSent: '0',
+                        mainnetTotalReceived: '0',
+                        lastUpdated: now
+                    };
+                }
+
+                // Update mainnet or subnet portion
+                if (isSubnet) {
+                    balance.subnetBalance = balanceData.balance;
+                    balance.subnetTotalSent = balanceData.totalSent;
+                    balance.subnetTotalReceived = balanceData.totalReceived;
+                    balance.subnetContractId = contractId;
+                } else {
+                    balance.mainnetBalance = balanceData.balance;
+                    balance.mainnetTotalSent = balanceData.totalSent;
+                    balance.mainnetTotalReceived = balanceData.totalReceived;
+                }
+
+                balance.lastUpdated = now;
+                this.balances.set(key, balance);
+                updatedBalances.push(balance);
+
+                console.log(`✅ Processed ${isSubnet ? 'subnet' : 'mainnet'} balance: ${userId.slice(0, 8)}...${userId.slice(-4)}:${contractId} = ${balanceData.balance}`);
+            }
+
+            // Broadcast updates
+            if (updatedBalances.length > 0) {
+                const allMessages: BalanceUpdateMessage[] = [];
+                for (const balance of updatedBalances) {
+                    allMessages.push(...this.createBalanceMessage(balance));
+                }
+
+                allMessages.forEach(message => {
+                    this.room.broadcast(JSON.stringify(message));
+                });
+
+                this.room.broadcast(JSON.stringify({
+                    type: 'BALANCE_BATCH',
+                    balances: allMessages,
+                    timestamp: now
+                }));
+
+                console.log(`📊 Broadcasted ${allMessages.length} balance updates for ${validUserIds.length} specific users`);
+            }
+
+        } catch (err) {
+            console.error('Failed to fetch/broadcast balances for specific users:', err);
+        }
+    }
 
     private async fetchAndBroadcastBalances() {
         if (this.watchedUsers.size === 0) return;

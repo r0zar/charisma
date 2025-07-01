@@ -128,6 +128,7 @@ export default function BotsSettings() {
   const [activityModalBot, setActivityModalBot] = useState<string | null>(null);
   const [activityData, setActivityData] = useState<{ [botId: string]: BotActivityRecord[] }>({});
   const [loadingActivity, setLoadingActivity] = useState<{ [botId: string]: boolean }>({});
+  const [recentlySentTokens, setRecentlySentTokens] = useState<{ [botId: string]: string[] }>({});
 
   // Get bot wallet addresses for balance tracking
   const botWalletAddresses = useMemo(() => {
@@ -135,9 +136,92 @@ export default function BotsSettings() {
   }, [userBots]);
 
   // Use Blaze to get real-time balances for all bot wallets
-  const { getUserBalances, prices } = useBlaze({
+  const { getUserBalances, prices, refreshBalances } = useBlaze({
     userIds: botWalletAddresses.length > 0 ? botWalletAddresses : [],
   });
+
+  // Helper functions that need to be defined before useEffects
+  const getBotStxBalance = useCallback((walletAddress: string): number => {
+    if (!walletAddress || !getUserBalances) return 0;
+
+    try {
+      const balances = getUserBalances(walletAddress);
+      const stxBalance = balances['.stx'] || balances['stx'] || balances['STX'];
+      return stxBalance?.formattedBalance || 0;
+    } catch (error) {
+      console.error('Error getting STX balance for bot wallet:', error);
+      return 0;
+    }
+  }, [getUserBalances]);
+
+  const getUserLpTokens = useCallback((userAddress: string) => {
+    if (!userAddress || !getUserBalances) return [];
+
+    try {
+      const balances = getUserBalances(userAddress);
+      const lpTokens = [];
+
+      for (const contractId of YIELD_FARMING_LP_TOKENS) {
+        const tokenBalance = balances[contractId];
+        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+          lpTokens.push({
+            contractId,
+            balance: tokenBalance.balance,
+            formattedBalance: tokenBalance.formattedBalance,
+            symbol: tokenBalance.symbol || 'Unknown',
+            name: tokenBalance.name || 'Unknown Token',
+            metadata: tokenBalance
+          });
+        }
+      }
+
+      return lpTokens;
+    } catch (error) {
+      console.error('Error getting user LP token balances:', error);
+      return [];
+    }
+  }, [getUserBalances]);
+
+  const getBotLpTokens = useCallback((walletAddress: string) => {
+    if (!walletAddress || !getUserBalances) return [];
+
+    try {
+      const balances = getUserBalances(walletAddress);
+      const lpTokens = [];
+
+      for (const contractId of YIELD_FARMING_LP_TOKENS) {
+        const tokenBalance = balances[contractId];
+        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+          lpTokens.push({
+            contractId,
+            balance: tokenBalance.balance,
+            formattedBalance: tokenBalance.formattedBalance,
+            symbol: tokenBalance.symbol || 'Unknown',
+            name: tokenBalance.name || 'Unknown Token',
+            metadata: tokenBalance
+          });
+        }
+      }
+
+      return lpTokens;
+    } catch (error) {
+      console.error('Error getting bot LP token balances:', error);
+      return [];
+    }
+  }, [getUserBalances]);
+
+  // Check if a bot has ALL required LP tokens for yield farming
+  const botHasLpTokens = useCallback((bot: BotConfig) => {
+    if (bot.isExample || bot.strategy !== 'yield-farming') return false;
+
+    const botLpTokens = getBotLpTokens(bot.walletAddress);
+
+    // Check if bot has ALL 3 required LP tokens
+    const requiredTokens = YIELD_FARMING_LP_TOKENS;
+    const botTokenContracts = botLpTokens.map(token => token.contractId);
+
+    return requiredTokens.every(contractId => botTokenContracts.includes(contractId));
+  }, [getBotLpTokens]);
 
   // Load user's bots on component mount
   useEffect(() => {
@@ -154,6 +238,32 @@ export default function BotsSettings() {
       setBots(userBots);
     }
   }, [userBots]);
+
+  // Poll refresh balances every 10 seconds when bots are in wait state
+  useEffect(() => {
+    // Check if any bot is in a wait state (recently sent tokens but not yet confirmed)
+    const hasWaitingBots = userBots.some(bot => {
+      if (bot.isExample || bot.strategy !== 'yield-farming') return false;
+      
+      const recentlySent = recentlySentTokens[bot.id] || [];
+      const hasRecentlySentTokens = recentlySent.length > 0;
+      const stillNeedsTokens = !botHasLpTokens(bot);
+      
+      return hasRecentlySentTokens && stillNeedsTokens;
+    });
+
+    if (!hasWaitingBots || !refreshBalances || botWalletAddresses.length === 0) {
+      return;
+    }
+
+    // Start polling every 10 seconds
+    const interval = setInterval(() => {
+      console.log('🔄 Polling refresh for bot wallets in wait state');
+      refreshBalances(botWalletAddresses);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [userBots, recentlySentTokens, botHasLpTokens, refreshBalances, botWalletAddresses]);
 
   const loadUserBots = async () => {
     if (!address) return;
@@ -337,80 +447,6 @@ export default function BotsSettings() {
     window.open(explorerUrl, '_blank', 'noopener,noreferrer');
   };
 
-  // Get STX balance for a bot wallet
-  const getBotStxBalance = useCallback((walletAddress: string): number => {
-    if (!walletAddress || !getUserBalances) return 0;
-
-    try {
-      const balances = getUserBalances(walletAddress);
-
-      // Try different possible STX keys
-      const stxBalance = balances['.stx'] || balances['stx'] || balances['STX'];
-
-      return stxBalance?.formattedBalance || 0;
-    } catch (error) {
-      console.error('Error getting bot STX balance:', error);
-      return 0;
-    }
-  }, [getUserBalances]);
-
-  // Get LP token balances for a wallet (for yield farming)
-  const getUserLpTokens = useCallback((walletAddress: string) => {
-    if (!walletAddress || !getUserBalances) return [];
-
-    try {
-      const balances = getUserBalances(walletAddress);
-      const lpTokens = [];
-
-      for (const contractId of YIELD_FARMING_LP_TOKENS) {
-        const tokenBalance = balances[contractId];
-        if (tokenBalance && tokenBalance.formattedBalance > 0) {
-          lpTokens.push({
-            contractId,
-            balance: tokenBalance.balance,
-            formattedBalance: tokenBalance.formattedBalance,
-            symbol: tokenBalance.symbol || 'Unknown',
-            name: tokenBalance.name || 'Unknown Token',
-            metadata: tokenBalance
-          });
-        }
-      }
-
-      return lpTokens;
-    } catch (error) {
-      console.error('Error getting LP token balances:', error);
-      return [];
-    }
-  }, [getUserBalances]);
-
-  // Get LP token balances for a bot wallet specifically
-  const getBotLpTokens = useCallback((walletAddress: string) => {
-    if (!walletAddress || !getUserBalances) return [];
-
-    try {
-      const balances = getUserBalances(walletAddress);
-      const lpTokens = [];
-
-      for (const contractId of YIELD_FARMING_LP_TOKENS) {
-        const tokenBalance = balances[contractId];
-        if (tokenBalance && tokenBalance.formattedBalance > 0) {
-          lpTokens.push({
-            contractId,
-            balance: tokenBalance.balance,
-            formattedBalance: tokenBalance.formattedBalance,
-            symbol: tokenBalance.symbol || 'Unknown',
-            name: tokenBalance.name || 'Unknown Token',
-            metadata: tokenBalance
-          });
-        }
-      }
-
-      return lpTokens;
-    } catch (error) {
-      console.error('Error getting bot LP token balances:', error);
-      return [];
-    }
-  }, [getUserBalances]);
 
   const needsFunding = useCallback((bot: BotConfig) => {
     if (bot.isExample) return false;
@@ -418,21 +454,40 @@ export default function BotsSettings() {
     return stxBalance === 0;
   }, [getBotStxBalance]);
 
+  // Check if user has ALL required LP tokens
+  const userHasAllLpTokens = useCallback(() => {
+    if (!address) return false;
+
+    const userLpTokens = getUserLpTokens(address);
+    const userTokenContracts = userLpTokens.map(token => token.contractId);
+
+    return YIELD_FARMING_LP_TOKENS.every(contractId => userTokenContracts.includes(contractId));
+  }, [getUserLpTokens, address]);
+
   const needsLpTokens = useCallback((bot: BotConfig) => {
     if (bot.isExample || bot.strategy !== 'yield-farming') return false;
 
-    // Check if user has any LP tokens
-    const userLpTokens = getUserLpTokens(address || '');
-    return userLpTokens.length === 0;
-  }, [getUserLpTokens, address]);
+    // Check if user has ALL required LP tokens
+    return !userHasAllLpTokens();
+  }, [userHasAllLpTokens]);
 
-  // Check if a bot has LP tokens for yield farming
-  const botHasLpTokens = useCallback((bot: BotConfig) => {
-    if (bot.isExample || bot.strategy !== 'yield-farming') return false;
+  // Get missing LP tokens for a bot (excluding recently sent ones)
+  const getMissingLpTokens = useCallback((bot: BotConfig) => {
+    if (bot.isExample || bot.strategy !== 'yield-farming') return [];
 
     const botLpTokens = getBotLpTokens(bot.walletAddress);
-    return botLpTokens.length > 0;
-  }, [getBotLpTokens]);
+    const botTokenContracts = botLpTokens.map(token => token.contractId);
+    const recentlySent = recentlySentTokens[bot.id] || [];
+
+    return YIELD_FARMING_LP_TOKENS.filter(contractId => 
+      !botTokenContracts.includes(contractId) && !recentlySent.includes(contractId)
+    );
+  }, [getBotLpTokens, recentlySentTokens]);
+
+  // Check if a token was recently sent to a bot
+  const wasRecentlySent = useCallback((botId: string, contractId: string) => {
+    return (recentlySentTokens[botId] || []).includes(contractId);
+  }, [recentlySentTokens]);
 
   // Calculate maximum LP token amount for $10 cap
   const getMaxLpTokenAmount = useCallback((contractId: string, userBalance: number) => {
@@ -591,6 +646,20 @@ export default function BotsSettings() {
           id: 'lp-transfer',
           description: `${token?.symbol} sent to ${bot.name}`
         });
+        
+        // Add to recently sent tokens for immediate UI feedback
+        setRecentlySentTokens(prev => ({
+          ...prev,
+          [botId]: [...(prev[botId] || []), contractId]
+        }));
+        
+        // Remove from recently sent after 30 seconds (enough time for potential confirmation)
+        setTimeout(() => {
+          setRecentlySentTokens(prev => ({
+            ...prev,
+            [botId]: (prev[botId] || []).filter(id => id !== contractId)
+          }));
+        }, 30000);
       }
     } catch (error) {
       console.error('Failed to initiate LP token transfer:', error);
@@ -627,7 +696,7 @@ export default function BotsSettings() {
     const withdrawAmount = tokenToWithdraw.balance;
 
     setWithdrawingBot(botId);
-    
+
     try {
       const response = await signedFetch(`/api/bots/${botId}/withdraw`, {
         message: address,
@@ -649,14 +718,14 @@ export default function BotsSettings() {
       }
 
       const result = await response.json();
-      
+
       toast.success(`Withdrawal broadcast! Transaction: ${result.txid?.substring(0, 8)}...`);
-      
+
       // Refresh activity data
       if (activityModalBot === botId) {
         fetchBotActivity(botId);
       }
-      
+
     } catch (error) {
       console.error('Failed to withdraw LP tokens:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to withdraw LP tokens');
@@ -920,6 +989,19 @@ export default function BotsSettings() {
                                     Ready
                                   </Badge>
                                 );
+                              } else {
+                                // Check for partial setup
+                                const botLpTokens = getBotLpTokens(bot.walletAddress);
+                                const missingTokens = getMissingLpTokens(bot);
+
+                                if (botLpTokens.length > 0) {
+                                  return (
+                                    <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      {3 - missingTokens.length}/3 Setup
+                                    </Badge>
+                                  );
+                                }
                               }
                             }
                             return bot.isExample ? (
@@ -1043,6 +1125,19 @@ export default function BotsSettings() {
                                       LP Ready
                                     </Badge>
                                   );
+                                } else {
+                                  // Check for partial setup
+                                  const botLpTokens = getBotLpTokens(bot.walletAddress);
+                                  const missingTokens = getMissingLpTokens(bot);
+
+                                  if (botLpTokens.length > 0) {
+                                    return (
+                                      <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30 shrink-0">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        {3 - missingTokens.length}/3 LP Setup
+                                      </Badge>
+                                    );
+                                  }
                                 }
                               }
                               return bot.isExample ? (
@@ -1179,69 +1274,141 @@ export default function BotsSettings() {
                           <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center mx-auto mb-4">
                             <AlertTriangle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                           </div>
-                          <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Need LP Tokens</h4>
+                          <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Need All LP Tokens</h4>
                           <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                            You need LP tokens for yield farming. Get some first via swap to send the LP tokens to your bot.
+                            Yield farming requires ALL 3 LP token types. Get them via swap to activate your bot.
                           </p>
+
+                          <div className="space-y-2 mb-4">
+                            {(() => {
+                              const userLpTokens = getUserLpTokens(address || '');
+                              const userTokenContracts = userLpTokens.map(t => t.contractId);
+
+                              const tokenNames = {
+                                'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow': 'SXC',
+                                'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1': 'DEX',
+                                'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit': 'POV'
+                              };
+
+                              return YIELD_FARMING_LP_TOKENS.map(contractId => {
+                                const hasToken = userTokenContracts.includes(contractId);
+                                const tokenSymbol = tokenNames[contractId as keyof typeof tokenNames] || 'Unknown';
+
+                                return (
+                                  <div key={contractId} className="flex items-center gap-2 text-sm">
+                                    <div className={`w-2 h-2 rounded-full ${hasToken ? 'bg-green-400' : 'bg-red-400'}`} />
+                                    <span className={hasToken ? 'text-green-600 dark:text-green-400' : 'text-blue-700 dark:text-blue-300'}>
+                                      {tokenSymbol} {hasToken ? '✓' : '(missing)'}
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+
                           <div className="flex flex-col gap-2">
                             <Button
                               onClick={() => window.open('/swap', '_blank')}
                               className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                             >
-                              Get LP Tokens
+                              Get Missing LP Tokens
                             </Button>
-                            <p className="text-xs text-blue-600 dark:text-blue-400">
-                              Required: SXC, DEX or POV tokens
-                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* LP Token Available Overlay for Yield Farming */}
-                  {!needsFunding(bot) && !needsLpTokens(bot) && bot.strategy === 'yield-farming' && !botHasLpTokens(bot) && (() => {
-                    const userLpTokens = getUserLpTokens(address || '');
-                    return userLpTokens.length > 0;
-                  })() && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
-                        <div className="bg-green-50 dark:bg-green-950/80 border border-green-200 dark:border-green-800/50 rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
-                          <div className="text-center">
-                            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/50 border border-green-200 dark:border-green-800/50 flex items-center justify-center mx-auto mb-4">
-                              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                            </div>
-                            <h4 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">Send LP Tokens</h4>
-                            <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-                              You have LP tokens! Send some to your bot for yield farming.
-                            </p>
-                            <div className="flex flex-col gap-2">
-                              {(() => {
-                                const userLpTokens = getUserLpTokens(address || '');
-                                const firstToken = userLpTokens[0];
-                                if (!firstToken) return null;
-
-                                const maxAmount = getMaxLpTokenAmount(firstToken.contractId, firstToken.formattedBalance);
-                                const usdValue = prices?.[firstToken.contractId]?.price ?
-                                  (maxAmount * prices[firstToken.contractId].price).toFixed(2) : '?';
-
-                                return (
-                                  <Button
-                                    onClick={() => handleSendLpTokens(bot.id, firstToken.contractId, maxAmount)}
-                                    disabled={sendingLpTokens === bot.id}
-                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium disabled:opacity-50"
-                                  >
-                                    {sendingLpTokens === bot.id ? 'Sending...' : `Send ${firstToken.symbol} (~$${usdValue})`}
-                                  </Button>
-                                );
-                              })()}
-                              <p className="text-xs text-green-600 dark:text-green-400">
-                                Available: {getUserLpTokens(address || '').map(t => t.symbol).join(', ')}
-                              </p>
-                            </div>
+                  {/* Multi-Token Setup Overlay for Yield Farming */}
+                  {!needsFunding(bot) && userHasAllLpTokens() && bot.strategy === 'yield-farming' && !botHasLpTokens(bot) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
+                      <div className="bg-green-50 dark:bg-green-950/95 border border-green-200 dark:border-green-800/50 rounded-lg p-6 shadow-xl max-w-md mx-4 backdrop-blur-md">
+                        <div className="text-center mb-4">
+                          <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/50 border border-green-200 dark:border-green-800/50 flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                           </div>
+                          <h4 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">Setup LP Tokens</h4>
+                          <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                            Send all 3 LP token types to your bot for optimal yield farming.
+                          </p>
                         </div>
+
+                        <div className="space-y-3 mb-4">
+                          {(() => {
+                            const userLpTokens = getUserLpTokens(address || '');
+                            const missingTokens = getMissingLpTokens(bot);
+
+                            return YIELD_FARMING_LP_TOKENS.map(contractId => {
+                              const userToken = userLpTokens.find(t => t.contractId === contractId);
+                              const botHasThis = !missingTokens.includes(contractId);
+                              const recentlySent = wasRecentlySent(bot.id, contractId);
+
+                              if (!userToken) return null;
+
+                              const maxAmount = getMaxLpTokenAmount(contractId, userToken.formattedBalance);
+                              const usdValue = prices?.[contractId]?.price ?
+                                (maxAmount * prices[contractId].price).toFixed(2) : '?';
+
+                              // Determine status: confirmed > recently sent > missing
+                              let statusColor = 'bg-gray-400';
+                              let statusText = `Send (~$${usdValue})`;
+                              let showButton = true;
+
+                              if (botHasThis) {
+                                statusColor = 'bg-green-400';
+                                statusText = '✓ Confirmed';
+                                showButton = false;
+                              } else if (recentlySent) {
+                                statusColor = 'bg-yellow-400';
+                                statusText = '⏳ Broadcasting...';
+                                showButton = false;
+                              }
+
+                              return (
+                                <div key={contractId} className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${statusColor}`} />
+                                    <span className="text-sm font-medium text-white">{userToken.symbol}</span>
+                                  </div>
+                                  {showButton && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSendLpTokens(bot.id, contractId, maxAmount)}
+                                      disabled={sendingLpTokens === bot.id}
+                                      className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1"
+                                    >
+                                      {sendingLpTokens === bot.id ? 'Sending...' : statusText}
+                                    </Button>
+                                  )}
+                                  {!showButton && (
+                                    <span className={`text-xs ${botHasThis ? 'text-green-400' : 'text-yellow-400'}`}>
+                                      {statusText}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+
+                        <p className="text-xs text-green-600 dark:text-green-400 text-center">
+                          {(() => {
+                            const missing = getMissingLpTokens(bot).length;
+                            const recentlySent = (recentlySentTokens[bot.id] || []).length;
+                            const confirmed = getBotLpTokens(bot.walletAddress).length;
+                            
+                            if (missing === 0 && recentlySent === 0) {
+                              return "All tokens confirmed!";
+                            } else if (recentlySent > 0) {
+                              return `${missing} missing, ${recentlySent} broadcasting, ${confirmed} confirmed`;
+                            } else {
+                              return `${missing} of 3 tokens remaining`;
+                            }
+                          })()}
+                        </p>
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1266,27 +1433,27 @@ export default function BotsSettings() {
             <div>
               <h4 className="font-medium text-white/95 mb-2">About Yield Farming Bots</h4>
               <p className="text-sm text-white/70 mb-4">
-                The more LP tokens you hold, the faster you generate reward tokens which can be harvested every fast block. 
-                Because of this fast cycle, it makes sense to have a bot do it automatically. 
-                Send LP tokens directly to your bot to increase its harvesting rate, or use the guided interface to get setup.
+                The more LP tokens you hold, the faster you generate reward tokens which can be harvested every fast block.
+                Because of this fast cycle, it makes sense to have a bot do it automatically.
+                Bots require ALL 3 LP token types (SXC, DEX, POV) to activate and begin automated farming.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <h5 className="font-medium text-white/90 mb-2">How It Works:</h5>
+                  <h5 className="font-medium text-white/90 mb-2">Requirements:</h5>
                   <ul className="space-y-1 text-white/60">
-                    <li>• More LP tokens = faster rewards</li>
-                    <li>• Harvests every fast block automatically</li>
-                    <li>• Runs every hour when active</li>
-                    <li>• Uses STX in bot wallet as gas</li>
+                    <li>• All 3 LP token types required</li>
+                    <li>• SXC, DEX, and POV tokens</li>
+                    <li>• STX for transaction fees</li>
+                    <li>• Automated hourly execution</li>
                   </ul>
                 </div>
                 <div>
-                  <h5 className="font-medium text-white/90 mb-2">Setup Options:</h5>
+                  <h5 className="font-medium text-white/90 mb-2">Setup Process:</h5>
                   <ul className="space-y-1 text-white/60">
-                    <li>• Send LP tokens directly to bot</li>
-                    <li>• Use guided interface</li>
-                    <li>• Isolated wallet per bot</li>
-                    <li>• Real-time activity monitoring</li>
+                    <li>• Create bot with guided setup</li>
+                    <li>• Fund bot wallet with STX</li>
+                    <li>• Send all 3 LP token types</li>
+                    <li>• Activate for automated farming</li>
                   </ul>
                 </div>
               </div>
@@ -1304,12 +1471,12 @@ export default function BotsSettings() {
               Withdraw LP Tokens
             </DialogTitle>
           </DialogHeader>
-          
+
           {withdrawalConfirmBot && (() => {
             const bot = userBots.find(b => b.id === withdrawalConfirmBot);
             const lpTokens = bot ? getBotLpTokens(bot.walletAddress) : [];
             const tokenToWithdraw = lpTokens[0]; // First LP token
-            
+
             return (
               <div className="space-y-4">
                 <div className="text-center">
@@ -1344,8 +1511,8 @@ export default function BotsSettings() {
                 )}
 
                 <div className="flex justify-end gap-3">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     onClick={() => setWithdrawalConfirmBot(null)}
                     className="text-white/70"
                   >
@@ -1401,17 +1568,17 @@ export default function BotsSettings() {
                           activity.status === 'failure' ? 'bg-red-400' : 'bg-yellow-400'
                           }`} />
                         <span className="text-sm font-medium text-white/90">
-                          {activity.action === 'yield-farming' ? 'Yield Farming' : 
-                           activity.action === 'withdraw-lp-tokens' ? 'LP Token Withdrawal' : 
-                           activity.action}
+                          {activity.action === 'yield-farming' ? 'Yield Farming' :
+                            activity.action === 'withdraw-lp-tokens' ? 'LP Token Withdrawal' :
+                              activity.action}
                         </span>
                         <Badge className={`text-xs ${activity.status === 'success' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                           activity.status === 'failure' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
                             'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                           }`}>
-                          {activity.status === 'pending' ? 'Broadcasting...' : 
-                           activity.status === 'success' ? 'Confirmed' : 
-                           activity.status === 'failure' ? 'Failed' : activity.status}
+                          {activity.status === 'pending' ? 'Broadcasting...' :
+                            activity.status === 'success' ? 'Confirmed' :
+                              activity.status === 'failure' ? 'Failed' : activity.status}
                         </Badge>
                       </div>
                       <span className="text-xs text-white/50">
