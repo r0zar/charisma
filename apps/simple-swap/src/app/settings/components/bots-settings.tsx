@@ -37,8 +37,13 @@ const YIELD_FARMING_LP_TOKENS = [
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow',
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1',
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit',
-  // Add more contract IDs as needed
 ];
+
+// Reward token from yield farming
+const REWARD_TOKEN = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl';
+
+// All withdrawable tokens (LP tokens + reward token)
+const WITHDRAWABLE_TOKENS = [...YIELD_FARMING_LP_TOKENS, REWARD_TOKEN];
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -140,6 +145,13 @@ export default function BotsSettings() {
     userIds: botWalletAddresses.length > 0 ? botWalletAddresses : [],
   });
 
+  // Helper function to calculate USD value
+  const calculateUsdValue = useCallback((contractId: string, formattedBalance: number): string => {
+    if (!prices || !prices[contractId]?.price) return '~';
+    const usdValue = formattedBalance * prices[contractId].price;
+    return `$${usdValue.toFixed(2)}`;
+  }, [prices]);
+
   // Helper functions that need to be defined before useEffects
   const getBotStxBalance = useCallback((walletAddress: string): number => {
     if (!walletAddress || !getUserBalances) return 0;
@@ -210,6 +222,37 @@ export default function BotsSettings() {
     }
   }, [getUserBalances]);
 
+  // Get all withdrawable tokens from bot (LP tokens + reward tokens)
+  const getBotWithdrawableTokens = useCallback((walletAddress: string) => {
+    if (!walletAddress || !getUserBalances) return [];
+
+    try {
+      const balances = getUserBalances(walletAddress);
+      const withdrawableTokens = [];
+
+      for (const contractId of WITHDRAWABLE_TOKENS) {
+        const tokenBalance = balances[contractId];
+        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+          const isRewardToken = contractId === REWARD_TOKEN;
+          withdrawableTokens.push({
+            contractId,
+            balance: tokenBalance.balance,
+            formattedBalance: tokenBalance.formattedBalance,
+            symbol: tokenBalance.symbol || (isRewardToken ? 'HOOTER' : 'Unknown'),
+            name: tokenBalance.name || (isRewardToken ? 'Hooter the Owl' : 'Unknown Token'),
+            metadata: tokenBalance,
+            type: isRewardToken ? 'reward' : 'lp'
+          });
+        }
+      }
+
+      return withdrawableTokens;
+    } catch (error) {
+      console.error('Error getting bot withdrawable token balances:', error);
+      return [];
+    }
+  }, [getUserBalances]);
+
   // Check if a bot has ALL required LP tokens for yield farming
   const botHasLpTokens = useCallback((bot: BotConfig) => {
     if (bot.isExample || bot.strategy !== 'yield-farming') return false;
@@ -229,6 +272,19 @@ export default function BotsSettings() {
       loadUserBots();
     }
   }, [address]);
+
+  // Refresh balances when page loads to ensure we have latest reward tokens
+  useEffect(() => {
+    if (botWalletAddresses.length > 0 && refreshBalances) {
+      // Small delay to ensure balance subscriptions are established
+      const timer = setTimeout(() => {
+        console.log('🔄 Initial refresh for bot wallets to load latest reward tokens');
+        refreshBalances(botWalletAddresses);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [botWalletAddresses, refreshBalances]);
 
   // Show examples only if user has no real bots
   useEffect(() => {
@@ -685,41 +741,72 @@ export default function BotsSettings() {
       return;
     }
 
-    const lpTokens = getBotLpTokens(bot.walletAddress);
-    if (lpTokens.length === 0) {
-      toast.error('No LP tokens found in bot wallet');
+    const withdrawableTokens = getBotWithdrawableTokens(bot.walletAddress);
+    if (withdrawableTokens.length === 0) {
+      toast.error('No withdrawable tokens found in bot wallet');
       return;
     }
-
-    // For now, withdraw all of the first LP token type
-    const tokenToWithdraw = lpTokens[0];
-    const withdrawAmount = tokenToWithdraw.balance;
 
     setWithdrawingBot(botId);
 
     try {
-      const response = await signedFetch(`/api/bots/${botId}/withdraw`, {
-        message: address,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userAddress: address,
-          contractId: tokenToWithdraw.contractId,
-          amount: withdrawAmount,
-          recipient: address // Withdraw to user's address
-        }),
-      });
+      // Withdraw all tokens sequentially
+      let successCount = 0;
+      let errorCount = 0;
+      const results = [];
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to withdraw LP tokens');
+      for (const token of withdrawableTokens) {
+        try {
+          toast.loading(`Withdrawing ${token.symbol}...`, { id: `withdraw-${token.contractId}` });
+
+          const response = await signedFetch(`/api/bots/${botId}/withdraw`, {
+            message: address,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userAddress: address,
+              contractId: token.contractId,
+              amount: token.balance,
+              recipient: address // Withdraw to user's address
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to withdraw LP tokens');
+          }
+
+          const result = await response.json();
+          results.push({ token: token.symbol, txid: result.txid, success: true });
+          successCount++;
+
+          toast.success(`${token.symbol} withdrawal broadcast! TX: ${result.txid?.substring(0, 8)}...`, {
+            id: `withdraw-${token.contractId}`
+          });
+
+        } catch (tokenError) {
+          console.error(`Failed to withdraw ${token.symbol}:`, tokenError);
+          errorCount++;
+          results.push({ token: token.symbol, error: tokenError.message, success: false });
+
+          toast.error(`Failed to withdraw ${token.symbol}: ${tokenError instanceof Error ? tokenError.message : 'Unknown error'}`, {
+            id: `withdraw-${token.contractId}`
+          });
+        }
       }
 
-      const result = await response.json();
-
-      toast.success(`Withdrawal broadcast! Transaction: ${result.txid?.substring(0, 8)}...`);
+      // Show summary
+      if (successCount > 0 && errorCount === 0) {
+        toast.success(`All ${successCount} tokens withdrawal broadcast successfully!`, {
+          description: 'Check activity tab for transaction status'
+        });
+      } else if (successCount > 0) {
+        toast.success(`${successCount} of ${withdrawableTokens.length} tokens withdrawn successfully`, {
+          description: `${errorCount} withdrawals failed - check activity for details`
+        });
+      }
 
       // Refresh activity data
       if (activityModalBot === botId) {
@@ -728,7 +815,9 @@ export default function BotsSettings() {
 
     } catch (error) {
       console.error('Failed to withdraw LP tokens:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to withdraw LP tokens');
+      toast.error('Withdrawal process failed', {
+        description: error instanceof Error ? error.message : 'Please try again'
+      });
     } finally {
       setWithdrawingBot(null);
     }
@@ -1043,7 +1132,7 @@ export default function BotsSettings() {
                               >
                                 <History className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
-                              {getBotLpTokens(bot.walletAddress).length > 0 && (
+                              {getBotWithdrawableTokens(bot.walletAddress).length > 0 && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -1211,7 +1300,7 @@ export default function BotsSettings() {
                             >
                               <History className="w-4 h-4" />
                             </Button>
-                            {getBotLpTokens(bot.walletAddress).length > 0 && (
+                            {getBotWithdrawableTokens(bot.walletAddress).length > 0 && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -1311,8 +1400,19 @@ export default function BotsSettings() {
                               onClick={() => window.open('/swap', '_blank')}
                               className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                             >
-                              Get Missing LP Tokens
+                              Swap for LP Tokens
                             </Button>
+                            <Button
+                              onClick={() => window.open('https://invest.charisma.rocks', '_blank')}
+                              variant="outline"
+                              className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            >
+                              Add Liquidity on Charisma
+                            </Button>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                              <strong>Swap:</strong> Trade existing tokens for LP tokens<br />
+                              <strong>Add Liquidity:</strong> Provide liquidity to earn LP tokens
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1474,8 +1574,9 @@ export default function BotsSettings() {
 
           {withdrawalConfirmBot && (() => {
             const bot = userBots.find(b => b.id === withdrawalConfirmBot);
-            const lpTokens = bot ? getBotLpTokens(bot.walletAddress) : [];
-            const tokenToWithdraw = lpTokens[0]; // First LP token
+            const withdrawableTokens = bot ? getBotWithdrawableTokens(bot.walletAddress) : [];
+            const lpTokens = withdrawableTokens.filter(t => t.type === 'lp');
+            const rewardTokens = withdrawableTokens.filter(t => t.type === 'reward');
 
             return (
               <div className="space-y-4">
@@ -1483,32 +1584,123 @@ export default function BotsSettings() {
                   <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mx-auto mb-4">
                     <ArrowUpLeft className="w-8 h-8 text-purple-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white/95 mb-2">Confirm Withdrawal</h3>
+                  <h3 className="text-lg font-semibold text-white/95 mb-2">Withdraw All Tokens</h3>
                   <p className="text-sm text-white/60 mb-4">
-                    This will withdraw all LP tokens from your bot back to your wallet.
+                    This will withdraw all {withdrawableTokens.length} tokens from your bot back to your wallet.
                   </p>
                 </div>
 
-                {tokenToWithdraw && (
+                {withdrawableTokens.length > 0 && (
                   <div className="bg-white/[0.02] rounded-lg p-4 border border-white/[0.05]">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Token:</span>
-                        <span className="text-white/90">{tokenToWithdraw.symbol}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">Amount:</span>
-                        <span className="text-white/90">{(tokenToWithdraw.balance / 1000000).toFixed(6)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/60">To:</span>
-                        <span className="text-white/90 font-mono text-xs">
-                          {address?.slice(0, 6)}...{address?.slice(-6)}
-                        </span>
+                    <div className="space-y-3">
+                      {lpTokens.length > 0 && (
+                        <>
+                          <div className="text-sm text-white/60 mb-2">LP Tokens:</div>
+                          {lpTokens.map((token) => (
+                            <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-white/[0.05] last:border-b-0">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  {token.metadata?.image ? (
+                                    <img 
+                                      src={token.metadata.image} 
+                                      alt={token.symbol}
+                                      className="w-8 h-8 rounded-full bg-white/10"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div className={`w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center ${token.metadata?.image ? 'hidden' : 'flex'}`}>
+                                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                                  </div>
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-white/90 font-medium text-sm">{token.symbol}</span>
+                                  <span className="text-xs text-white/50">LP Token</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-white/90 text-sm">{(token.balance / 1000000).toFixed(6)}</div>
+                                <div className="text-white/60 text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      
+                      {rewardTokens.length > 0 && (
+                        <>
+                          {lpTokens.length > 0 && <div className="border-t border-white/[0.05] pt-2" />}
+                          <div className="text-sm text-white/60 mb-2">Reward Tokens:</div>
+                          {rewardTokens.map((token) => (
+                            <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-white/[0.05] last:border-b-0">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  {token.metadata?.image ? (
+                                    <img 
+                                      src={token.metadata.image} 
+                                      alt={token.symbol}
+                                      className="w-8 h-8 rounded-full bg-white/10"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div className={`w-8 h-8 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center ${token.metadata?.image ? 'hidden' : 'flex'}`}>
+                                    <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                                  </div>
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-white/90 font-medium text-sm">{token.symbol}</span>
+                                  <span className="text-xs text-yellow-400">Reward Token</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-white/90 text-sm">{(token.balance / 1000000).toFixed(6)}</div>
+                                <div className="text-white/60 text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      
+                      <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+                        <div className="flex justify-between">
+                          <span className="text-white/60 text-sm">Total Value:</span>
+                          <span className="text-white/90 text-sm font-medium">
+                            {(() => {
+                              const totalValue = withdrawableTokens.reduce((sum, token) => {
+                                const tokenPrice = prices?.[token.contractId]?.price || 0;
+                                return sum + (token.formattedBalance * tokenPrice);
+                              }, 0);
+                              return totalValue > 0 ? `$${totalValue.toFixed(2)}` : '~';
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white/60 text-sm">Recipient:</span>
+                          <span className="text-white/90 font-mono text-xs">
+                            {address?.slice(0, 6)}...{address?.slice(-6)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
+
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-yellow-300 font-medium">Multiple Transactions</p>
+                      <p className="text-xs text-yellow-400 mt-1">
+                        Each token requires a separate transaction. You'll need to approve {withdrawableTokens.length} transactions.
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="flex justify-end gap-3">
                   <Button
@@ -1528,7 +1720,7 @@ export default function BotsSettings() {
                     disabled={withdrawingBot === withdrawalConfirmBot}
                     className="bg-purple-500 hover:bg-purple-600 text-white"
                   >
-                    {withdrawingBot === withdrawalConfirmBot ? 'Withdrawing...' : 'Withdraw LP Tokens'}
+                    {withdrawingBot === withdrawalConfirmBot ? 'Withdrawing...' : `Withdraw All ${withdrawableTokens.length} Tokens`}
                   </Button>
                 </div>
               </div>

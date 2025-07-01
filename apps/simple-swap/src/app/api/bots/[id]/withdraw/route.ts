@@ -27,6 +27,12 @@ const WITHDRAWABLE_LP_TOKENS = [
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.perseverantia-omnia-vincit'
 ];
 
+// Reward token from yield farming
+const REWARD_TOKEN = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl';
+
+// All withdrawable tokens (LP tokens + reward token)
+const WITHDRAWABLE_TOKENS = [...WITHDRAWABLE_LP_TOKENS, REWARD_TOKEN];
+
 interface WithdrawRequest {
   userAddress: string;
   contractId: string;
@@ -58,7 +64,7 @@ export async function POST(
     }
 
     // Validate contract ID is withdrawable
-    if (!WITHDRAWABLE_LP_TOKENS.includes(contractId)) {
+    if (!WITHDRAWABLE_TOKENS.includes(contractId)) {
       return NextResponse.json(
         { error: 'Contract not supported for withdrawal' },
         { status: 400 }
