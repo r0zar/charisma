@@ -66,31 +66,9 @@ const createTokenCacheData = (token: TokenBalanceData): TokenCacheData => ({
 export default function PortfolioSettings() {
   const { address, connected, watchedAddresses, addWatchedAddresses } = useWallet();
   
-  // Get BlazeProvider data for connected wallet
-  const connectedWalletBlaze = useBlaze({ userId: address });
-  
-  // Get BlazeProvider data for watched wallets
-  const watchedWalletsBlaze = watchedAddresses.map(addr => 
-    useBlaze({ userId: addr })
-  );
-  
-  // Combine all blaze data
-  const { balances, prices, isConnected, lastUpdate } = connectedWalletBlaze;
-  
-  // Create a unified getUserBalances function that works with all wallets
-  const getUserBalances = (walletAddress: string) => {
-    if (walletAddress === address) {
-      return connectedWalletBlaze.getUserBalances(walletAddress);
-    }
-    
-    // Find the corresponding watched wallet blaze instance
-    const watchedIndex = watchedAddresses.indexOf(walletAddress);
-    if (watchedIndex >= 0 && watchedWalletsBlaze[watchedIndex]) {
-      return watchedWalletsBlaze[watchedIndex].getUserBalances(walletAddress);
-    }
-    
-    return {};
-  };
+  // Get BlazeProvider data for all wallets (connected + watched)
+  const allWalletIds = [address, ...watchedAddresses].filter(Boolean);
+  const { balances, prices, isConnected, lastUpdate, getUserBalances } = useBlaze({ userIds: allWalletIds });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedToken, setSelectedToken] = useState<TokenBalanceData | null>(null);

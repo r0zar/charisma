@@ -12,8 +12,8 @@ import { getBalanceKey, isSubnetToken, getTokenFamily } from '../utils/token-uti
 
 interface BlazeContextType extends BlazeData {
   // Internal subscription management
-  _subscribeToUserBalances: (userId: string) => void;
-  _unsubscribeFromUserBalances: () => void;
+  _subscribeToUserBalances: (userIds: string[]) => void;
+  _unsubscribeFromUserBalances: (userIds?: string[]) => void;
 }
 
 const BlazeContext = createContext<BlazeContextType | undefined>(undefined);
@@ -32,8 +32,8 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [initialPricesLoaded, setInitialPricesLoaded] = useState(false);
 
-  // Track current balance subscriptions
-  const currentUserSubscription = useRef<string | null>(null);
+  // Track current balance subscriptions - support multiple users
+  const subscribedUsers = useRef<Set<string>>(new Set());
 
   // Determine host based on environment
   const isDev = typeof window !== 'undefined' &&
@@ -48,7 +48,6 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     room: 'main',
     party: 'prices',
     onOpen: () => {
-      console.log('✅ BlazeProvider: Connected to prices server');
       setIsConnected(true);
       // Subscribe to all prices
       if (pricesSocket) {
@@ -60,7 +59,6 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
       }
     },
     onClose: () => {
-      console.log('🔌 BlazeProvider: Disconnected from prices server');
       setIsConnected(false);
     },
     onMessage: (event) => {
@@ -96,7 +94,6 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
             break;
 
           case 'SERVER_INFO':
-            console.log('BlazeProvider: Prices server info:', data);
             break;
 
           case 'ERROR':
@@ -104,7 +101,6 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
             break;
         }
       } catch (error) {
-        console.error('BlazeProvider: Error parsing prices message:', error);
       }
     }
   });
@@ -115,18 +111,16 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     room: 'main',
     party: 'balances',
     onOpen: () => {
-      console.log('✅ BlazeProvider: Connected to balances server');
-      // Re-subscribe to current user if we have one
-      if (currentUserSubscription.current && balancesSocket) {
+      // Re-subscribe to all users if we have any
+      if (subscribedUsers.current.size > 0 && balancesSocket) {
         balancesSocket.send(JSON.stringify({
           type: 'SUBSCRIBE',
-          userIds: [currentUserSubscription.current],
+          userIds: Array.from(subscribedUsers.current),
           clientId: 'blaze-provider'
         }));
       }
     },
     onClose: () => {
-      console.log('🔌 BlazeProvider: Disconnected from balances server');
     },
     onMessage: (event) => {
       try {
@@ -198,7 +192,6 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
             break;
 
           case 'BALANCE_BATCH':
-            console.log('📊 BlazeProvider: Received BALANCE_BATCH:', data);
             if (data.balances && Array.isArray(data.balances)) {
               setBalances(prev => {
                 const updatedBalances = { ...prev };
@@ -261,17 +254,14 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
                   }
                 });
                 
-                console.log(`📊 BlazeProvider: Processed ${data.balances.length} balance entries with subnet merging`);
                 return updatedBalances;
               });
               setLastUpdate(Date.now());
             } else {
-              console.warn('📊 BlazeProvider: BALANCE_BATCH received but no valid balances array');
             }
             break;
 
           case 'SERVER_INFO':
-            console.log('BlazeProvider: Balances server info:', data);
             break;
 
           case 'ERROR':
@@ -279,7 +269,6 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
             break;
         }
       } catch (error) {
-        console.error('BlazeProvider: Error parsing balances message:', error);
       }
     }
   });
@@ -332,49 +321,58 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   }, [balances]);
 
   // Internal function to manage balance subscriptions (memoized)
-  const subscribeToUserBalances = useCallback((userId: string) => {
-    // Defensive checks
-    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-      console.warn('⚠️ BlazeProvider: Cannot subscribe - invalid userId provided:', userId);
-      return;
-    }
+  const subscribeToUserBalances = useCallback((userIds: string[]) => {
+    const validUserIds = userIds
+      .filter(id => id && typeof id === 'string' && id.trim() !== '')
+      .map(id => id.trim());
+    
+    if (validUserIds.length === 0) return;
 
-    const trimmedUserId = userId.trim();
-    if (currentUserSubscription.current === trimmedUserId) return;
+    // Add new users to subscription set
+    const newUsers: string[] = [];
+    validUserIds.forEach(userId => {
+      if (!subscribedUsers.current.has(userId)) {
+        subscribedUsers.current.add(userId);
+        newUsers.push(userId);
+      }
+    });
 
-    // Unsubscribe from previous user if any
-    if (currentUserSubscription.current && balancesSocket) {
+    // Only send subscription for new users
+    if (newUsers.length > 0 && balancesSocket && balancesSocket.readyState === WebSocket.OPEN) {
       balancesSocket.send(JSON.stringify({
-        type: 'UNSUBSCRIBE',
-        userIds: [currentUserSubscription.current],
+        type: 'SUBSCRIBE',
+        userIds: newUsers,
         clientId: 'blaze-provider'
       }));
-    }
-
-    // Subscribe to new user
-    currentUserSubscription.current = trimmedUserId;
-    if (balancesSocket && balancesSocket.readyState === WebSocket.OPEN) {
-      const subscribeMessage = {
-        type: 'SUBSCRIBE',
-        userIds: [trimmedUserId],
-        clientId: 'blaze-provider'
-      };
-      balancesSocket.send(JSON.stringify(subscribeMessage));
-      console.log(`📊 BlazeProvider: Subscribed to balances for user: ${trimmedUserId}`, subscribeMessage);
-    } else {
-      console.warn(`⚠️ BlazeProvider: Cannot subscribe to balances - socket not ready. State: ${balancesSocket?.readyState}`);
     }
   }, [balancesSocket]);
 
-  const unsubscribeFromUserBalances = useCallback(() => {
-    if (currentUserSubscription.current && balancesSocket) {
-      balancesSocket.send(JSON.stringify({
-        type: 'UNSUBSCRIBE',
-        userIds: [currentUserSubscription.current],
-        clientId: 'blaze-provider'
-      }));
-      console.log(`📊 BlazeProvider: Unsubscribed from balances for user: ${currentUserSubscription.current}`);
-      currentUserSubscription.current = null;
+  const unsubscribeFromUserBalances = useCallback((userIds?: string[]) => {
+    if (!userIds) {
+      // Unsubscribe from all users
+      if (subscribedUsers.current.size > 0 && balancesSocket) {
+        balancesSocket.send(JSON.stringify({
+          type: 'UNSUBSCRIBE',
+          userIds: Array.from(subscribedUsers.current),
+          clientId: 'blaze-provider'
+        }));
+        subscribedUsers.current.clear();
+      }
+    } else {
+      // Unsubscribe from specific users
+      const validUserIds = userIds
+        .filter(id => id && typeof id === 'string' && id.trim() !== '')
+        .map(id => id.trim())
+        .filter(id => subscribedUsers.current.has(id));
+      
+      if (validUserIds.length > 0 && balancesSocket) {
+        validUserIds.forEach(userId => subscribedUsers.current.delete(userId));
+        balancesSocket.send(JSON.stringify({
+          type: 'UNSUBSCRIBE',
+          userIds: validUserIds,
+          clientId: 'blaze-provider'
+        }));
+      }
     }
   }, [balancesSocket]);
 
@@ -400,7 +398,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
 }
 
 // Custom hook to use the Blaze context with configuration
-export function useBlaze(config?: BlazeConfig): BlazeData {
+export function useBlaze(config?: BlazeConfig & { userIds?: string[] }): BlazeData {
   const context = useContext(BlazeContext);
 
   if (context === undefined) {
@@ -409,22 +407,20 @@ export function useBlaze(config?: BlazeConfig): BlazeData {
 
   // Handle balance subscription based on config
   useEffect(() => {
-    // Only subscribe if userId is a non-empty string
-    if (config?.userId && typeof config.userId === 'string' && config.userId.trim() !== '') {
-      context._subscribeToUserBalances(config.userId);
-    } else {
-      // Unsubscribe if userId is null, undefined, empty string, or invalid
-      context._unsubscribeFromUserBalances();
+    const userIds = config?.userIds || (config?.userId ? [config.userId] : []);
+    const validUserIds = userIds.filter(id => id && typeof id === 'string' && id.trim() !== '');
+    
+    if (validUserIds.length > 0) {
+      context._subscribeToUserBalances(validUserIds);
     }
 
-    // Cleanup on unmount or userId change
+    // Cleanup on unmount - unsubscribe from these specific users
     return () => {
-      if (config?.userId && typeof config.userId === 'string' && config.userId.trim() !== '') {
-        // Don't unsubscribe on unmount - let other components continue using the subscription
-        // Only unsubscribe when userId actually changes or is removed
+      if (validUserIds.length > 0) {
+        context._unsubscribeFromUserBalances(validUserIds);
       }
     };
-  }, [config?.userId, context]); // Include context to ensure we have the latest functions
+  }, [config?.userId, config?.userIds, context]);
 
   return context;
 }
