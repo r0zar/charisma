@@ -39,14 +39,14 @@ export async function GET(
         }
 
         // Add HTTP caching headers for light caching
-        headers.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800'); // 10min fresh, 30min stale
-        headers.set('CDN-Cache-Control', 'public, s-maxage=600'); // CDN cache for 10 minutes
-        
+        headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400'); // 1hr fresh, 24hrs stale
+        headers.set('CDN-Cache-Control', 'public, s-maxage=3600'); // CDN cache for 1hr
+
         // Add ETag for conditional requests (using lastUpdated if available)
         if (metadata.lastUpdated) {
             const etag = `"${Buffer.from(metadata.lastUpdated).toString('base64')}"`;
             headers.set('ETag', etag);
-            
+
             // Check if client has fresh version
             const ifNoneMatch = req.headers.get('if-none-match');
             if (ifNoneMatch === etag) {
@@ -126,11 +126,11 @@ export async function POST(
 
         const body = await request.json();
         const result = await MetadataService.set(contractId, body);
-        
+
         // Add cache invalidation headers for POST
         headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         headers.set('Expires', '0');
-        
+
         return NextResponse.json(result, { headers });
 
     } catch (err) {
@@ -182,11 +182,11 @@ export async function DELETE(
         }
 
         await MetadataService.delete(contractId);
-        
+
         // Add cache invalidation headers for DELETE
         headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         headers.set('Expires', '0');
-        
+
         return NextResponse.json({
             success: true,
             message: `Metadata for ${contractId} has been deleted`,
