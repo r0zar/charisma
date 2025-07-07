@@ -7,7 +7,7 @@
     "crons": [
         {
             "path": "/api/v1/cron/energy-data",
-            "schedule": "* * * * *"
+            "schedule": "0 * * * *"
         },
         {
             "path": "/api/cron/update-reserves",

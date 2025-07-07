@@ -6,7 +6,7 @@
         },
         {
             "path": "/api/cron/price",
-            "schedule": "*/1 * * * *"
+            "schedule": "0 * * * *"
         },
         {
             "path": "/api/cron/orders",
@@ -14,15 +14,15 @@
         },
         {
             "path": "/api/cron/fiat",
-            "schedule": "*/1 * * * *"
+            "schedule": "*/10 * * * *"
         },
         {
             "path": "/api/cron/perps-monitor",
-            "schedule": "*/1 * * * *"
+            "schedule": "0 * * * *"
         },
         {
             "path": "/api/cron/margin-sync",
-            "schedule": "*/5 * * * *"
+            "schedule": "5 * * * *"
         },
         {
             "path": "/api/cron/transaction-monitor",
@@ -30,7 +30,7 @@
         },
         {
             "path": "/api/cron/twitter-triggers",
-            "schedule": "*/3 * * * *"
+            "schedule": "*/30 * * * *"
         },
         {
             "path": "/api/cron/yield-farmers",
