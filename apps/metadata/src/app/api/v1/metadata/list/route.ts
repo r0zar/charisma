@@ -13,6 +13,10 @@ export async function GET(req: NextRequest) {
         // List tokens, filtered by principal if provided
         const tokens = await MetadataService.list(principal || undefined);
 
+        // Add HTTP caching headers - shorter cache for list since it changes more frequently
+        headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900'); // 5min fresh, 15min stale
+        headers.set('CDN-Cache-Control', 'public, s-maxage=300'); // CDN cache for 5 minutes
+
         return NextResponse.json({
             success: true,
             metadata: tokens
@@ -29,5 +33,6 @@ export async function GET(req: NextRequest) {
 export async function OPTIONS(req: NextRequest) {
     const headers = generateCorsHeaders(req, 'GET, OPTIONS');
     headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+    headers.set('Cache-Control', 'public, max-age=86400'); // Cache preflight for 24 hours
     return new NextResponse(null, { status: 204, headers });
 } 

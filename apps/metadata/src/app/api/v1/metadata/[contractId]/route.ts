@@ -37,6 +37,23 @@ export async function GET(
                 { status: 404, headers }
             );
         }
+
+        // Add HTTP caching headers for light caching
+        headers.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800'); // 10min fresh, 30min stale
+        headers.set('CDN-Cache-Control', 'public, s-maxage=600'); // CDN cache for 10 minutes
+        
+        // Add ETag for conditional requests (using lastUpdated if available)
+        if (metadata.lastUpdated) {
+            const etag = `"${Buffer.from(metadata.lastUpdated).toString('base64')}"`;
+            headers.set('ETag', etag);
+            
+            // Check if client has fresh version
+            const ifNoneMatch = req.headers.get('if-none-match');
+            if (ifNoneMatch === etag) {
+                return new NextResponse(null, { status: 304, headers });
+            }
+        }
+
         return NextResponse.json(metadata, { headers });
     } catch (err) {
         console.error(`Error fetching metadata for ${contractId}:`, err);
@@ -51,6 +68,7 @@ export async function GET(
 export async function OPTIONS(req: NextRequest) {
     const headers = generateCorsHeaders(req, 'GET, POST, DELETE, OPTIONS');
     headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+    headers.set('Cache-Control', 'public, max-age=86400'); // Cache preflight for 24 hours
     return new NextResponse(null, { status: 204, headers });
 }
 
@@ -108,6 +126,11 @@ export async function POST(
 
         const body = await request.json();
         const result = await MetadataService.set(contractId, body);
+        
+        // Add cache invalidation headers for POST
+        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        headers.set('Expires', '0');
+        
         return NextResponse.json(result, { headers });
 
     } catch (err) {
@@ -159,6 +182,11 @@ export async function DELETE(
         }
 
         await MetadataService.delete(contractId);
+        
+        // Add cache invalidation headers for DELETE
+        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        headers.set('Expires', '0');
+        
         return NextResponse.json({
             success: true,
             message: `Metadata for ${contractId} has been deleted`,

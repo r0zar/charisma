@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
-import { kv } from "@vercel/kv";
 import { getPriceGraph } from '@/lib/pricing/price-graph';
 import { getMultipleTokenPrices } from '@/lib/pricing/price-calculator';
 import { listVaultTokens, listVaults, getLpTokenMetadata } from '@/lib/pool-service';
-
-// Cache keys and durations for SWR strategy - Extended for bandwidth optimization
-const PRICES_API_CACHE_KEY = 'prices-api-response-v2';
-const PRICES_API_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes (fresh cache duration)
-const PRICES_API_STALE_DURATION_MS = 15 * 60 * 1000; // 15 minutes stale-while-revalidate
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -65,61 +59,10 @@ export async function GET(request: Request) {
         const minConfidence = parseFloat(url.searchParams.get('minConfidence') || '0');
         const symbols = url.searchParams.get('symbols')?.split(',').map(s => s.trim()) || [];
 
-        // Create simplified cache key based on essential parameters only
-        const cacheKeyParams = `${limit}-${includeDetails}-${minConfidence > 0 ? 'hc' : 'all'}`;
-        const cacheKey = `${PRICES_API_CACHE_KEY}:${cacheKeyParams}`;
+        console.log('[Prices API] Generating fresh price data (HTTP caching enabled)...');
 
-        console.log('[Prices API] Checking cache for fast response...');
-        
-        // Try to get cached response first (SWR strategy)
-        try {
-            const cachedResponse = await kv.get(cacheKey);
-            if (cachedResponse && typeof cachedResponse === 'object') {
-                const cached = cachedResponse as { data: any; timestamp: number };
-                const age = Date.now() - cached.timestamp;
-                
-                // Return fresh cached data immediately
-                if (age < PRICES_API_CACHE_DURATION_MS) {
-                    console.log(`[Prices API] Serving fresh cached response (${age}ms old)`);
-                    return NextResponse.json({
-                        ...cached.data,
-                        metadata: {
-                            ...cached.data.metadata,
-                            servedFromCache: true,
-                            cacheAge: age
-                        }
-                    }, { status: 200, headers });
-                }
-                
-                // Return stale data (removed aggressive background revalidation for bandwidth optimization)
-                if (age < PRICES_API_STALE_DURATION_MS) {
-                    console.log(`[Prices API] Serving stale cached response (${age}ms old), will update on next request`);
-                    
-                    return NextResponse.json({
-                        ...cached.data,
-                        metadata: {
-                            ...cached.data.metadata,
-                            servedFromCache: true,
-                            cacheAge: age,
-                            revalidating: false // No immediate background revalidation
-                        }
-                    }, { status: 200, headers });
-                }
-            }
-        } catch (cacheError) {
-            console.warn('[Prices API] Cache lookup failed, proceeding with fresh calculation:', cacheError);
-        }
-
-        // Generate fresh data and cache it
+        // Generate fresh data - no Redis caching, rely on HTTP headers
         const freshData = await generatePriceData(url, limit, includeDetails, minConfidence, symbols);
-        
-        // Cache the response for future requests
-        try {
-            await kv.set(cacheKey, { data: freshData, timestamp: Date.now() }, { ex: Math.ceil(PRICES_API_STALE_DURATION_MS / 1000) });
-            console.log('[Prices API] Fresh response cached successfully');
-        } catch (cacheError) {
-            console.warn('[Prices API] Failed to cache response:', cacheError);
-        }
 
         return NextResponse.json(freshData, { status: 200, headers });
 

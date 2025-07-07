@@ -8,8 +8,8 @@ const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': '*, X-Requested-With, Content-Type, Authorization',
     'Content-Type': 'application/json',
-    // Cache for 30 seconds on CDN, stale-while-revalidate for 60 seconds
-    'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
+    // Extended cache for bandwidth optimization: 5min fresh, 15min stale
+    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900'
 };
 
 export async function OPTIONS() {
