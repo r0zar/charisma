@@ -178,8 +178,25 @@ export async function runEnergyDataProcessingForAllContracts(): Promise<{
     const now = Date.now();
     const lastRun = await kv.get<number>(getCronLastRunKey()) || 0;
     const timeSinceLastRun = now - lastRun;
+    const MIN_ENERGY_UPDATE_INTERVAL = 45 * 60 * 1000; // 45 minutes minimum
 
     console.log(`🔄 Energy data processing V2 starting. Last run: ${new Date(lastRun).toISOString()} (${timeSinceLastRun / 1000 / 60} minutes ago)`);
+    
+    // Skip if we've run too recently (bandwidth optimization)
+    if (lastRun && timeSinceLastRun < MIN_ENERGY_UPDATE_INTERVAL) {
+        console.log(`⏭️  Skipping energy data processing - last run was ${Math.round(timeSinceLastRun / 1000 / 60)} minutes ago (minimum: 45 min)`);
+        return {
+            success: true,
+            timestamp: now,
+            duration: 0,
+            results: [{
+                contractId: 'skipped',
+                success: true,
+                logsCount: 0,
+                error: `Skipped - ran ${Math.round(timeSinceLastRun / 1000 / 60)} minutes ago`
+            }]
+        };
+    }
 
     let contractsToMonitor = await kv.get<string[]>(getEnergyContractsKey());
 
@@ -206,7 +223,7 @@ export async function runEnergyDataProcessingForAllContracts(): Promise<{
                 console.log(`📊 Processing energy analytics V2 for ${contractId}`);
                 const data: EnergyAnalyticsData = await processAllEnergyDataV2(contractId, undefined);
                 const cacheKey = getEnergyAnalyticsCacheKey(contractId);
-                await kv.set(cacheKey, data, { ex: 60 * 60 * 2 }); // 2 hour expiration
+                await kv.set(cacheKey, data, { ex: 60 * 60 * 4 }); // 4 hour expiration (extended for bandwidth optimization)
                 console.log(`✅ Successfully processed ${data.logs.length} logs for ${contractId}`);
                 return {
                     contractId,

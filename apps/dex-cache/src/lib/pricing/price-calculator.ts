@@ -15,10 +15,10 @@ const TOKEN_PRICE_CACHE_PREFIX = 'token-price:';
 const BULK_PRICE_CACHE_KEY = 'bulk-token-prices';
 const PRICE_CALCULATION_CACHE_PREFIX = 'price-calc:';
 
-// Cache durations
-const TOKEN_PRICE_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 10 * 1000 : 5 * 60 * 1000; // 10 seconds in dev, 5 minutes in prod
-const BULK_PRICE_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 10 * 1000 : 5 * 60 * 1000; // 10 seconds in dev, 5 minutes in prod  
-const PRICE_CALCULATION_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 5 * 1000 : 60 * 1000; // 5 seconds in dev, 1 minute in prod
+// Cache durations - Extended for bandwidth optimization
+const TOKEN_PRICE_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 2 * 60 * 1000 : 15 * 60 * 1000; // 2 minutes in dev, 15 minutes in prod
+const BULK_PRICE_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 3 * 60 * 1000 : 20 * 60 * 1000; // 3 minutes in dev, 20 minutes in prod  
+const PRICE_CALCULATION_CACHE_DURATION_MS = process.env.NODE_ENV === 'development' ? 30 * 1000 : 5 * 60 * 1000; // 30 seconds in dev, 5 minutes in prod
 
 export interface TokenPriceData {
     tokenId: string;

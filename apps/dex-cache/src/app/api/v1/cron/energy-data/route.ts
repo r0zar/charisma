@@ -72,7 +72,7 @@ export async function POST(request: Request) {
         console.log(`POST: Processing analytics V2 for newly added contract ${contractId}`);
         const data = await processAllEnergyData(contractId, undefined);
         const cacheKey = getEnergyAnalyticsCacheKey(contractId);
-        await kv.set(cacheKey, data, { ex: 60 * 60 * 2 });
+        await kv.set(cacheKey, data, { ex: 60 * 60 * 4 }); // 4 hour expiration (aligned with updated duration)
 
         return NextResponse.json({
             success: true,

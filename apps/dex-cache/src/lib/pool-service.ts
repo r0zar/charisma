@@ -49,12 +49,24 @@ export interface Vault {
 // Cache constants
 export const VAULT_CACHE_KEY_PREFIX = "dex-vault:"; // New prefix constant
 export const VAULT_BLACKLIST_KEY = "vault-blacklist:dex"; // Blacklist key for vaults
-const RESERVE_CACHE_DURATION_MS = 30 * 1000; // 30 seconds
-const PRICING_RESERVE_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes for pricing calculations
+// Extended cache durations for bandwidth optimization
+const RESERVE_CACHE_DURATION_MS = 2 * 60 * 1000; // 2 minutes (was 30 seconds)
+const PRICING_RESERVE_CACHE_DURATION_MS = 10 * 60 * 1000; // 10 minutes for pricing calculations (was 5 minutes)
 const MIN_RESERVE_VALUE_TO_BE_VALID = 1; // Minimum value for a reserve to be considered valid
+const MIN_RESERVE_CHANGE_THRESHOLD = 0.01; // Only update if reserves change by more than 1% for bandwidth optimization
 
 // Define an extended Vault type for internal use with timestamp
 type CachedVault = Vault & { reservesLastUpdatedAt?: number };
+
+// Helper function to check if reserves have changed significantly
+function hasSignificantReserveChange(oldA: number, oldB: number, newA: number, newB: number): boolean {
+    if (!oldA || !oldB || !newA || !newB) return true; // Always update if we don't have old data
+    
+    const changeA = Math.abs(newA - oldA) / oldA;
+    const changeB = Math.abs(newB - oldB) / oldB;
+    
+    return changeA > MIN_RESERVE_CHANGE_THRESHOLD || changeB > MIN_RESERVE_CHANGE_THRESHOLD;
+}
 
 // Helper to get the list of managed vault IDs
 export const getManagedVaultIds = async (): Promise<string[]> => {
@@ -214,10 +226,18 @@ async function fetchAndUpdateReserves(cachedVault: CachedVault, forPricing = fal
             const liveReservesB = dyValue !== null ? Number(dyValue) : (dxValue !== undefined ? Number(dxValue) : null);
 
             if (liveReservesA !== null && liveReservesB !== null && !isNaN(liveReservesA) && !isNaN(liveReservesB) && liveReservesA > 0 && liveReservesB > 0) {
-                cachedVault.reservesA = liveReservesA;
-                cachedVault.reservesB = liveReservesB;
-                cachedVault.reservesLastUpdatedAt = now;
-                reservesUpdated = true;
+                // Only update if reserves have changed significantly (bandwidth optimization)
+                if (hasSignificantReserveChange(cachedVault.reservesA || 0, cachedVault.reservesB || 0, liveReservesA, liveReservesB)) {
+                    console.log(`[PoolService] Significant reserve change detected for ${contractId}, updating cache`);
+                    cachedVault.reservesA = liveReservesA;
+                    cachedVault.reservesB = liveReservesB;
+                    cachedVault.reservesLastUpdatedAt = now;
+                    reservesUpdated = true;
+                } else {
+                    console.log(`[PoolService] Reserves for ${contractId} changed <1%, skipping cache update for bandwidth optimization`);
+                    cachedVault.reservesLastUpdatedAt = now; // Update timestamp to prevent immediate retry
+                    reservesUpdated = true; // Mark as updated to skip backup method
+                }
             } else {
                 console.warn(`Invalid or incomplete reserves structure from quote for ${contractId}:`, reservesResult);
                 // Set error to indicate primary method failed structurally, even if no exception was thrown

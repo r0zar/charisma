@@ -4,18 +4,18 @@ import { getPriceGraph } from '@/lib/pricing/price-graph';
 import { getMultipleTokenPrices } from '@/lib/pricing/price-calculator';
 import { listVaultTokens, listVaults, getLpTokenMetadata } from '@/lib/pool-service';
 
-// Cache keys and durations for SWR strategy
+// Cache keys and durations for SWR strategy - Extended for bandwidth optimization
 const PRICES_API_CACHE_KEY = 'prices-api-response-v2';
-const PRICES_API_CACHE_DURATION_MS = 90 * 1000; // 90 seconds (slightly longer than CDN cache)
-const PRICES_API_STALE_DURATION_MS = 300 * 1000; // 5 minutes stale-while-revalidate
+const PRICES_API_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes (fresh cache duration)
+const PRICES_API_STALE_DURATION_MS = 15 * 60 * 1000; // 15 minutes stale-while-revalidate
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': '*, X-Requested-With, Content-Type, Authorization',
     'Content-Type': 'application/json',
-    // SWR: Fresh for 60s, stale-but-valid for 5 minutes, background revalidation
-    'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+    // SWR: Fresh for 5min, stale-but-valid for 15 minutes, background revalidation
+    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900'
 };
 
 /**
@@ -65,8 +65,8 @@ export async function GET(request: Request) {
         const minConfidence = parseFloat(url.searchParams.get('minConfidence') || '0');
         const symbols = url.searchParams.get('symbols')?.split(',').map(s => s.trim()) || [];
 
-        // Create cache key based on request parameters
-        const cacheKeyParams = `${limit}-${includeDetails}-${minConfidence}-${symbols.join(',')}`;
+        // Create simplified cache key based on essential parameters only
+        const cacheKeyParams = `${limit}-${includeDetails}-${minConfidence > 0 ? 'hc' : 'all'}`;
         const cacheKey = `${PRICES_API_CACHE_KEY}:${cacheKeyParams}`;
 
         console.log('[Prices API] Checking cache for fast response...');
@@ -91,21 +91,9 @@ export async function GET(request: Request) {
                     }, { status: 200, headers });
                 }
                 
-                // Return stale data while revalidating in background
+                // Return stale data (removed aggressive background revalidation for bandwidth optimization)
                 if (age < PRICES_API_STALE_DURATION_MS) {
-                    console.log(`[Prices API] Serving stale cached response (${age}ms old), triggering background revalidation`);
-                    
-                    // Fire-and-forget background revalidation
-                    setImmediate(async () => {
-                        try {
-                            console.log('[Prices API] Background revalidation started');
-                            const freshData = await generatePriceData(url, limit, includeDetails, minConfidence, symbols);
-                            await kv.set(cacheKey, { data: freshData, timestamp: Date.now() }, { ex: Math.ceil(PRICES_API_STALE_DURATION_MS / 1000) });
-                            console.log('[Prices API] Background revalidation completed');
-                        } catch (error) {
-                            console.error('[Prices API] Background revalidation failed:', error);
-                        }
-                    });
+                    console.log(`[Prices API] Serving stale cached response (${age}ms old), will update on next request`);
                     
                     return NextResponse.json({
                         ...cached.data,
@@ -113,7 +101,7 @@ export async function GET(request: Request) {
                             ...cached.data.metadata,
                             servedFromCache: true,
                             cacheAge: age,
-                            revalidating: true
+                            revalidating: false // No immediate background revalidation
                         }
                     }, { status: 200, headers });
                 }

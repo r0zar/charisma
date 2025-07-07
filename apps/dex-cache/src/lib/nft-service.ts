@@ -43,9 +43,9 @@ const NFT_CONTRACTS = {
     ]
 };
 
-// Cache for NFT balance results
+// Cache for NFT balance results - Extended for bandwidth optimization
 const balanceCache = new Map<string, NFTBonuses>();
-const CACHE_DURATION = 30 * 1000; // 30 seconds
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (was 30 seconds)
 
 // Clear cache function for debugging
 export function clearNFTBonusCache() {

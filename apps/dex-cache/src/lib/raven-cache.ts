@@ -23,8 +23,8 @@ const ravenCache: RavenCache = {
     isUpdating: false
 };
 
-// Cache settings
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+// Cache settings - Extended for bandwidth optimization
+const CACHE_DURATION = 2 * 60 * 60 * 1000; // 2 hours (was 30 minutes)
 const MAX_RAVEN_ID = 100;
 const BATCH_SIZE = 5; // Smaller batches to avoid rate limiting
 const REQUEST_DELAY = 150; // 150ms delay between requests

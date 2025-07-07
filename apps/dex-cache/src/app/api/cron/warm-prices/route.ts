@@ -4,14 +4,13 @@ import { priceCalculator } from '@/lib/pricing/price-calculator';
 
 // Import the generatePriceData function from our prices API
 const PRICES_API_CACHE_KEY = 'prices-api-response-v2';
-const PRICES_API_STALE_DURATION_MS = 300 * 1000; // 5 minutes stale-while-revalidate
+const PRICES_API_STALE_DURATION_MS = 15 * 60 * 1000; // 15 minutes stale-while-revalidate (aligned with API cache)
 
-// Common API parameter combinations to warm
+// Reduced cache warming configurations for bandwidth optimization  
 const CACHE_WARMING_CONFIGS = [
     { limit: 50, includeDetails: true, minConfidence: 0, symbols: [] },
-    { limit: 100, includeDetails: true, minConfidence: 0, symbols: [] },
-    { limit: 50, includeDetails: false, minConfidence: 0, symbols: [] },
-    { limit: 50, includeDetails: true, minConfidence: 0.6, symbols: [] }
+    { limit: 50, includeDetails: false, minConfidence: 0, symbols: [] }
+    // Removed redundant configs: limit 100 and high confidence filter to reduce bandwidth
 ];
 
 /**

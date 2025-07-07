@@ -28,9 +28,9 @@ const BTC_PRICE_CACHE_KEY = 'btc-price';
 const BTC_PRICE_BACKUP_KEY = 'btc-price-backup';
 const BTC_ORACLE_HEALTH_KEY = 'btc-oracle-health';
 
-// Cache durations
-const BTC_PRICE_CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-const BTC_PRICE_STALE_DURATION_MS = 30 * 1000; // 30 seconds stale-while-revalidate
+// Cache durations - Extended for bandwidth optimization
+const BTC_PRICE_CACHE_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const BTC_PRICE_STALE_DURATION_MS = 2 * 60 * 1000; // 2 minutes stale-while-revalidate
 const BTC_ORACLE_TIMEOUT_MS = 10 * 1000; // 10 seconds timeout per API call
 
 export interface BtcPriceData {
