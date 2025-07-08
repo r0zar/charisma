@@ -38,20 +38,6 @@ enum WizardStep {
     REVIEW_DEPLOY = 3,
 }
 
-// Token type - REMOVE LOCAL Token interface, use TokenCacheData from @repo/tokens
-// interface Token {
-//     symbol: string;
-//     name: string;
-//     address: string; 
-//     description?: string;
-//     image?: string;
-//     decimals?: number;
-//     isSubnet?: boolean;
-//     isLpToken?: boolean;
-//     total_supply?: string | null;
-//     identifier?: string; 
-// }
-
 // Contract Stepper Component
 const ContractStepper = ({ currentStep }: { currentStep: WizardStep }) => {
     return (
@@ -117,16 +103,9 @@ function LiquidityPoolWizard() {
     const [token2Symbol, setToken2Symbol] = useState<string>(""); // Changed from token2 to token2Symbol for clarity
     const [token1Details, setToken1Details] = useState<TokenCacheData | null>(null); // Use TokenCacheData
     const [token2Details, setToken2Details] = useState<TokenCacheData | null>(null); // Use TokenCacheData
-    // token1Address and token2Address can be derived from token1Details/token2Details.contractId
-    // const [token1Address, setToken1Address] = useState<string>("");
-    // const [token2Address, setToken2Address] = useState<string>("");
     const [poolName, setPoolName] = useState("");
     const [lpTokenSymbol, setLpTokenSymbol] = useState("");
     const [swapFee, setSwapFee] = useState<string>("0.3"); // Default fee (0.3%)
-
-    // Remove token1Image, token2Image, use token1Details.image directly
-    // const [token1Image, setToken1Image] = useState<string | undefined>(undefined);
-    // const [token2Image, setToken2Image] = useState<string | undefined>(undefined);
 
     const [initialTokenRatio, setInitialTokenRatio] = useState({
         token1Amount: 0,
@@ -137,10 +116,6 @@ function LiquidityPoolWizard() {
     const [token1UsdPrice, setToken1UsdPrice] = useState<number | null>(null);
     const [token2UsdPrice, setToken2UsdPrice] = useState<number | null>(null);
     const [pricesLoading, setPricesLoading] = useState<boolean>(false);
-
-    const [postConditions, setPostConditions] = useState<PostCondition[]>([]);
-    const [isUnlimitedAllowanceToken1, setIsUnlimitedAllowanceToken1] = useState(false);
-    const [isUnlimitedAllowanceToken2, setIsUnlimitedAllowanceToken2] = useState(false);
 
     useEffect(() => {
         const isValid = !!metadata && !!metadata.name;
@@ -835,9 +810,7 @@ function LiquidityPoolWizard() {
     const handleSelectToken1 = (selectedToken: TokenCacheData) => { // Expect TokenCacheData
         console.log("Selected token 1:", selectedToken);
         setToken1Symbol(selectedToken.symbol || "");
-        // setToken1Address(selectedToken.contractId); // No longer needed, use selectedToken.contractId directly
         setToken1Details(selectedToken); // Store full TokenCacheData
-        // setToken1Image(findTokenImage(selectedToken.symbol || "", selectedToken.contractId)); // No longer needed
 
         if (!token2Symbol || !poolName) { // Use token2Symbol
             setPoolName(`${selectedToken.symbol || 'TKN'} Liquidity Pool`);
@@ -847,9 +820,7 @@ function LiquidityPoolWizard() {
     const handleSelectToken2 = (selectedToken: TokenCacheData) => { // Expect TokenCacheData
         console.log("Selected token 2:", selectedToken);
         setToken2Symbol(selectedToken.symbol || "");
-        // setToken2Address(selectedToken.contractId); // No longer needed
         setToken2Details(selectedToken); // Store full TokenCacheData
-        // setToken2Image(findTokenImage(selectedToken.symbol || "", selectedToken.contractId)); // No longer needed
 
         if (token1Symbol) { // Use token1Symbol
             setPoolName(`${token1Symbol}-${selectedToken.symbol || 'TKN'} Liquidity Pool`);

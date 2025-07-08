@@ -315,8 +315,6 @@ export async function forceRefreshToken(contractId: string): Promise<{ success: 
 }
 
 export async function updateCachedTokenData(contractId: string, newData: any): Promise<{ success: boolean, error?: string }> {
-    'use server';
-
     if (!contractId || typeof contractId !== 'string') {
         return { success: false, error: 'Invalid Contract ID provided.' };
     }
@@ -340,7 +338,13 @@ export async function updateCachedTokenData(contractId: string, newData: any): P
             throw new Error('Data must be a valid JSON object or array.');
         }
 
-        await kv.set(cacheKey, newData);
+        // Get existing cached data first
+        const existingData = await kv.get<any>(cacheKey);
+
+        // Merge the new data with existing data, with new data taking precedence
+        const mergedData = existingData ? { ...existingData, ...newData } : newData;
+
+        await kv.set(cacheKey, mergedData);
         console.log(`Cache updated successfully for ${contractId}`);
         return { success: true };
     } catch (error: any) {

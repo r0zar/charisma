@@ -210,13 +210,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTokensError(null);
         try {
             // Call listTokens from @repo/tokens
-            console.log("Calling listTokens() from @repo/tokens...");
             const allTokens = await listTokens(); // Assuming listTokens fetches all, not just user's
-            console.log("listTokens() success. Data:", allTokens);
+
+            const uniqueTokens = allTokens.filter((token, index, self) =>
+                index === self.findIndex((t) => t.contractId === token.contractId)
+            );
 
             // Set the tokens state with the result
-            setTokens(allTokens);
-            console.log("fetchTokens: Set tokens state.");
+            setTokens(uniqueTokens);
         } catch (error) {
             console.error('Error fetching tokens via listTokens:', error);
             setTokensError('Failed to fetch tokens using shared client');

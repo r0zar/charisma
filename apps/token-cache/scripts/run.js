@@ -2,7 +2,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, mkdirSync, createWriteStream } from 'fs';
 import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -10,6 +10,32 @@ const __dirname = dirname(__filename);
 
 // Load environment variables from various .env files
 const projectRoot = join(__dirname, '..');
+const logsDir = join(projectRoot, 'logs');
+
+// Ensure logs directory exists
+if (!existsSync(logsDir)) {
+    mkdirSync(logsDir, { recursive: true });
+}
+
+// Function to create log file name with timestamp
+function createLogFileName(scriptName) {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '-');
+    return `${scriptName}-${timestamp}.log`;
+}
+
+// Function to create a write stream for logging
+function createLogStream(scriptName) {
+    const logFileName = createLogFileName(scriptName);
+    const logFilePath = join(logsDir, logFileName);
+    return createWriteStream(logFilePath, { flags: 'w' });
+}
+
+// Function to log to both console and file
+function logToFile(logStream, message) {
+    console.log(message);
+    logStream.write(message + '\n');
+}
 const envFiles = [
     '.env.local',
     '.env.development.local', 
@@ -18,17 +44,22 @@ const envFiles = [
 ];
 
 let envLoaded = false;
+let envMessages = [];
 envFiles.forEach(envFile => {
     const envPath = join(projectRoot, envFile);
     if (existsSync(envPath)) {
         dotenv.config({ path: envPath });
-        console.log(`📁 Loaded environment from: ${envFile}`);
+        const message = `📁 Loaded environment from: ${envFile}`;
+        console.log(message);
+        envMessages.push(message);
         envLoaded = true;
     }
 });
 
 if (!envLoaded) {
-    console.log('⚠️  No .env files found');
+    const message = '⚠️  No .env files found';
+    console.log(message);
+    envMessages.push(message);
 }
 
 const scriptName = process.argv[2];
@@ -73,11 +104,20 @@ if (!existsSync(scriptPath) && !existsSync(tsScriptPath)) {
 // Set script arguments in process.argv for the script to access
 process.argv = ['node', scriptPath, ...scriptArgs];
 
-console.log(`🚀 Running script: ${scriptName}`);
-if (scriptArgs.length > 0) {
-    console.log(`📝 Arguments: ${scriptArgs.join(' ')}`);
+// Create log stream for this script run
+const logStream = createLogStream(scriptName);
+
+// Log environment messages
+envMessages.forEach(message => logStream.write(message + '\n'));
+if (envMessages.length > 0) {
+    logStream.write('\n');
 }
-console.log('');
+
+logToFile(logStream, `🚀 Running script: ${scriptName}`);
+if (scriptArgs.length > 0) {
+    logToFile(logStream, `📝 Arguments: ${scriptArgs.join(' ')}`);
+}
+logToFile(logStream, '');
 
 // Dynamically import and run the script
 try {
@@ -85,18 +125,62 @@ try {
         // Use tsx to run TypeScript files
         const { spawn } = await import('child_process');
         const result = spawn('npx', ['tsx', tsScriptPath, ...scriptArgs], {
-            stdio: 'inherit',
+            stdio: 'pipe',
             cwd: join(__dirname, '..'),
             env: { ...process.env } // Pass all environment variables
         });
         
+        // Pipe stdout to both console and log file
+        result.stdout.on('data', (data) => {
+            const output = data.toString();
+            process.stdout.write(output);
+            logStream.write(output);
+        });
+        
+        // Pipe stderr to both console and log file
+        result.stderr.on('data', (data) => {
+            const output = data.toString();
+            process.stderr.write(output);
+            logStream.write(output);
+        });
+        
         result.on('exit', (code) => {
+            logToFile(logStream, `\n📊 Script completed with exit code: ${code || 0}`);
+            logToFile(logStream, `📁 Log saved to: ${logStream.path}`);
+            logStream.end();
             process.exit(code || 0);
         });
     } else {
+        // For JavaScript files, we need to capture console output
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        console.log = (...args) => {
+            const message = args.join(' ');
+            originalConsoleLog(message);
+            logStream.write(message + '\n');
+        };
+        
+        console.error = (...args) => {
+            const message = args.join(' ');
+            originalConsoleError(message);
+            logStream.write(message + '\n');
+        };
+        
         await import(`file://${scriptPath}`);
+        
+        // Restore original console methods
+        console.log = originalConsoleLog;
+        console.error = originalConsoleError;
+        
+        logToFile(logStream, `\n📊 Script completed successfully`);
+        logToFile(logStream, `📁 Log saved to: ${logStream.path}`);
+        logStream.end();
     }
 } catch (error) {
-    console.error('❌ Error running script:', error.message);
+    const errorMessage = `❌ Error running script: ${error.message}`;
+    console.error(errorMessage);
+    logStream.write(errorMessage + '\n');
+    logStream.end();
     process.exit(1);
 }

@@ -48,9 +48,9 @@ async function fixMissingImages() {
     console.log(`🎯 Targeting ${problematicTokens.length} specific tokens for image fixes`);
     console.log('');
 
-    const cryptonomicon = new Cryptonomicon({ 
+    const cryptonomicon = new Cryptonomicon({
         debug: false,
-        apiKey: process.env.HIRO_API_KEY 
+        apiKey: process.env.HIRO_API_KEY
     });
 
     const results: FixResult[] = [];
@@ -63,7 +63,7 @@ async function fixMissingImages() {
             // Step 1: Check current cache state
             console.log('  📋 Checking current cache state...');
             const beforeData = await getTokenData(contractId, false);
-            
+
             const beforeState = {
                 hasImage: !!(beforeData?.image && beforeData.image.trim() !== ''),
                 imageUrl: beforeData?.image || null,
@@ -79,12 +79,12 @@ async function fixMissingImages() {
             // Step 2: Check what fresh metadata would provide
             console.log('  🔍 Checking enhanced metadata generation...');
             const freshData = await cryptonomicon.getTokenMetadata(contractId);
-            
+
             if (freshData) {
                 const freshHasImage = !!(freshData.image && freshData.image.trim() !== '');
                 const freshHasDescription = !!(freshData.description && freshData.description.trim() !== '');
                 console.log(`     Fresh - Image: ${freshHasImage ? '✅' : '❌'}, Description: ${freshHasDescription ? '✅' : '❌'}`);
-                
+
                 if (freshData.image) {
                     console.log(`     Fresh image: ${freshData.image.substring(0, 60)}...`);
                 }
@@ -93,21 +93,21 @@ async function fixMissingImages() {
             }
 
             // Step 3: Force refresh if cache is missing data that fresh generation has
-            if (freshData && 
-                ((!beforeState.hasImage && freshData.image) || 
-                 (!beforeState.hasDescription && freshData.description))) {
-                
+            if (freshData &&
+                ((!beforeState.hasImage && freshData.image) ||
+                    (!beforeState.hasDescription && freshData.description))) {
+
                 console.log('  🔄 Cache missing data that fresh generation provides - forcing refresh...');
-                
+
                 const refreshResult = await refreshTokenData(contractId);
-                
+
                 if (refreshResult.success) {
                     console.log('  ✅ Refresh completed successfully');
-                    
+
                     // Step 4: Verify the fix worked
                     console.log('  🔍 Verifying cache update...');
                     await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay for cache propagation
-                    
+
                     const afterData = await getTokenData(contractId, false);
                     const afterState = {
                         success: true,
@@ -122,9 +122,9 @@ async function fixMissingImages() {
                         console.log(`     New image: ${afterState.imageUrl.substring(0, 60)}...`);
                     }
 
-                    const fixed = (!beforeState.hasImage && afterState.hasImage) || 
-                                 (!beforeState.hasDescription && afterState.hasDescription) ||
-                                 (afterState.score > beforeState.score);
+                    const fixed = (!beforeState.hasImage && afterState.hasImage) ||
+                        (!beforeState.hasDescription && afterState.hasDescription) ||
+                        (afterState.score > beforeState.score);
 
                     results.push({
                         contractId,
@@ -135,7 +135,7 @@ async function fixMissingImages() {
 
                     if (fixed) {
                         console.log('  🎉 SUCCESS: Token metadata improved!');
-                        const improvements = [];
+                        const improvements: string[] = [];
                         if (!beforeState.hasImage && afterState.hasImage) improvements.push('Added image');
                         if (!beforeState.hasDescription && afterState.hasDescription) improvements.push('Added description');
                         if (afterState.score > beforeState.score) improvements.push(`Score +${afterState.score - beforeState.score}`);
@@ -205,7 +205,7 @@ async function fixMissingImages() {
     // Final Report
     console.log('📊 FIX RESULTS SUMMARY');
     console.log('═'.repeat(60));
-    
+
     const successful = results.filter(r => r.fixed);
     const failed = results.filter(r => !r.fixed && r.afterRefresh.error);
     const noChangeNeeded = results.filter(r => !r.fixed && !r.afterRefresh.error);
@@ -250,7 +250,7 @@ async function fixMissingImages() {
         console.log('4. 🛠️  Consider alternative approaches for persistent failures');
     }
     console.log('5. 🔄 Run full ecosystem validation to identify any remaining issues');
-    
+
     console.log('');
     console.log('✨ Targeted image fix completed!');
 }

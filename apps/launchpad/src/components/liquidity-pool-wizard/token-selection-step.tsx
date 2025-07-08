@@ -48,6 +48,44 @@ export const TokenSelectionStep = ({
         setImageErrors(prev => ({ ...prev, [contractId]: true }));
     };
 
+    // Function to check if an image URL is valid for Next.js Image component
+    const isValidImageUrl = (url: string): boolean => {
+        if (!url) return false;
+        
+        // Data URIs are valid for img tags but not for Next.js Image component
+        if (url.startsWith('data:')) return false;
+        
+        // IPFS URLs need special handling
+        if (url.startsWith('ipfs://')) return false;
+        
+        // Try to construct a URL to check if it's valid
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    // Function to convert image URLs to usable format
+    const processImageUrl = (url: string): string | null => {
+        if (!url) return null;
+        
+        // Handle IPFS URLs by converting to HTTP gateway
+        if (url.startsWith('ipfs://')) {
+            const hash = url.replace('ipfs://', '');
+            return `https://ipfs.io/ipfs/${hash}`;
+        }
+        
+        // Handle IPFS hashes without protocol (e.g., "QmRaKvxkd2GHieKjd7GtWhgtAftQwsfZC2hWvzFCixRpSb/01.jpeg")
+        if (url.match(/^Qm[a-zA-Z0-9]{44}/) || url.match(/^[a-zA-Z0-9]{46,59}/)) {
+            return `https://ipfs.io/ipfs/${url}`;
+        }
+        
+        // Data URIs and regular URLs pass through
+        return url;
+    };
+
     // Function to fetch token metadata by contract ID
     const fetchTokenMetadata = async (contractIdInput: string) => {
         const contractId = contractIdInput.trim();
@@ -76,10 +114,7 @@ export const TokenSelectionStep = ({
         }
     };
 
-    // Update filtered tokens when predefinedTokens change
-    useEffect(() => {
-        setFilteredTokens(predefinedTokens);
-    }, [predefinedTokens]);
+    console.log({ filteredTokens })
 
     // Filter tokens based on search query
     useEffect(() => {
@@ -201,15 +236,38 @@ export const TokenSelectionStep = ({
                                         <div className="flex items-center">
                                             <div className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden relative">
                                                 {fetchedToken.image ? (
-                                                    <Image
-                                                        src={fetchedToken.image}
-                                                        alt={fetchedToken.symbol || 'token'}
-                                                        layout="fill"
-                                                        objectFit="cover"
-                                                        sizes="40px"
-                                                        quality={95}
-                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                    />
+                                                    (() => {
+                                                        const processedUrl = processImageUrl(fetchedToken.image);
+                                                        const isValidUrl = processedUrl && isValidImageUrl(processedUrl);
+                                                        
+                                                        if (isValidUrl) {
+                                                            return (
+                                                                <Image
+                                                                    src={processedUrl}
+                                                                    alt={fetchedToken.symbol || 'token'}
+                                                                    layout="fill"
+                                                                    objectFit="cover"
+                                                                    sizes="40px"
+                                                                    quality={95}
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                />
+                                                            );
+                                                        } else if (processedUrl) {
+                                                            // For data URIs or other non-URL formats, use regular img tag
+                                                            return (
+                                                                <img
+                                                                    src={processedUrl}
+                                                                    alt={fetchedToken.symbol || 'token'}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                />
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
+                                                            );
+                                                        }
+                                                    })()
                                                 ) : (
                                                     <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                 )}
@@ -311,15 +369,40 @@ export const TokenSelectionStep = ({
                                             <div className="p-6 flex flex-col items-center">
                                                 <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative bg-muted">
                                                     {token.image && !imageErrors[token.contractId] ? (
-                                                        <Image
-                                                            src={token.image}
-                                                            alt={token.symbol || token.name || 'token'}
-                                                            layout="fill"
-                                                            objectFit="cover"
-                                                            sizes="64px"
-                                                            quality={95}
-                                                            onError={() => handleImageError(token.contractId)}
-                                                        />
+                                                        (() => {
+                                                            const processedUrl = processImageUrl(token.image);
+                                                            const isValidUrl = processedUrl && isValidImageUrl(processedUrl);
+                                                            
+                                                            if (isValidUrl) {
+                                                                return (
+                                                                    <Image
+                                                                        src={processedUrl}
+                                                                        alt={token.symbol || token.name || 'token'}
+                                                                        layout="fill"
+                                                                        objectFit="cover"
+                                                                        sizes="64px"
+                                                                        quality={95}
+                                                                        onError={() => handleImageError(token.contractId)}
+                                                                    />
+                                                                );
+                                                            } else if (processedUrl) {
+                                                                // For data URIs or other non-URL formats, use regular img tag
+                                                                return (
+                                                                    <img
+                                                                        src={processedUrl}
+                                                                        alt={token.symbol || token.name || 'token'}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={() => handleImageError(token.contractId)}
+                                                                    />
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                                        {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        })()
                                                     ) : (
                                                         <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
                                                             {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
@@ -419,15 +502,38 @@ export const TokenSelectionStep = ({
                                         <div className="flex items-center">
                                             <div className="w-10 h-10 rounded-full flex items-center justify-center mr-3 overflow-hidden relative">
                                                 {fetchedToken.image ? (
-                                                    <Image
-                                                        src={fetchedToken.image}
-                                                        alt={fetchedToken.symbol || 'token'}
-                                                        layout="fill"
-                                                        objectFit="cover"
-                                                        sizes="40px"
-                                                        quality={95}
-                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                    />
+                                                    (() => {
+                                                        const processedUrl = processImageUrl(fetchedToken.image);
+                                                        const isValidUrl = processedUrl && isValidImageUrl(processedUrl);
+                                                        
+                                                        if (isValidUrl) {
+                                                            return (
+                                                                <Image
+                                                                    src={processedUrl}
+                                                                    alt={fetchedToken.symbol || 'token'}
+                                                                    layout="fill"
+                                                                    objectFit="cover"
+                                                                    sizes="40px"
+                                                                    quality={95}
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                />
+                                                            );
+                                                        } else if (processedUrl) {
+                                                            // For data URIs or other non-URL formats, use regular img tag
+                                                            return (
+                                                                <img
+                                                                    src={processedUrl}
+                                                                    alt={fetchedToken.symbol || 'token'}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                />
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
+                                                            );
+                                                        }
+                                                    })()
                                                 ) : (
                                                     <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                 )}
@@ -529,15 +635,40 @@ export const TokenSelectionStep = ({
                                             <div className="p-6 flex flex-col items-center">
                                                 <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 overflow-hidden relative bg-muted">
                                                     {token.image && !imageErrors[token.contractId] ? (
-                                                        <Image
-                                                            src={token.image}
-                                                            alt={token.symbol || token.name || 'token'}
-                                                            layout="fill"
-                                                            objectFit="cover"
-                                                            sizes="64px"
-                                                            quality={95}
-                                                            onError={() => handleImageError(token.contractId)}
-                                                        />
+                                                        (() => {
+                                                            const processedUrl = processImageUrl(token.image);
+                                                            const isValidUrl = processedUrl && isValidImageUrl(processedUrl);
+                                                            
+                                                            if (isValidUrl) {
+                                                                return (
+                                                                    <Image
+                                                                        src={processedUrl}
+                                                                        alt={token.symbol || token.name || 'token'}
+                                                                        layout="fill"
+                                                                        objectFit="cover"
+                                                                        sizes="64px"
+                                                                        quality={95}
+                                                                        onError={() => handleImageError(token.contractId)}
+                                                                    />
+                                                                );
+                                                            } else if (processedUrl) {
+                                                                // For data URIs or other non-URL formats, use regular img tag
+                                                                return (
+                                                                    <img
+                                                                        src={processedUrl}
+                                                                        alt={token.symbol || token.name || 'token'}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={() => handleImageError(token.contractId)}
+                                                                    />
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                                        {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        })()
                                                     ) : (
                                                         <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
                                                             {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
