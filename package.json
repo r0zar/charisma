@@ -5,6 +5,8 @@
     "build": "turbo run build",
     "clean": "turbo run clean",
     "dev": "turbo run dev --concurrency=30",
+    "generate": "turbo run generate",
+    "create-app": "./scripts/create-app.sh",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
@@ -13,6 +15,7 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "@turbo/gen": "^2.5.4",
     "@types/node": "^24.0.7",
     "prettier": "^3.6.2",
     "turbo": "^2.5.4"
@@ -20,8 +23,5 @@
   "packageManager": "pnpm@8.15.6",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "lucide-react": "^0.525.0"
   }
 }

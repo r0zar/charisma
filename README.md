@@ -108,6 +108,10 @@ pnpm clean                  # Clean all build artifacts
 pnpm install                # Install all dependencies
 pnpm install <pkg>          # Add dependency to root
 pnpm add <pkg> --filter=<app>  # Add dependency to specific app
+
+# Code generation
+turbo gen                   # Interactive generator selection
+turbo gen nextjs-app        # Create new Next.js app with full setup
 ```
 
 ## Architecture
@@ -193,6 +197,41 @@ Each application has additional environment requirements documented in their res
 - **App-specific code**: Keep within respective `apps/` directory
 - **Cross-app utilities**: Use `@repo/` scoped packages
 - **API integrations**: Centralize in shared packages when possible
+
+### Creating New Applications
+
+Use the custom script to quickly create new apps:
+
+```bash
+# Using npm script (recommended)
+pnpm create-app <app-name>
+
+# Using script directly
+./scripts/create-app.sh <app-name>
+```
+
+The script creates a fully configured Next.js app with:
+- **Next.js 15** with App Router and TypeScript
+- **Tailwind CSS** integrated with shadcn/ui components
+- **Vitest** for testing with coverage support
+- **ESLint** configured with workspace standards
+- **Turborepo** integration with proper caching
+- **shadcn/ui** components (Button, Card) pre-installed
+- **Wallet integration** with Stacks ecosystem components
+
+Examples:
+```bash
+pnpm create-app lotto
+pnpm create-app casino
+pnpm create-app poker
+```
+
+Alternatively, you can use the built-in Turborepo generator for more customization:
+
+```bash
+# Interactive mode - prompts for app name and configuration
+turbo gen workspace --copy template --type app
+```
 
 ## Data Flow
 

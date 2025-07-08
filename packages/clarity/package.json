@@ -4,7 +4,30 @@
   "description": "Run unit tests on this project.",
   "type": "module",
   "private": true,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/es/index.js",
+  "module": "./dist/es/index.js",
+  "types": "./dist/es/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/es/index.d.ts",
+        "default": "./dist/es/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
   "scripts": {
+    "build": "bunchee",
+    "dev": "bunchee --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:report": "vitest run -- --coverage --costs",
     "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\""
@@ -12,9 +35,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@hirosystems/clarinet-sdk": "^2.14.0",
-    "@stacks/transactions": "^6.12.0",
+    "@stacks/blockchain-api-client": "^8.11.3",
+    "@stacks/connect": "^8.1.9",
+    "@stacks/network": "^7.0.2",
+    "@stacks/stacks-blockchain-api-types": "^7.14.1",
+    "@stacks/transactions": "^7.1.0",
+    "@hirosystems/clarinet-sdk": "^3.2.0",
     "chokidar-cli": "^3.0.0",
+    "bunchee": "^6.5.4",
     "lucide-react": "0.525.0",
     "typescript": "^5.8.3",
     "vite": "^6.1.0",
