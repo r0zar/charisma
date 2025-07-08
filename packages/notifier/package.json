@@ -51,6 +51,6 @@
     "dependencies": {
         "lucide-react": "0.525.0",
         "telegraf": "^4.16.3",
-        "twilio": "^5.7.1"
+        "twilio": "^5.7.2"
     }
 }
