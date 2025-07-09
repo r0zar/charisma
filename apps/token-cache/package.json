@@ -36,7 +36,7 @@
     "tw-animate-css": "^1.3.4"
   },
   "devDependencies": {
-    "@next/eslint-plugin-next": "^15.2.1",
+    "@next/eslint-plugin-next": "^15.3.5",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",
