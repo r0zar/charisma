@@ -51,7 +51,7 @@
     "openai": "^4.24.0",
     "pnpm": "^10.12.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.0",
     "react-json-view": "^1.21.3",
     "react-spring": "^10.0.1",
     "recharts": "^3.0.2",
