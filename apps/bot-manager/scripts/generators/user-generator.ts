@@ -141,8 +141,8 @@ function generateWalletTransactions(rng: SeededRandom, options: GeneratorOptions
 }
 
 function generateWalletTransaction(rng: SeededRandom, options: GeneratorOptions, config: any): WalletTransaction {
-  const types = ['send', 'receive', 'contract-call', 'deploy'];
-  const statuses = ['pending', 'confirmed', 'failed'];
+  const types = ['send', 'receive', 'contract-call', 'deploy'] as const;
+  const statuses = ['pending', 'confirmed', 'failed'] as const;
   const type = rng.choice(types);
   const status = rng.choice(statuses);
   const timestamp = generateDate(rng, config.daysOfHistory);
@@ -190,7 +190,7 @@ export function generateNotifications(rng: SeededRandom, options: GeneratorOptio
 }
 
 function generateNotification(rng: SeededRandom, options: GeneratorOptions, config: any): NotificationState {
-  const types = ['success', 'error', 'warning', 'info'];
+  const types = ['success', 'error', 'warning', 'info'] as const;
   const type = rng.choice(types);
   
   const titles = {
