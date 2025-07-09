@@ -98,10 +98,10 @@ export default function AnalyticsPage() {
     });
 
     const strategyPerformance = Array.from(strategyStats.entries()).map(([strategy, stats]) => ({
-      strategy: strategyNames[strategy] || strategy,
+      strategy: strategyNames[strategy as keyof typeof strategyNames] || strategy,
       value: totalBots > 0 ? Math.round((stats.count / totalBots) * 100) : 0,
       pnl: stats.totalPnL,
-      color: strategyColors[strategy] || 'bg-gray-500'
+      color: strategyColors[strategy as keyof typeof strategyColors] || 'bg-gray-500'
     }));
 
     // Get top performing bots

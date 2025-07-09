@@ -452,7 +452,12 @@ export default function BotDetailPage() {
                       <span className="text-card-foreground/80">{bot.setupProgress.completionPercentage}%</span>
                     </div>
                     <Progress value={bot.setupProgress.completionPercentage} className="h-2" />
-                    <p className="text-sm text-muted-foreground">{bot.setupProgress.currentStep}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {!bot.setupProgress.funded ? 'Waiting for funding' :
+                       !bot.setupProgress.lpTokensAdded ? 'Adding LP tokens' :
+                       !bot.setupProgress.activated ? 'Activating bot' :
+                       'Setup complete'}
+                    </p>
                   </div>
                 )}
               </CardContent>

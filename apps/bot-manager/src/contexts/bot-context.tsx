@@ -61,16 +61,9 @@ export function BotProvider({ children }: BotProviderProps) {
   });
   const [activities, setActivities] = useState<BotActivity[]>([]);
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
-    dailyPnL: 0,
-    weeklyPnL: 0,
-    monthlyPnL: 0,
-    winRate: 0,
-    avgTradeTime: 0,
-    totalTrades: 0,
-    totalBots: 0,
-    activeBots: 0,
-    pausedBots: 0,
-    errorBots: 0
+    daily: [],
+    weekly: [],
+    monthly: []
   });
   const [marketData, setMarketData] = useState<MarketData>({ tokenPrices: {}, priceChanges: {}, marketCap: {} });
   const [loading, setLoading] = useState(true);
@@ -95,12 +88,9 @@ export function BotProvider({ children }: BotProviderProps) {
       setBotStats(appState.bots.stats);
       setActivities(appState.bots.activities);
       setPerformanceMetrics({
-        dailyPnL: appState.bots.stats.totalPnL, // Use daily PnL from stats
-        weeklyPnL: appState.bots.stats.totalPnL * 7, // Estimate weekly
-        monthlyPnL: appState.bots.stats.totalPnL * 30, // Estimate monthly
-        winRate: appState.bots.stats.totalBots > 0 ? (appState.bots.stats.activeBots / appState.bots.stats.totalBots) * 100 : 0,
-        avgTradeTime: 45, // Default value
-        totalTrades: appState.bots.activities.length
+        daily: [],
+        weekly: [],
+        monthly: []
       });
       setMarketData(appState.market.data);
       setError(null);
