@@ -25,11 +25,11 @@
     "lucide-react": "^0.525.0",
     "partysocket": "^1.0.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.70",
-    "@types/react-dom": "^18.2.19",
+    "@types/react-dom": "^19.1.6",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-v8": "^1.6.1",
