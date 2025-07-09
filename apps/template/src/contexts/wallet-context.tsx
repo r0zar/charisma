@@ -195,17 +195,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         try {
             const result = await connect();
 
-            // Store addresses for both networks (the result contains addresses for all networks)
-            localStorage.setItem("addresses-mainnet", JSON.stringify(result.addresses));
-            localStorage.setItem("addresses-testnet", JSON.stringify(result.addresses));
-
-            // Get the primary STX address (usually at index 2 for mainnet, index 1 for testnet in some wallets)
-            // But we'll detect based on the address prefix instead
+            // Detect primary STX address and network
             let primaryAddress = "";
             let primaryPublicKey = "";
             let detectedNetwork = network;
 
-            // Look for STX addresses and detect network
             for (const addr of result.addresses) {
                 if (addr.address && (addr.address.startsWith('ST') || addr.address.startsWith('SP') || addr.address.startsWith('SM'))) {
                     primaryAddress = addr.address;
@@ -213,12 +207,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                     detectedNetwork = detectNetworkFromAddress(addr.address);
                     break;
                 }
-            }
-
-            // If detected network is different from current, switch automatically
-            if (detectedNetwork !== network) {
-                setNetworkState(detectedNetwork);
-                localStorage.setItem("wallet-network", detectedNetwork);
             }
 
             // Use appropriate address index for networks (fallback to original logic if needed)
@@ -233,22 +221,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             const mainnetBtcAddress = result.addresses[0]?.address; // Index 0 is typically mainnet BTC
             const testnetBtcAddress = result.addresses[1]?.address; // Index 1 is typically testnet BTC
 
+            // Only update the detected network's addresses in localStorage
+            const storageKey = getStorageKey(detectedNetwork);
+            localStorage.setItem(storageKey, JSON.stringify(result.addresses));
+            localStorage.setItem("wallet-network", detectedNetwork);
+
+            // If detected network is different from current, switch automatically
+            if (detectedNetwork !== network) {
+                setNetworkState(detectedNetwork);
+            }
+
+            // Update only the detected network's addresses in state
             setWalletState(prev => ({
                 ...prev,
                 connected: true,
-                address: primaryAddress,
-                publicKey: primaryPublicKey,
+                address: primaryAddress, // Always use prefix-detected STX address
+                publicKey: primaryPublicKey, // Always use prefix-detected public key
                 addresses: {
                     ...prev.addresses,
-                    mainnet: {
-                        address: mainnetAddress,
-                        publicKey: mainnetPublicKey,
-                        btcAddress: mainnetBtcAddress
-                    },
-                    testnet: {
-                        address: testnetAddress,
-                        publicKey: testnetPublicKey,
-                        btcAddress: testnetBtcAddress
+                    [detectedNetwork]: {
+                        address: detectedNetwork === "mainnet" ? mainnetAddress : testnetAddress,
+                        publicKey: detectedNetwork === "mainnet" ? mainnetPublicKey : testnetPublicKey,
+                        btcAddress: detectedNetwork === "mainnet" ? mainnetBtcAddress : testnetBtcAddress
                     }
                 }
             }));
