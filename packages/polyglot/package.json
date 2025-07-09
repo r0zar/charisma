@@ -35,7 +35,7 @@
     "preset": "@repo/jest-presets/node"
   },
   "dependencies": {
-    "@stacks/blockchain-api-client": "^8.11.2",
+    "@stacks/blockchain-api-client": "^8.11.3",
     "@stacks/connect": "^8.1.9",
     "@stacks/network": "^7",
     "@stacks/stacks-blockchain-api-types": "^7.14.1",
