@@ -85,14 +85,28 @@ export async function validateStateFile(path: string): Promise<StateValidationRe
       
       data = await response.json();
     } else {
-      // Use fs for local files (Node.js environment)
-      const fs = await import('fs/promises');
-      const pathModule = await import('path');
-      
-      // Resolve relative paths
-      const resolvedPath = pathModule.isAbsolute(path) ? path : pathModule.resolve(process.cwd(), path);
+      // Use fs for local files (Node.js environment only)
+      if (typeof window !== 'undefined') {
+        return {
+          isValid: false,
+          errors: [`Local file access not supported in browser environment: ${path}`],
+          warnings: [],
+          metadata: {
+            version: 'unknown',
+            botCount: 0,
+            totalActivities: 0,
+            dataSize: 0,
+          },
+        };
+      }
       
       try {
+        const fs = await import('fs/promises');
+        const pathModule = await import('path');
+        
+        // Resolve relative paths
+        const resolvedPath = pathModule.isAbsolute(path) ? path : pathModule.resolve(process.cwd(), path);
+        
         const fileContent = await fs.readFile(resolvedPath, 'utf-8');
         data = JSON.parse(fileContent);
       } catch (fileError) {
