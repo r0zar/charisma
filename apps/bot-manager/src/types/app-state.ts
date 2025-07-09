@@ -171,17 +171,4 @@ export interface StateValidationResult {
   };
 }
 
-// Export types for use in other modules
-export type {
-  AppState as default,
-  GeneratorOptions,
-  StateValidationResult,
-  GeneratorMetadata,
-  UIPreferences,
-  WalletState,
-  TokenBalance,
-  WalletTransaction,
-  DeFiPool,
-  NotificationState,
-  AnalyticsData,
-};
+// All interfaces are already exported via 'export interface' declarations above
