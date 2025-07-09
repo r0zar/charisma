@@ -250,7 +250,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2">
-              {stats?.totalProcessed > 0 
+              {stats?.totalProcessed && stats.totalProcessed > 0 
                 ? `${((stats.totalSuccessful / stats.totalProcessed) * 100).toFixed(1)}%`
                 : '0%'
               }
