@@ -151,8 +151,8 @@ importers:
         version: 3.25.67
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.2.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -318,8 +318,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.3.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -499,8 +499,8 @@ importers:
         version: 3.2.0
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.3.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -732,8 +732,8 @@ importers:
         version: 3.25.67
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.3.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -1061,8 +1061,8 @@ importers:
         version: 3.25.67
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.3.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -1203,8 +1203,8 @@ importers:
         version: 3.25.67
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.3.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -1408,8 +1408,8 @@ importers:
         version: 3.25.67
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.2.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -1674,8 +1674,8 @@ importers:
         version: 1.3.4
     devDependencies:
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.3.1
+        specifier: ^15.3.5
+        version: 15.3.5
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/config-eslint
@@ -2040,8 +2040,8 @@ importers:
         specifier: ^9.24.0
         version: 9.24.0
       '@next/eslint-plugin-next':
-        specifier: ^15.2.1
-        version: 15.2.1
+        specifier: ^15.3.5
+        version: 15.3.5
       eslint:
         specifier: ^9.30.1
         version: 9.30.1
@@ -7277,18 +7277,6 @@ packages:
   /@next/env@15.3.4:
     resolution: {integrity: sha512-ZkdYzBseS6UjYzz6ylVKPOK+//zLWvD6Ta+vpoye8cW11AjiQjGYVibF0xuvT4L0iJfAPfZLFidaEzAOywyOAQ==}
     dev: false
-
-  /@next/eslint-plugin-next@15.2.1:
-    resolution: {integrity: sha512-6ppeToFd02z38SllzWxayLxjjNfzvc7Wm07gQOKSLjyASvKcXjNStZrLXMHuaWkhjqxe+cnhb2uzfWXm1VEj/Q==}
-    dependencies:
-      fast-glob: 3.3.1
-    dev: true
-
-  /@next/eslint-plugin-next@15.3.1:
-    resolution: {integrity: sha512-oEs4dsfM6iyER3jTzMm4kDSbrQJq8wZw5fmT6fg2V3SMo+kgG+cShzLfEV20senZzv8VF+puNLheiGPlBGsv2A==}
-    dependencies:
-      fast-glob: 3.3.1
-    dev: true
 
   /@next/eslint-plugin-next@15.3.5:
     resolution: {integrity: sha512-BZwWPGfp9po/rAnJcwUBaM+yT/+yTWIkWdyDwc74G9jcfTrNrmsHe+hXHljV066YNdVs8cxROxX5IgMQGX190w==}
