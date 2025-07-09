@@ -210,7 +210,7 @@ export const CURRENT_SCHEMA_VERSION = '1.0.0';
 
 export function isCompatibleVersion(version: string): boolean {
   const [major, minor, patch] = version.split('.').map(Number);
-  const [currentMajor, currentMinor, currentPatch] = CURRENT_SCHEMA_VERSION.split('.').map(Number);
+  const [currentMajor, currentMinor, _currentPatch] = CURRENT_SCHEMA_VERSION.split('.').map(Number);
   
   // Same major version is compatible
   if (major === currentMajor) {

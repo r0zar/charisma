@@ -26,7 +26,7 @@ export class SeededRandom {
     return this.next() < probability;
   }
   
-  choice<T>(array: T[]): T {
+  choice<T>(array: readonly T[]): T {
     return array[this.nextInt(0, array.length - 1)];
   }
   
