@@ -25,7 +25,11 @@
             "schedule": "5 * * * *"
         },
         {
-            "path": "/api/cron/transaction-monitor",
+            "path": "/api/cron/order-monitor",
+            "schedule": "*/1 * * * *"
+        },
+        {
+            "path": "/api/cron/bot-monitor",
             "schedule": "*/1 * * * *"
         },
         {

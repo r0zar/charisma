@@ -1313,6 +1313,9 @@ importers:
       '@repo/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@repo/tx-monitor-client':
+        specifier: workspace:*
+        version: link:../../packages/tx-monitor-client
       '@stacks/connect':
         specifier: latest
         version: 8.1.9

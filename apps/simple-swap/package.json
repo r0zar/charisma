@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "script": "node scripts/run.js"
+    "script": "node --import tsx"
   },
   "dependencies": {
     "@charisma/notifier": "workspace:^",
@@ -31,6 +31,7 @@
     "@react-spring/web": "^10.0.1",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
+    "@repo/tx-monitor-client": "workspace:*",
     "@stacks/connect": "latest",
     "@stacks/encryption": "latest",
     "@stacks/network": "latest",

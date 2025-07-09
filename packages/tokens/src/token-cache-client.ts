@@ -71,6 +71,17 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
  * Falls back to a reasonable default structure when the cache is unavailable or incomplete.
  */
 export async function getTokenMetadataCached(contractId: string): Promise<TokenCacheData> {
+    if (!contractId.includes('.')) {
+        return {
+            type: 'token' as const,
+            contractId: '*',
+            name: 'Token not found',
+            symbol: '*',
+            decimals: 6,
+            identifier: '*',
+        };
+    }
+
     const url = `${TOKEN_CACHE}/api/v1/sip10/${contractId}`;
 
     try {

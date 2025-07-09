@@ -7,6 +7,10 @@ import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransactio
 import { fetchNonce } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 import { kv } from '@vercel/kv';
+import { TxMonitorClient } from '@repo/tx-monitor-client';
+
+// Initialize tx-monitor client
+const txMonitorClient = new TxMonitorClient();
 
 /**
  * Nonce management following meme-roulette's proven approach
@@ -433,6 +437,14 @@ export async function processOpenOrders(): Promise<string[]> {
 
                 console.log({ orderUuid: order.uuid, txid: executionResult.txid }, 'Trade executed successfully. Marking order as filled.');
                 await fillOrder(order.uuid, executionResult.txid);
+
+                // Add transaction to tx-monitor-client queue for monitoring
+                try {
+                    await txMonitorClient.addToQueue([executionResult.txid]);
+                    console.log({ orderUuid: order.uuid, txid: executionResult.txid }, 'Transaction added to monitoring queue');
+                } catch (error) {
+                    console.error({ orderUuid: order.uuid, txid: executionResult.txid, error }, 'Failed to add transaction to monitoring queue');
+                }
 
                 // Send notification (fire-and-forget style, errors handled within the function)
                 sendOrderExecutedNotification(order, executionResult.txid).catch(err => {

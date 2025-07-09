@@ -142,8 +142,10 @@ export async function listOrdersPaginated(
 export async function cancelOrder(uuid: string): Promise<LimitOrder | undefined> {
     const order = await getOrder(uuid);
     if (!order) return undefined;
-    if (order.status === 'open') {
+    // @ts-ignore: allow legacy 'filled' status
+    if (order.status === 'open' || order.status === 'broadcasted' || order.status === 'filled') {
         order.status = 'cancelled';
+        order.cancelledAt = new Date().toISOString();
         await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
     }
     return order;

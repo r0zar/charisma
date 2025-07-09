@@ -89,19 +89,19 @@ function getConditionTokenContract(order: LimitOrder): string {
 
 // Convert EnrichedOrder to DisplayOrder for admin interface
 function convertToDisplayOrder(
-    enrichedOrder: EnrichedOrder, 
+    enrichedOrder: EnrichedOrder,
     priceData: Record<string, number> = {},
     allEnrichedOrders: EnrichedOrder[] = []
 ): DisplayOrder {
     const { id, order, inputTokenMeta, outputTokenMeta } = enrichedOrder;
-    
+
     // Parse amounts using correct decimals from token metadata
     const inputDecimals = inputTokenMeta.decimals || 6;
     const outputDecimals = outputTokenMeta.decimals || 6;
-    
+
     // Use amountIn from LimitOrder (not inputAmount)
     const inputAmount = parseFloat(order.amountIn || '0') / Math.pow(10, inputDecimals);
-    
+
     // Get targetPrice from conditions structure
     let targetPrice = 0;
     if (order.conditions) {
@@ -116,18 +116,18 @@ function convertToDisplayOrder(
         // Legacy order support
         targetPrice = parseFloat((order as any).targetPrice || '0');
     }
-    
+
     // Calculate volume in output tokens
     let volumeInOutputTokens = 0;
-    
+
     if (inputAmount > 0 && targetPrice > 0) {
         volumeInOutputTokens = inputAmount * targetPrice;
     }
-    
+
     // Calculate USD estimates using price data
     const inputTokenPrice = priceData[order.inputToken] || 0;
     const outputTokenPrice = priceData[order.outputToken] || 0;
-    
+
     let usdEstimate = 0;
     if (volumeInOutputTokens > 0 && outputTokenPrice > 0) {
         // Use output token volume × output token USD price
@@ -136,15 +136,15 @@ function convertToDisplayOrder(
         // Fallback: use input amount × input token USD price  
         usdEstimate = inputAmount * inputTokenPrice;
     }
-    
+
     // Fallback: if we can't calculate output tokens, show input amount value
     const fallbackVolume = inputAmount;
-    
+
     // Format owner address
-    const shortOwner = order.owner.length > 20 
+    const shortOwner = order.owner.length > 20
         ? `${order.owner.slice(0, 8)}...${order.owner.slice(-4)}`
         : order.owner;
-    
+
     // Determine direction based on conditions structure
     let direction: 'buy' | 'sell' | 'long' | 'short' = 'buy';
     if (order.conditions) {
@@ -159,10 +159,10 @@ function convertToDisplayOrder(
         // Legacy order support
         direction = (order as any).direction === 'gt' ? 'sell' : 'buy';
     }
-    
+
     // Handle legacy 'filled' status for migration
     const displayStatus = (order.status as any) === 'filled' ? 'broadcasted' : order.status;
-    
+
     // Classify order type using the classification utility
     const allOrdersWithMeta = allEnrichedOrders.map(e => ({
         ...e.order,
@@ -174,7 +174,7 @@ function convertToDisplayOrder(
         inputTokenMeta,
         outputTokenMeta
     }, allOrdersWithMeta);
-    
+
     return {
         id: order.uuid, // Use the actual order UUID, not the hash key
         type: orderType,
@@ -190,10 +190,10 @@ function convertToDisplayOrder(
         targetPrice: targetPrice.toFixed(6),
         currentPrice: targetPrice.toFixed(6), // TODO: Get real current price
         direction,
-        volume: volumeInOutputTokens > 0 
-            ? `${volumeInOutputTokens.toFixed(2)} ${outputTokenMeta.symbol || 'UNK'}${usdEstimate > 0 ? ` (~$${usdEstimate.toFixed(2)})` : ''}` 
-            : fallbackVolume > 0 
-                ? `${fallbackVolume.toFixed(2)} ${inputTokenMeta.symbol || 'UNK'}${usdEstimate > 0 ? ` (~$${usdEstimate.toFixed(2)})` : ''}` 
+        volume: volumeInOutputTokens > 0
+            ? `${volumeInOutputTokens.toFixed(2)} ${outputTokenMeta.symbol || 'UNK'}${usdEstimate > 0 ? ` (~$${usdEstimate.toFixed(2)})` : ''}`
+            : fallbackVolume > 0
+                ? `${fallbackVolume.toFixed(2)} ${inputTokenMeta.symbol || 'UNK'}${usdEstimate > 0 ? ` (~$${usdEstimate.toFixed(2)})` : ''}`
                 : 'N/A',
         createdAt: order.createdAt,
         updatedAt: order.createdAt, // LimitOrder doesn't have updatedAt
@@ -223,29 +223,29 @@ async function fetchAndEnrichOrders(
             sortBy,
             sortOrder
         });
-        
+
         if (statusFilter && statusFilter !== 'all') {
             params.append('status', statusFilter);
         }
-        
+
         if (searchQuery && searchQuery.trim()) {
             params.append('search', searchQuery.trim());
         }
-        
+
         const [ordersResponse, priceData] = await Promise.all([
             fetch(`/api/v1/orders?${params}`),
             listPrices().catch(() => ({})) // Fallback to empty object if prices fail
         ]);
-        
+
         const data = await ordersResponse.json();
-        
+
         if (data.status !== 'success') {
             throw new Error('Failed to fetch orders');
         }
-        
+
         const orders = data.data as LimitOrder[];
         const pagination = data.pagination as PaginationInfo;
-        
+
         if (orders.length === 0) {
             return {
                 orders: [],
@@ -259,19 +259,32 @@ async function fetchAndEnrichOrders(
                 }
             };
         }
-        
+
         // Enrich orders with token metadata
         const enrichedOrders: EnrichedOrder[] = [];
-        
+
         for (const order of orders) {
             try {
                 const conditionTokenContract = getConditionTokenContract(order);
+                
+                // Skip fetching metadata for non-existent "*" token
+                const conditionTokenMetaPromise = conditionTokenContract === "*" 
+                    ? Promise.resolve({
+                        type: 'token' as const,
+                        contractId: '*',
+                        name: 'No Price Trigger',
+                        symbol: '*',
+                        decimals: 6,
+                        identifier: '*'
+                    })
+                    : getTokenMetadataCached(conditionTokenContract);
+                
                 const [inputTokenMeta, outputTokenMeta, conditionTokenMeta] = await Promise.all([
                     getTokenMetadataCached(order.inputToken),
                     getTokenMetadataCached(order.outputToken),
-                    getTokenMetadataCached(conditionTokenContract)
+                    conditionTokenMetaPromise
                 ]);
-                
+
                 enrichedOrders.push({
                     id: order.uuid,
                     order,
@@ -290,23 +303,36 @@ async function fetchAndEnrichOrders(
                     decimals: 6,
                     identifier: ''
                 };
-                
+
                 const conditionTokenContract = getConditionTokenContract(order);
+                
+                // Create appropriate fallback for condition token
+                const conditionTokenFallback = conditionTokenContract === "*" 
+                    ? {
+                        type: 'token' as const,
+                        contractId: '*',
+                        name: 'No Price Trigger',
+                        symbol: '*',
+                        decimals: 6,
+                        identifier: '*'
+                    }
+                    : { ...fallbackMeta, contractId: conditionTokenContract };
+                
                 enrichedOrders.push({
                     id: order.uuid,
                     order,
                     inputTokenMeta: { ...fallbackMeta, contractId: order.inputToken },
                     outputTokenMeta: { ...fallbackMeta, contractId: order.outputToken },
-                    conditionTokenMeta: { ...fallbackMeta, contractId: conditionTokenContract }
+                    conditionTokenMeta: conditionTokenFallback
                 });
             }
         }
-        
+
         return {
             orders: enrichedOrders.map(enrichedOrder => convertToDisplayOrder(enrichedOrder, priceData, enrichedOrders)),
             pagination
         };
-        
+
     } catch (error) {
         console.error('Failed to fetch orders:', error);
         return {
@@ -372,13 +398,13 @@ const PriorityIndicator = ({ priority }: { priority: DisplayOrder['priority'] })
 };
 
 // Transaction Status Component for orders with transactions
-const TransactionStatus = ({ txHash, status, order }: { 
-    txHash?: string; 
-    status: DisplayOrder['status']; 
+const TransactionStatus = ({ txHash, status, order }: {
+    txHash?: string;
+    status: DisplayOrder['status'];
     order: DisplayOrder;
 }) => {
     if (!txHash) return null;
-    
+
     // Show status based on order status, not the hook
     switch (status) {
         case 'broadcasted':
@@ -415,14 +441,14 @@ export function OrdersTable() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
-    
+
     const [sortField, setSortField] = useState<string>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
     const [orders, setOrders] = useState<DisplayOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [paginationLoading, setPaginationLoading] = useState(false);
-    
+
     // Pagination state
     const [pagination, setPagination] = useState<PaginationInfo>({
         total: 0,
@@ -432,23 +458,23 @@ export function OrdersTable() {
         hasNextPage: false,
         hasPrevPage: false
     });
-    
+
     // Current filter state from URL
     const currentStatusFilter = searchParams?.get('status') || 'all';
     const currentSearchQuery = searchParams?.get('search') || '';
-    
+
     // Initialize pagination from URL params
     useEffect(() => {
         const urlPage = searchParams?.get('page');
         const urlLimit = searchParams?.get('limit');
-        
+
         if (urlPage) {
             const page = parseInt(urlPage, 10);
             if (!isNaN(page) && page > 0) {
                 setPagination(prev => ({ ...prev, page }));
             }
         }
-        
+
         if (urlLimit) {
             const limit = parseInt(urlLimit, 10);
             if (!isNaN(limit) && limit > 0 && limit <= 100) {
@@ -456,7 +482,7 @@ export function OrdersTable() {
             }
         }
     }, [searchParams]);
-    
+
     const loadOrders = useCallback(async (usePagination = true) => {
         const isInitialLoad = orders.length === 0;
         if (isInitialLoad) {
@@ -464,7 +490,7 @@ export function OrdersTable() {
         } else {
             setPaginationLoading(true);
         }
-        
+
         try {
             const result = await fetchAndEnrichOrders(
                 pagination.page,
@@ -481,7 +507,7 @@ export function OrdersTable() {
             setPaginationLoading(false);
         }
     }, [pagination.page, pagination.limit, sortField, sortDirection, currentStatusFilter, currentSearchQuery, orders.length]);
-    
+
     useEffect(() => {
         loadOrders();
     }, [loadOrders]);
@@ -520,7 +546,7 @@ export function OrdersTable() {
 
     const handleBulkCancel = async () => {
         if (selectedOrders.size === 0) return;
-        
+
         // TODO: Implement bulk cancel API call
         console.log('Cancelling orders:', Array.from(selectedOrders));
         // For now, just clear selection
@@ -529,14 +555,14 @@ export function OrdersTable() {
 
     const handleBulkExport = () => {
         if (selectedOrders.size === 0) return;
-        
+
         const selectedData = orders.filter(order => selectedOrders.has(order.id));
-        const csvContent = "data:text/csv;charset=utf-8," 
+        const csvContent = "data:text/csv;charset=utf-8,"
             + "ID,Status,Owner,Pair,Amount,Target Price,Volume,Created\n"
-            + selectedData.map(order => 
+            + selectedData.map(order =>
                 `${order.id},${order.status},${order.owner},"${order.inputTokenSymbol}→${order.outputTokenSymbol}",${order.amountFormatted},${order.targetPrice},${order.volume},${order.createdAt}`
             ).join("\n");
-        
+
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -544,20 +570,20 @@ export function OrdersTable() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         setSelectedOrders(new Set());
     };
 
     const handleRefresh = async () => {
         await loadOrders();
     };
-    
+
     const handlePageChange = (page: number) => {
         const params = new URLSearchParams(searchParams?.toString());
         params.set('page', page.toString());
         router.push(`${pathname}?${params.toString()}`);
     };
-    
+
     const handleLimitChange = (limit: number) => {
         const params = new URLSearchParams(searchParams?.toString());
         params.set('limit', limit.toString());
@@ -672,144 +698,144 @@ export function OrdersTable() {
                             </tr>
                         ) : (
                             orders.map((order) => (
-                            <tr key={order.id} className="border-b border-border hover:bg-muted/5 transition-colors">
-                                <td className="p-4">
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedOrders.has(order.id)}
-                                            onChange={() => handleSelectOrder(order.id)}
-                                            className="rounded border-border"
-                                        />
-                                        <PriorityIndicator priority={order.priority} />
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-2">
-                                        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                                            {order.id.length > 12 ? `${order.id.slice(0, 8)}...${order.id.slice(-4)}` : order.id}
-                                        </code>
-                                        <button
-                                            onClick={() => copyToClipboard(order.id)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                                        </button>
-                                    </div>
-                                    <TransactionStatus txHash={order.txHash} status={order.status} order={order} />
-                                </td>
-                                <td className="p-4">
-                                    <TypeBadge type={order.type} />
-                                </td>
-                                <td className="p-4">
-                                    <StatusBadge status={order.status} />
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-2">
-                                        <code className="text-sm font-mono text-muted-foreground">
-                                            {order.owner}
-                                        </code>
-                                        <button
-                                            onClick={() => copyToClipboard(order.ownerFull)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                                        </button>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium text-sm">{order.inputTokenSymbol}</span>
-                                        <div className="flex items-center gap-1">
-                                            {order.direction === 'buy' ? (
-                                                <TrendingUp className="w-3 h-3 text-green-500" />
-                                            ) : (
-                                                <TrendingDown className="w-3 h-3 text-red-500" />
+                                <tr key={order.id} className="border-b border-border hover:bg-muted/5 transition-colors">
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedOrders.has(order.id)}
+                                                onChange={() => handleSelectOrder(order.id)}
+                                                className="rounded border-border"
+                                            />
+                                            <PriorityIndicator priority={order.priority} />
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                                                {order.id.length > 12 ? `${order.id.slice(0, 8)}...${order.id.slice(-4)}` : order.id}
+                                            </code>
+                                            <button
+                                                onClick={() => copyToClipboard(order.id)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                                            </button>
+                                        </div>
+                                        <TransactionStatus txHash={order.txHash} status={order.status} order={order} />
+                                    </td>
+                                    <td className="p-4">
+                                        <TypeBadge type={order.type} />
+                                    </td>
+                                    <td className="p-4">
+                                        <StatusBadge status={order.status} />
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <code className="text-sm font-mono text-muted-foreground">
+                                                {order.owner}
+                                            </code>
+                                            <button
+                                                onClick={() => copyToClipboard(order.ownerFull)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-sm">{order.inputTokenSymbol}</span>
+                                            <div className="flex items-center gap-1">
+                                                {order.direction === 'buy' ? (
+                                                    <TrendingUp className="w-3 h-3 text-green-500" />
+                                                ) : (
+                                                    <TrendingDown className="w-3 h-3 text-red-500" />
+                                                )}
+                                            </div>
+                                            <span className="text-muted-foreground text-sm">{order.outputTokenSymbol}</span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                            {order.direction === 'buy' ? 'Buy' : 'Sell'} Order
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="text-sm">
+                                            <div className="font-medium">{order.amountFormatted}</div>
+                                            {order.fillPercent && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    {order.fillPercent}% filled
+                                                </div>
                                             )}
                                         </div>
-                                        <span className="text-muted-foreground text-sm">{order.outputTokenSymbol}</span>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                        {order.direction === 'buy' ? 'Buy' : 'Sell'} Order
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="text-sm">
-                                        <div className="font-medium">{order.amountFormatted}</div>
-                                        {order.fillPercent && (
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="text-sm">
+                                            <div className="font-medium">{order.targetPrice} {order.outputTokenSymbol}</div>
                                             <div className="text-xs text-muted-foreground">
-                                                {order.fillPercent}% filled
+                                                per {order.inputTokenSymbol}
                                             </div>
-                                        )}
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="text-sm">
-                                        <div className="font-medium">{order.targetPrice} {order.outputTokenSymbol}</div>
-                                        <div className="text-xs text-muted-foreground">
-                                            per {order.inputTokenSymbol}
                                         </div>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <span className="font-medium">{order.volume}</span>
-                                </td>
-                                <td className="p-4">
-                                    <div className="text-sm">
-                                        <div className="font-medium">
-                                            {formatRelativeTime(order.createdAt)}
+                                    </td>
+                                    <td className="p-4">
+                                        <span className="font-medium">{order.volume}</span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="text-sm">
+                                            <div className="font-medium">
+                                                {formatRelativeTime(order.createdAt)}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {formatLocalDateTime(order.createdAt, 'compact')}
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {formatLocalDateTime(order.createdAt, 'compact')}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex items-center justify-end gap-2">
-                                        {order.txHash && (
-                                            <Button variant="ghost" size="sm" className="gap-1">
-                                                <ExternalLink className="w-3 h-3" />
-                                            </Button>
-                                        )}
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="sm">
-                                                    <MoreHorizontal className="w-4 h-4" />
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {order.txHash && (
+                                                <Button variant="ghost" size="sm" className="gap-1">
+                                                    <ExternalLink className="w-3 h-3" />
                                                 </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-48">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="gap-2">
-                                                    <Eye className="w-4 h-4" />
-                                                    View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="gap-2">
-                                                    <Copy className="w-4 h-4" />
-                                                    Copy Order ID
-                                                </DropdownMenuItem>
-                                                {order.status === 'open' && (
-                                                    <>
-                                                        <DropdownMenuItem className="gap-2">
-                                                            <Pause className="w-4 h-4" />
-                                                            Pause Order
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="gap-2">
-                                                            <Play className="w-4 h-4" />
-                                                            Force Execute
-                                                        </DropdownMenuItem>
-                                                    </>
-                                                )}
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="gap-2 text-red-600">
-                                                    <Trash2 className="w-4 h-4" />
-                                                    Cancel Order
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </td>
-                            </tr>
+                                            )}
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm">
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="gap-2">
+                                                        <Eye className="w-4 h-4" />
+                                                        View Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="gap-2">
+                                                        <Copy className="w-4 h-4" />
+                                                        Copy Order ID
+                                                    </DropdownMenuItem>
+                                                    {order.status === 'open' && (
+                                                        <>
+                                                            <DropdownMenuItem className="gap-2">
+                                                                <Pause className="w-4 h-4" />
+                                                                Pause Order
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem className="gap-2">
+                                                                <Play className="w-4 h-4" />
+                                                                Force Execute
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="gap-2 text-red-600">
+                                                        <Trash2 className="w-4 h-4" />
+                                                        Cancel Order
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </td>
+                                </tr>
                             ))
                         )}
                     </tbody>

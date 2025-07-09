@@ -30,6 +30,7 @@ export interface LimitOrder {
     confirmedAt?: string; // ISO timestamp when status changed to 'confirmed'
     failedAt?: string; // ISO timestamp when status changed to 'failed'
     failureReason?: string; // Reason for failure (e.g., 'abort_by_response')
+    cancelledAt?: string; // ISO timestamp when status changed to 'cancelled'
 
     /**
      * Optional ISO 8601 timestamps that bound when the order can be executed.

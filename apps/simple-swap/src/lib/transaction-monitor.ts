@@ -8,7 +8,7 @@ import { getTokenMetadataCached } from '@repo/tokens';
 /**
  * Transaction status types from Stacks blockchain
  */
-export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'pending';
+export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'pending' | 'broadcasted' | 'not_found';
 
 /**
  * Result of monitoring a single transaction
