@@ -1,0 +1,141 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "generatedAt": "2024-01-25T10:00:00Z",
+    "profile": "development",
+    "options": {
+      "botCount": 3,
+      "daysOfHistory": 7,
+      "includeErrors": true,
+      "realisticData": false
+    }
+  },
+  "user": {
+    "settings": {
+      "general": {
+        "isDarkMode": false,
+        "compactMode": false,
+        "autoRefresh": true
+      },
+      "network": {
+        "network": "mainnet",
+        "rpcEndpoint": "https://stacks-node-api.mainnet.stacks.co"
+      },
+      "botDefaults": {
+        "autoRestart": true,
+        "defaultGasPrice": 1000,
+        "defaultSlippage": 0.5,
+        "defaultStrategy": "yield-farming"
+      },
+      "notifications": {
+        "trade": true,
+        "error": true,
+        "status": false,
+        "performance": true,
+        "security": true
+      },
+      "notificationChannel": "browser",
+      "security": {
+        "apiKey": "sk-1234567890abcdef1234567890abcdef12345678",
+        "autoLockTimeout": "30",
+        "requireConfirmation": true
+      },
+      "advanced": {
+        "debugMode": false,
+        "performanceMonitoring": true
+      }
+    },
+    "wallet": {
+      "isConnected": false,
+      "address": null,
+      "network": "mainnet",
+      "balance": {
+        "stx": 0,
+        "tokens": []
+      },
+      "transactions": [],
+      "connectionMethod": null
+    },
+    "preferences": {
+      "sidebarCollapsed": false,
+      "theme": "light",
+      "skin": "default",
+      "language": "en",
+      "timezone": "America/New_York",
+      "dateFormat": "ISO",
+      "numberFormat": "US"
+    }
+  },
+  "bots": {
+    "list": [],
+    "stats": {
+      "totalBots": 0,
+      "activeBots": 0,
+      "pausedBots": 0,
+      "errorBots": 0,
+      "totalGas": 0,
+      "totalValue": 0,
+      "totalPnL": 0,
+      "todayPnL": 0
+    },
+    "activities": []
+  },
+  "market": {
+    "data": {
+      "tokenPrices": {
+        "STX": 0.5,
+        "ALEX": 0.1,
+        "DIKO": 0.05,
+        "USDA": 1.0,
+        "CHA": 0.01
+      },
+      "priceChanges": {
+        "STX": 2.5,
+        "ALEX": -1.2,
+        "DIKO": 0.8,
+        "USDA": 0.0,
+        "CHA": 15.3
+      },
+      "marketCap": {
+        "STX": 1000000000,
+        "ALEX": 50000000,
+        "DIKO": 25000000,
+        "USDA": 100000000,
+        "CHA": 10000000
+      }
+    },
+    "analytics": {
+      "performance": {
+        "daily": [],
+        "weekly": [],
+        "monthly": []
+      },
+      "portfolio": {
+        "totalValue": 0,
+        "distribution": {
+          "stx": 0,
+          "lpTokens": 0,
+          "rewardTokens": 0,
+          "cash": 0
+        },
+        "allocation": {
+          "yieldFarming": 0,
+          "dca": 0,
+          "arbitrage": 0,
+          "liquidityMining": 0
+        }
+      },
+      "metrics": {
+        "totalTrades": 0,
+        "winRate": 0,
+        "averageTradeSize": 0,
+        "maxDrawdown": 0,
+        "sharpeRatio": 0,
+        "totalFees": 0,
+        "timeActive": 0
+      }
+    },
+    "pools": []
+  },
+  "notifications": []
+}
