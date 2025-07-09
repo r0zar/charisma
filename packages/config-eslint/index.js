@@ -10,7 +10,7 @@ import unusedImports from "eslint-plugin-unused-imports";
  *
  * @type {import("eslint").Linter.Config}
  * */
-export const config = [
+export default [
   js.configs.recommended,
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
