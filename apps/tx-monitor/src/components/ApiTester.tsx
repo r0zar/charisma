@@ -266,11 +266,11 @@ export function ApiTester() {
                     <code>{formatJson(responses[`/api/v1/status/${txid}`].data)}</code>
                   </pre>
                 </div>
-                {responses[`/api/v1/status/${txid}`].headers && (
+                {responses[`/api/v1/status/${txid}`]?.headers && (
                   <div>
                     <h4 className="font-semibold mb-2">Response Headers:</h4>
                     <div className="bg-muted/50 border rounded p-3 text-xs space-y-1">
-                      {Object.entries(responses[`/api/v1/status/${txid}`].headers || {}).map(([key, value]) => (
+                      {Object.entries(responses[`/api/v1/status/${txid}`]?.headers || {}).map(([key, value]) => (
                         value && <div key={key} className="font-mono">
                           <span className="text-muted-foreground">{key}:</span> {value}
                         </div>
