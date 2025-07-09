@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Database, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { WalletDropdown } from "@/components/wallet-dropdown"
 
 export function Header() {
   return (
@@ -27,16 +28,19 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/dashboard">
-              <Button variant="outline" size="sm">
-                Dashboard
+            <div className="hidden sm:flex items-center gap-2">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  Dashboard
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" asChild>
+                <a href="https://github.com/r0zar/charisma" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-4 h-4" />
+                </a>
               </Button>
-            </Link>
-            <Button variant="outline" size="sm" asChild>
-              <a href="https://github.com/r0zar/charisma" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </Button>
+            </div>
+            <WalletDropdown />
           </div>
         </div>
       </div>

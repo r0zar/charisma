@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Settings, LogOut, User, Menu, BarChart3, Code, Home, Wallet, Palette } from "lucide-react"
 import { useWallet } from "@/contexts"
 import { Button } from "@/components/ui/button"
-import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle, DrawerPortal } from "@/components/ui/drawer"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -148,10 +148,12 @@ export function WalletDropdown() {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerContent className="max-h-[60vh]">
-        <DrawerTitle className="sr-only">Menu</DrawerTitle>
-        <MenuContent onClose={() => setOpen(false)} />
-      </DrawerContent>
+      <DrawerPortal>
+        <DrawerContent className="max-h-[60vh] z-[60]">
+          <DrawerTitle className="sr-only">Menu</DrawerTitle>
+          <MenuContent onClose={() => setOpen(false)} />
+        </DrawerContent>
+      </DrawerPortal>
     </Drawer>
   )
 }
