@@ -7,7 +7,7 @@
  */
 
 import { logger, logExecution, logResult, logError } from './logger';
-import { validateStateFile } from '@/lib/state-loader';
+import { validateStateFile } from '@/lib/state-validator.server';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
