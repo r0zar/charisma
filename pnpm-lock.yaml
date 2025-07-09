@@ -1784,6 +1784,21 @@ importers:
       '@repo/polyglot':
         specifier: workspace:*
         version: link:../../packages/polyglot
+      '@stacks/connect':
+        specifier: 8.1.9
+        version: 8.1.9
+      '@stacks/encryption':
+        specifier: 7.1.0
+        version: 7.1.0
+      '@stacks/network':
+        specifier: 7.0.2
+        version: 7.0.2
+      '@stacks/transactions':
+        specifier: 7.1.0
+        version: 7.1.0
+      '@stacks/wallet-sdk':
+        specifier: 7.1.2
+        version: 7.1.2
       '@vercel/kv':
         specifier: ^3.0.0
         version: 3.0.0
