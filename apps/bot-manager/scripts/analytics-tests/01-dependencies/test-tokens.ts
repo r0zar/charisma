@@ -46,19 +46,12 @@ async function testBasicFunctionality() {
       });
     }
     
-    await logger.success('Tokens basic functionality test passed', {
-      token: testToken,
-      priceCount: result?.prices?.length || 0,
-      resultType: typeof result,
-    });
+    await logger.success('Tokens basic functionality test passed');
     
     return { success: true, priceCount: result?.prices?.length || 0 };
   } catch (error) {
     console.error('❌ Basic call failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('Tokens basic functionality test failed', { 
-      token: testToken, 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('Tokens basic functionality test failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
