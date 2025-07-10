@@ -111,11 +111,7 @@ async function testKVOperations() {
     const deletionVerified = verifyResult === null;
     console.log(`✅ Deletion verified: ${deletionVerified}`);
     
-    await logger.success('KV operations test passed', {
-      testKey,
-      dataMatches: JSON.stringify(readResult) === JSON.stringify(testData),
-      deletionVerified,
-    });
+    await logger.success('KV operations test passed');
     
     return { 
       success: true, 
