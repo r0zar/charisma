@@ -610,62 +610,8 @@ export const appState: AppState = {
         "lastActive": "2025-07-09T23:47:36.944Z",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/119.png",
         "imageType": "pokemon",
-        "dailyPnL": 0.85,
-        "totalPnL": 5.79,
-        "totalVolume": 153.6826131687243,
-        "successRate": 87.80021862139918,
         "isScheduled": false,
         "executionCount": 0,
-        "stxBalance": 4.804072359396433,
-        "lpTokenBalances": [
-          {
-            "contractId": "SPOBF15BUKNJ1SJX68O83PDIF0V9KNMG7X30KVF0.lisa-pool",
-            "symbol": "LISA",
-            "name": "Lisa Pool",
-            "balance": 10,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.000029436554110516268
-          }
-        ],
-        "rewardTokenBalances": [
-          {
-            "contractId": "SPUVFO41TTWODFO818Q5QD6NJJCNN94WUCRGSLJT.pepe",
-            "symbol": "PEPE",
-            "name": "Pepe",
-            "balance": 130,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 0.000005685966536121579
-          },
-          {
-            "contractId": "SPYSEASRAXEDLQY96GA5A51V7BLWDXOL8WFZ0BJF.welsh",
-            "symbol": "WELSH",
-            "name": "Welsh",
-            "balance": 178,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.0005588172985448334
-          },
-          {
-            "contractId": "SPSTT8ENDFGMEMEPM4RT6YN1RJ2JWQR5ESPI2ZI1.usda",
-            "symbol": "USDA",
-            "name": "USD Alex",
-            "balance": 115,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 0.0000023414252304395766
-          },
-          {
-            "contractId": "SPDPLAR0MBSQUB3Q02D938JLO7Z6PO3G3VWNXEQO.lisa",
-            "symbol": "LISA",
-            "name": "Lisa",
-            "balance": 20,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00004083264350526226
-          }
-        ],
         "recentActivity": []
       },
       {
@@ -678,53 +624,8 @@ export const appState: AppState = {
         "lastActive": "2025-07-09T23:23:36.944Z",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/38.png",
         "imageType": "pokemon",
-        "dailyPnL": 1.19,
-        "totalPnL": 14.57,
-        "totalVolume": 69.42142489711934,
-        "successRate": 75.69663065843622,
         "isScheduled": false,
         "executionCount": 0,
-        "stxBalance": 4.206657235939643,
-        "lpTokenBalances": [
-          {
-            "contractId": "SPHLABBIVWFJRESBV0Z8L6Y0BFMS2V296JHZL3NO.usda-pool",
-            "symbol": "USDA",
-            "name": "USD Alex Pool",
-            "balance": 7,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 3.9041865483770633e-7
-          },
-          {
-            "contractId": "SP8AMM4A2IN0U4VL3141ZWC3AERQOGNJJGGGKSNE.pepe-pool",
-            "symbol": "PEPE",
-            "name": "Pepe Pool",
-            "balance": 5,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 5.162576175351324e-7
-          },
-          {
-            "contractId": "SPGEWMTDW59PSXG7TJSDFXYH306NYV170P600AAE.cha-pool",
-            "symbol": "CHA",
-            "name": "Charisma Pool",
-            "balance": 8,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00007537685091770977
-          }
-        ],
-        "rewardTokenBalances": [
-          {
-            "contractId": "SPC3KY7EI3FF533RUZE1GF4YAIXFLQ7UT2NLFFHP.diko",
-            "symbol": "DIKO",
-            "name": "Diko",
-            "balance": 117,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.0003352922462212593
-          }
-        ],
         "recentActivity": []
       },
       {
@@ -737,62 +638,8 @@ export const appState: AppState = {
         "lastActive": "2025-07-09T23:06:36.944Z",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/27.png",
         "imageType": "pokemon",
-        "dailyPnL": -0.84,
-        "totalPnL": -7.92,
-        "totalVolume": 88.84495027434842,
-        "successRate": 83.18685699588477,
         "isScheduled": false,
         "executionCount": 0,
-        "stxBalance": 18.89386574074074,
-        "lpTokenBalances": [
-          {
-            "contractId": "SPHTP323ZE1K8X9Z8H1BNVN5VLGFLX021ZF5S3PV.diko-pool",
-            "symbol": "DIKO",
-            "name": "Diko Pool",
-            "balance": 9,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00004828017915851004
-          },
-          {
-            "contractId": "SP0UE28P4PXJQHSPR818C49HFB3BRL92EMLXUSKC.alex-pool",
-            "symbol": "ALEX",
-            "name": "Alex Pool",
-            "balance": 12,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 9.33227870619766e-8
-          }
-        ],
-        "rewardTokenBalances": [
-          {
-            "contractId": "SPZUJJOKXFBIK9QHR0KASA7F0ZC6Z07NTIE6INHM.welsh",
-            "symbol": "WELSH",
-            "name": "Welsh",
-            "balance": 170,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.0006928675218511218
-          },
-          {
-            "contractId": "SPBPUJGRYTHX8EX4WBWFKZE1S96QDE764O3RJIQ6.diko",
-            "symbol": "DIKO",
-            "name": "Diko",
-            "balance": 60,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.0002745319115408662
-          },
-          {
-            "contractId": "SPNBK5S4V85632JTABR8YDAV2XH9J7DIGTBNZB6C.cha",
-            "symbol": "CHA",
-            "name": "Charisma",
-            "balance": 19,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00009597384084268866
-          }
-        ],
         "recentActivity": []
       },
       {
@@ -805,34 +652,8 @@ export const appState: AppState = {
         "lastActive": "2025-07-09T05:29:36.944Z",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/84.png",
         "imageType": "pokemon",
-        "dailyPnL": -0.11,
-        "totalPnL": -1.11,
-        "totalVolume": 72.75505829903977,
-        "successRate": 73.54854681069959,
         "isScheduled": false,
         "executionCount": 0,
-        "stxBalance": 11.391358024691359,
-        "lpTokenBalances": [],
-        "rewardTokenBalances": [
-          {
-            "contractId": "SP21ZN61K3179E11IGVUU6RNDPBV473DRGWED4J8.usda",
-            "symbol": "USDA",
-            "name": "USD Alex",
-            "balance": 99,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 0.000002247810862484691
-          },
-          {
-            "contractId": "SPBZK33U9ES7ARB571FJTK60XJ2Y1E22FO3K7H82.welsh",
-            "symbol": "WELSH",
-            "name": "Welsh",
-            "balance": 106,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00037342245237423317
-          }
-        ],
         "recentActivity": []
       },
       {
@@ -845,62 +666,8 @@ export const appState: AppState = {
         "lastActive": "2025-07-09T10:27:36.944Z",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/119.png",
         "imageType": "pokemon",
-        "dailyPnL": 1.87,
-        "totalPnL": 22.9,
-        "totalVolume": 118.78412208504801,
-        "successRate": 82.20556841563786,
         "isScheduled": false,
         "executionCount": 0,
-        "stxBalance": 3.738091563786008,
-        "lpTokenBalances": [
-          {
-            "contractId": "SPGT9LEGFHMCH5TTI8W2049JYIAR8M0UZ2RTDEHC.usda-pool",
-            "symbol": "USDA",
-            "name": "USD Alex Pool",
-            "balance": 13,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 2.487814051068815e-7
-          },
-          {
-            "contractId": "SPI2YSTFH38YASOVH08SER29XS03B2P3U6JRX27D.cha-pool",
-            "symbol": "CHA",
-            "name": "Charisma Pool",
-            "balance": 8,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00000983949316335136
-          }
-        ],
-        "rewardTokenBalances": [
-          {
-            "contractId": "SPH0B31CXEIFKAYW1YV8UU819HYKEZ4ELDW6QB4L.leo",
-            "symbol": "LEO",
-            "name": "Leo",
-            "balance": 18,
-            "formattedBalance": 0,
-            "decimals": 8,
-            "usdValue": 6.3877452566392e-8
-          },
-          {
-            "contractId": "SPKVM7HKG5QOBHCCATOIJPLXWYEN0DC69GVHCIGH.roos",
-            "symbol": "ROOS",
-            "name": "Roos",
-            "balance": 92,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00022792588716063526
-          },
-          {
-            "contractId": "SP9A17ZBS4HD2YE95A4HG2DBI7AVGSKH80Q1LNLS.welsh",
-            "symbol": "WELSH",
-            "name": "Welsh",
-            "balance": 54,
-            "formattedBalance": 0,
-            "decimals": 6,
-            "usdValue": 0.00016274806311551766
-          }
-        ],
         "recentActivity": []
       }
     ],

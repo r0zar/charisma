@@ -11,16 +11,12 @@ import { useNotifications } from '@/contexts/notification-context';
 
 export default function ProfilePage() {
   const { walletState, network, setNetwork } = useWallet();
-  const { addNotification } = useNotifications();
+  const { showSuccess } = useNotifications();
 
   const copyAddress = () => {
     if (walletState.address) {
       navigator.clipboard.writeText(walletState.address);
-      addNotification({
-        type: 'success',
-        message: 'Wallet address copied to clipboard',
-        duration: 3000
-      });
+      showSuccess('Wallet address copied to clipboard', undefined, 3000);
     }
   };
 

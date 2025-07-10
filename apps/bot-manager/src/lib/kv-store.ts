@@ -1096,13 +1096,9 @@ export class BotKVStore {
         pausedBots: bots.filter(bot => bot.status === 'paused').length,
         errorBots: bots.filter(bot => bot.status === 'error').length,
         totalGas: 0, // Gas tracking would be implemented based on activities
-        totalValue: bots.reduce((sum, bot) => {
-          const lpValue = bot.lpTokenBalances.reduce((lpSum, token) => lpSum + (token.usdValue || 0), 0);
-          const rewardValue = bot.rewardTokenBalances.reduce((rewardSum, token) => rewardSum + (token.usdValue || 0), 0);
-          return sum + bot.stxBalance + lpValue + rewardValue;
-        }, 0),
-        totalPnL: bots.reduce((sum, bot) => sum + bot.totalPnL, 0),
-        todayPnL: bots.reduce((sum, bot) => sum + bot.dailyPnL, 0),
+        totalValue: 0, // Analytics data moved to separate system
+        totalPnL: 0, // Analytics data moved to separate system
+        todayPnL: 0, // Analytics data moved to separate system
       };
       
       return stats;
