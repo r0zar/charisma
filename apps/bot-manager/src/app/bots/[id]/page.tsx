@@ -1093,20 +1093,16 @@ export default function BotDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-sm text-muted-foreground">STX Balance</div>
-                  <div className="text-lg font-semibold text-card-foreground">{bot?.stxBalance?.toFixed(2) || '0.00'} STX</div>
+                  <div className="text-lg font-semibold text-card-foreground">0.00 STX</div>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-sm text-muted-foreground">LP Tokens</div>
-                  <div className="text-lg font-semibold text-card-foreground">{bot?.lpTokenBalances?.length || 0}</div>
+                  <div className="text-lg font-semibold text-card-foreground">0</div>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-sm text-muted-foreground">Total Value</div>
                   <div className="text-lg font-semibold text-card-foreground">
-                    {formatCurrency(
-                      (bot?.stxBalance || 0) +
-                      (bot?.lpTokenBalances?.reduce((sum, token) => sum + (token.usdValue || 0), 0) || 0) +
-                      (bot?.rewardTokenBalances?.reduce((sum, token) => sum + (token.usdValue || 0), 0) || 0)
-                    )}
+                    {formatCurrency(0)}
                   </div>
                 </div>
               </div>

@@ -265,8 +265,8 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Daily P&L</span>
-                    <span className={`font-medium ${bot.dailyPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {bot.dailyPnL >= 0 ? '+' : ''}{formatCurrency(bot.dailyPnL)}
+                    <span className="font-medium text-muted-foreground">
+                      {formatCurrency(0)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

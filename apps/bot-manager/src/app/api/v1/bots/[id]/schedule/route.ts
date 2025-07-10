@@ -83,7 +83,7 @@ export async function GET(
       try {
         const interval = CronExpressionParser.parse(bot.cronSchedule);
         const nextRun = interval.next();
-        scheduleInfo.nextExecution = nextRun.toISOString();
+        scheduleInfo.nextExecution = nextRun.toISOString() || undefined;
       } catch (error) {
         console.error(`Invalid cron expression for bot ${botId}:`, error);
       }
@@ -233,7 +233,7 @@ export async function PUT(
       if (isScheduled && cronSchedule) {
         try {
           const interval = CronExpressionParser.parse(cronSchedule);
-          nextExecution = interval.next().toISOString();
+          nextExecution = interval.next().toISOString() || undefined;
         } catch (error) {
           return NextResponse.json(
             { 
@@ -280,7 +280,7 @@ export async function PUT(
     }
     
     // Get bot
-    const bot = await botDataStore.getBot(userId, botId);
+    const bot = await botDataStore.getBot(userId || 'default-user', botId);
     if (!bot) {
       return NextResponse.json(
         { 
@@ -309,7 +309,7 @@ export async function PUT(
     if (isScheduled && cronSchedule) {
       try {
         const interval = CronExpressionParser.parse(cronSchedule);
-        nextExecution = interval.next().toISOString();
+        nextExecution = interval.next().toISOString() || undefined;
       } catch (error) {
         console.error(`Failed to calculate next execution for bot ${botId}:`, error);
       }
@@ -326,7 +326,7 @@ export async function PUT(
     };
     
     // Save updated bot
-    await botDataStore.updateBot(userId, updatedBot);
+    await botDataStore.updateBot(userId || 'default-user', updatedBot);
     
     console.log(`[BotScheduleAPI] Bot ${botId} scheduling ${isScheduled ? 'enabled' : 'disabled'}${cronSchedule ? ` with schedule: ${cronSchedule}` : ''}`);
     

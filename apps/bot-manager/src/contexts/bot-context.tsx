@@ -130,9 +130,9 @@ export function BotProvider({ children }: BotProviderProps) {
               const activeBots = userBots.filter(bot => bot.status === 'active').length;
               const pausedBots = userBots.filter(bot => bot.status === 'paused').length;
               const errorBots = userBots.filter(bot => bot.status === 'error').length;
-              const totalValue = userBots.reduce((sum, bot) => sum + (bot.totalVolume || 0), 0);
-              const totalPnL = userBots.reduce((sum, bot) => sum + (bot.totalPnL || 0), 0);
-              const todayPnL = userBots.reduce((sum, bot) => sum + (bot.dailyPnL || 0), 0);
+              const totalValue = 0; // Analytics data moved to separate endpoint
+              const totalPnL = 0; // Analytics data moved to separate endpoint
+              const todayPnL = 0; // Analytics data moved to separate endpoint
               
               setBotStats({
                 totalBots: userBots.length,
@@ -435,9 +435,8 @@ export function BotProvider({ children }: BotProviderProps) {
     const bot = bots.find(bot => bot.id === id);
     if (!bot) throw new Error('Bot not found');
 
-    await updateBot(id, {
-      stxBalance: bot.stxBalance + amount
-    });
+    // Balance updates now handled through analytics system
+    throw new Error('Balance updates not supported - use analytics endpoints');
   };
 
   const withdrawFromBot = async (id: string, tokenId: string, amount: number): Promise<void> => {
@@ -449,11 +448,8 @@ export function BotProvider({ children }: BotProviderProps) {
       const bot = bots.find(bot => bot.id === id);
       if (!bot) throw new Error('Bot not found');
 
-      // Update bot balances (simplified)
-      if (tokenId === 'STX') {
-        await updateBot(id, { stxBalance: Math.max(0, bot.stxBalance - amount) });
-      }
-      // Add logic for other tokens as needed
+      // Balance updates now handled through analytics system
+      throw new Error('Balance updates not supported - use analytics endpoints');
 
     } catch (err) {
       throw new Error('Failed to withdraw from bot');

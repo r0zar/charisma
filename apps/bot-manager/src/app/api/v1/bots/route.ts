@@ -318,17 +318,6 @@ export async function POST(request: NextRequest) {
       image: imageConfig.image,
       imageType: imageConfig.imageType,
       
-      // Initial metrics
-      dailyPnL: 0,
-      totalPnL: 0,
-      totalVolume: 0,
-      successRate: 0,
-      
-      // Initial balances
-      stxBalance: 0,
-      lpTokenBalances: [],
-      rewardTokenBalances: [],
-      
       // No activities initially
       recentActivity: [],
       

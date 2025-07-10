@@ -167,7 +167,10 @@ export async function PUT(
     }
 
     // Update bot in KV store
-    const updatedBot = await botDataStore.updateBot(userId, botId, body);
+    await botDataStore.updateBot(userId, body);
+    
+    // Get the updated bot
+    const updatedBot = await botDataStore.getBot(userId, botId);
     
     if (!updatedBot) {
       return NextResponse.json(
@@ -261,18 +264,7 @@ export async function DELETE(
     }
 
     // Delete bot from KV store
-    const success = await botDataStore.deleteBot(userId, botId);
-    
-    if (!success) {
-      return NextResponse.json(
-        { 
-          error: 'Bot not found',
-          message: `Bot with ID '${botId}' does not exist`,
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
+    await botDataStore.deleteBot(userId, botId);
 
     const responseData = {
       message: 'Bot deleted successfully',

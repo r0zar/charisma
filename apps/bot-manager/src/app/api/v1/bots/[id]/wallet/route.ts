@@ -71,9 +71,9 @@ export async function GET(
     const walletInfo = {
       walletAddress: bot.walletAddress,
       hasEncryptedWallet: !!(bot.encryptedWallet && bot.walletIv),
-      stxBalance: bot.stxBalance || 0,
-      lpTokenBalances: bot.lpTokenBalances || [],
-      rewardTokenBalances: bot.rewardTokenBalances || [],
+      stxBalance: 0, // Analytics data moved to separate endpoint
+      lpTokenBalances: [], // Analytics data moved to separate endpoint
+      rewardTokenBalances: [], // Analytics data moved to separate endpoint
     };
     
     return NextResponse.json(

@@ -160,7 +160,7 @@ export async function POST(
               if (log.stream === "stdout") {
                 allOutput += logData;
                 // Send individual lines as they come, but filter out execution markers
-                const lines = logData.split('\n').filter(line => line.trim());
+                const lines = logData.split('\n').filter((line: string) => line.trim());
                 for (const line of lines) {
                   // Filter out execution control markers from user-visible logs
                   if (!line.startsWith('STRATEGY_EXECUTION_COMPLETE') && 
@@ -176,7 +176,7 @@ export async function POST(
               } else if (log.stream === "stderr") {
                 allError += logData;
                 // Send individual lines as they come
-                const lines = logData.split('\n').filter(line => line.trim());
+                const lines = logData.split('\n').filter((line: string) => line.trim());
                 for (const line of lines) {
                   sendData({
                     type: 'log',

@@ -107,7 +107,7 @@ export async function POST(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to queue analytics refresh:', error);
+    logger.error(`Failed to queue analytics refresh: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,
