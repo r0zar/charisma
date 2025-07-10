@@ -1,28 +1,34 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { AppProvider, SkinProvider, WalletProvider } from "@/contexts";
+import { SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { NotificationProvider } from "@/contexts/notification-context";
 import { GlobalStateProvider } from "@/contexts/global-state-context";
+import { AnalyticsProvider } from "@/contexts/analytics-context";
+import { ActivityProvider } from "@/contexts/activity-context";
+import { NotificationsProvider } from "@/contexts/notifications-context";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { loadAppStateConfigurableWithFallback } from "@/lib/data-loader.server";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Bot Manager - DeFi Automation",
-  description: "Comprehensive DeFi bot management application for automated trading on the Stacks blockchain",
+  title: "Tokemon - DeFi Bot Manager",
+  description: "Tokemon DeFi bot management application for automated trading on the Stacks blockchain",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Load app state server-side with configurable sources
+  const appState = await loadAppStateConfigurableWithFallback();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -150,22 +156,26 @@ export default function RootLayout({
         >
           <SettingsProvider>
             <NotificationProvider>
-              <GlobalStateProvider>
+              <GlobalStateProvider initialData={appState}>
                 <SkinProvider>
                   <WalletProvider>
-                    <AppProvider>
-                      <BotProvider>
-                        <div className="flex h-screen bg-background">
-                          <Sidebar />
-                          <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-                            <Header />
-                            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
-                              {children}
-                            </main>
-                          </div>
-                        </div>
-                      </BotProvider>
-                    </AppProvider>
+                    <BotProvider>
+                      <AnalyticsProvider>
+                        <ActivityProvider>
+                          <NotificationsProvider>
+                            <div className="flex h-screen bg-background">
+                              <Sidebar />
+                              <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+                                <Header />
+                                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
+                                  {children}
+                                </main>
+                              </div>
+                            </div>
+                          </NotificationsProvider>
+                        </ActivityProvider>
+                      </AnalyticsProvider>
+                    </BotProvider>
                   </WalletProvider>
                 </SkinProvider>
               </GlobalStateProvider>

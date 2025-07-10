@@ -1,14 +1,14 @@
 // Bot Data Generator
-import { Bot, BotStats, BotActivity, LpTokenBalance, RewardTokenBalance } from '@/types/bot';
-import { GeneratorOptions } from '@/types/app-state';
+import { Bot, BotStats, LpTokenBalance, RewardTokenBalance } from '@/schemas/bot.schema';
+import { GeneratorOptions } from '@/schemas/app-state.schema';
+import { getStrategyTemplates } from '@/lib/strategy-parser';
+import { createBotImageConfig } from '@/lib/bot-images';
+// Note: wallet-encryption import moved to conditional usage to avoid env var requirement
 import {
   SeededRandom,
   BOT_NAMES,
   TOKEN_NAMES,
-  STRATEGIES,
   BOT_STATUSES,
-  ACTIVITY_TYPES,
-  ACTIVITY_STATUSES,
   generateStacksAddress,
   generateTxHash,
   generateContractId,
@@ -22,54 +22,125 @@ import {
   getProfileConfig,
 } from './helpers';
 
-export function generateBots(rng: SeededRandom, options: GeneratorOptions): Bot[] {
+export async function generateBots(rng: SeededRandom, options: GeneratorOptions): Promise<Bot[]> {
   const config = getProfileConfig(options.profile);
   const botCount = options.botCount || config.botCount;
   const bots: Bot[] = [];
   
-  for (let i = 0; i < botCount; i++) {
-    const bot = generateBot(rng, options, i);
-    bots.push(bot);
+  if (options.targetWalletAddress) {
+    console.log(`🔐 Generating ${botCount} bots for target wallet: ${options.targetWalletAddress.slice(0, 8)}...`);
+  } else {
+    console.log(`🔐 Generating ${botCount} bots with individual wallets...`);
   }
   
+  for (let i = 0; i < botCount; i++) {
+    try {
+      const bot = await generateBot(rng, options, i);
+      bots.push(bot);
+      console.log(`✓ Generated bot ${i + 1}/${botCount}: ${bot.name} (${bot.walletAddress})`);
+    } catch (error) {
+      console.error(`❌ Failed to generate bot ${i + 1}/${botCount}:`, error);
+      throw error; // Fail fast on wallet generation errors
+    }
+  }
+  
+  console.log(`🎉 Successfully generated ${bots.length} bots with real wallets`);
   return bots;
 }
 
-function generateBot(rng: SeededRandom, options: GeneratorOptions, index: number): Bot {
+async function generateBot(rng: SeededRandom, options: GeneratorOptions, index: number): Promise<Bot> {
   const config = getProfileConfig(options.profile);
   const daysActive = rng.nextInt(1, config.daysOfHistory);
-  const strategy = rng.choice(STRATEGIES);
+  
+  // Get strategy templates and randomly select one
+  const strategyTemplates = getStrategyTemplates();
+  const templateKeys = Object.keys(strategyTemplates);
+  const selectedTemplate = rng.choice(templateKeys);
+  const strategy = strategyTemplates[selectedTemplate as keyof typeof strategyTemplates].code;
+  
   const status = rng.choice(BOT_STATUSES);
   
-  // Generate P&L based on strategy and time
-  const pnl = generatePnL(rng, strategy, daysActive, options.profile);
+  // Generate P&L based on strategy type and time
+  const pnl = generatePnL(rng, selectedTemplate, daysActive, options.profile);
   
-  // Generate balances
-  const lpTokenBalances = generateLpTokenBalances(rng, options.profile);
-  const rewardTokenBalances = generateRewardTokenBalances(rng, options.profile);
+  const botName = rng.choice(BOT_NAMES);
+  const botId = createId('bot', rng);
   
-  // Generate setup progress
-  const setupProgress = generateSetupProgress(rng, status);
+  // Generate image configuration for the bot
+  const imageConfig = createBotImageConfig(botName, botId, 'pokemon');
+  
+  // Generate or use target wallet address
+  let walletAddress: string;
+  let encryptedWallet: string | undefined;
+  let walletIv: string | undefined;
+  
+  if (options.targetWalletAddress) {
+    // Use the specified target wallet address
+    walletAddress = options.targetWalletAddress;
+    console.log(`  👤 Using target wallet address: ${walletAddress}`);
+    
+    // Note: For target wallet addresses, we don't store encrypted credentials
+    // as we assume the user manages their own wallet
+    encryptedWallet = undefined;
+    walletIv = undefined;
+  } else if (options.profile === 'testing') {
+    // Use mock wallet for testing profile
+    walletAddress = generateStacksAddress(rng, true);
+    console.log(`  📝 Using mock wallet for testing profile: ${walletAddress}`);
+  } else {
+    // Generate real wallet with encryption
+    try {
+      // Dynamic import to avoid env var requirement when not needed
+      const { generateBotWallet, encryptWalletCredentials } = await import('@/lib/wallet-encryption');
+      
+      const walletCredentials = await generateBotWallet();
+      const encrypted = encryptWalletCredentials(walletCredentials);
+      
+      walletAddress = walletCredentials.walletAddress;
+      encryptedWallet = encrypted.encryptedPrivateKey;
+      walletIv = encrypted.privateKeyIv;
+    } catch (error) {
+      console.error(`Failed to generate wallet for bot ${botName}:`, error);
+      throw new Error(`Wallet generation failed for bot ${botName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
   
   const bot: Bot = {
-    id: createId('bot', rng),
-    name: rng.choice(BOT_NAMES),
+    id: botId,
+    name: botName,
     strategy,
     status,
-    walletAddress: generateStacksAddress(rng, options.profile === 'testing'),
+    walletAddress,
     createdAt: generateDate(rng, config.daysOfHistory),
     lastActive: generateDate(rng, 1),
+    
+    // Encrypted wallet data (only for non-testing profiles)
+    encryptedWallet,
+    walletIv,
+    
+    // Bot visual identity
+    image: imageConfig.image,
+    imageType: imageConfig.imageType,
+    
+    // Performance metrics
     dailyPnL: pnl.daily,
     totalPnL: pnl.total,
     totalVolume: generateAmount(rng, options.profile, 'large'),
-    successRate: generateSuccessRate(rng, strategy),
-    maxGasPrice: generateGasPrice(rng),
-    slippageTolerance: generateSlippage(rng),
-    autoRestart: rng.nextBoolean(0.7),
+    successRate: generateSuccessRate(rng, selectedTemplate),
+    
+    // Scheduling configuration (default to disabled)
+    isScheduled: false,
+    cronSchedule: undefined,
+    lastExecution: undefined,
+    nextExecution: undefined,
+    executionCount: 0,
+    
+    // Balances
     stxBalance: generateAmount(rng, options.profile, 'medium'),
-    lpTokenBalances,
-    rewardTokenBalances,
-    setupProgress,
+    lpTokenBalances: generateLpTokenBalances(rng, options.profile),
+    rewardTokenBalances: generateRewardTokenBalances(rng, options.profile),
+    
+    // Activity
     recentActivity: [], // Will be populated separately
   };
   
@@ -122,124 +193,7 @@ function generateRewardTokenBalances(rng: SeededRandom, profile: string): Reward
   return balances;
 }
 
-function generateSetupProgress(rng: SeededRandom, status: string): {
-  funded: boolean;
-  lpTokensAdded: boolean;
-  activated: boolean;
-  completionPercentage: number;
-} {
-  if (status === 'setup') {
-    const funded = rng.nextBoolean(0.8);
-    const lpTokensAdded = funded ? rng.nextBoolean(0.7) : false;
-    const activated = lpTokensAdded ? rng.nextBoolean(0.6) : false;
-    
-    const completionPercentage = 
-      (funded ? 33 : 0) +
-      (lpTokensAdded ? 33 : 0) +
-      (activated ? 34 : 0);
-    
-    return {
-      funded,
-      lpTokensAdded,
-      activated,
-      completionPercentage,
-    };
-  }
-  
-  // For non-setup bots, assume they're fully set up
-  return {
-    funded: true,
-    lpTokensAdded: true,
-    activated: true,
-    completionPercentage: 100,
-  };
-}
 
-export function generateBotActivities(rng: SeededRandom, bots: Bot[], options: GeneratorOptions): BotActivity[] {
-  const activities: BotActivity[] = [];
-  const config = getProfileConfig(options.profile);
-  
-  for (const bot of bots) {
-    const activityCount = rng.nextInt(5, 20);
-    
-    for (let i = 0; i < activityCount; i++) {
-      const activity = generateBotActivity(rng, bot, options, config);
-      activities.push(activity);
-    }
-  }
-  
-  // Sort by timestamp (newest first)
-  return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-}
-
-function generateBotActivity(rng: SeededRandom, bot: Bot, options: GeneratorOptions, config: any): BotActivity {
-  const type = rng.choice(ACTIVITY_TYPES);
-  const status = rng.choice(ACTIVITY_STATUSES);
-  const timestamp = generateDate(rng, config.daysOfHistory);
-  
-  // Generate activity description based on type
-  const descriptions = {
-    'yield-farming': [
-      'Staked tokens in liquidity pool',
-      'Harvested yield rewards',
-      'Reinvested farming rewards',
-      'Optimized pool allocation',
-    ],
-    'deposit': [
-      'Deposited STX to bot wallet',
-      'Added LP tokens to strategy',
-      'Funded bot with rewards',
-      'Increased position size',
-    ],
-    'withdrawal': [
-      'Withdrew STX from bot',
-      'Removed LP tokens',
-      'Claimed reward tokens',
-      'Reduced position size',
-    ],
-    'trade': [
-      'Executed swap transaction',
-      'Arbitrage opportunity captured',
-      'Rebalanced portfolio',
-      'Market making trade',
-    ],
-    'error': [
-      'Transaction failed due to slippage',
-      'Insufficient gas for transaction',
-      'Contract call reverted',
-      'Network connection timeout',
-    ],
-  };
-  
-  const activity: BotActivity = {
-    id: createId('activity', rng),
-    botId: bot.id,
-    timestamp,
-    type,
-    status,
-    description: rng.choice(descriptions[type]),
-    blockHeight: rng.nextInt(100000, 999999),
-    blockTime: timestamp,
-  };
-  
-  // Add optional fields based on type
-  if (type !== 'error') {
-    activity.txid = generateTxHash(rng);
-    activity.amount = generateAmount(rng, options.profile, 'small');
-    activity.token = rng.choice(TOKEN_NAMES).symbol;
-  }
-  
-  if (status === 'failed') {
-    activity.error = rng.choice([
-      'Slippage tolerance exceeded',
-      'Insufficient balance',
-      'Contract execution failed',
-      'Network timeout',
-    ]);
-  }
-  
-  return activity;
-}
 
 export function generateBotStats(bots: Bot[]): BotStats {
   const totalBots = bots.length;
@@ -247,7 +201,7 @@ export function generateBotStats(bots: Bot[]): BotStats {
   const pausedBots = bots.filter(bot => bot.status === 'paused').length;
   const errorBots = bots.filter(bot => bot.status === 'error').length;
   
-  const totalGas = bots.reduce((sum, bot) => sum + bot.maxGasPrice, 0);
+  const totalGas = 0; // Gas is now handled in strategy code
   const totalValue = bots.reduce((sum, bot) => {
     const lpValue = bot.lpTokenBalances.reduce((lpSum, token) => lpSum + (token.usdValue || 0), 0);
     const rewardValue = bot.rewardTokenBalances.reduce((rewardSum, token) => rewardSum + (token.usdValue || 0), 0);

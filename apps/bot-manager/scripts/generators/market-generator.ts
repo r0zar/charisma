@@ -1,7 +1,6 @@
 // Market Data Generator
-import { MarketData, PerformanceMetrics, PnLDataPoint } from '@/types/bot';
-import { DeFiPool, AnalyticsData } from '@/types/app-state';
-import { GeneratorOptions } from '@/types/app-state';
+import { MarketData, PerformanceMetrics, PnLDataPoint } from '@/schemas/bot.schema';
+import { DeFiPool, AnalyticsData, GeneratorOptions } from '@/schemas/app-state.schema';
 import {
   SeededRandom,
   TOKEN_NAMES,
@@ -91,23 +90,13 @@ function generateDeFiPool(rng: SeededRandom, options: GeneratorOptions, protocol
   const pool: DeFiPool = {
     id: createId('pool', rng),
     name: `${tokenA.symbol}-${tokenB.symbol}`,
-    protocol,
-    tokenA: {
-      symbol: tokenA.symbol,
-      contractId: generateContractId(rng, tokenA.symbol.toLowerCase()),
-      amount: generateAmount(rng, options.profile, 'large'),
-    },
-    tokenB: {
-      symbol: tokenB.symbol,
-      contractId: generateContractId(rng, tokenB.symbol.toLowerCase()),
-      amount: generateAmount(rng, options.profile, 'large'),
-    },
+    tokenA: tokenA.symbol,
+    tokenB: tokenB.symbol,
     totalValueLocked: generateAmount(rng, options.profile, 'large') * 10,
     apr: generateAPR(rng, options.profile),
     volume24h: generateAmount(rng, options.profile, 'large'),
     fees24h: generateAmount(rng, options.profile, 'small'),
-    createdAt: generateDate(rng, 180),
-    isActive: rng.nextBoolean(0.9),
+    liquidity: generateAmount(rng, options.profile, 'large') * 5,
   };
   
   return pool;
@@ -116,42 +105,32 @@ function generateDeFiPool(rng: SeededRandom, options: GeneratorOptions, protocol
 export function generateAnalyticsData(rng: SeededRandom, options: GeneratorOptions): AnalyticsData {
   const config = getProfileConfig(options.profile);
   
-  // Generate performance metrics
-  const performance = generatePerformanceMetrics(rng, options, config);
-  
-  // Generate portfolio data
-  const totalValue = generateAmount(rng, options.profile, 'large');
-  const portfolio = {
-    totalValue,
-    distribution: {
-      stx: rng.nextFloat(0.3, 0.5),
-      lpTokens: rng.nextFloat(0.2, 0.4),
-      rewardTokens: rng.nextFloat(0.1, 0.3),
-      cash: rng.nextFloat(0.05, 0.15),
-    },
-    allocation: {
-      yieldFarming: rng.nextFloat(0.4, 0.6),
-      dca: rng.nextFloat(0.1, 0.3),
-      arbitrage: rng.nextFloat(0.05, 0.2),
-      liquidityMining: rng.nextFloat(0.1, 0.25),
-    },
-  };
-  
-  // Generate metrics
-  const metrics = {
-    totalTrades: rng.nextInt(50, 500),
-    winRate: rng.nextFloat(0.6, 0.85),
-    averageTradeSize: generateAmount(rng, options.profile, 'medium'),
-    maxDrawdown: rng.nextFloat(-0.05, -0.25),
-    sharpeRatio: rng.nextFloat(0.8, 2.5),
-    totalFees: generateAmount(rng, options.profile, 'small') * 10,
-    timeActive: rng.nextInt(24, 24 * config.daysOfHistory),
-  };
+  // Generate chart data
+  const chartData = [];
+  const endDate = new Date();
+  for (let i = 0; i < config.daysOfHistory; i++) {
+    const date = new Date(endDate.getTime() - i * 24 * 60 * 60 * 1000);
+    chartData.push({
+      date: date.toISOString().split('T')[0],
+      value: generateAmount(rng, options.profile, 'medium'),
+      volume: generateAmount(rng, options.profile, 'large'),
+    });
+  }
   
   return {
-    performance,
-    portfolio,
-    metrics,
+    totalValue: generateAmount(rng, options.profile, 'large'),
+    totalPnL: rng.nextFloat(-1000, 5000),
+    activeBots: rng.nextInt(1, 10),
+    successRate: rng.nextFloat(65, 85),
+    volumeToday: generateAmount(rng, options.profile, 'large'),
+    bestPerformer: `Bot ${rng.nextInt(1, 10)}`,
+    worstPerformer: `Bot ${rng.nextInt(1, 10)}`,
+    avgGasUsed: rng.nextFloat(1000, 5000),
+    totalTransactions: rng.nextInt(100, 1000),
+    profitableDays: rng.nextInt(1, config.daysOfHistory),
+    totalDays: config.daysOfHistory,
+    timeRange: '30d',
+    chartData,
   };
 }
 

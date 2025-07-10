@@ -23,9 +23,6 @@ export interface NetworkSettings {
 }
 
 export interface BotDefaultSettings {
-  autoRestart: boolean;
-  defaultGasPrice: number;
-  defaultSlippage: number;
   defaultStrategy: 'yield-farming' | 'dca' | 'arbitrage' | 'liquidity-mining';
 }
 
@@ -62,9 +59,6 @@ const defaultSettings: AppSettings = {
     rpcEndpoint: 'https://stacks-node-api.mainnet.stacks.co',
   },
   botDefaults: {
-    autoRestart: true,
-    defaultGasPrice: 1000,
-    defaultSlippage: 0.5,
     defaultStrategy: 'yield-farming',
   },
   notifications: {

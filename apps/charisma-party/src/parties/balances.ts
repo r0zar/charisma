@@ -24,6 +24,8 @@ import {
 const BALANCE_UPDATE_INTERVAL = 300_000; // 5 minutes
 const INITIAL_FETCH_DELAY = 3_000; // 3 seconds
 const DEFAULT_DECIMALS = 6;
+const INITIALIZATION_TIMEOUT = 10_000; // 10 seconds
+const HIBERNATION_DETECTION_THRESHOLD = 5_000; // 5 seconds
 
 export default class BalancesParty implements Party.Server {
     private subscriptions = new Map<string, ClientSubscription>();
@@ -35,6 +37,12 @@ export default class BalancesParty implements Party.Server {
 
     private localInterval: NodeJS.Timeout | null = null;
     private isLocalDev = false;
+    
+    // Initialization state management
+    private isInitialized = false;
+    private initializationPromise: Promise<void> | null = null;
+    private initializationStartTime = 0;
+    private lastActiveTime = Date.now();
 
     // Helper methods for contract ID handling
     private getBaseContractId(contractId: string): string {
@@ -108,7 +116,7 @@ export default class BalancesParty implements Party.Server {
     constructor(readonly room: Party.Room) {
         console.log(`💰 Balances party room: ${this.room.id}`);
         this.isLocalDev = this.detectLocalDev();
-        this.loadTokenMetadata();
+        this.initializeServer();
 
         if (this.isLocalDev) {
             this.startLocalInterval();
@@ -154,6 +162,65 @@ export default class BalancesParty implements Party.Server {
             console.error('🏷️ Failed to load token metadata:', error);
         }
     }
+    
+    private async initializeServer() {
+        if (this.initializationPromise) {
+            return this.initializationPromise;
+        }
+        
+        this.initializationStartTime = Date.now();
+        console.log('🚀 Server initialization starting...');
+        
+        this.initializationPromise = this.performInitialization();
+        
+        try {
+            await this.initializationPromise;
+            this.isInitialized = true;
+            const initTime = Date.now() - this.initializationStartTime;
+            console.log(`✅ Server initialization completed in ${initTime}ms`);
+        } catch (error) {
+            console.error('❌ Server initialization failed:', error);
+            // Reset for retry
+            this.initializationPromise = null;
+            this.isInitialized = false;
+        }
+    }
+    
+    private async performInitialization(): Promise<void> {
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Initialization timeout')), INITIALIZATION_TIMEOUT);
+        });
+        
+        const initialization = async () => {
+            // Check if we're waking up from hibernation
+            const timeSinceLastActive = Date.now() - this.lastActiveTime;
+            if (timeSinceLastActive > HIBERNATION_DETECTION_THRESHOLD) {
+                console.log(`🌙 Detected hibernation wake-up (${timeSinceLastActive}ms since last active)`);
+                // Force reload metadata after hibernation
+                this.tokenRecords.clear();
+            }
+            
+            // Load token metadata
+            await this.loadTokenMetadata();
+            
+            // Update last active time
+            this.lastActiveTime = Date.now();
+        };
+        
+        await Promise.race([initialization(), timeout]);
+    }
+    
+    private async waitForInitialization(): Promise<void> {
+        if (this.isInitialized) {
+            return;
+        }
+        
+        if (!this.initializationPromise) {
+            await this.initializeServer();
+        } else {
+            await this.initializationPromise;
+        }
+    }
 
     onConnect(conn: Party.Connection) {
         const clientId = conn.id;
@@ -165,25 +232,36 @@ export default class BalancesParty implements Party.Server {
             subscribeToAll: false
         });
 
-        // Send all cached balances
-        const messages = this.createAllBalanceMessages();
-        if (messages.length > 0) {
+        // Wait for initialization before sending data
+        this.waitForInitialization().then(() => {
+            // Send all cached balances
+            const messages = this.createAllBalanceMessages();
+            if (messages.length > 0) {
+                conn.send(JSON.stringify({
+                    type: 'BALANCE_BATCH',
+                    balances: messages,
+                    timestamp: Date.now()
+                }));
+            }
+
+            // Send server info
             conn.send(JSON.stringify({
-                type: 'BALANCE_BATCH',
-                balances: messages,
+                type: 'SERVER_INFO',
+                party: 'balances',
+                isLocalDev: this.isLocalDev,
+                metadataLoaded: this.tokenRecords.size > 0,
+                metadataCount: this.tokenRecords.size,
+                initialized: this.isInitialized,
                 timestamp: Date.now()
             }));
-        }
-
-        // Send server info
-        conn.send(JSON.stringify({
-            type: 'SERVER_INFO',
-            party: 'balances',
-            isLocalDev: this.isLocalDev,
-            metadataLoaded: this.tokenRecords.size > 0,
-            metadataCount: this.tokenRecords.size,
-            timestamp: Date.now()
-        }));
+        }).catch(error => {
+            console.error(`❌ Failed to send initial data to client ${clientId}:`, error);
+            conn.send(JSON.stringify({
+                type: 'ERROR',
+                message: 'Server initialization failed',
+                timestamp: Date.now()
+            }));
+        });
     }
 
     onMessage(message: string, sender: Party.Connection) {
@@ -232,22 +310,39 @@ export default class BalancesParty implements Party.Server {
         }
     }
 
-    onRequest(request: Party.Request) {
+    async onRequest(request: Party.Request) {
         if (request.method === 'GET') {
-            const url = new URL(request.url);
-            const userIds = url.searchParams.get('users')?.split(',') || [];
+            try {
+                // Wait for initialization before processing request
+                await this.waitForInitialization();
+                
+                const url = new URL(request.url);
+                const userIds = url.searchParams.get('users')?.split(',') || [];
 
-            const messages = userIds.length === 0
-                ? this.createAllBalanceMessages()
-                : this.createBalanceMessagesForUsers(userIds);
+                const messages = userIds.length === 0
+                    ? this.createAllBalanceMessages()
+                    : this.createBalanceMessagesForUsers(userIds);
 
-            return new Response(JSON.stringify({
-                balances: messages,
-                party: 'balances',
-                serverTime: Date.now()
-            }), {
-                headers: { 'Content-Type': 'application/json' }
-            });
+                return new Response(JSON.stringify({
+                    balances: messages,
+                    party: 'balances',
+                    serverTime: Date.now(),
+                    initialized: this.isInitialized
+                }), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                console.error('❌ Request failed due to initialization error:', error);
+                return new Response(JSON.stringify({
+                    error: 'Server initialization failed',
+                    party: 'balances',
+                    serverTime: Date.now(),
+                    initialized: false
+                }), {
+                    status: 503,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
         }
 
         if (request.method === 'POST') {

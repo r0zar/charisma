@@ -7,12 +7,12 @@
  */
 
 import { logger, logExecution, logResult, logError } from './logger';
-import { AppState, GeneratorOptions, GeneratorMetadata } from '@/types/app-state';
+import { AppState, GeneratorOptions, GeneratorMetadata } from '@/schemas/app-state.schema';
 import { SeededRandom, getProfileConfig } from './generators/helpers';
-import { generateBots, generateBotActivities, generateBotStats } from './generators/bot-generator';
-import { generateMarketData, generateDeFiPools, generateAnalyticsData } from './generators/market-generator';
+import { generateBots, generateBotStats } from './generators/bot-generator';
+import { generateMarketData, generateDeFiPools } from './generators/market-generator';
 import { generateUserSettings, generateUIPreferences, generateWalletState, generateNotifications } from './generators/user-generator';
-import { validateAppState } from '@/lib/state-schema';
+import { validateAppState } from '@/lib/state';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs/promises';
@@ -32,6 +32,7 @@ function parseArgs(): GeneratorOptions {
     includeErrors: undefined,
     realisticData: undefined,
     outputPath: undefined,
+    targetWalletAddress: undefined,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -61,6 +62,9 @@ function parseArgs(): GeneratorOptions {
         break;
       case '--output':
         options.outputPath = args[++i];
+        break;
+      case '--wallet-address':
+        options.targetWalletAddress = args[++i];
         break;
       case '--help':
       case '-h':
@@ -96,7 +100,8 @@ Options:
   --errors             Include error scenarios in generated data
   --no-errors          Exclude error scenarios
   --realistic          Use realistic data values
-  --output <path>      Output file path (default: public/data/app-state.json)
+  --output <path>      Output file path (default: src/data/app-state.ts)
+  --wallet-address <addr>  Assign all bots to specific wallet address
   --help, -h           Show this help message
 
 Profiles:
@@ -110,6 +115,7 @@ Examples:
   node --import tsx scripts/generate-state.ts --profile demo --seed 12345
   node --import tsx scripts/generate-state.ts --profile testing --bots 10
   node --import tsx scripts/generate-state.ts --output data/custom-state.json
+  node --import tsx scripts/generate-state.ts --wallet-address SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS
 
 Output:
   - JSON file with complete app state
@@ -140,7 +146,19 @@ function validateOptions(options: GeneratorOptions): string[] {
   return errors;
 }
 
-function generateAppState(options: GeneratorOptions): AppState {
+function validateEnvironment(options: GeneratorOptions): string[] {
+  const errors: string[] = [];
+
+  // Check for wallet encryption key if not using testing profile
+  if (options.profile !== 'testing' && !process.env.WALLET_ENCRYPTION_KEY) {
+    errors.push('WALLET_ENCRYPTION_KEY environment variable is required for non-testing profiles');
+    errors.push('Add WALLET_ENCRYPTION_KEY=<your-encryption-key> to your .env.local file');
+  }
+
+  return errors;
+}
+
+async function generateAppState(options: GeneratorOptions): Promise<AppState> {
   const config = getProfileConfig(options.profile);
   const rng = new SeededRandom(options.seed || Date.now());
 
@@ -159,6 +177,18 @@ function generateAppState(options: GeneratorOptions): AppState {
   console.log(`📅 Days of history: ${finalOptions.daysOfHistory}`);
   console.log(`❌ Include errors: ${finalOptions.includeErrors}`);
   console.log(`🎯 Realistic data: ${finalOptions.realisticData}`);
+  
+  if (finalOptions.targetWalletAddress) {
+    console.log(`👤 Target wallet: ${finalOptions.targetWalletAddress} (all bots will belong to this wallet)`);
+  } else {
+    console.log(`🎲 Random wallets: each bot will have its own wallet address`);
+  }
+  
+  if (options.profile !== 'testing') {
+    console.log(`🔐 Wallet encryption: enabled (real wallets)`);
+  } else {
+    console.log(`📝 Wallet encryption: disabled (mock wallets for testing)`);
+  }
 
   // Generate metadata
   const metadata: GeneratorMetadata = {
@@ -166,12 +196,8 @@ function generateAppState(options: GeneratorOptions): AppState {
     generatedAt: new Date().toISOString(),
     seed: options.seed,
     profile: options.profile,
-    options: {
-      botCount: finalOptions.botCount!,
-      daysOfHistory: finalOptions.daysOfHistory!,
-      includeErrors: finalOptions.includeErrors!,
-      realisticData: finalOptions.realisticData!,
-    },
+    botCount: finalOptions.botCount!,
+    realistic: finalOptions.realisticData!,
   };
 
   // Generate user data
@@ -180,21 +206,36 @@ function generateAppState(options: GeneratorOptions): AppState {
   const userPreferences = generateUIPreferences(rng, finalOptions);
   const walletState = generateWalletState(rng, finalOptions);
 
-  // Generate bot data
+  // Generate bot data (now async)
   console.log('🤖 Generating bot data...');
-  const bots = generateBots(rng, finalOptions);
-  const botActivities = generateBotActivities(rng, bots, finalOptions);
+  const bots = await generateBots(rng, finalOptions);
   const botStats = generateBotStats(bots);
 
   // Generate market data
   console.log('📈 Generating market data...');
   const marketData = generateMarketData(rng, finalOptions);
   const defiPools = generateDeFiPools(rng, finalOptions);
-  const analyticsData = generateAnalyticsData(rng, finalOptions);
 
   // Generate notifications
   console.log('🔔 Generating notifications...');
   const notifications = generateNotifications(rng, finalOptions);
+
+  // Create minimal empty analytics (real data will be populated by analytics system)
+  const emptyAnalytics = {
+    totalValue: 0,
+    totalPnL: 0,
+    activeBots: bots.filter(bot => bot.status === 'active').length,
+    successRate: 0,
+    volumeToday: 0,
+    bestPerformer: bots.length > 0 ? bots[0].name : 'N/A',
+    worstPerformer: bots.length > 0 ? bots[0].name : 'N/A',
+    avgGasUsed: 0,
+    totalTransactions: 0,
+    profitableDays: 0,
+    totalDays: 0,
+    timeRange: '7d' as const,
+    chartData: []
+  };
 
   // Assemble final state
   const appState: AppState = {
@@ -207,11 +248,11 @@ function generateAppState(options: GeneratorOptions): AppState {
     bots: {
       list: bots,
       stats: botStats,
-      activities: botActivities,
+      activities: [], // Empty - real activities will be populated by analytics system
     },
     market: {
       data: marketData,
-      analytics: analyticsData,
+      analytics: emptyAnalytics, // Empty - real analytics will be populated by analytics system
       pools: defiPools,
     },
     notifications,
@@ -225,9 +266,25 @@ async function saveAppState(appState: AppState, outputPath: string): Promise<voi
   const outputDir = path.dirname(outputPath);
   await fs.mkdir(outputDir, { recursive: true });
 
-  // Write formatted JSON
-  const jsonData = JSON.stringify(appState, null, 2);
-  await fs.writeFile(outputPath, jsonData, 'utf8');
+  // Determine if we're generating a TypeScript file or JSON
+  const isTypeScript = outputPath.endsWith('.ts');
+  
+  if (isTypeScript) {
+    // Generate TypeScript file with proper imports and type annotations
+    const tsContent = `import { type AppState } from '@/schemas/app-state.schema';
+
+/**
+ * Generated application state data
+ * Created with proper TypeScript types for compile-time safety
+ */
+export const appState: AppState = ${JSON.stringify(appState, null, 2)} as const;
+`;
+    await fs.writeFile(outputPath, tsContent, 'utf8');
+  } else {
+    // Write formatted JSON (for compatibility)
+    const jsonData = JSON.stringify(appState, null, 2);
+    await fs.writeFile(outputPath, jsonData, 'utf8');
+  }
 }
 
 function printStatistics(appState: AppState, outputPath: string): void {
@@ -288,27 +345,55 @@ async function main() {
       throw new Error(`Invalid options: ${validationErrors.join(', ')}`);
     }
 
+    // Validate environment
+    const environmentErrors = validateEnvironment(options);
+    if (environmentErrors.length > 0) {
+      console.log('\n❌ Environment validation failed:');
+      environmentErrors.forEach(error => console.log(`   ${error}`));
+      throw new Error(`Environment validation failed: ${environmentErrors.join(', ')}`);
+    }
+
     // Set default output path
     if (!options.outputPath) {
-      options.outputPath = path.join(process.cwd(), 'public', 'data', 'app-state.json');
+      options.outputPath = path.join(process.cwd(), 'src', 'data', 'app-state.ts');
     }
 
     // Generate app state
     console.log('\n🎯 Starting app state generation...');
-    const appState = generateAppState(options);
+    const appState = await generateAppState(options);
 
     // Validate generated state
     console.log('\n✅ Validating generated state...');
     const validation = validateAppState(appState);
     
-    if (!validation.isValid) {
-      throw new Error(`Generated state is invalid: ${validation.errors.join(', ')}`);
+    if (!validation.success) {
+      await logger.error('Validation failed', {
+        error: validation.error,
+        validationErrors: validation.validationErrors,
+        context: 'State validation'
+      });
+      console.log('❌ Validation errors:');
+      if (validation.validationErrors) {
+        validation.validationErrors.forEach(error => console.log(`   ${error}`));
+      }
+      throw new Error(`Generated state is invalid: ${validation.error || 'Unknown error'}`);
     }
 
-    if (validation.warnings.length > 0) {
-      console.log('\n⚠️  Validation warnings:');
-      validation.warnings.forEach(warning => console.log(`   ${warning}`));
-    }
+    await logger.info('Validation successful', {
+      context: 'State validation',
+      details: {
+        totalBots: appState.bots.list.length,
+        totalActivities: appState.bots.activities.length,
+        totalPools: appState.market.pools.length,
+        totalNotifications: appState.notifications.length,
+        walletTransactions: appState.user.wallet.transactions.length,
+        tokenBalances: appState.user.wallet.balance.tokens.length,
+        profile: appState.metadata.profile,
+        seed: appState.metadata.seed,
+        generatedAt: appState.metadata.generatedAt
+      }
+    });
+    console.log('✅ Generated state is valid!');
 
     // Save to file
     console.log('\n💾 Saving app state...');
@@ -318,7 +403,21 @@ async function main() {
     printStatistics(appState, options.outputPath);
 
     const duration = Date.now() - startTime;
-    await logResult('App state generation', { exitCode: 0, stdout: 'Generated successfully' }, duration);
+    await logResult('App state generation', { 
+      exitCode: 0, 
+      stdout: 'Generated successfully',
+      summary: {
+        profile: appState.metadata.profile,
+        seed: appState.metadata.seed,
+        bots: appState.bots.list.length,
+        activities: appState.bots.activities.length,
+        pools: appState.market.pools.length,
+        notifications: appState.notifications.length,
+        fileSize: `${(JSON.stringify(appState).length / 1024).toFixed(2)} KB`,
+        duration: `${duration}ms`,
+        outputPath: options.outputPath
+      }
+    }, duration);
 
     console.log('\n✅ App state generated successfully!');
     console.log(`⏱️  Duration: ${duration}ms`);

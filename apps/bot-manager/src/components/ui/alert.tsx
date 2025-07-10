@@ -9,7 +9,7 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-background text-foreground",
+        default: "text-foreground",
         destructive:
           "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
         info:
@@ -95,12 +95,12 @@ const Alert = React.forwardRef<
           <XIcon className="size-4" />
         </button>
       )}
-      <div className={cn(dismissible && "pr-8")}>
+      <div className={cn(dismissible && "pr-8", 'flex items-center gap-2')}>
         {children}
       </div>
       {autoHide && (
         <div className="absolute bottom-0 left-0 h-1 bg-current/20 w-full rounded-b-lg overflow-hidden">
-          <div 
+          <div
             className="h-full bg-current transition-all duration-100 ease-linear"
             style={{ width: `${progress}%` }}
           />

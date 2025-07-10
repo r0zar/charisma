@@ -3,6 +3,17 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { connect, request } from "@stacks/connect";
+import {
+    signMessage as blazeSignMessage,
+    signMessageWithTimestamp,
+    signedFetch,
+    signedFetchWithTimestamp,
+    buildSignatureHeaders,
+    buildTimestampedSignatureHeaders,
+    type SignedMessage,
+    type SignedMessageWithTimestamp,
+    type TimestampedAuthOptions
+} from "blaze-sdk";
 
 // Types
 type Network = "mainnet" | "testnet";
@@ -39,6 +50,15 @@ interface WalletContextType {
     authenticated: boolean;
     stxAddress: string | null;
     isConnecting: boolean;
+
+    // Enhanced auth functions
+    signMessageBlaze: (message: string) => Promise<SignedMessage>;
+    signMessageWithTimestamp: (message: string, options?: TimestampedAuthOptions) => Promise<SignedMessageWithTimestamp>;
+    authenticatedFetch: (url: string, options?: RequestInit & { message: string }) => Promise<Response>;
+    authenticatedFetchWithTimestamp: (url: string, options?: RequestInit & { message: string } & TimestampedAuthOptions) => Promise<Response>;
+    buildAuthHeaders: (message: string) => Promise<Record<string, string>>;
+    buildTimestampedAuthHeaders: (message: string, options?: TimestampedAuthOptions) => Promise<Record<string, string>>;
+    getUserId: () => string;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -57,6 +77,15 @@ const WalletContext = createContext<WalletContextType>({
     authenticated: false,
     stxAddress: null,
     isConnecting: false,
+
+    // Enhanced auth function defaults
+    signMessageBlaze: async () => ({ signature: "", publicKey: "" }),
+    signMessageWithTimestamp: async () => ({ signature: "", publicKey: "", timestamp: 0 }),
+    authenticatedFetch: async () => new Response(),
+    authenticatedFetchWithTimestamp: async () => new Response(),
+    buildAuthHeaders: async () => ({}),
+    buildTimestampedAuthHeaders: async () => ({}),
+    getUserId: () => "",
 });
 
 export function WalletProvider({ children }: { children: ReactNode }) {
@@ -295,6 +324,61 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Enhanced auth functions using blaze-sdk
+    const signMessageBlaze = async (message: string): Promise<SignedMessage> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+        return blazeSignMessage(message);
+    };
+
+    const signMessageWithTimestampImpl = async (message: string, options?: TimestampedAuthOptions): Promise<SignedMessageWithTimestamp> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+        return signMessageWithTimestamp(message, options);
+    };
+
+    const authenticatedFetch = async (url: string, options?: RequestInit & { message: string }): Promise<Response> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+        if (!options?.message) {
+            throw new Error("Message is required for authenticated requests");
+        }
+        return signedFetch(url, options);
+    };
+
+    const authenticatedFetchWithTimestamp = async (url: string, options?: RequestInit & { message: string } & TimestampedAuthOptions): Promise<Response> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+        if (!options?.message) {
+            throw new Error("Message is required for authenticated requests");
+        }
+        return signedFetchWithTimestamp(url, options);
+    };
+
+    const buildAuthHeaders = async (message: string): Promise<Record<string, string>> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+        const signed = await signMessageBlaze(message);
+        return buildSignatureHeaders(signed);
+    };
+
+    const buildTimestampedAuthHeaders = async (message: string, options?: TimestampedAuthOptions): Promise<Record<string, string>> => {
+        if (!walletState.connected) {
+            throw new Error("Wallet not connected");
+        }
+        const signed = await signMessageWithTimestampImpl(message, options);
+        return buildTimestampedSignatureHeaders(signed);
+    };
+
+    const getUserId = (): string => {
+        return walletState.address || 'anonymous';
+    };
+
     const contextValue: WalletContextType = {
         walletState,
         network,
@@ -305,6 +389,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         authenticated: walletState.connected,
         stxAddress: walletState.address || null,
         isConnecting,
+
+        // Enhanced auth functions
+        signMessageBlaze,
+        signMessageWithTimestamp: signMessageWithTimestampImpl,
+        authenticatedFetch,
+        authenticatedFetchWithTimestamp,
+        buildAuthHeaders,
+        buildTimestampedAuthHeaders,
+        getUserId,
     };
 
     return (

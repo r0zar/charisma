@@ -60,20 +60,23 @@ class SimpleLogger {
   async info(message: string, data?: LogData): Promise<void> {
     if (!this.initialized) await this.initialize();
     console.log(`ℹ️  ${message}`);
-    return this.writeLog(`ℹ️  ${message}`);
+    const logMessage = data ? `ℹ️  ${message}\n    Data: ${JSON.stringify(data, null, 4)}` : `ℹ️  ${message}`;
+    return this.writeLog(logMessage);
   }
 
   async error(message: string, data?: LogData): Promise<void> {
     if (!this.initialized) await this.initialize();
     console.error(`❌ ${message}`);
-    return this.writeLog(`❌ ${message}`);
+    const logMessage = data ? `❌ ${message}\n    Data: ${JSON.stringify(data, null, 4)}` : `❌ ${message}`;
+    return this.writeLog(logMessage);
   }
 
   async debug(message: string, data?: LogData): Promise<void> {
     if (!this.initialized) await this.initialize();
     if (process.env.LOG_LEVEL === 'debug') {
       console.log(`🐛 ${message}`);
-      return this.writeLog(`🐛 ${message}`);
+      const logMessage = data ? `🐛 ${message}\n    Data: ${JSON.stringify(data, null, 4)}` : `🐛 ${message}`;
+      return this.writeLog(logMessage);
     }
     return Promise.resolve();
   }
@@ -81,7 +84,8 @@ class SimpleLogger {
   async warn(message: string, data?: LogData): Promise<void> {
     if (!this.initialized) await this.initialize();
     console.warn(`⚠️  ${message}`);
-    return this.writeLog(`⚠️  ${message}`);
+    const logMessage = data ? `⚠️  ${message}\n    Data: ${JSON.stringify(data, null, 4)}` : `⚠️  ${message}`;
+    return this.writeLog(logMessage);
   }
 
   async success(message: string): Promise<void> {
@@ -110,14 +114,107 @@ const logFile = path.join(process.cwd(), 'logs', `${timestamp}-${scriptName}.log
 
 export const logger = new SimpleLogger(logFile);
 
+// Synchronous logger for scripts that need immediate logging
+class SyncLogger {
+  private logFile: string;
+  private startTime: Date;
+
+  constructor(logFile: string) {
+    this.logFile = logFile;
+    this.startTime = new Date();
+    this.writeHeader();
+  }
+
+  private writeHeader(): void {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Ensure logs directory exists
+    fs.mkdirSync('logs', { recursive: true });
+    
+    const header = `📋 Script Execution Log
+📁 Script: ${path.basename(process.argv[1])}
+⏰ Started: ${this.startTime.toLocaleString()}
+👤 User: ${process.env.USER || 'unknown'}
+📂 Working Directory: ${process.cwd()}
+🖥️  Platform: ${process.platform}
+📦 Node Version: ${process.version}
+🔧 Task Runner: Node.js --import tsx
+----------------------------------------
+
+`;
+    fs.appendFileSync(this.logFile, header);
+  }
+
+  private writeLog(message: string): void {
+    const fs = require('fs');
+    const timestamp = new Date().toLocaleTimeString();
+    const logLine = `[${timestamp}] ${message}\n`;
+    fs.appendFileSync(this.logFile, logLine);
+  }
+
+  info(message: string): void {
+    console.log(`ℹ️  ${message}`);
+    this.writeLog(`ℹ️  ${message}`);
+  }
+
+  success(message: string): void {
+    console.log(`✅ ${message}`);
+    this.writeLog(`✅ ${message}`);
+  }
+
+  warn(message: string): void {
+    console.warn(`⚠️  ${message}`);
+    this.writeLog(`⚠️  ${message}`);
+  }
+
+  error(message: string): void {
+    console.error(`❌ ${message}`);
+    this.writeLog(`❌ ${message}`);
+  }
+
+  debug(message: string): void {
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG) {
+      console.log(`🔍 ${message}`);
+      this.writeLog(`🔍 ${message}`);
+    }
+  }
+
+  writeFooter(): void {
+    const endTime = new Date();
+    const duration = endTime.getTime() - this.startTime.getTime();
+    const footer = `
+----------------------------------------
+⏰ Finished: ${endTime.toLocaleString()}
+⏱️  Duration: ${duration}ms
+${duration < 5000 ? '✅ Completed successfully' : '🐌 Took longer than expected'}
+`;
+    const fs = require('fs');
+    fs.appendFileSync(this.logFile, footer);
+  }
+}
+
+// Create sync logger instance
+const syncLogFile = path.join(process.cwd(), 'logs', `${timestamp}-${scriptName}.log`);
+export const syncLogger = new SyncLogger(syncLogFile);
+
+// Write footer on exit for sync logger
+process.on('exit', () => {
+  try {
+    syncLogger.writeFooter();
+  } catch (error) {
+    // Ignore footer errors
+  }
+});
+
 // Helper function to log script execution
 export async function logExecution(description: string, command: string): Promise<void> {
   return logger.info(`Executing: ${description}`);
 }
 
 // Helper function to log script results
-export async function logResult(description: string, result: { exitCode: number; stdout?: string; stderr?: string }, duration: number): Promise<void> {
-  return logger.info(`Completed: ${description}`);
+export async function logResult(description: string, result: { exitCode: number; stdout?: string; stderr?: string; summary?: any }, duration: number): Promise<void> {
+  return logger.info(`Completed: ${description}`, result.summary);
 }
 
 // Helper function to log errors

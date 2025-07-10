@@ -338,6 +338,44 @@ export async function getTransactionDetails(txId: string): Promise<Transaction> 
   return data as unknown as Transaction;
 }
 
+/**
+ * Retrieves the list of events filtered by principal (STX address or Smart Contract ID), 
+ * transaction id or event types.
+ * 
+ * @param params Query parameters for filtering events
+ * @param params.tx_id Hash of transaction
+ * @param params.address Stacks address or a Contract identifier
+ * @param params.limit Number of items to return (default: 100)
+ * @param params.offset Number of items to skip (default: 0)
+ * @param params.type Filter the events on event type
+ * @returns A promise that resolves to the transaction events response
+ */
+export async function getTransactionEvents(params?: {
+  tx_id?: string;
+  address?: string;
+  limit?: number;
+  offset?: number;
+  type?: Array<'smart_contract_log' | 'stx_lock' | 'stx_asset' | 'fungible_token_asset' | 'non_fungible_token_asset'>;
+}): Promise<any> {
+  try {
+    const { data } = await apiClient.GET('/extended/v1/tx/events' as any, {
+      params: {
+        query: {
+          tx_id: params?.tx_id,
+          address: params?.address,
+          limit: params?.limit ?? 100,
+          offset: params?.offset ?? 0,
+          type: params?.type,
+        },
+      },
+    });
+    return data;
+  } catch (error) {
+    console.error('Error fetching transaction events:', error);
+    throw new Error('Failed to fetch transaction events.');
+  }
+}
+
 export async function fetchContractEvents(address: string, { limit = 100, offset = 0 }: { limit?: number, offset?: number } = {}): Promise<TransactionEventsResponse> {
   const { data } = await apiClient.GET(`/extended/v1/contract/${address}/events` as any, {
     limit,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Activity,
   Clock,
@@ -33,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
+import { useActivity } from '@/contexts/activity-context';
 import { cn, formatCurrency, formatRelativeTime, truncateAddress } from '@/lib/utils';
 
 const activityTypes = {
@@ -67,7 +68,8 @@ const statusIcons = {
 };
 
 export default function ActivityPage() {
-  const { bots, activities } = useBots();
+  const { bots } = useBots();
+  const { activities, loading, refreshActivities, setFilters, hasMore, loadMoreActivities } = useActivity();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -97,39 +99,78 @@ export default function ActivityPage() {
     });
   }, [activities, bots]);
 
+  // Apply filters via API when filters change
+  useEffect(() => {
+    const filters: any = {};
+    
+    if (botFilter !== 'all') {
+      filters.botId = botFilter;
+    }
+    
+    if (typeFilter !== 'all') {
+      // Map display type back to BotActivity type
+      const typeMapping = {
+        'trade': 'yield-farming',
+        'swap': 'trade', 
+        'add_liquidity': 'deposit',
+        'remove_liquidity': 'withdrawal',
+        'claim_rewards': 'yield-farming',
+        'error': 'error'
+      };
+      filters.type = typeMapping[typeFilter as keyof typeof typeMapping] || typeFilter;
+    }
+    
+    if (statusFilter !== 'all') {
+      // Map display status back to BotActivity status
+      const statusMapping = {
+        'success': 'success',
+        'pending': 'pending', 
+        'error': 'failed'
+      };
+      filters.status = statusMapping[statusFilter as keyof typeof statusMapping] || statusFilter;
+    }
+    
+    if (timeFilter !== 'all') {
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (timeFilter) {
+        case '1h':
+          startDate = new Date(now.getTime() - 3600000);
+          break;
+        case '24h':
+          startDate = new Date(now.getTime() - 86400000);
+          break;
+        case '7d':
+          startDate = new Date(now.getTime() - 604800000);
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 2592000000);
+          break;
+        default:
+          startDate = new Date(0); // Beginning of time
+      }
+      
+      filters.startDate = startDate.toISOString();
+    }
+    
+    // Only apply filters if they have actually changed
+    if (Object.keys(filters).length > 0 || 
+        typeFilter === 'all' && statusFilter === 'all' && botFilter === 'all' && timeFilter === 'all') {
+      setFilters(filters);
+    }
+  }, [typeFilter, statusFilter, botFilter, timeFilter]);
+
+  // Client-side search filtering (for description/bot name/tx hash)
   const filteredActivity = useMemo(() => {
+    if (!searchQuery) return transformedActivities;
+    
     return transformedActivities.filter(activity => {
-      const matchesSearch = activity.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      return activity.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         activity.botName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (activity.txHash && activity.txHash.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesType = typeFilter === 'all' || activity.type === typeFilter;
-      const matchesStatus = statusFilter === 'all' || activity.status === statusFilter;
-      const matchesBot = botFilter === 'all' || activity.botId === botFilter;
-
-      let matchesTime = true;
-      if (timeFilter !== 'all') {
-        const now = Date.now();
-        const activityTime = activity.timestamp;
-        switch (timeFilter) {
-          case '1h':
-            matchesTime = now - activityTime <= 3600000;
-            break;
-          case '24h':
-            matchesTime = now - activityTime <= 86400000;
-            break;
-          case '7d':
-            matchesTime = now - activityTime <= 604800000;
-            break;
-          case '30d':
-            matchesTime = now - activityTime <= 2592000000;
-            break;
-        }
-      }
-
-      return matchesSearch && matchesType && matchesStatus && matchesBot && matchesTime;
     });
-  }, [transformedActivities, searchQuery, typeFilter, statusFilter, botFilter, timeFilter]);
+  }, [transformedActivities, searchQuery]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -183,9 +224,14 @@ export default function ActivityPage() {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button variant="outline" className="border-border text-foreground hover:bg-accent hover:text-accent-foreground">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
+          <Button 
+            variant="outline" 
+            className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
+            onClick={refreshActivities}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? 'Loading...' : 'Refresh'}
           </Button>
         </div>
       </div>
@@ -328,71 +374,97 @@ export default function ActivityPage() {
               <p className="text-muted-foreground">Try adjusting your filters or search terms</p>
             </div>
           ) : (
-            // dividing line between each activity
-            <div className="space-y-3">
-              {filteredActivity.map((activity) => {
-                const IconComponent = getActivityIcon(activity.type);
-                return (
-                  <div key={activity.id} className="flex items-center justify-between p-4 border border-border/25 bg-card/50 rounded-lg hover:bg-border/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center`}>
-                        <IconComponent className={`w-5 h-5 ${getActivityColor(activity.type)}`} />
+            <>
+              {/* Activities List */}
+              <div className="space-y-3">
+                {filteredActivity.map((activity) => {
+                  const IconComponent = getActivityIcon(activity.type);
+                  return (
+                    <div key={activity.id} className="flex items-center justify-between p-4 border border-border/25 bg-card/50 rounded-lg hover:bg-border/10 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center`}>
+                          <IconComponent className={`w-5 h-5 ${getActivityColor(activity.type)}`} />
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-card-foreground">{getActivityLabel(activity.type)}</span>
+                            <Badge className={`${statusColors[activity.status as keyof typeof statusColors]} text-xs`}>
+                              {statusIcons[activity.status as keyof typeof statusIcons]}
+                              <span className="ml-1 capitalize">{activity.status}</span>
+                            </Badge>
+                          </div>
+
+                          <div className="text-sm text-muted-foreground mb-1">{activity.description}</div>
+                          <div className="text-xs text-muted-foreground/70">{activity.details}</div>
+
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                            <span>Bot: {activity.botName}</span>
+                            <span>{formatRelativeTime(new Date(activity.timestamp).toISOString())}</span>
+                            {activity.gasUsed > 0 && <span>Gas: {activity.gasUsed.toLocaleString()}</span>}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-card-foreground">{getActivityLabel(activity.type)}</span>
-                          <Badge className={`${statusColors[activity.status as keyof typeof statusColors]} text-xs`}>
-                            {statusIcons[activity.status as keyof typeof statusIcons]}
-                            <span className="ml-1 capitalize">{activity.status}</span>
-                          </Badge>
-                        </div>
-
-                        <div className="text-sm text-muted-foreground mb-1">{activity.description}</div>
-                        <div className="text-xs text-muted-foreground/70">{activity.details}</div>
-
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                          <span>Bot: {activity.botName}</span>
-                          <span>{formatRelativeTime(new Date(activity.timestamp).toISOString())}</span>
-                          {activity.gasUsed > 0 && <span>Gas: {activity.gasUsed.toLocaleString()}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      {activity.amount > 0 && (
-                        <div className="font-medium text-card-foreground mb-1">
-                          {formatCurrency(activity.amount)} {activity.token}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        {activity.txHash && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyToClipboard(activity.txHash)}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openInExplorer(activity.txHash)}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </Button>
-                          </>
+                      <div className="text-right">
+                        {activity.amount > 0 && (
+                          <div className="font-medium text-card-foreground mb-1">
+                            {formatCurrency(activity.amount)} {activity.token}
+                          </div>
                         )}
+
+                        <div className="flex items-center gap-2">
+                          {activity.txHash && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(activity.txHash)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openInExplorer(activity.txHash)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="mt-6 text-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={loadMoreActivities}
+                    disabled={loading}
+                    className="border-border text-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Load More Activities
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

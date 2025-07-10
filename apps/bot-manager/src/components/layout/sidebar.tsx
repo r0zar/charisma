@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   Bot,
@@ -65,30 +66,34 @@ export function Sidebar({ className }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-6 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-          <Bot className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold text-foreground">Bot Manager</h1>
-          <p className="text-xs text-muted-foreground">DeFi Automation</p>
+      <div className="flex items-center justify-center border-b border-border">
+        <div className="relative w-full h-28 max-w-full mx-auto overflow-hidden antialiased">
+          <Image
+            src="/tokemon.png"
+            alt="Tokemon"
+            fill
+            className="object-contain object-center"
+            priority
+            quality={90}
+            style={{ imageRendering: 'auto' }}
+          />
         </div>
       </div>
 
       {/* Quick Stats */}
       <div className="p-4 border-b border-border">
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-card rounded-lg">
+          <div className="p-1 bg-card rounded-lg flex flex-row items-center justify-center gap-2">
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-blue-400" />
-              <span className="text-xs text-muted-foreground">Total</span>
+              {/* <span className="text-xs text-muted-foreground">Total</span> */}
             </div>
             <p className="text-lg font-semibold text-foreground">{botStats.totalBots}</p>
           </div>
-          <div className="p-3 bg-card rounded-lg">
+          <div className="p-1 bg-card rounded-lg flex flex-row items-center justify-center gap-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-muted-foreground">Active</span>
+              {/* <span className="text-xs text-muted-foreground">Active</span> */}
             </div>
             <p className="text-lg font-semibold text-green-400">{botStats.activeBots}</p>
           </div>
@@ -96,7 +101,7 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-2">
+      <nav className="flex-1 px-3 py-4 space-y-1">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -104,16 +109,16 @@ export function Sidebar({ className }: SidebarProps) {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-2 px-3 py-4 text-sm font-medium rounded-lg transition-colors min-h-[80px] justify-center',
+                'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
                 isActive
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  ? 'bg-primary/10 text-primary border-l-2 border-border pl-2'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
               )}
             >
-              <item.icon className="w-6 h-6" />
-              <div className="text-center">
-                <div className="font-medium text-xs">{item.name}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{item.description}</div>
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <div className="font-medium text-sm leading-tight">{item.name}</div>
+                <div className="text-xs text-muted-foreground/70 leading-tight">{item.description}</div>
               </div>
             </Link>
           );
@@ -122,8 +127,8 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Create Bot Button */}
       <div className="p-4 border-t border-border">
-        <Button 
-          asChild 
+        <Button
+          asChild
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           <Link href="/bots/create">
@@ -131,18 +136,6 @@ export function Sidebar({ className }: SidebarProps) {
             Create Bot
           </Link>
         </Button>
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Wallet className="w-4 h-4" />
-          <span>Gas: {botStats.totalGas.toFixed(1)} STX</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-          <TrendingUp className="w-4 h-4" />
-          <span>Value: ${botStats.totalValue.toFixed(2)}</span>
-        </div>
       </div>
     </div>
   );

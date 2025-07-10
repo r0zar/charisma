@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   Bell,
   Search,
@@ -9,8 +9,9 @@ import {
   Settings,
   User,
   Wallet,
-  LogOut,
-  HelpCircle
+  HelpCircle,
+  Palette,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBots } from '@/contexts/bot-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { useNotifications } from '@/contexts/notification-context';
+import { useNotificationsData } from '@/contexts/notifications-context';
 import { useGlobalState } from '@/contexts/global-state-context';
 
 const pageTitles: Record<string, string> = {
@@ -34,17 +36,30 @@ const pageTitles: Record<string, string> = {
   '/bots': 'Bot Management',
   '/activity': 'Activity & History',
   '/analytics': 'Analytics',
-  '/settings': 'Settings'
+  '/settings': 'Settings',
+  '/settings/general': 'General Settings',
+  '/settings/appearance': 'Appearance Settings',
+  '/settings/network': 'Network Settings',
+  '/profile': 'Profile'
 };
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const { refreshData, loading, botStats } = useBots();
   const { walletState, connectWallet, disconnectWallet, isConnecting } = useWallet();
   const { showSuccess, showError, showWarning, showInfo } = useNotifications();
   const { appState } = useGlobalState();
+  const { 
+    notifications: liveNotifications, 
+    getUnreadCount, 
+    markAsRead, 
+    markAllAsRead,
+    deleteNotification,
+    loading: notificationsLoading 
+  } = useNotificationsData();
 
-  const currentPageTitle = pageTitles[pathname] || 'Bot Manager';
+  const currentPageTitle = pageTitles[pathname] || 'Tokemon';
 
   const handleRefresh = async () => {
     await refreshData();
@@ -63,10 +78,9 @@ export function Header() {
     }
   };
 
-  // Get notifications from global state
-  const notifications = appState?.notifications || [];
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const recentNotifications = notifications
+  // Get notifications from the new context
+  const unreadCount = getUnreadCount();
+  const recentNotifications = liveNotifications
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 5); // Show last 5 notifications
 
@@ -80,12 +94,15 @@ export function Header() {
     }
   };
 
-  const handleNotificationClick = (notification: any) => {
-    // Mark as read and potentially navigate to actionUrl
+  const handleNotificationClick = async (notification: any) => {
+    // Mark as read when clicked
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+    // Navigate to actionUrl if present
     if (notification.actionUrl) {
       window.location.href = notification.actionUrl;
     }
-    // In a real app, you'd update the notification's read status
   };
 
   return (
@@ -141,8 +158,18 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 bg-background/5 backdrop-blur-2xl border-border/30 shadow-2xl ring-1 ring-background/10">
-              <DropdownMenuLabel className="text-foreground">
-                Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
+              <DropdownMenuLabel className="text-foreground flex items-center justify-between">
+                <span>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</span>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={markAllAsRead}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Mark all read
+                  </Button>
+                )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border/30" />
               {recentNotifications.length === 0 ? (
@@ -155,7 +182,7 @@ export function Header() {
                 recentNotifications.map((notification) => (
                   <DropdownMenuItem 
                     key={notification.id}
-                    className={`text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl cursor-pointer ${!notification.read ? 'bg-background/5' : ''}`}
+                    className={`group text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl cursor-pointer ${!notification.read ? 'bg-background/5' : ''}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3 w-full">
@@ -167,9 +194,22 @@ export function Header() {
                           <p className={`font-medium text-sm ${!notification.read ? 'text-foreground' : ''}`}>
                             {notification.title}
                           </p>
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2" />
-                          )}
+                          <div className="flex items-center gap-1">
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                              className="h-4 w-4 p-0 text-xs opacity-0 group-hover:opacity-100 hover:text-red-500"
+                            >
+                              ×
+                            </Button>
+                          </div>
                         </div>
                         {notification.message && (
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -184,7 +224,7 @@ export function Header() {
                   </DropdownMenuItem>
                 ))
               )}
-              {notifications.length > 5 && (
+              {liveNotifications.length > 5 && (
                 <>
                   <DropdownMenuSeparator className="bg-border/30" />
                   <DropdownMenuItem className="text-center text-muted-foreground hover:text-foreground hover:bg-background/10">
@@ -198,13 +238,19 @@ export function Header() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="relative h-10 w-10 rounded-lg">
-                <Avatar className="h-6 w-6 border border-border">
-                  <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                  <AvatarFallback className="bg-card text-foreground text-xs">
-                    {walletState.connected ? walletState.address.charAt(0).toUpperCase() : 'U'}
-                  </AvatarFallback>
-                </Avatar>
+              <Button variant="outline" className="relative h-10 px-3 rounded-lg">
+                {walletState.connected ? (
+                  <span className="text-sm font-mono">
+                    {walletState.address.slice(-4)}
+                  </span>
+                ) : (
+                  <Avatar className="h-6 w-6 border border-border">
+                    <AvatarImage src="/placeholder-user.jpg" alt="User" />
+                    <AvatarFallback className="bg-card text-foreground text-xs">
+                      U
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-background/5 backdrop-blur-2xl border-border/30 shadow-2xl ring-1 ring-background/10" align="end" forceMount>
@@ -219,10 +265,42 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl">
+              <DropdownMenuItem 
+                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
+                onClick={() => router.push('/profile')}
+              >
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
+                onClick={() => router.push('/settings/general')}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                <span>General</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
+                onClick={() => router.push('/settings/appearance')}
+              >
+                <Palette className="mr-2 h-4 w-4" />
+                <span>Appearance</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
+                onClick={() => router.push('/settings/network')}
+              >
+                <Globe className="mr-2 h-4 w-4" />
+                <span>Network</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
+                onClick={() => window.open('https://docs.charisma.rocks', '_blank')}
+              >
+                <HelpCircle className="mr-2 h-4 w-4" />
+                <span>Help</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border/30" />
               <DropdownMenuItem 
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={handleWalletAction}
@@ -232,23 +310,6 @@ export function Header() {
                 <span>
                   {isConnecting ? 'Connecting...' : walletState.connected ? 'Disconnect Wallet' : 'Connect Wallet'}
                 </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl">
-                <HelpCircle className="mr-2 h-4 w-4" />
-                <span>Help</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem 
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={() => walletState.connected && disconnectWallet()}
-                disabled={!walletState.connected}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>{walletState.connected ? 'Log out' : 'Not connected'}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

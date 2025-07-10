@@ -7,7 +7,7 @@
  */
 
 import { logger, logExecution, logResult, logError } from './logger';
-import { validateStateFile } from '@/lib/state-validator.server';
+import { validateStateFile } from '@/lib/data-loader.server';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -64,27 +64,27 @@ async function main() {
 
     // Print results
     console.log('\n📊 Validation Results:');
-    console.log(`✅ Valid: ${validation.isValid}`);
-    console.log(`❌ Errors: ${validation.errors.length}`);
-    console.log(`⚠️  Warnings: ${validation.warnings.length}`);
+    console.log(`✅ Valid: ${validation.success}`);
+    console.log(`❌ Errors: ${validation.validationErrors?.length || 0}`);
+    console.log(`⚠️  Warnings: ${validation.warnings?.length || 0}`);
 
     // Print metadata
     console.log('\n📋 File Metadata:');
-    console.log(`📦 Version: ${validation.metadata.version}`);
-    console.log(`🤖 Bot count: ${validation.metadata.botCount}`);
-    console.log(`⚡ Total activities: ${validation.metadata.totalActivities}`);
-    console.log(`📏 Data size: ${(validation.metadata.dataSize / 1024).toFixed(2)} KB`);
+    console.log(`📦 Version: ${validation.metadata?.version || 'unknown'}`);
+    console.log(`🤖 Bot count: ${validation.metadata?.botCount || 0}`);
+    console.log(`⚡ Total activities: ${validation.metadata?.totalActivities || 0}`);
+    console.log(`📏 Data size: ${((validation.metadata?.dataSize || 0) / 1024).toFixed(2)} KB`);
 
     // Print errors if any
-    if (validation.errors.length > 0) {
+    if (validation.validationErrors && validation.validationErrors.length > 0) {
       console.log('\n❌ Validation Errors:');
-      validation.errors.forEach((error, index) => {
+      validation.validationErrors.forEach((error, index) => {
         console.log(`   ${index + 1}. ${error}`);
       });
     }
 
     // Print warnings if any
-    if (validation.warnings.length > 0) {
+    if (validation.warnings && validation.warnings.length > 0) {
       console.log('\n⚠️  Validation Warnings:');
       validation.warnings.forEach((warning, index) => {
         console.log(`   ${index + 1}. ${warning}`);
@@ -93,11 +93,11 @@ async function main() {
 
     const duration = Date.now() - startTime;
     await logResult('State validation', { 
-      exitCode: validation.isValid ? 0 : 1,
-      stdout: validation.isValid ? 'Valid' : 'Invalid'
+      exitCode: validation.success ? 0 : 1,
+      stdout: validation.success ? 'Valid' : 'Invalid'
     }, duration);
 
-    if (validation.isValid) {
+    if (validation.success) {
       console.log('\n✅ State file is valid!');
       console.log(`⏱️  Duration: ${duration}ms`);
     } else {

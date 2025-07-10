@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useCallback, type ReactNode } from "react";
+import React, { createContext, useContext, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
 
 // Notification types for consistency with existing API
@@ -30,48 +30,48 @@ interface NotificationProviderProps {
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
   // Convenience methods for different notification types using Sonner
-  const showSuccess = useCallback((title: string, message?: string, duration?: number) => {
+  const showSuccess = (title: string, message?: string, duration?: number) => {
     return toast.success(title, {
       description: message,
       duration: duration ?? 4000,
     });
-  }, []);
+  };
 
-  const showError = useCallback((title: string, message?: string, duration?: number) => {
+  const showError = (title: string, message?: string, duration?: number) => {
     return toast.error(title, {
       description: message,
       duration: duration ?? Infinity, // Errors don't auto-dismiss by default
     });
-  }, []);
+  };
 
-  const showWarning = useCallback((title: string, message?: string, duration?: number) => {
+  const showWarning = (title: string, message?: string, duration?: number) => {
     return toast.warning(title, {
       description: message,
       duration: duration ?? 4000,
     });
-  }, []);
+  };
 
-  const showInfo = useCallback((title: string, message?: string, duration?: number) => {
+  const showInfo = (title: string, message?: string, duration?: number) => {
     return toast.info(title, {
       description: message,
       duration: duration ?? 4000,
     });
-  }, []);
+  };
 
-  const showMessage = useCallback((title: string, message?: string, duration?: number) => {
+  const showMessage = (title: string, message?: string, duration?: number) => {
     return toast(title, {
       description: message,
       duration: duration ?? 4000,
     });
-  }, []);
+  };
 
-  const dismiss = useCallback((id: string | number) => {
+  const dismiss = (id: string | number) => {
     toast.dismiss(id);
-  }, []);
+  };
 
-  const dismissAll = useCallback(() => {
+  const dismissAll = () => {
     toast.dismiss();
-  }, []);
+  };
 
   const value: NotificationContextType = {
     showSuccess,
@@ -90,7 +90,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         position="top-right"
         expand={true}
         richColors={true}
-        closeButton={true}
+        closeButton={false}
         toastOptions={{
           style: {
             background: 'var(--color-card)',

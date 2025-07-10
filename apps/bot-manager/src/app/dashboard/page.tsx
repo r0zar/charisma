@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { 
-  Bot, 
-  TrendingUp, 
-  TrendingDown, 
-  Zap, 
+import {
+  Bot,
+  TrendingUp,
+  TrendingDown,
+  Zap,
   AlertTriangle,
   DollarSign,
   Activity,
@@ -22,11 +22,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useBots } from '@/contexts/bot-context';
+import { useActivity } from '@/contexts/activity-context';
+import { useWallet } from '@/contexts/wallet-context';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
+import { getStrategyDisplayName } from '@/lib/strategy-parser';
+import { BotAvatarWithStatus } from '@/components/ui/bot-avatar';
 import Link from 'next/link';
 
 export default function DashboardPage() {
-  const { bots, botStats, performanceMetrics, activities, loading } = useBots();
+  const { bots, botStats, performanceMetrics, loading } = useBots();
+  const { activities } = useActivity();
+  const { walletState, connectWallet, isConnecting } = useWallet();
 
   const recentActivity = activities
     .map(activity => {
@@ -35,6 +41,40 @@ export default function DashboardPage() {
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 6);
+
+  // Authentication guard - require wallet connection
+  if (!walletState.connected) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md mx-auto">
+          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Wallet className="w-8 h-8 text-blue-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Connect Your Wallet</h2>
+          <p className="text-muted-foreground mb-6">
+            Connect your wallet to view and manage your bots. Your bots are tied to your wallet address for security.
+          </p>
+          <Button
+            onClick={connectWallet}
+            disabled={isConnecting}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            {isConnecting ? (
+              <>
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/20 border-t-white mr-2" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Wallet className="w-4 h-4 mr-2" />
+                Connect Wallet
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -155,8 +195,8 @@ export default function DashboardPage() {
                     {botStats.totalBots > 0 ? ((botStats.activeBots / botStats.totalBots) * 100).toFixed(1) : 0}%
                   </span>
                 </div>
-                <Progress 
-                  value={botStats.totalBots > 0 ? (botStats.activeBots / botStats.totalBots) * 100 : 0} 
+                <Progress
+                  value={botStats.totalBots > 0 ? (botStats.activeBots / botStats.totalBots) * 100 : 0}
                   className="h-2"
                 />
               </div>
@@ -215,25 +255,14 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {bots.slice(0, 6).map((bot) => (
               <div key={bot.id} className="p-4 bg-background/50 rounded-lg border border-border hover:border-border/80 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-medium text-foreground truncate">{bot.name}</h3>
-                  <Badge 
-                    variant={bot.status === 'active' ? 'default' : 'secondary'}
-                    className={`
-                      ${bot.status === 'active' ? 'bg-green-600/20 text-green-400 border-green-600/30' : ''}
-                      ${bot.status === 'paused' ? 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30' : ''}
-                      ${bot.status === 'error' ? 'bg-red-600/20 text-red-400 border-red-600/30' : ''}
-                      ${bot.status === 'setup' ? 'bg-blue-600/20 text-blue-400 border-blue-600/30' : ''}
-                    `}
-                  >
-                    {bot.status}
-                  </Badge>
+                <div className="flex items-center gap-3 mb-3">
+                  <BotAvatarWithStatus bot={bot} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-foreground truncate">{bot.name}</h3>
+                    <div className="text-xs text-muted-foreground">{getStrategyDisplayName(bot.strategy)}</div>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Strategy</span>
-                    <span className="text-foreground/80 capitalize">{bot.strategy}</span>
-                  </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Daily P&L</span>
                     <span className={`font-medium ${bot.dailyPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -277,10 +306,9 @@ export default function DashboardPage() {
             ) : (
               recentActivity.map((activity) => (
                 <div key={activity.id} className="flex items-center gap-4 p-3 bg-background/50 rounded-lg hover:bg-background/70 transition-colors">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activity.status === 'success' ? 'bg-green-400' :
+                  <div className={`w-2 h-2 rounded-full ${activity.status === 'success' ? 'bg-green-400' :
                     activity.status === 'failed' ? 'bg-red-400' : 'bg-yellow-400'
-                  }`} />
+                    }`} />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-foreground">{activity.botName}</span>

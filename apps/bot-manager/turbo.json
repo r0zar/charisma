@@ -4,6 +4,11 @@
   ],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "@repo/tokens#build",
+        "@repo/polyglot#build",
+        "blaze-sdk#build"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**"
@@ -13,7 +18,29 @@
         "KV_REST_API_URL",
         "KV_REST_API_TOKEN",
         "KV_REST_API_READ_ONLY_TOKEN",
-        "HIRO_API_KEY"
+        "HIRO_API_KEY",
+        "NODE_ENV",
+        "VERCEL_ENV",
+        "NEXT_PUBLIC_DATA_PHASE",
+        "NEXT_PUBLIC_LOADING_CONFIG",
+        "NEXT_PUBLIC_API_BASE_URL",
+        "NEXT_PUBLIC_API_TIMEOUT",
+        "NEXT_PUBLIC_CACHE_ENABLED",
+        "NEXT_PUBLIC_CACHE_TTL",
+        "NEXT_PUBLIC_DEBUG_DATA_LOADING",
+        "NEXT_PUBLIC_LOG_DATA_SOURCES",
+        "NEXT_PUBLIC_ENABLE_API_METADATA",
+        "NEXT_PUBLIC_ENABLE_API_USER",
+        "NEXT_PUBLIC_ENABLE_API_BOTS",
+        "NEXT_PUBLIC_ENABLE_API_MARKET",
+        "NEXT_PUBLIC_ENABLE_API_NOTIFICATIONS"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@repo/tokens#build",
+        "@repo/polyglot#build",
+        "blaze-sdk#build"
       ]
     }
   }

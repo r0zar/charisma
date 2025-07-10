@@ -5,6 +5,10 @@
   --default-font-family: var(--font-geist-sans);
   --default-mono-font-family: var(--font-geist-mono);
   
+  /* Breakpoints */
+  --breakpoint-3xl: 112rem; /* 1792px */
+  --breakpoint-4xl: 128rem; /* 2048px */
+  
   /* Default theme - light */
   --color-background: #fafafa;
   --color-foreground: #0f172a;
@@ -232,4 +236,48 @@
   --color-border: #374151;
   --color-input: #1f2937;
   --color-ring: #7c3aed;
+}
+
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-muted);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 6px;
+  border: 2px solid var(--color-muted);
+  transition: background 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-background);
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-muted);
+}
+
+/* Mobile responsive scrollbars */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    border: 1px solid var(--color-muted);
+  }
 }

@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Settings, Palette, Globe } from "lucide-react"
 import Link from "next/link"
+import { useGlobalState } from "@/contexts/global-state-context"
 
 export default function GeneralSettingsPage() {
+  const { appState } = useGlobalState();
+  const metadata = appState?.metadata;
+
   return (
     <Card>
       <CardHeader>
@@ -25,19 +29,27 @@ export default function GeneralSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm font-medium text-muted-foreground">Version</p>
-              <p className="text-lg font-semibold">1.0.0</p>
+              <p className="text-lg font-semibold">{metadata?.version || 'Unknown'}</p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Framework</p>
-              <p className="text-lg font-semibold">Next.js 15</p>
+              <p className="text-sm font-medium text-muted-foreground">Profile</p>
+              <p className="text-lg font-semibold">{metadata?.profile || 'Unknown'}</p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Build</p>
-              <p className="text-lg font-semibold">Production</p>
+              <p className="text-sm font-medium text-muted-foreground">Bot Count</p>
+              <p className="text-lg font-semibold">{metadata?.botCount || 0}</p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Theme System</p>
-              <p className="text-lg font-semibold">6 Themes</p>
+              <p className="text-sm font-medium text-muted-foreground">Realistic Mode</p>
+              <p className="text-lg font-semibold">{metadata?.realistic ? 'Enabled' : 'Disabled'}</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm font-medium text-muted-foreground">Generated</p>
+              <p className="text-lg font-semibold">{metadata?.generatedAt ? new Date(metadata.generatedAt).toLocaleDateString() : 'Unknown'}</p>
+            </div>
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-sm font-medium text-muted-foreground">Seed</p>
+              <p className="text-lg font-semibold">{metadata?.seed || 'Unknown'}</p>
             </div>
           </div>
         </div>

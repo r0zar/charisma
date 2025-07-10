@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AppState } from '@/types/app-state';
-import { loadAppStateWithFallback } from '@/lib/state-loader';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { AppState } from '@/schemas/app-state.schema';
+import { validateAppState } from '@/lib/state';
+import { useWallet } from '@/contexts/wallet-context';
 
 interface GlobalStateContextType {
   // Global state data
@@ -30,50 +31,38 @@ export const useGlobalState = () => {
 
 interface GlobalStateProviderProps {
   children: ReactNode;
+  initialData?: AppState;
 }
 
-export function GlobalStateProvider({ children }: GlobalStateProviderProps) {
-  const [appState, setAppState] = useState<AppState | null>(null);
-  const [loading, setLoading] = useState(true);
+export function GlobalStateProvider({ children, initialData }: GlobalStateProviderProps) {
+  const { walletState } = useWallet();
+  const [appState, setAppState] = useState<AppState | null>(initialData || null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadState = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Load state from JSON file with fallback to default
-      const state = await loadAppStateWithFallback('/data/app-state.json');
-      setAppState(state);
-      
-      console.log('Global app state loaded:', {
-        version: state.metadata.version,
-        botCount: state.bots.list.length,
-        activitiesCount: state.bots.activities.length,
-        poolsCount: state.market.pools.length,
-        profile: state.metadata.profile
-      });
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load app state';
-      setError(errorMessage);
-      console.error('Failed to load global app state:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load initial state
-  useEffect(() => {
-    loadState();
-  }, []);
-
   const refreshState = async (): Promise<void> => {
-    await loadState();
+    // For now, refreshing is not implemented client-side
+    // This would typically require an API endpoint
+    console.warn('Client-side refresh not implemented');
   };
 
   const updateState = (newState: AppState): void => {
-    setAppState(newState);
+    // Authentication guard - only allow state updates when wallet is connected
+    if (!walletState.connected) {
+      setError('Wallet connection required to update state');
+      console.warn('Attempted state update without wallet connection');
+      return;
+    }
+
+    // Validate the new state before setting it
+    const validation = validateAppState(newState);
+    if (validation.success && validation.data) {
+      setAppState(validation.data);
+      setError(null);
+    } else {
+      setError(validation.error || 'Invalid state data');
+      console.error('Invalid app state:', validation.validationErrors);
+    }
   };
 
   const value: GlobalStateContextType = {

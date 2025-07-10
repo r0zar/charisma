@@ -3,6 +3,22 @@
     {
       "path": "/api/cron/health",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/bot-executor",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/activity-collector",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/analytics-processor",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/notification-generator",
+      "schedule": "*/2 * * * *"
     }
   ]
 }

@@ -21,6 +21,10 @@ interface ClientSubscription {
     subscribeToAll: boolean; // true if no specific contractIds provided
 }
 
+// Constants
+const INITIALIZATION_TIMEOUT = 10_000; // 10 seconds
+const HIBERNATION_DETECTION_THRESHOLD = 5_000; // 5 seconds
+
 // Contract ID validation
 function isValidContractId(contractId: string): boolean {
     if (!contractId || typeof contractId !== 'string') return false;
@@ -44,11 +48,27 @@ export default class PricesParty implements Party.Server {
     private noiseInterval: NodeJS.Timeout | null = null;
     private isLocalDev = false;
 
+    // CORS headers helper
+    private getCorsHeaders(): Record<string, string> {
+        return {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Max-Age': '86400',
+            'Content-Type': 'application/json'
+        };
+    }
+
     constructor(readonly room: Party.Room) {
         console.log(`🏠 Prices party room: ${this.room.id}`);
 
         // Detect if we're in local development
         this.isLocalDev = this.detectLocalDev();
+        
+        // Initialize the server first (don't await in constructor)
+        this.initializeServer().catch(error => {
+            console.error('🔥 Server initialization failed in constructor:', error);
+        });
 
         if (this.isLocalDev) {
             console.log('🛠️ Local development detected, using interval timer');
@@ -96,6 +116,91 @@ export default class PricesParty implements Party.Server {
             console.log('⚡ Running immediate price update');
             await this.fetchAndBroadcastPrices();
         }, 2000);
+    }
+    
+    private async initializeServer() {
+        if (this.initializationPromise) {
+            return this.initializationPromise;
+        }
+        
+        this.initializationStartTime = Date.now();
+        console.log('🚀 Prices server initialization starting...');
+        
+        this.initializationPromise = this.performInitialization();
+        
+        try {
+            await this.initializationPromise;
+            this.isInitialized = true;
+            const initTime = Date.now() - this.initializationStartTime;
+            console.log(`✅ Prices server initialization completed in ${initTime}ms`);
+        } catch (error) {
+            console.error('❌ Prices server initialization failed:', error);
+            // Reset for retry
+            this.initializationPromise = null;
+            this.isInitialized = false;
+        }
+    }
+    
+    private async performInitialization(): Promise<void> {
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Initialization timeout')), INITIALIZATION_TIMEOUT);
+        });
+        
+        const initialization = async () => {
+            // Check if we're waking up from hibernation
+            const timeSinceLastActive = Date.now() - this.lastActiveTime;
+            if (timeSinceLastActive > HIBERNATION_DETECTION_THRESHOLD) {
+                console.log(`🌙 Detected hibernation wake-up (${timeSinceLastActive}ms since last active)`);
+                // Clear stale price data after hibernation
+                this.latestPrices.clear();
+                this.lastBroadcastedPrices.clear();
+            }
+            
+            // Do an initial price fetch to populate the cache
+            // Use a simplified version to avoid circular dependencies
+            try {
+                const { listPrices } = await import("@repo/tokens");
+                const prices = await listPrices();
+                const now = Date.now();
+                
+                for (const [contractId, price] of Object.entries(prices)) {
+                    if (typeof price === 'number' && !isNaN(price)) {
+                        const update: PriceUpdate = {
+                            type: 'PRICE_UPDATE',
+                            contractId,
+                            price,
+                            timestamp: now,
+                            source: this.isLocalDev ? 'local-dev' : 'production'
+                        };
+                        
+                        this.latestPrices.set(contractId, update);
+                        this.lastBroadcastedPrices.set(contractId, price);
+                    }
+                }
+                
+                console.log(`💰 Initialized with ${this.latestPrices.size} prices`);
+            } catch (error) {
+                console.error('Failed to fetch initial prices during initialization:', error);
+                // Don't fail initialization if prices can't be fetched
+            }
+            
+            // Update last active time
+            this.lastActiveTime = Date.now();
+        };
+        
+        await Promise.race([initialization(), timeout]);
+    }
+    
+    private async waitForInitialization(): Promise<void> {
+        if (this.isInitialized) {
+            return;
+        }
+        
+        if (!this.initializationPromise) {
+            await this.initializeServer();
+        } else {
+            await this.initializationPromise;
+        }
     }
 
     private startNoiseInterval() {
@@ -147,23 +252,35 @@ export default class PricesParty implements Party.Server {
             subscribeToAll: false
         });
 
-        // Send latest prices if available
-        if (this.latestPrices.size > 0) {
-            const prices = Array.from(this.latestPrices.values());
+        // Wait for initialization before sending data
+        this.waitForInitialization().then(() => {
+            // Send latest prices if available
+            if (this.latestPrices.size > 0) {
+                const prices = Array.from(this.latestPrices.values());
+                conn.send(JSON.stringify({
+                    type: 'PRICE_BATCH',
+                    prices,
+                    timestamp: Date.now()
+                }));
+            }
+
+            // Send server info
             conn.send(JSON.stringify({
-                type: 'PRICE_BATCH',
-                prices,
+                type: 'SERVER_INFO',
+                party: 'prices',
+                isLocalDev: this.isLocalDev,
+                initialized: this.isInitialized,
+                priceCount: this.latestPrices.size,
                 timestamp: Date.now()
             }));
-        }
-
-        // Send server info
-        conn.send(JSON.stringify({
-            type: 'SERVER_INFO',
-            party: 'prices',
-            isLocalDev: this.isLocalDev,
-            timestamp: Date.now()
-        }));
+        }).catch(error => {
+            console.error(`❌ Failed to send initial data to client ${clientId}:`, error);
+            conn.send(JSON.stringify({
+                type: 'ERROR',
+                message: 'Server initialization failed',
+                timestamp: Date.now()
+            }));
+        });
     }
 
     onMessage(message: string, sender: Party.Connection) {
@@ -220,7 +337,15 @@ export default class PricesParty implements Party.Server {
         }
     }
 
-    onRequest(request: Party.Request) {
+    async onRequest(request: Party.Request) {
+        // Handle CORS preflight requests
+        if (request.method === 'OPTIONS') {
+            return new Response(null, {
+                status: 200,
+                headers: this.getCorsHeaders()
+            });
+        }
+
         if (request.method === 'GET') {
             return this.handlePriceQuery(request);
         }
@@ -232,10 +357,13 @@ export default class PricesParty implements Party.Server {
                 party: 'prices',
                 timestamp: Date.now()
             }), {
-                headers: { 'Content-Type': 'application/json' }
+                headers: this.getCorsHeaders()
             });
         }
-        return new Response('Method not allowed', { status: 405 });
+        return new Response('Method not allowed', { 
+            status: 405,
+            headers: this.getCorsHeaders()
+        });
     }
 
     async onAlarm() {
@@ -328,31 +456,49 @@ export default class PricesParty implements Party.Server {
     }
 
     private async handlePriceQuery(request: Party.Request) {
-        const url = new URL(request.url);
-        const contractIds = url.searchParams.get('tokens')?.split(',') || [];
+        try {
+            // Wait for initialization before processing request
+            await this.waitForInitialization();
+            
+            const url = new URL(request.url);
+            const contractIds = url.searchParams.get('tokens')?.split(',') || [];
 
-        if (contractIds.length === 0) {
-            const allPrices = Array.from(this.latestPrices.values());
+            if (contractIds.length === 0) {
+                const allPrices = Array.from(this.latestPrices.values());
+                return new Response(JSON.stringify({
+                    prices: allPrices,
+                    party: 'prices',
+                    serverTime: Date.now(),
+                    initialized: this.isInitialized
+                }), {
+                    headers: this.getCorsHeaders()
+                });
+            }
+
+            const requestedPrices = contractIds
+                .map(id => this.latestPrices.get(id))
+                .filter(Boolean);
+
             return new Response(JSON.stringify({
-                prices: allPrices,
+                prices: requestedPrices,
                 party: 'prices',
-                serverTime: Date.now()
+                serverTime: Date.now(),
+                initialized: this.isInitialized
             }), {
-                headers: { 'Content-Type': 'application/json' }
+                headers: this.getCorsHeaders()
+            });
+        } catch (error) {
+            console.error('❌ Price query failed due to initialization error:', error);
+            return new Response(JSON.stringify({
+                error: 'Server initialization failed',
+                party: 'prices',
+                serverTime: Date.now(),
+                initialized: false
+            }), {
+                status: 503,
+                headers: this.getCorsHeaders()
             });
         }
-
-        const requestedPrices = contractIds
-            .map(id => this.latestPrices.get(id))
-            .filter(Boolean);
-
-        return new Response(JSON.stringify({
-            prices: requestedPrices,
-            party: 'prices',
-            serverTime: Date.now()
-        }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
     }
 
     private cleanupWatchedTokens() {

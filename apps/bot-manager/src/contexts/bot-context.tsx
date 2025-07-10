@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Bot, BotStats, BotActivity, PerformanceMetrics, MarketData, CreateBotRequest } from '@/types/bot';
+import { Bot, BotStats, BotActivity, PerformanceMetrics, MarketData, CreateBotRequest } from '@/schemas/bot.schema';
 import { useNotifications } from './notification-context';
 import { useGlobalState } from './global-state-context';
-import { API_ENDPOINTS, API_CACHE_KEYS, API_CACHE_TTL } from '@/lib/api-endpoints';
+import { useWallet } from './wallet-context';
 
 interface BotContextType {
   // Data
@@ -47,6 +47,7 @@ interface BotProviderProps {
 export function BotProvider({ children }: BotProviderProps) {
   const { showSuccess, showError } = useNotifications();
   const { appState, loading: globalLoading, error: globalError } = useGlobalState();
+  const { walletState } = useWallet();
 
   const [bots, setBots] = useState<Bot[]>([]);
   const [botStats, setBotStats] = useState<BotStats>({
@@ -69,86 +70,303 @@ export function BotProvider({ children }: BotProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize with global state data
+  // Load bot data from KV store when wallet is connected
   useEffect(() => {
-    if (globalLoading) {
-      setLoading(true);
-      return;
-    }
+    const loadBotData = async () => {
+      if (!walletState.connected || !walletState.address) {
+        // User not authenticated - show empty state
+        setBots([]);
+        setBotStats({
+          totalBots: 0,
+          activeBots: 0,
+          pausedBots: 0,
+          errorBots: 0,
+          totalGas: 0,
+          totalValue: 0,
+          totalPnL: 0,
+          todayPnL: 0
+        });
+        setActivities([]);
+        setPerformanceMetrics({
+          daily: [],
+          weekly: [],
+          monthly: []
+        });
+        setMarketData({ tokenPrices: {}, priceChanges: {}, marketCap: {} });
+        setError(null);
+        setLoading(false);
+        return;
+      }
 
-    if (globalError) {
-      setError(globalError);
-      setLoading(false);
-      return;
-    }
+      try {
+        setLoading(true);
+        setError(null);
 
-    if (appState) {
-      // Load data from global state
-      setBots(appState.bots.list);
-      setBotStats(appState.bots.stats);
-      setActivities(appState.bots.activities);
-      setPerformanceMetrics({
-        daily: [],
-        weekly: [],
-        monthly: []
-      });
-      setMarketData(appState.market.data);
-      setError(null);
-    }
+        // Fetch bot data from KV store API
+        const response = await fetch(`/api/v1/bots?userId=${walletState.address}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          
+          // If KV store is unavailable, fall back to static data
+          if (response.status === 503) {
+            console.warn('KV store unavailable, falling back to static data');
+            
+            if (appState) {
+              // Use static data as fallback
+              const userBots = appState.bots.list.filter(bot => 
+                bot.walletAddress === walletState.address
+              );
+              const userBotIds = userBots.map(bot => bot.id);
+              const userActivities = appState.bots.activities.filter(activity =>
+                userBotIds.includes(activity.botId)
+              );
+              
+              setBots(userBots);
+              setActivities(userActivities);
+              setMarketData(appState.market.data);
+              
+              // Calculate stats
+              const activeBots = userBots.filter(bot => bot.status === 'active').length;
+              const pausedBots = userBots.filter(bot => bot.status === 'paused').length;
+              const errorBots = userBots.filter(bot => bot.status === 'error').length;
+              const totalValue = userBots.reduce((sum, bot) => sum + (bot.totalVolume || 0), 0);
+              const totalPnL = userBots.reduce((sum, bot) => sum + (bot.totalPnL || 0), 0);
+              const todayPnL = userBots.reduce((sum, bot) => sum + (bot.dailyPnL || 0), 0);
+              
+              setBotStats({
+                totalBots: userBots.length,
+                activeBots,
+                pausedBots,
+                errorBots,
+                totalGas: 0,
+                totalValue,
+                totalPnL,
+                todayPnL
+              });
+            }
+            
+            setLoading(false);
+            return;
+          }
+          
+          throw new Error(errorData.message || 'Failed to load bot data');
+        }
 
-    setLoading(false);
-  }, [appState, globalLoading, globalError]);
+        const data = await response.json();
+        
+        // Update state with real KV data
+        setBots(data.list || []);
+        setActivities(data.activities || []);
+        
+        // Calculate stats from real data
+        const userBots = data.list || [];
+        const activeBots = userBots.filter((bot: any) => bot.status === 'active').length;
+        const pausedBots = userBots.filter((bot: any) => bot.status === 'paused').length;
+        const errorBots = userBots.filter((bot: any) => bot.status === 'error').length;
+        const totalValue = userBots.reduce((sum: number, bot: any) => sum + (bot.totalVolume || 0), 0);
+        const totalPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.totalPnL || 0), 0);
+        const todayPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.dailyPnL || 0), 0);
+        
+        setBotStats({
+          totalBots: userBots.length,
+          activeBots,
+          pausedBots,
+          errorBots,
+          totalGas: 0,
+          totalValue,
+          totalPnL,
+          todayPnL
+        });
+        
+        setPerformanceMetrics({
+          daily: [],
+          weekly: [],
+          monthly: []
+        });
+        
+        // Use market data from static state or default
+        setMarketData(appState?.market?.data || { tokenPrices: {}, priceChanges: {}, marketCap: {} });
+        
+      } catch (err) {
+        console.error('Error loading bot data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load bot data');
+        
+        // Fallback to empty state on error
+        setBots([]);
+        setBotStats({
+          totalBots: 0,
+          activeBots: 0,
+          pausedBots: 0,
+          errorBots: 0,
+          totalGas: 0,
+          totalValue: 0,
+          totalPnL: 0,
+          todayPnL: 0
+        });
+        setActivities([]);
+        setPerformanceMetrics({
+          daily: [],
+          weekly: [],
+          monthly: []
+        });
+        setMarketData({ tokenPrices: {}, priceChanges: {}, marketCap: {} });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBotData();
+  }, [walletState.connected, walletState.address, appState]);
 
   const createBot = async (request: CreateBotRequest): Promise<Bot> => {
+    // Require wallet connection for bot creation
+    if (!walletState.connected || !walletState.address) {
+      throw new Error('Wallet must be connected to create a bot');
+    }
+
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const newBot: Bot = {
-        id: `bot-${Date.now()}`,
-        name: request.name,
-        strategy: request.strategy,
-        status: 'setup',
-        walletAddress: `SP${Math.random().toString(36).substring(2, 15).toUpperCase()}${Math.random().toString(36).substring(2, 15).toUpperCase()}`,
-        createdAt: new Date().toISOString(),
-        lastActive: new Date().toISOString(),
-        dailyPnL: 0,
-        totalPnL: 0,
-        totalVolume: 0,
-        successRate: 0,
-        maxGasPrice: request.maxGasPrice,
-        slippageTolerance: request.slippageTolerance,
-        autoRestart: request.autoRestart,
-        stxBalance: 0,
-        lpTokenBalances: [],
-        rewardTokenBalances: [],
-        setupProgress: {
-          funded: false,
-          lpTokensAdded: false,
-          activated: false,
-          completionPercentage: 0
+      setLoading(true);
+      
+      // Create bot via API
+      const response = await fetch(`/api/v1/bots?userId=${walletState.address}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        recentActivity: []
-      };
+        body: JSON.stringify(request),
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to create bot');
+      }
+
+      const data = await response.json();
+      const newBot = data.bot;
+
+      // Update local state
       setBots(prev => [newBot, ...prev]);
       setBotStats(prev => ({
         ...prev,
         totalBots: prev.totalBots + 1
       }));
 
+      showSuccess('Bot created successfully');
       return newBot;
     } catch (err) {
-      throw new Error('Failed to create bot');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create bot';
+      showError('Failed to create bot', errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const updateBot = async (id: string, updates: Partial<Bot>): Promise<Bot> => {
+    // Require wallet connection and ownership
+    if (!walletState.connected || !walletState.address) {
+      throw new Error('Wallet must be connected to update bots');
+    }
+
     setLoading(true);
     try {
-      // Simulate API call
+      const existingBot = bots.find(bot => bot.id === id);
+      if (!existingBot) {
+        throw new Error('Bot not found');
+      }
+
+      // Verify ownership
+      if (existingBot.walletAddress !== walletState.address) {
+        throw new Error('You can only update bots you own');
+      }
+
+      const updatedBot = { ...existingBot, ...updates };
+      
+      // Update bot via API
+      const response = await fetch(`/api/v1/bots?userId=${walletState.address}&botId=${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedBot),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update bot');
+      }
+
+      const data = await response.json();
+      const apiUpdatedBot = data.bot;
+
+      // Update local state
+      setBots(prev => prev.map(bot => bot.id === id ? apiUpdatedBot : bot));
+
+      return apiUpdatedBot;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update bot';
+      showError('Failed to update bot', errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteBot = async (id: string): Promise<void> => {
+    // Require wallet connection and ownership
+    if (!walletState.connected || !walletState.address) {
+      throw new Error('Wallet must be connected to delete bots');
+    }
+
+    try {
+      setLoading(true);
+      
+      const existingBot = bots.find(bot => bot.id === id);
+      if (!existingBot) {
+        throw new Error('Bot not found');
+      }
+
+      // Verify ownership
+      if (existingBot.walletAddress !== walletState.address) {
+        throw new Error('You can only delete bots you own');
+      }
+
+      // Delete bot via API
+      const response = await fetch(`/api/v1/bots?userId=${walletState.address}&botId=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete bot');
+      }
+
+      // Update local state
+      setBots(prev => prev.filter(bot => bot.id !== id));
+      setBotStats(prev => ({
+        ...prev,
+        totalBots: prev.totalBots - 1
+      }));
+
+      showSuccess('Bot deleted successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete bot';
+      showError('Failed to delete bot', errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startBot = async (id: string): Promise<void> => {
+    // Require wallet connection and ownership
+    if (!walletState.connected || !walletState.address) {
+      throw new Error('Wallet must be connected to start bots');
+    }
+
+    try {
+      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const existingBot = bots.find(bot => bot.id === id);
@@ -156,37 +374,10 @@ export function BotProvider({ children }: BotProviderProps) {
         throw new Error('Bot not found');
       }
 
-      const updatedBot = { ...existingBot, ...updates };
-      setBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
-
-      return updatedBot;
-    } catch (err) {
-      throw new Error('Failed to update bot');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteBot = async (id: string): Promise<void> => {
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      setBots(prev => prev.filter(bot => bot.id !== id));
-      setBotStats(prev => ({
-        ...prev,
-        totalBots: prev.totalBots - 1
-      }));
-
-    } catch (err) {
-      throw new Error('Failed to delete bot');
-    }
-  };
-
-  const startBot = async (id: string): Promise<void> => {
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Verify ownership
+      if (existingBot.walletAddress !== walletState.address) {
+        throw new Error('You can only start bots you own');
+      }
 
       setBots(prev => prev.map(bot =>
         bot.id === id
@@ -205,9 +396,24 @@ export function BotProvider({ children }: BotProviderProps) {
   };
 
   const pauseBot = async (id: string): Promise<void> => {
+    // Require wallet connection and ownership
+    if (!walletState.connected || !walletState.address) {
+      throw new Error('Wallet must be connected to pause bots');
+    }
+
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 500));
+
+      const existingBot = bots.find(bot => bot.id === id);
+      if (!existingBot) {
+        throw new Error('Bot not found');
+      }
+
+      // Verify ownership
+      if (existingBot.walletAddress !== walletState.address) {
+        throw new Error('You can only pause bots you own');
+      }
 
       setBots(prev => prev.map(bot =>
         bot.id === id
@@ -230,12 +436,7 @@ export function BotProvider({ children }: BotProviderProps) {
     if (!bot) throw new Error('Bot not found');
 
     await updateBot(id, {
-      stxBalance: bot.stxBalance + amount,
-      setupProgress: {
-        ...bot.setupProgress,
-        funded: true,
-        completionPercentage: Math.max(33, bot.setupProgress.completionPercentage)
-      }
+      stxBalance: bot.stxBalance + amount
     });
   };
 
@@ -266,19 +467,48 @@ export function BotProvider({ children }: BotProviderProps) {
   };
 
   const refreshData = async (): Promise<void> => {
+    if (!walletState.connected || !walletState.address) {
+      return;
+    }
+
     setLoading(true);
     try {
-      // Simulate API refresh
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch fresh data from KV store API
+      const response = await fetch(`/api/v1/bots?userId=${walletState.address}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to refresh data');
+      }
 
-      // In a real app, this would fetch fresh data from the API
-      // For now, we'll just update the lastActive timestamp
-      setBots(prev => prev.map(bot => ({
-        ...bot,
-        lastActive: new Date().toISOString()
-      })));
+      const data = await response.json();
+      
+      // Update state with fresh data
+      setBots(data.list || []);
+      setActivities(data.activities || []);
+      
+      // Recalculate stats
+      const userBots = data.list || [];
+      const activeBots = userBots.filter((bot: any) => bot.status === 'active').length;
+      const pausedBots = userBots.filter((bot: any) => bot.status === 'paused').length;
+      const errorBots = userBots.filter((bot: any) => bot.status === 'error').length;
+      const totalValue = userBots.reduce((sum: number, bot: any) => sum + (bot.totalVolume || 0), 0);
+      const totalPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.totalPnL || 0), 0);
+      const todayPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.dailyPnL || 0), 0);
+      
+      setBotStats({
+        totalBots: userBots.length,
+        activeBots,
+        pausedBots,
+        errorBots,
+        totalGas: 0,
+        totalValue,
+        totalPnL,
+        todayPnL
+      });
+      
+      setError(null);
     } catch (err) {
-      setError('Failed to refresh data');
+      setError(err instanceof Error ? err.message : 'Failed to refresh data');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,6 @@
 // User Data Generator
 import { AppSettings } from '@/contexts/settings-context';
-import { UIPreferences, WalletState, NotificationState, TokenBalance, WalletTransaction } from '@/types/app-state';
-import { GeneratorOptions } from '@/types/app-state';
+import { UIPreferences, WalletState, NotificationState, TokenBalance, WalletTransaction, GeneratorOptions } from '@/schemas/app-state.schema';
 import {
   SeededRandom,
   TOKEN_NAMES,
@@ -30,9 +29,6 @@ export function generateUserSettings(rng: SeededRandom, options: GeneratorOption
         : 'https://stacks-node-api.mainnet.stacks.co',
     },
     botDefaults: {
-      autoRestart: rng.nextBoolean(0.7),
-      defaultGasPrice: rng.nextInt(800, 1500),
-      defaultSlippage: rng.nextFloat(0.3, 1.0),
       defaultStrategy: rng.choice(['yield-farming', 'dca', 'arbitrage', 'liquidity-mining']),
     },
     notifications: {
@@ -88,11 +84,21 @@ export function generateUIPreferences(rng: SeededRandom, options: GeneratorOptio
 
 export function generateWalletState(rng: SeededRandom, options: GeneratorOptions): WalletState {
   const config = getProfileConfig(options.profile);
-  const isConnected = rng.nextBoolean(0.8);
+  let isConnected = rng.nextBoolean(0.8);
+  let walletAddress: string | null = null;
+  
+  // If target wallet is specified, use it and set as connected
+  if (options.targetWalletAddress) {
+    isConnected = true;
+    walletAddress = options.targetWalletAddress;
+    console.log(`👤 Setting user wallet to target address: ${walletAddress}`);
+  } else if (isConnected) {
+    walletAddress = generateStacksAddress(rng, options.profile === 'testing');
+  }
   
   const walletState: WalletState = {
     isConnected,
-    address: isConnected ? generateStacksAddress(rng, options.profile === 'testing') : null,
+    address: walletAddress,
     network: rng.choice(['mainnet', 'testnet', 'devnet']),
     balance: {
       stx: isConnected ? generateAmount(rng, options.profile, 'large') : 0,

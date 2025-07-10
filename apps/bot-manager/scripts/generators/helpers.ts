@@ -84,26 +84,157 @@ export function generateDate(rng: SeededRandom, daysBack: number = 30): string {
 
 // Generate realistic names
 export const BOT_NAMES = [
-  'Yield Maximizer Pro',
-  'DCA Champion',
-  'Arbitrage Master',
-  'Liquidity Hunter',
-  'STX Farmer',
-  'Profit Seeker',
-  'Auto Trader',
-  'Smart Investor',
-  'Defi Explorer',
-  'Token Harvester',
-  'Yield Optimizer',
-  'Portfolio Guardian',
-  'Market Maker',
-  'Trend Follower',
-  'Risk Manager',
-  'Alpha Generator',
-  'Beta Crusher',
-  'Gamma Hedger',
-  'Delta Neutral',
-  'Theta Collector',
+  'Bulbasaur',
+  'Ivysaur',
+  'Venusaur',
+  'Charmander',
+  'Charmeleon',
+  'Charizard',
+  'Squirtle',
+  'Wartortle',
+  'Blastoise',
+  'Caterpie',
+  'Metapod',
+  'Butterfree',
+  'Weedle',
+  'Kakuna',
+  'Beedrill',
+  'Pidgey',
+  'Pidgeotto',
+  'Pidgeot',
+  'Rattata',
+  'Raticate',
+  'Spearow',
+  'Fearow',
+  'Ekans',
+  'Arbok',
+  'Pikachu',
+  'Raichu',
+  'Sandshrew',
+  'Sandslash',
+  'Nidoran♀',
+  'Nidorina',
+  'Nidoqueen',
+  'Nidoran♂',
+  'Nidorino',
+  'Nidoking',
+  'Clefairy',
+  'Clefable',
+  'Vulpix',
+  'Ninetales',
+  'Jigglypuff',
+  'Wigglytuff',
+  'Zubat',
+  'Golbat',
+  'Oddish',
+  'Gloom',
+  'Vileplume',
+  'Paras',
+  'Parasect',
+  'Venonat',
+  'Venomoth',
+  'Diglett',
+  'Dugtrio',
+  'Meowth',
+  'Persian',
+  'Psyduck',
+  'Golduck',
+  'Mankey',
+  'Primeape',
+  'Growlithe',
+  'Arcanine',
+  'Poliwag',
+  'Poliwhirl',
+  'Poliwrath',
+  'Abra',
+  'Kadabra',
+  'Alakazam',
+  'Machop',
+  'Machoke',
+  'Machamp',
+  'Bellsprout',
+  'Weepinbell',
+  'Victreebel',
+  'Tentacool',
+  'Tentacruel',
+  'Geodude',
+  'Graveler',
+  'Golem',
+  'Ponyta',
+  'Rapidash',
+  'Slowpoke',
+  'Slowbro',
+  'Magnemite',
+  'Magneton',
+  'Farfetchd',
+  'Doduo',
+  'Dodrio',
+  'Seel',
+  'Dewgong',
+  'Grimer',
+  'Muk',
+  'Shellder',
+  'Cloyster',
+  'Gastly',
+  'Haunter',
+  'Gengar',
+  'Onix',
+  'Drowzee',
+  'Hypno',
+  'Krabby',
+  'Kingler',
+  'Voltorb',
+  'Electrode',
+  'Exeggcute',
+  'Exeggutor',
+  'Cubone',
+  'Marowak',
+  'Hitmonlee',
+  'Hitmonchan',
+  'Lickitung',
+  'Koffing',
+  'Weezing',
+  'Rhyhorn',
+  'Rhydon',
+  'Chansey',
+  'Tangela',
+  'Kangaskhan',
+  'Horsea',
+  'Seadra',
+  'Goldeen',
+  'Seaking',
+  'Staryu',
+  'Starmie',
+  'Mr. Mime',
+  'Scyther',
+  'Jynx',
+  'Electabuzz',
+  'Magmar',
+  'Pinsir',
+  'Tauros',
+  'Magikarp',
+  'Gyarados',
+  'Lapras',
+  'Ditto',
+  'Eevee',
+  'Vaporeon',
+  'Jolteon',
+  'Flareon',
+  'Porygon',
+  'Omanyte',
+  'Omastar',
+  'Kabuto',
+  'Kabutops',
+  'Aerodactyl',
+  'Snorlax',
+  'Articuno',
+  'Zapdos',
+  'Moltres',
+  'Dratini',
+  'Dragonair',
+  'Dragonite',
+  'Mewtwo',
+  'Mew',
 ];
 
 export const TOKEN_NAMES = [
@@ -119,7 +250,6 @@ export const TOKEN_NAMES = [
   { symbol: 'LEO', name: 'Leo', decimals: 8 },
 ];
 
-export const STRATEGIES = ['yield-farming', 'dca', 'arbitrage', 'liquidity-mining'] as const;
 export const BOT_STATUSES = ['active', 'paused', 'error', 'inactive', 'setup'] as const;
 export const ACTIVITY_TYPES = ['yield-farming', 'deposit', 'withdrawal', 'trade', 'error'] as const;
 export const ACTIVITY_STATUSES = ['pending', 'success', 'failed'] as const;
@@ -158,20 +288,18 @@ export function generateAPR(rng: SeededRandom, profile: string): number {
 }
 
 // Generate realistic success rates
-export function generateSuccessRate(rng: SeededRandom, strategy: string): number {
+export function generateSuccessRate(rng: SeededRandom, strategyTemplate: string): number {
   const baseRates = {
-    'yield-farming': 95,
-    'dca': 85,
-    'arbitrage': 75,
-    'liquidity-mining': 90,
+    'helloWorld': 80,
+    'fetchExample': 85,
   };
   
-  const base = baseRates[strategy as keyof typeof baseRates] || 80;
+  const base = baseRates[strategyTemplate as keyof typeof baseRates] || 80;
   return rng.nextFloat(base - 10, base + 5);
 }
 
 // Generate realistic P&L based on strategy and time
-export function generatePnL(rng: SeededRandom, strategy: string, daysActive: number, profile: string): {
+export function generatePnL(rng: SeededRandom, strategyTemplate: string, daysActive: number, profile: string): {
   daily: number;
   total: number;
 } {
@@ -179,13 +307,11 @@ export function generatePnL(rng: SeededRandom, strategy: string, daysActive: num
   const volatility = rng.nextFloat(0.5, 2);
   
   const strategyMultipliers = {
-    'yield-farming': 1.2,
-    'dca': 0.8,
-    'arbitrage': 2.0,
-    'liquidity-mining': 1.0,
+    'helloWorld': 1.0,
+    'fetchExample': 1.0,
   };
   
-  const multiplier = strategyMultipliers[strategy as keyof typeof strategyMultipliers] || 1.0;
+  const multiplier = strategyMultipliers[strategyTemplate as keyof typeof strategyMultipliers] || 1.0;
   const daily = baseDaily * multiplier * volatility * (rng.nextBoolean(0.7) ? 1 : -1);
   
   // Calculate total with some randomness
