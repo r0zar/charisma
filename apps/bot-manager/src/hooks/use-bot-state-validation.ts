@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Bot } from '@/schemas/bot.schema';
+import { useEffect,useState } from 'react';
+
 import { BotStateMachine } from '@/lib/infrastructure/state-machine/bot-state-machine';
+import { Bot } from '@/schemas/bot.schema';
 
 interface ValidationState {
   canStart: boolean;

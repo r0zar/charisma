@@ -1,26 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
 import {
-  Bot,
+  Activity,
   AlertTriangle,
+  ArrowUpDown,
+  BarChart3,
   CheckCircle,
   Clock,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  BarChart3,
-  Plus,
   Minus,
-  ArrowUpDown,
-  Pause
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+  Pause,
+  Plus,
+  TrendingUp} from 'lucide-react';
+import React from 'react';
+
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentBot } from '@/contexts/current-bot-context';
-import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
+import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 
 const statusColors = {
   active: 'bg-green-500/20 text-green-400 border-green-500/30',

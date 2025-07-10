@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { appState } from '@/data/app-state';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
 import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
 
 /**
  * GET /api/v1/bots/public

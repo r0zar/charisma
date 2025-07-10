@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEnvConfig, getDebugInfo, getCurrentEnvironment, isServerSide, isClientSide } from '@/lib/infrastructure/config/env';
+
+import { getCurrentEnvironment, getDebugInfo, getEnvConfig, isClientSide,isServerSide } from '@/lib/infrastructure/config/env';
 import { AppMetadataSchema } from '@/schemas/app-metadata.schema';
 
 /**

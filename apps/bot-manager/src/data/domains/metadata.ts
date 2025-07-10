@@ -1,5 +1,5 @@
+import { getCurrentEnvironment, getEnvConfig, isClientSide,isServerSide } from '@/lib/infrastructure/config/env';
 import { type AppMetadata } from '@/schemas/app-metadata.schema';
-import { getEnvConfig, getCurrentEnvironment, isServerSide, isClientSide } from '@/lib/infrastructure/config/env';
 
 /**
  * Live application metadata based on environment configuration

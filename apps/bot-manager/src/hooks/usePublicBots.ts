@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect,useState } from 'react';
+
 import { Bot } from '@/schemas/bot.schema';
 
 interface PublicBotStats {

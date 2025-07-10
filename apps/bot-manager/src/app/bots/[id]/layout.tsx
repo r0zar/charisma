@@ -1,39 +1,33 @@
 'use client';
 
-import React, { ReactNode } from 'react';
-import { useParams, useRouter, usePathname } from 'next/navigation';
 import {
-  Bot,
   ArrowLeft,
-  Play,
-  Pause,
-  Settings,
-  Wallet,
-  RefreshCw,
   BarChart3,
+  Bot,
   Calendar,
-} from 'lucide-react';
+  Pause,
+  Play,
+  RefreshCw,
+  Settings,
+  Wallet} from 'lucide-react';
+import Link from 'next/link';
+import { useParams, usePathname,useRouter } from 'next/navigation';
+import React from 'react';
+
+import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
-import { useToast } from '@/contexts/toast-context';
 import { CurrentBotProvider } from '@/contexts/current-bot-context';
 import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
-import { BotAvatar } from '@/components/ui/bot-avatar';
-import Link from 'next/link';
 
-export default function BotDetailLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function BotDetailLayout({ children, }: { children: React.ReactNode; }) {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
   const { bots, loading } = useBots();
   const { startBot, pauseBot } = useBotStateMachine();
-  const { showSuccess, showError } = useToast();
 
   const [mounted, setMounted] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -74,11 +68,11 @@ export default function BotDetailLayout({
   const getCurrentTab = () => {
     const segments = pathname.split('/');
     const lastSegment = segments[segments.length - 1];
-    
+
     if (lastSegment === params.id) {
       return 'overview';
     }
-    
+
     return lastSegment;
   };
 
@@ -158,7 +152,7 @@ export default function BotDetailLayout({
       <Tabs value={getCurrentTab()} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 bg-card border-border">
           <TabsTrigger value="overview" asChild>
-            <Link 
+            <Link
               href={`/bots/${bot.id}`}
               className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
             >
@@ -167,7 +161,7 @@ export default function BotDetailLayout({
             </Link>
           </TabsTrigger>
           <TabsTrigger value="strategy" asChild>
-            <Link 
+            <Link
               href={`/bots/${bot.id}/strategy`}
               className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
             >
@@ -176,7 +170,7 @@ export default function BotDetailLayout({
             </Link>
           </TabsTrigger>
           <TabsTrigger value="scheduling" asChild>
-            <Link 
+            <Link
               href={`/bots/${bot.id}/scheduling`}
               className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
             >
@@ -185,7 +179,7 @@ export default function BotDetailLayout({
             </Link>
           </TabsTrigger>
           <TabsTrigger value="wallet" asChild>
-            <Link 
+            <Link
               href={`/bots/${bot.id}/wallet`}
               className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
             >

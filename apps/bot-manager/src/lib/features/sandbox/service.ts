@@ -11,15 +11,16 @@
 import { Sandbox } from "@vercel/sandbox";
 import { config } from "dotenv";
 import { resolve } from "path";
+
+import type { Bot } from "@/schemas/bot.schema";
 // Note: No longer using parseStrategyCode - strategies are now raw JavaScript
 import type { 
+  BotContext, 
   SandboxConfig, 
   SandboxExecutionResult, 
-  BotContext, 
   StrategyExecutionOptions, 
   StrategyExecutionResult 
 } from "@/schemas/sandbox.schema";
-import type { Bot } from "@/schemas/bot.schema";
 // Dynamic import for wallet encryption to avoid env var requirement at module load
 
 // Load environment variables
@@ -241,7 +242,7 @@ export class SandboxService {
     // LP and reward token balances are no longer stored on bot objects
 
     // Get wallet credentials for real mode execution
-    let walletCredentials: { privateKey?: string } = {};
+    const walletCredentials: { privateKey?: string } = {};
     if (!testMode) {
       try {
         const { getPrivateKeyForExecution } = await import("@/lib/infrastructure/security/wallet-encryption");

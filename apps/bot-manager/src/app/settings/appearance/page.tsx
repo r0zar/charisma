@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Check,Palette } from "lucide-react"
+import { useEffect,useState } from "react"
+
 import { Badge } from "@/components/ui/badge"
-import { Palette, Check } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useSkin } from "@/contexts/skin-context"
 
 // Skins data

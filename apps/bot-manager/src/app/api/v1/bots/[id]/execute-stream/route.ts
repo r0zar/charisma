@@ -1,7 +1,8 @@
+import { Sandbox } from '@vercel/sandbox';
 import { NextRequest } from 'next/server';
+
 import { sandboxService } from '@/lib/features/sandbox/service';
 import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
-import { Sandbox } from '@vercel/sandbox';
 
 /**
  * POST /api/v1/bots/[id]/execute-stream

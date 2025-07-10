@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useWallet } from "@/contexts"
+import { Check, Copy, Network } from "lucide-react"
+import { useEffect,useState } from "react"
+
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
-import { Copy, Check, Network } from "lucide-react"
+import { useWallet } from "@/contexts"
 
 export default function NetworkSettingsPage() {
   const { walletState, network, setNetwork, connectWallet, disconnectWallet, isConnecting } = useWallet()
@@ -145,7 +146,7 @@ export default function NetworkSettingsPage() {
                 <div className="p-3 border rounded-lg border-border">
                   <p className="text-sm font-medium text-muted-foreground">Network Status</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <p className="text-sm">Connected</p>
                   </div>
                 </div>

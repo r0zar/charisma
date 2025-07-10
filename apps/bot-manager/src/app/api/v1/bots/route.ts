@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { appState } from '@/data/app-state';
 import { defaultState } from '@/data/default-state';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
-import { BotSchema, CreateBotRequestSchema, type Bot, type CreateBotRequest } from '@/schemas/bot.schema';
-import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
 import { createBotImageConfig } from '@/lib/features/bots/images';
+import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { type Bot, BotSchema, type CreateBotRequest,CreateBotRequestSchema } from '@/schemas/bot.schema';
 
 /**
  * GET /api/v1/bots

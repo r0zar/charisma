@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import React, { createContext, type ReactNode,useContext, useEffect, useState } from "react";
 
 // Types for all settings categories
 export interface NotificationSettings {
@@ -249,7 +249,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   };
 
   const regenerateApiKey = () => {
-    const newApiKey = 'sk-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const newApiKey = `sk-${  Math.random().toString(36).substring(2, 15)  }${Math.random().toString(36).substring(2, 15)}`;
     updateSecuritySettings({ apiKey: newApiKey });
   };
 

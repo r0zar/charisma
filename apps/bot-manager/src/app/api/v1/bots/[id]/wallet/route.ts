@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+
 import { config } from '@/lib/infrastructure/config/loading';
-import { generateBotWallet, encryptWalletCredentials, decryptWalletCredentials, type EncryptedWalletData } from '@/lib/infrastructure/security/wallet-encryption';
+import {encryptWalletCredentials, generateBotWallet } from '@/lib/infrastructure/security/wallet-encryption';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
 
 /**
  * GET /api/v1/bots/[id]/wallet

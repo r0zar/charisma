@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+
 import { WalletDropdown } from "@/components/wallet-dropdown"
 
 export function Header() {

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { AppState } from '@/schemas/app-state.schema';
-import { AppStateSchema } from '@/schemas/app-state.schema';
+import React, { createContext, ReactNode,useContext, useState } from 'react';
+
 import { useWallet } from '@/contexts/wallet-context';
+import { AppState , AppStateSchema } from '@/schemas/app-state.schema';
 
 interface GlobalStateContextType {
   // Global state data

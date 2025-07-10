@@ -5,21 +5,19 @@
 
 // Re-export env config with specific names to avoid conflicts
 export { 
-  getEnvConfig, 
+  type EnvConfig, 
   getCurrentEnvironment, 
-  isServerSide, 
-  isClientSide, 
   getDebugInfo,
-  type EnvConfig 
-} from './env';
+  getEnvConfig, 
+  isClientSide, 
+  isServerSide} from './env';
 
 // Re-export feature flags
 export {
-  isFeatureEnabled,
+  type FeatureFlag,
   getFeatureFlags,
   hasAnyApiFeatures,
-  type FeatureFlag
-} from './feature-flags';
+  isFeatureEnabled} from './feature-flags';
 
 // Re-export loading config
 export * from './loading';

@@ -1,20 +1,21 @@
 'use client';
 
-import React from 'react';
-import { usePathname, useRouter } from 'next/navigation';
 import { 
   Bell,
-  Search,
-  RefreshCw,
-  Settings,
-  User,
-  Wallet,
+  Globe,
   HelpCircle,
   Palette,
-  Globe
-} from 'lucide-react';
+  RefreshCw,
+  Search,
+  Settings,
+  User,
+  Wallet} from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import React from 'react';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,13 +24,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useBots } from '@/contexts/bot-context';
-import { useWallet } from '@/contexts/wallet-context';
-import { useToast } from '@/contexts/toast-context';
-import { useNotificationsData } from '@/contexts/notifications-context';
 import { useGlobalState } from '@/contexts/global-state-context';
+import { useNotificationsData } from '@/contexts/notifications-context';
+import { useToast } from '@/contexts/toast-context';
+import { useWallet } from '@/contexts/wallet-context';
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',

@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { Monitor, Network,Palette, Settings } from "lucide-react"
 import Link from "next/link"
-import { Settings, Monitor, Palette, Network } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { useEffect,useState } from "react"
+
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SettingsLayout({

@@ -33,7 +33,7 @@ export async function isKVAvailable(): Promise<boolean> {
   try {
     const { kv } = await import('@vercel/kv');
     // Try to set and get a test key
-    const testKey = 'bot-manager:kv_test_' + Date.now();
+    const testKey = `bot-manager:kv_test_${  Date.now()}`;
     await kv.set(testKey, 'test', { ex: 1 }); // Expire in 1 second
     const result = await kv.get(testKey);
     return result === 'test';

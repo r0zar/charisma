@@ -1,11 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useCallback,useContext, useState } from 'react';
+
+import { BotStateMachine } from '@/lib/infrastructure/state-machine/bot-state-machine';
 import { Bot } from '@/schemas/bot.schema';
-import { BotStateMachine, TransitionResult } from '@/lib/infrastructure/state-machine/bot-state-machine';
-import { useWallet } from './wallet-context';
-import { useToast } from './toast-context';
+
 import { useBots } from './bot-context';
+import { useToast } from './toast-context';
+import { useWallet } from './wallet-context';
 
 interface StateMachineTransition {
   botId: string;

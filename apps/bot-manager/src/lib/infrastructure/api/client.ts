@@ -3,8 +3,8 @@
  * Provides typed API client functions for each data segment
  */
 
-import { type AppState } from '@/schemas/app-state.schema';
 import { type AppMetadata } from '@/schemas/app-metadata.schema';
+import { type AppState } from '@/schemas/app-state.schema';
 // Simple result interface for API calls
 interface ApiResult<T> {
   success: boolean;
@@ -101,7 +101,7 @@ export class ApiClient {
       const data = await response.json();
       return {
         success: true,
-        data: data,
+        data,
       };
     } catch (error) {
       return {

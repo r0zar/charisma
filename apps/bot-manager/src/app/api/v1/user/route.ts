@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appState } from '@/data/app-state';
-import { defaultState } from '@/data/default-state';
-import { userDataStore } from '@/lib/infrastructure/storage';
+
 import { isFeatureEnabled } from '@/lib/infrastructure/config/feature-flags';
-import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
+import { userDataStore } from '@/lib/infrastructure/storage';
 
 /**
  * GET /api/v1/user
@@ -47,7 +45,7 @@ export async function GET(request: NextRequest) {
     console.log(`👤 User data request for user: ${userId.slice(0, 8)}...`);
 
     let userData;
-    let dataSource = 'kv';
+    const dataSource = 'kv';
 
     // Try to get user data from KV store
     userData = await userDataStore.getUserData(userId);

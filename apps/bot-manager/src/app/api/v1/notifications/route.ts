@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appState } from '@/data/app-state';
-import { defaultState } from '@/data/default-state';
-import { notificationStore, isKVAvailable } from '@/lib/infrastructure/storage';
+
 import { isFeatureEnabled } from '@/lib/infrastructure/config/feature-flags';
+import { isKVAvailable,notificationStore } from '@/lib/infrastructure/storage';
 
 /**
  * GET /api/v1/notifications

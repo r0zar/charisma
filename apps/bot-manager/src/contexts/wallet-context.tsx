@@ -1,19 +1,19 @@
 "use client";
 
-import * as React from 'react';
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { connect, request } from "@stacks/connect";
 import {
-    signMessage as blazeSignMessage,
-    signMessageWithTimestamp,
-    signedFetch,
-    signedFetchWithTimestamp,
     buildSignatureHeaders,
     buildTimestampedSignatureHeaders,
+    signedFetch,
+    signedFetchWithTimestamp,
     type SignedMessage,
     type SignedMessageWithTimestamp,
+    signMessage as blazeSignMessage,
+    signMessageWithTimestamp,
     type TimestampedAuthOptions
 } from "blaze-sdk";
+import * as React from 'react';
+import { createContext, type ReactNode,useContext, useEffect, useState } from 'react';
 
 // Types
 type Network = "mainnet" | "testnet";

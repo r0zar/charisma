@@ -1,17 +1,19 @@
+import "./globals.css";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+
+import { Header } from "@/components/layout/header";
+import { Sidebar } from "@/components/layout/sidebar";
 import { SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
 import { BotStateMachineProvider } from "@/contexts/bot-state-machine-context";
-import { SettingsProvider } from "@/contexts/settings-context";
-import { ToastProvider } from "@/contexts/toast-context";
 import { GlobalStateProvider } from "@/contexts/global-state-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { SettingsProvider } from "@/contexts/settings-context";
+import { ToastProvider } from "@/contexts/toast-context";
 import { loadAppStateConfigurableWithFallback } from "@/lib/infrastructure/data/loader.server";
-import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });

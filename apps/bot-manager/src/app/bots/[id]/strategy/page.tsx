@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
 import {
   Activity,
   RefreshCw,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useEffect,useState } from 'react';
+
+import { StrategyCodeEditor } from '@/components/strategy-code-editor';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
-import { StrategyCodeEditor } from '@/components/strategy-code-editor';
-import { Bot as BotType } from '@/schemas/bot.schema';
-import { sandboxClient } from '@/lib/features/sandbox/client';
 import type { SandboxStreamEvent } from '@/lib/features/sandbox/client';
+import { sandboxClient } from '@/lib/features/sandbox/client';
+import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotStrategyPage() {
   const { bot } = useCurrentBot();

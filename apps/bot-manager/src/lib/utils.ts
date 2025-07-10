@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue,clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -49,10 +49,10 @@ export function formatNumber(num: number, decimals: number = 2): string {
   const absNum = Math.abs(num);
   
   if (absNum >= 1000000) {
-    return (num / 1000000).toFixed(decimals) + 'M';
+    return `${(num / 1000000).toFixed(decimals)  }M`;
   }
   if (absNum >= 1000) {
-    return (num / 1000).toFixed(decimals) + 'K';
+    return `${(num / 1000).toFixed(decimals)  }K`;
   }
   
   return num.toFixed(decimals);

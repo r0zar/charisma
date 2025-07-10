@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Settings, LogOut, User, Menu, BarChart3, Code, Home, Wallet, Palette } from "lucide-react"
-import { useWallet } from "@/contexts"
-import { Button } from "@/components/ui/button"
-import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer"
+import { BarChart3, Home, Menu, Palette, Settings, User, Wallet } from "lucide-react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
+import { useWallet } from "@/contexts"
 
 
 function MenuContent({ onClose }: { onClose?: () => void }) {
@@ -77,7 +78,7 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
       <div className="grid grid-cols-3 gap-4">
         {visibleItems.map((item, index) => {
           const Icon = item.icon
-          
+
           if (item.onClick) {
             return (
               <button

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { logger } from '@/lib/infrastructure/server/logger';
-import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 
 /**
  * Get cached performance metrics for a specific wallet

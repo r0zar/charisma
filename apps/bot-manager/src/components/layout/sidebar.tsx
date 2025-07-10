@@ -1,24 +1,22 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import {
   Bot,
-  Settings,
   Home,
-  TrendingUp,
-  Wallet,
-  History,
-  Plus,
   Menu,
-  X
+  Plus,
+  Settings,
+  TrendingUp
 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useBots } from '@/contexts/bot-context';
+import { cn } from '@/lib/utils';
 
 const navigation = [
   {
@@ -89,7 +87,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href  }/`);
           return (
             <Link
               key={item.name}

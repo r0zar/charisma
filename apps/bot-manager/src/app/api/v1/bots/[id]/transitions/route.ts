@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { botDataStore } from '@/lib/infrastructure/storage/kv-stores/bot-store';
+
 import { 
   BotStateMachine, 
-  TransitionRequest,
-  getValidTransitions 
-} from '@/lib/infrastructure/state-machine/bot-state-machine';
+  getValidTransitions} from '@/lib/infrastructure/state-machine/bot-state-machine';
+import { botDataStore } from '@/lib/infrastructure/storage/kv-stores/bot-store';
 import { syncLogger as logger } from '@/lib/utils/logger';
 
 // Request validation schema
@@ -161,7 +160,7 @@ export async function POST(
 
   } catch (error) {
     logger.error('Bot state transition error', {
-      botId: botId,
+      botId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -224,7 +223,7 @@ export async function GET(
 
   } catch (error) {
     logger.error('Error fetching bot transitions', {
-      botId: botId,
+      botId,
       error: error instanceof Error ? error.message : String(error)
     });
 

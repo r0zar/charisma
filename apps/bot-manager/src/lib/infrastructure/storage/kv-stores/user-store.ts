@@ -3,6 +3,7 @@
  */
 
 import { kv } from '@vercel/kv';
+
 import type { AppState } from '@/schemas/app-state.schema';
 
 export class UserDataKVStore {

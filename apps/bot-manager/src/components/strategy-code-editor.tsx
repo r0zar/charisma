@@ -1,34 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   Code,
-  Play,
-  Save,
-  RotateCcw,
-  FileText,
-  AlertCircle,
-  CheckCircle,
-  Settings,
-  Eye,
-  Palette,
-  Download,
-  Upload,
-  Zap,
   Maximize2,
-  Minimize2
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+  Minimize2,
+  Palette,
+  Play,
+  RotateCcw,
+  Save} from 'lucide-react';
+import React, { useEffect, useRef,useState } from 'react';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { type StrategyMetadata } from '@/lib/features/bots/strategy-parser';
 
 interface StrategyCodeEditorProps {

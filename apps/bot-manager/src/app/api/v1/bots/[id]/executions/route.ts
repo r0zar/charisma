@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BotExecutionSchema } from '@/schemas/bot.schema';
 import { z } from 'zod';
+
+import { BotExecutionSchema } from '@/schemas/bot.schema';
 
 // Mock execution history for development
 const mockExecutions = [

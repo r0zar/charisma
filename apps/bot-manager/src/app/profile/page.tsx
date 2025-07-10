@@ -1,13 +1,14 @@
 'use client';
 
+import { Copy, ExternalLink, Network, Shield,Wallet } from 'lucide-react';
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Copy, ExternalLink, Wallet, Network, Shield } from 'lucide-react';
-import { useWallet } from '@/contexts/wallet-context';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/contexts/toast-context';
+import { useWallet } from '@/contexts/wallet-context';
 
 export default function ProfilePage() {
   const { walletState, network, setNetwork } = useWallet();

@@ -1,7 +1,8 @@
+import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { NextRequest, NextResponse } from 'next/server';
+
 import { sandboxService } from '@/lib/features/sandbox/service';
 import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
-import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { logger } from '@/lib/infrastructure/server/logger';
 
 /**

@@ -1,11 +1,12 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Settings, Palette, Globe, Server, Clock, Database, Bug, Flag } from "lucide-react"
+import { Bug, Database, Flag,Globe, Palette, Server, Settings } from "lucide-react"
 import Link from "next/link"
+
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { useGlobalState } from "@/contexts/global-state-context"
 
 export default function GeneralSettingsPage() {

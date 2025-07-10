@@ -1,10 +1,11 @@
 'use client';
 
+import { ArrowRight, Bot, Plus,TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
-import { Bot, ArrowRight, TrendingUp, Plus } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/contexts/wallet-context';
-import Link from 'next/link';
 
 export default function DashboardPage() {
   const { walletState, connectWallet, isConnecting } = useWallet();

@@ -7,7 +7,7 @@
 export { getMetadataData } from './metadata';
 
 // User data exports
-export { userSettingsData, userPreferencesData, userWalletData } from './user';
+export { userPreferencesData, userSettingsData, userWalletData } from './user';
 
 // Bot data exports
 export { botListData, botStatsData } from './bots';

@@ -53,7 +53,7 @@ export function parseStrategyCode(code: string): ParsedStrategy {
           .replace(/window\./g, 'null.'); // Disable window access
         
         // Use Function constructor for safer evaluation than eval
-        const evalFn = new Function('return ' + safeMetadataStr);
+        const evalFn = new Function(`return ${  safeMetadataStr}`);
         const metadata = evalFn();
         
         // Validate required metadata fields

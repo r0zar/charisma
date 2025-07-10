@@ -3,7 +3,7 @@
  * Handles bot image generation, fallbacks, and Pokemon sprite integration
  */
 
-import { pokemonSprites, getPokemonSpriteUrl, hasPokemonSprite } from '@/data/pokemon-sprites';
+import { getPokemonSpriteUrl, hasPokemonSprite,pokemonSprites } from '@/data/pokemon-sprites';
 import { Bot } from '@/schemas/bot.schema';
 
 export type BotImageType = 'pokemon' | 'avatar' | 'custom';

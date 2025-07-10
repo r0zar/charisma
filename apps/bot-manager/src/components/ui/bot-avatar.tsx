@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Bot as BotIcon } from 'lucide-react';
-import { Bot } from '@/schemas/bot.schema';
-import { getBotImageWithFallback, getBotImageFallback } from '@/lib/features/bots/images';
+import React, { useState } from 'react';
+
+import { Avatar, AvatarFallback,AvatarImage } from '@/components/ui/avatar';
+import { getBotImageFallback,getBotImageWithFallback } from '@/lib/features/bots/images';
 import { cn } from '@/lib/utils';
+import { Bot } from '@/schemas/bot.schema';
 
 interface BotAvatarProps {
   bot: Bot;

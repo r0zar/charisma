@@ -1,17 +1,18 @@
 import { z } from 'zod';
+
+import { AppMetadataSchema } from './app-metadata.schema';
 import { BotSchema, BotStatsSchema } from './bot.schema';
-import { AppSettingsSchema, UIPreferencesSchema } from './user.schema';
-import { WalletStateSchema } from './wallet.schema';
 // Market schema import removed
 import { NotificationStateSchema } from './notification.schema';
-import { AppMetadataSchema } from './app-metadata.schema';
+import { AppSettingsSchema, UIPreferencesSchema } from './user.schema';
+import { WalletStateSchema } from './wallet.schema';
 
 // Re-export all schemas from their domain-specific files
 export * from './user.schema';
 export * from './wallet.schema';
 // Market schema export removed
-export * from './notification.schema';
 export * from './app-metadata.schema';
+export * from './notification.schema';
 
 // Main AppState schema that combines all domain schemas
 export const AppStateSchema = z.object({

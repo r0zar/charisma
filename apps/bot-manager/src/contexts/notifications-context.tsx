@@ -1,15 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { StoredNotification } from '@/lib/infrastructure/storage';
+import React, { createContext, useCallback, useContext, useEffect, useMemo,useState } from 'react';
+
+import { useToast } from '@/contexts/toast-context';
+import { useWallet } from '@/contexts/wallet-context';
 import { 
-  NotificationsApiClient, 
-  NotificationFilters, 
   CreateNotificationData,
+  NotificationFilters, 
+  NotificationsApiClient, 
   NotificationSummary
 } from '@/lib/infrastructure/api/notifications-client';
-import { useWallet } from '@/contexts/wallet-context';
-import { useToast } from '@/contexts/toast-context';
+import { StoredNotification } from '@/lib/infrastructure/storage';
 
 /**
  * Notifications context interface

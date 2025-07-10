@@ -7,14 +7,13 @@
 export * from './kv-stores';
 
 // Maintain backward compatibility for existing imports
-export {
-  userDataStore,
-  botDataStore,
-  notificationStore,
-  isKVAvailable,
-} from './kv-stores';
-
 export type {
-  StoredNotification,
   NotificationFilters,
+  StoredNotification,
+} from './kv-stores';
+export {
+  botDataStore,
+  isKVAvailable,
+  notificationStore,
+  userDataStore,
 } from './kv-stores';

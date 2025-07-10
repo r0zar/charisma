@@ -1,10 +1,11 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
-import { sandboxService } from '@/lib/features/sandbox/service';
-import { type Bot, type BotExecution } from '@/schemas/bot.schema';
-import { parseISO, isBefore } from 'date-fns';
 import { CronExpressionParser } from 'cron-parser';
+import { isBefore,parseISO } from 'date-fns';
+import { type NextRequest, NextResponse } from 'next/server';
+
+import { sandboxService } from '@/lib/features/sandbox/service';
+import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
 import { botDataStore } from '@/lib/infrastructure/storage';
+import { type Bot } from '@/schemas/bot.schema';
 
 /**
  * Cron job handler to execute scheduled bots
@@ -256,7 +257,7 @@ async function updateBotExecutionMetadata(bot: Bot, success: boolean): Promise<v
     // If execution failed, transition bot to error state using state machine
     if (!success) {
       console.log(`[BotExecutor] Bot ${bot.id} execution failed, transitioning to error state`);
-      
+
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/v1/bots/${bot.id}/transitions?userId=${encodeURIComponent(userId)}`, {
           method: 'POST',

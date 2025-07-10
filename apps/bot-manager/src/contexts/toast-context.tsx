@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, type ReactNode } from "react";
+import React, { createContext, type ReactNode,useContext } from "react";
 import { toast, Toaster } from "sonner";
 
 // Notification types for consistency with existing API
@@ -88,8 +88,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
       {children}
       <Toaster 
         position="top-right"
-        expand={true}
-        richColors={true}
+        expand
+        richColors
         closeButton={false}
         toastOptions={{
           style: {

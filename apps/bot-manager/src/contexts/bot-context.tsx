@@ -1,9 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, ReactNode,useContext, useEffect, useState } from 'react';
+
 import { Bot, BotStats, CreateBotRequest } from '@/schemas/bot.schema';
-import { useToast } from './toast-context';
+
 import { useGlobalState } from './global-state-context';
+import { useToast } from './toast-context';
 import { useWallet } from './wallet-context';
 
 interface BotContextType {

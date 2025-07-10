@@ -1,40 +1,31 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
 import {
   Bot,
-  Plus,
-  Search,
-  Filter,
-  Grid,
-  List,
-  Play,
-  Pause,
-  Settings,
-  Trash2,
-  MoreHorizontal,
-  Zap,
-  Clock,
-  AlertTriangle,
   CheckCircle,
-  XCircle,
-  TrendingUp,
-  TrendingDown,
-  Fuel,
-  Wallet,
-  Activity,
-  BarChart3,
+  Clock,
   Copy,
   ExternalLink,
-  Target
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+  Fuel,
+  Grid,
+  List,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Plus,
+  Search,
+  Settings,
+  Target,
+  TrendingUp,
+  Wallet,
+  XCircle} from 'lucide-react';
+import Link from 'next/link';
+import React, { useMemo,useState } from 'react';
+
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
+import { BotAvatar } from '@/components/ui/bot-avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,16 +34,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { formatCurrency, formatRelativeTime, truncateAddress } from '@/lib/utils';
-import { getStrategyDisplayName, getStrategyType } from '@/lib/features/bots/strategy-parser';
-import { Bot as BotType } from '@/schemas/bot.schema';
-import { BotAvatar } from '@/components/ui/bot-avatar';
 import { usePublicBots } from '@/hooks/usePublicBots';
-import Link from 'next/link';
+import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
+import { formatRelativeTime, truncateAddress } from '@/lib/utils';
+import { Bot as BotType } from '@/schemas/bot.schema';
 
 const statusColors = {
   active: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -103,13 +94,12 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-medium text-card-foreground">{bot.name}</h3>
-                  <div className={`w-2 h-2 rounded-full ${
-                    bot.status === 'active' ? 'bg-green-400 animate-pulse' :
-                    bot.status === 'paused' ? 'bg-yellow-400' :
-                    bot.status === 'error' ? 'bg-red-400' :
-                    bot.status === 'setup' ? 'bg-blue-400' :
-                    'bg-gray-400'
-                  }`} />
+                  <div className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-400 animate-pulse' :
+                      bot.status === 'paused' ? 'bg-yellow-400' :
+                        bot.status === 'error' ? 'bg-red-400' :
+                          bot.status === 'setup' ? 'bg-blue-400' :
+                            'bg-gray-400'
+                    }`} />
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -212,8 +202,8 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
   // Pokemon card style for grid view
   if (viewMode === 'grid') {
     return (
-      <div 
-        className="bg-card rounded-lg border-2 border-border/20 hover:bg-card/90 transition-all duration-200 shadow-lg hover:shadow-xl group overflow-hidden" 
+      <div
+        className="bg-card rounded-lg border-2 border-border/20 hover:bg-card/90 transition-all duration-200 shadow-lg hover:shadow-xl group overflow-hidden"
         style={{ aspectRatio: '5/7' }}
       >
         {/* Outer Frame - Using CSS Grid for precise control */}
@@ -224,13 +214,12 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
             <Link href={`/bots/${bot.id}`} className="text-sm font-bold text-card-foreground truncate hover:text-blue-400 transition-colors">
               {bot.name}
             </Link>
-            <div className={`w-2 h-2 rounded-full ${
-              bot.status === 'active' ? 'bg-green-400 animate-pulse' :
-              bot.status === 'paused' ? 'bg-yellow-400' :
-              bot.status === 'error' ? 'bg-red-400' :
-              bot.status === 'setup' ? 'bg-blue-400' :
-              'bg-gray-400'
-            }`} />
+            <div className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-400 animate-pulse' :
+                bot.status === 'paused' ? 'bg-yellow-400' :
+                  bot.status === 'error' ? 'bg-red-400' :
+                    bot.status === 'setup' ? 'bg-blue-400' :
+                      'bg-gray-400'
+              }`} />
           </div>
 
           {/* Main Content Area - Image + Body in a flex column */}
@@ -244,132 +233,132 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
 
             {/* Body Section */}
             <div className="bg-card/50 mt-2 flex-1 flex flex-col relative min-h-0">
-            {/* Watermarks for different states */}
-            {bot.status === 'setup' && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none -mt-8">
-                <Settings className="w-24 h-24 text-muted-foreground/8" />
-              </div>
-            )}
-            {bot.status === 'active' && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none -mt-8">
-                <Play className="w-24 h-24 text-green-400/8" />
-              </div>
-            )}
-            
-            {/* Strategy Type */}
-            <p className="text-xs text-muted-foreground tracking-wider mb-3 text-center relative z-10">
-              {getStrategyDisplayName(bot.strategy)}
-            </p>
+              {/* Watermarks for different states */}
+              {bot.status === 'setup' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Settings className="w-24 h-24 text-muted-foreground/8" />
+                </div>
+              )}
+              {bot.status === 'active' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Play className="w-24 h-24 text-green-400/8" />
+                </div>
+              )}
 
-            {/* Stats/Info Section */}
-            {bot.status === 'setup' ? (
-              /* Setup State - Clean status message */
-              <div className="flex flex-col items-center justify-center text-center py-4 mb-3 relative z-10">
-                <div className="text-xs text-muted-foreground font-medium">Configuration Required</div>
-                <div className="text-xs text-muted-foreground/80">Click to configure strategy</div>
-              </div>
-            ) : (
-              /* Active/Paused/Error State - Info grid */
-              <div className="grid grid-cols-2 gap-1.5 mb-3">
-                <div className="text-center py-2">
-                  <div className="text-xs text-muted-foreground/60">P&L</div>
-                  <div className="text-xs text-muted-foreground">--</div>
+              {/* Strategy Type */}
+              <p className="text-xs text-muted-foreground tracking-wider mb-3 text-center relative z-10">
+                {getStrategyDisplayName(bot.strategy)}
+              </p>
+
+              {/* Stats/Info Section */}
+              {bot.status === 'setup' ? (
+                /* Setup State - Clean status message */
+                <div className="flex flex-col items-center justify-center text-center py-4 mb-3 relative z-10">
+                  <div className="text-xs text-muted-foreground font-medium">Configuration Required</div>
+                  <div className="text-xs text-muted-foreground/80">Click to configure strategy</div>
                 </div>
-                <div className="text-center py-2">
-                  <div className="text-xs text-muted-foreground/60">Success</div>
-                  <div className="text-xs text-muted-foreground">--%</div>
+              ) : (
+                /* Active/Paused/Error State - Info grid */
+                <div className="grid grid-cols-2 gap-1.5 mb-3">
+                  <div className="text-center py-2">
+                    <div className="text-xs text-muted-foreground/60">P&L</div>
+                    <div className="text-xs text-muted-foreground">--</div>
+                  </div>
+                  <div className="text-center py-2">
+                    <div className="text-xs text-muted-foreground/60">Success</div>
+                    <div className="text-xs text-muted-foreground">--%</div>
+                  </div>
+                  <div className="text-center py-2">
+                    <div className="text-xs text-muted-foreground/60">Balance</div>
+                    <div className="text-xs text-muted-foreground">--</div>
+                  </div>
+                  <div className="text-center py-2">
+                    <div className="text-xs text-muted-foreground/60">Trades</div>
+                    <div className="text-xs text-muted-foreground">--</div>
+                  </div>
                 </div>
-                <div className="text-center py-2">
-                  <div className="text-xs text-muted-foreground/60">Balance</div>
-                  <div className="text-xs text-muted-foreground">--</div>
-                </div>
-                <div className="text-center py-2">
-                  <div className="text-xs text-muted-foreground/60">Trades</div>
-                  <div className="text-xs text-muted-foreground">--</div>
-                </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
 
           {/* Action Area - Grid footer */}
-          <div className="border-t border-border/50 pt-2">  
-              {bot.status === 'setup' ? (
-                /* Setup State - Configure button */
-                <Button 
-                  asChild 
-                  size="sm" 
-                  className="w-full h-7 bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                >
-                  <Link href={`/bots/${bot.id}`}>
-                    <Settings className="w-3 h-3 mr-1" />
-                    Configure Bot
-                  </Link>
-                </Button>
-              ) : bot.status === 'active' ? (
-                /* Active State - Single pause button */
+          <div className="border-t border-border/50 pt-2">
+            {bot.status === 'setup' ? (
+              /* Setup State - Configure button */
+              <Button
+                asChild
+                size="sm"
+                className="w-full h-7 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+              >
+                <Link href={`/bots/${bot.id}`}>
+                  <Settings className="w-3 h-3 mr-1" />
+                  Configure Bot
+                </Link>
+              </Button>
+            ) : bot.status === 'active' ? (
+              /* Active State - Single pause button */
+              <Button
+                size="sm"
+                onClick={async () => {
+                  const updated = await pauseBot(bot, 'User paused via bot card');
+                  if (updated) onPause(bot.id);
+                }}
+                disabled={isTransitioning}
+                className="w-full h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
+              >
+                <Pause className="w-3 h-3 mr-1" />
+                Pause Bot
+              </Button>
+            ) : (
+              /* Other States - Control buttons */
+              <div className="flex gap-1">
                 <Button
                   size="sm"
+                  variant="outline"
                   onClick={async () => {
-                    const updated = await pauseBot(bot, 'User paused via bot card');
-                    if (updated) onPause(bot.id);
+                    const updated = await startBot(bot, 'User started via bot card');
+                    if (updated) onStart(bot.id);
                   }}
                   disabled={isTransitioning}
-                  className="w-full h-7 text-xs bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50"
+                  className="flex-1 h-7 text-xs border-green-600 text-green-400 hover:bg-green-500/10 disabled:opacity-50"
                 >
-                  <Pause className="w-3 h-3 mr-1" />
-                  Pause Bot
+                  <Play className="w-3 h-3 mr-1" />
+                  Start
                 </Button>
-              ) : (
-                /* Other States - Control buttons */
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={async () => {
-                      const updated = await startBot(bot, 'User started via bot card');
-                      if (updated) onStart(bot.id);
-                    }}
-                    disabled={isTransitioning}
-                    className="flex-1 h-7 text-xs border-green-600 text-green-400 hover:bg-green-500/10 disabled:opacity-50"
-                  >
-                    <Play className="w-3 h-3 mr-1" />
-                    Start
-                  </Button>
 
-                  <Button asChild size="sm" variant="outline" className="h-7 border-blue-600 text-blue-400 hover:bg-blue-500/10">
-                    <Link href={`/bots/${bot.id}`}>
-                      <Settings className="w-3 h-3" />
-                    </Link>
-                  </Button>
+                <Button asChild size="sm" variant="outline" className="h-7 border-blue-600 text-blue-400 hover:bg-blue-500/10">
+                  <Link href={`/bots/${bot.id}`}>
+                    <Settings className="w-3 h-3" />
+                  </Link>
+                </Button>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                        <MoreHorizontal className="w-3 h-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-popover border-border">
-                      <DropdownMenuLabel className="text-popover-foreground">Bot Wallet</DropdownMenuLabel>
-                      <DropdownMenuSeparator className="bg-border" />
-                      <DropdownMenuItem
-                        onClick={() => copyToClipboard(bot.id)}
-                        className="text-popover-foreground hover:bg-accent"
-                      >
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy Address
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => openInExplorer(bot.id)}
-                        className="text-popover-foreground hover:bg-accent"
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Explorer
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <MoreHorizontal className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover border-border">
+                    <DropdownMenuLabel className="text-popover-foreground">Bot Wallet</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuItem
+                      onClick={() => copyToClipboard(bot.id)}
+                      className="text-popover-foreground hover:bg-accent"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Address
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => openInExplorer(bot.id)}
+                      className="text-popover-foreground hover:bg-accent"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Explorer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -388,13 +377,12 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
               <p className="text-sm text-muted-foreground">{getStrategyDisplayName(bot.strategy)}</p>
             </div>
           </div>
-          <div className={`w-2 h-2 rounded-full ${
-            bot.status === 'active' ? 'bg-green-400 animate-pulse' :
-            bot.status === 'paused' ? 'bg-yellow-400' :
-            bot.status === 'error' ? 'bg-red-400' :
-            bot.status === 'setup' ? 'bg-blue-400' :
-            'bg-gray-400'
-          }`} />
+          <div className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-400 animate-pulse' :
+              bot.status === 'paused' ? 'bg-yellow-400' :
+                bot.status === 'error' ? 'bg-red-400' :
+                  bot.status === 'setup' ? 'bg-blue-400' :
+                    'bg-gray-400'
+            }`} />
         </div>
       </CardHeader>
 
@@ -533,7 +521,7 @@ export default function BotsPage() {
     if (!publicBots || !Array.isArray(publicBots)) {
       return [];
     }
-    
+
     return publicBots.filter(bot => {
       // Safety check - ensure bot and required properties exist
       if (!bot || !bot.name || !bot.id || !bot.strategy || !bot.status) {
@@ -606,8 +594,8 @@ export default function BotsPage() {
           <p className="text-muted-foreground mb-6">
             Connect your wallet to view and manage your bots. Your bots are tied to your wallet address for security.
           </p>
-          <Button 
-            onClick={connectWallet} 
+          <Button
+            onClick={connectWallet}
             disabled={isConnecting}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
@@ -778,7 +766,7 @@ export default function BotsPage() {
             {publicStats?.totalBots || 0} bots from {publicStats?.totalUsers || 0} users
           </div>
         </div>
-        
+
         {publicLoading ? (
           <div className="text-center py-8">
             <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -805,22 +793,21 @@ export default function BotsPage() {
                     <div className="h-full grid grid-rows-[auto_1fr_auto] gap-2 p-2">
                       <div className="flex items-center justify-between px-1">
                         <h3 className="text-sm font-bold text-card-foreground truncate">{bot.name}</h3>
-                        <div className={`w-2 h-2 rounded-full ${
-                          bot.status === 'active' ? 'bg-green-400 animate-pulse' :
-                          bot.status === 'paused' ? 'bg-yellow-400' :
-                          bot.status === 'error' ? 'bg-red-400' :
-                          bot.status === 'setup' ? 'bg-blue-400' :
-                          'bg-gray-400'
-                        }`} />
+                        <div className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-400 animate-pulse' :
+                            bot.status === 'paused' ? 'bg-yellow-400' :
+                              bot.status === 'error' ? 'bg-red-400' :
+                                bot.status === 'setup' ? 'bg-blue-400' :
+                                  'bg-gray-400'
+                          }`} />
                       </div>
-                      
+
                       <div className="flex flex-col min-h-0 overflow-hidden">
                         <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border/10 overflow-hidden rounded-md flex-1 max-h-[60%]">
                           <div className="w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
                             <BotAvatar bot={bot} size="xl" className="w-full h-full object-cover" />
                           </div>
                         </div>
-                        
+
                         <div className="bg-card/50 mt-2 flex-1 flex flex-col relative min-h-0">
                           <p className="text-xs text-muted-foreground tracking-wider mb-3 text-center relative z-10">
                             {getStrategyDisplayName(bot.strategy)}
@@ -830,7 +817,7 @@ export default function BotsPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="border-t border-border/50 pt-2 text-center">
                         <div className="text-xs text-muted-foreground">Public Bot</div>
                       </div>
@@ -857,7 +844,7 @@ export default function BotsPage() {
             ))}
           </div>
         )}
-        
+
         {filteredPublicBots.length > 20 && (
           <div className="text-center pt-4">
             <p className="text-sm text-muted-foreground">

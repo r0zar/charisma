@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { appState } from '@/data/app-state';
 import { defaultState } from '@/data/default-state';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
 import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
 
 /**
  * GET /api/v1/bots/[id]
@@ -168,7 +169,7 @@ export async function PUT(
     }
 
     // Check for deprecated status changes
-    let deprecationWarnings: string[] = [];
+    const deprecationWarnings: string[] = [];
     if (body.status && body.status !== undefined) {
       deprecationWarnings.push(
         'Direct status updates are deprecated. Use /api/v1/bots/[id]/transitions endpoint for state changes.'

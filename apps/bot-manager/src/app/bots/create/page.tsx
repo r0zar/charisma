@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import { AlertTriangle,ArrowLeft, Check } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bot, ArrowLeft, Check, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+
+import { StrategyCodeEditor } from '@/components/strategy-code-editor';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useBots } from '@/contexts/bot-context';
 import { useToast } from '@/contexts/toast-context';
+import { getStrategyTemplates } from '@/lib/features/bots/strategy-parser';
 import { CreateBotRequest } from '@/schemas/bot.schema';
-import { StrategyCodeEditor } from '@/components/strategy-code-editor';
-import { getStrategyTemplates, type StrategyMetadata } from '@/lib/features/bots/strategy-parser';
-import Link from 'next/link';
 
 export default function CreateBotPage() {
   const router = useRouter();
