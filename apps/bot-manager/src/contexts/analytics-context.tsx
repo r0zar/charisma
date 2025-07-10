@@ -22,27 +22,27 @@ interface AnalyticsContextType {
   recentTransactions: ProcessedTransaction[];
   yieldFarmingAnalytics: YieldFarmingAnalytics | null;
   marketOpportunities: MarketOpportunity[];
-  
+
   // State
   loading: boolean;
   error: string | null;
   lastUpdated: Date | null;
-  
+
   // Configuration
   config: AnalyticsConfig;
   cacheStats: CacheStats;
-  
+
   // Actions
   refreshAnalytics: (walletAddress?: string) => Promise<void>;
   refreshPerformanceMetrics: (walletAddress?: string, startingValue?: number) => Promise<void>;
   refreshPortfolioHoldings: (walletAddress?: string) => Promise<void>;
   refreshYieldAnalytics: (walletAddress?: string) => Promise<void>;
   refreshMarketOpportunities: (walletAddress?: string) => Promise<void>;
-  
+
   // Configuration
   updateConfig: (newConfig: Partial<AnalyticsConfig>) => void;
   clearCache: () => Promise<void>;
-  
+
   // Utilities
   setWalletAddress: (address: string) => void;
   getWalletAddress: () => string | null;
@@ -64,13 +64,13 @@ interface AnalyticsProviderProps {
   customConfig?: Partial<AnalyticsConfig>;
 }
 
-export function AnalyticsProvider({ 
-  children, 
+export function AnalyticsProvider({
+  children,
   defaultWalletAddress,
-  customConfig 
+  customConfig
 }: AnalyticsProviderProps) {
   const { showSuccess, showError } = useNotifications();
-  
+
   // State
   const [analyticsSummary, setAnalyticsSummary] = useState<AnalyticsSummary | null>(null);
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
@@ -78,17 +78,17 @@ export function AnalyticsProvider({
   const [recentTransactions, setRecentTransactions] = useState<ProcessedTransaction[]>([]);
   const [yieldFarmingAnalytics, setYieldFarmingAnalytics] = useState<YieldFarmingAnalytics | null>(null);
   const [marketOpportunities, setMarketOpportunities] = useState<MarketOpportunity[]>([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(defaultWalletAddress || null);
-  
+
   // Analytics client instance (cached)
   const [client] = useState(() => {
     return cachedAnalyticsClient;
   });
-  
+
   const [config, setConfig] = useState<AnalyticsConfig>({
     useRealData: true,
     cacheEnabled: true,
@@ -99,7 +99,10 @@ export function AnalyticsProvider({
     volatilityWindow: 14, // 14 days
     riskFreeRate: 0.05, // 5% risk-free rate
     minTransactionValue: 0.01, // minimum $0.01 USD
-    excludeTokens: []
+    excludeTokens: [],
+    enableYieldTracking: true,
+    enableArbitrageDetection: true,
+    enableRiskAnalysis: true,
   });
   const [cacheStats, setCacheStats] = useState<CacheStats>(client.getCacheStats());
 
@@ -118,17 +121,17 @@ export function AnalyticsProvider({
 
     try {
       const response = await client.getAnalyticsSummary(targetAddress);
-      
+
       if (response.success && response.data) {
         setAnalyticsSummary(response.data);
-        
+
         // Also update related data from the summary
         setPerformanceMetrics(response.data.performance);
         setPortfolioHoldings(response.data.holdings);
         setRecentTransactions(response.data.recentTransactions);
-        
+
         setLastUpdated(new Date());
-        
+
         if (!response.metadata?.cached) {
           // Check if this is empty data (new wallet)
           if (response.metadata?.source === 'empty') {
@@ -167,7 +170,7 @@ export function AnalyticsProvider({
 
     try {
       const response = await client.getPerformanceMetrics(targetAddress);
-      
+
       if (response.success && response.data) {
         setPerformanceMetrics(response.data);
         setLastUpdated(new Date());
@@ -199,7 +202,7 @@ export function AnalyticsProvider({
 
     try {
       const response = await client.getPortfolioHoldings(targetAddress);
-      
+
       if (response.success && response.data) {
         setPortfolioHoldings(response.data);
         setLastUpdated(new Date());
@@ -231,7 +234,7 @@ export function AnalyticsProvider({
 
     try {
       const response = await client.getYieldFarmingAnalytics(targetAddress);
-      
+
       if (response.success && response.data) {
         setYieldFarmingAnalytics(response.data);
         setLastUpdated(new Date());
@@ -263,7 +266,7 @@ export function AnalyticsProvider({
 
     try {
       const response = await client.getMarketOpportunities(targetAddress);
-      
+
       if (response.success && response.data) {
         setMarketOpportunities(response.data);
         setLastUpdated(new Date());
@@ -286,7 +289,7 @@ export function AnalyticsProvider({
   const updateConfig = useCallback((newConfig: Partial<AnalyticsConfig>) => {
     // Update local config state for UI purposes
     setConfig(prevConfig => ({ ...prevConfig, ...newConfig }));
-    
+
     // Update cache stats
     setCacheStats(client.getCacheStats());
   }, [client]);
@@ -331,27 +334,27 @@ export function AnalyticsProvider({
     recentTransactions,
     yieldFarmingAnalytics,
     marketOpportunities,
-    
+
     // State
     loading,
     error,
     lastUpdated,
-    
+
     // Configuration
     config,
     cacheStats,
-    
+
     // Actions
     refreshAnalytics,
     refreshPerformanceMetrics,
     refreshPortfolioHoldings,
     refreshYieldAnalytics,
     refreshMarketOpportunities,
-    
+
     // Configuration
     updateConfig,
     clearCache,
-    
+
     // Utilities
     setWalletAddress: setWalletAddressAndRefresh,
     getWalletAddress,
