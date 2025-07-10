@@ -51,7 +51,7 @@ export class AnalyticsClient {
    */
   async getAnalyticsSummary(walletAddress: string): Promise<AnalyticsApiResponse<AnalyticsSummary>> {
     const cacheKey = `analytics:summary:${walletAddress}`;
-    
+
     try {
       // Check cache first
       if (this.config.cacheEnabled) {
@@ -72,13 +72,13 @@ export class AnalyticsClient {
       // Generate fresh analytics by calling getTransactionEvents directly
       // First try direct import, then dynamic import as fallback
       let eventsResponse;
-      
+
       try {
         eventsResponse = await getTransactionEvents({
           address: walletAddress,
           limit: 100,
         });
-        
+
         // If response is undefined, try dynamic import
         if (!eventsResponse) {
           console.log('Direct import returned undefined, trying dynamic import...');
@@ -96,65 +96,52 @@ export class AnalyticsClient {
           limit: 100,
         });
       }
-      
+
       console.log('Events response in client:', typeof eventsResponse, eventsResponse?.events?.length);
-      
+
       if (!eventsResponse || !eventsResponse.events || eventsResponse.events.length === 0) {
         console.log(`ℹ️ No transaction events found for wallet ${walletAddress} - returning empty summary`);
-        
+
         // Return a valid empty summary for new wallets
         const emptySummary: AnalyticsSummary = {
+          period: {
+            start: new Date(),
+            end: new Date(),
+            days: 0,
+          },
           portfolio: {
             totalValue: 0,
-            totalChange: 0,
-            totalChangePercent: 0,
+            totalHoldings: 0,
+            totalTokens: 0,
+            largestPosition: {
+              tokenId: '',
+              value: 0,
+              percentage: 0,
+            },
           },
           performance: {
+            startDate: new Date(),
+            endDate: new Date(),
+            startingValue: 0,
+            currentValue: 0,
+            highWaterMark: 0,
             totalReturn: 0,
             totalReturnPercent: 0,
             totalTrades: 0,
-            winRate: 0,
-            currentValue: 0,
-            startingValue: 0,
-            totalFeesSpent: 0,
-            totalYieldEarned: 0,
-            averageTradeSize: 0,
-            profitableTrades: 0,
+            winningTrades: 0,
             losingTrades: 0,
-            largestWin: 0,
-            largestLoss: 0,
-            averageWin: 0,
-            averageLoss: 0,
+            winRate: 0,
+            avgWinAmount: 0,
+            avgLossAmount: 0,
             profitFactor: 0,
-            sharpeRatio: 0,
-            maxDrawdown: 0,
-            averageHoldingPeriod: 0,
-            riskAdjustedReturn: 0,
+            totalYieldEarned: 0,
+            totalFeesSpent: 0,
           },
           holdings: [],
           recentTransactions: [],
           valueHistory: [],
           pnlHistory: [],
           strategies: {},
-          topGainers: [],
-          topLosers: [],
-          marketOpportunities: [],
-          yieldFarmingStats: {
-            totalEnergySpent: 0,
-            totalHootReceived: 0,
-            conversionRate: 0,
-            averageConversionTime: 0,
-            totalConversions: 0,
-            estimatedApy: 0,
-          },
-          lastUpdated: Date.now(),
-          dataQuality: {
-            completeness: 100, // 100% complete for empty data
-            confidence: 100,
-            lastDataPoint: Date.now(),
-            missingDataRanges: [],
-            estimatedDataPoints: 0,
-          },
         };
 
         // Cache the empty result
@@ -172,18 +159,28 @@ export class AnalyticsClient {
           },
         };
       }
-      
+
       // Process the events using the analytics engine functions
       const transactions = await processTransactionEvents(eventsResponse.events, this.config);
       const performance = calculatePerformanceMetrics(transactions, 10000, this.config);
       const holdings = await calculatePortfolioHoldings(transactions, this.config);
-      
+
       // Build the analytics summary manually
       const summary: AnalyticsSummary = {
+        period: {
+          start: new Date(),
+          end: new Date(),
+          days: 0,
+        },
         portfolio: {
           totalValue: holdings.reduce((sum, h) => sum + h.usdValue, 0),
-          totalChange: performance.totalReturn,
-          totalChangePercent: performance.totalReturnPercent,
+          totalHoldings: holdings.length,
+          totalTokens: holdings.length,
+          largestPosition: {
+            tokenId: '',
+            value: 0,
+            percentage: 0,
+          },
         },
         performance,
         holdings,
@@ -191,23 +188,8 @@ export class AnalyticsClient {
         valueHistory: [],
         pnlHistory: [],
         strategies: {},
-        topGainers: [],
-        topLosers: [],
-        marketOpportunities: [],
-        yieldFarmingStats: {
-          totalEnergySpent: 0,
-          totalHootReceived: 0,
-          totalUsdInvested: 0,
-          totalUsdReturned: 0,
-          totalReturn: 0,
-          totalReturnPercent: 0,
-          averageAPY: 0,
-          totalTransactions: 0,
-          activeDays: 0,
-        },
-        lastUpdated: new Date(),
       };
-      
+
       // Cache the result
       if (this.config.cacheEnabled) {
         await this.setCache(cacheKey, summary, this.config.cacheTTL);
@@ -243,7 +225,7 @@ export class AnalyticsClient {
     startingValue?: number
   ): Promise<AnalyticsApiResponse<PerformanceMetrics>> {
     const cacheKey = `analytics:performance:${walletAddress}:${startingValue || 10000}`;
-    
+
     try {
       // Check cache first
       if (this.config.cacheEnabled) {
@@ -264,7 +246,7 @@ export class AnalyticsClient {
       // Fetch and process transactions
       const transactions = await this.getProcessedTransactions(walletAddress);
       const metrics = calculatePerformanceMetrics(transactions, startingValue, this.config);
-      
+
       // Cache the result
       if (this.config.cacheEnabled) {
         await this.setCache(cacheKey, metrics, this.config.cacheTTL);
@@ -297,7 +279,7 @@ export class AnalyticsClient {
    */
   async getPortfolioHoldings(walletAddress: string): Promise<AnalyticsApiResponse<PortfolioHolding[]>> {
     const cacheKey = `analytics:holdings:${walletAddress}`;
-    
+
     try {
       // Check cache first (shorter TTL for holdings as prices change frequently)
       if (this.config.cacheEnabled) {
@@ -318,7 +300,7 @@ export class AnalyticsClient {
       // Fetch and process transactions
       const transactions = await this.getProcessedTransactions(walletAddress);
       const holdings = await calculatePortfolioHoldings(transactions, this.config);
-      
+
       // Cache the result
       if (this.config.cacheEnabled) {
         await this.setCache(cacheKey, holdings, 60000); // 1 minute TTL
@@ -354,7 +336,7 @@ export class AnalyticsClient {
     limit: number = 100
   ): Promise<ProcessedTransaction[]> {
     const cacheKey = `analytics:transactions:${walletAddress}:${limit}`;
-    
+
     // Check cache first
     if (this.config.cacheEnabled) {
       const cached = await this.getFromCache<ProcessedTransaction[]>(cacheKey);
@@ -376,10 +358,10 @@ export class AnalyticsClient {
 
     // Process the events
     const transactions = await processTransactionEvents(eventsResponse.events || [], this.config);
-    
+
     // Add USD values using current prices
     const transactionsWithPrices = await this.enrichTransactionsWithPrices(transactions);
-    
+
     // Cache the result
     if (this.config.cacheEnabled) {
       await this.setCache(cacheKey, transactionsWithPrices, this.config.cacheTTL);
@@ -393,7 +375,7 @@ export class AnalyticsClient {
    */
   async getYieldFarmingAnalytics(walletAddress: string): Promise<AnalyticsApiResponse<YieldFarmingAnalytics>> {
     const cacheKey = `analytics:yield:${walletAddress}`;
-    
+
     try {
       // Check cache first
       if (this.config.cacheEnabled) {
@@ -414,7 +396,7 @@ export class AnalyticsClient {
       // Fetch and analyze yield farming data
       const transactions = await this.getProcessedTransactions(walletAddress);
       const yieldAnalytics = analyzeYieldFarming(transactions, this.config);
-      
+
       // Cache the result
       if (this.config.cacheEnabled) {
         await this.setCache(cacheKey, yieldAnalytics, this.config.cacheTTL);
@@ -447,7 +429,7 @@ export class AnalyticsClient {
    */
   async getMarketOpportunities(walletAddress: string): Promise<AnalyticsApiResponse<MarketOpportunity[]>> {
     const cacheKey = `analytics:opportunities:${walletAddress}`;
-    
+
     try {
       // Check cache first
       if (this.config.cacheEnabled) {
@@ -471,10 +453,10 @@ export class AnalyticsClient {
         this.config
       );
       const transactions = await this.getProcessedTransactions(walletAddress, 100); // Recent transactions
-      
+
       // Detect opportunities
       const opportunities = await detectMarketOpportunities(holdings, transactions, this.config);
-      
+
       // Cache the result
       if (this.config.cacheEnabled) {
         await this.setCache(cacheKey, opportunities, 300000); // 5 minute TTL
@@ -507,7 +489,7 @@ export class AnalyticsClient {
    */
   async getTokenPrices(tokenIds: string[]): Promise<AnalyticsApiResponse<Record<string, number>>> {
     const cacheKey = `analytics:prices:${tokenIds.sort().join(',')}`;
-    
+
     try {
       // Check cache first (short TTL for prices)
       if (this.config.cacheEnabled) {
@@ -531,7 +513,7 @@ export class AnalyticsClient {
         acc[price.contractId] = price.price;
         return acc;
       }, {} as Record<string, number>);
-      
+
       // Cache the result
       if (this.config.cacheEnabled) {
         await this.setCache(cacheKey, prices, 60000); // 1 minute TTL
@@ -566,8 +548,8 @@ export class AnalyticsClient {
     transactions: ProcessedTransaction[]
   ): Promise<ProcessedTransaction[]> {
     // Get unique token IDs
-    const tokenIds = [...new Set(transactions.map(tx => tx.tokenId).filter(Boolean))];
-    
+    const tokenIds = Array.from(new Set(transactions.map(tx => tx.tokenId).filter(Boolean) as string[]));
+
     if (tokenIds.length === 0) {
       return transactions;
     }
@@ -639,7 +621,9 @@ export class AnalyticsClient {
       // Clean up memory cache if too large
       if (this.cache.size > this.cacheStats.maxSize) {
         const oldestKey = this.cache.keys().next().value;
-        this.cache.delete(oldestKey);
+        if (oldestKey) {
+          this.cache.delete(oldestKey);
+        }
         this.cacheStats.size = this.cache.size;
       }
 

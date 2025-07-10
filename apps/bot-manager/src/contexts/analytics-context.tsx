@@ -90,10 +90,16 @@ export function AnalyticsProvider({
   });
   
   const [config, setConfig] = useState<AnalyticsConfig>({
+    useRealData: true,
     cacheEnabled: true,
     cacheTTL: 300000, // 5 minutes
-    maxRetries: 3,
-    retryDelay: 1000
+    priceUpdateInterval: 300000, // 5 minutes
+    transactionSyncInterval: 600000, // 10 minutes
+    performanceWindow: 30, // 30 days
+    volatilityWindow: 14, // 14 days
+    riskFreeRate: 0.05, // 5% risk-free rate
+    minTransactionValue: 0.01, // minimum $0.01 USD
+    excludeTokens: []
   });
   const [cacheStats, setCacheStats] = useState<CacheStats>(client.getCacheStats());
 

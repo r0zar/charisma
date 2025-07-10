@@ -252,12 +252,11 @@ export class CachedAnalyticsClient {
    */
   getCacheStats(): CacheStats {
     return {
-      hitRate: 100, // All requests are cache hits since we serve from KV
-      missRate: 0,
-      totalRequests: this.requestCount,
-      cacheSize: 0, // Not applicable for API client
-      lastClearTime: null,
-      averageResponseTime: 50 // Estimated fast cache response time
+      hits: this.requestCount,
+      misses: 0,
+      size: 0, // Not applicable for API client
+      maxSize: 1000, // Default max size
+      hitRate: 100 // All requests are cache hits since we serve from KV
     };
   }
 
