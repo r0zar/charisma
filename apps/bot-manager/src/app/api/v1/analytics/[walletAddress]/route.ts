@@ -60,7 +60,7 @@ export async function GET(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to fetch cached analytics:', error);
+    logger.error(`Failed to fetch cached analytics: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,
@@ -96,7 +96,7 @@ export async function POST(
     logger.info(`🔄 Manual refresh requested for wallet: ${walletAddress.slice(0, 8)}...`);
 
     // Set a flag to prioritize this wallet in next cron run
-    await kv.set(`analytics:priority:${walletAddress}`, Date.now(), 60); // 1 minute priority flag
+    await kv.set(`analytics:priority:${walletAddress}`, Date.now(), { ex: 60 }); // 1 minute priority flag
 
     return NextResponse.json({
       success: true,
