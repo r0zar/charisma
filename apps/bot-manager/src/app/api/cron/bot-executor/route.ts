@@ -227,7 +227,8 @@ async function updateBotExecutionMetadata(bot: Bot, success: boolean): Promise<v
   if (bot.cronSchedule) {
     try {
       const interval = CronExpressionParser.parse(bot.cronSchedule);
-      nextExecution = interval.next().toISOString();
+      const nextTime = interval.next()?.toISOString();
+      nextExecution = nextTime || undefined;
     } catch (error) {
       console.error(`[BotExecutor] Failed to calculate next execution for bot ${bot.id}:`, error);
     }

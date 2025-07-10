@@ -52,10 +52,10 @@ export async function GET(request: NextRequest) {
           // Also cache individual components for faster API access
           if (response.data) {
             await Promise.all([
-              kv.set(`analytics:performance:${walletAddress}`, response.data.performance, 300), // 5 min cache
-              kv.set(`analytics:holdings:${walletAddress}`, response.data.holdings, 300),
-              kv.set(`analytics:transactions:${walletAddress}`, response.data.recentTransactions, 300),
-              kv.set(`analytics:last_updated:${walletAddress}`, Date.now(), 300)
+              kv.set(`analytics:performance:${walletAddress}`, response.data.performance, { ex: 300 }), // 5 min cache
+              kv.set(`analytics:holdings:${walletAddress}`, response.data.holdings, { ex: 300 }),
+              kv.set(`analytics:transactions:${walletAddress}`, response.data.recentTransactions, { ex: 300 }),
+              kv.set(`analytics:last_updated:${walletAddress}`, Date.now(), { ex: 300 })
             ]);
           }
           
@@ -70,18 +70,13 @@ export async function GET(request: NextRequest) {
         results.failed++;
         const errorMessage = error instanceof Error ? error.message : String(error);
         results.errors.push(`${walletAddress}: ${errorMessage}`);
-        logger.error(`❌ Error processing wallet ${walletAddress}:`, error);
+        logger.error(`❌ Error processing wallet ${walletAddress}: ${errorMessage}`);
       }
     }
 
     const duration = Date.now() - startTime;
     
-    logger.info('🎉 Analytics cron processing completed', {
-      totalWallets: activeWallets.length,
-      processed: results.processed,
-      failed: results.failed,
-      duration: `${duration}ms`
-    });
+    logger.info(`🎉 Analytics cron processing completed - ${results.processed}/${activeWallets.length} wallets processed in ${duration}ms`);
 
     return NextResponse.json({
       success: true,
@@ -96,7 +91,7 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
     
-    logger.error('💥 Analytics cron processing failed:', error);
+    logger.error(`💥 Analytics cron processing failed: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,
@@ -129,7 +124,8 @@ async function getActiveWalletAddresses(): Promise<string[]> {
     return walletAddresses;
 
   } catch (error) {
-    logger.error('Failed to get active wallet addresses:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to get active wallet addresses: ${errorMessage}`);
     return [];
   }
 }

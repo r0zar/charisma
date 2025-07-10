@@ -172,34 +172,34 @@ async function collectWalletActivity(
 
     // console.log(`[ActivityCollector] Found ${transactionData.transactions.length} transactions for wallet ${walletAddress}`);
 
-    let newActivities = 0;
+    // let newActivities = 0;
 
-    // Process each transaction and convert to activities
-    for (const transaction of transactionData.transactions) {
-      try {
-        // Determine which bot this transaction belongs to
-        const bot = bots.find(b => b.walletAddress === walletAddress) || bots[0];
-        
-        // Convert transaction to activity
-        const activity = await convertTransactionToActivity(transaction, bot);
-        
-        if (activity) {
-          // Store activity in KV for the bot owner
-          // Note: Using 'default-user' for now, but in production this should be the actual user ID
-          const userId = 'default-user'; // TODO: Get actual user ID from bot ownership
-          
-          await botDataStore.addBotActivity(userId, activity);
-          newActivities++;
-          
-          console.log(`[ActivityCollector] Created activity ${activity.id} for transaction ${transaction.txid}`);
-        }
-        
-      } catch (error) {
-        console.error(`[ActivityCollector] Error processing transaction ${transaction.txid}:`, error);
-      }
-    }
+    // TODO: Process each transaction and convert to activities when processTransactions is available
+    // for (const transaction of transactionData.transactions) {
+    //   try {
+    //     // Determine which bot this transaction belongs to
+    //     const bot = bots.find(b => b.walletAddress === walletAddress) || bots[0];
+    //     
+    //     // Convert transaction to activity
+    //     const activity = await convertTransactionToActivity(transaction, bot);
+    //     
+    //     if (activity) {
+    //       // Store activity in KV for the bot owner
+    //       // Note: Using 'default-user' for now, but in production this should be the actual user ID
+    //       const userId = 'default-user'; // TODO: Get actual user ID from bot ownership
+    //       
+    //       await botDataStore.addBotActivity(userId, activity);
+    //       newActivities++;
+    //       
+    //       console.log(`[ActivityCollector] Created activity ${activity.id} for transaction ${transaction.txid}`);
+    //     }
+    //     
+    //   } catch (error) {
+    //     console.error(`[ActivityCollector] Error processing transaction ${transaction.txid}:`, error);
+    //   }
+    // }
 
-    return { newActivities };
+    // return { newActivities };
 
   } catch (error) {
     console.error(`[ActivityCollector] Error collecting activity for wallet ${walletAddress}:`, error);

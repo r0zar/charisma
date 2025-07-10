@@ -51,7 +51,7 @@ export async function GET(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to fetch cached holdings:', error);
+    logger.error(`Failed to fetch cached holdings: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,
