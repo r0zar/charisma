@@ -698,8 +698,7 @@ export const appState: AppState = {
       "activeBots": 0,
       "pausedBots": 0,
       "errorBots": 0
-    },
-    "activities": []
+    }
   },
   "notifications": [
     {
