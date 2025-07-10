@@ -235,7 +235,7 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-bold text-foreground">Analytics & Insights</h1>
           <p className="text-muted-foreground">
             {analyticsSummary ? 'Real blockchain data' : 'No data available'} •
-            {lastUpdated ? ` Updated ${formatRelativeTime(lastUpdated)}` : ' No recent updates'}
+            {lastUpdated ? ` Updated ${formatRelativeTime(new Date(lastUpdated).toISOString())}` : ' No recent updates'}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
