@@ -18,6 +18,9 @@
         "!.next/cache/**"
       ],
       "env": [
+        "NODE_ENV",
+        "NEXTAUTH_URL",
+        "VERCEL_URL",
         "KV_URL",
         "KV_REST_API_URL",
         "KV_REST_API_TOKEN",
