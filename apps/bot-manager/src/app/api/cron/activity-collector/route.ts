@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { loadAppStateConfigurableWithFallback } from '@/lib/data-loader.server';
 import { botDataStore, isKVAvailable } from '@/lib/kv-store';
 import { BotActivity, type Bot } from '@/types/bot';
-import { processTransactions } from '@repo/polyglot';
+// import { processTransactions } from '@repo/polyglot'; // TODO: Fix import when function is available
 
 /**
  * Activity collection cron job
@@ -155,18 +155,22 @@ async function collectWalletActivity(
     // For now, we'll look for activities from the last 10 minutes to avoid processing old data
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     
-    // Use polyglot to get recent transactions for this wallet
-    const transactionData = await processTransactions([walletAddress], {
-      startTime: tenMinutesAgo,
-      endTime: new Date()
-    });
+    // TODO: Use polyglot to get recent transactions for this wallet when function is available
+    // const transactionData = await processTransactions([walletAddress], {
+    //   startTime: tenMinutesAgo,
+    //   endTime: new Date()
+    // });
 
-    if (!transactionData || !transactionData.transactions || transactionData.transactions.length === 0) {
-      console.log(`[ActivityCollector] No recent transactions found for wallet ${walletAddress}`);
-      return { newActivities: 0 };
-    }
+    // For now, return early since processTransactions is not available
+    console.log(`[ActivityCollector] processTransactions function not available - skipping wallet ${walletAddress}`);
+    return { newActivities: 0 };
 
-    console.log(`[ActivityCollector] Found ${transactionData.transactions.length} transactions for wallet ${walletAddress}`);
+    // if (!transactionData || !transactionData.transactions || transactionData.transactions.length === 0) {
+    //   console.log(`[ActivityCollector] No recent transactions found for wallet ${walletAddress}`);
+    //   return { newActivities: 0 };
+    // }
+
+    // console.log(`[ActivityCollector] Found ${transactionData.transactions.length} transactions for wallet ${walletAddress}`);
 
     let newActivities = 0;
 

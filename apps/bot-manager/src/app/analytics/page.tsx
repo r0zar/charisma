@@ -417,14 +417,14 @@ export default function AnalyticsPage() {
                           <div className="font-medium text-card-foreground">
                             {new Date(data.date).toLocaleDateString()}
                           </div>
-                          <div className="text-sm text-muted-foreground">{data.trades} trades</div>
+                          <div className="text-sm text-muted-foreground">{(data as any).trades || 0} trades</div>
                         </div>
                         <div className="text-right">
-                          <div className={`font-medium ${data.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {data.pnl >= 0 ? '+' : ''}{formatCurrency(data.pnl)}
+                          <div className="font-medium text-gray-400">
+                            --
                           </div>
                           <div className="text-xs text-muted-foreground/70">
-                            {((data.pnl / 10000) * 100).toFixed(2)}%
+                            --%
                           </div>
                         </div>
                       </div>
@@ -542,13 +542,9 @@ export default function AnalyticsPage() {
                     {analyticsData.topPerformers.map((performer, index) => (
                       <Card key={index} className="bg-muted border-border p-2">
                         <div className="flex flex-col items-center text-center space-y-1">
-                          {performer.bot ? (
-                            <BotAvatar bot={performer.bot} size="sm" />
-                          ) : (
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                              {performer.name.charAt(0)}
-                            </div>
-                          )}
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            {performer.name.charAt(0)}
+                          </div>
                           <div className="min-h-[2rem] flex flex-col justify-center">
                             <div className="font-medium text-card-foreground text-xs leading-tight">{performer.name}</div>
                             <div className="text-[10px] text-muted-foreground">{performer.trades} trades</div>
