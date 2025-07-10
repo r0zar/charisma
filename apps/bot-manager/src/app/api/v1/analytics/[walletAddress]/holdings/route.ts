@@ -9,10 +9,10 @@ import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { walletAddress: string } }
+  { params }: { params: Promise<{ walletAddress: string }> }
 ) {
   try {
-    const { walletAddress } = params;
+    const { walletAddress } = await params;
 
     if (!walletAddress || typeof walletAddress !== 'string') {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
