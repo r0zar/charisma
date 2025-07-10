@@ -81,7 +81,7 @@ export class NotificationKVStore {
   async createNotification(userId: string, notification: Omit<StoredNotification, 'id' | 'createdAt' | 'updatedAt'>): Promise<StoredNotification> {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date().toISOString();
-    
+
     const storedNotification: StoredNotification = {
       ...notification,
       id,
@@ -92,12 +92,12 @@ export class NotificationKVStore {
     try {
       // Store the notification
       await kv.set(this.getUserNotificationKey(userId, id), storedNotification);
-      
+
       // Update the index
       const ids = await this.getNotificationIds(userId);
       ids.unshift(id); // Add to beginning for recent-first order
       await this.updateIndex(userId, ids);
-      
+
       return storedNotification;
     } catch (error) {
       console.error(`Failed to create notification for user ${userId}:`, error);
@@ -151,12 +151,12 @@ export class NotificationKVStore {
     try {
       // Remove from storage
       await kv.del(this.getUserNotificationKey(userId, id));
-      
+
       // Update index
       const ids = await this.getNotificationIds(userId);
       const updatedIds = ids.filter(notificationId => notificationId !== id);
       await this.updateIndex(userId, updatedIds);
-      
+
       return true;
     } catch (error) {
       console.error(`Failed to delete notification for user ${userId}:`, error);
@@ -263,7 +263,7 @@ export class NotificationKVStore {
   }> {
     try {
       const { notifications } = await this.getNotifications(userId);
-      
+
       const counts = {
         total: notifications.length,
         unread: notifications.filter(n => !n.read).length,
@@ -295,14 +295,14 @@ export class NotificationKVStore {
   async clearAll(userId: string): Promise<boolean> {
     try {
       const ids = await this.getNotificationIds(userId);
-      
+
       // Delete all notifications
       const deletePromises = ids.map(id => kv.del(this.getUserNotificationKey(userId, id)));
       await Promise.all(deletePromises);
-      
+
       // Clear index
       await this.updateIndex(userId, []);
-      
+
       return true;
     } catch (error) {
       console.error(`Failed to clear all notifications for user ${userId}:`, error);
@@ -323,9 +323,9 @@ export class NotificationKVStore {
       for (const notif of notifications) {
         try {
           // Map notification type to priority
-          const priority: StoredNotification['priority'] = 
+          const priority: StoredNotification['priority'] =
             notif.type === 'error' ? 'high' :
-            notif.type === 'warning' || notif.type === 'info' ? 'medium' : 'low';
+              notif.type === 'warning' || notif.type === 'info' ? 'medium' : 'low';
 
           const storedNotif: Omit<StoredNotification, 'id' | 'createdAt' | 'updatedAt'> = {
             type: notif.type as StoredNotification['type'],
@@ -349,7 +349,7 @@ export class NotificationKVStore {
           console.error(`❌ Failed to migrate: ${notif.title}`, error);
         }
       }
-      
+
       const successCount = migrationResults.filter(r => r.success).length;
       const failureCount = migrationResults.filter(r => !r.success).length;
       console.log(`Migration completed: ${successCount} success, ${failureCount} failures`);
@@ -454,16 +454,16 @@ export class MetadataKVStore {
     try {
       // Clear existing metadata
       await this.clearMetadata();
-      
+
       // Store the new metadata
       const success = await this.setMetadata(metadata);
-      
+
       if (success) {
         console.log('✅ Metadata migrated successfully');
       } else {
         console.error('❌ Failed to migrate metadata');
       }
-      
+
       return success;
     } catch (error) {
       console.error('Failed to migrate metadata:', error);
@@ -565,10 +565,10 @@ export class MarketDataKVStore {
     try {
       // Clear existing market data
       await this.clearMarketData();
-      
+
       // Store the new market data
       const success = await this.setMarketData(marketData);
-      
+
       if (success) {
         console.log('✅ Market data migrated successfully');
         console.log(`📊 Migrated ${Object.keys(marketData.tokenPrices).length} token prices`);
@@ -577,7 +577,7 @@ export class MarketDataKVStore {
       } else {
         console.error('❌ Failed to migrate market data');
       }
-      
+
       return success;
     } catch (error) {
       console.error('Failed to migrate market data:', error);
@@ -777,10 +777,10 @@ export class UserDataKVStore {
     try {
       // Clear existing user data for this user
       await this.clearUserData(userId);
-      
+
       // Store the new user data
       const success = await this.setUserData(userId, userData);
-      
+
       if (success) {
         console.log(`✅ User data migrated successfully for user ${userId}`);
         console.log(`📊 Migrated settings: ${Object.keys(userData.settings).length} sections`);
@@ -791,7 +791,7 @@ export class UserDataKVStore {
       } else {
         console.error(`❌ Failed to migrate user data for user ${userId}`);
       }
-      
+
       return success;
     } catch (error) {
       console.error(`Failed to migrate user data for user ${userId}:`, error);
@@ -841,12 +841,12 @@ export class BotKVStore {
     try {
       // Store bot data
       await kv.set(this.getUserBotKey(userId, bot.id), bot);
-      
+
       // Update bot index
       const indexKey = this.getUserIndexKey(userId);
       const existingIds = await kv.smembers(indexKey) || [];
       await kv.sadd(indexKey, bot.id);
-      
+
       console.log(`Bot created: ${bot.id} for user ${userId}`);
     } catch (error) {
       console.error('Failed to create bot in KV:', error);
@@ -898,13 +898,13 @@ export class BotKVStore {
     try {
       // Remove from bot index
       await kv.srem(this.getUserIndexKey(userId), botId);
-      
+
       // Delete bot data
       await kv.del(this.getUserBotKey(userId, botId));
-      
+
       // Clean up associated activities
       await this.deleteAllBotActivities(userId, botId);
-      
+
       console.log(`Bot deleted: ${botId} for user ${userId}`);
     } catch (error) {
       console.error('Failed to delete bot from KV:', error);
@@ -918,7 +918,7 @@ export class BotKVStore {
   async getAllBots(userId: string): Promise<import('@/schemas/bot.schema').Bot[]> {
     try {
       const botIds = await kv.smembers(this.getUserIndexKey(userId)) || [];
-      
+
       if (botIds.length === 0) {
         return [];
       }
@@ -926,7 +926,7 @@ export class BotKVStore {
       // Get all bots in parallel
       const botKeys = botIds.map(id => this.getUserBotKey(userId, id as string));
       const bots = await kv.mget(...botKeys);
-      
+
       // Filter out null values and ensure type safety
       return bots.filter(bot => bot !== null) as import('@/schemas/bot.schema').Bot[];
     } catch (error) {
@@ -942,11 +942,11 @@ export class BotKVStore {
     try {
       // Store activity data
       await kv.set(this.getUserActivityKey(userId, activity.id), activity);
-      
+
       // Update activity index
       const indexKey = this.getUserActivityIndexKey(userId);
       await kv.sadd(indexKey, activity.id);
-      
+
       console.log(`Activity added: ${activity.id} for bot ${activity.botId}, user ${userId}`);
     } catch (error) {
       console.error('Failed to add bot activity in KV:', error);
@@ -961,7 +961,7 @@ export class BotKVStore {
     try {
       // Get all activity IDs for user
       const activityIds = await kv.smembers(this.getUserActivityIndexKey(userId)) || [];
-      
+
       if (activityIds.length === 0) {
         return [];
       }
@@ -969,13 +969,13 @@ export class BotKVStore {
       // Get all activities
       const activityKeys = activityIds.map(id => this.getUserActivityKey(userId, id as string));
       const activities = await kv.mget(...activityKeys);
-      
+
       // Filter for specific bot and sort by timestamp
       const botActivities = activities
         .filter(activity => activity !== null && (activity as any).botId === botId)
         .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, limit);
-      
+
       return botActivities as import('@/schemas/bot.schema').BotActivity[];
     } catch (error) {
       console.error('Failed to get bot activities from KV:', error);
@@ -989,20 +989,20 @@ export class BotKVStore {
   async getAllActivities(userId: string, limit: number = 100): Promise<import('@/schemas/bot.schema').BotActivity[]> {
     try {
       const activityIds = await kv.smembers(this.getUserActivityIndexKey(userId)) || [];
-      
+
       if (activityIds.length === 0) {
         return [];
       }
 
       const activityKeys = activityIds.map(id => this.getUserActivityKey(userId, id as string));
       const activities = await kv.mget(...activityKeys);
-      
+
       // Sort by timestamp and limit
       const sortedActivities = activities
         .filter(activity => activity !== null)
         .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, limit);
-      
+
       return sortedActivities as import('@/schemas/bot.schema').BotActivity[];
     } catch (error) {
       console.error('Failed to get all activities from KV:', error);
@@ -1017,10 +1017,10 @@ export class BotKVStore {
     try {
       // Remove from index
       await kv.srem(this.getUserActivityIndexKey(userId), activityId);
-      
+
       // Delete the activity data
       await kv.del(this.getUserActivityKey(userId, activityId));
-      
+
       return true;
     } catch (error) {
       console.error('Failed to delete activity:', error);
@@ -1034,15 +1034,15 @@ export class BotKVStore {
   async clearAllActivities(userId: string): Promise<boolean> {
     try {
       const activityIds = await kv.smembers(this.getUserActivityIndexKey(userId)) || [];
-      
+
       // Delete all activity data
       for (const activityId of activityIds) {
         await kv.del(this.getUserActivityKey(userId, activityId as string));
       }
-      
+
       // Delete the index
       await kv.del(this.getUserActivityIndexKey(userId));
-      
+
       console.log(`Cleared ${activityIds.length} activities for user ${userId}`);
       return true;
     } catch (error) {
@@ -1058,11 +1058,11 @@ export class BotKVStore {
     try {
       const activityIds = await kv.smembers(this.getUserActivityIndexKey(userId)) || [];
       const activityKeys = activityIds.map(id => this.getUserActivityKey(userId, id as string));
-      
+
       if (activityKeys.length === 0) return;
-      
+
       const activities = await kv.mget(...activityKeys);
-      
+
       // Find activities for this bot
       const botActivityIds: string[] = [];
       activities.forEach((activity, index) => {
@@ -1070,13 +1070,13 @@ export class BotKVStore {
           botActivityIds.push(activityIds[index] as string);
         }
       });
-      
+
       // Delete bot activities
       for (const activityId of botActivityIds) {
         await kv.srem(this.getUserActivityIndexKey(userId), activityId);
         await kv.del(this.getUserActivityKey(userId, activityId));
       }
-      
+
       console.log(`Deleted ${botActivityIds.length} activities for bot ${botId}`);
     } catch (error) {
       console.error('Failed to delete bot activities:', error);
@@ -1089,7 +1089,7 @@ export class BotKVStore {
   async getBotStats(userId: string): Promise<import('@/schemas/bot.schema').BotStats> {
     try {
       const bots = await this.getAllBots(userId);
-      
+
       const stats = {
         totalBots: bots.length,
         activeBots: bots.filter(bot => bot.status === 'active').length,
@@ -1100,7 +1100,7 @@ export class BotKVStore {
         totalPnL: 0, // Analytics data moved to separate system
         todayPnL: 0, // Analytics data moved to separate system
       };
-      
+
       return stats;
     } catch (error) {
       console.error('Failed to calculate bot stats:', error);
@@ -1123,18 +1123,19 @@ export class BotKVStore {
   async bulkImportBots(userId: string, bots: import('@/schemas/bot.schema').Bot[]): Promise<void> {
     try {
       console.log(`Starting bulk import of ${bots.length} bots for user ${userId}`);
-      
+
       // Store all bots
       for (const bot of bots) {
         await kv.set(this.getUserBotKey(userId, bot.id), bot);
       }
-      
+
       // Update index with all bot IDs
       const botIds = bots.map(bot => bot.id);
       if (botIds.length > 0) {
+        // @ts-ignore
         await kv.sadd(this.getUserIndexKey(userId), ...botIds);
       }
-      
+
       console.log(`Successfully imported ${bots.length} bots for user ${userId}`);
     } catch (error) {
       console.error('Failed to bulk import bots:', error);
@@ -1148,18 +1149,19 @@ export class BotKVStore {
   async bulkImportActivities(userId: string, activities: import('@/schemas/bot.schema').BotActivity[]): Promise<void> {
     try {
       console.log(`Starting bulk import of ${activities.length} activities for user ${userId}`);
-      
+
       // Store all activities
       for (const activity of activities) {
         await kv.set(this.getUserActivityKey(userId, activity.id), activity);
       }
-      
+
       // Update index with all activity IDs
       const activityIds = activities.map(activity => activity.id);
       if (activityIds.length > 0) {
+        // @ts-ignore
         await kv.sadd(this.getUserActivityIndexKey(userId), ...activityIds);
       }
-      
+
       console.log(`Successfully imported ${activities.length} activities for user ${userId}`);
     } catch (error) {
       console.error('Failed to bulk import activities:', error);
@@ -1175,21 +1177,21 @@ export class BotKVStore {
       // Get all bot and activity IDs
       const botIds = await kv.smembers(this.getUserIndexKey(userId)) || [];
       const activityIds = await kv.smembers(this.getUserActivityIndexKey(userId)) || [];
-      
+
       // Delete all bots
       for (const botId of botIds) {
         await kv.del(this.getUserBotKey(userId, botId as string));
       }
-      
+
       // Delete all activities
       for (const activityId of activityIds) {
         await kv.del(this.getUserActivityKey(userId, activityId as string));
       }
-      
+
       // Delete indexes
       await kv.del(this.getUserIndexKey(userId));
       await kv.del(this.getUserActivityIndexKey(userId));
-      
+
       console.log(`Cleared all bot data for user ${userId}`);
     } catch (error) {
       console.error('Failed to clear user bot data:', error);
