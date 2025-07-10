@@ -194,7 +194,7 @@ export class NotificationGenerator {
           botId: bot.id,
           botName: bot.name,
           walletAddress: bot.walletAddress,
-          amount: bot.stxBalance,
+          amount: 0, // Balance data moved to analytics system
           threshold: this.config.lowFundsThreshold
         }
       });
@@ -218,18 +218,8 @@ export class NotificationGenerator {
       // For now, we'll use a simplified approach based on available data
       
       for (const bot of userBots) {
-        // Check for high-value transactions (simplified)
-        if (bot.totalVolume > this.config.highValueTransactionThreshold) {
-          events.push({
-            eventType: 'high_value_transaction',
-            data: {
-              botId: bot.id,
-              botName: bot.name,
-              walletAddress: bot.walletAddress,
-              amount: bot.totalVolume
-            }
-          });
-        }
+        // High-value transaction detection moved to analytics system
+        // This check is disabled since totalVolume is no longer part of bot schema
 
         // Check for error status (transaction failures)
         if (bot.status === 'error') {
@@ -357,7 +347,8 @@ export class NotificationGenerator {
   }
 
   private isBotLowOnFunds(bot: Bot): boolean {
-    return bot.stxBalance < this.config.lowFundsThreshold;
+    // Balance data moved to analytics system - always return false for now
+    return false;
   }
 }
 
