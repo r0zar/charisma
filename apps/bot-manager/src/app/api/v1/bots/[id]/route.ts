@@ -125,7 +125,7 @@ export async function PUT(
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
-    const botId = params.id;
+    const { id: botId } = await params;
     const body = await request.json();
 
     // Check if bot API is enabled
