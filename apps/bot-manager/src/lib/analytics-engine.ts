@@ -45,7 +45,7 @@ export async function processTransactionEvents(
   config: AnalyticsConfig = DEFAULT_ANALYTICS_CONFIG
 ): Promise<ProcessedTransaction[]> {
   const processed: ProcessedTransaction[] = [];
-  
+
   for (const event of events) {
     try {
       const transaction = await processTransactionEvent(event, config);
@@ -56,7 +56,7 @@ export async function processTransactionEvents(
       console.warn(`Failed to process transaction event ${event.tx_id}:`, error);
     }
   }
-  
+
   // Sort by timestamp (newest first)
   return processed.sort((a, b) => b.timestamp - a.timestamp);
 }
@@ -77,19 +77,19 @@ async function processTransactionEvent(
   switch (event.event_type) {
     case 'fungible_token_asset':
       return processFungibleTokenEvent(event, baseTransaction);
-    
+
     case 'stx_asset':
       return processStxEvent(event, baseTransaction);
-    
+
     case 'smart_contract_log':
       return processContractLogEvent(event, baseTransaction);
-    
+
     case 'stx_lock':
       return processStxLockEvent(event, baseTransaction);
-    
+
     case 'non_fungible_token_asset':
       return processNftEvent(event, baseTransaction);
-    
+
     default:
       return null;
   }
@@ -103,10 +103,10 @@ function processFungibleTokenEvent(
   base: Partial<ProcessedTransaction>
 ): ProcessedTransaction | null {
   if (!event.asset) return null;
-  
+
   const asset = event.asset;
   const amount = parseFloat(asset.amount);
-  
+
   return {
     ...base,
     type: asset.asset_event_type === 'transfer' ? 'transfer' : 'trade',
@@ -125,10 +125,10 @@ function processStxEvent(
   base: Partial<ProcessedTransaction>
 ): ProcessedTransaction | null {
   if (!event.asset) return null;
-  
+
   const asset = event.asset;
   const amount = parseFloat(asset.amount) / 1000000; // Convert microSTX to STX
-  
+
   return {
     ...base,
     type: 'transfer',
@@ -147,19 +147,19 @@ function processContractLogEvent(
   base: Partial<ProcessedTransaction>
 ): ProcessedTransaction | null {
   if (!event.contract_log) return null;
-  
+
   const log = event.contract_log;
-  
+
   // Check if this is a yield farming event
   if (isYieldFarmingEvent(log)) {
     return processYieldFarmingLog(event, base);
   }
-  
+
   // Check if this is a trading event
   if (isTradingEvent(log)) {
     return processTradingLog(event, base);
   }
-  
+
   // Default contract call
   return {
     ...base,
@@ -176,10 +176,10 @@ function processStxLockEvent(
   base: Partial<ProcessedTransaction>
 ): ProcessedTransaction | null {
   if (!event.stx_lock_event) return null;
-  
+
   const lockEvent = event.stx_lock_event;
   const amount = parseFloat(lockEvent.locked_amount) / 1000000; // Convert microSTX to STX
-  
+
   return {
     ...base,
     type: 'deposit',
@@ -198,7 +198,7 @@ function processNftEvent(
   base: Partial<ProcessedTransaction>
 ): ProcessedTransaction | null {
   if (!event.asset) return null;
-  
+
   return {
     ...base,
     type: 'transfer',
@@ -214,12 +214,12 @@ function processNftEvent(
 function isYieldFarmingEvent(log: any): boolean {
   const topic = log.topic?.toLowerCase() || '';
   const contractId = log.contract_id?.toLowerCase() || '';
-  
+
   // Look for energy/HOOT conversion patterns
-  return topic.includes('energy') || 
-         topic.includes('hoot') || 
-         topic.includes('yield') ||
-         contractId.includes('charisma');
+  return topic.includes('energy') ||
+    topic.includes('hoot') ||
+    topic.includes('yield') ||
+    contractId.includes('charisma');
 }
 
 /**
@@ -227,10 +227,10 @@ function isYieldFarmingEvent(log: any): boolean {
  */
 function isTradingEvent(log: any): boolean {
   const topic = log.topic?.toLowerCase() || '';
-  
-  return topic.includes('swap') || 
-         topic.includes('trade') || 
-         topic.includes('exchange');
+
+  return topic.includes('swap') ||
+    topic.includes('trade') ||
+    topic.includes('exchange');
 }
 
 /**
@@ -242,7 +242,7 @@ function processYieldFarmingLog(
 ): ProcessedTransaction {
   // Parse the contract log for yield farming data
   // This would need to be customized based on the actual log format
-  
+
   return {
     ...base,
     type: 'yield',
@@ -289,12 +289,12 @@ function shouldIncludeTransaction(
   if (transaction.usdValue && transaction.usdValue < config.minTransactionValue) {
     return false;
   }
-  
+
   // Filter excluded tokens
   if (transaction.tokenId && config.excludeTokens.includes(transaction.tokenId)) {
     return false;
   }
-  
+
   return true;
 }
 
@@ -309,45 +309,45 @@ export function calculatePerformanceMetrics(
   if (transactions.length === 0) {
     return createEmptyPerformanceMetrics(startingValue);
   }
-  
+
   // Sort transactions by timestamp
   const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
-  
+
   const startDate = new Date(sortedTxs[0].timestamp);
   const endDate = new Date(sortedTxs[sortedTxs.length - 1].timestamp);
-  
+
   // Calculate trading metrics
   const trades = sortedTxs.filter(tx => tx.type === 'trade');
   const winningTrades = trades.filter(tx => (tx.usdValue || 0) > 0);
   const losingTrades = trades.filter(tx => (tx.usdValue || 0) < 0);
-  
+
   const totalReturn = sortedTxs.reduce((sum, tx) => sum + (tx.usdValue || 0), 0);
   const currentValue = startingValue + totalReturn;
-  
+
   // Calculate win rate
   const winRate = trades.length > 0 ? (winningTrades.length / trades.length) * 100 : 0;
-  
+
   // Calculate average win/loss amounts
-  const avgWinAmount = winningTrades.length > 0 
-    ? winningTrades.reduce((sum, tx) => sum + (tx.usdValue || 0), 0) / winningTrades.length 
+  const avgWinAmount = winningTrades.length > 0
+    ? winningTrades.reduce((sum, tx) => sum + (tx.usdValue || 0), 0) / winningTrades.length
     : 0;
-  
-  const avgLossAmount = losingTrades.length > 0 
+
+  const avgLossAmount = losingTrades.length > 0
     ? Math.abs(losingTrades.reduce((sum, tx) => sum + (tx.usdValue || 0), 0) / losingTrades.length)
     : 0;
-  
+
   // Calculate profit factor
   const grossProfit = winningTrades.reduce((sum, tx) => sum + (tx.usdValue || 0), 0);
   const grossLoss = Math.abs(losingTrades.reduce((sum, tx) => sum + (tx.usdValue || 0), 0));
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
-  
+
   // Calculate total fees
   const totalFeesSpent = sortedTxs.reduce((sum, tx) => sum + (tx.fees?.usd || 0), 0);
-  
+
   // Calculate total yield earned
   const yieldTransactions = sortedTxs.filter(tx => tx.type === 'yield');
   const totalYieldEarned = yieldTransactions.reduce((sum, tx) => sum + (tx.usdValue || 0), 0);
-  
+
   return {
     startDate,
     endDate,
@@ -373,7 +373,7 @@ export function calculatePerformanceMetrics(
  */
 function createEmptyPerformanceMetrics(startingValue: number): PerformanceMetrics {
   const now = new Date();
-  
+
   return {
     startDate: now,
     endDate: now,
@@ -403,21 +403,21 @@ export async function calculatePortfolioHoldings(
 ): Promise<PortfolioHolding[]> {
   // Group transactions by token to calculate balances
   const tokenBalances = new Map<string, number>();
-  
+
   for (const tx of transactions) {
     if (!tx.tokenId || !tx.amount) continue;
-    
+
     const currentBalance = tokenBalances.get(tx.tokenId) || 0;
-    
+
     // Add for deposits/receives, subtract for withdrawals/sends
     const balanceChange = tx.type === 'withdrawal' ? -tx.amount : tx.amount;
     tokenBalances.set(tx.tokenId, currentBalance + balanceChange);
   }
-  
+
   // Get current prices for all tokens
   const tokenIds = Array.from(tokenBalances.keys());
   let prices: Record<string, number> = {};
-  
+
   try {
     const priceResponse = await getPrices(tokenIds);
     prices = priceResponse.prices.reduce((acc, price) => {
@@ -427,16 +427,16 @@ export async function calculatePortfolioHoldings(
   } catch (error) {
     console.warn('Failed to fetch current prices:', error);
   }
-  
+
   // Create portfolio holdings
   const holdings: PortfolioHolding[] = [];
-  
-  for (const [tokenId, balance] of tokenBalances.entries()) {
+
+  for (const [tokenId, balance] of Array.from(tokenBalances.entries())) {
     if (balance <= 0) continue; // Skip empty balances
-    
+
     const currentPrice = prices[tokenId] || 0;
     const usdValue = balance * currentPrice;
-    
+
     holdings.push({
       tokenId,
       symbol: extractTokenSymbol(tokenId),
@@ -450,7 +450,7 @@ export async function calculatePortfolioHoldings(
       usdValue,
     });
   }
-  
+
   // Sort by USD value (highest first)
   return holdings.sort((a, b) => b.usdValue - a.usdValue);
 }
@@ -464,26 +464,26 @@ export function generateTimeSeriesData(
   intervalDays: number = 1
 ): TimeSeriesPoint[] {
   if (transactions.length === 0) return [];
-  
+
   const sortedTxs = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
   const startTime = sortedTxs[0].timestamp;
   const endTime = sortedTxs[sortedTxs.length - 1].timestamp;
-  
+
   const points: TimeSeriesPoint[] = [];
   let cumulativeValue = startingValue;
-  
+
   // Generate daily points
   const intervalMs = intervalDays * 24 * 60 * 60 * 1000;
-  
+
   for (let time = startTime; time <= endTime; time += intervalMs) {
     const date = new Date(time);
-    const dayTransactions = sortedTxs.filter(tx => 
+    const dayTransactions = sortedTxs.filter(tx =>
       tx.timestamp >= time && tx.timestamp < time + intervalMs
     );
-    
+
     const dayChange = dayTransactions.reduce((sum, tx) => sum + (tx.usdValue || 0), 0);
     cumulativeValue += dayChange;
-    
+
     points.push({
       timestamp: time,
       date: date.toISOString().split('T')[0],
@@ -493,7 +493,7 @@ export function generateTimeSeriesData(
       trades: dayTransactions.length,
     });
   }
-  
+
   return points;
 }
 
@@ -505,11 +505,11 @@ export function analyzeYieldFarming(
   config: AnalyticsConfig = DEFAULT_ANALYTICS_CONFIG
 ): YieldFarmingAnalytics {
   const yieldTxs = transactions.filter(tx => tx.type === 'yield' || tx.category === 'yield_farming');
-  
+
   if (yieldTxs.length === 0) {
     return createEmptyYieldAnalytics();
   }
-  
+
   const events: YieldFarmingEvent[] = yieldTxs.map(tx => ({
     txId: tx.txId,
     timestamp: tx.timestamp,
@@ -519,10 +519,10 @@ export function analyzeYieldFarming(
     rewardSymbol: tx.tokenSymbol,
     rewardUsdValue: tx.usdValue,
   }));
-  
+
   const totalUsdReturned = yieldTxs.reduce((sum, tx) => sum + (tx.usdValue || 0), 0);
   const totalUsdInvested = 10000; // Simplified - would need to calculate from deposits
-  
+
   return {
     totalEnergySpent: 0, // Would need to parse from transaction logs
     totalHootReceived: yieldTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0),
@@ -546,7 +546,7 @@ export function analyzeYieldFarming(
  */
 function createEmptyYieldAnalytics(): YieldFarmingAnalytics {
   const now = new Date();
-  
+
   return {
     totalEnergySpent: 0,
     totalHootReceived: 0,
@@ -574,7 +574,7 @@ export async function detectMarketOpportunities(
   config: AnalyticsConfig = DEFAULT_ANALYTICS_CONFIG
 ): Promise<MarketOpportunity[]> {
   const opportunities: MarketOpportunity[] = [];
-  
+
   // Yield opportunities
   if (config.enableYieldTracking) {
     opportunities.push({
@@ -586,7 +586,7 @@ export async function detectMarketOpportunities(
       pool: 'STX-USDC',
     });
   }
-  
+
   // Arbitrage opportunities  
   if (config.enableArbitrageDetection) {
     opportunities.push({
@@ -598,11 +598,11 @@ export async function detectMarketOpportunities(
       exchanges: ['DEX-A', 'DEX-B'],
     });
   }
-  
+
   // DCA opportunities
   const recentPerformance = transactions.slice(0, 10);
   const hasRecentLosses = recentPerformance.some(tx => (tx.usdValue || 0) < 0);
-  
+
   if (hasRecentLosses) {
     opportunities.push({
       type: 'dca',
@@ -613,7 +613,7 @@ export async function detectMarketOpportunities(
       frequency: 'weekly',
     });
   }
-  
+
   return opportunities;
 }
 
@@ -630,7 +630,7 @@ export async function generateAnalyticsSummary(
       address: walletAddress,
       limit: 100, // API limit is 100
     });
-    
+
     // Handle case where getTransactionEvents returns undefined
     if (!eventsResponse) {
       console.warn('getTransactionEvents returned undefined for address:', walletAddress);
@@ -638,69 +638,72 @@ export async function generateAnalyticsSummary(
       return {
         portfolio: {
           totalValue: 0,
-          totalChange: 0,
-          totalChangePercent: 0,
+          totalHoldings: 0,
+          totalTokens: 0,
+          largestPosition: {
+            tokenId: '',
+            value: 0,
+            percentage: 0,
+          },
         },
         performance: {
-          totalTrades: 0,
-          totalReturn: 0,
-          totalReturnPercent: 0,
-          winRate: 0,
-          avgTradeSize: 0,
-          maxDrawdown: 0,
-          sharpeRatio: 0,
-          currentValue: 0,
-          totalFeesSpent: 0,
-          totalYieldEarned: 0,
           startDate: new Date(),
           endDate: new Date(),
+          startingValue: 0,
+          currentValue: 0,
+          highWaterMark: 0,
+          totalTrades: 0,
+          winningTrades: 0,
+          losingTrades: 0,
+          totalReturn: 0,
+          totalReturnPercent: 0,
+          annualizedReturn: 0,
+          volatility: 0,
+          sharpeRatio: 0,
+          maxDrawdown: 0,
+          winRate: 0,
+          avgWinAmount: 0,
+          avgLossAmount: 0,
+          profitFactor: 0,
+          totalFeesSpent: 0,
+          totalYieldEarned: 0,
         },
         holdings: [],
         recentTransactions: [],
         valueHistory: [],
         pnlHistory: [],
         strategies: {},
-        topGainers: [],
-        topLosers: [],
-        marketOpportunities: [],
-        yieldFarmingStats: {
-          totalEnergySpent: 0,
-          totalHootReceived: 0,
-          totalUsdInvested: 0,
-          totalUsdReturned: 0,
-          totalReturn: 0,
-          totalReturnPercent: 0,
-          averageAPY: 0,
-          totalTransactions: 0,
-          activeDays: 0,
+        period: {
+          start: new Date(),
+          end: new Date(),
+          days: 0,
         },
-        lastUpdated: new Date(),
       };
     }
-    
+
     // Process transactions
     const transactions = await processTransactionEvents(eventsResponse.events || [], config);
-    
+
     // Calculate performance metrics
     const performance = calculatePerformanceMetrics(transactions, 10000, config);
-    
+
     // Calculate portfolio holdings
     const holdings = await calculatePortfolioHoldings(transactions, config);
-    
+
     // Generate time series data
     const valueHistory = generateTimeSeriesData(transactions, 10000, 1);
     const pnlHistory = valueHistory.map(point => ({
       ...point,
       value: point.change || 0,
     }));
-    
+
     // Detect opportunities
     const opportunities = await detectMarketOpportunities(holdings, transactions, config);
-    
+
     // Calculate portfolio totals
     const totalValue = holdings.reduce((sum, holding) => sum + holding.usdValue, 0);
     const largestPosition = holdings[0]; // Already sorted by value
-    
+
     return {
       period: {
         start: performance.startDate,
