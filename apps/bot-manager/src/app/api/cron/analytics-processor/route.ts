@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyticsClient } from '@/lib/analytics-client';
-import { kv } from '@/lib/kv-store';
+import { kv } from '@vercel/kv';
 import { logger } from '@/lib/server/logger';
 
 /**

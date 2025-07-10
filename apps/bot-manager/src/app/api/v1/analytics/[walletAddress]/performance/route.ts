@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv } from '@/lib/kv-store';
+import { kv } from '@vercel/kv';
 import { logger } from '@/lib/server/logger';
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 
