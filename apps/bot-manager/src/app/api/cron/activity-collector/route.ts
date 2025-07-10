@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       walletResults: [] as Array<{ address: string; activities: number; error?: string }>
     };
 
-    for (const [walletAddress, bots] of walletBotMap.entries()) {
+    for (const [walletAddress, bots] of Array.from(walletBotMap.entries())) {
       try {
         const walletResult = await collectWalletActivity(walletAddress, bots);
         results.processedWallets++;
