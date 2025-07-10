@@ -11,10 +11,10 @@
 
 import path from 'path';
 import fs from 'fs';
-import { notificationStore, isKVAvailable } from '../../src/lib/kv-store';
+import { notificationStore, isKVAvailable } from '../../src/lib/infrastructure/storage';
 import { appState } from '../../src/data/app-state';
 import { defaultState } from '../../src/data/default-state';
-import { syncLogger as logger } from '../logger';
+import { syncLogger as logger } from '../utils/logger';
 
 // Load environment variables from .env.local
 function loadEnvFile() {
@@ -23,7 +23,7 @@ function loadEnvFile() {
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf8');
       const lines = envContent.split('\n');
-      
+
       for (const line of lines) {
         const trimmedLine = line.trim();
         if (trimmedLine && !trimmedLine.startsWith('#')) {
@@ -243,10 +243,9 @@ async function main() {
 
   logger.success('🎉 Migration complete!');
   logger.info('Next steps:');
-  logger.info('1. Set NEXT_PUBLIC_DATA_PHASE=phase1 in your environment');
-  logger.info('2. Set NEXT_PUBLIC_ENABLE_API_NOTIFICATIONS=true');
-  logger.info('3. Restart your application');
-  logger.info(`4. Test the notifications API at /api/v1/notifications?userId=${options.userId}`);
+  logger.info('1. Set NEXT_PUBLIC_ENABLE_API_NOTIFICATIONS=true in your environment');
+  logger.info('2. Restart your application');
+  logger.info(`3. Test the notifications API at /api/v1/notifications?userId=${options.userId}`);
 }
 
 // Run the script

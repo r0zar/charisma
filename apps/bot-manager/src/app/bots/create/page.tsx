@@ -8,16 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useBots } from '@/contexts/bot-context';
-import { useNotifications } from '@/contexts/notification-context';
-import { CreateBotRequest } from '@/types/bot';
+import { useToast } from '@/contexts/toast-context';
+import { CreateBotRequest } from '@/schemas/bot.schema';
 import { StrategyCodeEditor } from '@/components/strategy-code-editor';
-import { getStrategyTemplates, type StrategyMetadata } from '@/lib/strategy-parser';
+import { getStrategyTemplates, type StrategyMetadata } from '@/lib/features/bots/strategy-parser';
 import Link from 'next/link';
 
 export default function CreateBotPage() {
   const router = useRouter();
   const { createBot } = useBots();
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [strategyCode, setStrategyCode] = useState('');
   const [formData, setFormData] = useState({

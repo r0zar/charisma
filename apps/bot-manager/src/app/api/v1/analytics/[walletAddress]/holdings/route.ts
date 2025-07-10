@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { logger } from '@/lib/server/logger';
+import { logger } from '@/lib/infrastructure/server/logger';
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 
 /**

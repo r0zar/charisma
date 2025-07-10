@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sandboxService } from '@/lib/server/sandbox-service';
-import { loadAppStateConfigurableWithFallback } from '@/lib/data-loader.server';
+import { sandboxService } from '@/lib/features/sandbox/service';
+import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
-import { logger } from '@/lib/server/logger';
+import { logger } from '@/lib/infrastructure/server/logger';
 
 /**
  * POST /api/v1/bots/[id]/execute
@@ -17,7 +17,7 @@ export async function POST(
   try {
     const params = await context.params;
     const botId = params.id;
-    
+
     // Parse request body
     const body = await request.json();
     const { code, testMode = true, timeout = 2, enableLogs = true } = body;
@@ -25,7 +25,7 @@ export async function POST(
     // Validate required fields
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing or invalid strategy code',
           message: 'Strategy code is required and must be a string',
           timestamp: new Date().toISOString(),
@@ -36,7 +36,7 @@ export async function POST(
 
     // Load bot data using the same logic as frontend
     let bot = null;
-    
+
     // First try API if enabled
     if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS === 'true') {
       try {
@@ -51,7 +51,7 @@ export async function POST(
         console.warn(`Failed to load bot ${botId} from API, falling back to static data:`, error);
       }
     }
-    
+
     // Fallback to static data if API failed or not enabled
     if (!bot) {
       const appState = await loadAppStateConfigurableWithFallback();
@@ -60,7 +60,7 @@ export async function POST(
 
     if (!bot) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bot not found',
           message: `Bot with ID '${botId}' does not exist in API or static data`,
           timestamp: new Date().toISOString(),
@@ -70,13 +70,13 @@ export async function POST(
     }
 
     // Verify authentication via signature headers
-    const hasSignatureHeaders = request.headers.get('x-signature') && 
-                                request.headers.get('x-public-key') && 
-                                request.headers.get('x-timestamp');
+    const hasSignatureHeaders = request.headers.get('x-signature') &&
+      request.headers.get('x-public-key') &&
+      request.headers.get('x-timestamp');
 
     if (hasSignatureHeaders) {
       const baseMessage = `execute_bot_${botId}_${Date.now()}`;
-      
+
       const verificationResult = await verifySignatureAndGetSignerWithTimestamp(request, {
         message: baseMessage,
         ttl: 5 // 5 minute window
@@ -139,9 +139,9 @@ export async function POST(
 
   } catch (error) {
     console.error('Sandbox execution API error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -167,7 +167,7 @@ export async function GET(
 
     // Load bot data using the same logic as frontend
     let bot = null;
-    
+
     // First try API if enabled
     if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS === 'true') {
       try {
@@ -182,7 +182,7 @@ export async function GET(
         console.warn(`Failed to load bot ${botId} from API, falling back to static data:`, error);
       }
     }
-    
+
     // Fallback to static data if API failed or not enabled
     if (!bot) {
       const appState = await loadAppStateConfigurableWithFallback();
@@ -191,7 +191,7 @@ export async function GET(
 
     if (!bot) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bot not found',
           message: `Bot with ID '${botId}' does not exist in API or static data`,
           timestamp: new Date().toISOString(),
@@ -214,9 +214,9 @@ export async function GET(
 
   } catch (error) {
     console.error('Sandbox info API error:', error);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),

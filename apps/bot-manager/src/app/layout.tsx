@@ -3,15 +3,14 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
+import { BotStateMachineProvider } from "@/contexts/bot-state-machine-context";
 import { SettingsProvider } from "@/contexts/settings-context";
-import { NotificationProvider } from "@/contexts/notification-context";
+import { ToastProvider } from "@/contexts/toast-context";
 import { GlobalStateProvider } from "@/contexts/global-state-context";
-import { AnalyticsProvider } from "@/contexts/analytics-context";
-import { ActivityProvider } from "@/contexts/activity-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { loadAppStateConfigurableWithFallback } from "@/lib/data-loader.server";
+import { loadAppStateConfigurableWithFallback } from "@/lib/infrastructure/data/loader.server";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -155,31 +154,29 @@ export default async function RootLayout({
           disableTransitionOnChange={false}
         >
           <SettingsProvider>
-            <NotificationProvider>
+            <ToastProvider>
               <GlobalStateProvider initialData={appState}>
                 <SkinProvider>
                   <WalletProvider>
                     <BotProvider>
-                      <AnalyticsProvider>
-                        <ActivityProvider>
-                          <NotificationsProvider>
-                            <div className="flex h-screen bg-background">
-                              <Sidebar />
-                              <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-                                <Header />
-                                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
-                                  {children}
-                                </main>
-                              </div>
+                      <BotStateMachineProvider>
+                        <NotificationsProvider>
+                          <div className="flex h-screen bg-background">
+                            <Sidebar />
+                            <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+                              <Header />
+                              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
+                                {children}
+                              </main>
                             </div>
-                          </NotificationsProvider>
-                        </ActivityProvider>
-                      </AnalyticsProvider>
+                          </div>
+                        </NotificationsProvider>
+                      </BotStateMachineProvider>
                     </BotProvider>
                   </WalletProvider>
                 </SkinProvider>
               </GlobalStateProvider>
-            </NotificationProvider>
+            </ToastProvider>
           </SettingsProvider>
         </ThemeProvider>
       </body>

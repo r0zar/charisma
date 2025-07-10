@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { botDataStore, isKVAvailable } from '@/lib/kv-store';
-import { config } from '@/lib/config';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { config } from '@/lib/infrastructure/config/loading';
 import { CronExpressionParser } from 'cron-parser';
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 

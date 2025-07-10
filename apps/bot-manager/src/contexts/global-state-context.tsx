@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AppState } from '@/schemas/app-state.schema';
-import { validateAppState } from '@/lib/state';
+import { AppStateSchema } from '@/schemas/app-state.schema';
 import { useWallet } from '@/contexts/wallet-context';
 
 interface GlobalStateContextType {
@@ -55,13 +55,13 @@ export function GlobalStateProvider({ children, initialData }: GlobalStateProvid
     }
 
     // Validate the new state before setting it
-    const validation = validateAppState(newState);
-    if (validation.success && validation.data) {
+    const validation = AppStateSchema.safeParse(newState);
+    if (validation.success) {
       setAppState(validation.data);
       setError(null);
     } else {
-      setError(validation.error || 'Invalid state data');
-      console.error('Invalid app state:', validation.validationErrors);
+      setError('Invalid state data');
+      console.error('Invalid app state:', validation.error.issues);
     }
   };
 

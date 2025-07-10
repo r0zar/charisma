@@ -27,7 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useBots } from '@/contexts/bot-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { useNotifications } from '@/contexts/notification-context';
+import { useToast } from '@/contexts/toast-context';
 import { useNotificationsData } from '@/contexts/notifications-context';
 import { useGlobalState } from '@/contexts/global-state-context';
 
@@ -48,7 +48,7 @@ export function Header() {
   const router = useRouter();
   const { refreshData, loading, botStats } = useBots();
   const { walletState, connectWallet, disconnectWallet, isConnecting } = useWallet();
-  const { showSuccess, showError, showWarning, showInfo } = useNotifications();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   const { appState } = useGlobalState();
   const { 
     notifications: liveNotifications, 

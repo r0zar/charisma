@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { botDataStore, isKVAvailable } from '@/lib/kv-store';
-import { config } from '@/lib/config';
-import { generateBotWallet, encryptWalletCredentials, decryptWalletCredentials, type EncryptedWalletData } from '@/lib/wallet-encryption';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { config } from '@/lib/infrastructure/config/loading';
+import { generateBotWallet, encryptWalletCredentials, decryptWalletCredentials, type EncryptedWalletData } from '@/lib/infrastructure/security/wallet-encryption';
 
 /**
  * GET /api/v1/bots/[id]/wallet
@@ -69,7 +69,7 @@ export async function GET(
     
     // Return wallet information (excluding sensitive data)
     const walletInfo = {
-      walletAddress: bot.walletAddress,
+      walletAddress: bot.id, // Bot ID is now the wallet address
       hasEncryptedWallet: !!(bot.encryptedWallet && bot.walletIv),
       stxBalance: 0, // Analytics data moved to separate endpoint
       lpTokenBalances: [], // Analytics data moved to separate endpoint

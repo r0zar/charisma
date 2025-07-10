@@ -7,8 +7,6 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   Bot,
-  BarChart3,
-  Activity,
   Settings,
   Home,
   TrendingUp,
@@ -34,18 +32,6 @@ const navigation = [
     href: '/bots',
     icon: Bot,
     description: 'Manage your bots'
-  },
-  {
-    name: 'Activity',
-    href: '/activity',
-    icon: Activity,
-    description: 'Transaction history'
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-    description: 'Performance insights'
   },
   {
     name: 'Settings',

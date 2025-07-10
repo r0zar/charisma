@@ -24,20 +24,6 @@ export const RewardTokenBalanceSchema = z.object({
 });
 
 
-export const BotActivitySchema = z.object({
-  id: z.string().min(1),
-  botId: z.string().min(1),
-  timestamp: z.string().datetime(),
-  type: z.enum(['yield-farming', 'deposit', 'withdrawal', 'trade', 'error']),
-  status: z.enum(['pending', 'success', 'failed']),
-  txid: z.string().optional(),
-  amount: z.number().min(0).optional(),
-  token: z.string().optional(),
-  description: z.string().min(1),
-  error: z.string().optional(),
-  blockHeight: z.number().int().min(0).optional(),
-  blockTime: z.string().datetime().optional(),
-});
 
 export const BotExecutionSchema = z.object({
   id: z.string().min(1),
@@ -53,11 +39,11 @@ export const BotExecutionSchema = z.object({
 });
 
 export const BotSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().regex(/^S[PT][0-9A-Z]{37,39}$/, 'Invalid Stacks address format'), // Bot's wallet address
   name: z.string().min(1),
   strategy: z.string().min(1), // Full JavaScript code as string
   status: z.enum(['active', 'paused', 'error', 'inactive', 'setup']),
-  walletAddress: z.string().regex(/^S[PT][0-9A-Z]{37,39}$/, 'Invalid Stacks address format'),
+  ownerId: z.string().regex(/^S[PT][0-9A-Z]{37,39}$/, 'Invalid Stacks address format'), // Owner's STX address
   createdAt: z.string().datetime(),
   lastActive: z.string().datetime(),
   
@@ -75,9 +61,8 @@ export const BotSchema = z.object({
   // Wallet credentials (encrypted)
   encryptedWallet: z.string().optional(), // Encrypted wallet data
   walletIv: z.string().optional(), // Encryption IV
+  publicKey: z.string().optional(), // Public key (safe to display)
   
-  // Activity
-  recentActivity: z.array(BotActivitySchema),
 });
 
 export const CreateBotRequestSchema = z.object({
@@ -90,45 +75,18 @@ export const BotStatsSchema = z.object({
   activeBots: z.number().int().min(0),
   pausedBots: z.number().int().min(0),
   errorBots: z.number().int().min(0),
-  totalGas: z.number().min(0),
-  totalValue: z.number().min(0),
-  totalPnL: z.number(),
-  todayPnL: z.number(),
 });
 
-export const PnLDataPointSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  pnl: z.number(),
-  volume: z.number().min(0),
-});
 
-export const PerformanceMetricsSchema = z.object({
-  daily: z.array(PnLDataPointSchema),
-  weekly: z.array(PnLDataPointSchema),
-  monthly: z.array(PnLDataPointSchema),
-});
 
-export const MarketDataSchema = z.object({
-  tokenPrices: z.record(z.string(), z.number().min(0)),
-  priceChanges: z.record(z.string(), z.number()),
-  marketCap: z.record(z.string(), z.number().min(0)),
-});
+// MarketData schema removed
 
-export const PortfolioDistributionSchema = z.object({
-  stx: z.number().min(0),
-  lpTokens: z.number().min(0),
-  rewardTokens: z.number().min(0),
-});
 
 // Infer TypeScript types from schemas
 export type LpTokenBalance = z.infer<typeof LpTokenBalanceSchema>;
 export type RewardTokenBalance = z.infer<typeof RewardTokenBalanceSchema>;
-export type BotActivity = z.infer<typeof BotActivitySchema>;
 export type BotExecution = z.infer<typeof BotExecutionSchema>;
 export type Bot = z.infer<typeof BotSchema>;
 export type CreateBotRequest = z.infer<typeof CreateBotRequestSchema>;
 export type BotStats = z.infer<typeof BotStatsSchema>;
-export type PnLDataPoint = z.infer<typeof PnLDataPointSchema>;
-export type PerformanceMetrics = z.infer<typeof PerformanceMetricsSchema>;
-export type MarketData = z.infer<typeof MarketDataSchema>;
-export type PortfolioDistribution = z.infer<typeof PortfolioDistributionSchema>;
+// MarketData type removed

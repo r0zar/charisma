@@ -62,7 +62,7 @@ function Input({
   const isOverLimit = maxLength ? currentLength > maxLength : false
   
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         id={inputId}
         type={type}

@@ -14,12 +14,12 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "script": "node --import tsx",
-    "generate": "node --import tsx scripts/generate-state.ts",
-    "generate:dev": "node --import tsx scripts/generate-state.ts --profile development",
-    "generate:demo": "node --import tsx scripts/generate-state.ts --profile demo --bots 10",
-    "generate:test": "node --import tsx scripts/generate-state.ts --profile testing --seed 12345",
-    "generate:prod": "node --import tsx scripts/generate-state.ts --profile production --realistic",
-    "validate-state": "node --import tsx scripts/validate-state.ts"
+    "generate": "node --import tsx scripts/core/generate-state.ts",
+    "generate:dev": "node --import tsx scripts/core/generate-state.ts --profile development",
+    "generate:demo": "node --import tsx scripts/core/generate-state.ts --profile demo --bots 10",
+    "generate:test": "node --import tsx scripts/core/generate-state.ts --profile testing --seed 12345",
+    "generate:prod": "node --import tsx scripts/core/generate-state.ts --profile production --realistic",
+    "validate-state": "node --import tsx scripts/core/validate-state.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

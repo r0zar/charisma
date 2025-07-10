@@ -1,100 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appState } from '@/data/app-state';
-import { defaultState } from '@/data/default-state';
-import { metadataStore, isKVAvailable } from '@/lib/kv-store';
-import { isFeatureEnabled } from '@/lib/env';
+import { getEnvConfig, getDebugInfo, getCurrentEnvironment, isServerSide, isClientSide } from '@/lib/infrastructure/config/env';
+import { AppMetadataSchema } from '@/schemas/app-metadata.schema';
 
 /**
  * GET /api/v1/metadata
- * Returns app metadata from KV store or static fallback
- * Query params:
- * - default: 'true' to use default state
+ * Returns live app metadata based on environment configuration
+ * No longer uses KV store - returns real-time environment config
  */
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const useDefault = searchParams.get('default') === 'true';
+    // Get live environment configuration
+    const envConfig = getEnvConfig();
+    const debugInfo = getDebugInfo();
+    const environment = getCurrentEnvironment();
     
-    // Check if we should use KV store
-    const useKV = isFeatureEnabled('enableApiMetadata') && await isKVAvailable();
-    
-    let responseData;
-    
-    if (useKV) {
-      // Use KV store
-      const metadata = await metadataStore.getMetadata();
+    // Construct app metadata from live environment
+    const appMetadata = {
+      // Environment information
+      environment,
       
-      if (metadata) {
-        responseData = {
-          ...metadata,
-          // Add API-specific metadata
-          apiVersion: 'v1',
-          source: 'kv',
+      // Data loading configuration
+      loadingConfig: envConfig.loadingConfig,
+      
+      // API configuration
+      apiBaseUrl: envConfig.apiBaseUrl,
+      apiTimeout: envConfig.apiTimeout,
+      
+      // Cache configuration
+      cacheEnabled: envConfig.cacheEnabled,
+      cacheTtl: envConfig.cacheTtl,
+      
+      // Debug configuration
+      debugDataLoading: envConfig.debugDataLoading,
+      logDataSources: envConfig.logDataSources,
+      
+      // Feature flags
+      featureFlags: {
+        enableApiMetadata: envConfig.enableApiMetadata,
+        enableApiUser: envConfig.enableApiUser,
+        enableApiBots: envConfig.enableApiBots,
+        enableApiMarket: envConfig.enableApiMarket,
+        enableApiNotifications: envConfig.enableApiNotifications,
+      },
+      
+      // Runtime information
+      isServer: isServerSide(),
+      isClient: isClientSide(),
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Validate the metadata against schema
+    const validation = AppMetadataSchema.safeParse(appMetadata);
+    if (!validation.success) {
+      console.error('App metadata validation failed:', validation.error);
+      return NextResponse.json(
+        { 
+          error: 'Invalid metadata structure',
+          message: 'App metadata failed schema validation',
+          validationErrors: validation.error.errors,
           timestamp: new Date().toISOString(),
-        };
-      } else {
-        return NextResponse.json(
-          { 
-            error: 'Metadata not found',
-            message: 'No metadata found in KV store',
-            timestamp: new Date().toISOString(),
-          },
-          { status: 404 }
-        );
-      }
-    } else {
-      // Return empty data when KV is not enabled - no fallback to static data
-      responseData = {
-        error: 'Metadata API not enabled',
-        message: 'Metadata API is not enabled or KV store is not available',
-        source: 'disabled',
-        timestamp: new Date().toISOString(),
-      };
-      
-      return NextResponse.json(responseData, { status: 503 });
+        },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(responseData, {
+    return NextResponse.json(validation.data, {
       status: 200,
       headers: {
-        'Cache-Control': useKV ? 'private, s-maxage=60, stale-while-revalidate=300' : 'public, s-maxage=300, stale-while-revalidate=600',
+        'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60',
         'Content-Type': 'application/json',
       },
     });
   } catch (error) {
-    console.error('Error fetching metadata:', error);
+    console.error('Error fetching app metadata:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to fetch metadata',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/v1/metadata
- * Update app metadata (future implementation)
- */
-export async function POST(request: NextRequest) {
-  try {
-    // For now, return not implemented
-    // In the future, this could update metadata in Vercel KV
-    return NextResponse.json(
-      { 
-        error: 'Not implemented',
-        message: 'Metadata updates not yet supported',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 501 }
-    );
-  } catch (error) {
-    console.error('Error updating metadata:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to update metadata',
+        error: 'Failed to fetch app metadata',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       },

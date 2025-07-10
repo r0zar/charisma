@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { loadAppStateConfigurableWithFallback } from '@/lib/data-loader.server';
-import { sandboxService } from '@/lib/server/sandbox-service';
-import { type Bot, type BotExecution } from '@/types/bot';
+import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
+import { sandboxService } from '@/lib/features/sandbox/service';
+import { type Bot, type BotExecution } from '@/schemas/bot.schema';
 import { parseISO, isBefore } from 'date-fns';
 import { CronExpressionParser } from 'cron-parser';
-import { botDataStore } from '@/lib/kv-store';
+import { botDataStore } from '@/lib/infrastructure/storage';
 
 /**
  * Cron job handler to execute scheduled bots
@@ -21,17 +21,17 @@ export async function GET(request: NextRequest) {
   // Security check
   if (!cronSecret) {
     console.error('[BotExecutor] CRON_SECRET environment variable is not set');
-    return NextResponse.json({ 
-      status: 'error', 
-      message: 'Server configuration error (missing cron secret)' 
+    return NextResponse.json({
+      status: 'error',
+      message: 'Server configuration error (missing cron secret)'
     }, { status: 500 });
   }
-  
+
   if (authHeader !== `Bearer ${cronSecret}`) {
     console.warn('[BotExecutor] Unauthorized cron job access attempt');
-    return NextResponse.json({ 
-      status: 'error', 
-      message: 'Unauthorized' 
+    return NextResponse.json({
+      status: 'error',
+      message: 'Unauthorized'
     }, { status: 401 });
   }
 
@@ -44,9 +44,9 @@ export async function GET(request: NextRequest) {
     const allBots = appState.bots.list;
 
     // Filter bots that are scheduled and active
-    const scheduledBots = allBots.filter(bot => 
-      bot.isScheduled && 
-      bot.status === 'active' && 
+    const scheduledBots = allBots.filter(bot =>
+      bot.isScheduled &&
+      bot.status === 'active' &&
       bot.cronSchedule
     );
 
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     for (const bot of botsToExecute) {
       const executionResult = await executeBotStrategy(bot);
-      
+
       if (executionResult.success) {
         results.successfulExecutions++;
       } else {
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         error: executionResult.error
       });
 
-      // Update bot's execution metadata
+      // Update bot's execution metadata and handle state transitions
       await updateBotExecutionMetadata(bot, executionResult.success);
     }
 
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[BotExecutor] Fatal error during execution:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     return NextResponse.json({
       status: 'error',
       message: `Cron execution failed: ${errorMessage}`,
@@ -148,7 +148,7 @@ function shouldExecuteBot(bot: Bot, currentTime: Date): boolean {
   try {
     // Parse the cron expression
     const interval = CronExpressionParser.parse(bot.cronSchedule);
-    
+
     // If no last execution, execute now
     if (!bot.lastExecution) {
       return true;
@@ -157,7 +157,7 @@ function shouldExecuteBot(bot: Bot, currentTime: Date): boolean {
     // Get the next scheduled time after the last execution
     const lastExecution = parseISO(bot.lastExecution);
     const nextScheduled = interval.next();
-    
+
     // Execute if current time is past the next scheduled time
     return isBefore(nextScheduled.toDate(), currentTime);
   } catch (error) {
@@ -217,11 +217,11 @@ async function executeBotStrategy(bot: Bot): Promise<{
 }
 
 /**
- * Updates bot's execution metadata after execution
+ * Updates bot's execution metadata after execution and handles state transitions
  */
 async function updateBotExecutionMetadata(bot: Bot, success: boolean): Promise<void> {
   const now = new Date().toISOString();
-  
+
   // Calculate next execution time
   let nextExecution: string | undefined;
   if (bot.cronSchedule) {
@@ -234,7 +234,13 @@ async function updateBotExecutionMetadata(bot: Bot, success: boolean): Promise<v
     }
   }
 
-  const updateData = {
+  const updateData: {
+    lastExecution: string;
+    nextExecution: string | undefined;
+    executionCount: number;
+    lastActive: string;
+    status?: 'active' | 'paused' | 'error' | 'setup' | 'inactive';
+  } = {
     lastExecution: now,
     nextExecution,
     executionCount: (bot.executionCount || 0) + 1,
@@ -244,17 +250,46 @@ async function updateBotExecutionMetadata(bot: Bot, success: boolean): Promise<v
   console.log(`[BotExecutor] Updating bot ${bot.id} metadata:`, updateData);
 
   try {
-    // Load app state to get user ID (for now assume 'default-user')
-    // TODO: In production, bots would be associated with specific users
-    const appState = await loadAppStateConfigurableWithFallback();
-    const userId = 'default-user'; // This would come from bot ownership data in production
-    
-    // Update bot with new execution metadata
+    // Use bot's owner as user ID
+    const userId = bot.ownerId;
+
+    // If execution failed, transition bot to error state using state machine
+    if (!success) {
+      console.log(`[BotExecutor] Bot ${bot.id} execution failed, transitioning to error state`);
+      
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/v1/bots/${bot.id}/transitions?userId=${encodeURIComponent(userId)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'error',
+            reason: 'Scheduled execution failed'
+          })
+        });
+
+        if (response.ok) {
+          console.log(`[BotExecutor] Successfully transitioned bot ${bot.id} to error state`);
+          // The state machine API handles the status update, so we don't need to update status here
+        } else {
+          console.error(`[BotExecutor] Failed to transition bot ${bot.id} to error state:`, await response.text());
+          // Fall back to direct update if state machine fails
+          updateData.status = 'error';
+        }
+      } catch (error) {
+        console.error(`[BotExecutor] Error transitioning bot ${bot.id} to error state:`, error);
+        // Fall back to direct update if state machine fails
+        updateData.status = 'error';
+      }
+    }
+
+    // Update bot with new execution metadata (status may have been updated by state machine)
     const updatedBot = {
       ...bot,
       ...updateData
     };
-    
+
     await botDataStore.updateBot(userId, updatedBot);
     console.log(`[BotExecutor] Successfully updated bot ${bot.id} metadata`);
   } catch (error) {

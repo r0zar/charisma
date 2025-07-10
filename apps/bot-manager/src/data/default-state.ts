@@ -6,11 +6,24 @@ import { type AppState } from '@/schemas/app-state.schema';
  */
 export const defaultState: AppState = {
   "metadata": {
-    "version": "1.0.0",
-    "generatedAt": "2024-01-25T10:00:00Z",
-    "profile": "development",
-    "botCount": 3,
-    "realistic": false
+    "environment": "development",
+    "loadingConfig": "static",
+    "apiBaseUrl": "http://localhost:3420/api/v1",
+    "apiTimeout": 30000,
+    "cacheEnabled": true,
+    "cacheTtl": 300000,
+    "debugDataLoading": false,
+    "logDataSources": false,
+    "featureFlags": {
+      "enableApiMetadata": false,
+      "enableApiUser": false,
+      "enableApiBots": false,
+      "enableApiMarket": false,
+      "enableApiNotifications": false
+    },
+    "isServer": false,
+    "isClient": false,
+    "timestamp": "2024-01-25T10:00:00.000Z"
   },
   "user": {
     "settings": {
@@ -72,53 +85,8 @@ export const defaultState: AppState = {
       "activeBots": 0,
       "pausedBots": 0,
       "errorBots": 0,
-      "totalGas": 0,
-      "totalValue": 0,
-      "totalPnL": 0,
-      "todayPnL": 0
     },
-    "activities": []
   },
-  "market": {
-    "data": {
-      "tokenPrices": {
-        "STX": 0.5,
-        "ALEX": 0.1,
-        "DIKO": 0.05,
-        "USDA": 1.0,
-        "CHA": 0.01
-      },
-      "priceChanges": {
-        "STX": 2.5,
-        "ALEX": -1.2,
-        "DIKO": 0.8,
-        "USDA": 0.0,
-        "CHA": 15.3
-      },
-      "marketCap": {
-        "STX": 1000000000,
-        "ALEX": 50000000,
-        "DIKO": 25000000,
-        "USDA": 100000000,
-        "CHA": 10000000
-      }
-    },
-    "analytics": {
-      "totalValue": 0,
-      "totalPnL": 0,
-      "activeBots": 0,
-      "successRate": 0,
-      "volumeToday": 0,
-      "bestPerformer": "none",
-      "worstPerformer": "none",
-      "avgGasUsed": 0,
-      "totalTransactions": 0,
-      "profitableDays": 0,
-      "totalDays": 0,
-      "timeRange": "24h",
-      "chartData": []
-    },
-    "pools": []
-  },
+  // Market data removed
   "notifications": []
 } as const;

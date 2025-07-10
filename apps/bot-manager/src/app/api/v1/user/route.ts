@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { appState } from '@/data/app-state';
 import { defaultState } from '@/data/default-state';
-import { userDataStore } from '@/lib/kv-store';
-import { isFeatureEnabled } from '@/lib/feature-flags';
+import { userDataStore } from '@/lib/infrastructure/storage';
+import { isFeatureEnabled } from '@/lib/infrastructure/config/feature-flags';
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
-import { logger } from '@/lib/server/logger';
 
 /**
  * GET /api/v1/user
@@ -20,11 +19,11 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const useDefault = searchParams.get('default') === 'true';
     const section = searchParams.get('section') as 'settings' | 'wallet' | 'preferences' | null;
-    
+
     // Check if user API is enabled
     if (!isFeatureEnabled('enableApiUser')) {
       return NextResponse.json(
-        { 
+        {
           error: 'User API not enabled',
           message: 'User API feature is not enabled',
           timestamp: new Date().toISOString(),
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
     // For multi-user KV store, userId is required
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing userId',
           message: 'userId parameter is required',
           timestamp: new Date().toISOString(),
@@ -45,19 +44,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Note: Authentication disabled for reading user data to prevent infinite loops
-    // Frontend pages are responsible for only requesting data for connected wallet
-    logger.info(`👤 User data request for user: ${userId.slice(0, 8)}...`);
+    console.log(`👤 User data request for user: ${userId.slice(0, 8)}...`);
 
     let userData;
     let dataSource = 'kv';
-    
+
     // Try to get user data from KV store
     userData = await userDataStore.getUserData(userId);
-    
+
     if (!userData) {
       return NextResponse.json(
-        { 
+        {
           error: 'User not found',
           message: `No user data found for user ${userId}`,
           timestamp: new Date().toISOString(),
@@ -67,12 +64,12 @@ export async function GET(request: NextRequest) {
     }
 
     let responseData;
-    
+
     if (section) {
       // Return specific section
       if (!userData[section]) {
         return NextResponse.json(
-          { 
+          {
             error: 'Invalid section',
             message: `Section '${section}' not found`,
             timestamp: new Date().toISOString(),
@@ -104,7 +101,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching user data:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch user data',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -127,11 +124,11 @@ export async function PUT(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
     const section = searchParams.get('section') as 'settings' | 'wallet' | 'preferences' | null;
-    
+
     // Check if user API is enabled
     if (!isFeatureEnabled('enableApiUser')) {
       return NextResponse.json(
-        { 
+        {
           error: 'User API not enabled',
           message: 'User API feature is not enabled',
           timestamp: new Date().toISOString(),
@@ -143,7 +140,7 @@ export async function PUT(request: NextRequest) {
     // For multi-user KV store, userId is required
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing userId',
           message: 'userId parameter is required',
           timestamp: new Date().toISOString(),
@@ -152,12 +149,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Note: Authentication disabled for updating user data to prevent infinite loops
-    // Frontend pages are responsible for only updating data for connected wallet
-    logger.info(`👤 User data update for user: ${userId.slice(0, 8)}...`);
+    console.log(`👤 User data update for user: ${userId.slice(0, 8)}...`);
 
     let updatedUserData;
-    
+
     if (section) {
       // Update specific section
       if (section === 'settings') {
@@ -168,7 +163,7 @@ export async function PUT(request: NextRequest) {
         updatedUserData = await userDataStore.updateWalletState(userId, body);
       } else {
         return NextResponse.json(
-          { 
+          {
             error: 'Invalid section',
             message: `Section '${section}' is not valid`,
             timestamp: new Date().toISOString(),
@@ -183,7 +178,7 @@ export async function PUT(request: NextRequest) {
 
     if (!updatedUserData) {
       return NextResponse.json(
-        { 
+        {
           error: 'User not found',
           message: `No user data found for user ${userId}`,
           timestamp: new Date().toISOString(),
@@ -205,7 +200,7 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating user data:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to update user data',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),

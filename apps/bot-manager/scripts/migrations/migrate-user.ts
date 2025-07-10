@@ -12,10 +12,10 @@
 
 import path from 'path';
 import fs from 'fs';
-import { userDataStore, isKVAvailable } from '../../src/lib/kv-store';
+import { userDataStore, isKVAvailable } from '../../src/lib/infrastructure/storage';
 import { appState } from '../../src/data/app-state';
 import { defaultState } from '../../src/data/default-state';
-import { syncLogger as logger } from '../logger';
+import { syncLogger as logger } from '../utils/logger';
 
 // Load environment variables from .env.local
 function loadEnvFile() {
@@ -231,10 +231,9 @@ async function main() {
 
   logger.success('🎉 Migration complete!');
   logger.info('Next steps:');
-  logger.info('1. Set NEXT_PUBLIC_DATA_PHASE=phase3 in your environment');
-  logger.info('2. Set NEXT_PUBLIC_ENABLE_API_USER=true');
-  logger.info('3. Restart your application');
-  logger.info(`4. Test the user data API at /api/v1/user?userId=${options.userId}`);
+  logger.info('1. Set NEXT_PUBLIC_ENABLE_API_USER=true in your environment');
+  logger.info('2. Restart your application');
+  logger.info(`3. Test the user data API at /api/v1/user?userId=${options.userId}`);
 }
 
 // Run the script

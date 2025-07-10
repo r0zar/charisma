@@ -3,7 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Settings, Palette, Globe } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Settings, Palette, Globe, Server, Clock, Database, Bug, Flag } from "lucide-react"
 import Link from "next/link"
 import { useGlobalState } from "@/contexts/global-state-context"
 
@@ -19,37 +20,145 @@ export default function GeneralSettingsPage() {
           Application Settings
         </CardTitle>
         <CardDescription>
-          General application preferences and information
+          General application preferences and live environment configuration
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* App Info */}
+        {/* Environment Info */}
         <div>
-          <h3 className="text-lg font-medium mb-3">Application Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Version</p>
-              <p className="text-lg font-semibold">{metadata?.version || 'Unknown'}</p>
+          <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+            <Server className="h-5 w-5" />
+            Environment Information
+          </h3>
+          <div className="bg-muted rounded-lg p-4 font-mono text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">environment:</span>
+              <Badge variant={
+                metadata?.environment === 'production' ? 'default' : 
+                metadata?.environment === 'staging' ? 'secondary' : 'outline'
+              }>
+                {metadata?.environment || 'unknown'}
+              </Badge>
             </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Profile</p>
-              <p className="text-lg font-semibold">{metadata?.profile || 'Unknown'}</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">runtime_context:</span>
+              <span className="font-semibold">
+                {metadata?.isServer ? 'server' : metadata?.isClient ? 'client' : 'unknown'}
+              </span>
             </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Bot Count</p>
-              <p className="text-lg font-semibold">{metadata?.botCount || 0}</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">last_updated:</span>
+              <span className="font-semibold">
+                {metadata?.timestamp ? new Date(metadata.timestamp).toLocaleString() : 'unknown'}
+              </span>
             </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Realistic Mode</p>
-              <p className="text-lg font-semibold">{metadata?.realistic ? 'Enabled' : 'Disabled'}</p>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* API Configuration */}
+        <div>
+          <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            API Configuration
+          </h3>
+          <div className="bg-muted rounded-lg p-4 font-mono text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">base_url:</span>
+              <span className="font-semibold">{metadata?.apiBaseUrl || 'unknown'}</span>
             </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Generated</p>
-              <p className="text-lg font-semibold">{metadata?.generatedAt ? new Date(metadata.generatedAt).toLocaleDateString() : 'Unknown'}</p>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">timeout:</span>
+              <span className="font-semibold">{metadata?.apiTimeout || 'unknown'}ms</span>
             </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Seed</p>
-              <p className="text-lg font-semibold">{metadata?.seed || 'Unknown'}</p>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Cache Configuration */}
+        <div>
+          <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Cache Configuration
+          </h3>
+          <div className="bg-muted rounded-lg p-4 font-mono text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">cache_enabled:</span>
+              <Badge variant={metadata?.cacheEnabled ? 'default' : 'secondary'}>
+                {metadata?.cacheEnabled ? 'enabled' : 'disabled'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">cache_ttl:</span>
+              <span className="font-semibold">{metadata?.cacheTtl || 'unknown'}s</span>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Debug Configuration */}
+        <div>
+          <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+            <Bug className="h-5 w-5" />
+            Debug Configuration
+          </h3>
+          <div className="bg-muted rounded-lg p-4 font-mono text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">debug_data_loading:</span>
+              <Badge variant={metadata?.debugDataLoading ? 'default' : 'outline'}>
+                {metadata?.debugDataLoading ? 'on' : 'off'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">log_data_sources:</span>
+              <Badge variant={metadata?.logDataSources ? 'default' : 'outline'}>
+                {metadata?.logDataSources ? 'on' : 'off'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Feature Flags */}
+        <div>
+          <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+            <Flag className="h-5 w-5" />
+            Feature Flags
+          </h3>
+          <div className="bg-muted rounded-lg p-4 font-mono text-sm space-y-2">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">enable_api_metadata:</span>
+              <Badge variant={metadata?.featureFlags?.enableApiMetadata ? 'default' : 'secondary'}>
+                {metadata?.featureFlags?.enableApiMetadata ? 'enabled' : 'disabled'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">enable_api_user:</span>
+              <Badge variant={metadata?.featureFlags?.enableApiUser ? 'default' : 'secondary'}>
+                {metadata?.featureFlags?.enableApiUser ? 'enabled' : 'disabled'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">enable_api_bots:</span>
+              <Badge variant={metadata?.featureFlags?.enableApiBots ? 'default' : 'secondary'}>
+                {metadata?.featureFlags?.enableApiBots ? 'enabled' : 'disabled'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">enable_api_market:</span>
+              <Badge variant={metadata?.featureFlags?.enableApiMarket ? 'default' : 'secondary'}>
+                {metadata?.featureFlags?.enableApiMarket ? 'enabled' : 'disabled'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">enable_api_notifications:</span>
+              <Badge variant={metadata?.featureFlags?.enableApiNotifications ? 'default' : 'secondary'}>
+                {metadata?.featureFlags?.enableApiNotifications ? 'enabled' : 'disabled'}
+              </Badge>
             </div>
           </div>
         </div>

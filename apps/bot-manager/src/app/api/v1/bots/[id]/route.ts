@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { appState } from '@/data/app-state';
 import { defaultState } from '@/data/default-state';
-import { botDataStore, isKVAvailable } from '@/lib/kv-store';
-import { isFeatureEnabled } from '@/lib/feature-flags';
-import { config } from '@/lib/config';
+import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
 
 /**
  * GET /api/v1/bots/[id]
@@ -23,7 +22,8 @@ export async function GET(
     const { id: botId } = await params;
 
     // Check if bot API is enabled
-    if (!isFeatureEnabled('enableApiBots')) {
+    const loadingConfig = getLoadingConfig();
+    if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         { 
           error: 'Bot API not enabled',
@@ -129,7 +129,8 @@ export async function PUT(
     const body = await request.json();
 
     // Check if bot API is enabled
-    if (!isFeatureEnabled('enableApiBots')) {
+    const loadingConfig = getLoadingConfig();
+    if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         { 
           error: 'Bot API not enabled',
@@ -166,11 +167,20 @@ export async function PUT(
       );
     }
 
+    // Check for deprecated status changes
+    let deprecationWarnings: string[] = [];
+    if (body.status && body.status !== undefined) {
+      deprecationWarnings.push(
+        'Direct status updates are deprecated. Use /api/v1/bots/[id]/transitions endpoint for state changes.'
+      );
+      console.warn(`[DEPRECATED] Direct status update attempted for bot ${botId}. Use state machine transitions instead.`);
+    }
+
     // Update bot in KV store
     await botDataStore.updateBot(userId, body);
     
     // Get the updated bot
-    const updatedBot = await botDataStore.getBot(userId, botId);
+    const updatedBot = await botDataStore.getBot(botId, userId);
     
     if (!updatedBot) {
       return NextResponse.json(
@@ -188,6 +198,10 @@ export async function PUT(
       message: 'Bot updated successfully',
       source: 'kv',
       timestamp: new Date().toISOString(),
+      ...(deprecationWarnings.length > 0 && { 
+        warnings: deprecationWarnings,
+        deprecated: true 
+      }),
     };
 
     return NextResponse.json(responseData, {
@@ -226,7 +240,8 @@ export async function DELETE(
     const { id: botId } = await params;
 
     // Check if bot API is enabled
-    if (!isFeatureEnabled('enableApiBots')) {
+    const loadingConfig = getLoadingConfig();
+    if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         { 
           error: 'Bot API not enabled',

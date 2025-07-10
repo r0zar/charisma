@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { sandboxService } from '@/lib/server/sandbox-service';
-import { loadAppStateConfigurableWithFallback } from '@/lib/data-loader.server';
+import { sandboxService } from '@/lib/features/sandbox/service';
+import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
 import { Sandbox } from '@vercel/sandbox';
 
 /**
@@ -15,7 +15,7 @@ export async function POST(
 ) {
   const params = await context.params;
   const botId = params.id;
-  
+
   try {
     // Parse request body
     const body = await request.json();
@@ -29,7 +29,7 @@ export async function POST(
           message: 'Strategy code is required and must be a string',
           timestamp: new Date().toISOString(),
         }),
-        { 
+        {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -38,7 +38,7 @@ export async function POST(
 
     // Load bot data using the same logic as frontend
     let bot = null;
-    
+
     // First try API if enabled
     if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS === 'true') {
       try {
@@ -53,7 +53,7 @@ export async function POST(
         console.warn(`Failed to load bot ${botId} from API, falling back to static data:`, error);
       }
     }
-    
+
     // Fallback to static data if API failed or not enabled
     if (!bot) {
       const appState = await loadAppStateConfigurableWithFallback();
@@ -67,7 +67,7 @@ export async function POST(
           message: `Bot with ID '${botId}' does not exist in API or static data`,
           timestamp: new Date().toISOString(),
         }),
-        { 
+        {
           status: 404,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -78,7 +78,7 @@ export async function POST(
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        
+
         // Helper function to send SSE data
         const sendData = (data: any) => {
           const chunk = encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
@@ -103,7 +103,7 @@ export async function POST(
 
           // Build bot context
           const botContext = await sandboxService.buildBotContext(bot, testMode);
-          
+
           sendData({
             type: 'status',
             message: `Creating sandbox for bot: ${bot.name}`,
@@ -145,7 +145,7 @@ export async function POST(
           // Execute with real-time streaming output
           let allOutput = '';
           let allError = '';
-          
+
           const cmd = await sandbox.runCommand({
             cmd: 'node',
             args: ['strategy.js'],
@@ -156,15 +156,15 @@ export async function POST(
           if (enableLogs) {
             for await (const log of cmd.logs()) {
               const logData = log.data.toString();
-              
+
               if (log.stream === "stdout") {
                 allOutput += logData;
                 // Send individual lines as they come, but filter out execution markers
                 const lines = logData.split('\n').filter((line: string) => line.trim());
                 for (const line of lines) {
                   // Filter out execution control markers from user-visible logs
-                  if (!line.startsWith('STRATEGY_EXECUTION_COMPLETE') && 
-                      !line.startsWith('STRATEGY_EXECUTION_ERROR:')) {
+                  if (!line.startsWith('STRATEGY_EXECUTION_COMPLETE') &&
+                    !line.startsWith('STRATEGY_EXECUTION_ERROR:')) {
                     sendData({
                       type: 'log',
                       level: 'info',
@@ -206,7 +206,7 @@ export async function POST(
           // Check for execution completion markers
           let executionComplete = false;
           let executionError: string | undefined;
-          
+
           if (allOutput) {
             const lines = allOutput.split('\n');
             executionComplete = lines.some(line => line.startsWith('STRATEGY_EXECUTION_COMPLETE'));
@@ -214,7 +214,7 @@ export async function POST(
             if (errorLine) {
               executionError = errorLine.replace('STRATEGY_EXECUTION_ERROR:', '').trim();
             }
-            
+
             // Debug logging (server-side only)
             console.log('[DEBUG] Strategy execution analysis:');
             console.log('- Exit code:', result.exitCode);
@@ -251,7 +251,7 @@ export async function POST(
         } catch (error) {
           const executionTime = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
-          
+
           sendData({
             type: 'error',
             error: errorMessage,
@@ -285,7 +285,7 @@ export async function POST(
             type: 'done',
             timestamp: new Date().toISOString()
           });
-          
+
           controller.close();
         }
       }
@@ -305,14 +305,14 @@ export async function POST(
 
   } catch (error) {
     console.error('Streaming sandbox execution API error:', error);
-    
+
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       }),
-      { 
+      {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }

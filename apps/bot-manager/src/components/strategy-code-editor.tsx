@@ -27,9 +27,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { getStrategyDisplayName } from '@/lib/strategy-parser';
+import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { type StrategyMetadata } from '@/lib/strategy-parser';
+import { type StrategyMetadata } from '@/lib/features/bots/strategy-parser';
 
 interface StrategyCodeEditorProps {
   initialCode?: string;
@@ -289,7 +289,7 @@ try {
               />
             </div>
             <div className="px-4 py-2 text-xs text-muted-foreground">
-              Write plain javascript code here for what you want your bot to do. Stacks and other helper libraries are available on the 'bot' object.
+              Write plain javascript code here for what you want your bot to do. Bitcoin, Stacks, and other helper libraries are available on the 'bot' object.
             </div>
           </CardContent>
         </div>

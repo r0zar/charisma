@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Bot, BotStats, BotActivity, PerformanceMetrics, MarketData, CreateBotRequest } from '@/schemas/bot.schema';
-import { useNotifications } from './notification-context';
+import { Bot, BotStats, CreateBotRequest } from '@/schemas/bot.schema';
+import { useToast } from './toast-context';
 import { useGlobalState } from './global-state-context';
 import { useWallet } from './wallet-context';
 
@@ -10,9 +10,6 @@ interface BotContextType {
   // Data
   bots: Bot[];
   botStats: BotStats;
-  activities: BotActivity[];
-  performanceMetrics: PerformanceMetrics;
-  marketData: MarketData;
   loading: boolean;
   error: string | null;
 
@@ -45,7 +42,7 @@ interface BotProviderProps {
 }
 
 export function BotProvider({ children }: BotProviderProps) {
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess, showError } = useToast();
   const { appState, loading: globalLoading, error: globalError } = useGlobalState();
   const { walletState } = useWallet();
 
@@ -55,18 +52,8 @@ export function BotProvider({ children }: BotProviderProps) {
     activeBots: 0,
     pausedBots: 0,
     errorBots: 0,
-    totalGas: 0,
-    totalValue: 0,
-    totalPnL: 0,
-    todayPnL: 0
   });
-  const [activities, setActivities] = useState<BotActivity[]>([]);
-  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
-    daily: [],
-    weekly: [],
-    monthly: []
-  });
-  const [marketData, setMarketData] = useState<MarketData>({ tokenPrices: {}, priceChanges: {}, marketCap: {} });
+  // Market data removed
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,18 +68,8 @@ export function BotProvider({ children }: BotProviderProps) {
           activeBots: 0,
           pausedBots: 0,
           errorBots: 0,
-          totalGas: 0,
-          totalValue: 0,
-          totalPnL: 0,
-          todayPnL: 0
         });
-        setActivities([]);
-        setPerformanceMetrics({
-          daily: [],
-          weekly: [],
-          monthly: []
-        });
-        setMarketData({ tokenPrices: {}, priceChanges: {}, marketCap: {} });
+        // Market data removed
         setError(null);
         setLoading(false);
         return;
@@ -115,34 +92,18 @@ export function BotProvider({ children }: BotProviderProps) {
             if (appState) {
               // Use static data as fallback
               const userBots = appState.bots.list.filter(bot => 
-                bot.walletAddress === walletState.address
+                bot.ownerId === walletState.address
               );
               const userBotIds = userBots.map(bot => bot.id);
-              const userActivities = appState.bots.activities.filter(activity =>
-                userBotIds.includes(activity.botId)
-              );
-              
               setBots(userBots);
-              setActivities(userActivities);
-              setMarketData(appState.market.data);
+              // Market data removed
               
               // Calculate stats
-              const activeBots = userBots.filter(bot => bot.status === 'active').length;
-              const pausedBots = userBots.filter(bot => bot.status === 'paused').length;
-              const errorBots = userBots.filter(bot => bot.status === 'error').length;
-              const totalValue = 0; // Analytics data moved to separate endpoint
-              const totalPnL = 0; // Analytics data moved to separate endpoint
-              const todayPnL = 0; // Analytics data moved to separate endpoint
-              
               setBotStats({
                 totalBots: userBots.length,
-                activeBots,
-                pausedBots,
-                errorBots,
-                totalGas: 0,
-                totalValue,
-                totalPnL,
-                todayPnL
+                activeBots: userBots.filter(bot => bot.status === 'active').length,
+                pausedBots: userBots.filter(bot => bot.status === 'paused').length,
+                errorBots: userBots.filter(bot => bot.status === 'error').length,
               });
             }
             
@@ -157,36 +118,18 @@ export function BotProvider({ children }: BotProviderProps) {
         
         // Update state with real KV data
         setBots(data.list || []);
-        setActivities(data.activities || []);
         
         // Calculate stats from real data
         const userBots = data.list || [];
-        const activeBots = userBots.filter((bot: any) => bot.status === 'active').length;
-        const pausedBots = userBots.filter((bot: any) => bot.status === 'paused').length;
-        const errorBots = userBots.filter((bot: any) => bot.status === 'error').length;
-        const totalValue = userBots.reduce((sum: number, bot: any) => sum + (bot.totalVolume || 0), 0);
-        const totalPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.totalPnL || 0), 0);
-        const todayPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.dailyPnL || 0), 0);
-        
         setBotStats({
           totalBots: userBots.length,
-          activeBots,
-          pausedBots,
-          errorBots,
-          totalGas: 0,
-          totalValue,
-          totalPnL,
-          todayPnL
-        });
-        
-        setPerformanceMetrics({
-          daily: [],
-          weekly: [],
-          monthly: []
+          activeBots: userBots.filter((bot: any) => bot.status === 'active').length,
+          pausedBots: userBots.filter((bot: any) => bot.status === 'paused').length,
+          errorBots: userBots.filter((bot: any) => bot.status === 'error').length,
         });
         
         // Use market data from static state or default
-        setMarketData(appState?.market?.data || { tokenPrices: {}, priceChanges: {}, marketCap: {} });
+        // Market data removed
         
       } catch (err) {
         console.error('Error loading bot data:', err);
@@ -199,18 +142,8 @@ export function BotProvider({ children }: BotProviderProps) {
           activeBots: 0,
           pausedBots: 0,
           errorBots: 0,
-          totalGas: 0,
-          totalValue: 0,
-          totalPnL: 0,
-          todayPnL: 0
         });
-        setActivities([]);
-        setPerformanceMetrics({
-          daily: [],
-          weekly: [],
-          monthly: []
-        });
-        setMarketData({ tokenPrices: {}, priceChanges: {}, marketCap: {} });
+        // Market data removed
       } finally {
         setLoading(false);
       }
@@ -277,7 +210,7 @@ export function BotProvider({ children }: BotProviderProps) {
       }
 
       // Verify ownership
-      if (existingBot.walletAddress !== walletState.address) {
+      if (existingBot.ownerId !== walletState.address) {
         throw new Error('You can only update bots you own');
       }
 
@@ -328,7 +261,7 @@ export function BotProvider({ children }: BotProviderProps) {
       }
 
       // Verify ownership
-      if (existingBot.walletAddress !== walletState.address) {
+      if (existingBot.ownerId !== walletState.address) {
         throw new Error('You can only delete bots you own');
       }
 
@@ -366,32 +299,63 @@ export function BotProvider({ children }: BotProviderProps) {
     }
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const existingBot = bots.find(bot => bot.id === id);
       if (!existingBot) {
         throw new Error('Bot not found');
       }
 
       // Verify ownership
-      if (existingBot.walletAddress !== walletState.address) {
-        throw new Error('You can only start bots you own');
+      console.log('🔍 Bot ownership validation:');
+      console.log('  Bot ID:', id);
+      console.log('  Bot ownerId:', existingBot.ownerId);
+      console.log('  Current wallet address:', walletState.address);
+      console.log('  Addresses match:', existingBot.ownerId === walletState.address);
+      
+      if (existingBot.ownerId !== walletState.address) {
+        throw new Error(`You can only start bots you own. Bot owner: ${existingBot.ownerId}, Your address: ${walletState.address}`);
       }
 
-      setBots(prev => prev.map(bot =>
-        bot.id === id
-          ? { ...bot, status: 'active', lastActive: new Date().toISOString() }
-          : bot
-      ));
+      // Use state machine for transition
+      const userId = walletState.address;
+      const message = `bot_transition_${id}_start`;
 
-      setBotStats(prev => ({
-        ...prev,
-        activeBots: prev.activeBots + 1
-      }));
+      const response = await fetch(`/api/v1/bots/${id}/transitions?userId=${encodeURIComponent(userId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'start',
+          reason: 'User requested start via bot context'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to start bot');
+      }
+
+      const result = await response.json();
+      const updatedBot = result.bot;
+
+      // Update local state with the returned bot
+      setBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
+
+      // Recalculate stats
+      setBotStats(prev => {
+        const newActiveBots = prev.activeBots + (existingBot.status !== 'active' ? 1 : 0);
+        return {
+          ...prev,
+          activeBots: newActiveBots
+        };
+      });
+
+      showSuccess('Bot started successfully');
 
     } catch (err) {
-      throw new Error('Failed to start bot');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to start bot';
+      showError('Failed to start bot', errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
@@ -402,32 +366,63 @@ export function BotProvider({ children }: BotProviderProps) {
     }
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const existingBot = bots.find(bot => bot.id === id);
       if (!existingBot) {
         throw new Error('Bot not found');
       }
 
       // Verify ownership
-      if (existingBot.walletAddress !== walletState.address) {
-        throw new Error('You can only pause bots you own');
+      console.log('🔍 Bot ownership validation (pause):');
+      console.log('  Bot ID:', id);
+      console.log('  Bot ownerId:', existingBot.ownerId);
+      console.log('  Current wallet address:', walletState.address);
+      console.log('  Addresses match:', existingBot.ownerId === walletState.address);
+      
+      if (existingBot.ownerId !== walletState.address) {
+        throw new Error(`You can only pause bots you own. Bot owner: ${existingBot.ownerId}, Your address: ${walletState.address}`);
       }
 
-      setBots(prev => prev.map(bot =>
-        bot.id === id
-          ? { ...bot, status: 'paused', lastActive: new Date().toISOString() }
-          : bot
-      ));
+      // Use state machine for transition
+      const userId = walletState.address;
+      const message = `bot_transition_${id}_pause`;
 
-      setBotStats(prev => ({
-        ...prev,
-        activeBots: prev.activeBots - 1
-      }));
+      const response = await fetch(`/api/v1/bots/${id}/transitions?userId=${encodeURIComponent(userId)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'pause',
+          reason: 'User requested pause via bot context'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to pause bot');
+      }
+
+      const result = await response.json();
+      const updatedBot = result.bot;
+
+      // Update local state with the returned bot
+      setBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
+
+      // Recalculate stats
+      setBotStats(prev => {
+        const newActiveBots = prev.activeBots - (existingBot.status === 'active' ? 1 : 0);
+        return {
+          ...prev,
+          activeBots: newActiveBots
+        };
+      });
+
+      showSuccess('Bot paused successfully');
 
     } catch (err) {
-      throw new Error('Failed to pause bot');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to pause bot';
+      showError('Failed to pause bot', errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
@@ -480,26 +475,14 @@ export function BotProvider({ children }: BotProviderProps) {
       
       // Update state with fresh data
       setBots(data.list || []);
-      setActivities(data.activities || []);
       
       // Recalculate stats
       const userBots = data.list || [];
-      const activeBots = userBots.filter((bot: any) => bot.status === 'active').length;
-      const pausedBots = userBots.filter((bot: any) => bot.status === 'paused').length;
-      const errorBots = userBots.filter((bot: any) => bot.status === 'error').length;
-      const totalValue = userBots.reduce((sum: number, bot: any) => sum + (bot.totalVolume || 0), 0);
-      const totalPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.totalPnL || 0), 0);
-      const todayPnL = userBots.reduce((sum: number, bot: any) => sum + (bot.dailyPnL || 0), 0);
-      
       setBotStats({
         totalBots: userBots.length,
-        activeBots,
-        pausedBots,
-        errorBots,
-        totalGas: 0,
-        totalValue,
-        totalPnL,
-        todayPnL
+        activeBots: userBots.filter((bot: any) => bot.status === 'active').length,
+        pausedBots: userBots.filter((bot: any) => bot.status === 'paused').length,
+        errorBots: userBots.filter((bot: any) => bot.status === 'error').length,
       });
       
       setError(null);
@@ -513,9 +496,7 @@ export function BotProvider({ children }: BotProviderProps) {
   const value: BotContextType = {
     bots,
     botStats,
-    activities,
-    performanceMetrics,
-    marketData,
+    // marketData removed,
     loading,
     error,
     createBot,

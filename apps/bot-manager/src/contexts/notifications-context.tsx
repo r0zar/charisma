@@ -1,15 +1,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { StoredNotification } from '@/lib/kv-store';
+import { StoredNotification } from '@/lib/infrastructure/storage';
 import { 
   NotificationsApiClient, 
   NotificationFilters, 
   CreateNotificationData,
   NotificationSummary
-} from '@/lib/notifications-api-client';
+} from '@/lib/infrastructure/api/notifications-client';
 import { useWallet } from '@/contexts/wallet-context';
-import { useNotifications as useToastNotifications } from '@/contexts/notification-context';
+import { useToast } from '@/contexts/toast-context';
 
 /**
  * Notifications context interface
@@ -60,7 +60,7 @@ interface NotificationsProviderProps {
 
 export function NotificationsProvider({ children }: NotificationsProviderProps) {
   const { getUserId } = useWallet();
-  const { showError, showSuccess } = useToastNotifications();
+  const { showError, showSuccess } = useToast();
   
   // State
   const [notifications, setNotifications] = useState<StoredNotification[]>([]);

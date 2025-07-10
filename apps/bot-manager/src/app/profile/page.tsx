@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Copy, ExternalLink, Wallet, Network, Shield } from 'lucide-react';
 import { useWallet } from '@/contexts/wallet-context';
-import { useNotifications } from '@/contexts/notification-context';
+import { useToast } from '@/contexts/toast-context';
 
 export default function ProfilePage() {
   const { walletState, network, setNetwork } = useWallet();
-  const { showSuccess } = useNotifications();
+  const { showSuccess } = useToast();
 
   const copyAddress = () => {
     if (walletState.address) {
