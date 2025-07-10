@@ -41,19 +41,12 @@ async function testBasicFunctionality() {
     console.log(`🔢 API limit: ${result?.limit || 'N/A'}`);
     console.log(`🔢 API offset: ${result?.offset || 'N/A'}`);
     
-    await logger.success('Polyglot basic functionality test passed', {
-      wallet: testWallet,
-      eventCount: result?.events?.length || 0,
-      resultType: typeof result,
-    });
+    await logger.success('Polyglot basic functionality test passed');
     
     return { success: true, eventCount: result?.events?.length || 0 };
   } catch (error) {
     console.error('❌ Basic call failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('Polyglot basic functionality test failed', { 
-      wallet: testWallet, 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('Polyglot basic functionality test failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
