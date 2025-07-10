@@ -26,7 +26,11 @@
         "SENTRY_AUTH_TOKEN",
         "NEXT_PUBLIC_TOKEN_CACHE_URL",
         "CRON_SECRET",
-        "WALLET_ENCRYPTION_KEY"
+        "WALLET_ENCRYPTION_KEY",
+        "DEBUG",
+        "VERCEL_TEAM_ID",
+        "VERCEL_PROJECT_ID",
+        "VERCEL_TOKEN"
       ]
     },
     "test": {

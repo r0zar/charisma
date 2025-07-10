@@ -14,13 +14,13 @@ import { config } from '@/lib/config';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
     const useDefault = searchParams.get('default') === 'true';
-    const botId = params.id;
+    const { id: botId } = await params;
 
     // Check if bot API is enabled
     if (!isFeatureEnabled('enableApiBots')) {

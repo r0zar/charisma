@@ -78,10 +78,10 @@ export async function GET(
 // Requires wallet signature authentication
 export async function POST(
   request: NextRequest,
-  { params }: { params: { walletAddress: string } }
+  { params }: { params: Promise<{ walletAddress: string }> }
 ) {
   try {
-    const { walletAddress } = params;
+    const { walletAddress } = await params;
 
     if (!walletAddress || typeof walletAddress !== 'string') {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
