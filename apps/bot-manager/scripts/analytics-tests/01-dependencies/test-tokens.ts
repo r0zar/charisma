@@ -86,7 +86,7 @@ async function testSingleTokens() {
     }
   }
   
-  await logger.info('Tokens individual testing completed', { results });
+  await logger.info('Tokens individual testing completed');
   return results;
 }
 
@@ -113,11 +113,7 @@ async function testMultipleTokens() {
       });
     }
     
-    await logger.success('Tokens multiple tokens test passed', {
-      tokensRequested: tokenList.length,
-      pricesReceived: result?.prices?.length || 0,
-      resultType: typeof result,
-    });
+    await logger.success('Tokens multiple tokens test passed');
     
     return { 
       success: true, 
@@ -126,10 +122,7 @@ async function testMultipleTokens() {
     };
   } catch (error) {
     console.error('❌ Multiple tokens call failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('Tokens multiple tokens test failed', { 
-      tokens: tokenList, 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('Tokens multiple tokens test failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -173,12 +166,7 @@ async function testPriceData() {
     
     const allValidationsPassed = Object.values(validations).every(Boolean);
     
-    await logger.info('Tokens price data validation completed', {
-      token: testToken,
-      validations,
-      allPassed: allValidationsPassed,
-      priceData: price,
-    });
+    await logger.info('Tokens price data validation completed');
     
     return { 
       success: allValidationsPassed, 
@@ -187,10 +175,7 @@ async function testPriceData() {
     };
   } catch (error) {
     console.error('❌ Price data validation failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('Tokens price data validation failed', { 
-      token: testToken, 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('Tokens price data validation failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

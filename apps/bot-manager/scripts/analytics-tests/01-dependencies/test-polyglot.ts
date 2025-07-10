@@ -76,7 +76,7 @@ async function testDifferentParameters() {
     }
   }
   
-  await logger.info('Polyglot parameter testing completed', { results });
+  await logger.info('Polyglot parameter testing completed');
   return results;
 }
 
@@ -111,7 +111,7 @@ async function testMultipleWallets() {
     }
   }
   
-  await logger.info('Polyglot multiple wallet testing completed', { results });
+  await logger.info('Polyglot multiple wallet testing completed');
   return results;
 }
 
@@ -157,12 +157,7 @@ async function testEventTypes() {
       console.log(`   ${asset}: ${count}`);
     });
     
-    await logger.info('Polyglot event types analysis completed', {
-      wallet: testWallet,
-      totalEvents: result.events.length,
-      eventTypes: eventTypeCounts,
-      topAssets: Object.entries(assetTypes).slice(0, 5),
-    });
+    await logger.info('Polyglot event types analysis completed');
     
     return { 
       success: true, 
@@ -172,10 +167,7 @@ async function testEventTypes() {
     };
   } catch (error) {
     console.error('❌ Event analysis failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('Polyglot event types analysis failed', { 
-      wallet: testWallet, 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('Polyglot event types analysis failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

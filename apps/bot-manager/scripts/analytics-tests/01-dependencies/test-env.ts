@@ -39,11 +39,7 @@ async function testEnvironmentVariables() {
   
   const success = missingRequired.length === 0;
   
-  await logger.info('Environment variables check completed', {
-    envVarsChecked: Object.keys(envVars),
-    missingRequired,
-    allRequiredPresent: success,
-  });
+  await logger.info('Environment variables check completed');
   
   if (success) {
     console.log('✅ All required environment variables are set');
@@ -70,9 +66,7 @@ async function testKVConnection() {
     return { success: true };
   } catch (error) {
     console.error('❌ KV connection failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('KV connection test failed', { 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('KV connection test failed');
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -120,10 +114,7 @@ async function testKVOperations() {
     };
   } catch (error) {
     console.error('❌ KV operations failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('KV operations test failed', { 
-      testKey,
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('KV operations test failed');
     
     // Cleanup attempt
     try {
@@ -177,13 +168,7 @@ async function testKVPerformance() {
     
     const performanceGood = writeTime < 1000 && readTime < 500 && multiReadTime < 1000;
     
-    await logger.info('KV performance test completed', {
-      writeTime: writeTime + 'ms',
-      readTime: readTime + 'ms',
-      multiReadTime: multiReadTime + 'ms',
-      performanceGood,
-      dataSize: JSON.stringify(testData).length + ' bytes',
-    });
+    await logger.info('KV performance test completed');
     
     if (performanceGood) {
       console.log('✅ KV performance is acceptable');
@@ -200,9 +185,7 @@ async function testKVPerformance() {
     };
   } catch (error) {
     console.error('❌ KV performance test failed:', error instanceof Error ? error.message : String(error));
-    await logger.error('KV performance test failed', { 
-      error: error instanceof Error ? error.message : String(error) 
-    });
+    await logger.error('KV performance test failed');
     
     // Cleanup attempt
     try {
