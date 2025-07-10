@@ -122,8 +122,8 @@ export class NotificationsApiClient {
       clearTimeout(timeoutId);
 
       // Retry on network errors or timeouts
-      if (attempt < this.retryAttempts && 
-          (error instanceof TypeError || error.name === 'AbortError')) {
+      if (attempt < this.retryAttempts &&
+        (error instanceof TypeError || (error as any).name === 'AbortError')) {
         console.warn(`Request failed (attempt ${attempt}), retrying...`, error);
         await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
         return this.makeRequest<T>(url, options, attempt + 1);
@@ -138,7 +138,7 @@ export class NotificationsApiClient {
    */
   private buildQueryString(params: Record<string, any>): string {
     const searchParams = new URLSearchParams();
-    
+
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         searchParams.append(key, String(value));
@@ -152,7 +152,7 @@ export class NotificationsApiClient {
    * Get notifications for a user with optional filtering
    */
   async getNotifications(
-    userId: string, 
+    userId: string,
     filters: NotificationFilters = {}
   ): Promise<NotificationsPaginatedResponse> {
     const queryParams = this.buildQueryString({
@@ -166,7 +166,7 @@ export class NotificationsApiClient {
     });
 
     const url = `${this.baseUrl}/notifications?${queryParams}`;
-    
+
     return this.makeRequest<NotificationsPaginatedResponse>(url, {
       method: 'GET',
     });
@@ -176,11 +176,11 @@ export class NotificationsApiClient {
    * Create a new notification
    */
   async createNotification(
-    userId: string, 
+    userId: string,
     data: CreateNotificationData
   ): Promise<NotificationResponse> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}`;
-    
+
     return this.makeRequest<NotificationResponse>(url, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -192,7 +192,7 @@ export class NotificationsApiClient {
    */
   async markAsRead(userId: string, notificationId: string): Promise<{ success: boolean; message: string }> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}&id=${encodeURIComponent(notificationId)}&action=read`;
-    
+
     const response = await this.makeRequest<{ message: string; notificationId: string; timestamp: string }>(url, {
       method: 'PATCH',
       body: JSON.stringify({}),
@@ -209,7 +209,7 @@ export class NotificationsApiClient {
    */
   async markAsUnread(userId: string, notificationId: string): Promise<{ success: boolean; message: string }> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}&id=${encodeURIComponent(notificationId)}&action=unread`;
-    
+
     const response = await this.makeRequest<{ message: string; notificationId: string; timestamp: string }>(url, {
       method: 'PATCH',
       body: JSON.stringify({}),
@@ -226,7 +226,7 @@ export class NotificationsApiClient {
    */
   async markAllAsRead(userId: string): Promise<{ success: boolean; message: string }> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}&action=mark-all-read`;
-    
+
     const response = await this.makeRequest<{ message: string; timestamp: string }>(url, {
       method: 'PATCH',
       body: JSON.stringify({}),
@@ -242,12 +242,12 @@ export class NotificationsApiClient {
    * Update a notification
    */
   async updateNotification(
-    userId: string, 
-    notificationId: string, 
+    userId: string,
+    notificationId: string,
     updates: Partial<CreateNotificationData>
   ): Promise<NotificationResponse> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}&id=${encodeURIComponent(notificationId)}&action=update`;
-    
+
     return this.makeRequest<NotificationResponse>(url, {
       method: 'PATCH',
       body: JSON.stringify(updates),
@@ -259,7 +259,7 @@ export class NotificationsApiClient {
    */
   async deleteNotification(userId: string, notificationId: string): Promise<{ success: boolean; message: string }> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}&id=${encodeURIComponent(notificationId)}`;
-    
+
     const response = await this.makeRequest<{ message: string; notificationId: string; timestamp: string }>(url, {
       method: 'DELETE',
     });
@@ -275,7 +275,7 @@ export class NotificationsApiClient {
    */
   async clearAllNotifications(userId: string): Promise<{ success: boolean; message: string }> {
     const url = `${this.baseUrl}/notifications?userId=${encodeURIComponent(userId)}&action=clear-all`;
-    
+
     const response = await this.makeRequest<{ message: string; timestamp: string }>(url, {
       method: 'DELETE',
     });
@@ -308,7 +308,7 @@ export class NotificationsApiClient {
     const batchSize = 10;
     for (let i = 0; i < notificationIds.length; i += batchSize) {
       const batch = notificationIds.slice(i, i + batchSize);
-      
+
       const promises = batch.map(async (id) => {
         try {
           await this.markAsRead(userId, id);
@@ -339,7 +339,7 @@ export class NotificationsApiClient {
     const batchSize = 10;
     for (let i = 0; i < notificationIds.length; i += batchSize) {
       const batch = notificationIds.slice(i, i + batchSize);
-      
+
       const promises = batch.map(async (id) => {
         try {
           await this.deleteNotification(userId, id);

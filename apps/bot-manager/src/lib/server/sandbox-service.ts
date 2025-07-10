@@ -234,18 +234,11 @@ export class SandboxService {
   async buildBotContext(bot: Bot, testMode: boolean = true): Promise<BotContext> {
     // Build unified balance object from bot data
     const balance: { [token: string]: number } = {
-      STX: bot.stxBalance || 0
+      STX: 0 // Balance data moved to analytics system
     };
 
-    // Add LP token balances
-    bot.lpTokenBalances?.forEach(token => {
-      balance[token.symbol] = token.balance;
-    });
-
-    // Add reward token balances
-    bot.rewardTokenBalances?.forEach(token => {
-      balance[token.symbol] = token.balance;
-    });
+    // Balance data has been moved to analytics system
+    // LP and reward token balances are no longer stored on bot objects
 
     // Get wallet credentials for real mode execution
     let walletCredentials: { privateKey?: string } = {};

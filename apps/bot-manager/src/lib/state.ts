@@ -32,35 +32,29 @@ export function validateAppState(data: unknown): StateResult {
   try {
     // First, validate with Zod schema
     const validatedData = AppStateSchema.parse(data);
-    
+
     // Then add business logic validation warnings
     const warnings: string[] = [];
-    
+
     // Check for business logic warnings
     validatedData.bots.list.forEach((bot: Bot) => {
-      if (bot.dailyPnL > 10000) {
-        warnings.push(`Bot ${bot.name} has unusually high daily P&L: ${bot.dailyPnL}`);
-      }
-      
-      if (bot.successRate < 50) {
-        warnings.push(`Bot ${bot.name} has low success rate: ${bot.successRate}%`);
-      }
+      // No business logic validation for now
     });
-    
+
     // Check token prices for unusual values
     Object.entries(validatedData.market.data.tokenPrices).forEach(([token, price]) => {
       if (price > 1000000) {
         warnings.push(`Token ${token} has unusually high price: ${price}`);
       }
     });
-    
+
     // Check pool APRs
     validatedData.market.pools.forEach((pool) => {
       if (pool.apr > 1000) {
         warnings.push(`Pool ${pool.name} has unusual APR: ${pool.apr}%`);
       }
     });
-    
+
     return {
       success: true,
       data: validatedData,
@@ -74,7 +68,7 @@ export function validateAppState(data: unknown): StateResult {
     };
   } catch (error) {
     if (error instanceof ZodError) {
-      const validationErrors = error.issues.map(issue => 
+      const validationErrors = error.issues.map(issue =>
         `${issue.path.join('.')}: ${issue.message}`
       );
       return {
@@ -89,7 +83,7 @@ export function validateAppState(data: unknown): StateResult {
         },
       };
     }
-    
+
     return {
       success: false,
       error: `Validation error: ${error instanceof Error ? error.message : String(error)}`,
@@ -141,17 +135,17 @@ export const CURRENT_SCHEMA_VERSION = '1.0.0';
 export function isCompatibleVersion(version: string): boolean {
   const [major, minor, patch] = version.split('.').map(Number);
   const [currentMajor, currentMinor, _currentPatch] = CURRENT_SCHEMA_VERSION.split('.').map(Number);
-  
+
   // Same major version is compatible
   if (major === currentMajor) {
     return true;
   }
-  
+
   // Future major versions are not compatible
   if (major > currentMajor) {
     return false;
   }
-  
+
   // Past major versions might need migration
   return false;
 }
