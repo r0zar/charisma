@@ -77,7 +77,7 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
       <div className="grid grid-cols-3 gap-4">
         {visibleItems.map((item, index) => {
           const Icon = item.icon
-          
+
           if (item.onClick) {
             return (
               <button
@@ -148,12 +148,10 @@ export function WalletDropdown() {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-      <DrawerPortal>
-        <DrawerContent className="max-h-[60vh] z-[60]">
-          <DrawerTitle className="sr-only">Menu</DrawerTitle>
-          <MenuContent onClose={() => setOpen(false)} />
-        </DrawerContent>
-      </DrawerPortal>
+      <DrawerContent className="max-h-[60vh] z-[60]">
+        <DrawerTitle className="sr-only">Menu</DrawerTitle>
+        <MenuContent onClose={() => setOpen(false)} />
+      </DrawerContent>
     </Drawer>
   )
 }
