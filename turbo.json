@@ -25,7 +25,8 @@
         "HIRO_API_KEY",
         "SENTRY_AUTH_TOKEN",
         "NEXT_PUBLIC_TOKEN_CACHE_URL",
-        "CRON_SECRET"
+        "CRON_SECRET",
+        "WALLET_ENCRYPTION_KEY"
       ]
     },
     "test": {
