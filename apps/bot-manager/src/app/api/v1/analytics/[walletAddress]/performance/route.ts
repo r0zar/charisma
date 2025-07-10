@@ -51,7 +51,7 @@ export async function GET(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to fetch cached performance metrics:', error);
+    logger.error(`Failed to fetch cached performance metrics: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,
