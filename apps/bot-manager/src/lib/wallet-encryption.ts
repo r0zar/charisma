@@ -5,10 +5,12 @@ import crypto from 'crypto';
  * Based on the approach used in simple-swap app
  */
 
-const ENCRYPTION_KEY = process.env.WALLET_ENCRYPTION_KEY;
-
-if (!ENCRYPTION_KEY) {
-  throw new Error('WALLET_ENCRYPTION_KEY environment variable is required');
+function getEncryptionKey(): string {
+  const ENCRYPTION_KEY = process.env.WALLET_ENCRYPTION_KEY;
+  if (!ENCRYPTION_KEY) {
+    throw new Error('WALLET_ENCRYPTION_KEY environment variable is required');
+  }
+  return ENCRYPTION_KEY;
 }
 
 export interface EncryptedWalletData {
@@ -31,7 +33,7 @@ export interface WalletCredentials {
 function encryptText(text: string): { encrypted: string; iv: string } {
   const iv = crypto.randomBytes(16);
   // Create a 32-byte key from the provided string using SHA-256
-  const key = crypto.createHash('sha256').update(ENCRYPTION_KEY!).digest();
+  const key = crypto.createHash('sha256').update(getEncryptionKey()).digest();
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -42,7 +44,7 @@ function encryptText(text: string): { encrypted: string; iv: string } {
  * Decrypts text using AES-256-CBC
  */
 function decryptText(encryptedText: string, iv: string): string {
-  const key = crypto.createHash('sha256').update(ENCRYPTION_KEY!).digest();
+  const key = crypto.createHash('sha256').update(getEncryptionKey()).digest();
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, Buffer.from(iv, 'hex'));
   let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
