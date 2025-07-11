@@ -98,14 +98,9 @@ export class SandboxService {
    * 
    * @param strategyCode - Original strategy code (raw JavaScript)
    * @param botContext - Bot context to inject as global
-   * @param hasRepository - Whether a custom repository is being used
    * @returns Wrapped code ready for execution
    */
-  createStrategyWrapper(strategyCode: string, botContext: BotContext, hasRepository: boolean = false): string {
-    // TODO: Add more sophisticated code injection and security validation
-    // TODO: Add import restrictions and API allowlisting
-    // TODO: Add execution time limits and resource monitoring
-
+  createStrategyWrapper(strategyCode: string, botContext: BotContext): string {
     // Debug logging to verify bot context
     console.log(`[SandboxService] Creating strategy wrapper for bot: ${botContext.name || 'unknown'}`);
     console.log(`[SandboxService] Bot context keys: ${Object.keys(botContext).join(', ')}`);
@@ -115,11 +110,10 @@ export class SandboxService {
       const serializedBot = JSON.stringify(botContext, null, 2);
       console.log(`[SandboxService] Serialized bot context (first 200 chars): ${serializedBot.substring(0, 200)}...`);
 
-      // Generate complete strategy wrapper with conditional dependency handling
+      // Generate minimal strategy wrapper
       return strategyWrapperTemplate({
         botContext: serializedBot,
-        strategyCode,
-        hasRepository
+        strategyCode
       });
 
     } catch (error) {
@@ -214,8 +208,8 @@ export class SandboxService {
 
       callbacks?.onStatus?.(`Creating sandbox for ${botInstance.name}...`, new Date().toISOString());
 
-      // Create wrapper code (pass repository info for dependency handling)
-      const wrapperCode = this.createStrategyWrapper(strategyCode, botContext, !!botInstance.gitRepository);
+      // Create wrapper code
+      const wrapperCode = this.createStrategyWrapper(strategyCode, botContext);
 
       const sandboxConfig = {
         runtime: 'node22' as const,

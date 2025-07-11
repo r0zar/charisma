@@ -2,21 +2,40 @@
   "name": "@bots/basic",
   "version": "1.0.0",
   "description": "Basic contract calling utilities for bot strategies",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/es/index.js",
+  "module": "./dist/es/index.js",
+  "types": "./dist/es/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/es/index.d.ts",
+        "default": "./dist/es/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist",
-    "dev": "tsc --watch",
-    "check-types": "tsc --noEmit"
+    "build": "bunchee",
+    "dev": "bunchee --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check-types": "tsc --noEmit",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@stacks/transactions": "^7.1.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
-  },
-  "files": [
-    "dist/**/*"
-  ]
+  }
 }

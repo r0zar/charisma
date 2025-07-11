@@ -66,8 +66,12 @@ export const BotSchema = z.object({
   // Repository configuration (optional - defaults to charisma repo)
   gitRepository: z.string().url().optional(), // Custom git repository URL
   isMonorepo: z.boolean().optional(), // Whether the repo is a monorepo
-  packagePath: z.string().optional(), // Subpath for monorepo packages (e.g., "packages/polyglot")
+  packagePath: z.string().optional(), // Subpath for monorepo packages (e.g., "bots/basic")
   buildCommands: z.array(z.string()).optional(), // Custom build commands
+  
+  // Package discovery (populated automatically)
+  availablePackages: z.array(z.string()).optional(), // Discovered packages for IntelliSense
+  lastAnalyzed: z.string().datetime().optional(), // Last repository analysis timestamp
   
 });
 
