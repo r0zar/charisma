@@ -11,15 +11,18 @@
 import { Sandbox } from "@vercel/sandbox";
 import { config } from "dotenv";
 import { resolve } from "path";
+import { strategyWrapperTemplate } from "./templates/strategy-wrapper";
+import { loadAppStateConfigurableWithFallback } from "@/lib/infrastructure/data/loader.server";
 
 import type { Bot } from "@/schemas/bot.schema";
 // Note: No longer using parseStrategyCode - strategies are now raw JavaScript
-import type { 
-  BotContext, 
-  SandboxConfig, 
-  SandboxExecutionResult, 
-  StrategyExecutionOptions, 
-  StrategyExecutionResult 
+import type {
+  BotContext,
+  ExecutionCallbacks,
+  SandboxConfig,
+  SandboxExecutionResult,
+  StrategyExecutionOptions,
+  StrategyExecutionResult
 } from "@/schemas/sandbox.schema";
 // Dynamic import for wallet encryption to avoid env var requirement at module load
 
@@ -53,309 +56,38 @@ export class SandboxService {
     };
   }
 
-  /**
-   * Execute arbitrary JavaScript code in a sandbox
-   * 
-   * @param code - JavaScript code to execute
-   * @param config - Optional sandbox configuration
-   * @returns Execution result with output and metadata
-   */
-  async executeCode(code: string, config?: Partial<SandboxConfig>): Promise<SandboxExecutionResult> {
-    const startTime = Date.now();
-    let sandbox: any = null;
 
-    try {
-      await logger.info("Creating sandbox for code execution");
-
-      // Validate credentials
-      if (!this.defaultConfig.token || !this.defaultConfig.teamId || !this.defaultConfig.projectId) {
-        throw new Error("Missing required Vercel credentials");
-      }
-
-      // Create sandbox with merged config
-      const sandboxConfig = { ...this.defaultConfig, ...config };
-      sandbox = await Sandbox.create({
-        runtime: sandboxConfig.runtime,
-        timeout: sandboxConfig.timeout,
-        teamId: sandboxConfig.teamId,
-        projectId: sandboxConfig.projectId,
-        token: sandboxConfig.token,
-      });
-
-      await logger.success(`Sandbox created: ${sandbox.sandboxId}`);
-
-      // Write code to sandbox
-      await sandbox.writeFiles([
-        {
-          path: "script.js",
-          content: Buffer.from(code, 'utf8')
-        }
-      ]);
-
-      // Execute code and capture output
-      let output = '';
-      let error = '';
-
-      const result = await sandbox.runCommand({
-        cmd: "node",
-        args: ["script.js"],
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-
-      if (result.stdout) {
-        output = result.stdout;
-      }
-      if (result.stderr) {
-        error = result.stderr;
-      }
-
-      const executionTime = Date.now() - startTime;
-
-      await logger.success(`Code execution completed in ${executionTime}ms`);
-
-      return {
-        success: result.exitCode === 0,
-        output: output.trim(),
-        error: error.trim() || undefined,
-        exitCode: result.exitCode,
-        executionTime,
-        sandboxId: sandbox.sandboxId
-      };
-
-    } catch (err) {
-      const executionTime = Date.now() - startTime;
-      const errorMessage = err instanceof Error ? err.message : 'Unknown execution error';
-      
-      await logger.error(`Sandbox execution failed: ${errorMessage}`);
-
-      return {
-        success: false,
-        error: errorMessage,
-        executionTime,
-        sandboxId: sandbox?.sandboxId
-      };
-
-    } finally {
-      // Clean up sandbox
-      if (sandbox) {
-        try {
-          await sandbox.stop();
-          await logger.info("Sandbox cleaned up successfully");
-        } catch (cleanupError) {
-          await logger.error("Failed to cleanup sandbox");
-        }
-      }
-    }
-  }
-
-  /**
-   * Execute a bot strategy with injected context
-   * 
-   * @param strategyCode - The strategy JavaScript code
-   * @param bot - Bot instance to create context from  
-   * @param options - Execution options
-   * @returns Strategy execution result
-   */
-  async executeStrategy(
-    strategyCode: string, 
-    bot: Bot, 
-    options: StrategyExecutionOptions = {}
-  ): Promise<StrategyExecutionResult> {
-    const startTime = Date.now();
-
-    try {
-      await logger.info(`Executing strategy for bot: ${bot.name}`);
-
-      // Build bot context for injection
-      const botContext = await this.buildBotContext(bot, options.testMode);
-
-      // Create wrapper code that includes context and executes the raw strategy code
-      const wrapperCode = this.createStrategyWrapper(strategyCode, botContext);
-
-      // Execute in sandbox
-      const executionResult = await this.executeCode(wrapperCode, {
-        timeout: options.timeout ? options.timeout * 60 * 1000 : undefined // Convert minutes to milliseconds
-      });
-
-      // Parse execution result - much simpler now
-      let logs: string[] = [];
-      let executionComplete = false;
-      let executionError: string | undefined;
-
-      if (executionResult.output) {
-        const lines = executionResult.output.split('\n').filter(line => line.trim());
-        
-        // Filter out our execution markers and extract logs
-        logs = lines.filter(line => 
-          !line.startsWith('STRATEGY_EXECUTION_COMPLETE') && 
-          !line.startsWith('STRATEGY_EXECUTION_ERROR:')
-        );
-        
-        // Check for completion markers
-        executionComplete = lines.some(line => line.startsWith('STRATEGY_EXECUTION_COMPLETE'));
-        const errorLine = lines.find(line => line.startsWith('STRATEGY_EXECUTION_ERROR:'));
-        if (errorLine) {
-          executionError = errorLine.replace('STRATEGY_EXECUTION_ERROR:', '');
-        }
-      }
-
-      // Determine success based on exit code and execution markers
-      const success = executionResult.success && (executionComplete || !executionError);
-
-      return {
-        success,
-        result: success ? { message: 'Strategy executed successfully' } : undefined,
-        logs: options.enableLogs ? logs : undefined,
-        error: executionError || executionResult.error,
-        executionTime: Date.now() - startTime,
-        sandboxId: executionResult.sandboxId,
-        botContext: options.testMode ? botContext : undefined
-      };
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown strategy execution error';
-      await logger.error(`Strategy execution failed: ${errorMessage}`);
-
-      return {
-        success: false,
-        error: errorMessage,
-        executionTime: Date.now() - startTime
-      };
-    }
-  }
 
   /**
    * Build bot context object for strategy injection
    * 
    * @param bot - Bot instance
-   * @param testMode - Whether to use test/mock operations
    * @returns Bot context object
    */
-  async buildBotContext(bot: Bot, testMode: boolean = true): Promise<BotContext> {
-    // Build unified balance object from bot data
-    const balance: { [token: string]: number } = {
-      STX: 0 // Balance data moved to analytics system
-    };
-
-    // Balance data has been moved to analytics system
-    // LP and reward token balances are no longer stored on bot objects
-
-    // Get wallet credentials for real mode execution
+  async buildBotContext(bot: Bot): Promise<BotContext> {
+    // Get wallet credentials for execution
     const walletCredentials: { privateKey?: string } = {};
-    if (!testMode) {
-      try {
-        const { getPrivateKeyForExecution } = await import("@/lib/infrastructure/security/wallet-encryption");
-        const privateKey = getPrivateKeyForExecution(bot);
-        if (privateKey) {
-          walletCredentials.privateKey = privateKey;
-          await logger.info(`Bot ${bot.id} wallet credentials loaded for real execution`);
-        } else {
-          await logger.error(`Bot ${bot.id} missing wallet credentials for real execution`);
-        }
-      } catch (error) {
-        await logger.error(`Failed to load wallet encryption module: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    try {
+      const { getPrivateKeyForExecution } = await import("@/lib/infrastructure/security/wallet-encryption");
+      const privateKey = getPrivateKeyForExecution(bot);
+      if (privateKey) {
+        walletCredentials.privateKey = privateKey;
+        await logger.info(`Bot ${bot.id} wallet credentials loaded for execution`);
+      } else {
+        await logger.error(`Bot ${bot.id} missing wallet credentials for execution`);
       }
+    } catch (error) {
+      await logger.error(`Failed to load wallet encryption module: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // Create bot context with methods
+    // Create bot context - minimal context for real implementations
     const context: BotContext = {
       id: bot.id,
       name: bot.name,
       status: bot.status,
-      wallet_address: bot.id, // Bot ID is now the wallet address
       created_at: bot.createdAt,
       last_active: bot.lastActive,
-      balance,
-      testMode, // Include test mode flag for wrapper code
-      walletCredentials: !testMode ? walletCredentials : undefined,
-
-      // Trading methods - mock implementations for MVP, real for scheduled execution
-      async swap(fromToken: string, toToken: string, amount: number, slippage: number = 0.5) {
-        if (testMode) {
-          // Mock successful swap
-          const mockAmountReceived = amount * 0.99; // Simulate 1% slippage
-          return {
-            success: true,
-            txid: `mock-swap-${Date.now()}`,
-            amountReceived: mockAmountReceived
-          };
-        }
-        
-        // Real trading implementation for scheduled execution
-        console.log(`[SandboxService] Real swap requested: ${amount} ${fromToken} -> ${toToken} (slippage: ${slippage}%)`);
-        
-        // For now, return a mock response even in real mode
-        // TODO: Implement real DEX integration when Phase 4 is ready
-        return {
-          success: true,
-          txid: `scheduled-swap-${Date.now()}`,
-          amountReceived: amount * (1 - slippage / 100),
-          note: "Real trading not yet implemented - this is a placeholder"
-        };
-      },
-
-      async addLiquidity(token1: string, token2: string, amount1: number, amount2: number, slippage: number = 0.5) {
-        if (testMode) {
-          // Mock successful liquidity addition
-          const mockLpTokens = Math.sqrt(amount1 * amount2);
-          return {
-            success: true,
-            txid: `mock-add-liquidity-${Date.now()}`,
-            lpTokensReceived: mockLpTokens
-          };
-        }
-        // TODO: Implement real liquidity addition
-        throw new Error("Live trading not yet implemented");
-      },
-
-      async removeLiquidity(lpToken: string, amount: number, slippage: number = 0.5) {
-        if (testMode) {
-          // Mock successful liquidity removal
-          return {
-            success: true,
-            txid: `mock-remove-liquidity-${Date.now()}`,
-            tokensReceived: { STX: amount * 0.5, USDA: amount * 0.5 }
-          };
-        }
-        // TODO: Implement real liquidity removal
-        throw new Error("Live trading not yet implemented");
-      },
-
-      async claimRewards(contractId: string) {
-        if (testMode) {
-          // Mock successful reward claim
-          return {
-            success: true,
-            txid: `mock-claim-${Date.now()}`,
-            amountClaimed: Math.random() * 1000000 // Random reward amount
-          };
-        }
-        // TODO: Implement real reward claiming
-        throw new Error("Live trading not yet implemented");
-      },
-
-      async stake(contractId: string, amount: number) {
-        if (testMode) {
-          return {
-            success: true,
-            txid: `mock-stake-${Date.now()}`
-          };
-        }
-        // TODO: Implement real staking
-        throw new Error("Live trading not yet implemented");
-      },
-
-      async unstake(contractId: string, amount: number) {
-        if (testMode) {
-          return {
-            success: true,
-            txid: `mock-unstake-${Date.now()}`
-          };
-        }
-        // TODO: Implement real unstaking
-        throw new Error("Live trading not yet implemented");
-      }
+      walletCredentials: walletCredentials,
     };
 
     return context;
@@ -366,9 +98,10 @@ export class SandboxService {
    * 
    * @param strategyCode - Original strategy code (raw JavaScript)
    * @param botContext - Bot context to inject as global
+   * @param hasRepository - Whether a custom repository is being used
    * @returns Wrapped code ready for execution
    */
-  createStrategyWrapper(strategyCode: string, botContext: BotContext): string {
+  createStrategyWrapper(strategyCode: string, botContext: BotContext, hasRepository: boolean = false): string {
     // TODO: Add more sophisticated code injection and security validation
     // TODO: Add import restrictions and API allowlisting
     // TODO: Add execution time limits and resource monitoring
@@ -376,125 +109,377 @@ export class SandboxService {
     // Debug logging to verify bot context
     console.log(`[SandboxService] Creating strategy wrapper for bot: ${botContext.name || 'unknown'}`);
     console.log(`[SandboxService] Bot context keys: ${Object.keys(botContext).join(', ')}`);
-    
-    const isTestMode = botContext.testMode !== false;
-    
-    // Choose appropriate function implementations based on test mode
-    const swapImplementation = isTestMode ? `
-  // Mock implementation for testing
-  const mockAmountReceived = amount * 0.99;
-  return {
-    success: true,
-    txid: \`mock-swap-\${Date.now()}\`,
-    amountReceived: mockAmountReceived
-  };` : `
-  // Real trading implementation for scheduled execution
-  console.log(\`[Bot] Real swap requested: \${amount} \${fromToken} -> \${toToken} (slippage: \${slippage}%)\`);
-  
-  // For now, return a mock response even in real mode
-  // TODO: Implement real DEX integration when Phase 4 is ready
-  return {
-    success: true,
-    txid: \`scheduled-swap-\${Date.now()}\`,
-    amountReceived: amount * (1 - slippage / 100),
-    note: "Real trading not yet implemented - this is a placeholder"
-  };`;
 
-    const addLiquidityImplementation = isTestMode ? `
-  const mockLpTokens = Math.sqrt(amount1 * amount2);
-  return {
-    success: true,
-    txid: \`mock-add-liquidity-\${Date.now()}\`,
-    lpTokensReceived: mockLpTokens
-  };` : `
-  // TODO: Implement real liquidity addition
-  throw new Error("Live trading not yet implemented");`;
+    try {
+      // Serialize bot context for injection
+      const serializedBot = JSON.stringify(botContext, null, 2);
+      console.log(`[SandboxService] Serialized bot context (first 200 chars): ${serializedBot.substring(0, 200)}...`);
 
-    const removeLiquidityImplementation = isTestMode ? `
-  return {
-    success: true,
-    txid: \`mock-remove-liquidity-\${Date.now()}\`,
-    tokensReceived: { STX: amount * 0.5, USDA: amount * 0.5 }
-  };` : `
-  // TODO: Implement real liquidity removal
-  throw new Error("Live trading not yet implemented");`;
+      // Generate complete strategy wrapper with conditional dependency handling
+      return strategyWrapperTemplate({
+        botContext: serializedBot,
+        strategyCode,
+        hasRepository
+      });
 
-    const claimRewardsImplementation = isTestMode ? `
-  return {
-    success: true,
-    txid: \`mock-claim-\${Date.now()}\`,
-    amountClaimed: Math.random() * 1000000
-  };` : `
-  // TODO: Implement real reward claiming
-  throw new Error("Live trading not yet implemented");`;
-
-    const stakeImplementation = isTestMode ? `
-  return {
-    success: true,
-    txid: \`mock-stake-\${Date.now()}\`
-  };` : `
-  // TODO: Implement real staking
-  throw new Error("Live trading not yet implemented");`;
-
-    const unstakeImplementation = isTestMode ? `
-  return {
-    success: true,
-    txid: \`mock-unstake-\${Date.now()}\`
-  };` : `
-  // TODO: Implement real unstaking
-  throw new Error("Live trading not yet implemented");`;
-
-    // Serialize bot context for injection
-    const serializedBot = JSON.stringify(botContext, null, 2);
-    console.log(`[SandboxService] Serialized bot context (first 200 chars): ${serializedBot.substring(0, 200)}...`);
-    
-    return `
-// Injected bot context as global variable
-const bot = ${serializedBot};
-
-// Debug logging for bot injection
-console.log('🔍 [Debug] Bot object created:', typeof bot);
-console.log('🔍 [Debug] Bot name:', bot ? bot.name : 'undefined');
-console.log('🔍 [Debug] Bot keys:', bot ? Object.keys(bot).join(', ') : 'no keys');
-
-// Safety check and restore function methods (JSON.stringify removes functions)
-if (!bot) {
-  console.error('❌ [Error] Bot object is null or undefined after injection!');
-  throw new Error('Bot context failed to inject properly');
-}
-
-bot.swap = async function(fromToken, toToken, amount, slippage = 0.5) {${swapImplementation}
-};
-
-bot.addLiquidity = async function(token1, token2, amount1, amount2, slippage = 0.5) {${addLiquidityImplementation}
-};
-
-bot.removeLiquidity = async function(lpToken, amount, slippage = 0.5) {${removeLiquidityImplementation}
-};
-
-bot.claimRewards = async function(contractId) {${claimRewardsImplementation}
-};
-
-bot.stake = async function(contractId, amount) {${stakeImplementation}
-};
-
-bot.unstake = async function(contractId, amount) {${unstakeImplementation}
-};
-
-// Execute raw strategy code directly (no function wrapper needed)
-(async function() {
-  try {
-    ${strategyCode}
-    
-    // Strategy execution completed successfully
-    console.log('STRATEGY_EXECUTION_COMPLETE');
-    
-  } catch (error) {
-    console.error('Strategy execution error:', error.message);
-    console.log('STRATEGY_EXECUTION_ERROR:' + error.message);
+    } catch (error) {
+      console.error('[SandboxService] Template generation failed:', error);
+      throw new Error(`Failed to create strategy wrapper: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
-})();
-`;
+
+  /**
+   * Validate git repository URL for security
+   */
+  private validateGitRepository(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      
+      // Only allow specific git hosting platforms for security
+      const allowedHosts = [
+        'github.com',
+        'gitlab.com',
+        'bitbucket.org',
+        'git.sr.ht',
+        'codeberg.org'
+      ];
+      
+      return allowedHosts.includes(parsed.hostname.toLowerCase());
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Validate build commands for security
+   */
+  private validateBuildCommands(commands: string[]): boolean {
+    const allowedCommands = [
+      'npm', 'yarn', 'pnpm', 'bun',
+      'node', 'deno',
+      'make', 'cmake',
+      'cargo', 'go',
+      'python', 'pip',
+      'composer'
+    ];
+    
+    for (const command of commands) {
+      const [cmd] = command.trim().split(' ');
+      if (!allowedCommands.includes(cmd)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Sanitize package path to prevent directory traversal
+   */
+  private sanitizePackagePath(path: string): string {
+    // Remove any path traversal attempts
+    return path.replace(/\.\./g, '').replace(/^\/+/, '').trim();
+  }
+
+  /**
+   * Execute a bot strategy with optional real-time callbacks
+   * 
+   * @param strategyCode - The strategy code to execute
+   * @param bot - Bot instance or bot ID
+   * @param options - Execution options
+   * @param callbacks - Optional callbacks for real-time updates
+   * @returns Promise<StrategyExecutionResult>
+   */
+  async executeStrategy(
+    strategyCode: string,
+    bot: Bot | string,
+    options: StrategyExecutionOptions = {},
+    callbacks?: ExecutionCallbacks
+  ): Promise<StrategyExecutionResult> {
+    const startTime = Date.now();
+    let sandbox: any = null;
+    
+    try {
+      // Load bot if ID was provided
+      const botInstance = await this.loadBot(bot);
+      
+      callbacks?.onStatus?.('Initializing sandbox...', new Date().toISOString());
+      
+      // Validate credentials
+      if (!process.env.VERCEL_TOKEN || !process.env.VERCEL_TEAM_ID || !process.env.VERCEL_PROJECT_ID) {
+        throw new Error('Missing required Vercel credentials');
+      }
+
+      // Build bot context
+      const botContext = await this.buildBotContext(botInstance);
+
+      callbacks?.onStatus?.(`Creating sandbox for ${botInstance.name}...`, new Date().toISOString());
+
+      // Create wrapper code (pass repository info for dependency handling)
+      const wrapperCode = this.createStrategyWrapper(strategyCode, botContext, !!botInstance.gitRepository);
+
+      const sandboxConfig = {
+        runtime: 'node22' as const,
+        timeout: (options.timeout || 2) * 60 * 1000,
+        teamId: process.env.VERCEL_TEAM_ID,
+        projectId: process.env.VERCEL_PROJECT_ID,
+        token: process.env.VERCEL_TOKEN
+      };
+
+      // Check if custom repository is specified
+      if (botInstance.gitRepository) {
+        // Custom repository execution path
+        callbacks?.onStatus?.("Using custom repository for execution...", new Date().toISOString());
+        
+        // Validate custom git repository
+        if (!this.validateGitRepository(botInstance.gitRepository)) {
+          throw new Error(`Invalid or unsupported git repository: ${botInstance.gitRepository}`);
+        }
+
+        // Validate and sanitize build configuration
+        const isMonorepo = botInstance.isMonorepo || false;
+        const packagePath = botInstance.packagePath ? this.sanitizePackagePath(botInstance.packagePath) : (isMonorepo ? "packages/polyglot" : "");
+        const buildCommands = botInstance.buildCommands || ["pnpm install", "pnpm run build"];
+
+        // Validate build commands
+        if (!this.validateBuildCommands(buildCommands)) {
+          throw new Error('Invalid build commands detected. Only standard package managers and build tools are allowed.');
+        }
+
+        sandbox = await Sandbox.create({
+          source: {
+            url: botInstance.gitRepository,
+            type: "git",
+          },
+          runtime: sandboxConfig.runtime,
+          timeout: sandboxConfig.timeout,
+          teamId: sandboxConfig.teamId,
+          projectId: sandboxConfig.projectId,
+          token: sandboxConfig.token,
+        });
+
+        callbacks?.onStatus?.(`Sandbox created from ${botInstance.gitRepository}: ${sandbox.sandboxId}`, new Date().toISOString());
+
+        if (isMonorepo && packagePath) {
+          // Monorepo: install and build specific package
+          const fullPath = `/vercel/sandbox/${packagePath}`;
+          callbacks?.onStatus?.(`Installing dependencies for ${packagePath}...`, new Date().toISOString());
+          
+          for (const command of buildCommands) {
+            const [cmd, ...args] = command.split(' ');
+            callbacks?.onStatus?.(`Running: ${command}`, new Date().toISOString());
+            
+            const result = await sandbox.runCommand({
+              cmd,
+              args,
+              cwd: fullPath
+            });
+
+            if (result.exitCode !== 0) {
+              const stderr = typeof result.stderr === 'function' ? await result.stderr() : result.stderr;
+              throw new Error(`Command "${command}" failed in ${packagePath}: ${stderr}`);
+            }
+          }
+
+          callbacks?.onStatus?.(`Package ${packagePath} built successfully`, new Date().toISOString());
+        } else {
+          // Standalone repo: install and build at root
+          callbacks?.onStatus?.("Installing dependencies at repository root...", new Date().toISOString());
+          
+          for (const command of buildCommands) {
+            const [cmd, ...args] = command.split(' ');
+            callbacks?.onStatus?.(`Running: ${command}`, new Date().toISOString());
+            
+            const result = await sandbox.runCommand({
+              cmd,
+              args,
+              cwd: "/vercel/sandbox"
+            });
+
+            if (result.exitCode !== 0) {
+              const stderr = typeof result.stderr === 'function' ? await result.stderr() : result.stderr;
+              throw new Error(`Command "${command}" failed: ${stderr}`);
+            }
+          }
+
+          callbacks?.onStatus?.("Repository built successfully", new Date().toISOString());
+        }
+      } else {
+        // Direct Node.js execution (no repository)
+        callbacks?.onStatus?.("Creating clean Node.js sandbox...", new Date().toISOString());
+        
+        sandbox = await Sandbox.create({
+          runtime: sandboxConfig.runtime,
+          timeout: sandboxConfig.timeout,
+          teamId: sandboxConfig.teamId,
+          projectId: sandboxConfig.projectId,
+          token: sandboxConfig.token,
+        });
+
+        callbacks?.onStatus?.(`Clean Node.js sandbox created: ${sandbox.sandboxId}`, new Date().toISOString());
+      }
+
+      // Write strategy code to sandbox
+      await sandbox.writeFiles([
+        {
+          path: "strategy.js",
+          content: Buffer.from(wrapperCode, 'utf8')
+        }
+      ]);
+
+      // Execute strategy
+      let allOutput = '';
+      let allError = '';
+
+      const cmd = await sandbox.runCommand({
+        cmd: 'node',
+        args: ['strategy.js'],
+        cwd: '/vercel/sandbox',
+        detached: true,
+      });
+
+      // Stream logs if enabled
+      if (options.enableLogs && callbacks?.onLog) {
+        for await (const log of cmd.logs()) {
+          const logData = log.data.toString();
+
+          if (log.stream === "stdout") {
+            allOutput += logData;
+            const lines = logData.split('\n').filter((line: string) => line.trim());
+            for (const line of lines) {
+              // Stream all stdout lines as info logs
+              callbacks.onLog('info', line, new Date().toISOString());
+            }
+          } else if (log.stream === "stderr") {
+            allError += logData;
+            const lines = logData.split('\n').filter((line: string) => line.trim());
+            for (const line of lines) {
+              // Stream all stderr lines as error logs
+              callbacks.onLog('error', line, new Date().toISOString());
+            }
+          }
+        }
+      } else {
+        // Still collect output without streaming
+        for await (const log of cmd.logs()) {
+          if (log.stream === "stdout") {
+            allOutput += log.data.toString();
+          } else if (log.stream === "stderr") {
+            allError += log.data.toString();
+          }
+        }
+      }
+
+      // Get final result
+      const result = await cmd;
+
+      // Parse execution result
+      let logs: string[] = [];
+      let executionError: string | undefined;
+
+      if (allOutput) {
+        const lines = allOutput.split('\n').filter(line => line.trim());
+        
+        // Check for explicit error markers
+        const errorLine = lines.find(line => line.startsWith('STRATEGY_EXECUTION_ERROR:'));
+        if (errorLine) {
+          executionError = errorLine.replace('STRATEGY_EXECUTION_ERROR:', '').trim();
+        }
+        
+        // Include all output lines as logs (excluding error markers)
+        logs = lines.filter(line => !line.startsWith('STRATEGY_EXECUTION_ERROR:'));
+      }
+
+      // Check if strategy completed successfully by looking for completion marker
+      const hasCompletionMarker = allOutput.includes('STRATEGY_EXECUTION_COMPLETE');
+      
+      // Success is determined by exit code 0 (or undefined if not provided) and either completion marker or no errors
+      const exitCodeSuccess = result.exitCode === 0 || result.exitCode === undefined;
+      const success = exitCodeSuccess && (hasCompletionMarker || (!executionError && !allError.trim()));
+      const executionTime = Date.now() - startTime;
+
+      callbacks?.onStatus?.(`Execution completed - Success: ${success}`, new Date().toISOString());
+
+      const executionResult: StrategyExecutionResult = {
+        success,
+        result: success ? { message: 'Strategy executed successfully' } : undefined,
+        logs: options.enableLogs ? logs : undefined,
+        error: executionError || allError,
+        executionTime,
+        sandboxId: sandbox.sandboxId,
+        botContext
+      };
+
+      callbacks?.onResult?.(executionResult);
+
+      return executionResult;
+
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
+
+      await logger.error(`Strategy execution failed: ${errorMessage}`);
+
+      const executionResult: StrategyExecutionResult = {
+        success: false,
+        error: errorMessage,
+        executionTime,
+        sandboxId: sandbox?.sandboxId
+      };
+
+      callbacks?.onResult?.(executionResult);
+
+      return executionResult;
+
+    } finally {
+      // Clean up sandbox
+      if (sandbox) {
+        try {
+          await sandbox.stop();
+          callbacks?.onStatus?.('Sandbox cleaned up', new Date().toISOString());
+        } catch (cleanupError) {
+          callbacks?.onLog?.('warn', 'Failed to cleanup sandbox', new Date().toISOString());
+        }
+      }
+    }
+  }
+
+  /**
+   * Load bot by ID or return bot instance
+   * 
+   * @param bot - Bot instance or bot ID
+   * @returns Promise<Bot>
+   */
+  private async loadBot(bot: Bot | string): Promise<Bot> {
+    if (typeof bot === 'object') {
+      return bot;
+    }
+
+    const botId = bot;
+
+    // Try API first if enabled
+    if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS === 'true') {
+      try {
+        const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/bots/${botId}?userId=${encodeURIComponent(userId)}`;
+        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${apiUrl}`);
+        if (response.ok) {
+          const apiBot = await response.json();
+          return apiBot.bot || apiBot;
+        }
+      } catch (error) {
+        console.warn(`Failed to load bot ${botId} from API, falling back to static data:`, error);
+      }
+    }
+
+    // Fallback to static data
+    const appState = await loadAppStateConfigurableWithFallback();
+    const foundBot = appState.bots.list.find(b => b.id === botId);
+    
+    if (!foundBot) {
+      throw new Error(`Bot with ID '${botId}' not found in API or static data`);
+    }
+
+    return foundBot;
   }
 }
 

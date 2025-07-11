@@ -150,14 +150,19 @@ function shouldExecuteBot(bot: Bot, currentTime: Date): boolean {
     // Parse the cron expression
     const interval = CronExpressionParser.parse(bot.cronSchedule);
 
-    // If no last execution, execute now
+    // If no last execution, check if it's time for the first execution
     if (!bot.lastExecution) {
-      return true;
+      const nextScheduled = interval.next();
+      return isBefore(nextScheduled.toDate(), currentTime);
     }
 
     // Get the next scheduled time after the last execution
     const lastExecution = parseISO(bot.lastExecution);
-    const nextScheduled = interval.next();
+    // Reset interval to start from last execution time
+    const intervalFromLast = CronExpressionParser.parse(bot.cronSchedule, {
+      currentDate: lastExecution
+    });
+    const nextScheduled = intervalFromLast.next();
 
     // Execute if current time is past the next scheduled time
     return isBefore(nextScheduled.toDate(), currentTime);
@@ -185,9 +190,16 @@ async function executeBotStrategy(bot: Bot): Promise<{
       bot.strategy,
       bot,
       {
-        testMode: false, // Use real mode for scheduled execution
         timeout: 2, // 2 minute timeout
-        enableLogs: true
+        enableLogs: false // Disable streaming logs for cron execution
+      },
+      {
+        onStatus: (message) => {
+          console.log(`[BotExecutor] ${bot.id}: ${message}`);
+        },
+        onLog: (level, message) => {
+          console.log(`[BotExecutor] ${bot.id} [${level}]: ${message}`);
+        }
       }
     );
 

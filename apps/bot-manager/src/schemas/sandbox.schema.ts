@@ -68,54 +68,20 @@ export const BotContextSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   status: z.enum(['active', 'paused', 'error', 'inactive', 'setup']),
-  wallet_address: z.string().regex(/^S[PT][0-9A-Z]{37,39}$/, 'Invalid Stacks address format'),
   created_at: z.string().datetime(),
   last_active: z.string().datetime(),
-  
-  // Execution mode
-  testMode: z.boolean().optional(),
-  
-  // Wallet credentials (only available in real mode)
+
+
+  // Wallet credentials
   walletCredentials: z.object({
     privateKey: z.string().optional(),
-  }).optional(),
-  
-  // Unified balance object
-  balance: z.record(z.string(), z.number().min(0)),
-  
-  // Bot trading methods are functions - we'll define their signatures as literal types
-  // These will be injected at runtime by the sandbox
-  swap: z.function()
-    .args(z.string(), z.string(), z.number(), z.number().optional())
-    .returns(z.promise(SwapResultSchema))
-    .optional(),
-  addLiquidity: z.function()
-    .args(z.string(), z.string(), z.number(), z.number(), z.number().optional())
-    .returns(z.promise(LiquidityResultSchema))
-    .optional(),
-  removeLiquidity: z.function()
-    .args(z.string(), z.number(), z.number().optional())
-    .returns(z.promise(RemoveLiquidityResultSchema))
-    .optional(),
-  claimRewards: z.function()
-    .args(z.string())
-    .returns(z.promise(ClaimRewardsResultSchema))
-    .optional(),
-  stake: z.function()
-    .args(z.string(), z.number())
-    .returns(z.promise(StakeResultSchema))
-    .optional(),
-  unstake: z.function()
-    .args(z.string(), z.number())
-    .returns(z.promise(StakeResultSchema))
-    .optional(),
+  })
 });
 
 /**
  * Strategy execution options schema
  */
 export const StrategyExecutionOptionsSchema = z.object({
-  testMode: z.boolean().optional(),
   timeout: z.number().int().positive().optional(),
   enableLogs: z.boolean().optional(),
 });
@@ -138,7 +104,6 @@ export const StrategyExecutionResultSchema = z.object({
  */
 export const ApiExecuteRequestSchema = z.object({
   code: z.string().min(1),
-  testMode: z.boolean().optional(),
   timeout: z.number().int().positive().optional(),
   enableLogs: z.boolean().optional(),
 });
@@ -155,6 +120,15 @@ export const ApiExecuteResponseSchema = z.object({
   sandboxId: z.string().optional(),
   botContext: z.any().optional(),
 });
+
+/**
+ * Execution callbacks interface for optional real-time updates
+ */
+export interface ExecutionCallbacks {
+  onStatus?: (message: string, timestamp?: string) => void;
+  onLog?: (level: 'info' | 'error' | 'warn', message: string, timestamp?: string) => void;
+  onResult?: (result: StrategyExecutionResult) => void;
+}
 
 // Infer TypeScript types from schemas
 export type SandboxConfig = z.infer<typeof SandboxConfigSchema>;

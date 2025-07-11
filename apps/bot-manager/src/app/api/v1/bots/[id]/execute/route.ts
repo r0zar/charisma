@@ -21,7 +21,7 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { code, testMode = true, timeout = 2, enableLogs = true } = body;
+    const { code, timeout = 2, enableLogs = true } = body;
 
     // Validate required fields
     if (!code || typeof code !== 'string') {
@@ -121,7 +121,6 @@ export async function POST(
 
     // Execute strategy in sandbox
     const result = await sandboxService.executeStrategy(code, bot, {
-      testMode,
       timeout,
       enableLogs
     });
@@ -209,7 +208,6 @@ export async function GET(
       canExecute: true,
       supportedRuntimes: ['node22'],
       maxTimeout: 5, // minutes
-      testModeAvailable: true,
       timestamp: new Date().toISOString(),
     });
 

@@ -7,7 +7,7 @@ export const botListData: Bot[] = [
   {
     id: "SPZL9EBWR5GJIC3SZWGRBW5SIIQRBK0XPPSK9BK3", // Bot's wallet address
     name: "Seaking",
-    strategy: "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+    strategy: "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
     status: "inactive",
     ownerId: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS", // Owner's STX address
     createdAt: "2025-06-29T12:11:36.944Z",
@@ -21,7 +21,7 @@ export const botListData: Bot[] = [
   {
     id: "SP1M92JFF8JJ5ZSQ8NCNHFPRERUO96ON6SA9HMU5", // Bot's wallet address
     name: "Ninetales",
-    strategy: "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+    strategy: "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
     status: "paused",
     ownerId: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS", // Owner's STX address
     createdAt: "2025-07-09T09:07:36.944Z",
@@ -35,7 +35,7 @@ export const botListData: Bot[] = [
   {
     id: "SP061XR37HS8TJH4SBVW7FAI8FOPP49J9BBIAIAL", // Bot's wallet address
     name: "Sandshrew",
-    strategy: "console.log('🚀 Starting strategy for', bot.name);\nconsole.log('Balance:', bot.balance.STX, 'STX');\n\nif (bot.balance.STX > 1000000) {\n  await bot.swap('STX', 'USDA', 500000);\n  console.log('✅ Swap completed');\n}",
+    strategy: "console.log('🚀 Starting strategy for', bot.name);\nconsole.log('Hello World!')\n\nif (bot.balance.STX > 1000000) {\n  await bot.swap('STX', 'USDA', 500000);\n  console.log('✅ Swap completed');\n}",
     status: "error",
     ownerId: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS", // Owner's STX address
     createdAt: "2025-07-04T02:26:36.944Z",
@@ -49,7 +49,7 @@ export const botListData: Bot[] = [
   {
     id: "STOVY3Q6T0M95QUKXYOM2W8JN6UCUCDPH75P7KDU", // Bot's wallet address
     name: "Doduo",
-    strategy: "console.log('🚀 Starting strategy for', bot.name);\nconsole.log('Balance:', bot.balance.STX, 'STX');\n\nif (bot.balance.STX > 1000000) {\n  await bot.swap('STX', 'USDA', 500000);\n  console.log('✅ Swap completed');\n}",
+    strategy: "console.log('🚀 Starting strategy for', bot.name);\nconsole.log('Hello World!')\n\nif (bot.balance.STX > 1000000) {\n  await bot.swap('STX', 'USDA', 500000);\n  console.log('✅ Swap completed');\n}",
     status: "inactive",
     ownerId: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS", // Owner's STX address
     createdAt: "2025-07-05T14:34:36.944Z",
@@ -63,7 +63,7 @@ export const botListData: Bot[] = [
   {
     id: "SPK0DIL2R9COFLOI78XNQ3ALEK7BW17PGJEWOET2", // Bot's wallet address
     name: "Seaking",
-    strategy: "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+    strategy: "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
     status: "active",
     ownerId: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS", // Owner's STX address
     createdAt: "2025-07-03T04:55:36.944Z",

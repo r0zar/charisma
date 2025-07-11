@@ -63,11 +63,23 @@ export const BotSchema = z.object({
   walletIv: z.string().optional(), // Encryption IV
   publicKey: z.string().optional(), // Public key (safe to display)
   
+  // Repository configuration (optional - defaults to charisma repo)
+  gitRepository: z.string().url().optional(), // Custom git repository URL
+  isMonorepo: z.boolean().optional(), // Whether the repo is a monorepo
+  packagePath: z.string().optional(), // Subpath for monorepo packages (e.g., "packages/polyglot")
+  buildCommands: z.array(z.string()).optional(), // Custom build commands
+  
 });
 
 export const CreateBotRequestSchema = z.object({
   name: z.string().min(1),
   strategy: z.string().min(1), // Full JavaScript code as string
+  
+  // Repository configuration (optional)
+  gitRepository: z.string().url().optional(),
+  isMonorepo: z.boolean().optional(),
+  packagePath: z.string().optional(),
+  buildCommands: z.array(z.string()).optional(),
 });
 
 export const BotStatsSchema = z.object({

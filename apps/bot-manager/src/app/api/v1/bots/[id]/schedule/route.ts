@@ -127,9 +127,8 @@ export async function PUT(
     const { id: botId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
-    const useDefault = searchParams.get('default') === 'true';
     
-    if (!userId && !useDefault) {
+    if (!userId) {
       return NextResponse.json(
         { 
           error: 'Missing userId',
@@ -184,7 +183,7 @@ export async function PUT(
       }
 
       console.log(`[BotScheduleAPI] Authenticated request from ${verificationResult.signer} for bot ${botId}`);
-    } else if (!useDefault) {
+    } else {
       console.warn(`[BotScheduleAPI] Unauthenticated request for bot ${botId} from user ${userId}`);
     }
     
@@ -227,42 +226,6 @@ export async function PUT(
       );
     }
 
-    // Handle mock data scenario
-    if (useDefault || !config.enableAPIBots) {
-      // For mock data, just return success response
-      let nextExecution: string | undefined;
-      if (isScheduled && cronSchedule) {
-        try {
-          const interval = CronExpressionParser.parse(cronSchedule);
-          nextExecution = interval.next().toISOString() || undefined;
-        } catch (error) {
-          return NextResponse.json(
-            { 
-              error: 'Invalid cron expression',
-              message: `Invalid cron schedule: ${cronSchedule}`,
-              timestamp: new Date().toISOString(),
-            },
-            { status: 400 }
-          );
-        }
-      }
-
-      return NextResponse.json(
-        {
-          success: true,
-          message: `Bot scheduling ${isScheduled ? 'enabled' : 'disabled'} (mock mode)`,
-          schedule: {
-            isScheduled,
-            cronSchedule: isScheduled ? cronSchedule : undefined,
-            nextExecution: isScheduled ? nextExecution : undefined,
-            lastExecution: undefined,
-            executionCount: 0,
-          },
-          timestamp: new Date().toISOString(),
-        },
-        { status: 200 }
-      );
-    }
     
     // Validate cron expression if scheduling is enabled
     if (isScheduled && cronSchedule) {
@@ -281,7 +244,7 @@ export async function PUT(
     }
     
     // Get bot
-    const bot = await botDataStore.getBot(userId || 'default-user', botId);
+    const bot = await botDataStore.getBot(userId, botId);
     if (!bot) {
       return NextResponse.json(
         { 
@@ -327,7 +290,7 @@ export async function PUT(
     };
     
     // Save updated bot
-    await botDataStore.updateBot(userId || 'default-user', updatedBot);
+    await botDataStore.updateBot(userId, updatedBot);
     
     console.log(`[BotScheduleAPI] Bot ${botId} scheduling ${isScheduled ? 'enabled' : 'disabled'}${cronSchedule ? ` with schedule: ${cronSchedule}` : ''}`);
     

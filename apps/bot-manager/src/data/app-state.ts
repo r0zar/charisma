@@ -329,7 +329,7 @@ export const appState: AppState = {
       {
         "id": "SP395B5MZ93VATE5KV6GVQ6VAP9N0FWY3ND2RJ1RY",
         "name": "Parasect",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
         "status": "setup",
         "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
         "createdAt": "2025-07-05T20:46:16.453Z",
@@ -345,7 +345,7 @@ export const appState: AppState = {
       {
         "id": "SP3GMN0SH7G303HZAQG51ZYVMAYNNBFE8GB07V2KV",
         "name": "Omanyte",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
         "status": "setup",
         "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
         "createdAt": "2025-07-05T14:40:16.550Z",
@@ -361,7 +361,7 @@ export const appState: AppState = {
       {
         "id": "SP32JMY5YNZEMZPTF1KPZYB38PETW774XQ3BP3K3D",
         "name": "Magnemite",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
         "status": "setup",
         "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
         "createdAt": "2025-07-05T20:17:16.641Z",
@@ -377,7 +377,7 @@ export const appState: AppState = {
       {
         "id": "SPK2K9H9DRG2C50KGARFJZT9TZFR4PFA7SWS0ZAS",
         "name": "Kakuna",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
         "status": "setup",
         "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
         "createdAt": "2025-07-04T23:49:16.733Z",
@@ -393,7 +393,7 @@ export const appState: AppState = {
       {
         "id": "SP12WAGTKRMMZC1M3Y7X4CGC2NET2ST75M4BHYA7R",
         "name": "Jolteon",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  console.log('Current bot balance:', bot.balance.STX, 'STX');\n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
         "status": "setup",
         "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
         "createdAt": "2025-07-10T20:23:16.836Z",

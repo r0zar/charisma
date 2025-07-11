@@ -2,23 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Next.js (bot-manager)",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/apps/bot-manager/node_modules/.bin/next",
-      "args": ["dev", "-p", "3420"],
-      "cwd": "${workspaceFolder}/apps/bot-manager",
-      "env": {
-        "NODE_ENV": "development"
-      },
-      "console": "integratedTerminal",
-      "serverReadyAction": {
-        "pattern": "ready - started server on .+, url: (https?://.+)",
-        "uriFormat": "%s",
-        "action": "debugWithChrome"
-      }
-    },
-    {
       "name": "Debug Node Script",
       "type": "node",
       "request": "launch",

@@ -31,20 +31,56 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
 
   const [mounted, setMounted] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [publicBots, setPublicBots] = React.useState<any[]>([]);
+  const [publicLoading, setPublicLoading] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Load public bots for viewing other users' bots
+  React.useEffect(() => {
+    const loadPublicBots = async () => {
+      if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS !== 'true') return;
+      
+      setPublicLoading(true);
+      try {
+        const response = await fetch('/api/v1/bots/public');
+        if (response.ok) {
+          const data = await response.json();
+          setPublicBots(data.bots || []);
+        }
+      } catch (error) {
+        console.error('Failed to load public bots:', error);
+      } finally {
+        setPublicLoading(false);
+      }
+    };
+
+    if (mounted) {
+      loadPublicBots();
+    }
+  }, [mounted]);
+
   const bot = React.useMemo(() => {
-    return bots.find(b => b.id === params.id);
-  }, [bots, params.id]);
+    // First check user's own bots
+    const userBot = bots.find(b => b.id === params.id);
+    if (userBot) return userBot;
+    
+    // Then check public bots
+    const publicBot = publicBots.find(b => b.id === params.id);
+    return publicBot;
+  }, [bots, publicBots, params.id]);
+
+  const isPublicBot = React.useMemo(() => {
+    return !bots.find(b => b.id === params.id) && publicBots.find(b => b.id === params.id);
+  }, [bots, publicBots, params.id]);
 
   React.useEffect(() => {
-    if (mounted && bots.length > 0 && !bot) {
+    if (mounted && bots.length > 0 && publicBots.length > 0 && !bot) {
       router.push('/bots');
     }
-  }, [mounted, bots, bot, router]);
+  }, [mounted, bots, publicBots, bot, router]);
 
   const handleStart = async () => {
     if (!bot) return;
@@ -76,7 +112,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
     return lastSegment;
   };
 
-  if (!mounted || loading || !bot) {
+  if (!mounted || loading || publicLoading || !bot) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -103,7 +139,14 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
           <div className="flex items-center gap-3">
             <BotAvatar bot={bot} size="lg" />
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{bot.name}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-foreground">{bot.name}</h1>
+                {isPublicBot && (
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Public Bot
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">{getStrategyDisplayName(bot.strategy)}</span>
               </div>
@@ -123,26 +166,28 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
             Refresh
           </Button>
 
-          {bot.status === 'active' ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePause}
-              className="border-yellow-600 text-yellow-400 hover:bg-yellow-500/10"
-            >
-              <Pause className="w-4 h-4 mr-2" />
-              Pause
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStart}
-              className="border-green-600 text-green-400 hover:bg-green-500/10"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Start
-            </Button>
+          {!isPublicBot && (
+            bot.status === 'active' ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePause}
+                className="border-yellow-600 text-yellow-400 hover:bg-yellow-500/10"
+              >
+                <Pause className="w-4 h-4 mr-2" />
+                Pause
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleStart}
+                className="border-green-600 text-green-400 hover:bg-green-500/10"
+              >
+                <Play className="w-4 h-4 mr-2" />
+                Start
+              </Button>
+            )
           )}
 
         </div>
@@ -150,7 +195,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
 
       {/* Tab Navigation */}
       <Tabs value={getCurrentTab()} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border-border">
+        <TabsList className={`grid w-full bg-card border-border ${isPublicBot ? 'grid-cols-2' : 'grid-cols-4'}`}>
           <TabsTrigger value="overview" asChild>
             <Link
               href={`/bots/${bot.id}`}
@@ -169,24 +214,28 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
               Strategy
             </Link>
           </TabsTrigger>
-          <TabsTrigger value="scheduling" asChild>
-            <Link
-              href={`/bots/${bot.id}/scheduling`}
-              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Scheduling
-            </Link>
-          </TabsTrigger>
-          <TabsTrigger value="wallet" asChild>
-            <Link
-              href={`/bots/${bot.id}/wallet`}
-              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
-            >
-              <Wallet className="w-4 h-4 mr-2" />
-              Wallet
-            </Link>
-          </TabsTrigger>
+          {!isPublicBot && (
+            <>
+              <TabsTrigger value="scheduling" asChild>
+                <Link
+                  href={`/bots/${bot.id}/scheduling`}
+                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Scheduling
+                </Link>
+              </TabsTrigger>
+              <TabsTrigger value="wallet" asChild>
+                <Link
+                  href={`/bots/${bot.id}/wallet`}
+                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground"
+                >
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Wallet
+                </Link>
+              </TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         {/* Page Content */}

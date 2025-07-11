@@ -11,7 +11,7 @@ import {
   Play,
   RefreshCw,
 } from 'lucide-react';
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { CountdownTimer } from '@/components/countdown-timer';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
@@ -88,7 +89,7 @@ export default function BotSchedulingPage() {
       const userId = getUserId();
       const message = `update_schedule_${bot.id}`;
 
-      const response = await authenticatedFetchWithTimestamp(`/api/v1/bots/${bot.id}/schedule?userId=${encodeURIComponent(userId)}&default=true`, {
+      const response = await authenticatedFetchWithTimestamp(`/api/v1/bots/${bot.id}/schedule?userId=${encodeURIComponent(userId)}`, {
         method: 'PUT',
         message,
         headers: {
@@ -268,9 +269,16 @@ export default function BotSchedulingPage() {
 
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Next Execution</span>
-                <span className="text-sm text-card-foreground">
-                  {(localBot || bot)?.nextExecution ? formatRelativeTime((localBot || bot)!.nextExecution!) : 'Not scheduled'}
-                </span>
+                <div className="text-sm text-card-foreground">
+                  {(localBot || bot)?.nextExecution ? (
+                    <CountdownTimer
+                      targetDate={(localBot || bot)!.nextExecution!}
+                      className="text-sm"
+                    />
+                  ) : (
+                    'Not scheduled'
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">

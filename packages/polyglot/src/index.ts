@@ -476,3 +476,37 @@ export async function resolveBnsNameToAddress(name: string): Promise<string | nu
     return null;
   }
 }
+
+/**
+ * Interface representing all exported functions from the polyglot package
+ * This can be used for type definitions in editors and other tools
+ */
+export interface PolyglotAPI {
+  // Contract interface and read-only functions
+  getContractInterface(contractAddress: string, contractName: string, tip?: string): Promise<ContractInterface>;
+  callReadOnlyFunction(contractAddress: string, contractName: string, functionName: string, args?: ClarityValue[], sender?: string): Promise<{ value: any, type: any } | null>;
+  callReadOnly(contractId: string, functionName: string, args?: ClarityValue[]): Promise<any>;
+  parseContractAbi(abiString: string): ContractAbi | null;
+  getContractInfo(contract_id: string, unanchored?: boolean): Promise<ContractInfo | null>;
+  getContractInfoWithParsedAbi(contract_id: string, unanchored?: boolean): Promise<ContractInfoWithParsedAbi | null>;
+  
+  // Account and balance functions
+  getAccountBalances(principal: string, params?: { unanchored?: boolean; until_block?: string; }): Promise<AccountBalancesResponse | null>;
+  fetchStxBalance(address: string): Promise<number>;
+  getStxTotalSupply(): Promise<number>;
+  
+  // Transaction functions
+  getRecentTransactions(params?: { limit?: number; offset?: number; type?: Array<"coinbase" | "token_transfer" | "smart_contract" | "contract_call" | "poison_microblock">; unanchored?: boolean; }): Promise<TransactionResults>;
+  getMempoolTransactions(params?: { sender_address?: string; recipient_address?: string; address?: string; limit?: number; offset?: number; unanchored?: boolean; }): Promise<TransactionResults>;
+  getTransactionDetails(txId: string): Promise<Transaction>;
+  getTransactionEvents(params?: { tx_id?: string; address?: string; limit?: number; offset?: number; type?: Array<'smart_contract_log' | 'stx_lock' | 'stx_asset' | 'fungible_token_asset' | 'non_fungible_token_asset'>; }): Promise<any>;
+  
+  // Contract events
+  fetchContractEvents(address: string, options?: { limit?: number; offset?: number; }): Promise<TransactionEventsResponse>;
+  fetcHoldToEarnLogs(contractAddress: string): Promise<any>;
+  
+  // BNS functions
+  getBnsNamesByAddress(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string[]>;
+  getPrimaryBnsName(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string | null>;
+  resolveBnsNameToAddress(name: string): Promise<string | null>;
+}

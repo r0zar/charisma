@@ -2,133 +2,73 @@
  * Example Bot Strategy for Sandbox Execution
  * 
  * This demonstrates the expected format for bot strategy code.
- * The strategy code should define an async `execute` function that
- * receives a `bot` context object with trading methods.
+ * The bot object now has access to the @stacks/transactions library via bot.stxTx
+ * and the bot's wallet credentials for real blockchain interactions.
  */
 
-import type { BotContext, StrategyResult, Trade } from '@/types/sandbox';
+// Example strategy: Simple STX transfer
+console.log('🚀 Starting custom strategy for bot:', bot.name);
+console.log('📊 Bot context keys:', Object.keys(bot));
 
-// Example strategy: Simple DCA (Dollar Cost Averaging) with yield farming
-async function execute({ bot }: { bot: BotContext }): Promise<StrategyResult> {
-  console.log('🚀 Starting custom strategy for bot:', bot.name);
-  console.log('📊 Current STX balance:', bot.balance.STX);
-  
-  // Strategy metadata (required)
-  const strategy = {
-    name: 'DCA Yield Farmer',
-    description: 'Dollar cost averaging with yield farming',
-    version: '1.0.0',
-    author: 'Bot Manager',
-    riskLevel: 'medium' as const
-  };
-
-  console.log(`💡 Running strategy: ${strategy.name} v${strategy.version}`);
-
-  // Example strategy logic
-  const results = {
-    trades: [] as Trade[],
-    totalProfit: 0,
-    errors: [] as string[]
-  };
-
-  try {
-    // Check if we have enough STX to trade
-    if (bot.balance.STX < 100000) { // 0.1 STX minimum
-      console.log('⚠️  Insufficient STX balance for trading');
-      return {
-        success: false,
-        error: 'Insufficient balance',
-        strategy,
-        results
-      };
-    }
-
-    // Example trade: Swap 50% of STX for USDA
-    const swapAmount = Math.floor(bot.balance.STX * 0.5);
-    console.log(`🔄 Attempting to swap ${swapAmount} STX for USDA`);
-    
-    const swapResult = await bot.swap('STX', 'USDA', swapAmount, 0.5);
-    console.log('✅ Swap result:', JSON.stringify(swapResult, null, 2));
-    
-    if (swapResult.success) {
-      results.trades.push({
-        type: 'swap',
-        from: 'STX',
-        to: 'USDA',
-        amountIn: swapAmount,
-        amountOut: swapResult.amountReceived,
-        txid: swapResult.txid
-      });
-      
-      // Example: Add liquidity with remaining STX and received USDA
-      const liquiditySTX = Math.floor(bot.balance.STX * 0.3);
-      const liquidityUSDA = Math.floor(swapResult.amountReceived * 0.8);
-      
-      console.log(`💧 Adding liquidity: ${liquiditySTX} STX + ${liquidityUSDA} USDA`);
-      
-      const liquidityResult = await bot.addLiquidity('STX', 'USDA', liquiditySTX, liquidityUSDA, 0.5);
-      console.log('✅ Liquidity result:', JSON.stringify(liquidityResult, null, 2));
-      
-      if (liquidityResult.success) {
-        results.trades.push({
-          type: 'add_liquidity',
-          token1: 'STX',
-          token2: 'USDA',
-          amount1: liquiditySTX,
-          amount2: liquidityUSDA,
-          lpTokensReceived: liquidityResult.lpTokensReceived,
-          txid: liquidityResult.txid
-        });
-        
-        results.totalProfit = liquidityResult.lpTokensReceived * 0.05; // Estimated 5% APY
-      }
-    }
-
-    // Example: Claim any available rewards
-    console.log('🎁 Checking for claimable rewards...');
-    const rewardResult = await bot.claimRewards('STX-USDA-LP-POOL');
-    console.log('✅ Reward claim result:', JSON.stringify(rewardResult, null, 2));
-    
-    if (rewardResult.success) {
-      results.totalProfit += rewardResult.amountClaimed;
-    }
-
-    console.log(`📈 Strategy execution completed. Total estimated profit: ${results.totalProfit}`);
-    
-    return {
-      success: true,
-      strategy,
-      results,
-      summary: `Executed ${results.trades.length} trades with estimated profit of ${results.totalProfit.toFixed(2)} tokens`
-    };
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Strategy execution error:', errorMessage);
-    results.errors.push(errorMessage);
-    
-    return {
-      success: false,
-      error: errorMessage,
-      strategy,
-      results
-    };
+try {
+  // Check if we have stxTx library available
+  if (!bot.stxTx) {
+    console.error('❌ stxTx library not available');
+    return;
   }
-}
 
-// Simple strategy example
-async function executeSimple({ bot }: { bot: BotContext }): Promise<StrategyResult> {
-  console.log('🤖 Simple strategy starting...');
-  console.log('Bot name:', bot.name);
-  console.log('STX Balance:', bot.balance.STX);
+  // Check if we have wallet credentials
+  if (!bot.walletCredentials?.privateKey) {
+    console.error('❌ Bot wallet credentials not available');
+    return;
+  }
+
+  console.log('✅ Bot has stxTx library and wallet credentials');
+
+  // Example: Create a private key object from the bot's credentials
+  const privateKey = bot.stxTx.createStacksPrivateKey(bot.walletCredentials.privateKey);
+  const senderAddress = bot.stxTx.getAddressFromPrivateKey(privateKey.data, bot.stxTx.TransactionVersion.Mainnet);
   
-  // Just log some info and return
-  return {
-    success: true,
-    message: 'Simple strategy completed',
-    balance: bot.balance
+  console.log('📍 Bot address:', senderAddress);
+
+  // Example: Create a simple STX transfer transaction (not broadcasted)
+  const recipientAddress = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'; // Example address
+  const amount = bot.stxTx.uintCV(1000000); // 1 STX in microSTX
+  
+  console.log(`💸 Creating STX transfer of 1 STX to ${recipientAddress}`);
+  
+  const txOptions = {
+    recipient: recipientAddress,
+    amount: amount,
+    senderKey: privateKey,
+    network: new bot.stxTx.StacksMainnet(),
+    memo: 'Bot strategy test transaction',
+    nonce: bot.stxTx.uintCV(0), // In real usage, you'd need to fetch the correct nonce
+    fee: bot.stxTx.uintCV(1000), // 0.001 STX fee
+    anchorMode: bot.stxTx.AnchorMode.Any
   };
+
+  const transaction = await bot.stxTx.makeSTXTokenTransfer(txOptions);
+  
+  console.log('✅ Transaction created successfully');
+  console.log('🔗 Transaction ID would be:', transaction.txid());
+  console.log('📄 Transaction size:', transaction.serialize().length, 'bytes');
+  
+  // Note: In a real strategy, you would broadcast the transaction like this:
+  // const broadcastResult = await bot.stxTx.broadcastTransaction(transaction, network);
+  // console.log('🚀 Transaction broadcast result:', broadcastResult);
+  
+  console.log('📈 Strategy execution completed successfully');
+
+} catch (error) {
+  console.error('❌ Strategy execution error:', error.message);
+  console.error('Stack trace:', error.stack);
 }
 
-// The execute function is called by the sandbox wrapper
-// Use either execute or executeSimple depending on your needs
+// Simple example showing access to stxTx library
+console.log('🔧 Available stxTx functions:');
+console.log('- makeSTXTokenTransfer:', typeof bot.stxTx?.makeSTXTokenTransfer);
+console.log('- makeContractCall:', typeof bot.stxTx?.makeContractCall);
+console.log('- broadcastTransaction:', typeof bot.stxTx?.broadcastTransaction);
+console.log('- uintCV:', typeof bot.stxTx?.uintCV);
+console.log('- stringAsciiCV:', typeof bot.stxTx?.stringAsciiCV);

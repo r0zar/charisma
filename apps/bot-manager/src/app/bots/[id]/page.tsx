@@ -15,6 +15,7 @@ import React from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CountdownTimer } from '@/components/countdown-timer';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
@@ -153,7 +154,10 @@ export default function BotOverviewPage() {
                 {bot.isScheduled && bot.nextExecution && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Next Run</span>
-                    <span className="text-card-foreground">{formatRelativeTime(bot.nextExecution)}</span>
+                    <CountdownTimer 
+                      targetDate={bot.nextExecution} 
+                      className="text-sm"
+                    />
                   </div>
                 )}
 

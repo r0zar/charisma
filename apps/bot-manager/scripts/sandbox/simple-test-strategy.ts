@@ -1,40 +1,51 @@
 /**
  * Simple Test Strategy
  * 
- * Minimal example for testing console.log output and basic functionality
+ * Minimal example for testing console.log output and stxTx library access
  */
 
-import type { BotContext, StrategyResult } from '@/types/sandbox';
+console.log('🚀 Starting custom strategy...');
+console.log('Bot ID:', bot.id);
+console.log('Bot Name:', bot.name);
+console.log('Bot context keys:', Object.keys(bot));
 
-async function execute({ bot }: { bot: BotContext }): Promise<StrategyResult> {
-  console.log('🚀 Starting custom strategy...');
-  console.log('Bot ID:', bot.id);
-  console.log('Bot Name:', bot.name);
-  console.log('Wallet Address:', bot.wallet_address);
+// Test polyglot library access
+if (!bot.polyglot) {
+  console.error('❌ polyglot library not available');
+  return;
+}
+
+if (!bot.walletCredentials?.privateKey) {
+  console.error('❌ Bot wallet credentials not available');
+  return;
+}
+
+console.log('✅ Bot has polyglot library and wallet credentials');
+
+// Test basic polyglot functionality
+console.log('🧪 Testing polyglot library functions...');
+
+try {
+  // Test polyglot package access
+  console.log('✅ Polyglot package available');
+  console.log('  - Polyglot keys:', Object.keys(bot.polyglot));
   
-  console.log('💰 Current Balances:');
-  for (const [token, balance] of Object.entries(bot.balance)) {
-    console.log(`  ${token}: ${balance}`);
+  // Test if polyglot has expected functions
+  if (bot.polyglot.createStacksPrivateKey) {
+    console.log('✅ createStacksPrivateKey function available');
   }
   
-  console.log('🧪 Testing mock trading functions...');
+  if (bot.polyglot.getAddressFromPrivateKey) {
+    console.log('✅ getAddressFromPrivateKey function available');
+  }
   
-  // Test a simple swap
-  console.log('🔄 Testing swap: 1000 STX -> USDA');
-  const swapResult = await bot.swap('STX', 'USDA', 1000);
-  console.log('Swap result:', JSON.stringify(swapResult, null, 2));
+  if (bot.polyglot.uintCV) {
+    console.log('✅ Clarity value functions available');
+  }
   
-  // Test staking
-  console.log('🥩 Testing stake: 500 STX');
-  const stakeResult = await bot.stake('test-pool', 500);
-  console.log('Stake result:', JSON.stringify(stakeResult, null, 2));
-  
-  console.log('✅ Strategy execution completed successfully!');
-  
-  return {
-    success: true,
-    message: 'Simple test strategy completed',
-    trades_executed: 2,
-    final_balance: bot.balance
-  };
+} catch (error) {
+  console.error('❌ polyglot library test failed:', error.message);
+  console.error('Stack trace:', error.stack);
 }
+
+console.log('✅ Strategy execution completed successfully!');

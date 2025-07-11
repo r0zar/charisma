@@ -43,7 +43,7 @@ export function parseStrategyCode(code: string): ParsedStrategy {
       try {
         // Create a safe evaluation context
         const metadataStr = metadataMatch[1];
-        
+
         // Replace any potentially dangerous code patterns
         const safeMetadataStr = metadataStr
           .replace(/require\s*\(/g, 'null;(') // Disable require
@@ -51,11 +51,11 @@ export function parseStrategyCode(code: string): ParsedStrategy {
           .replace(/process\./g, 'null.') // Disable process access
           .replace(/global\./g, 'null.') // Disable global access
           .replace(/window\./g, 'null.'); // Disable window access
-        
+
         // Use Function constructor for safer evaluation than eval
-        const evalFn = new Function(`return ${  safeMetadataStr}`);
+        const evalFn = new Function(`return ${safeMetadataStr}`);
         const metadata = evalFn();
-        
+
         // Validate required metadata fields
         if (!metadata.name || typeof metadata.name !== 'string') {
           result.errors.push('Metadata must have a valid name field');
@@ -63,14 +63,14 @@ export function parseStrategyCode(code: string): ParsedStrategy {
         if (!metadata.description || typeof metadata.description !== 'string') {
           result.errors.push('Metadata must have a valid description field');
         }
-        
+
         // Validate schedule if present
         if (metadata.schedule) {
           if (!metadata.schedule.cron || typeof metadata.schedule.cron !== 'string') {
             result.errors.push('Schedule must have a valid cron field');
           }
         }
-        
+
         if (result.errors.length === 0) {
           result.metadata = metadata;
         }
@@ -122,7 +122,7 @@ export function getStrategyDisplayName(code: string): string {
   if (parsed.metadata?.name) {
     return parsed.metadata.name;
   }
-  
+
   // Generate hash-based name for custom strategies
   const hash = simpleHash(code);
   return `0x${hash.slice(0, 8).toLowerCase()}`;
@@ -133,7 +133,7 @@ export function getStrategyDisplayName(code: string): string {
  */
 export function getStrategyType(code: string): string {
   const parsed = parseStrategyCode(code);
-  
+
   // Check metadata name for type hints
   if (parsed.metadata?.name) {
     const name = parsed.metadata.name.toLowerCase();
@@ -175,7 +175,7 @@ export function formatCronExpression(cron: string): string {
 
     // Generic formatting
     let result = '';
-    
+
     if (minute.startsWith('*/')) {
       result += `Every ${minute.slice(2)} minutes`;
     } else if (minute === '0') {
@@ -202,14 +202,14 @@ export function getStrategyTemplates() {
       description: 'Simple logging example',
       type: 'custom',
       code: `console.log('🚀 Starting strategy for', bot.name);
-console.log('Balance:', bot.balance.STX, 'STX');
+console.log('Hello World!')
 
 if (bot.balance.STX > 1000000) {
   await bot.swap('STX', 'USDA', 500000);
   console.log('✅ Swap completed');
 }`
     },
-    
+
     fetchExample: {
       name: 'Fetch Example',
       description: 'HTTP request and logging',
@@ -221,7 +221,7 @@ try {
   const data = await response.json();
   console.log('📊 Bitcoin price data:', data.bitcoin.usd);
   
-  console.log('Current bot balance:', bot.balance.STX, 'STX');
+  
 } catch (error) {
   console.log('❌ Fetch failed:', error.message);
 }`

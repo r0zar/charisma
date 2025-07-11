@@ -9,7 +9,6 @@ import type { StrategyExecutionResult } from "@/schemas/sandbox.schema";
 
 export interface SandboxExecuteRequest {
   code: string;
-  testMode?: boolean;
   timeout?: number; // in minutes
   enableLogs?: boolean;
 }
@@ -31,7 +30,6 @@ export interface SandboxInfoResponse {
   canExecute: boolean;
   supportedRuntimes: string[];
   maxTimeout: number;
-  testModeAvailable: boolean;
 }
 
 export interface SandboxStreamEvent {
@@ -60,14 +58,12 @@ export async function executeStrategy(
   botId: string,
   code: string,
   options: {
-    testMode?: boolean;
     timeout?: number;
     enableLogs?: boolean;
   } = {}
 ): Promise<StrategyExecutionResult> {
   const requestBody: SandboxExecuteRequest = {
     code,
-    testMode: options.testMode ?? true,
     timeout: options.timeout ?? 2,
     enableLogs: options.enableLogs ?? true
   };
@@ -152,14 +148,12 @@ export async function executeStrategyWithStreaming(
   code: string,
   onEvent: (event: SandboxStreamEvent) => void,
   options: {
-    testMode?: boolean;
     timeout?: number;
     enableLogs?: boolean;
   } = {}
 ): Promise<void> {
   const requestBody: SandboxExecuteRequest = {
     code,
-    testMode: options.testMode ?? true,
     timeout: options.timeout ?? 2,
     enableLogs: options.enableLogs ?? true
   };

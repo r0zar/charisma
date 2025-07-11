@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle,ArrowLeft, Check } from 'lucide-react';
+import { AlertTriangle,ArrowLeft, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useBots } from '@/contexts/bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { getStrategyTemplates } from '@/lib/features/bots/strategy-parser';
@@ -22,8 +23,13 @@ export default function CreateBotPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [strategyCode, setStrategyCode] = useState('');
   const [formData, setFormData] = useState({
-    name: ''
+    name: '',
+    gitRepository: '',
+    isMonorepo: false,
+    packagePath: '',
+    buildCommands: ['pnpm install', 'pnpm run build']
   });
+  const [showRepoConfig, setShowRepoConfig] = useState(false);
 
   // Initialize with hello world template
   React.useEffect(() => {
@@ -45,7 +51,13 @@ export default function CreateBotPage() {
     try {
       const createRequest: CreateBotRequest = {
         name: formData.name,
-        strategy: strategyCode
+        strategy: strategyCode,
+        gitRepository: formData.gitRepository.trim() || undefined,
+        isMonorepo: formData.isMonorepo ? formData.isMonorepo : undefined,
+        packagePath: formData.packagePath.trim() || undefined,
+        buildCommands: formData.buildCommands.filter(cmd => cmd.trim()).length > 0 
+          ? formData.buildCommands.filter(cmd => cmd.trim()) 
+          : undefined
       };
 
       await createBot(createRequest);
@@ -103,6 +115,118 @@ export default function CreateBotPage() {
             </div>
 
           </CardContent>
+        </Card>
+
+        {/* Repository Configuration */}
+        <Card className="bg-card border-border">
+          <CardHeader 
+            className="cursor-pointer"
+            onClick={() => setShowRepoConfig(!showRepoConfig)}
+          >
+            <div className="flex items-center gap-2">
+              {showRepoConfig ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <CardTitle className="text-card-foreground">Repository Configuration (Optional)</CardTitle>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {showRepoConfig ? 
+                "Configure which git repository to use for strategy execution. Leave empty to run in a clean Node.js environment." :
+                "Click to configure a custom git repository for your strategy execution."
+              }
+            </p>
+          </CardHeader>
+          {showRepoConfig && (
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="gitRepository" className="text-card-foreground">Git Repository URL (optional)</Label>
+                <Input
+                  id="gitRepository"
+                  type="url"
+                  value={formData.gitRepository}
+                  onChange={(e) => setFormData({ ...formData, gitRepository: e.target.value })}
+                  placeholder="https://github.com/username/repository.git"
+                  className="bg-input border-border text-foreground"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Must be a public repository. If not specified, strategies run in a clean Node.js environment without external dependencies.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isMonorepo"
+                  checked={formData.isMonorepo}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isMonorepo: checked })}
+                />
+                <Label htmlFor="isMonorepo" className="text-card-foreground">This is a monorepo</Label>
+              </div>
+
+              {formData.isMonorepo && (
+                <div>
+                  <Label htmlFor="packagePath" className="text-card-foreground">Package Path</Label>
+                  <Input
+                    id="packagePath"
+                    type="text"
+                    value={formData.packagePath}
+                    onChange={(e) => setFormData({ ...formData, packagePath: e.target.value })}
+                    placeholder="packages/polyglot"
+                    className="bg-input border-border text-foreground"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Path to the package within the monorepo (e.g., "packages/polyglot")
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="buildCommands" className="text-card-foreground">Build Commands</Label>
+                <div className="space-y-2">
+                  {formData.buildCommands.map((command, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        type="text"
+                        value={command}
+                        onChange={(e) => {
+                          const newCommands = [...formData.buildCommands];
+                          newCommands[index] = e.target.value;
+                          setFormData({ ...formData, buildCommands: newCommands });
+                        }}
+                        placeholder="pnpm install"
+                        className="bg-input border-border text-foreground"
+                      />
+                      {formData.buildCommands.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const newCommands = formData.buildCommands.filter((_, i) => i !== index);
+                            setFormData({ ...formData, buildCommands: newCommands });
+                          }}
+                          className="shrink-0"
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({ ...formData, buildCommands: [...formData.buildCommands, ''] });
+                    }}
+                    className="w-full"
+                  >
+                    Add Command
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Commands to run for building the repository. Common examples: "pnpm install", "npm run build"
+                </p>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Strategy Code */}
