@@ -271,8 +271,7 @@ export class SearchService {
       const searchableFields = [
         transaction.txId,
         transaction.type,
-        transaction.token?.symbol || '',
-        transaction.token?.name || '',
+        transaction.token || '',
         transaction.memo || '',
         transaction.amount.toString()
       ];
@@ -292,15 +291,15 @@ export class SearchService {
         results.push({
           id: transaction.txId,
           type: 'transaction',
-          title: `${transaction.type} • ${transaction.token?.symbol || 'STX'}`,
-          description: `${transaction.amount} ${transaction.token?.symbol || 'STX'} • ${transaction.status}`,
+          title: `${transaction.type} • ${transaction.token || 'STX'}`,
+          description: `${transaction.amount} ${transaction.token || 'STX'} • ${transaction.status}`,
           score,
           data: transaction,
           metadata: {
             txId: transaction.txId,
             type: transaction.type,
             amount: transaction.amount,
-            token: transaction.token?.symbol || 'STX',
+            token: transaction.token || 'STX',
             status: transaction.status,
             timestamp: transaction.timestamp
           }
