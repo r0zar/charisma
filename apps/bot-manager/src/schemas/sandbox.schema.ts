@@ -71,7 +71,6 @@ export const BotContextSchema = z.object({
   created_at: z.string().datetime(),
   last_active: z.string().datetime(),
 
-
   // Wallet credentials
   walletCredentials: z.object({
     privateKey: z.string().optional(),

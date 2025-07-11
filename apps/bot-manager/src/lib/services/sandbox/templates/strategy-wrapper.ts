@@ -1,7 +1,7 @@
 /**
  * Strategy wrapper template
  * 
- * Generates the complete wrapper code that injects bot context and @stacks/transactions library.
+ * Generates the complete wrapper code that injects bot context and contract caller utility.
  */
 
 export interface StrategyWrapperParams {
@@ -36,6 +36,33 @@ const polyglot = null;
 // Injected bot context as global variable
 const bot = ${params.botContext};
 console.log('Bot context loaded:', bot.name);
+
+${params.hasRepository ? `
+// Import @bots/basic from custom repository
+let basic;
+try {
+  console.log('Attempting to require @bots/basic package...');
+  basic = require('@bots/basic');
+  console.log('@bots/basic package loaded successfully');
+  console.log('@bots/basic keys:', Object.keys(basic));
+  
+  // Create contract caller with bot credentials
+  if (basic.createContractCaller && bot.walletCredentials.privateKey) {
+    bot.basic = basic.createContractCaller({ privateKey: bot.walletCredentials.privateKey });
+    console.log('Contract caller created and attached to bot.basic');
+  } else {
+    console.warn('Unable to create contract caller - missing createContractCaller or privateKey');
+    bot.basic = null;
+  }
+} catch (error) {
+  console.error('Failed to load @bots/basic package:', error.message);
+  bot.basic = null;
+}
+` : `
+// Clean Node.js environment - @bots/basic not available
+console.log('Running in clean Node.js environment without @bots/basic package');
+bot.basic = null;
+`}
 
 // Attach polyglot to bot context
 bot.polyglot = polyglot;
