@@ -9,6 +9,7 @@ import {
 import React, { useEffect, useState } from 'react';
 
 import { StrategyCodeEditor } from '@/components/strategy-code-editor';
+import type { HelpContextualInfo } from '@/lib/help/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,16 @@ export default function BotStrategyPage() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showRepoConfig, setShowRepoConfig] = useState(false);
+
+  // Help contextual info for strategy editor
+  const helpContextualInfo: HelpContextualInfo = {
+    currentRepository: localBot ? {
+      gitUrl: localBot.gitRepository || 'https://github.com/pointblankdev/charisma',
+      subPath: localBot.packagePath || 'bots/basic',
+      availablePackages: localBot.availablePackages || ['@stacks/transactions', '@bots/basic'],
+      buildCommands: localBot.buildCommands || ['pnpm install', 'pnpm build']
+    } : undefined
+  };
 
   useEffect(() => {
     if (bot) {
@@ -283,6 +294,7 @@ export default function BotStrategyPage() {
             }}
             onTest={handleTestStrategy}
             height="400px"
+            helpContextualInfo={helpContextualInfo}
           />
         </CardContent>
       </Card>

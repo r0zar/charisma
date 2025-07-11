@@ -3,6 +3,7 @@
 import Editor from '@monaco-editor/react';
 import {
   Code,
+  HelpCircle,
   Maximize2,
   Minimize2,
   Palette,
@@ -16,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getStrategyTemplates, type StrategyMetadata } from '@/lib/services/bots/strategy-parser';
+import { StrategyEditorHelp } from './strategy-editor-help';
+import type { HelpContextualInfo } from '@/lib/help/types';
 // Note: We define polyglot types inline since Monaco can't resolve monorepo imports
 
 const templates = getStrategyTemplates();
@@ -30,6 +33,7 @@ interface StrategyCodeEditorProps {
   readOnly?: boolean;
   height?: string;
   className?: string;
+  helpContextualInfo?: HelpContextualInfo;
 }
 
 export function StrategyCodeEditor({
@@ -41,7 +45,8 @@ export function StrategyCodeEditor({
   onTest,
   readOnly = false,
   height = '500px',
-  className = ''
+  className = '',
+  helpContextualInfo
 }: StrategyCodeEditorProps) {
   const [code, setCode] = useState(initialCode);
   const [metadata, setMetadata] = useState<StrategyMetadata>(
@@ -58,6 +63,7 @@ export function StrategyCodeEditor({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const editorRef = useRef<any>(null);
 
   // Notify parent of code changes
@@ -420,6 +426,15 @@ export function StrategyCodeEditor({
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setIsHelpOpen(true)}
+                  className="border-blue-600 text-blue-400 hover:bg-blue-500/10"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={toggleFullscreen}
                   className="border-gray-600 text-gray-400 hover:bg-gray-500/10"
                 >
@@ -490,6 +505,13 @@ export function StrategyCodeEditor({
             </Button>
           </div>
         )}
+
+        {/* Help Dialog */}
+        <StrategyEditorHelp
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+          contextualInfo={helpContextualInfo}
+        />
       </div>
     </div>
   );
