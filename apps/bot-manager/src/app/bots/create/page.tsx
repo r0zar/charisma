@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle,ArrowLeft, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBots } from '@/contexts/bot-context';
 import { useToast } from '@/contexts/toast-context';
-import { getStrategyTemplates } from '@/lib/features/bots/strategy-parser';
+import { getStrategyTemplates } from '@/lib/services/bots/strategy-parser';
 import { CreateBotRequest } from '@/schemas/bot.schema';
 
 export default function CreateBotPage() {
@@ -55,8 +55,8 @@ export default function CreateBotPage() {
         gitRepository: formData.gitRepository.trim() || undefined,
         isMonorepo: formData.isMonorepo ? formData.isMonorepo : undefined,
         packagePath: formData.packagePath.trim() || undefined,
-        buildCommands: formData.buildCommands.filter(cmd => cmd.trim()).length > 0 
-          ? formData.buildCommands.filter(cmd => cmd.trim()) 
+        buildCommands: formData.buildCommands.filter(cmd => cmd.trim()).length > 0
+          ? formData.buildCommands.filter(cmd => cmd.trim())
           : undefined
       };
 
@@ -119,7 +119,7 @@ export default function CreateBotPage() {
 
         {/* Repository Configuration */}
         <Card className="bg-card border-border">
-          <CardHeader 
+          <CardHeader
             className="cursor-pointer"
             onClick={() => setShowRepoConfig(!showRepoConfig)}
           >
@@ -128,7 +128,7 @@ export default function CreateBotPage() {
               <CardTitle className="text-card-foreground">Repository Configuration (Optional)</CardTitle>
             </div>
             <p className="text-sm text-muted-foreground">
-              {showRepoConfig ? 
+              {showRepoConfig ?
                 "Configure which git repository to use for strategy execution. Leave empty to run in a clean Node.js environment." :
                 "Click to configure a custom git repository for your strategy execution."
               }

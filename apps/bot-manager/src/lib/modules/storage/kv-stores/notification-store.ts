@@ -4,7 +4,8 @@
 
 import { kv } from '@vercel/kv';
 
-import type { NotificationFilters,StoredNotification } from './types';
+import type { StoredNotification } from '@/schemas/notification.schema';
+import type { NotificationFilters } from '@/lib/services/notifications/client';
 
 export class NotificationKVStore {
   private readonly keyPrefix = 'bot-manager:notifications';
@@ -32,7 +33,7 @@ export class NotificationKVStore {
   ): Promise<StoredNotification> {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date().toISOString();
-    
+
     const fullNotification: StoredNotification = {
       ...notification,
       id,
@@ -43,10 +44,10 @@ export class NotificationKVStore {
     try {
       // Store the notification
       await kv.set(this.getUserNotificationKey(userId, id), fullNotification);
-      
+
       // Add to user's notification index
       await kv.sadd(this.getUserIndexKey(userId), id);
-      
+
       return fullNotification;
     } catch (error) {
       console.error('Failed to create notification:', error);
@@ -64,14 +65,14 @@ export class NotificationKVStore {
     try {
       // Get all notification IDs for the user
       const indexKey = this.getUserIndexKey(userId);
-      
+
       let notificationIds: string[] = [];
       try {
         notificationIds = await kv.smembers(indexKey) || [];
       } catch (typeError) {
         // Handle WRONGTYPE error (corrupted key with non-SET data)
         console.error('WRONGTYPE error detected for notification index:', typeError);
-        
+
         // Clear the corrupted key and continue with empty list
         try {
           await kv.del(indexKey);
@@ -81,7 +82,7 @@ export class NotificationKVStore {
         }
         notificationIds = [];
       }
-      
+
       if (notificationIds.length === 0) {
         return { notifications: [], total: 0, hasMore: false };
       }
@@ -97,19 +98,19 @@ export class NotificationKVStore {
 
       // Apply filters
       let filteredNotifications = notifications;
-      
+
       if (filters.type) {
         filteredNotifications = filteredNotifications.filter(n => n.type === filters.type);
       }
-      
+
       if (filters.category) {
         filteredNotifications = filteredNotifications.filter(n => n.category === filters.category);
       }
-      
-      if (filters.read !== undefined) {
-        filteredNotifications = filteredNotifications.filter(n => n.read === filters.read);
+
+      if (filters.unread !== undefined) {
+        filteredNotifications = filteredNotifications.filter(n => n.read !== filters.unread);
       }
-      
+
       if (filters.priority) {
         filteredNotifications = filteredNotifications.filter(n => n.priority === filters.priority);
       }
@@ -190,12 +191,12 @@ export class NotificationKVStore {
    */
   async markAllAsRead(userId: string): Promise<boolean> {
     try {
-      const { notifications } = await this.getNotifications(userId, { read: false });
-      
+      const { notifications } = await this.getNotifications(userId, { unread: true });
+
       for (const notification of notifications) {
         await this.markAsRead(userId, notification.id);
       }
-      
+
       return true;
     } catch (error) {
       console.error('Failed to mark all as read:', error);
@@ -210,10 +211,10 @@ export class NotificationKVStore {
     try {
       // Remove from index
       await kv.srem(this.getUserIndexKey(userId), id);
-      
+
       // Delete the notification
       await kv.del(this.getUserNotificationKey(userId, id));
-      
+
       return true;
     } catch (error) {
       console.error('Failed to delete notification:', error);
@@ -256,7 +257,7 @@ export class NotificationKVStore {
     try {
       const indexKey = this.getUserIndexKey(userId);
       let notificationIds: string[] = [];
-      
+
       try {
         notificationIds = await kv.smembers(indexKey) || [];
       } catch (typeError) {
@@ -265,15 +266,15 @@ export class NotificationKVStore {
         await kv.del(indexKey);
         return true;
       }
-      
+
       // Delete all notifications
       for (const id of notificationIds) {
         await kv.del(this.getUserNotificationKey(userId, id as string));
       }
-      
+
       // Clear the index
       await kv.del(this.getUserIndexKey(userId));
-      
+
       return true;
     } catch (error) {
       console.error('Failed to clear all notifications:', error);
@@ -292,22 +293,22 @@ export class NotificationKVStore {
   }> {
     try {
       const { notifications } = await this.getNotifications(userId);
-      
+
       const counts = {
         total: notifications.length,
         unread: notifications.filter(n => !n.read).length,
         byType: {} as Record<string, number>,
         byPriority: {} as Record<string, number>,
       };
-      
+
       for (const notification of notifications) {
         // Count by type
         counts.byType[notification.type] = (counts.byType[notification.type] || 0) + 1;
-        
+
         // Count by priority
-        counts.byPriority[notification.priority] = (counts.byPriority[notification.priority] || 0) + 1;
+        counts.byPriority[notification.priority!] = (counts.byPriority[notification.priority!] || 0) + 1;
       }
-      
+
       return counts;
     } catch (error) {
       console.error('Failed to get notification counts:', error);

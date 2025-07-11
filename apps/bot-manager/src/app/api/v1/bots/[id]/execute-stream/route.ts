@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 
-import { sandboxService } from '@/lib/features/sandbox/service';
-import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
+import { sandboxService } from '@/lib/services/sandbox/service';
+import { dataLoader } from '@/lib/modules/storage/loader';
 
 /**
  * POST /api/v1/bots/[id]/execute-stream
@@ -56,7 +56,7 @@ export async function POST(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const appState = await loadAppStateConfigurableWithFallback();
+      const appState = dataLoader.loadAppState();
       bot = appState.bots.list.find(b => b.id === botId);
     }
 

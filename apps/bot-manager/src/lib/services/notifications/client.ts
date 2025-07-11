@@ -5,7 +5,7 @@
  * with proper error handling, retry logic, and TypeScript support
  */
 
-import { StoredNotification } from '@/lib/infrastructure/storage';
+import { StoredNotification } from '@/schemas/notification.schema';
 
 export interface NotificationFilters {
   unread?: boolean;

@@ -1,9 +1,8 @@
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { sandboxService } from '@/lib/features/sandbox/service';
-import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
-import { logger } from '@/lib/infrastructure/server/logger';
+import { sandboxService } from '@/lib/services/sandbox/service';
+import { dataLoader } from '@/lib/modules/storage/loader';
 
 /**
  * POST /api/v1/bots/[id]/execute
@@ -55,7 +54,7 @@ export async function POST(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const appState = await loadAppStateConfigurableWithFallback();
+      const appState = dataLoader.loadAppState();
       bot = appState.bots.list.find(b => b.id === botId);
     }
 
@@ -84,7 +83,7 @@ export async function POST(
       });
 
       if (!verificationResult.ok) {
-        logger.warn(`❌ Authentication failed for bot execution: ${verificationResult.error}`);
+        console.warn(`❌ Authentication failed for bot execution: ${verificationResult.error}`);
         return NextResponse.json(
           {
             error: 'Authentication failed',
@@ -96,7 +95,7 @@ export async function POST(
 
       // Verify signer matches the bot's wallet address
       if (verificationResult.signer !== bot.walletAddress) {
-        logger.warn(`❌ Unauthorized bot execution attempt: ${verificationResult.signer} tried to execute bot ${botId} owned by ${bot.walletAddress}`);
+        console.warn(`❌ Unauthorized bot execution attempt: ${verificationResult.signer} tried to execute bot ${botId} owned by ${bot.walletAddress}`);
         return NextResponse.json(
           {
             error: 'Unauthorized',
@@ -106,10 +105,10 @@ export async function POST(
         );
       }
 
-      logger.info(`✅ Authenticated bot execution request from ${verificationResult.signer} for bot ${botId}`);
+      console.log(`✅ Authenticated bot execution request from ${verificationResult.signer} for bot ${botId}`);
     } else {
       // No signature headers - deny access
-      logger.warn(`❌ Unauthenticated bot execution request for bot: ${botId}`);
+      console.warn(`❌ Unauthenticated bot execution request for bot: ${botId}`);
       return NextResponse.json(
         {
           error: 'Authentication required',
@@ -185,7 +184,7 @@ export async function GET(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const appState = await loadAppStateConfigurableWithFallback();
+      const appState = dataLoader.loadAppState();
       bot = appState.bots.list.find(b => b.id === botId);
     }
 

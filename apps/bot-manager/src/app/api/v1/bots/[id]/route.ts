@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { appState } from '@/data/app-state';
-import { defaultState } from '@/data/default-state';
-import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import { botDataStore } from '@/lib/modules/storage';
 
 /**
  * GET /api/v1/bots/[id]
@@ -23,7 +22,7 @@ export async function GET(
     const { id: botId } = await params;
 
     // Check if bot API is enabled
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         { 
@@ -51,7 +50,7 @@ export async function GET(
     let source = 'static';
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable() && !useDefault;
+    const useKV = loadingConfig.bots === 'api' && !useDefault;
     
     if (useKV && userId) {
       // Use KV store
@@ -67,7 +66,7 @@ export async function GET(
     // Fallback to static data if KV failed or not enabled
     if (!bot) {
       if (useDefault) {
-        bot = defaultState.bots.list.find(b => b.id === botId);
+        bot = appState.bots.list.find(b => b.id === botId);
         source = 'default';
       } else {
         bot = appState.bots.list.find(b => b.id === botId);
@@ -130,7 +129,7 @@ export async function PUT(
     const body = await request.json();
 
     // Check if bot API is enabled
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         { 
@@ -155,7 +154,7 @@ export async function PUT(
     }
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable();
+    const useKV = loadingConfig.bots === 'api';
     
     if (!useKV) {
       return NextResponse.json(
@@ -241,7 +240,7 @@ export async function DELETE(
     const { id: botId } = await params;
 
     // Check if bot API is enabled
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         { 
@@ -266,7 +265,7 @@ export async function DELETE(
     }
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable();
+    const useKV = loadingConfig.bots === 'api';
     
     if (!useKV) {
       return NextResponse.json(

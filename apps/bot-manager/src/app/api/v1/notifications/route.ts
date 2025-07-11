@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isFeatureEnabled } from '@/lib/infrastructure/config/feature-flags';
-import { isKVAvailable,notificationStore } from '@/lib/infrastructure/storage';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import { notificationStore } from '@/lib/modules/storage';
+import { NotificationFilters } from '@/lib/services/notifications/client';
 
 /**
  * GET /api/v1/notifications
@@ -27,11 +28,11 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get('priority');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
-    
+
     // Check if notifications API is enabled
-    if (!isFeatureEnabled('enableApiNotifications')) {
+    if (!dataLoader.isApiEnabled('notifications')) {
       return NextResponse.json(
-        { 
+        {
           error: 'Notifications API not enabled',
           message: 'Notifications API feature is not enabled',
           timestamp: new Date().toISOString(),
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     // For multi-user KV store, userId is required
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing userId',
           message: 'userId parameter is required',
           timestamp: new Date().toISOString(),
@@ -53,24 +54,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable();
-    
+    const loadingConfig = dataLoader.getConfig();
+    const useKV = loadingConfig.notifications === 'api';
+
     let responseData;
-    
+
     if (useKV) {
       // Use KV store only
-      const filters = {
-        type: type || undefined,
+      const filters: NotificationFilters = {
+        type: type as 'success' | 'error' | 'warning' | 'info' || undefined,
         category: category || undefined,
-        read: unreadOnly ? false : undefined,
-        priority: priority || undefined,
+        unread: unreadOnly ? true : undefined,
+        priority: priority as 'high' | 'medium' | 'low' || undefined,
         limit,
         offset,
       };
-      
+
       const result = await notificationStore.getNotifications(userId, filters);
       const counts = await notificationStore.getNotificationCounts(userId);
-      
+
       responseData = {
         notifications: result.notifications,
         pagination: {
@@ -131,7 +133,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch notifications',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -150,11 +152,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
-    
+
     // Check if notifications API is enabled
-    if (!isFeatureEnabled('enableApiNotifications')) {
+    if (!dataLoader.isApiEnabled('notifications')) {
       return NextResponse.json(
-        { 
+        {
           error: 'Notifications API not enabled',
           message: 'Notifications API feature is not enabled',
           timestamp: new Date().toISOString(),
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
     // For multi-user KV store, userId is required
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing userId',
           message: 'userId parameter is required',
           timestamp: new Date().toISOString(),
@@ -176,11 +178,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable();
-    
+    const loadingConfig = dataLoader.getConfig();
+    const useKV = loadingConfig.notifications === 'api';
+
     if (!useKV) {
       return NextResponse.json(
-        { 
+        {
           error: 'KV store not available',
           message: 'Notification creation requires KV store to be enabled and available',
           timestamp: new Date().toISOString(),
@@ -188,10 +191,10 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-    
+
     // Validate required fields
     const { type, title, message, priority = 'medium', category = 'general', metadata = {} } = body;
-    
+
     if (!type || !title || !message) {
       return NextResponse.json(
         {
@@ -202,7 +205,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Validate field values
     if (!['success', 'error', 'warning', 'info'].includes(type)) {
       return NextResponse.json(
@@ -214,7 +217,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     if (!['high', 'medium', 'low'].includes(priority)) {
       return NextResponse.json(
         {
@@ -225,7 +228,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Create notification
     const notification = await notificationStore.createNotification(userId, {
       type,
@@ -237,17 +240,17 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       read: false,
     });
-    
+
     return NextResponse.json({
       notification,
       message: 'Notification created successfully',
       timestamp: new Date().toISOString(),
     }, { status: 201 });
-    
+
   } catch (error) {
     console.error('Error creating notification:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to create notification',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -268,11 +271,11 @@ export async function PATCH(request: NextRequest) {
     const userId = searchParams.get('userId');
     const notificationId = searchParams.get('id');
     const action = searchParams.get('action'); // 'read', 'unread', 'update', 'mark-all-read'
-    
+
     // Check if notifications API is enabled
-    if (!isFeatureEnabled('enableApiNotifications')) {
+    if (!dataLoader.isApiEnabled('notifications')) {
       return NextResponse.json(
-        { 
+        {
           error: 'Notifications API not enabled',
           message: 'Notifications API feature is not enabled',
           timestamp: new Date().toISOString(),
@@ -284,7 +287,7 @@ export async function PATCH(request: NextRequest) {
     // For multi-user KV store, userId is required
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing userId',
           message: 'userId parameter is required',
           timestamp: new Date().toISOString(),
@@ -294,11 +297,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable();
-    
+    const loadingConfig = dataLoader.getConfig();
+    const useKV = loadingConfig.notifications === 'api';
+
     if (!useKV) {
       return NextResponse.json(
-        { 
+        {
           error: 'KV store not available',
           message: 'Notification updates require KV store to be enabled and available',
           timestamp: new Date().toISOString(),
@@ -306,7 +310,7 @@ export async function PATCH(request: NextRequest) {
         { status: 503 }
       );
     }
-    
+
     // Handle mark all as read
     if (action === 'mark-all-read') {
       const success = await notificationStore.markAllAsRead(userId);
@@ -325,7 +329,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
     }
-    
+
     // Validate notification ID for individual updates
     if (!notificationId) {
       return NextResponse.json(
@@ -337,7 +341,7 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Handle individual notification updates
     if (action === 'read') {
       const success = await notificationStore.markAsRead(userId, notificationId);
@@ -359,7 +363,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
     }
-    
+
     if (action === 'unread') {
       const success = await notificationStore.markAsUnread(userId, notificationId);
       if (success) {
@@ -380,7 +384,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
     }
-    
+
     // Handle general updates
     if (action === 'update' || !action) {
       const updatedNotification = await notificationStore.updateNotification(userId, notificationId, body);
@@ -402,7 +406,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
     }
-    
+
     // Invalid action
     return NextResponse.json(
       {
@@ -412,11 +416,11 @@ export async function PATCH(request: NextRequest) {
       },
       { status: 400 }
     );
-    
+
   } catch (error) {
     console.error('Error updating notification:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to update notification',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -436,11 +440,11 @@ export async function DELETE(request: NextRequest) {
     const userId = searchParams.get('userId');
     const notificationId = searchParams.get('id');
     const action = searchParams.get('action'); // 'clear-all'
-    
+
     // Check if notifications API is enabled
-    if (!isFeatureEnabled('enableApiNotifications')) {
+    if (!dataLoader.isApiEnabled('notifications')) {
       return NextResponse.json(
-        { 
+        {
           error: 'Notifications API not enabled',
           message: 'Notifications API feature is not enabled',
           timestamp: new Date().toISOString(),
@@ -452,7 +456,7 @@ export async function DELETE(request: NextRequest) {
     // For multi-user KV store, userId is required
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Missing userId',
           message: 'userId parameter is required',
           timestamp: new Date().toISOString(),
@@ -462,11 +466,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if we should use KV store
-    const useKV = await isKVAvailable();
-    
+    const loadingConfig = dataLoader.getConfig();
+    const useKV = loadingConfig.notifications === 'api';
+
     if (!useKV) {
       return NextResponse.json(
-        { 
+        {
           error: 'KV store not available',
           message: 'Notification deletion requires KV store to be enabled and available',
           timestamp: new Date().toISOString(),
@@ -474,7 +479,7 @@ export async function DELETE(request: NextRequest) {
         { status: 503 }
       );
     }
-    
+
     // Handle clear all notifications
     if (action === 'clear-all') {
       const success = await notificationStore.clearAll(userId);
@@ -493,7 +498,7 @@ export async function DELETE(request: NextRequest) {
         );
       }
     }
-    
+
     // Validate notification ID for individual deletion
     if (!notificationId) {
       return NextResponse.json(
@@ -505,7 +510,7 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Delete individual notification
     const success = await notificationStore.deleteNotification(userId, notificationId);
     if (success) {
@@ -525,11 +530,11 @@ export async function DELETE(request: NextRequest) {
         { status: 404 }
       );
     }
-    
+
   } catch (error) {
     console.error('Error deleting notification:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to delete notification',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),

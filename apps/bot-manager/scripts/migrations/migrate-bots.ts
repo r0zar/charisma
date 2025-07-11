@@ -12,7 +12,7 @@
 
 import path from 'path';
 import fs from 'fs';
-import { botDataStore, isKVAvailable } from '../../src/lib/infrastructure/storage';
+import { botDataStore } from '../../src/lib/infrastructure/storage';
 import { appState } from '../../src/data/app-state';
 import { defaultState } from '../../src/data/default-state';
 import { syncLogger as logger } from '../utils/logger';
@@ -161,18 +161,6 @@ function showPreview(options: MigrationOptions) {
 
 async function checkKVStatus(options: MigrationOptions) {
   logger.info('🔍 Checking KV store status...');
-
-  const kvAvailable = await isKVAvailable();
-  if (!kvAvailable) {
-    logger.error('KV store is not available. Please check your configuration.');
-    logger.error('Make sure you have:');
-    logger.error('- KV_REST_API_URL environment variable set');
-    logger.error('- KV_REST_API_TOKEN environment variable set');
-    logger.error('- Valid Vercel KV credentials');
-    process.exit(1);
-  }
-
-  logger.info('✅ KV store is available');
 
   // Check if bot data already exists
   const existingBots = await botDataStore.getAllBots(options.userId);

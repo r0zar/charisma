@@ -19,8 +19,8 @@ import { useBots } from '@/contexts/bot-context';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-import type { SandboxStreamEvent } from '@/lib/features/sandbox/client';
-import { sandboxClient } from '@/lib/features/sandbox/client';
+import type { SandboxStreamEvent } from '@/lib/services/sandbox/client';
+import { sandboxClient } from '@/lib/services/sandbox/client';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotStrategyPage() {
@@ -257,11 +257,11 @@ export default function BotStrategyPage() {
             initialCode={bot?.strategy || ''}
             onSave={async (code) => {
               if (!localBot) return;
-              
+
               try {
                 // Update the local bot's strategy code
                 setLocalBot({ ...localBot, strategy: code });
-                
+
                 // Save to database without global loading state
                 const response = await fetch(`/api/v1/bots?userId=${walletState.address}&botId=${localBot.id}`, {
                   method: 'PUT',

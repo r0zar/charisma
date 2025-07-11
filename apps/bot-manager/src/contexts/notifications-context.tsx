@@ -9,8 +9,8 @@ import {
   NotificationFilters, 
   NotificationsApiClient, 
   NotificationSummary
-} from '@/lib/infrastructure/api/notifications-client';
-import { StoredNotification } from '@/lib/infrastructure/storage';
+} from '@/lib/services/notifications/client';
+import { StoredNotification } from '@/schemas/notification.schema';
 
 /**
  * Notifications context interface

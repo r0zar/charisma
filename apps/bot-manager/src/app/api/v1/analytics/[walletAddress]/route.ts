@@ -1,8 +1,6 @@
 import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { logger } from '@/lib/infrastructure/server/logger';
-
 /**
  * Get cached analytics data for a specific wallet
  * This endpoint serves pre-computed analytics data from KV store
@@ -21,16 +19,16 @@ export async function GET(
 
     // Note: Authentication disabled for reading analytics data to prevent infinite loops
     // Frontend pages are responsible for only requesting data for connected wallet
-    logger.info(`📊 Analytics request for wallet: ${walletAddress.slice(0, 8)}...`);
+    console.log(`📊 Analytics request for wallet: ${walletAddress.slice(0, 8)}...`);
 
-    logger.info(`📊 Fetching cached analytics for wallet: ${walletAddress.slice(0, 8)}...`);
+    console.log(`📊 Fetching cached analytics for wallet: ${walletAddress.slice(0, 8)}...`);
 
     // Get cached analytics summary
     const cacheKey = `analytics:summary:${walletAddress}`;
     const cachedSummary = await kv.get(cacheKey);
 
     if (!cachedSummary) {
-      logger.info(`❌ No cached analytics found for wallet: ${walletAddress.slice(0, 8)}...`);
+      console.log(`❌ No cached analytics found for wallet: ${walletAddress.slice(0, 8)}...`);
       return NextResponse.json({
         success: false,
         error: 'No analytics data available. Data will be available after next cron processing cycle.',
@@ -45,7 +43,7 @@ export async function GET(
     // Get last updated timestamp
     const lastUpdated = await kv.get(`analytics:last_updated:${walletAddress}`) as number | null;
 
-    logger.info(`✅ Serving cached analytics for wallet: ${walletAddress.slice(0, 8)}...`);
+    console.log(`✅ Serving cached analytics for wallet: ${walletAddress.slice(0, 8)}...`);
 
     return NextResponse.json({
       success: true,
@@ -60,7 +58,7 @@ export async function GET(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to fetch cached analytics: ${errorMessage}`);
+    console.error(`Failed to fetch cached analytics: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,
@@ -89,11 +87,11 @@ export async function POST(
 
     // Note: Authentication disabled for refreshing analytics data to prevent infinite loops
     // Frontend pages are responsible for only requesting data for connected wallet
-    logger.info(`🔄 Analytics refresh for wallet: ${walletAddress.slice(0, 8)}...`);
+    console.log(`🔄 Analytics refresh for wallet: ${walletAddress.slice(0, 8)}...`);
 
     // Instead of processing immediately, we'll trigger the cron job
     // This keeps processing out-of-band even for manual refreshes
-    logger.info(`🔄 Manual refresh requested for wallet: ${walletAddress.slice(0, 8)}...`);
+    console.log(`🔄 Manual refresh requested for wallet: ${walletAddress.slice(0, 8)}...`);
 
     // Set a flag to prioritize this wallet in next cron run
     await kv.set(`analytics:priority:${walletAddress}`, Date.now(), { ex: 60 }); // 1 minute priority flag
@@ -107,7 +105,7 @@ export async function POST(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to queue analytics refresh: ${errorMessage}`);
+    console.error(`Failed to queue analytics refresh: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,

@@ -3,9 +3,8 @@ import { z } from 'zod';
 
 import { 
   BotStateMachine, 
-  getValidTransitions} from '@/lib/infrastructure/state-machine/bot-state-machine';
-import { botDataStore } from '@/lib/infrastructure/storage/kv-stores/bot-store';
-import { syncLogger as logger } from '@/lib/utils/logger';
+  getValidTransitions} from '@/lib/services/bots/bot-state-machine';
+import { botDataStore } from '@/lib/modules/storage/kv-stores/bot-store';
 
 // Request validation schema
 const TransitionRequestSchema = z.object({
@@ -59,7 +58,7 @@ export async function POST(
       );
     }
 
-    logger.info('Bot state transition requested', {
+    console.log('Bot state transition requested', {
       botId,
       botName: bot.name,
       currentStatus: bot.status,
@@ -77,7 +76,7 @@ export async function POST(
     );
 
     if (!transitionResult.success) {
-      logger.warn('Bot state transition failed validation', {
+      console.warn('Bot state transition failed validation', {
         botId,
         action,
         fromStatus: transitionResult.fromStatus,
@@ -134,7 +133,7 @@ export async function POST(
     // Save the updated bot
     await botDataStore.updateBot(userId, updatedBot);
 
-    logger.success('Bot state transition completed', {
+    console.log('Bot state transition completed', {
       botId,
       botName: bot.name,
       fromStatus: transitionResult.fromStatus,
@@ -159,7 +158,7 @@ export async function POST(
     });
 
   } catch (error) {
-    logger.error('Bot state transition error', {
+    console.error('Bot state transition error', {
       botId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -222,7 +221,7 @@ export async function GET(
     });
 
   } catch (error) {
-    logger.error('Error fetching bot transitions', {
+    console.error('Error fetching bot transitions', {
       botId,
       error: error instanceof Error ? error.message : String(error)
     });

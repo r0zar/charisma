@@ -13,7 +13,7 @@ import { GlobalStateProvider } from "@/contexts/global-state-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { ToastProvider } from "@/contexts/toast-context";
-import { loadAppStateConfigurableWithFallback } from "@/lib/infrastructure/data/loader.server";
+import { dataLoader } from "@/lib/modules/storage/loader";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -23,13 +23,13 @@ export const metadata: Metadata = {
   description: "Tokemon DeFi bot management application for automated trading on the Stacks blockchain",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Load app state server-side with configurable sources
-  const appState = await loadAppStateConfigurableWithFallback();
+  // Load app state with simplified logic and dynamic metadata
+  const appState = dataLoader.loadAppState();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

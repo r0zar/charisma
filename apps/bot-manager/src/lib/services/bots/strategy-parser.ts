@@ -196,24 +196,18 @@ export function formatCronExpression(cron: string): string {
  * Get default strategy templates
  */
 export function getStrategyTemplates() {
-  return {
+  // Simple templates for basic strategy types
+  const templates = {
     helloWorld: {
       name: 'Hello World',
       description: 'Simple logging example',
-      type: 'custom',
       code: `console.log('🚀 Starting strategy for', bot.name);
-console.log('Hello World!')
 
-if (bot.balance.STX > 1000000) {
-  await bot.swap('STX', 'USDA', 500000);
-  console.log('✅ Swap completed');
-}`
+console.log('Hello World!')`
     },
-
     fetchExample: {
       name: 'Fetch Example',
       description: 'HTTP request and logging',
-      type: 'custom',
       code: `console.log('🚀 Starting fetch strategy for', bot.name);
 
 try {
@@ -225,6 +219,62 @@ try {
 } catch (error) {
   console.log('❌ Fetch failed:', error.message);
 }`
+    },
+    polyglotExample: {
+      name: 'Polyglot Blockchain',
+      description: 'Use polyglot functions to interact with Stacks blockchain',
+      code: `console.log('🚀 Starting polyglot strategy for', bot.name);
+
+// Check if polyglot library is available
+if (!bot.polyglot) {
+  console.log('❌ Polyglot library not available');
+  return;
+}
+
+console.log('✅ Polyglot library loaded');
+
+try {
+  // Get recent mempool transactions (pending/unconfirmed)
+  console.log('🔍 Checking mempool transactions...');
+  const mempoolTxs = await bot.polyglot.getMempoolTransactions({ limit: 10 });
+  console.log('📊 Found', mempoolTxs.total, 'transactions in mempool');
+  
+  if (mempoolTxs.results.length > 0) {
+    console.log('📋 Recent mempool transactions:');
+    mempoolTxs.results.slice(0, 3).forEach((tx, i) => {
+      console.log(\`  \${i + 1}. \${tx.tx_type} - \${tx.tx_id.substring(0, 8)}...\`);
+      if (tx.tx_type === 'token_transfer') {
+        console.log(\`     Amount: \${tx.token_transfer.amount} microSTX\`);
+      }
+    });
+  }
+  
+  // Get bot's recent confirmed transactions
+  console.log('🔍 Checking bot transaction history...');
+  const botTxs = await bot.polyglot.getRecentTransactions({ limit: 5 });
+  console.log('📊 Found', botTxs.total, 'recent confirmed transactions');
+  
+  // Get BNS name for the bot's address
+  const bnsName = await bot.polyglot.getPrimaryBnsName(bot.id);
+  if (bnsName) {
+    console.log('🏷️ Bot BNS Name:', bnsName);
+  } else {
+    console.log('🏷️ No BNS name found for bot');
+  }
+  
+  // Example: Check a specific contract (Charisma token)
+  const charismaContract = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
+  console.log('📄 Getting contract info for Charisma token...');
+  const contractInfo = await bot.polyglot.getContractInfo(charismaContract);
+  if (contractInfo) {
+    console.log('✅ Contract found:', contractInfo.contract_id);
+    console.log('📊 Contract source code size:', contractInfo.source_code?.length || 0, 'characters');
+  }
+  
+} catch (error) {
+  console.log('❌ Polyglot operation failed:', error.message);
+}`
     }
-  };
+  }
+  return templates;
 }

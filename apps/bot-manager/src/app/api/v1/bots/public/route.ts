@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { appState } from '@/data/app-state';
-import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import { botDataStore } from '@/lib/modules/storage';
 
 /**
  * GET /api/v1/bots/public
@@ -24,23 +24,12 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
     // Check if we should use KV store or static data
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     const useKV = loadingConfig.bots === 'api' && !useDefault;
     let responseData;
 
     if (useKV) {
       // Use KV store for bot data
-      const kvAvailable = await isKVAvailable();
-      if (!kvAvailable) {
-        return NextResponse.json(
-          {
-            error: 'KV store unavailable',
-            message: 'Bot data storage is temporarily unavailable',
-            timestamp: new Date().toISOString(),
-          },
-          { status: 503 }
-        );
-      }
 
       console.log('🌍 Public bot data request (all users)');
 

@@ -12,7 +12,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { config } from "dotenv";
 import { resolve } from "path";
 import { strategyWrapperTemplate } from "./templates/strategy-wrapper";
-import { loadAppStateConfigurableWithFallback } from "@/lib/infrastructure/data/loader.server";
+import { dataLoader } from "@/lib/modules/storage/loader";
 
 import type { Bot } from "@/schemas/bot.schema";
 // Note: No longer using parseStrategyCode - strategies are now raw JavaScript
@@ -68,7 +68,7 @@ export class SandboxService {
     // Get wallet credentials for execution
     const walletCredentials: { privateKey?: string } = {};
     try {
-      const { getPrivateKeyForExecution } = await import("@/lib/infrastructure/security/wallet-encryption");
+      const { getPrivateKeyForExecution } = await import("@/lib/modules/security/wallet-encryption");
       const privateKey = getPrivateKeyForExecution(bot);
       if (privateKey) {
         walletCredentials.privateKey = privateKey;
@@ -134,7 +134,7 @@ export class SandboxService {
   private validateGitRepository(url: string): boolean {
     try {
       const parsed = new URL(url);
-      
+
       // Only allow specific git hosting platforms for security
       const allowedHosts = [
         'github.com',
@@ -143,7 +143,7 @@ export class SandboxService {
         'git.sr.ht',
         'codeberg.org'
       ];
-      
+
       return allowedHosts.includes(parsed.hostname.toLowerCase());
     } catch {
       return false;
@@ -162,7 +162,7 @@ export class SandboxService {
       'python', 'pip',
       'composer'
     ];
-    
+
     for (const command of commands) {
       const [cmd] = command.trim().split(' ');
       if (!allowedCommands.includes(cmd)) {
@@ -197,13 +197,13 @@ export class SandboxService {
   ): Promise<StrategyExecutionResult> {
     const startTime = Date.now();
     let sandbox: any = null;
-    
+
     try {
       // Load bot if ID was provided
       const botInstance = await this.loadBot(bot);
-      
+
       callbacks?.onStatus?.('Initializing sandbox...', new Date().toISOString());
-      
+
       // Validate credentials
       if (!process.env.VERCEL_TOKEN || !process.env.VERCEL_TEAM_ID || !process.env.VERCEL_PROJECT_ID) {
         throw new Error('Missing required Vercel credentials');
@@ -229,7 +229,7 @@ export class SandboxService {
       if (botInstance.gitRepository) {
         // Custom repository execution path
         callbacks?.onStatus?.("Using custom repository for execution...", new Date().toISOString());
-        
+
         // Validate custom git repository
         if (!this.validateGitRepository(botInstance.gitRepository)) {
           throw new Error(`Invalid or unsupported git repository: ${botInstance.gitRepository}`);
@@ -263,11 +263,11 @@ export class SandboxService {
           // Monorepo: install and build specific package
           const fullPath = `/vercel/sandbox/${packagePath}`;
           callbacks?.onStatus?.(`Installing dependencies for ${packagePath}...`, new Date().toISOString());
-          
+
           for (const command of buildCommands) {
             const [cmd, ...args] = command.split(' ');
             callbacks?.onStatus?.(`Running: ${command}`, new Date().toISOString());
-            
+
             const result = await sandbox.runCommand({
               cmd,
               args,
@@ -284,11 +284,11 @@ export class SandboxService {
         } else {
           // Standalone repo: install and build at root
           callbacks?.onStatus?.("Installing dependencies at repository root...", new Date().toISOString());
-          
+
           for (const command of buildCommands) {
             const [cmd, ...args] = command.split(' ');
             callbacks?.onStatus?.(`Running: ${command}`, new Date().toISOString());
-            
+
             const result = await sandbox.runCommand({
               cmd,
               args,
@@ -306,7 +306,7 @@ export class SandboxService {
       } else {
         // Direct Node.js execution (no repository)
         callbacks?.onStatus?.("Creating clean Node.js sandbox...", new Date().toISOString());
-        
+
         sandbox = await Sandbox.create({
           runtime: sandboxConfig.runtime,
           timeout: sandboxConfig.timeout,
@@ -378,20 +378,20 @@ export class SandboxService {
 
       if (allOutput) {
         const lines = allOutput.split('\n').filter(line => line.trim());
-        
+
         // Check for explicit error markers
         const errorLine = lines.find(line => line.startsWith('STRATEGY_EXECUTION_ERROR:'));
         if (errorLine) {
           executionError = errorLine.replace('STRATEGY_EXECUTION_ERROR:', '').trim();
         }
-        
+
         // Include all output lines as logs (excluding error markers)
         logs = lines.filter(line => !line.startsWith('STRATEGY_EXECUTION_ERROR:'));
       }
 
       // Check if strategy completed successfully by looking for completion marker
       const hasCompletionMarker = allOutput.includes('STRATEGY_EXECUTION_COMPLETE');
-      
+
       // Success is determined by exit code 0 (or undefined if not provided) and either completion marker or no errors
       const exitCodeSuccess = result.exitCode === 0 || result.exitCode === undefined;
       const success = exitCodeSuccess && (hasCompletionMarker || (!executionError && !allError.trim()));
@@ -472,9 +472,9 @@ export class SandboxService {
     }
 
     // Fallback to static data
-    const appState = await loadAppStateConfigurableWithFallback();
+    const appState = dataLoader.loadAppState();
     const foundBot = appState.bots.list.find(b => b.id === botId);
-    
+
     if (!foundBot) {
       throw new Error(`Bot with ID '${botId}' not found in API or static data`);
     }

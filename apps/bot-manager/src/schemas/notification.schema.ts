@@ -16,3 +16,9 @@ export const NotificationStateSchema = z.object({
 
 // Infer TypeScript types from schemas
 export type NotificationState = z.infer<typeof NotificationStateSchema>;
+
+// StoredNotification extends NotificationState with additional storage fields
+export interface StoredNotification extends NotificationState {
+  createdAt: string;
+  updatedAt: string;
+}

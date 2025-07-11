@@ -21,7 +21,8 @@
     "generate:demo": "node --import tsx scripts/core/generate-state.ts --profile demo --bots 10",
     "generate:test": "node --import tsx scripts/core/generate-state.ts --profile testing --seed 12345",
     "generate:prod": "node --import tsx scripts/core/generate-state.ts --profile production --realistic",
-    "validate-state": "node --import tsx scripts/core/validate-state.ts"
+    "validate-state": "node --import tsx scripts/core/validate-state.ts",
+    "create-bot": "node --import tsx scripts/create-bot.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

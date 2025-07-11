@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { appState } from '@/data/app-state';
-import { defaultState } from '@/data/default-state';
-import { createBotImageConfig } from '@/lib/features/bots/images';
-import { getLoadingConfig } from '@/lib/infrastructure/config/loading';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
-import { type Bot, BotSchema, type CreateBotRequest,CreateBotRequestSchema } from '@/schemas/bot.schema';
+import { createBotImageConfig } from '@/lib/services/bots/images';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import { botDataStore } from '@/lib/modules/storage';
+import { type Bot, BotSchema, type CreateBotRequest, CreateBotRequestSchema } from '@/schemas/bot.schema';
 
 /**
  * GET /api/v1/bots
@@ -29,24 +28,12 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
     // Check if we should use KV store or static data
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     const useKV = loadingConfig.bots === 'api' && !useDefault && userId;
     let responseData;
 
     if (useKV) {
       // Use KV store for bot data - requires authentication
-      const kvAvailable = await isKVAvailable();
-      if (!kvAvailable) {
-        return NextResponse.json(
-          {
-            error: 'KV store unavailable',
-            message: 'Bot data storage is temporarily unavailable',
-            timestamp: new Date().toISOString(),
-          },
-          { status: 503 }
-        );
-      }
-
       console.log(`🤖 Bot data request for user: ${userId.slice(0, 8)}...`);
 
       if (section === 'list') {
@@ -107,7 +94,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Use static data (existing implementation)
-      const sourceData = useDefault ? defaultState : appState;
+      const sourceData = appState;
 
       if (section) {
         // Return specific section
@@ -219,7 +206,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if bot API is enabled
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         {
@@ -231,18 +218,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check KV availability
-    const kvAvailable = await isKVAvailable();
-    if (!kvAvailable) {
-      return NextResponse.json(
-        {
-          error: 'KV store unavailable',
-          message: 'Bot data storage is temporarily unavailable',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
 
     const body = await request.json();
 
@@ -266,10 +241,10 @@ export async function POST(request: NextRequest) {
 
     // Generate real wallet with encryption (this will be the bot's ID)
     console.log(`[BotAPI] Generating real wallet for new bot...`);
-    const { generateBotWallet, encryptWalletCredentials } = await import('@/lib/infrastructure/security/wallet-encryption');
+    const { generateBotWallet, encryptWalletCredentials } = await import('@/lib/modules/security/wallet-encryption');
     const walletCredentials = await generateBotWallet();
     const encryptedWallet = encryptWalletCredentials(walletCredentials);
-    
+
     const botWalletAddress = walletCredentials.walletAddress;
     console.log(`[BotAPI] Wallet generated for bot: ${botWalletAddress}`);
 
@@ -369,7 +344,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if bot API is enabled
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         {
@@ -381,18 +356,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check KV availability
-    const kvAvailable = await isKVAvailable();
-    if (!kvAvailable) {
-      return NextResponse.json(
-        {
-          error: 'KV store unavailable',
-          message: 'Bot data storage is temporarily unavailable',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
 
     const body = await request.json();
 
@@ -488,7 +451,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if bot API is enabled
-    const loadingConfig = getLoadingConfig();
+    const loadingConfig = dataLoader.getConfig();
     if (loadingConfig.bots !== 'api') {
       return NextResponse.json(
         {
@@ -500,18 +463,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check KV availability
-    const kvAvailable = await isKVAvailable();
-    if (!kvAvailable) {
-      return NextResponse.json(
-        {
-          error: 'KV store unavailable',
-          message: 'Bot data storage is temporarily unavailable',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
 
     // Check if bot exists
     const existingBot = await botDataStore.getBot(userId, botId);

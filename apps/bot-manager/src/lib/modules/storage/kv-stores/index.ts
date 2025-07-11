@@ -13,9 +13,8 @@ export { BotKVStore } from './bot-store';
 export { NotificationKVStore } from './notification-store';
 export { UserDataKVStore } from './user-store';
 
-// Export types and utilities
-export type { NotificationFilters,StoredNotification } from './types';
-export { isKVAvailable } from './types';
+// Note: StoredNotification should be defined in notification-related files
+// NotificationFilters should be defined in notification client
 
 export const userDataStore = new UserDataKVStore();
 export const botDataStore = new BotKVStore();

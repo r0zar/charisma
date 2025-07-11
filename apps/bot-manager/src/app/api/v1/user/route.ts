@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isFeatureEnabled } from '@/lib/infrastructure/config/feature-flags';
-import { userDataStore } from '@/lib/infrastructure/storage';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import { userDataStore } from '@/lib/modules/storage';
 
 /**
  * GET /api/v1/user
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const section = searchParams.get('section') as 'settings' | 'wallet' | 'preferences' | null;
 
     // Check if user API is enabled
-    if (!isFeatureEnabled('enableApiUser')) {
+    if (!dataLoader.isApiEnabled('user')) {
       return NextResponse.json(
         {
           error: 'User API not enabled',
@@ -124,7 +124,7 @@ export async function PUT(request: NextRequest) {
     const section = searchParams.get('section') as 'settings' | 'wallet' | 'preferences' | null;
 
     // Check if user API is enabled
-    if (!isFeatureEnabled('enableApiUser')) {
+    if (!dataLoader.isApiEnabled('user')) {
       return NextResponse.json(
         {
           error: 'User API not enabled',

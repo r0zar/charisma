@@ -1,6 +1,6 @@
 import { useEffect,useState } from 'react';
 
-import { BotStateMachine } from '@/lib/infrastructure/state-machine/bot-state-machine';
+import { BotStateMachine } from '@/lib/services/bots/bot-state-machine';
 import { Bot } from '@/schemas/bot.schema';
 
 interface ValidationState {

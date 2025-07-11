@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { config } from '@/lib/infrastructure/config/loading';
-import {encryptWalletCredentials, generateBotWallet } from '@/lib/infrastructure/security/wallet-encryption';
-import { botDataStore, isKVAvailable } from '@/lib/infrastructure/storage';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import {encryptWalletCredentials, generateBotWallet } from '@/lib/modules/security/wallet-encryption';
+import { botDataStore } from '@/lib/modules/storage';
 
 /**
  * GET /api/v1/bots/[id]/wallet
@@ -31,7 +31,7 @@ export async function GET(
     }
     
     // Check if bot API is enabled
-    if (!config.enableAPIBots) {
+    if (!dataLoader.isApiEnabled('bots')) {
       return NextResponse.json(
         { 
           error: 'Bot API disabled',
@@ -42,18 +42,6 @@ export async function GET(
       );
     }
     
-    // Check KV availability
-    const kvAvailable = await isKVAvailable();
-    if (!kvAvailable) {
-      return NextResponse.json(
-        { 
-          error: 'KV store unavailable',
-          message: 'Bot data storage is temporarily unavailable',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
     
     // Get bot
     const bot = await botDataStore.getBot(userId, botId);
@@ -127,7 +115,7 @@ export async function POST(
     }
     
     // Check if bot API is enabled
-    if (!config.enableAPIBots) {
+    if (!dataLoader.isApiEnabled('bots')) {
       return NextResponse.json(
         { 
           error: 'Bot API disabled',
@@ -138,18 +126,6 @@ export async function POST(
       );
     }
     
-    // Check KV availability
-    const kvAvailable = await isKVAvailable();
-    if (!kvAvailable) {
-      return NextResponse.json(
-        { 
-          error: 'KV store unavailable',
-          message: 'Bot data storage is temporarily unavailable',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
     
     const body = await request.json();
     const { action } = body;
@@ -268,7 +244,7 @@ export async function DELETE(
     }
     
     // Check if bot API is enabled
-    if (!config.enableAPIBots) {
+    if (!dataLoader.isApiEnabled('bots')) {
       return NextResponse.json(
         { 
           error: 'Bot API disabled',
@@ -279,18 +255,6 @@ export async function DELETE(
       );
     }
     
-    // Check KV availability
-    const kvAvailable = await isKVAvailable();
-    if (!kvAvailable) {
-      return NextResponse.json(
-        { 
-          error: 'KV store unavailable',
-          message: 'Bot data storage is temporarily unavailable',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
     
     // Get bot
     const bot = await botDataStore.getBot(userId, botId);

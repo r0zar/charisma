@@ -16,11 +16,12 @@ export function generatePokemonImageUrl(pokemonName: string): string | null {
 }
 
 /**
- * Generate an avatar URL using DiceBear Personas
+ * Generate an avatar URL using Robohash (robot-themed avatars)
  */
 export function generateAvatarImageUrl(seed: string): string {
-  // Using DiceBear Personas style for unique avatars based on bot name
-  return `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  // Using Robohash for robot-themed avatars - perfect for bots!
+  // Set 1: Robots (default), size 200x200, PNG format
+  return `https://robohash.org/${encodeURIComponent(seed)}.png?size=200x200&set=set1`;
 }
 
 /**

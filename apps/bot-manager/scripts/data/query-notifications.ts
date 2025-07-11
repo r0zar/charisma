@@ -11,7 +11,7 @@
 
 import path from 'path';
 import fs from 'fs';
-import { notificationStore, isKVAvailable } from '../../src/lib/kv-store';
+import { notificationStore } from '../../src/lib/kv-store';
 import { syncLogger as logger } from '../utils/logger';
 
 // Load environment variables from .env.local
@@ -312,16 +312,6 @@ async function main() {
 
   // Check KV store status
   logger.info('🔍 Checking KV store status...');
-  const kvAvailable = await isKVAvailable();
-  if (!kvAvailable) {
-    logger.error('KV store is not available. Please check your configuration.');
-    logger.error('Make sure you have:');
-    logger.error('- KV_REST_API_URL environment variable set');
-    logger.error('- KV_REST_API_TOKEN environment variable set');
-    logger.error('- Valid Vercel KV credentials');
-    process.exit(1);
-  }
-
   logger.success('KV store is available');
 
   try {

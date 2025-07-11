@@ -1,8 +1,8 @@
 // Bot Data Generator
 import { Bot, BotStats, LpTokenBalance, RewardTokenBalance } from '@/schemas/bot.schema';
 import { GeneratorOptions } from '@/schemas/app-state.schema';
-import { getStrategyTemplates } from '@/lib/features/bots/strategy-parser';
-import { createBotImageConfig } from '@/lib/features/bots/images';
+import { getStrategyTemplates } from '@/lib/services/bots/strategy-parser';
+import { createBotImageConfig } from '@/lib/services/bots/images';
 import { syncLogger as logger } from '../../utils/logger';
 // Note: wallet-encryption import moved to conditional usage to avoid env var requirement
 import {

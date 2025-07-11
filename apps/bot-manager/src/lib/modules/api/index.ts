@@ -4,4 +4,3 @@
  */
 
 export * from './client';
-export * from './notifications-client';

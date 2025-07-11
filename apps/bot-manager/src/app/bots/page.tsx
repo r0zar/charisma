@@ -44,7 +44,7 @@ import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { usePublicBots } from '@/hooks/usePublicBots';
-import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
+import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
@@ -233,9 +233,15 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
             {/* Main Content Area - Image + Body in a flex column */}
             <div className="flex flex-col min-h-0 overflow-hidden">
               {/* Image Section */}
-              <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border/10 overflow-hidden rounded-md flex-1">
+              <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border/10 overflow-hidden rounded-md flex-1 relative">
                 <div className="w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
-                  <BotAvatar bot={bot} size="xl" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                  <BotAvatar bot={bot} size="xl" className="w-full h-full object-cover transition-transform duration-300" />
+                </div>
+                {/* Strategy Type Overlay */}
+                <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-md px-2 py-1">
+                  <p className="text-xs text-white/80 font-medium tracking-wider">
+                    {getStrategyDisplayName(bot.strategy)}
+                  </p>
                 </div>
               </div>
 
@@ -244,7 +250,7 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                 {/* Watermarks for different states */}
                 {bot.status === 'setup' && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <Settings className="w-24 h-24 text-muted-foreground/8 group-hover:animate-spin group-hover:duration-[3000ms] transition-transform duration-300" />
+                    <Settings className="w-24 h-24 text-muted-foreground/8 transition-transform duration-300" />
                   </div>
                 )}
                 {bot.status === 'active' && (
@@ -253,15 +259,11 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                   </div>
                 )}
 
-                {/* Strategy Type */}
-                <p className="text-xs text-muted-foreground tracking-wider mb-3 text-center relative z-10">
-                  {getStrategyDisplayName(bot.strategy)}
-                </p>
 
                 {/* Stats/Info Section */}
                 {bot.status === 'setup' ? (
                   /* Setup State - Clean status message */
-                  <div className="flex flex-col items-center justify-center text-center py-4 relative z-10">
+                  <div className="flex flex-col items-center justify-center text-center py-4 relative z-10 min-h-24">
                     <div className="text-xs text-muted-foreground font-medium">Configuration Required</div>
                     <div className="text-xs text-muted-foreground/80">Click to configure strategy</div>
                   </div>
@@ -827,16 +829,19 @@ export default function BotsPage() {
                         </div>
 
                         <div className="flex flex-col min-h-0 overflow-hidden">
-                          <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border/10 overflow-hidden rounded-md flex-1">
+                          <div className="bg-gradient-to-br from-muted/50 to-muted/30 border border-border/10 overflow-hidden rounded-md flex-1 relative">
                             <div className="w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
-                              <BotAvatar bot={bot} size="xl" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                              <BotAvatar bot={bot} size="xl" className="w-full h-full object-cover transition-transform duration-300" />
+                            </div>
+                            {/* Strategy Type Overlay */}
+                            <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-md px-2 py-1">
+                              <p className="text-xs text-white/80 font-medium tracking-wider">
+                                {getStrategyDisplayName(bot.strategy)}
+                              </p>
                             </div>
                           </div>
 
                           <div className="bg-card/50 mt-2 flex-shrink-0 flex flex-col relative">
-                            <p className="text-xs text-muted-foreground tracking-wider mb-3 text-center relative z-10">
-                              {getStrategyDisplayName(bot.strategy)}
-                            </p>
                             <div className="text-xs text-center text-muted-foreground">
                               by {truncateAddress(bot.ownerId)}
                             </div>

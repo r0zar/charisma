@@ -1,10 +1,10 @@
 import { CronExpressionParser } from 'cron-parser';
-import { isBefore,parseISO } from 'date-fns';
+import { isBefore, parseISO } from 'date-fns';
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { sandboxService } from '@/lib/features/sandbox/service';
-import { loadAppStateConfigurableWithFallback } from '@/lib/infrastructure/data/loader.server';
-import { botDataStore } from '@/lib/infrastructure/storage';
+import { sandboxService } from '@/lib/services/sandbox/service';
+import { dataLoader } from '@/lib/modules/storage/loader';
+import { botDataStore } from '@/lib/modules/storage';
 import { type Bot } from '@/schemas/bot.schema';
 
 /**
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Load all bots from the app state
-    const appState = await loadAppStateConfigurableWithFallback();
+    const appState = dataLoader.loadAppState();
     const allBots = appState.bots.list;
 
     // Filter bots that are scheduled and active

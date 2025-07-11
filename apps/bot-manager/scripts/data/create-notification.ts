@@ -11,12 +11,12 @@
 
 import path from 'path';
 import fs from 'fs';
-import { notificationStore, isKVAvailable } from '../../src/lib/kv-store';
-import { 
-  generateNotificationFromTemplate, 
+import { notificationStore } from '../../src/lib/kv-store';
+import {
+  generateNotificationFromTemplate,
   type NotificationEventType,
   type NotificationEventData,
-  NOTIFICATION_TEMPLATES 
+  NOTIFICATION_TEMPLATES
 } from '../../src/lib/notification-templates';
 import { syncLogger as logger } from '../utils/logger';
 
@@ -27,7 +27,7 @@ function loadEnvFile() {
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf8');
       const lines = envContent.split('\n');
-      
+
       for (const line of lines) {
         const trimmedLine = line.trim();
         if (trimmedLine && !trimmedLine.startsWith('#')) {
@@ -275,10 +275,10 @@ async function createBatchNotifications(batchFile: string): Promise<void> {
 
   for (let i = 0; i < batchData.length; i++) {
     const notification = batchData[i];
-    
+
     try {
       logger.info(`\n📝 Creating notification ${i + 1}/${batchData.length} for user ${notification.userId}...`);
-      
+
       const options: CreateOptions = {
         userId: notification.userId,
         template: notification.template,
@@ -293,7 +293,7 @@ async function createBatchNotifications(batchFile: string): Promise<void> {
       validateOptions(options);
       await createSingleNotification(options);
       successCount++;
-      
+
     } catch (error) {
       logger.error(`Failed to create notification ${i + 1}: ${error}`);
       failureCount++;
@@ -313,20 +313,6 @@ async function main() {
   const options = parseArgs();
 
   logger.info('📧 Custom Notification Creator');
-
-  // Check KV store status
-  logger.info('🔍 Checking KV store status...');
-  const kvAvailable = await isKVAvailable();
-  if (!kvAvailable) {
-    logger.error('KV store is not available. Please check your configuration.');
-    logger.error('Make sure you have:');
-    logger.error('- KV_REST_API_URL environment variable set');
-    logger.error('- KV_REST_API_TOKEN environment variable set');
-    logger.error('- Valid Vercel KV credentials');
-    process.exit(1);
-  }
-
-  logger.success('KV store is available');
 
   // Validate options
   validateOptions(options);

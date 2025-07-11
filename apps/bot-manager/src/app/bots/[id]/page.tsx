@@ -10,14 +10,15 @@ import {
   Minus,
   Pause,
   Plus,
-  TrendingUp} from 'lucide-react';
+  TrendingUp
+} from 'lucide-react';
 import React from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CountdownTimer } from '@/components/countdown-timer';
 import { useCurrentBot } from '@/contexts/current-bot-context';
-import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
+import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 
 const statusColors = {
@@ -114,109 +115,109 @@ export default function BotOverviewPage() {
 
   return (
     <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Bot Status */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Bot Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Current Status</span>
-                  <Badge className={`${statusColors[bot.status]}`}>
-                    {statusIcons[bot.status]}
-                    <span className="ml-1 capitalize">{bot.status}</span>
-                  </Badge>
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bot Status */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-card-foreground">Bot Status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Current Status</span>
+              <Badge className={`${statusColors[bot.status]}`}>
+                {statusIcons[bot.status]}
+                <span className="ml-1 capitalize">{bot.status}</span>
+              </Badge>
+            </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Strategy</span>
-                  <span className="text-card-foreground">{getStrategyDisplayName(bot.strategy)}</span>
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Strategy</span>
+              <span className="text-card-foreground">{getStrategyDisplayName(bot.strategy)}</span>
+            </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Last Active</span>
-                  <span className="text-card-foreground">{formatRelativeTime(bot.lastActive)}</span>
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Last Active</span>
+              <span className="text-card-foreground">{formatRelativeTime(bot.lastActive)}</span>
+            </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Created</span>
-                  <span className="text-card-foreground">{formatRelativeTime(bot.createdAt)}</span>
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Created</span>
+              <span className="text-card-foreground">{formatRelativeTime(bot.createdAt)}</span>
+            </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Scheduling</span>
-                  <Badge className={bot.isScheduled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
-                    {bot.isScheduled ? 'Auto' : 'Manual'}
-                  </Badge>
-                </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Scheduling</span>
+              <Badge className={bot.isScheduled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+                {bot.isScheduled ? 'Auto' : 'Manual'}
+              </Badge>
+            </div>
 
-                {bot.isScheduled && bot.nextExecution && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Next Run</span>
-                    <CountdownTimer 
-                      targetDate={bot.nextExecution} 
-                      className="text-sm"
-                    />
-                  </div>
-                )}
+            {bot.isScheduled && bot.nextExecution && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Next Run</span>
+                <CountdownTimer
+                  targetDate={bot.nextExecution}
+                  className="text-sm"
+                />
+              </div>
+            )}
 
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
 
-            {/* Performance Summary */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-card-foreground">Performance Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-semibold mb-2">No Performance Data</h3>
-                  <p>Performance metrics will appear here once the bot starts executing trades.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Performance Summary */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-card-foreground">Performance Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-semibold mb-2">No Performance Data</h3>
+              <p>Performance metrics will appear here once the bot starts executing trades.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Recent Activity */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-card-foreground">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {botActivities.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No recent activity
-                  </div>
-                ) : (
-                  botActivities.slice(0, 3).map((tx) => {
-                    const IconComponent = getActivityIcon(tx.type);
-                    return (
-                      <div key={tx.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full ${getActivityBgColor(tx.type)} flex items-center justify-center`}>
-                            <IconComponent className={`w-4 h-4 ${getActivityColor(tx.type)}`} />
-                          </div>
-                          <div>
-                            <div className="font-medium text-card-foreground capitalize">{tx.type.replace('_', ' ')}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {tx.from} → {tx.to}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-card-foreground">{formatCurrency(tx.amount)}</div>
-                          <div className="text-sm text-muted-foreground">{formatRelativeTime(new Date(tx.timestamp).toISOString())}</div>
+      {/* Recent Activity */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-card-foreground">Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {botActivities.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                No recent activity
+              </div>
+            ) : (
+              botActivities.slice(0, 3).map((tx) => {
+                const IconComponent = getActivityIcon(tx.type);
+                return (
+                  <div key={tx.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full ${getActivityBgColor(tx.type)} flex items-center justify-center`}>
+                        <IconComponent className={`w-4 h-4 ${getActivityColor(tx.type)}`} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-card-foreground capitalize">{tx.type.replace('_', ' ')}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {tx.from} → {tx.to}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-card-foreground">{formatCurrency(tx.amount)}</div>
+                      <div className="text-sm text-muted-foreground">{formatRelativeTime(new Date(tx.timestamp).toISOString())}</div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

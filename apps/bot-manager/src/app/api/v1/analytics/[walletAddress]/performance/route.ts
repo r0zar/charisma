@@ -1,8 +1,6 @@
 import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { logger } from '@/lib/infrastructure/server/logger';
-
 /**
  * Get cached performance metrics for a specific wallet
  * Requires wallet signature authentication
@@ -20,7 +18,7 @@ export async function GET(
 
     // Note: Authentication disabled for reading performance data to prevent infinite loops
     // Frontend pages are responsible for only requesting data for connected wallet
-    logger.info(`📈 Performance request for wallet: ${walletAddress.slice(0, 8)}...`);
+    console.log(`📈 Performance request for wallet: ${walletAddress.slice(0, 8)}...`);
 
     // Get cached performance metrics
     const performanceMetrics = await kv.get(`analytics:performance:${walletAddress}`);
@@ -51,7 +49,7 @@ export async function GET(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to fetch cached performance metrics: ${errorMessage}`);
+    console.error(`Failed to fetch cached performance metrics: ${errorMessage}`);
     
     return NextResponse.json({
       success: false,

@@ -9,9 +9,10 @@ import {
   Play,
   RefreshCw,
   Settings,
-  Wallet} from 'lucide-react';
+  Wallet
+} from 'lucide-react';
 import Link from 'next/link';
-import { useParams, usePathname,useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
 import { BotAvatar } from '@/components/ui/bot-avatar';
@@ -20,7 +21,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { CurrentBotProvider } from '@/contexts/current-bot-context';
-import { getStrategyDisplayName } from '@/lib/features/bots/strategy-parser';
+import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 
 export default function BotDetailLayout({ children, }: { children: React.ReactNode; }) {
   const params = useParams();
@@ -42,7 +43,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
   React.useEffect(() => {
     const loadPublicBots = async () => {
       if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS !== 'true') return;
-      
+
       setPublicLoading(true);
       try {
         const response = await fetch('/api/v1/bots/public');
@@ -66,7 +67,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
     // First check user's own bots
     const userBot = bots.find(b => b.id === params.id);
     if (userBot) return userBot;
-    
+
     // Then check public bots
     const publicBot = publicBots.find(b => b.id === params.id);
     return publicBot;
