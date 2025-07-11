@@ -108,7 +108,6 @@ export class SearchService {
         bot.strategy,
         bot.ownerId,
         bot.status,
-        bot.description || '',
         bot.id
       ];
 
@@ -133,7 +132,7 @@ export class SearchService {
           id: bot.id,
           type: 'bot',
           title: bot.name,
-          description: bot.description || `${bot.status} • Strategy: ${this.getStrategyDisplayName(bot.strategy)}`,
+          description: `${bot.status} • Strategy: ${this.getStrategyDisplayName(bot.strategy)}`,
           score,
           data: bot,
           metadata: {
