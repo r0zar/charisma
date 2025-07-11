@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { appState } from '@/data/app-state';
-import { dataLoader } from '@/lib/modules/storage/loader';
-import { botDataStore } from '@/lib/modules/storage';
+import { botService } from '@/lib/services/bots/service';
 
 /**
  * GET /api/v1/bots/public
@@ -17,107 +15,62 @@ import { botDataStore } from '@/lib/modules/storage';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const useDefault = searchParams.get('default') === 'true';
     const section = searchParams.get('section') as 'list' | 'stats' | null;
     const status = searchParams.get('status');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
-    // Check if we should use KV store or static data
-    const loadingConfig = dataLoader.getConfig();
-    const useKV = loadingConfig.bots === 'api' && !useDefault;
+    console.log(`🌍 Public bot data request (${botService.getDataSource()})`);
+
     let responseData;
 
-    if (useKV) {
-      // Use KV store for bot data
-
-      console.log('🌍 Public bot data request (all users)');
-
-      try {
-        // Get all public bots
-        let allBots = await botDataStore.getAllBotsPublic();
-        
-        // Filter by status if specified
-        if (status) {
-          allBots = allBots.filter(bot => bot.status === status);
-        }
-
-        // Apply pagination
-        const totalBots = allBots.length;
-        const paginatedBots = limit 
-          ? allBots.slice(offset, offset + limit)
-          : allBots.slice(offset);
-
-        // Get public stats
-        const stats = await botDataStore.getPublicBotStats();
-
-        responseData = {
-          list: paginatedBots,
-          stats,
-          pagination: {
-            total: totalBots,
-            offset,
-            limit: limit || totalBots,
-            hasMore: limit ? (offset + limit) < totalBots : false
-          }
-        };
-
-        console.log(`📊 Returned ${paginatedBots.length} of ${totalBots} public bots`);
-
-      } catch (kvError) {
-        console.error('KV store error:', kvError);
-        return NextResponse.json(
-          {
-            error: 'Failed to fetch bot data',
-            message: 'Unable to retrieve bot information from storage',
-            timestamp: new Date().toISOString(),
-          },
-          { status: 500 }
-        );
-      }
-    } else {
-      // Use static data as fallback
-      console.log('📄 Using static data for public bots');
-      
-      let allBots = appState.bots.list;
-      
-      // Filter by status if specified
-      if (status) {
-        allBots = allBots.filter(bot => bot.status === status);
-      }
-
-      // Apply pagination
-      const totalBots = allBots.length;
-      const paginatedBots = limit 
-        ? allBots.slice(offset, offset + limit)
-        : allBots.slice(offset);
-
-      responseData = {
-        list: paginatedBots,
-        stats: {
-          ...appState.bots.stats,
-          totalUsers: new Set(appState.bots.list.map(bot => bot.ownerId)).size
-        },
-        pagination: {
-          total: totalBots,
-          offset,
-          limit: limit || totalBots,
-          hasMore: limit ? (offset + limit) < totalBots : false
-        }
-      };
+    // Get all public bots
+    let allBots = await botService.getPublicBots();
+    
+    // Filter by status if specified
+    if (status) {
+      allBots = allBots.filter(bot => bot.status === status);
     }
+
+    // Apply pagination
+    const totalBots = allBots.length;
+    const paginatedBots = limit 
+      ? allBots.slice(offset, offset + limit)
+      : allBots.slice(offset);
+
+    // Get public stats
+    const stats = await botService.getPublicBotStats();
+
+    responseData = {
+      list: paginatedBots,
+      stats,
+      pagination: {
+        total: totalBots,
+        offset,
+        limit: limit || totalBots,
+        hasMore: limit ? (offset + limit) < totalBots : false
+      },
+      source: botService.getDataSource(),
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log(`📊 Returned ${paginatedBots.length} of ${totalBots} public bots`);
 
     // Return specific section if requested
     if (section === 'list') {
       return NextResponse.json({
         list: responseData.list,
-        pagination: responseData.pagination
+        pagination: responseData.pagination,
+        source: responseData.source,
+        timestamp: responseData.timestamp,
       });
     }
     
     if (section === 'stats') {
       return NextResponse.json({
-        stats: responseData.stats
+        stats: responseData.stats,
+        source: responseData.source,
+        timestamp: responseData.timestamp,
       });
     }
 

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { appState } from '@/data/app-state';
-import { createBotImageConfig } from '@/lib/services/bots/images';
-import { dataLoader } from '@/lib/modules/storage/loader';
-import { botDataStore } from '@/lib/modules/storage';
+import { botService } from '@/lib/services/bots/service';
 import { type Bot, BotSchema, type CreateBotRequest, CreateBotRequestSchema } from '@/schemas/bot.schema';
 
 /**
@@ -27,139 +24,75 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
-    // Check if we should use KV store or static data
-    const loadingConfig = dataLoader.getConfig();
-    const useKV = loadingConfig.bots === 'api' && !useDefault && userId;
+    // Require userId for KV operations
+    if (!userId && !useDefault) {
+      return NextResponse.json(
+        {
+          error: 'Missing userId',
+          message: 'userId query parameter is required',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 400 }
+      );
+    }
+
     let responseData;
 
-    if (useKV) {
-      // Use KV store for bot data - requires authentication
-      console.log(`🤖 Bot data request for user: ${userId.slice(0, 8)}...`);
+    if (section === 'list') {
+      // Get bots with filtering and pagination
+      let bots = await botService.getAllBots(userId!);
 
-      if (section === 'list') {
-        // Get bots with filtering and pagination
-        let bots = await botDataStore.getAllBots(userId);
-
-        // Filter by status
-        if (status) {
-          bots = bots.filter(bot => bot.status === status);
-        }
-
-        // Apply pagination
-        const total = bots.length;
-        if (limit !== undefined) {
-          bots = bots.slice(offset, offset + limit);
-        }
-
-        responseData = {
-          list: bots,
-          pagination: { offset, limit, total },
-          source: 'kv',
-          timestamp: new Date().toISOString(),
-        };
-      } else if (section === 'stats') {
-        // Get bot statistics
-        const stats = await botDataStore.getBotStats(userId);
-        responseData = {
-          stats,
-          source: 'kv',
-          timestamp: new Date().toISOString(),
-        };
-      } else {
-        // Return all bot data
-        const [bots, stats] = await Promise.all([
-          botDataStore.getAllBots(userId),
-          botDataStore.getBotStats(userId)
-        ]);
-
-        // Apply status filter to bots if specified
-        let filteredBots = bots;
-        if (status) {
-          filteredBots = bots.filter(bot => bot.status === status);
-        }
-
-        // Apply pagination to bots
-        const total = filteredBots.length;
-        if (limit !== undefined) {
-          filteredBots = filteredBots.slice(offset, offset + limit);
-        }
-
-        responseData = {
-          list: filteredBots,
-          stats,
-          pagination: { offset, limit, total },
-          source: 'kv',
-          timestamp: new Date().toISOString(),
-        };
+      // Filter by status
+      if (status) {
+        bots = bots.filter(bot => bot.status === status);
       }
+
+      // Apply pagination
+      const total = bots.length;
+      if (limit !== undefined) {
+        bots = bots.slice(offset, offset + limit);
+      }
+
+      responseData = {
+        list: bots,
+        pagination: { offset, limit, total },
+        source: botService.getDataSource(),
+        timestamp: new Date().toISOString(),
+      };
+    } else if (section === 'stats') {
+      // Get bot statistics
+      const stats = await botService.getBotStats(userId!);
+      responseData = {
+        stats,
+        source: botService.getDataSource(),
+        timestamp: new Date().toISOString(),
+      };
     } else {
-      // Use static data (existing implementation)
-      const sourceData = appState;
+      // Return all bot data
+      const [bots, stats] = await Promise.all([
+        botService.getAllBots(userId!),
+        botService.getBotStats(userId!)
+      ]);
 
-      if (section) {
-        // Return specific section
-        if (!sourceData.bots[section]) {
-          return NextResponse.json(
-            {
-              error: 'Invalid section',
-              message: `Section '${section}' not found`,
-              timestamp: new Date().toISOString(),
-            },
-            { status: 404 }
-          );
-        }
-
-        let sectionData: any = sourceData.bots[section];
-
-        // Apply filters and pagination for list and activities
-        if (section === 'list' && Array.isArray(sectionData)) {
-          // Filter by status if specified
-          if (status) {
-            sectionData = sectionData.filter((bot: any) => bot.status === status);
-          }
-
-          // Apply pagination
-          if (limit !== undefined) {
-            sectionData = sectionData.slice(offset, offset + limit);
-          }
-        }
-
-        responseData = {
-          [section]: sectionData,
-          pagination: {
-            offset,
-            limit,
-            total: Array.isArray(sourceData.bots[section]) ? sourceData.bots[section].length : 1,
-          },
-          source: 'api',
-          timestamp: new Date().toISOString(),
-        };
-      } else {
-        // Return all bot data with filters applied
-        let botList: any[] = sourceData.bots.list;
-
-        // Filter by status if specified
-        if (status) {
-          botList = botList.filter((bot: any) => bot.status === status);
-        }
-
-        // Apply pagination to bot list
-        if (limit !== undefined) {
-          botList = botList.slice(offset, offset + limit);
-        }
-
-        responseData = {
-          list: botList,
-          stats: sourceData.bots.stats,
-          pagination: {
-            offset,
-            limit,
-            total: sourceData.bots.list.length,
-          },
-          source: 'api',
-          timestamp: new Date().toISOString(),
-        };
+      // Apply status filter to bots if specified
+      let filteredBots = bots;
+      if (status) {
+        filteredBots = bots.filter(bot => bot.status === status);
       }
+
+      // Apply pagination to bots
+      const total = filteredBots.length;
+      if (limit !== undefined) {
+        filteredBots = filteredBots.slice(offset, offset + limit);
+      }
+
+      responseData = {
+        list: filteredBots,
+        stats,
+        pagination: { offset, limit, total },
+        source: botService.getDataSource(),
+        timestamp: new Date().toISOString(),
+      };
     }
 
     return NextResponse.json(responseData, {
@@ -205,19 +138,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if bot API is enabled
-    const loadingConfig = dataLoader.getConfig();
-    if (loadingConfig.bots !== 'api') {
+    // Check if bot creation is available
+    if (!botService.isKVEnabled()) {
       return NextResponse.json(
         {
-          error: 'Bot API disabled',
+          error: 'Bot creation disabled',
           message: 'Bot creation via API is not enabled',
           timestamp: new Date().toISOString(),
         },
         { status: 503 }
       );
     }
-
 
     const body = await request.json();
 
@@ -237,63 +168,8 @@ export async function POST(request: NextRequest) {
 
     const createRequest: CreateBotRequest = validationResult.data;
 
-    const now = new Date().toISOString();
-
-    // Generate real wallet with encryption (this will be the bot's ID)
-    console.log(`[BotAPI] Generating real wallet for new bot...`);
-    const { generateBotWallet, encryptWalletCredentials } = await import('@/lib/modules/security/wallet-encryption');
-    const walletCredentials = await generateBotWallet();
-    const encryptedWallet = encryptWalletCredentials(walletCredentials);
-
-    const botWalletAddress = walletCredentials.walletAddress;
-    console.log(`[BotAPI] Wallet generated for bot: ${botWalletAddress}`);
-
-    // Generate image configuration using wallet address as ID
-    const imageConfig = createBotImageConfig(createRequest.name, botWalletAddress, 'pokemon');
-
-    // Create bot object
-    const newBot: Bot = {
-      id: botWalletAddress, // Bot ID is now the wallet address
-      name: createRequest.name,
-      strategy: createRequest.strategy,
-      status: 'setup',
-      ownerId: userId, // Owner's STX address
-      createdAt: now,
-      lastActive: now,
-
-      // Encrypted wallet data for secure storage
-      encryptedWallet: encryptedWallet.encryptedPrivateKey,
-      walletIv: encryptedWallet.privateKeyIv,
-      publicKey: walletCredentials.publicKey, // Public key (safe to display)
-
-      // Visual identity
-      image: imageConfig.image,
-      imageType: imageConfig.imageType,
-
-      // Default scheduling configuration
-      isScheduled: false,
-      cronSchedule: undefined,
-      lastExecution: undefined,
-      nextExecution: undefined,
-      executionCount: 0,
-    };
-
-    // Validate the complete bot object
-    const botValidation = BotSchema.safeParse(newBot);
-    if (!botValidation.success) {
-      console.error('Bot validation failed:', botValidation.error);
-      return NextResponse.json(
-        {
-          error: 'Bot creation failed',
-          message: 'Generated bot data is invalid',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      );
-    }
-
-    // Store bot in KV
-    await botDataStore.createBot(userId, newBot);
+    // Create bot using service
+    const newBot = await botService.createBot(userId, createRequest);
 
     return NextResponse.json(
       {
@@ -343,19 +219,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if bot API is enabled
-    const loadingConfig = dataLoader.getConfig();
-    if (loadingConfig.bots !== 'api') {
+    // Check if bot updates are available
+    if (!botService.isKVEnabled()) {
       return NextResponse.json(
         {
-          error: 'Bot API disabled',
+          error: 'Bot updates disabled',
           message: 'Bot updates via API are not enabled',
           timestamp: new Date().toISOString(),
         },
         { status: 503 }
       );
     }
-
 
     const body = await request.json();
 
@@ -387,26 +261,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if bot exists
-    const existingBot = await botDataStore.getBot(userId, botId);
-    if (!existingBot) {
-      return NextResponse.json(
-        {
-          error: 'Bot not found',
-          message: `Bot ${botId} not found for user ${userId}`,
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-
-    // Update bot in KV
-    await botDataStore.updateBot(userId, botUpdate);
+    // Update bot using service
+    const updatedBot = await botService.updateBot(userId, botId, botUpdate);
 
     return NextResponse.json(
       {
         success: true,
-        bot: botUpdate,
+        bot: updatedBot,
         message: 'Bot updated successfully',
         timestamp: new Date().toISOString(),
       },
@@ -450,12 +311,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if bot API is enabled
-    const loadingConfig = dataLoader.getConfig();
-    if (loadingConfig.bots !== 'api') {
+    // Check if bot deletion is available
+    if (!botService.isKVEnabled()) {
       return NextResponse.json(
         {
-          error: 'Bot API disabled',
+          error: 'Bot deletion disabled',
           message: 'Bot deletion via API is not enabled',
           timestamp: new Date().toISOString(),
         },
@@ -463,22 +323,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-
-    // Check if bot exists
-    const existingBot = await botDataStore.getBot(userId, botId);
-    if (!existingBot) {
-      return NextResponse.json(
-        {
-          error: 'Bot not found',
-          message: `Bot ${botId} not found for user ${userId}`,
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-
-    // Delete bot from KV
-    await botDataStore.deleteBot(userId, botId);
+    // Delete bot using service
+    await botService.deleteBot(userId, botId);
 
     return NextResponse.json(
       {

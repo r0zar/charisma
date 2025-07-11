@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { appState } from '@/data/app-state';
-import { dataLoader } from '@/lib/modules/storage/loader';
 import { botDataStore } from '@/lib/modules/storage';
+import { botService } from '@/lib/services/bots/service';
+import { ENABLE_API_BOTS } from '@/lib/utils/config';
 
 /**
  * GET /api/v1/bots/[id]
@@ -22,8 +22,7 @@ export async function GET(
     const { id: botId } = await params;
 
     // Check if bot API is enabled
-    const loadingConfig = dataLoader.getConfig();
-    if (loadingConfig.bots !== 'api') {
+    if (!ENABLE_API_BOTS) {
       return NextResponse.json(
         { 
           error: 'Bot API not enabled',
@@ -50,7 +49,7 @@ export async function GET(
     let source = 'static';
 
     // Check if we should use KV store
-    const useKV = loadingConfig.bots === 'api' && !useDefault;
+    const useKV = ENABLE_API_BOTS && !useDefault;
     
     if (useKV && userId) {
       // Use KV store
@@ -66,11 +65,21 @@ export async function GET(
     // Fallback to static data if KV failed or not enabled
     if (!bot) {
       if (useDefault) {
-        bot = appState.bots.list.find(b => b.id === botId);
-        source = 'default';
+        // Since there's no static data, return 404 for default requests
+        return NextResponse.json(
+          { 
+            error: 'Bot not found',
+            message: `Bot ${botId} not found`,
+            timestamp: new Date().toISOString(),
+          },
+          { status: 404 }
+        );
       } else {
-        bot = appState.bots.list.find(b => b.id === botId);
-        source = 'static';
+        // If KV failed and we have a userId, try botService
+        if (userId) {
+          bot = await botService.getBot(userId, botId);
+          source = 'service';
+        }
       }
     }
 
@@ -129,8 +138,7 @@ export async function PUT(
     const body = await request.json();
 
     // Check if bot API is enabled
-    const loadingConfig = dataLoader.getConfig();
-    if (loadingConfig.bots !== 'api') {
+    if (!ENABLE_API_BOTS) {
       return NextResponse.json(
         { 
           error: 'Bot API not enabled',
@@ -154,7 +162,7 @@ export async function PUT(
     }
 
     // Check if we should use KV store
-    const useKV = loadingConfig.bots === 'api';
+    const useKV = ENABLE_API_BOTS;
     
     if (!useKV) {
       return NextResponse.json(
@@ -240,8 +248,7 @@ export async function DELETE(
     const { id: botId } = await params;
 
     // Check if bot API is enabled
-    const loadingConfig = dataLoader.getConfig();
-    if (loadingConfig.bots !== 'api') {
+    if (!ENABLE_API_BOTS) {
       return NextResponse.json(
         { 
           error: 'Bot API not enabled',
@@ -265,7 +272,7 @@ export async function DELETE(
     }
 
     // Check if we should use KV store
-    const useKV = loadingConfig.bots === 'api';
+    const useKV = ENABLE_API_BOTS;
     
     if (!useKV) {
       return NextResponse.json(

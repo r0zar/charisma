@@ -320,4 +320,119 @@ export class NotificationKVStore {
       };
     }
   }
+
+  /**
+   * Get notification summary (alias for getNotificationCounts)
+   */
+  async getNotificationSummary(userId: string): Promise<{
+    total: number;
+    unread: number;
+    byType: Record<string, number>;
+    byPriority: Record<string, number>;
+  }> {
+    return this.getNotificationCounts(userId);
+  }
+
+  /**
+   * Get all notifications across all users (for SSR scanning)
+   */
+  async getAllNotificationsPublic(): Promise<StoredNotification[]> {
+    try {
+      // Get all keys that match the notification pattern
+      const allKeys = await kv.keys(`${this.keyPrefix}:*:*`);
+      const notificationKeys = allKeys.filter(key => !key.includes(':index'));
+
+      if (notificationKeys.length === 0) {
+        return [];
+      }
+
+      // Fetch all notifications
+      const notifications: StoredNotification[] = [];
+      for (const key of notificationKeys) {
+        const notification = await kv.get<StoredNotification>(key);
+        if (notification) {
+          notifications.push(notification);
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      return notifications;
+    } catch (error) {
+      console.error('Failed to get all notifications public:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear all notifications for a user
+   */
+  async clearAllNotifications(userId: string): Promise<boolean> {
+    try {
+      // Get all notification IDs for the user
+      const notificationIds = await kv.smembers(this.getUserIndexKey(userId)) || [];
+
+      // Delete all notifications
+      for (const id of notificationIds) {
+        await kv.del(this.getUserNotificationKey(userId, id as string));
+      }
+
+      // Clear the index
+      await kv.del(this.getUserIndexKey(userId));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Batch mark as read
+   */
+  async batchMarkAsRead(userId: string, notificationIds: string[]): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const notificationId of notificationIds) {
+      try {
+        const result = await this.markAsRead(userId, notificationId);
+        if (result) {
+          success++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        failed++;
+        console.error(`Failed to mark notification ${notificationId} as read:`, error);
+      }
+    }
+
+    return { success, failed };
+  }
+
+  /**
+   * Batch delete notifications
+   */
+  async batchDelete(userId: string, notificationIds: string[]): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const notificationId of notificationIds) {
+      try {
+        const result = await this.deleteNotification(userId, notificationId);
+        if (result) {
+          success++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        failed++;
+        console.error(`Failed to delete notification ${notificationId}:`, error);
+      }
+    }
+
+    return { success, failed };
+  }
 }

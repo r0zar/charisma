@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { dataLoader } from '@/lib/modules/storage/loader';
+import { userService } from '@/lib/services/user/service';
 import { userDataStore } from '@/lib/modules/storage';
 
 /**
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const section = searchParams.get('section') as 'settings' | 'wallet' | 'preferences' | null;
 
     // Check if user API is enabled
-    if (!dataLoader.isApiEnabled('user')) {
+    if (!userService.isKVEnabled()) {
       return NextResponse.json(
         {
           error: 'User API not enabled',
@@ -124,7 +124,7 @@ export async function PUT(request: NextRequest) {
     const section = searchParams.get('section') as 'settings' | 'wallet' | 'preferences' | null;
 
     // Check if user API is enabled
-    if (!dataLoader.isApiEnabled('user')) {
+    if (!userService.isKVEnabled()) {
       return NextResponse.json(
         {
           error: 'User API not enabled',

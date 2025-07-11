@@ -2,7 +2,7 @@ import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { sandboxService } from '@/lib/services/sandbox/service';
-import { dataLoader } from '@/lib/modules/storage/loader';
+import { botService } from '@/lib/services/bots/service';
 
 /**
  * POST /api/v1/bots/[id]/execute
@@ -54,8 +54,8 @@ export async function POST(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const appState = dataLoader.loadAppState();
-      bot = appState.bots.list.find(b => b.id === botId);
+      const allBots = await botService.scanAllBots();
+      bot = allBots.find(b => b.id === botId);
     }
 
     if (!bot) {
@@ -184,8 +184,8 @@ export async function GET(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const appState = dataLoader.loadAppState();
-      bot = appState.bots.list.find(b => b.id === botId);
+      const allBots = await botService.scanAllBots();
+      bot = allBots.find(b => b.id === botId);
     }
 
     if (!bot) {

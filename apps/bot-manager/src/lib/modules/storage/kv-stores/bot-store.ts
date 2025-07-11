@@ -2,6 +2,7 @@
  * Bot storage service using Vercel KV for multiple users
  */
 
+import { Bot } from '@/schemas';
 import { kv } from '@vercel/kv';
 
 export class BotKVStore {
@@ -28,15 +29,15 @@ export class BotKVStore {
     try {
       // Get all bot IDs for the user
       const botIds = await kv.smembers(this.getUserIndexKey(userId)) || [];
-      
+
       if (botIds.length === 0) {
         return [];
       }
 
       // Fetch all bots
-      const bots: import('@/schemas/bot.schema').Bot[] = [];
+      const bots: Bot[] = [];
       for (const id of botIds) {
-        const bot = await kv.get<import('@/schemas/bot.schema').Bot>(this.getUserBotKey(userId, id as string));
+        const bot = await kv.get<Bot>(this.getUserBotKey(userId, id as string));
         if (bot) {
           bots.push(bot);
         }
@@ -44,7 +45,7 @@ export class BotKVStore {
 
       // Sort by createdAt (newest first)
       bots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
+
       return bots;
     } catch (error) {
       console.error('Failed to get all bots:', error);
@@ -55,9 +56,9 @@ export class BotKVStore {
   /**
    * Get a specific bot
    */
-  async getBot(userId: string, botId: string): Promise<import('@/schemas/bot.schema').Bot | null> {
+  async getBot(userId: string, botId: string): Promise<Bot | null> {
     try {
-      const bot = await kv.get<import('@/schemas/bot.schema').Bot>(this.getUserBotKey(userId, botId));
+      const bot = await kv.get<Bot>(this.getUserBotKey(userId, botId));
       return bot || null;
     } catch (error) {
       console.error('Failed to get bot:', error);
@@ -72,10 +73,10 @@ export class BotKVStore {
     try {
       // Store the bot
       await kv.set(this.getUserBotKey(userId, bot.id), bot);
-      
+
       // Add to user's bot index
       await kv.sadd(this.getUserIndexKey(userId), bot.id);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to set bot:', error);
@@ -104,10 +105,10 @@ export class BotKVStore {
     try {
       // Remove from index
       await kv.srem(this.getUserIndexKey(userId), botId);
-      
+
       // Delete the bot
       await kv.del(this.getUserBotKey(userId, botId));
-      
+
       return true;
     } catch (error) {
       console.error('Failed to delete bot:', error);
@@ -135,15 +136,15 @@ export class BotKVStore {
     try {
       // Get all bot IDs
       const botIds = await kv.smembers(this.getUserIndexKey(userId)) || [];
-      
+
       // Delete all bots
       for (const id of botIds) {
         await kv.del(this.getUserBotKey(userId, id as string));
       }
-      
+
       // Clear the index
       await kv.del(this.getUserIndexKey(userId));
-      
+
       return true;
     } catch (error) {
       console.error('Failed to clear all bots:', error);
@@ -184,7 +185,7 @@ export class BotKVStore {
       // Get all keys that match the bot pattern
       const allKeys = await kv.keys(`${this.keyPrefix}:*:*`);
       const botKeys = allKeys.filter(key => !key.includes(':index'));
-      
+
       if (botKeys.length === 0) {
         return [];
       }
@@ -200,7 +201,7 @@ export class BotKVStore {
 
       // Sort by createdAt (newest first)
       bots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
+
       return bots;
     } catch (error) {
       console.error('Failed to get all bots public:', error);
@@ -221,11 +222,11 @@ export class BotKVStore {
     try {
       const bots = await this.getAllBotsPublic();
       const userIds = new Set(bots.map(bot => bot.ownerId));
-      
+
       let activeBots = 0;
       let pausedBots = 0;
       let errorBots = 0;
-      
+
       for (const bot of bots) {
         switch (bot.status) {
           case 'active':
@@ -239,7 +240,7 @@ export class BotKVStore {
             break;
         }
       }
-      
+
       return {
         totalBots: bots.length,
         activeBots,
@@ -270,11 +271,11 @@ export class BotKVStore {
   }> {
     try {
       const bots = await this.getAllBots(userId);
-      
+
       let activeBots = 0;
       let pausedBots = 0;
       let errorBots = 0;
-      
+
       for (const bot of bots) {
         switch (bot.status) {
           case 'active':
@@ -288,7 +289,7 @@ export class BotKVStore {
             break;
         }
       }
-      
+
       return {
         totalBots: bots.length,
         activeBots,

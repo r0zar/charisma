@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, Copy, Network } from "lucide-react"
-import { useEffect,useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -57,7 +57,7 @@ export default function NetworkSettingsPage() {
               <div className="flex items-center space-x-3 p-3 rounded-lg border border-border">
                 <RadioGroupItem value="mainnet" id="mainnet" />
                 <Label htmlFor="mainnet" className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between space-x-2 items-end">
                     <div>
                       <p className="font-medium">Mainnet</p>
                       <p className="text-sm text-muted-foreground">
@@ -68,11 +68,11 @@ export default function NetworkSettingsPage() {
                   </div>
                 </Label>
               </div>
-              
+
               <div className="flex items-center space-x-3 p-3 rounded-lg border border-border">
                 <RadioGroupItem value="testnet" id="testnet" />
                 <Label htmlFor="testnet" className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between space-x-2 items-end">
                     <div>
                       <p className="font-medium">Testnet</p>
                       <p className="text-sm text-muted-foreground">
@@ -92,7 +92,7 @@ export default function NetworkSettingsPage() {
         {/* Wallet Section */}
         <div>
           <h3 className="text-lg font-medium mb-3">Wallet Connection</h3>
-          
+
           {!walletState.connected ? (
             <div className="text-center p-6 border rounded-lg">
               <Network className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -114,7 +114,7 @@ export default function NetworkSettingsPage() {
                     {network}
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center gap-2 mb-3">
                   <code className="text-sm bg-background p-2 rounded flex-1 break-all border">
                     {walletState.address}
@@ -123,7 +123,7 @@ export default function NetworkSettingsPage() {
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button onClick={disconnectWallet} variant="outline" size="sm">
                     Disconnect
@@ -133,7 +133,7 @@ export default function NetworkSettingsPage() {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Address Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-3 border rounded-lg border-border">
@@ -142,7 +142,7 @@ export default function NetworkSettingsPage() {
                     {walletState.publicKey || "Not available"}
                   </p>
                 </div>
-                
+
                 <div className="p-3 border rounded-lg border-border">
                   <p className="text-sm font-medium text-muted-foreground">Network Status</p>
                   <div className="flex items-center gap-2 mt-1">

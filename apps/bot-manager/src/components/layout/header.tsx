@@ -1,6 +1,6 @@
 'use client';
 
-import { 
+import {
   Bell,
   Globe,
   HelpCircle,
@@ -9,7 +9,8 @@ import {
   Search,
   Settings,
   User,
-  Wallet} from 'lucide-react';
+  Wallet
+} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -26,8 +27,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useBots } from '@/contexts/bot-context';
-import { useGlobalState } from '@/contexts/global-state-context';
 import { useNotificationsData } from '@/contexts/notifications-context';
+import { useSearch } from '@/contexts/search-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
 
@@ -48,15 +49,14 @@ export function Header() {
   const router = useRouter();
   const { refreshData, loading, botStats } = useBots();
   const { walletState, connectWallet, disconnectWallet, isConnecting } = useWallet();
-  const { showSuccess, showError, showWarning, showInfo } = useToast();
-  const { appState } = useGlobalState();
-  const { 
-    notifications: liveNotifications, 
-    getUnreadCount, 
-    markAsRead, 
+  const { openSearch } = useSearch();
+  const {
+    notifications: liveNotifications,
+    getUnreadCount,
+    markAsRead,
     markAllAsRead,
     deleteNotification,
-    loading: notificationsLoading 
+    loading: notificationsLoading
   } = useNotificationsData();
 
   const currentPageTitle = pageTitles[pathname] || 'Tokemon';
@@ -80,7 +80,7 @@ export function Header() {
 
   // Get notifications from the new context
   const unreadCount = getUnreadCount();
-  const recentNotifications = liveNotifications
+  const recentNotifications = (Array.isArray(liveNotifications) ? liveNotifications : [])
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 5); // Show last 5 notifications
 
@@ -120,13 +120,19 @@ export function Header() {
 
         {/* Center: Search (hidden on mobile) */}
         <div className="hidden md:flex items-center gap-4 flex-1 max-w-md mx-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search bots, transactions..."
-              className="pl-10 bg-background/5 border-border/30 text-foreground placeholder:text-muted-foreground backdrop-blur-xl shadow-2xl ring-1 ring-background/10"
-            />
-          </div>
+          <button
+            onClick={openSearch}
+            className="relative flex-1 flex items-center gap-3 px-4 py-2 bg-background/5 border border-border/30 text-foreground placeholder:text-muted-foreground backdrop-blur-xl shadow-2xl ring-1 ring-background/10 rounded-lg hover:bg-background/10 transition-colors"
+          >
+            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground text-sm">Search for anything...</span>
+            <div className="ml-auto flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-xs text-muted-foreground">
+                {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
+              </kbd>
+              <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-xs text-muted-foreground">K</kbd>
+            </div>
+          </button>
         </div>
 
         {/* Right: Actions */}
@@ -148,8 +154,8 @@ export function Header() {
               <Button variant="outline" size="icon" className="relative h-10 w-10 flex flex-col items-center justify-center">
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
+                  <Badge
+                    variant="destructive"
                     className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center text-xs bg-red-500 text-white"
                   >
                     {unreadCount > 99 ? '99+' : unreadCount}
@@ -180,7 +186,7 @@ export function Header() {
                 </DropdownMenuItem>
               ) : (
                 recentNotifications.map((notification) => (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     key={notification.id}
                     className={`group text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl cursor-pointer ${!notification.read ? 'bg-background/5' : ''}`}
                     onClick={() => handleNotificationClick(notification)}
@@ -224,7 +230,7 @@ export function Header() {
                   </DropdownMenuItem>
                 ))
               )}
-              {liveNotifications.length > 5 && (
+              {Array.isArray(liveNotifications) && liveNotifications.length > 5 && (
                 <>
                   <DropdownMenuSeparator className="bg-border/30" />
                   <DropdownMenuItem className="text-center text-muted-foreground hover:text-foreground hover:bg-background/10">
@@ -265,35 +271,35 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={() => router.push('/profile')}
               >
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={() => router.push('/settings/general')}
               >
                 <Settings className="mr-2 h-4 w-4" />
                 <span>General</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={() => router.push('/settings/appearance')}
               >
                 <Palette className="mr-2 h-4 w-4" />
                 <span>Appearance</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={() => router.push('/settings/network')}
               >
                 <Globe className="mr-2 h-4 w-4" />
                 <span>Network</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={() => window.open('https://docs.charisma.rocks', '_blank')}
               >
@@ -301,7 +307,7 @@ export function Header() {
                 <span>Help</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
                 onClick={handleWalletAction}
                 disabled={isConnecting}
@@ -318,13 +324,19 @@ export function Header() {
 
       {/* Mobile Search */}
       <div className="md:hidden border-t border-border/30 p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search bots, transactions..."
-            className="pl-10 bg-background/5 border-border/30 text-foreground placeholder:text-muted-foreground backdrop-blur-xl shadow-2xl ring-1 ring-background/10"
-          />
-        </div>
+        <button
+          onClick={openSearch}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-background/5 border border-border/30 text-foreground placeholder:text-muted-foreground backdrop-blur-xl shadow-2xl ring-1 ring-background/10 rounded-lg hover:bg-background/10 transition-colors"
+        >
+          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-muted-foreground text-sm">Search for anything...</span>
+          <div className="ml-auto flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-xs text-muted-foreground">
+              {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
+            </kbd>
+            <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-xs text-muted-foreground">K</kbd>
+          </div>
+        </button>
       </div>
     </header>
   );

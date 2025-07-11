@@ -43,7 +43,7 @@ import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { usePublicBots } from '@/hooks/usePublicBots';
+// Removed usePublicBots hook - using SSR data instead
 import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
@@ -500,8 +500,7 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
 }
 
 export default function BotsPage() {
-  const { bots, loading, deleteBot } = useBots();
-  const { bots: publicBots, stats: publicStats, loading: publicLoading } = usePublicBots();
+  const { bots, allBots, loading, deleteBot } = useBots();
   const { startBot, pauseBot } = useBotStateMachine();
   const { showSuccess, showError } = useToast();
   const { walletState, connectWallet, isConnecting } = useWallet();
@@ -510,6 +509,27 @@ export default function BotsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const botsPerPage = 20;
+
+  // Calculate public stats from all bots (excluding current user's bots for community display)
+  const publicStats = useMemo(() => {
+    if (!allBots || allBots.length === 0) {
+      return { totalBots: 0, activeBots: 0, pausedBots: 0, errorBots: 0, totalUsers: 0 };
+    }
+    
+    // For display purposes, exclude current user's bots from community stats
+    const communityBots = walletState.connected && walletState.address 
+      ? allBots.filter(bot => bot.ownerId !== walletState.address)
+      : allBots;
+    
+    const uniqueOwners = new Set(communityBots.map(bot => bot.ownerId));
+    return {
+      totalBots: communityBots.length,
+      activeBots: communityBots.filter(bot => bot.status === 'active').length,
+      pausedBots: communityBots.filter(bot => bot.status === 'paused').length,
+      errorBots: communityBots.filter(bot => bot.status === 'error').length,
+      totalUsers: uniqueOwners.size,
+    };
+  }, [allBots, walletState.connected, walletState.address]);
 
   const filteredBots = useMemo(() => {
     return bots.filter(bot => {
@@ -524,13 +544,18 @@ export default function BotsPage() {
   }, [bots, searchQuery, statusFilter]);
 
   const filteredPublicBots = useMemo(() => {
-    if (!publicBots || !Array.isArray(publicBots)) {
+    if (!allBots || !Array.isArray(allBots)) {
       return [];
     }
 
-    return publicBots.filter(bot => {
+    return allBots.filter(bot => {
       // Safety check - ensure bot and required properties exist
       if (!bot || !bot.name || !bot.id || !bot.strategy || !bot.status) {
+        return false;
+      }
+
+      // Filter out current user's bots - only show other people's bots
+      if (walletState.connected && walletState.address && bot.ownerId === walletState.address) {
         return false;
       }
 
@@ -542,7 +567,7 @@ export default function BotsPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [publicBots, searchQuery, statusFilter]);
+  }, [allBots, searchQuery, statusFilter, walletState.connected, walletState.address]);
 
   // Pagination for public bots
   const totalPages = Math.ceil(filteredPublicBots.length / botsPerPage);
@@ -775,10 +800,10 @@ export default function BotsPage() {
         )}
       </div>
 
-      {/* All Bots Section */}
+      {/* Community Bots Section */}
       <div className="space-y-4 mt-12">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">All Bots</h2>
+          <h2 className="text-xl font-semibold text-foreground">Community Bots</h2>
           <div className="text-sm text-muted-foreground">
             {filteredPublicBots.length > 0 ? (
               <>
@@ -793,20 +818,13 @@ export default function BotsPage() {
           </div>
         </div>
 
-        {publicLoading ? (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Bot className="w-6 h-6 text-blue-400 animate-pulse" />
-            </div>
-            <p className="text-muted-foreground">Loading community bots...</p>
-          </div>
-        ) : filteredPublicBots.length === 0 ? (
+        {filteredPublicBots.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
               <Bot className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No public bots match your filters</h3>
-            <p className="text-muted-foreground">Try adjusting your search or filters</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">No community bots match your filters</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filters to see bots from other users</p>
           </div>
         ) : (
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4xl:grid-cols-7 gap-4' : 'space-y-4'}>
@@ -843,7 +861,7 @@ export default function BotsPage() {
 
                           <div className="bg-card/50 mt-2 flex-shrink-0 flex flex-col relative">
                             <div className="text-xs text-center text-muted-foreground">
-                              by {truncateAddress(bot.ownerId)}
+                              Owner: {truncateAddress(bot.ownerId)}
                             </div>
                           </div>
                         </div>
@@ -860,7 +878,7 @@ export default function BotsPage() {
                           <div className="flex-1">
                             <h3 className="font-medium text-card-foreground group-hover:text-primary transition-colors">{bot.name}</h3>
                             <p className="text-sm text-muted-foreground">{getStrategyDisplayName(bot.strategy)}</p>
-                            <p className="text-xs text-muted-foreground">by {truncateAddress(bot.ownerId)}</p>
+                            <p className="text-xs text-muted-foreground">Owner: {truncateAddress(bot.ownerId)}</p>
                           </div>
                           <Badge className={statusColors[bot.status]}>
                             {statusIcons[bot.status]}

@@ -1,17 +1,16 @@
 "use client"
 
-import { Bug, Database, Flag,Globe, Palette, Server, Settings } from "lucide-react"
+import { Bug, Database, Flag, Globe, Palette, Server, Settings } from "lucide-react"
 import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { useGlobalState } from "@/contexts/global-state-context"
+import { metadataService } from "@/lib/services/metadata/service"
 
 export default function GeneralSettingsPage() {
-  const { appState } = useGlobalState();
-  const metadata = appState?.metadata;
+  const metadata = metadataService.getAppMetadata();
 
   return (
     <Card>
@@ -35,8 +34,8 @@ export default function GeneralSettingsPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">environment:</span>
               <Badge variant={
-                metadata?.environment === 'production' ? 'default' : 
-                metadata?.environment === 'staging' ? 'secondary' : 'outline'
+                metadata?.environment === 'production' ? 'default' :
+                  metadata?.environment === 'staging' ? 'secondary' : 'outline'
               }>
                 {metadata?.environment || 'unknown'}
               </Badge>
@@ -147,12 +146,6 @@ export default function GeneralSettingsPage() {
               <span className="text-muted-foreground">enable_api_bots:</span>
               <Badge variant={metadata?.featureFlags?.enableApiBots ? 'default' : 'secondary'}>
                 {metadata?.featureFlags?.enableApiBots ? 'enabled' : 'disabled'}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">enable_api_market:</span>
-              <Badge variant={metadata?.featureFlags?.enableApiMarket ? 'default' : 'secondary'}>
-                {metadata?.featureFlags?.enableApiMarket ? 'enabled' : 'disabled'}
               </Badge>
             </div>
             <div className="flex justify-between">

@@ -3,8 +3,7 @@ import { isBefore, parseISO } from 'date-fns';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { sandboxService } from '@/lib/services/sandbox/service';
-import { dataLoader } from '@/lib/modules/storage/loader';
-import { botDataStore } from '@/lib/modules/storage';
+import { botService } from '@/lib/services/bots/service';
 import { type Bot } from '@/schemas/bot.schema';
 
 /**
@@ -40,9 +39,8 @@ export async function GET(request: NextRequest) {
   console.log('[BotExecutor] Starting scheduled bot execution check...');
 
   try {
-    // Load all bots from the app state
-    const appState = dataLoader.loadAppState();
-    const allBots = appState.bots.list;
+    // Load all bots using the bot service
+    const allBots = await botService.scanAllBots();
 
     // Filter bots that are scheduled and active
     const scheduledBots = allBots.filter(bot =>
@@ -303,7 +301,7 @@ async function updateBotExecutionMetadata(bot: Bot, success: boolean): Promise<v
       ...updateData
     };
 
-    await botDataStore.updateBot(userId, updatedBot);
+    await botService.updateBot(userId, updatedBot);
     console.log(`[BotExecutor] Successfully updated bot ${bot.id} metadata`);
   } catch (error) {
     console.error(`[BotExecutor] Failed to update bot ${bot.id} metadata:`, error);

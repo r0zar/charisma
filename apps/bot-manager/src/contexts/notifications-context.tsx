@@ -57,28 +57,42 @@ const NotificationsContext = createContext<NotificationsContextType | undefined>
 
 interface NotificationsProviderProps {
   children: React.ReactNode;
+  initialNotifications?: StoredNotification[];
 }
 
-export function NotificationsProvider({ children }: NotificationsProviderProps) {
+export function NotificationsProvider({ children, initialNotifications = [] }: NotificationsProviderProps) {
   const { getUserId } = useWallet();
   const { showError, showSuccess } = useToast();
   
-  // State
-  const [notifications, setNotifications] = useState<StoredNotification[]>([]);
+  // State - use all notifications from SSR
+  const [allNotifications, setAllNotifications] = useState<StoredNotification[]>(initialNotifications);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [totalNotifications, setTotalNotifications] = useState(0);
-  const [summary, setSummary] = useState<NotificationSummary>({
-    total: 0,
-    unread: 0,
-    byType: {},
-    byPriority: {}
-  });
   const [currentFilters, setCurrentFilters] = useState<NotificationFilters>({
     limit: 50,
     offset: 0
   });
+
+  // For static data, show all notifications. For KV data, filter by user
+  // Since static notifications don't have userId, we show all of them
+  const notifications = Array.isArray(allNotifications) ? allNotifications : [];
+
+  // Calculate summary from all notifications
+  const summary: NotificationSummary = {
+    total: notifications.length,
+    unread: notifications.filter(n => !n.read).length,
+    byType: notifications.reduce((acc, n) => {
+      acc[n.type] = (acc[n.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    byPriority: notifications.reduce((acc, n) => {
+      const priority = n.priority || 'medium';
+      acc[priority] = (acc[priority] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>)
+  };
 
   // API client (memoized to prevent recreation)
   const apiClient = useMemo(() => new NotificationsApiClient(), []);
@@ -105,10 +119,9 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
       const response = await apiClient.getNotifications(userId, mergedFilters);
       
-      setNotifications(response.notifications);
+      setAllNotifications(Array.isArray(response.notifications) ? response.notifications : []);
       setHasMore(response.pagination.hasMore);
       setTotalNotifications(response.pagination.total);
-      setSummary(response.summary);
       setCurrentFilters(mergedFilters);
 
       console.log(`[NotificationsContext] Loaded ${response.notifications.length} notifications for user ${userId}`);
@@ -144,7 +157,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
       const response = await apiClient.getNotifications(userId, nextFilters);
       
-      setNotifications(prev => [...prev, ...response.notifications]);
+      setAllNotifications(prev => [...prev, ...(Array.isArray(response.notifications) ? response.notifications : [])]);
       setHasMore(response.pagination.hasMore);
       setCurrentFilters(nextFilters);
 
@@ -180,13 +193,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       const response = await apiClient.createNotification(userId, data);
       
       // Add the new notification to the beginning of the list
-      setNotifications(prev => [response.notification, ...prev]);
+      setAllNotifications(prev => [response.notification, ...prev]);
       setTotalNotifications(prev => prev + 1);
-      setSummary(prev => ({
-        ...prev,
-        total: prev.total + 1,
-        unread: prev.unread + 1
-      }));
 
       showSuccess('Notification created', 'New notification has been created successfully', 3000);
 
@@ -217,16 +225,11 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       await apiClient.markAsRead(userId, notificationId);
       
       // Update local state
-      setNotifications(prev => prev.map(notification => 
+      setAllNotifications(prev => prev.map(notification => 
         notification.id === notificationId 
           ? { ...notification, read: true }
           : notification
       ));
-      
-      setSummary(prev => ({
-        ...prev,
-        unread: Math.max(0, prev.unread - 1)
-      }));
 
       console.log(`[NotificationsContext] Marked notification ${notificationId} as read`);
       return true;
@@ -251,16 +254,11 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       await apiClient.markAsUnread(userId, notificationId);
       
       // Update local state
-      setNotifications(prev => prev.map(notification => 
+      setAllNotifications(prev => prev.map(notification => 
         notification.id === notificationId 
           ? { ...notification, read: false }
           : notification
       ));
-      
-      setSummary(prev => ({
-        ...prev,
-        unread: prev.unread + 1
-      }));
 
       console.log(`[NotificationsContext] Marked notification ${notificationId} as unread`);
       return true;
@@ -285,8 +283,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       await apiClient.markAllAsRead(userId);
       
       // Update local state
-      setNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
-      setSummary(prev => ({ ...prev, unread: 0 }));
+      setAllNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
 
       showSuccess('All notifications marked as read', '', 2000);
       console.log(`[NotificationsContext] Marked all notifications as read`);
@@ -312,14 +309,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       await apiClient.deleteNotification(userId, notificationId);
       
       // Update local state
-      const deletedNotification = notifications.find(n => n.id === notificationId);
-      setNotifications(prev => prev.filter(notification => notification.id !== notificationId));
+      setAllNotifications(prev => prev.filter(notification => notification.id !== notificationId));
       setTotalNotifications(prev => prev - 1);
-      setSummary(prev => ({
-        ...prev,
-        total: prev.total - 1,
-        unread: deletedNotification && !deletedNotification.read ? prev.unread - 1 : prev.unread
-      }));
 
       showSuccess('Notification deleted', '', 2000);
       console.log(`[NotificationsContext] Deleted notification ${notificationId}`);
@@ -345,14 +336,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       await apiClient.clearAllNotifications(userId);
       
       // Update local state
-      setNotifications([]);
+      setAllNotifications([]);
       setTotalNotifications(0);
-      setSummary({
-        total: 0,
-        unread: 0,
-        byType: {},
-        byPriority: {}
-      });
 
       showSuccess('All notifications cleared', '', 2000);
       console.log(`[NotificationsContext] Cleared all notifications`);
@@ -379,16 +364,11 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       
       // Update local state for successful operations
       if (result.success > 0) {
-        setNotifications(prev => prev.map(notification => 
+        setAllNotifications(prev => prev.map(notification => 
           notificationIds.includes(notification.id) 
             ? { ...notification, read: true }
             : notification
         ));
-        
-        setSummary(prev => ({
-          ...prev,
-          unread: Math.max(0, prev.unread - result.success)
-        }));
 
         showSuccess(`Marked ${result.success} notifications as read`, '', 2000);
       }
@@ -420,16 +400,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       
       // Update local state for successful deletions
       if (result.success > 0) {
-        const deletedNotifications = notifications.filter(n => notificationIds.includes(n.id));
-        const unreadDeleted = deletedNotifications.filter(n => !n.read).length;
-        
-        setNotifications(prev => prev.filter(notification => !notificationIds.includes(notification.id)));
+        setAllNotifications(prev => prev.filter(notification => !notificationIds.includes(notification.id)));
         setTotalNotifications(prev => prev - result.success);
-        setSummary(prev => ({
-          ...prev,
-          total: prev.total - result.success,
-          unread: Math.max(0, prev.unread - unreadDeleted)
-        }));
 
         showSuccess(`Deleted ${result.success} notifications`, '', 2000);
       }
@@ -477,13 +449,6 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     return notifications.filter(n => n.priority === priority);
   }, [notifications]);
 
-  // Load initial notifications when user changes
-  useEffect(() => {
-    const userId = getUserId();
-    if (userId && userId !== 'anonymous') {
-      loadNotifications();
-    }
-  }, [getUserId, loadNotifications]);
 
   const contextValue: NotificationsContextType = {
     // State

@@ -1,16 +1,16 @@
 'use client';
 
-import React, { createContext, ReactNode,useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 import { Bot, BotStats, CreateBotRequest } from '@/schemas/bot.schema';
 
-import { useGlobalState } from './global-state-context';
 import { useToast } from './toast-context';
 import { useWallet } from './wallet-context';
 
 interface BotContextType {
   // Data
   bots: Bot[];
+  allBots: Bot[]; // All bots (unfiltered SSR data)
   botStats: BotStats;
   loading: boolean;
   error: string | null;
@@ -41,118 +41,30 @@ export const useBots = () => {
 
 interface BotProviderProps {
   children: ReactNode;
+  initialBots?: Bot[];
 }
 
-export function BotProvider({ children }: BotProviderProps) {
+export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   const { showSuccess, showError } = useToast();
-  const { appState, loading: globalLoading, error: globalError } = useGlobalState();
   const { walletState } = useWallet();
 
-  const [bots, setBots] = useState<Bot[]>([]);
-  const [botStats, setBotStats] = useState<BotStats>({
-    totalBots: 0,
-    activeBots: 0,
-    pausedBots: 0,
-    errorBots: 0,
-  });
-  // Market data removed
-  const [loading, setLoading] = useState(true);
+  const [allBots, setAllBots] = useState<Bot[]>(initialBots);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load bot data from KV store when wallet is connected
-  useEffect(() => {
-    const loadBotData = async () => {
-      if (!walletState.connected || !walletState.address) {
-        // User not authenticated - show empty state
-        setBots([]);
-        setBotStats({
-          totalBots: 0,
-          activeBots: 0,
-          pausedBots: 0,
-          errorBots: 0,
-        });
-        // Market data removed
-        setError(null);
-        setLoading(false);
-        return;
-      }
 
-      try {
-        setLoading(true);
-        setError(null);
+  // Derive filtered bots based on wallet connection
+  const bots = walletState.connected && walletState.address
+    ? allBots.filter(bot => bot.ownerId === walletState.address)
+    : [];
 
-        // Fetch bot data from KV store API
-        const response = await fetch(`/api/v1/bots?userId=${walletState.address}`);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          
-          // If KV store is unavailable, fall back to static data
-          if (response.status === 503) {
-            console.warn('KV store unavailable, falling back to static data');
-            
-            if (appState) {
-              // Use static data as fallback
-              const userBots = appState.bots.list.filter(bot => 
-                bot.ownerId === walletState.address
-              );
-              const userBotIds = userBots.map(bot => bot.id);
-              setBots(userBots);
-              // Market data removed
-              
-              // Calculate stats
-              setBotStats({
-                totalBots: userBots.length,
-                activeBots: userBots.filter(bot => bot.status === 'active').length,
-                pausedBots: userBots.filter(bot => bot.status === 'paused').length,
-                errorBots: userBots.filter(bot => bot.status === 'error').length,
-              });
-            }
-            
-            setLoading(false);
-            return;
-          }
-          
-          throw new Error(errorData.message || 'Failed to load bot data');
-        }
-
-        const data = await response.json();
-        
-        // Update state with real KV data
-        setBots(data.list || []);
-        
-        // Calculate stats from real data
-        const userBots = data.list || [];
-        setBotStats({
-          totalBots: userBots.length,
-          activeBots: userBots.filter((bot: any) => bot.status === 'active').length,
-          pausedBots: userBots.filter((bot: any) => bot.status === 'paused').length,
-          errorBots: userBots.filter((bot: any) => bot.status === 'error').length,
-        });
-        
-        // Use market data from static state or default
-        // Market data removed
-        
-      } catch (err) {
-        console.error('Error loading bot data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load bot data');
-        
-        // Fallback to empty state on error
-        setBots([]);
-        setBotStats({
-          totalBots: 0,
-          activeBots: 0,
-          pausedBots: 0,
-          errorBots: 0,
-        });
-        // Market data removed
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadBotData();
-  }, [walletState.connected, walletState.address, appState]);
+  // Derive stats from filtered bots
+  const botStats: BotStats = {
+    totalBots: bots.length,
+    activeBots: bots.filter(bot => bot.status === 'active').length,
+    pausedBots: bots.filter(bot => bot.status === 'paused').length,
+    errorBots: bots.filter(bot => bot.status === 'error').length,
+  };
 
   const createBot = async (request: CreateBotRequest): Promise<Bot> => {
     // Require wallet connection for bot creation
@@ -162,7 +74,7 @@ export function BotProvider({ children }: BotProviderProps) {
 
     try {
       setLoading(true);
-      
+
       // Create bot via API
       const response = await fetch(`/api/v1/bots?userId=${walletState.address}`, {
         method: 'POST',
@@ -181,11 +93,7 @@ export function BotProvider({ children }: BotProviderProps) {
       const newBot = data.bot;
 
       // Update local state
-      setBots(prev => [newBot, ...prev]);
-      setBotStats(prev => ({
-        ...prev,
-        totalBots: prev.totalBots + 1
-      }));
+      setAllBots(prev => [newBot, ...prev]);
 
       showSuccess('Bot created successfully');
       return newBot;
@@ -217,7 +125,7 @@ export function BotProvider({ children }: BotProviderProps) {
       }
 
       const updatedBot = { ...existingBot, ...updates };
-      
+
       // Update bot via API
       const response = await fetch(`/api/v1/bots?userId=${walletState.address}&botId=${id}`, {
         method: 'PUT',
@@ -236,7 +144,7 @@ export function BotProvider({ children }: BotProviderProps) {
       const apiUpdatedBot = data.bot;
 
       // Update local state
-      setBots(prev => prev.map(bot => bot.id === id ? apiUpdatedBot : bot));
+      setAllBots(prev => prev.map(bot => bot.id === id ? apiUpdatedBot : bot));
 
       return apiUpdatedBot;
     } catch (err) {
@@ -256,7 +164,7 @@ export function BotProvider({ children }: BotProviderProps) {
 
     try {
       setLoading(true);
-      
+
       const existingBot = bots.find(bot => bot.id === id);
       if (!existingBot) {
         throw new Error('Bot not found');
@@ -278,11 +186,7 @@ export function BotProvider({ children }: BotProviderProps) {
       }
 
       // Update local state
-      setBots(prev => prev.filter(bot => bot.id !== id));
-      setBotStats(prev => ({
-        ...prev,
-        totalBots: prev.totalBots - 1
-      }));
+      setAllBots(prev => prev.filter(bot => bot.id !== id));
 
       showSuccess('Bot deleted successfully');
     } catch (err) {
@@ -312,7 +216,7 @@ export function BotProvider({ children }: BotProviderProps) {
       console.log('  Bot ownerId:', existingBot.ownerId);
       console.log('  Current wallet address:', walletState.address);
       console.log('  Addresses match:', existingBot.ownerId === walletState.address);
-      
+
       if (existingBot.ownerId !== walletState.address) {
         throw new Error(`You can only start bots you own. Bot owner: ${existingBot.ownerId}, Your address: ${walletState.address}`);
       }
@@ -341,16 +245,7 @@ export function BotProvider({ children }: BotProviderProps) {
       const updatedBot = result.bot;
 
       // Update local state with the returned bot
-      setBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
-
-      // Recalculate stats
-      setBotStats(prev => {
-        const newActiveBots = prev.activeBots + (existingBot.status !== 'active' ? 1 : 0);
-        return {
-          ...prev,
-          activeBots: newActiveBots
-        };
-      });
+      setAllBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
 
       showSuccess('Bot started successfully');
 
@@ -379,7 +274,7 @@ export function BotProvider({ children }: BotProviderProps) {
       console.log('  Bot ownerId:', existingBot.ownerId);
       console.log('  Current wallet address:', walletState.address);
       console.log('  Addresses match:', existingBot.ownerId === walletState.address);
-      
+
       if (existingBot.ownerId !== walletState.address) {
         throw new Error(`You can only pause bots you own. Bot owner: ${existingBot.ownerId}, Your address: ${walletState.address}`);
       }
@@ -408,16 +303,7 @@ export function BotProvider({ children }: BotProviderProps) {
       const updatedBot = result.bot;
 
       // Update local state with the returned bot
-      setBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
-
-      // Recalculate stats
-      setBotStats(prev => {
-        const newActiveBots = prev.activeBots - (existingBot.status === 'active' ? 1 : 0);
-        return {
-          ...prev,
-          activeBots: newActiveBots
-        };
-      });
+      setAllBots(prev => prev.map(bot => bot.id === id ? updatedBot : bot));
 
       showSuccess('Bot paused successfully');
 
@@ -468,25 +354,16 @@ export function BotProvider({ children }: BotProviderProps) {
     try {
       // Fetch fresh data from KV store API
       const response = await fetch(`/api/v1/bots?userId=${walletState.address}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to refresh data');
       }
 
       const data = await response.json();
-      
+
       // Update state with fresh data
-      setBots(data.list || []);
-      
-      // Recalculate stats
-      const userBots = data.list || [];
-      setBotStats({
-        totalBots: userBots.length,
-        activeBots: userBots.filter((bot: any) => bot.status === 'active').length,
-        pausedBots: userBots.filter((bot: any) => bot.status === 'paused').length,
-        errorBots: userBots.filter((bot: any) => bot.status === 'error').length,
-      });
-      
+      setAllBots(data.list || []);
+
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to refresh data');
@@ -497,6 +374,7 @@ export function BotProvider({ children }: BotProviderProps) {
 
   const value: BotContextType = {
     bots,
+    allBots,
     botStats,
     // marketData removed,
     loading,

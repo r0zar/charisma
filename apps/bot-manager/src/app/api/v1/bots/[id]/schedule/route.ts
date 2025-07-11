@@ -2,8 +2,9 @@ import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { CronExpressionParser } from 'cron-parser';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { dataLoader } from '@/lib/modules/storage/loader';
+import { botService } from '@/lib/services/bots/service';
 import { botDataStore } from '@/lib/modules/storage';
+import { ENABLE_API_BOTS } from '@/lib/utils/config';
 
 /**
  * GET /api/v1/bots/[id]/schedule
@@ -32,7 +33,7 @@ export async function GET(
     }
     
     // Check if bot API is enabled
-    if (!dataLoader.isApiEnabled('bots')) {
+    if (!ENABLE_API_BOTS) {
       return NextResponse.json(
         { 
           error: 'Bot API disabled',
@@ -176,7 +177,7 @@ export async function PUT(
     }
     
     // Check if bot API is enabled
-    if (!dataLoader.isApiEnabled('bots')) {
+    if (!ENABLE_API_BOTS) {
       return NextResponse.json(
         { 
           error: 'Bot API disabled',
@@ -326,7 +327,7 @@ export async function DELETE(
     }
     
     // Check if bot API is enabled
-    if (!dataLoader.isApiEnabled('bots')) {
+    if (!ENABLE_API_BOTS) {
       return NextResponse.json(
         { 
           error: 'Bot API disabled',

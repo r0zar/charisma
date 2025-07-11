@@ -12,7 +12,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { config } from "dotenv";
 import { resolve } from "path";
 import { strategyWrapperTemplate } from "./templates/strategy-wrapper";
-import { dataLoader } from "@/lib/modules/storage/loader";
+// Note: dataLoader removed - using specific services instead
 
 import type { Bot } from "@/schemas/bot.schema";
 // Note: No longer using parseStrategyCode - strategies are now raw JavaScript
@@ -472,8 +472,9 @@ export class SandboxService {
     }
 
     // Fallback to static data
-    const appState = dataLoader.loadAppState();
-    const foundBot = appState.bots.list.find(b => b.id === botId);
+    const { botService } = await import('@/lib/services/bots/service');
+    const allBots = await botService.scanAllBots();
+    const foundBot = allBots.find(b => b.id === botId);
 
     if (!foundBot) {
       throw new Error(`Bot with ID '${botId}' not found in API or static data`);

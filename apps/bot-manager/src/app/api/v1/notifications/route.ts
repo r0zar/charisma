@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { dataLoader } from '@/lib/modules/storage/loader';
-import { notificationStore } from '@/lib/modules/storage';
-import { NotificationFilters } from '@/lib/services/notifications/client';
+import { notificationService, NotificationFilters, CreateNotificationData } from '@/lib/services/notifications/service';
 
 /**
  * GET /api/v1/notifications
- * Returns notifications data from KV store for a specific user
+ * Returns notifications data for a specific user
  * Query params:
  * - userId: User ID (required)
- * - default: 'true' to use default state
  * - unread: 'true' to get only unread notifications
  * - type: filter by notification type (success, error, warning, info)
  * - category: filter by notification category
@@ -21,7 +18,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
-    const useDefault = searchParams.get('default') === 'true';
     const unreadOnly = searchParams.get('unread') === 'true';
     const type = searchParams.get('type');
     const category = searchParams.get('category');
@@ -29,19 +25,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
-    // Check if notifications API is enabled
-    if (!dataLoader.isApiEnabled('notifications')) {
-      return NextResponse.json(
-        {
-          error: 'Notifications API not enabled',
-          message: 'Notifications API feature is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-
-    // For multi-user KV store, userId is required
+    // For multi-user notifications, userId is required
     if (!userId) {
       return NextResponse.json(
         {
@@ -53,80 +37,49 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if we should use KV store
-    const loadingConfig = dataLoader.getConfig();
-    const useKV = loadingConfig.notifications === 'api';
+    // Build filters
+    const filters: NotificationFilters = {
+      type: type as 'success' | 'error' | 'warning' | 'info' || undefined,
+      category: category || undefined,
+      unread: unreadOnly ? true : undefined,
+      priority: priority as 'high' | 'medium' | 'low' || undefined,
+      limit,
+      offset,
+    };
 
-    let responseData;
+    // Get notifications and summary using service
+    const [notifications, summary] = await Promise.all([
+      notificationService.getNotifications(userId, filters),
+      notificationService.getNotificationSummary(userId)
+    ]);
 
-    if (useKV) {
-      // Use KV store only
-      const filters: NotificationFilters = {
-        type: type as 'success' | 'error' | 'warning' | 'info' || undefined,
-        category: category || undefined,
-        unread: unreadOnly ? true : undefined,
-        priority: priority as 'high' | 'medium' | 'low' || undefined,
-        limit,
+    // Calculate pagination
+    const total = summary.total;
+    const hasMore = (offset + limit) < total;
+
+    const responseData = {
+      notifications,
+      pagination: {
         offset,
-      };
-
-      const result = await notificationStore.getNotifications(userId, filters);
-      const counts = await notificationStore.getNotificationCounts(userId);
-
-      responseData = {
-        notifications: result.notifications,
-        pagination: {
-          offset,
-          limit,
-          total: result.total,
-          hasMore: result.hasMore,
-        },
-        filters: {
-          unreadOnly,
-          type,
-          category,
-          priority,
-        },
-        summary: {
-          total: counts.total,
-          unread: counts.unread,
-          byType: counts.byType,
-          byPriority: counts.byPriority,
-        },
-        source: 'kv',
-        timestamp: new Date().toISOString(),
-      };
-    } else {
-      // Return empty data when KV is not enabled - no fallback to static data
-      responseData = {
-        notifications: [],
-        pagination: {
-          offset: 0,
-          limit: 50,
-          total: 0,
-          hasMore: false,
-        },
-        filters: {
-          unreadOnly,
-          type,
-          category,
-          priority,
-        },
-        summary: {
-          total: 0,
-          unread: 0,
-          byType: {},
-          byPriority: {},
-        },
-        source: 'disabled',
-        timestamp: new Date().toISOString(),
-      };
-    }
+        limit,
+        total,
+        hasMore,
+      },
+      filters: {
+        unreadOnly,
+        type,
+        category,
+        priority,
+      },
+      summary,
+      source: notificationService.getDataSource(),
+      timestamp: new Date().toISOString(),
+    };
 
     return NextResponse.json(responseData, {
       status: 200,
       headers: {
-        'Cache-Control': useKV ? 'private, s-maxage=10, stale-while-revalidate=60' : 'private, s-maxage=30, stale-while-revalidate=120',
+        'Cache-Control': notificationService.isKVEnabled() ? 'private, s-maxage=10, stale-while-revalidate=60' : 'private, s-maxage=30, stale-while-revalidate=120',
         'Content-Type': 'application/json',
       },
     });
@@ -145,7 +98,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/v1/notifications
- * Create new notification in KV store for a specific user
+ * Create new notification for a specific user
  */
 export async function POST(request: NextRequest) {
   try {
@@ -153,19 +106,7 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
 
-    // Check if notifications API is enabled
-    if (!dataLoader.isApiEnabled('notifications')) {
-      return NextResponse.json(
-        {
-          error: 'Notifications API not enabled',
-          message: 'Notifications API feature is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-
-    // For multi-user KV store, userId is required
+    // For multi-user notifications, userId is required
     if (!userId) {
       return NextResponse.json(
         {
@@ -177,15 +118,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if we should use KV store
-    const loadingConfig = dataLoader.getConfig();
-    const useKV = loadingConfig.notifications === 'api';
-
-    if (!useKV) {
+    // Check if notification creation is available
+    if (!notificationService.isKVEnabled()) {
       return NextResponse.json(
         {
-          error: 'KV store not available',
-          message: 'Notification creation requires KV store to be enabled and available',
+          error: 'Notification creation disabled',
+          message: 'Notification creation requires KV store to be enabled',
           timestamp: new Date().toISOString(),
         },
         { status: 503 }
@@ -193,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate required fields
-    const { type, title, message, priority = 'medium', category = 'general', metadata = {} } = body;
+    const { type, title, message, priority = 'medium', category = 'general', metadata = {}, persistent = false, actionUrl } = body;
 
     if (!type || !title || !message) {
       return NextResponse.json(
@@ -229,17 +167,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create notification
-    const notification = await notificationStore.createNotification(userId, {
+    // Create notification using service
+    const notificationData: CreateNotificationData = {
       type,
       title,
       message,
       priority,
       category,
       metadata,
-      timestamp: new Date().toISOString(),
-      read: false,
-    });
+      persistent,
+      actionUrl,
+    };
+
+    const notification = await notificationService.createNotification(userId, notificationData);
 
     return NextResponse.json({
       notification,
@@ -266,25 +206,12 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
     const notificationId = searchParams.get('id');
-    const action = searchParams.get('action'); // 'read', 'unread', 'update', 'mark-all-read'
+    const action = searchParams.get('action'); // 'read', 'unread', 'mark-all-read'
 
-    // Check if notifications API is enabled
-    if (!dataLoader.isApiEnabled('notifications')) {
-      return NextResponse.json(
-        {
-          error: 'Notifications API not enabled',
-          message: 'Notifications API feature is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-
-    // For multi-user KV store, userId is required
+    // For multi-user notifications, userId is required
     if (!userId) {
       return NextResponse.json(
         {
@@ -296,15 +223,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Check if we should use KV store
-    const loadingConfig = dataLoader.getConfig();
-    const useKV = loadingConfig.notifications === 'api';
-
-    if (!useKV) {
+    // Check if notification updates are available
+    if (!notificationService.isKVEnabled()) {
       return NextResponse.json(
         {
-          error: 'KV store not available',
-          message: 'Notification updates require KV store to be enabled and available',
+          error: 'Notification updates disabled',
+          message: 'Notification updates require KV store to be enabled',
           timestamp: new Date().toISOString(),
         },
         { status: 503 }
@@ -313,7 +237,7 @@ export async function PATCH(request: NextRequest) {
 
     // Handle mark all as read
     if (action === 'mark-all-read') {
-      const success = await notificationStore.markAllAsRead(userId);
+      const success = await notificationService.markAllAsRead(userId);
       if (success) {
         return NextResponse.json({
           message: 'All notifications marked as read',
@@ -344,7 +268,7 @@ export async function PATCH(request: NextRequest) {
 
     // Handle individual notification updates
     if (action === 'read') {
-      const success = await notificationStore.markAsRead(userId, notificationId);
+      const success = await notificationService.markAsRead(userId, notificationId);
       if (success) {
         return NextResponse.json({
           message: 'Notification marked as read',
@@ -365,7 +289,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'unread') {
-      const success = await notificationStore.markAsUnread(userId, notificationId);
+      const success = await notificationService.markAsUnread(userId, notificationId);
       if (success) {
         return NextResponse.json({
           message: 'Notification marked as unread',
@@ -385,33 +309,11 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Handle general updates
-    if (action === 'update' || !action) {
-      const updatedNotification = await notificationStore.updateNotification(userId, notificationId, body);
-      if (updatedNotification) {
-        return NextResponse.json({
-          notification: updatedNotification,
-          message: 'Notification updated successfully',
-          timestamp: new Date().toISOString(),
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: 'Failed to update notification',
-            message: 'Notification not found or update failed',
-            notificationId,
-            timestamp: new Date().toISOString(),
-          },
-          { status: 404 }
-        );
-      }
-    }
-
     // Invalid action
     return NextResponse.json(
       {
         error: 'Invalid action',
-        message: 'action must be one of: read, unread, update, mark-all-read',
+        message: 'action must be one of: read, unread, mark-all-read',
         timestamp: new Date().toISOString(),
       },
       { status: 400 }
@@ -441,19 +343,7 @@ export async function DELETE(request: NextRequest) {
     const notificationId = searchParams.get('id');
     const action = searchParams.get('action'); // 'clear-all'
 
-    // Check if notifications API is enabled
-    if (!dataLoader.isApiEnabled('notifications')) {
-      return NextResponse.json(
-        {
-          error: 'Notifications API not enabled',
-          message: 'Notifications API feature is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-
-    // For multi-user KV store, userId is required
+    // For multi-user notifications, userId is required
     if (!userId) {
       return NextResponse.json(
         {
@@ -465,15 +355,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if we should use KV store
-    const loadingConfig = dataLoader.getConfig();
-    const useKV = loadingConfig.notifications === 'api';
-
-    if (!useKV) {
+    // Check if notification deletion is available
+    if (!notificationService.isKVEnabled()) {
       return NextResponse.json(
         {
-          error: 'KV store not available',
-          message: 'Notification deletion requires KV store to be enabled and available',
+          error: 'Notification deletion disabled',
+          message: 'Notification deletion requires KV store to be enabled',
           timestamp: new Date().toISOString(),
         },
         { status: 503 }
@@ -482,7 +369,7 @@ export async function DELETE(request: NextRequest) {
 
     // Handle clear all notifications
     if (action === 'clear-all') {
-      const success = await notificationStore.clearAll(userId);
+      const success = await notificationService.clearAllNotifications(userId);
       if (success) {
         return NextResponse.json({
           message: 'All notifications cleared',
@@ -512,7 +399,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete individual notification
-    const success = await notificationStore.deleteNotification(userId, notificationId);
+    const success = await notificationService.deleteNotification(userId, notificationId);
     if (success) {
       return NextResponse.json({
         message: 'Notification deleted successfully',

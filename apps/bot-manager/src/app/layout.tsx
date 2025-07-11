@@ -6,14 +6,18 @@ import { ThemeProvider } from "next-themes";
 
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { SearchOverlay } from "@/components/search";
 import { SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
 import { BotStateMachineProvider } from "@/contexts/bot-state-machine-context";
-import { GlobalStateProvider } from "@/contexts/global-state-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
+import { SearchProvider } from "@/contexts/search-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { ToastProvider } from "@/contexts/toast-context";
-import { dataLoader } from "@/lib/modules/storage/loader";
+import { botService } from "@/lib/services/bots/service";
+import { notificationService } from "@/lib/services/notifications/service";
+import { userService } from "@/lib/services/user/service";
+import { metadataService } from "@/lib/services/metadata/service";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -23,13 +27,25 @@ export const metadata: Metadata = {
   description: "Tokemon DeFi bot management application for automated trading on the Stacks blockchain",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Load app state with simplified logic and dynamic metadata
-  const appState = dataLoader.loadAppState();
+  // Load data server-side using services directly
+  const [bots, notifications, allUsersData, metadata] = await Promise.all([
+    botService.scanAllBots(),
+    notificationService.scanAllNotifications(),
+    userService.getAllUsersData(),
+    metadataService.getAppMetadata()
+  ]);
+
+  // Log the user data for debugging
+  console.log(`[Layout] Loaded ${allUsersData.length} users from ${userService.getDataSource()}`);
+  if (allUsersData.length > 0) {
+    console.log(`[Layout] User data available:`, allUsersData.map(u => ({ userId: u.userId, hasSettings: !!u.userData.settings })));
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -157,12 +173,12 @@ export default function RootLayout({
         >
           <SettingsProvider>
             <ToastProvider>
-              <GlobalStateProvider initialData={appState}>
-                <SkinProvider>
-                  <WalletProvider>
-                    <BotProvider>
-                      <BotStateMachineProvider>
-                        <NotificationsProvider>
+              <SkinProvider>
+                <WalletProvider>
+                  <BotProvider initialBots={bots}>
+                    <BotStateMachineProvider>
+                      <NotificationsProvider initialNotifications={notifications}>
+                        <SearchProvider>
                           <div className="flex h-screen bg-background">
                             <Sidebar />
                             <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
@@ -172,12 +188,13 @@ export default function RootLayout({
                               </main>
                             </div>
                           </div>
-                        </NotificationsProvider>
-                      </BotStateMachineProvider>
-                    </BotProvider>
-                  </WalletProvider>
-                </SkinProvider>
-              </GlobalStateProvider>
+                          <SearchOverlay />
+                        </SearchProvider>
+                      </NotificationsProvider>
+                    </BotStateMachineProvider>
+                  </BotProvider>
+                </WalletProvider>
+              </SkinProvider>
             </ToastProvider>
           </SettingsProvider>
         </ThemeProvider>
