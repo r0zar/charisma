@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo,useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo,useState } from 'react';
 
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';

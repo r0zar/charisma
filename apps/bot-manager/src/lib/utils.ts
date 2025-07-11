@@ -7,11 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 // Re-export formatters for convenience
 export {
+  formatCurrency,
+  formatNumber,
+  formatPercentage,
+  formatRelativeTime,
   stringToBoolean,
   stringToNumber,
-  formatCurrency,
-  formatRelativeTime,
-  truncateAddress,
-  formatNumber,
-  formatPercentage
-} from './utils/formatters';
+  truncateAddress} from './utils/formatters';

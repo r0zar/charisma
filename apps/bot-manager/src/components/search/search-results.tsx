@@ -1,23 +1,22 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Bot, 
-  Bell, 
-  User, 
-  ArrowUpRight, 
-  Clock, 
-  CheckCircle, 
-  Pause, 
-  XCircle,
   AlertTriangle,
-  Info
-} from 'lucide-react';
+  ArrowUpRight, 
+  Bell, 
+  Bot, 
+  CheckCircle, 
+  Clock, 
+  Info,
+  Pause, 
+  User, 
+  XCircle} from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 
-import { useSearch } from '@/contexts/search-context';
 import { Badge } from '@/components/ui/badge';
 import { BotAvatar } from '@/components/ui/bot-avatar';
+import { useSearch } from '@/contexts/search-context';
 import { SearchResult } from '@/lib/services/search';
 
 export function SearchResults() {
@@ -74,7 +73,7 @@ export function SearchResults() {
     }
   };
 
-  let currentIndex = 0;
+  const currentIndex = 0;
   const allResults = [
     ...results.bots,
     ...results.notifications,

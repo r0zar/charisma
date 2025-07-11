@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { notificationService, NotificationFilters, CreateNotificationData } from '@/lib/services/notifications/service';
+import { CreateNotificationData,NotificationFilters, notificationService } from '@/lib/services/notifications/service';
 
 /**
  * GET /api/v1/notifications

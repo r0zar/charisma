@@ -2,7 +2,6 @@ import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { CronExpressionParser } from 'cron-parser';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botService } from '@/lib/services/bots/service';
 import { botDataStore } from '@/lib/modules/storage';
 import { ENABLE_API_BOTS } from '@/lib/utils/config';
 

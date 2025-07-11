@@ -4,8 +4,8 @@
 
 import { kv } from '@vercel/kv';
 
-import type { StoredNotification } from '@/schemas/notification.schema';
 import type { NotificationFilters } from '@/lib/services/notifications/client';
+import type { StoredNotification } from '@/schemas/notification.schema';
 
 export class NotificationKVStore {
   private readonly keyPrefix = 'bot-manager:notifications';

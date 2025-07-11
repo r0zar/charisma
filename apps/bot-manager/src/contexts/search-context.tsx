@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, ReactNode,useCallback, useContext, useEffect, useState } from 'react';
 
 import { SearchResults } from '@/lib/services/search';
 

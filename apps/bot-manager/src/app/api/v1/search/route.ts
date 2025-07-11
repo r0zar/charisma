@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { searchService } from '@/lib/services/search';
 import { botService } from '@/lib/services/bots/service';
 import { notificationService } from '@/lib/services/notifications/service';
+import { searchService } from '@/lib/services/search';
 import { userService } from '@/lib/services/user/service';
 
 /**

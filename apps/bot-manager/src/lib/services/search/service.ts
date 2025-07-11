@@ -6,16 +6,15 @@
 import { Bot } from '@/schemas/bot.schema';
 import { StoredNotification } from '@/schemas/notification.schema';
 import { WalletTransaction } from '@/schemas/wallet.schema';
+
 import { 
-  SearchResults, 
-  SearchQuery, 
-  SearchOptions, 
   BotSearchResult, 
   NotificationSearchResult, 
-  UserSearchResult, 
+  SearchOptions, 
+  SearchQuery, 
+  SearchResults,
   TransactionSearchResult,
-  SearchResultType
-} from './types';
+  UserSearchResult} from './types';
 
 interface SearchableData {
   bots: Bot[];

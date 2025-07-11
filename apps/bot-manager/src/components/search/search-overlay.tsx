@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
 
 import { useSearch } from '@/contexts/search-context';
+
 import { SearchInput } from './search-input';
 import { SearchResults } from './search-results';
 

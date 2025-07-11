@@ -1,8 +1,8 @@
 import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { sandboxService } from '@/lib/services/sandbox/service';
 import { botService } from '@/lib/services/bots/service';
+import { sandboxService } from '@/lib/services/sandbox/service';
 
 /**
  * POST /api/v1/bots/[id]/execute

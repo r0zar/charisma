@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botService } from '@/lib/services/bots/service';
 import {encryptWalletCredentials, generateBotWallet } from '@/lib/modules/security/wallet-encryption';
 import { botDataStore } from '@/lib/modules/storage';
 import { ENABLE_API_BOTS } from '@/lib/utils/config';

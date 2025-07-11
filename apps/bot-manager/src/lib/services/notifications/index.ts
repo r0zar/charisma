@@ -4,5 +4,5 @@
  */
 
 export { NotificationsApiClient } from './client';
+export type { CreateNotificationData,NotificationFilters, NotificationSummary } from './service';
 export { NotificationService } from './service';
-export type { NotificationFilters, NotificationSummary, CreateNotificationData } from './service';

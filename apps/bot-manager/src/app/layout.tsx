@@ -15,9 +15,9 @@ import { SearchProvider } from "@/contexts/search-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { botService } from "@/lib/services/bots/service";
+import { metadataService } from "@/lib/services/metadata/service";
 import { notificationService } from "@/lib/services/notifications/service";
 import { userService } from "@/lib/services/user/service";
-import { metadataService } from "@/lib/services/metadata/service";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });

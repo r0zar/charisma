@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { userService } from '@/lib/services/user/service';
 import { userDataStore } from '@/lib/modules/storage';
+import { userService } from '@/lib/services/user/service';
 
 /**
  * GET /api/v1/user

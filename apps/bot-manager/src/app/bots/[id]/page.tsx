@@ -14,9 +14,9 @@ import {
 } from 'lucide-react';
 import React from 'react';
 
+import { CountdownTimer } from '@/components/countdown-timer';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CountdownTimer } from '@/components/countdown-timer';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';

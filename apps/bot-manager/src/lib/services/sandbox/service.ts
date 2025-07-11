@@ -11,19 +11,19 @@
 import { Sandbox } from "@vercel/sandbox";
 import { config } from "dotenv";
 import { resolve } from "path";
-import { strategyWrapperTemplate } from "./templates/strategy-wrapper";
-// Note: dataLoader removed - using specific services instead
 
+// Note: dataLoader removed - using specific services instead
 import type { Bot } from "@/schemas/bot.schema";
 // Note: No longer using parseStrategyCode - strategies are now raw JavaScript
 import type {
   BotContext,
   ExecutionCallbacks,
   SandboxConfig,
-  SandboxExecutionResult,
   StrategyExecutionOptions,
   StrategyExecutionResult
 } from "@/schemas/sandbox.schema";
+
+import { strategyWrapperTemplate } from "./templates/strategy-wrapper";
 // Dynamic import for wallet encryption to avoid env var requirement at module load
 
 // Load environment variables
@@ -87,7 +87,7 @@ export class SandboxService {
       status: bot.status,
       created_at: bot.createdAt,
       last_active: bot.lastActive,
-      walletCredentials: walletCredentials
+      walletCredentials
     };
 
     return context;

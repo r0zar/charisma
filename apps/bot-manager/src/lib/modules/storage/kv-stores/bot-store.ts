@@ -2,8 +2,9 @@
  * Bot storage service using Vercel KV for multiple users
  */
 
-import { Bot } from '@/schemas';
 import { kv } from '@vercel/kv';
+
+import { Bot } from '@/schemas';
 
 export class BotKVStore {
   private readonly keyPrefix = 'bot-manager:bots';

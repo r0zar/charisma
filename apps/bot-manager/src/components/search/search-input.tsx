@@ -1,7 +1,7 @@
 'use client';
 
+import { Loader2, Search, X } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
-import { Search, Loader2, X } from 'lucide-react';
 
 import { useSearch } from '@/contexts/search-context';
 

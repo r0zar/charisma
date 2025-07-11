@@ -25,11 +25,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { useBots } from '@/contexts/bot-context';
 import { useNotificationsData } from '@/contexts/notifications-context';
 import { useSearch } from '@/contexts/search-context';
-import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
 
 const pageTitles: Record<string, string> = {
