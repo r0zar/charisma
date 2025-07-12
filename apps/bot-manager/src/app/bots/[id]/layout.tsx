@@ -203,8 +203,8 @@ export default function BotDetailLayout({ children, }: { children: ReactNode; })
               href={`/bots/${bot.id}`}
               className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
             >
-              <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Overview</span>
+              <BarChart3 className="w-4 h-4 mr-2" />
+              <span className="hidden xs:inline sm:inline">Overview</span>
             </Link>
           </TabsTrigger>
           <TabsTrigger value="strategy" asChild>
@@ -212,8 +212,8 @@ export default function BotDetailLayout({ children, }: { children: ReactNode; })
               href={`/bots/${bot.id}/strategy`}
               className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
             >
-              <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Strategy</span>
+              <Settings className="w-4 h-4 mr-2" />
+              <span className="hidden xs:inline sm:inline">Strategy</span>
             </Link>
           </TabsTrigger>
           {!isPublicBot && (
@@ -223,8 +223,8 @@ export default function BotDetailLayout({ children, }: { children: ReactNode; })
                   href={`/bots/${bot.id}/scheduling`}
                   className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
                 >
-                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Scheduling</span>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span className="hidden xs:inline sm:inline">Scheduling</span>
                 </Link>
               </TabsTrigger>
               <TabsTrigger value="wallet" asChild>
@@ -232,8 +232,8 @@ export default function BotDetailLayout({ children, }: { children: ReactNode; })
                   href={`/bots/${bot.id}/wallet`}
                   className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
                 >
-                  <Wallet className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Wallet</span>
+                  <Wallet className="w-4 h-4 mr-2" />
+                  <span className="hidden xs:inline sm:inline">Wallet</span>
                 </Link>
               </TabsTrigger>
             </>
