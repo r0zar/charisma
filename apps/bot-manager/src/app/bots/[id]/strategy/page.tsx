@@ -1,16 +1,13 @@
 'use client';
 
 import {
-  Activity,
   ChevronDown,
   ChevronRight,
-  RefreshCw,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { StrategyCodeEditor } from '@/components/strategy-code-editor';
 import type { HelpContextualInfo } from '@/lib/help/types';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -295,79 +292,13 @@ export default function BotStrategyPage() {
             onTest={handleTestStrategy}
             height="400px"
             helpContextualInfo={helpContextualInfo}
+            executionLogs={executionLogs}
+            isExecuting={isExecuting}
+            onClearLogs={() => setExecutionLogs([])}
           />
         </CardContent>
       </Card>
 
-      {/* Execution Logs */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-card-foreground flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Execution Logs
-            {isExecuting && (
-              <Badge variant="outline" className="ml-auto border-blue-500/30 text-blue-400">
-                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                Executing
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-muted rounded-lg p-4 h-96 overflow-y-auto font-mono text-sm">
-            {executionLogs.length === 0 ? (
-              <div className="text-muted-foreground text-center py-8">
-                No execution logs yet. Click "Test Strategy" to see real-time logs.
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {executionLogs.map((log, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-start gap-2 text-xs ${log.type === 'error' || log.level === 'error'
-                      ? 'text-red-400'
-                      : log.type === 'status'
-                        ? 'text-blue-400'
-                        : log.level === 'warn'
-                          ? 'text-yellow-400'
-                          : 'text-foreground'
-                      }`}
-                  >
-                    <span className="text-muted-foreground shrink-0 w-24">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                    <span className="shrink-0 w-12 uppercase text-xs font-semibold">
-                      {log.type}
-                    </span>
-                    <span className="break-all">{log.message || ''}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {isExecuting && executionLogs.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-blue-400 mt-2">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                <span>Streaming logs...</span>
-              </div>
-            )}
-          </div>
-          {executionLogs.length > 0 && (
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-muted-foreground">
-                {executionLogs.length} log entries
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setExecutionLogs([])}
-                className="text-xs"
-              >
-                Clear Logs
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import Editor from '@monaco-editor/react';
 import {
+  Activity,
   Code,
   HelpCircle,
   Maximize2,
@@ -18,6 +19,7 @@ import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getStrategyTemplates, type StrategyMetadata } from '@/lib/services/bots/strategy-parser';
 import { StrategyEditorHelp } from './strategy-editor-help';
+import { ExecutionLogsDrawer, type ExecutionLog } from './execution-logs-drawer';
 import type { HelpContextualInfo } from '@/lib/help/types';
 // Note: We define polyglot types inline since Monaco can't resolve monorepo imports
 
@@ -34,6 +36,9 @@ interface StrategyCodeEditorProps {
   height?: string;
   className?: string;
   helpContextualInfo?: HelpContextualInfo;
+  executionLogs?: ExecutionLog[];
+  isExecuting?: boolean;
+  onClearLogs?: () => void;
 }
 
 export function StrategyCodeEditor({
@@ -46,7 +51,10 @@ export function StrategyCodeEditor({
   readOnly = false,
   height = '500px',
   className = '',
-  helpContextualInfo
+  helpContextualInfo,
+  executionLogs = [],
+  isExecuting = false,
+  onClearLogs
 }: StrategyCodeEditorProps) {
   const [code, setCode] = useState(initialCode);
   const [metadata, setMetadata] = useState<StrategyMetadata>(
@@ -64,12 +72,20 @@ export function StrategyCodeEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isLogsOpen, setIsLogsOpen] = useState(false);
   const editorRef = useRef<any>(null);
 
   // Notify parent of code changes
   useEffect(() => {
     onCodeChange?.(code);
   }, [code, onCodeChange]);
+
+  // Auto-open logs drawer when execution starts
+  useEffect(() => {
+    if (isExecuting) {
+      setIsLogsOpen(true);
+    }
+  }, [isExecuting]);
 
   // Metadata functionality removed for simplified interface
 
@@ -325,6 +341,15 @@ export function StrategyCodeEditor({
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setIsLogsOpen(true)}
+                  className="border-green-600 text-green-400 hover:bg-green-500/10"
+                >
+                  <Activity className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIsHelpOpen(true)}
                   className="border-blue-600 text-blue-400 hover:bg-blue-500/10"
                 >
@@ -410,6 +435,15 @@ export function StrategyCodeEditor({
           isOpen={isHelpOpen}
           onClose={() => setIsHelpOpen(false)}
           contextualInfo={helpContextualInfo}
+        />
+
+        {/* Execution Logs Drawer */}
+        <ExecutionLogsDrawer
+          isOpen={isLogsOpen}
+          onClose={() => setIsLogsOpen(false)}
+          logs={executionLogs}
+          isExecuting={isExecuting}
+          onClearLogs={onClearLogs || (() => {})}
         />
       </div>
     </div>
