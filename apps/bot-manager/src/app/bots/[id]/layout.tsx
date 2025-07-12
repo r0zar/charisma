@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import React, { ReactNode } from 'react';
+import React from 'react';
 
 import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { CurrentBotProvider } from '@/contexts/current-bot-context';
 import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 
-export default function BotDetailLayout({ children, }: { children: ReactNode; }) {
+export default function BotDetailLayout({ children, }: { children: React.ReactNode; }) {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();

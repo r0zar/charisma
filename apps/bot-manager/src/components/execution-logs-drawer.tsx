@@ -7,6 +7,8 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerDescription,
+  DrawerPortal,
+  DrawerOverlay,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -175,53 +177,53 @@ export function ExecutionLogsDrawer({
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center justify-between gap-0.5">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setAutoScroll(!autoScroll)}
-                className="flex items-center gap-1"
+                className="h-6 w-6 p-0 sm:h-8 sm:w-auto sm:px-3"
               >
                 {autoScroll ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                <span className="hidden sm:inline">Auto-scroll</span>
+                <span className="hidden sm:inline ml-1">Auto-scroll</span>
               </Button>
               {!autoScroll && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={scrollToBottom}
-                  className="flex items-center gap-1"
+                  className="h-6 w-6 p-0 sm:h-8 sm:w-auto sm:px-3"
                 >
                   <ArrowDown className="w-3 h-3" />
-                  <span className="hidden sm:inline">Bottom</span>
+                  <span className="hidden sm:inline ml-1">Bottom</span>
                 </Button>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-muted-foreground order-last sm:order-first">
-                {filteredLogs.length} of {logs.length} entries
+            <div className="flex items-center gap-0.5">
+              <span className="text-xs text-muted-foreground hidden md:block mr-1">
+                {filteredLogs.length}/{logs.length}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={exportLogs}
                 disabled={filteredLogs.length === 0}
-                className="flex items-center gap-1"
+                className="h-6 w-6 p-0 sm:h-8 sm:w-auto sm:px-3"
               >
                 <Download className="w-3 h-3" />
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden sm:inline ml-1">Export</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onClearLogs}
                 disabled={logs.length === 0}
-                className="flex items-center gap-1"
+                className="h-6 w-6 p-0 sm:h-8 sm:w-auto sm:px-3"
               >
                 <Trash2 className="w-3 h-3" />
-                <span className="hidden sm:inline">Clear</span>
+                <span className="hidden sm:inline ml-1">Clear</span>
               </Button>
             </div>
           </div>

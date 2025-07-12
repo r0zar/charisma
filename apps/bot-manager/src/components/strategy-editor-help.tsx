@@ -82,7 +82,7 @@ export function StrategyEditorHelp({
   const handleCopyExample = async (exampleId: string, code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      setCopiedExamples(prev => new Set([...prev, exampleId]));
+      setCopiedExamples(prev => new Set(Array.from(prev).concat([exampleId])));
       setTimeout(() => {
         setCopiedExamples(prev => {
           const next = new Set(prev);
@@ -238,11 +238,11 @@ export function StrategyEditorHelp({
         {/* Main Content */}
         <div className="flex-1 min-h-0 px-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 h-auto">
               {filteredContent.tabs.map(tab => (
-                <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
-                  {tab.icon && <span>{tab.icon}</span>}
-                  {tab.title}
+                <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm p-2 sm:p-3">
+                  {tab.icon && <span className="text-sm sm:text-base">{tab.icon}</span>}
+                  <span className="hidden xs:inline sm:inline">{tab.title}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
