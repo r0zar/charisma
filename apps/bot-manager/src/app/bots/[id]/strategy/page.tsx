@@ -129,14 +129,14 @@ export default function BotStrategyPage() {
       {/* Repository Configuration */}
       <Card className="bg-card border-border">
         <CardHeader
-          className="cursor-pointer"
+          className="cursor-pointer p-4 sm:p-6"
           onClick={() => setShowRepoConfig(!showRepoConfig)}
         >
           <div className="flex items-center gap-2">
-            {showRepoConfig ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <CardTitle className="text-card-foreground">Run Your Own Code</CardTitle>
+            {showRepoConfig ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+            <CardTitle className="text-card-foreground text-base sm:text-lg">Run Your Own Code</CardTitle>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
             {showRepoConfig ?
               "Configure a starting point for your strategy execution. Specify a git repository to load dependencies and run setup commands, or leave empty to run in a clean Node.js environment." :
               "Click to configure a custom git repository as the starting point for your strategy execution."
@@ -144,50 +144,54 @@ export default function BotStrategyPage() {
           </p>
         </CardHeader>
         {showRepoConfig && (
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="gitRepository" className="text-card-foreground">Git Repository URL (optional)</Label>
+          <CardContent className="space-y-4 p-4 sm:p-6">
+            <div className="space-y-2">
+              <Label htmlFor="gitRepository" className="text-card-foreground text-sm font-medium">Git Repository URL (optional)</Label>
               <Input
                 id="gitRepository"
                 type="url"
                 value={localBot?.gitRepository || ''}
                 onChange={(e) => localBot && setLocalBot({ ...localBot, gitRepository: e.target.value })}
                 placeholder="https://github.com/username/repository.git"
-                className="bg-input border-border text-foreground"
+                className="bg-input border-border text-foreground text-sm"
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 Must be a public repository. This becomes the starting point for your strategy execution with access to any dependencies or files in the repo.
               </p>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-start sm:items-center space-x-3">
               <Switch
                 id="isMonorepo"
                 checked={localBot?.isMonorepo || false}
                 onCheckedChange={(checked) => localBot && setLocalBot({ ...localBot, isMonorepo: checked })}
+                className="mt-1 sm:mt-0"
               />
-              <Label htmlFor="isMonorepo" className="text-card-foreground">This is a monorepo</Label>
+              <div className="space-y-1">
+                <Label htmlFor="isMonorepo" className="text-card-foreground text-sm font-medium cursor-pointer">This is a monorepo</Label>
+                <p className="text-xs text-muted-foreground">Enable if your repository contains multiple packages</p>
+              </div>
             </div>
 
             {localBot?.isMonorepo && (
-              <div>
-                <Label htmlFor="packagePath" className="text-card-foreground">Package Path</Label>
+              <div className="space-y-2">
+                <Label htmlFor="packagePath" className="text-card-foreground text-sm font-medium">Package Path</Label>
                 <Input
                   id="packagePath"
                   type="text"
                   value={localBot?.packagePath || ''}
                   onChange={(e) => localBot && setLocalBot({ ...localBot, packagePath: e.target.value })}
                   placeholder="packages/polyglot"
-                  className="bg-input border-border text-foreground"
+                  className="bg-input border-border text-foreground text-sm"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Path to the package within the monorepo (e.g., "packages/polyglot")
                 </p>
               </div>
             )}
 
-            <div>
-              <Label htmlFor="buildCommands" className="text-card-foreground">Setup Commands</Label>
+            <div className="space-y-3">
+              <Label htmlFor="buildCommands" className="text-card-foreground text-sm font-medium">Setup Commands</Label>
               <div className="space-y-2">
                 {(localBot?.buildCommands || ['pnpm install', 'pnpm run build']).map((command, index) => (
                   <div key={index} className="flex gap-2">
@@ -202,7 +206,7 @@ export default function BotStrategyPage() {
                         }
                       }}
                       placeholder="pnpm install"
-                      className="bg-input border-border text-foreground"
+                      className="bg-input border-border text-foreground text-sm"
                     />
                     {(localBot?.buildCommands || []).length > 1 && (
                       <Button
@@ -215,7 +219,7 @@ export default function BotStrategyPage() {
                             setLocalBot({ ...localBot, buildCommands: newCommands });
                           }
                         }}
-                        className="shrink-0"
+                        className="shrink-0 h-9 w-9"
                       >
                         ×
                       </Button>
@@ -232,21 +236,22 @@ export default function BotStrategyPage() {
                       setLocalBot({ ...localBot, buildCommands: newCommands });
                     }
                   }}
-                  className="w-full"
+                  className="w-full text-sm"
                 >
                   Add Command
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 Commands to run after cloning the repository. Use this to install dependencies, build packages, or run any setup needed for your strategy. Common examples: "pnpm install", "npm run build"
               </p>
             </div>
 
-            <div className="pt-4 border-t border-border flex justify-end">
+            <div className="pt-4 border-t border-border flex flex-col sm:flex-row justify-end gap-2">
               <Button
                 onClick={handleSaveBot}
                 disabled={isSaving}
                 size="sm"
+                className="w-full sm:w-auto"
               >
                 {isSaving ? 'Saving...' : 'Save Configuration'}
               </Button>
@@ -257,10 +262,10 @@ export default function BotStrategyPage() {
 
       {/* Strategy Code */}
       <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-card-foreground">Strategy Code</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-card-foreground text-base sm:text-lg">Strategy Code</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           <StrategyCodeEditor
             initialCode={bot?.strategy || ''}
             onSave={async (code) => {
@@ -290,7 +295,7 @@ export default function BotStrategyPage() {
               }
             }}
             onTest={handleTestStrategy}
-            height="400px"
+            height="300px"
             helpContextualInfo={helpContextualInfo}
             executionLogs={executionLogs}
             isExecuting={isExecuting}

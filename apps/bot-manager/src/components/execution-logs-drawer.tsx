@@ -147,9 +147,9 @@ export function ExecutionLogsDrawer({
         </DrawerHeader>
 
         {/* Controls */}
-        <div className="px-6 pb-4 space-y-3 shrink-0 border-b border-border">
+        <div className="px-4 sm:px-6 pb-4 space-y-3 shrink-0 border-b border-border">
           {/* Search and Filter Row */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -160,7 +160,7 @@ export function ExecutionLogsDrawer({
               />
             </div>
             <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-32">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
@@ -175,8 +175,8 @@ export function ExecutionLogsDrawer({
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -184,7 +184,7 @@ export function ExecutionLogsDrawer({
                 className="flex items-center gap-1"
               >
                 {autoScroll ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                Auto-scroll
+                <span className="hidden sm:inline">Auto-scroll</span>
               </Button>
               {!autoScroll && (
                 <Button
@@ -194,13 +194,13 @@ export function ExecutionLogsDrawer({
                   className="flex items-center gap-1"
                 >
                   <ArrowDown className="w-3 h-3" />
-                  Go to bottom
+                  <span className="hidden sm:inline">Bottom</span>
                 </Button>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <span className="text-xs text-muted-foreground order-last sm:order-first">
                 {filteredLogs.length} of {logs.length} entries
               </span>
               <Button
@@ -211,7 +211,7 @@ export function ExecutionLogsDrawer({
                 className="flex items-center gap-1"
               >
                 <Download className="w-3 h-3" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
               <Button
                 variant="outline"
@@ -221,7 +221,7 @@ export function ExecutionLogsDrawer({
                 className="flex items-center gap-1"
               >
                 <Trash2 className="w-3 h-3" />
-                Clear
+                <span className="hidden sm:inline">Clear</span>
               </Button>
             </div>
           </div>
@@ -253,15 +253,17 @@ export function ExecutionLogsDrawer({
               {filteredLogs.map((log, index) => (
                 <div
                   key={index}
-                  className={`flex items-start gap-3 p-2 rounded hover:bg-muted/50 ${getLogColor(log)}`}
+                  className={`flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 p-2 rounded hover:bg-muted/50 ${getLogColor(log)}`}
                 >
-                  <span className="text-muted-foreground shrink-0 w-20 text-xs">
-                    {new Date(log.timestamp).toLocaleTimeString()}
-                  </span>
-                  <span className="shrink-0 w-16 uppercase text-xs font-semibold bg-muted/30 px-2 py-0.5 rounded">
-                    {log.type}
-                  </span>
-                  <span className="break-all leading-relaxed">{log.message || ''}</span>
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    <span className="text-muted-foreground text-xs w-20 sm:w-24">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="uppercase text-xs font-semibold bg-muted/30 px-2 py-0.5 rounded w-12 sm:w-16 text-center">
+                      {log.type}
+                    </span>
+                  </div>
+                  <span className="break-words leading-relaxed text-xs sm:text-sm pl-1 sm:pl-0">{log.message || ''}</span>
                 </div>
               ))}
               <div ref={logsEndRef} />

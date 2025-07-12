@@ -294,15 +294,15 @@ export function StrategyCodeEditor({
         {/* Code Editor */}
         <div className="bg-card border-border flex-1">
           <CardHeader className="px-0">
-            <div className="flex items-center justify-between mb-2">
-              <CardTitle className="text-card-foreground flex items-center gap-2">
-                <Code className="w-5 h-5" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-2 mb-2">
+              <CardTitle className="text-card-foreground flex items-center gap-2 text-base sm:text-lg">
+                <Code className="w-4 h-4 sm:w-5 sm:h-5" />
                 Text Editor
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger className="w-40 bg-input border-border">
-                    <SelectValue placeholder="Load Template" />
+                  <SelectTrigger className="w-32 sm:w-40 bg-input border-border text-xs sm:text-sm">
+                    <SelectValue placeholder="Template" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {Object.entries(templates).map(([key, template]) => (
@@ -317,9 +317,9 @@ export function StrategyCodeEditor({
                   variant="outline"
                   size="sm"
                   onClick={handleFormat}
-                  className="border-gray-600 text-gray-400 hover:bg-gray-500/10"
+                  className="border-gray-600 text-gray-400 hover:bg-gray-500/10 h-8 w-8 sm:h-9 sm:w-9"
                 >
-                  <Palette className="w-4 h-4" />
+                  <Palette className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
 
                 {onTest && (
@@ -328,12 +328,12 @@ export function StrategyCodeEditor({
                     size="sm"
                     onClick={handleTest}
                     disabled={!code.trim() || isTesting}
-                    className="border-blue-600 text-blue-400 hover:bg-blue-500/10"
+                    className="border-blue-600 text-blue-400 hover:bg-blue-500/10 h-8 w-8 sm:h-9 sm:w-9"
                   >
                     {isTesting ? (
-                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <Play className="w-4 h-4" />
+                      <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                     )}
                   </Button>
                 )}
@@ -342,27 +342,27 @@ export function StrategyCodeEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => setIsLogsOpen(true)}
-                  className="border-green-600 text-green-400 hover:bg-green-500/10"
+                  className="border-green-600 text-green-400 hover:bg-green-500/10 h-8 w-8 sm:h-9 sm:w-9"
                 >
-                  <Activity className="w-4 h-4" />
+                  <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsHelpOpen(true)}
-                  className="border-blue-600 text-blue-400 hover:bg-blue-500/10"
+                  className="border-blue-600 text-blue-400 hover:bg-blue-500/10 h-8 w-8 sm:h-9 sm:w-9"
                 >
-                  <HelpCircle className="w-4 h-4" />
+                  <HelpCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={toggleFullscreen}
-                  className="border-gray-600 text-gray-400 hover:bg-gray-500/10"
+                  className="border-gray-600 text-gray-400 hover:bg-gray-500/10 h-8 w-8 sm:h-9 sm:w-9"
                 >
-                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  {isFullscreen ? <Minimize2 className="w-3 h-3 sm:w-4 sm:h-4" /> : <Maximize2 className="w-3 h-3 sm:w-4 sm:h-4" />}
                 </Button>
               </div>
             </div>
@@ -390,20 +390,20 @@ export function StrategyCodeEditor({
                 className=''
               />
             </div>
-            <div className="px-4 py-2 text-xs text-muted-foreground">
-              Write JavaScript or TypeScript code for your bot strategy. Use <code>const &#123; makeContractCall &#125; = require('@stacks/transactions')</code> to import packages. The 'bot' object provides wallet credentials and context.
+            <div className="px-3 sm:px-4 py-2 text-xs text-muted-foreground leading-relaxed">
+              Write JavaScript or TypeScript code for your bot strategy. Use <code className="bg-muted/50 px-1 rounded">const &#123; makeContractCall &#125; = require('@stacks/transactions')</code> to import packages. The 'bot' object provides wallet credentials and context.
             </div>
           </CardContent>
         </div>
 
         {/* Action Buttons */}
         {!readOnly && (
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-4">
             {onSave && (
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
               >
                 {isSaving ? (
                   <>
@@ -422,7 +422,7 @@ export function StrategyCodeEditor({
             <Button
               variant="outline"
               onClick={handleReset}
-              className="border-gray-600 text-gray-400 hover:bg-gray-500/10"
+              className="border-gray-600 text-gray-400 hover:bg-gray-500/10 w-full sm:w-auto"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Reset
