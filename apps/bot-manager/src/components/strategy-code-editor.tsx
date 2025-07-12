@@ -19,8 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getStrategyTemplates, type StrategyMetadata } from '@/lib/services/bots/strategy-parser';
 import { StrategyEditorHelp } from './strategy-editor-help';
 import type { HelpContextualInfo } from '@/lib/help/types';
-import { AutoTypings, LocalStorageCache } from 'monaco-editor-auto-typings';
-import type { Bot } from '@/schemas/bot.schema';
 // Note: We define polyglot types inline since Monaco can't resolve monorepo imports
 
 const templates = getStrategyTemplates();
@@ -66,24 +64,12 @@ export function StrategyCodeEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [typesLoaded, setTypesLoaded] = useState(false);
   const editorRef = useRef<any>(null);
-  const autoTypingsRef = useRef<any>(null);
 
   // Notify parent of code changes
   useEffect(() => {
     onCodeChange?.(code);
   }, [code, onCodeChange]);
-
-  // Cleanup AutoTypings on unmount
-  useEffect(() => {
-    return () => {
-      if (autoTypingsRef.current) {
-        // AutoTypings cleanup is handled automatically
-        autoTypingsRef.current = null;
-      }
-    };
-  }, []);
 
   // Metadata functionality removed for simplified interface
 
@@ -117,8 +103,8 @@ export function StrategyCodeEditor({
       triggerCharacters: ['"', "'", '`']
     });
 
-    // Setup auto-typings for automatic package type loading
-    await setupAutoTypings(editor, monaco);
+    // Setup Monaco type definitions
+    await setupMonacoTypes(editor, monaco);
 
     // Configure editor options
     editor.updateOptions({
@@ -138,7 +124,7 @@ export function StrategyCodeEditor({
     });
   };
 
-  const setupAutoTypings = async (editor: any, monaco: any) => {
+  const setupMonacoTypes = async (editor: any, monaco: any) => {
     try {
       // Configure TypeScript compiler options for Node.js environment
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
@@ -153,22 +139,20 @@ export function StrategyCodeEditor({
         strict: false
       });
 
-      // Add all types manually for now (skip AutoTypings due to require() parsing issues)
-      // TODO: get AutoTypings working !!!
+      // Add manual type definitions for bot context and common packages
       addBotContextTypes(monaco);
 
-      setTypesLoaded(true);
-      console.log('Manual typing setup completed');
+      console.log('Monaco type definitions loaded successfully');
 
     } catch (error) {
-      console.error('Failed to setup types:', error);
+      console.error('Failed to setup Monaco types:', error);
       // Fall back to basic bot context types only
       addBotContextTypes(monaco);
     }
   };
 
   const addBotContextTypes = (monaco: any) => {
-    // Combined types to avoid AutoTypings trying to resolve globals as packages
+    // Manual type definitions for bot context, Node.js globals, and @stacks/transactions
     monaco.languages.typescript.typescriptDefaults.addExtraLib(`
       // Node.js globals
       declare function require(id: string): any;
