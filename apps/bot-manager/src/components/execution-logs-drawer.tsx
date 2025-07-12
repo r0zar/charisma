@@ -94,7 +94,7 @@ export function ExecutionLogsDrawer({
   const logTypes = Array.from(new Set([
     ...logs.map(log => log.type),
     ...logs.map(log => log.level).filter(Boolean)
-  ])).filter(Boolean);
+  ])).filter(Boolean) as string[];
 
   const exportLogs = () => {
     const logText = filteredLogs.map(log =>

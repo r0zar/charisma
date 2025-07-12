@@ -262,9 +262,6 @@ export default function BotStrategyPage() {
 
       {/* Strategy Code */}
       <Card className="bg-card border-border">
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-card-foreground text-base sm:text-lg">Strategy Code</CardTitle>
-        </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
           <StrategyCodeEditor
             initialCode={bot?.strategy || ''}
