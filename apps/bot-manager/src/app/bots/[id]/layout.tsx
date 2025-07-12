@@ -201,19 +201,19 @@ export default function BotDetailLayout({ children, }: { children: ReactNode; })
           <TabsTrigger value="overview" asChild>
             <Link
               href={`/bots/${bot.id}`}
-              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3"
+              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
             >
               <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:text-sm">Overview</span>
+              <span className="hidden xs:inline">Overview</span>
             </Link>
           </TabsTrigger>
           <TabsTrigger value="strategy" asChild>
             <Link
               href={`/bots/${bot.id}/strategy`}
-              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3"
+              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
             >
               <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:text-sm">Strategy</span>
+              <span className="hidden xs:inline">Strategy</span>
             </Link>
           </TabsTrigger>
           {!isPublicBot && (
@@ -221,19 +221,19 @@ export default function BotDetailLayout({ children, }: { children: ReactNode; })
               <TabsTrigger value="scheduling" asChild>
                 <Link
                   href={`/bots/${bot.id}/scheduling`}
-                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3"
+                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
                 >
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline sm:text-sm">Schedule</span>
+                  <span className="hidden xs:inline">Scheduling</span>
                 </Link>
               </TabsTrigger>
               <TabsTrigger value="wallet" asChild>
                 <Link
                   href={`/bots/${bot.id}/wallet`}
-                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3"
+                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
                 >
                   <Wallet className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline sm:text-sm">Wallet</span>
+                  <span className="hidden xs:inline">Wallet</span>
                 </Link>
               </TabsTrigger>
             </>
