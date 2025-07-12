@@ -232,7 +232,7 @@ export class SandboxService {
         // Validate and sanitize build configuration
         const isMonorepo = botInstance.isMonorepo || false;
         const packagePath = botInstance.packagePath ? this.sanitizePackagePath(botInstance.packagePath) : (isMonorepo ? "packages/polyglot" : "");
-        const buildCommands = botInstance.buildCommands || ["pnpm install", "pnpm run build"];
+        const buildCommands = botInstance.buildCommands || ["pnpm install --frozen-lockfile", "pnpm run build"];
 
         // Validate build commands
         if (!this.validateBuildCommands(buildCommands)) {
@@ -265,7 +265,8 @@ export class SandboxService {
             const result = await sandbox.runCommand({
               cmd,
               args,
-              cwd: fullPath
+              cwd: fullPath,
+              timeout: 300000 // 5 minute timeout per command
             });
 
             if (result.exitCode !== 0) {
@@ -275,6 +276,38 @@ export class SandboxService {
           }
 
           callbacks?.onStatus?.(`Package ${packagePath} built successfully`, new Date().toISOString());
+
+          // Create minimal package.json at root for strategy dependencies
+          // callbacks?.onStatus?.("Creating root package.json for strategy execution...", new Date().toISOString());
+
+          // const rootPackageJson = {
+          //   "name": "strategy-execution",
+          //   "version": "1.0.0",
+          //   "private": true
+          // };
+
+          // await sandbox.writeFiles([
+          //   {
+          //     path: "package.json",
+          //     content: Buffer.from(JSON.stringify(rootPackageJson, null, 2), 'utf8')
+          //   }
+          // ]);
+
+          // Install strategy dependencies at root level
+          // callbacks?.onStatus?.("Installing strategy dependencies at root...", new Date().toISOString());
+
+          // const rootInstallResult = await sandbox.runCommand({
+          //   cmd: 'pnpm',
+          //   args: ['add', '@stacks/transactions'],
+          //   cwd: '/vercel/sandbox'
+          // });
+
+          // if (rootInstallResult.exitCode !== 0) {
+          //   const stderr = typeof rootInstallResult.stderr === 'function' ? await rootInstallResult.stderr() : rootInstallResult.stderr;
+          //   callbacks?.onStatus?.(`Warning: Failed to install root dependencies: ${stderr}`, new Date().toISOString());
+          // } else {
+          //   callbacks?.onStatus?.("Strategy dependencies installed at root", new Date().toISOString());
+          // }
         } else {
           // Standalone repo: install and build at root
           callbacks?.onStatus?.("Installing dependencies at repository root...", new Date().toISOString());
@@ -312,13 +345,23 @@ export class SandboxService {
         callbacks?.onStatus?.(`Clean Node.js sandbox created: ${sandbox.sandboxId}`, new Date().toISOString());
       }
 
-      // Write strategy code to sandbox
+      // Determine execution directory and write strategy code
+      const executionDir = (botInstance.gitRepository && botInstance.isMonorepo && botInstance.packagePath)
+        ? botInstance.packagePath
+        : "";
+
+      const strategyPath = executionDir ? `${executionDir}/strategy.cjs` : "strategy.cjs";
+      const executionCwd = executionDir ? `/vercel/sandbox/${executionDir}` : '/vercel/sandbox';
+
+      // Write strategy code to appropriate directory
       await sandbox.writeFiles([
         {
-          path: "strategy.js",
+          path: strategyPath,
           content: Buffer.from(wrapperCode, 'utf8')
         }
       ]);
+
+      callbacks?.onStatus?.("Ready to execute strategy...", new Date().toISOString());
 
       // Execute strategy
       let allOutput = '';
@@ -326,8 +369,8 @@ export class SandboxService {
 
       const cmd = await sandbox.runCommand({
         cmd: 'node',
-        args: ['strategy.js'],
-        cwd: '/vercel/sandbox',
+        args: ['strategy.cjs'],
+        cwd: executionCwd,
         detached: true,
       });
 

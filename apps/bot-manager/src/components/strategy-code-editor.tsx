@@ -1,5 +1,5 @@
 'use client';
-
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import Editor from '@monaco-editor/react';
 import {
   Code,
@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getStrategyTemplates, type StrategyMetadata } from '@/lib/services/bots/strategy-parser';
 import { StrategyEditorHelp } from './strategy-editor-help';
 import type { HelpContextualInfo } from '@/lib/help/types';
+import { AutoTypings, LocalStorageCache } from 'monaco-editor-auto-typings';
+import type { Bot } from '@/schemas/bot.schema';
 // Note: We define polyglot types inline since Monaco can't resolve monorepo imports
 
 const templates = getStrategyTemplates();
@@ -64,26 +66,32 @@ export function StrategyCodeEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [typesLoaded, setTypesLoaded] = useState(false);
   const editorRef = useRef<any>(null);
+  const autoTypingsRef = useRef<any>(null);
 
   // Notify parent of code changes
   useEffect(() => {
     onCodeChange?.(code);
   }, [code, onCodeChange]);
 
+  // Cleanup AutoTypings on unmount
+  useEffect(() => {
+    return () => {
+      if (autoTypingsRef.current) {
+        // AutoTypings cleanup is handled automatically
+        autoTypingsRef.current = null;
+      }
+    };
+  }, []);
+
   // Metadata functionality removed for simplified interface
 
-  const handleEditorDidMount = (editor: any, monaco: any) => {
+  const handleEditorDidMount = async (editor: any, monaco: any) => {
     editorRef.current = editor;
 
-    // Configure for Node.js runtime (no DOM/browser APIs)
-    // monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-    //   // target: monaco.languages.typescript.ScriptTarget.ES2020,
-    //   // lib: ['ES2020'] // Include ES2020 but exclude DOM
-    // });
-
     // Disable string suggestions but keep other global suggestions
-    monaco.languages.registerCompletionItemProvider('javascript', {
+    monaco.languages.registerCompletionItemProvider('typescript', {
       provideCompletionItems: (model: any, position: any) => {
         // Check if we're inside a string
         const textUntilPosition = model.getValueInRange({
@@ -109,199 +117,8 @@ export function StrategyCodeEditor({
       triggerCharacters: ['"', "'", '`']
     });
 
-    // Add context object type definitions for IntelliSense
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(`
-      interface BotContext {
-        // Bot metadata
-        id: string; // Bot ID is the wallet address
-        name: string;
-        status: 'active' | 'paused' | 'error' | 'inactive' | 'setup';
-        created_at: string;
-        last_active: string;
-        
-        /* Polyglot blockchain library - detailed response types */
-        polyglot: {
-          // Contract interface and read-only functions
-          getContractInterface(contractAddress: string, contractName: string, tip?: string): Promise<{
-            functions: Array<{ name: string; access: string; args: any[]; outputs: any }>;
-            variables: Array<{ name: string; type: string; access: string }>;
-            maps: Array<{ name: string; key: string; value: string }>;
-            fungible_tokens: Array<{ name: string }>;
-            non_fungible_tokens: Array<{ name: string; type: string }>;
-          }>;
-          callReadOnlyFunction(contractAddress: string, contractName: string, functionName: string, args?: any[], sender?: string): Promise<{ value: any, type: any } | null>;
-          callReadOnly(contractId: string, functionName: string, args?: any[]): Promise<any>;
-          parseContractAbi(abiString: string): {
-            functions: any[];
-            variables: any[];
-            maps: any[];
-            fungible_tokens: any[];
-            non_fungible_tokens: any[];
-          } | null;
-          getContractInfo(contract_id: string, unanchored?: boolean): Promise<{
-            tx_id: string;
-            canonical: boolean;
-            contract_id: string;
-            block_height: number;
-            source_code: string;
-            abi: string;
-          } | null>;
-          getContractInfoWithParsedAbi(contract_id: string, unanchored?: boolean): Promise<{
-            tx_id: string;
-            canonical: boolean;
-            contract_id: string;
-            block_height: number;
-            source_code: string;
-            abi: string;
-            parsed_abi: any;
-          } | null>;
-          
-          // Account and balance functions
-          getAccountBalances(principal: string, params?: { unanchored?: boolean; until_block?: string; }): Promise<{
-            stx: { balance: string; total_sent: string; total_received: string; lock_tx_id: string; locked: string; lock_height: number; burnchain_lock_height: number; burnchain_unlock_height: number };
-            fungible_tokens: { [key: string]: { balance: string; total_sent: string; total_received: string } };
-            non_fungible_tokens: { [key: string]: { count: string; total_sent: string; total_received: string } };
-          } | null>;
-          fetchStxBalance(address: string): Promise<number>;
-          getStxTotalSupply(): Promise<number>;
-          
-          // Transaction functions
-          getRecentTransactions(params?: { limit?: number; offset?: number; type?: Array<"coinbase" | "token_transfer" | "smart_contract" | "contract_call" | "poison_microblock">; unanchored?: boolean; }): Promise<{
-            limit: number;
-            offset: number;
-            total: number;
-            results: Array<{
-              tx_id: string;
-              tx_type: string;
-              fee_rate: string;
-              sender_address: string;
-              sponsored: boolean;
-              anchor_mode: string;
-              block_hash: string;
-              block_height: number;
-              block_time: number;
-              block_time_iso: string;
-              burn_block_time: number;
-              burn_block_time_iso: string;
-              parent_burn_block_time: number;
-              canonical: boolean;
-              tx_index: number;
-              tx_status: string;
-              tx_result: any;
-              microblock_hash: string;
-              microblock_sequence: number;
-              microblock_canonical: boolean;
-              event_count: number;
-              events: any[];
-              execution_cost_read_count: number;
-              execution_cost_read_length: number;
-              execution_cost_runtime: number;
-              execution_cost_write_count: number;
-              execution_cost_write_length: number;
-              token_transfer?: {
-                recipient_address: string;
-                amount: string;
-                memo: string;
-              };
-            }>;
-          }>;
-          getMempoolTransactions(params?: { sender_address?: string; recipient_address?: string; address?: string; limit?: number; offset?: number; unanchored?: boolean; }): Promise<{
-            limit: number;
-            offset: number;
-            total: number;
-            results: Array<{
-              tx_id: string;
-              tx_type: string;
-              fee_rate: string;
-              sender_address: string;
-              sponsored: boolean;
-              anchor_mode: string;
-              tx_status: string;
-              receipt_time: number;
-              receipt_time_iso: string;
-              token_transfer?: {
-                recipient_address: string;
-                amount: string;
-                memo: string;
-              };
-            }>;
-          }>;
-          getTransactionDetails(txId: string): Promise<{
-            tx_id: string;
-            tx_type: string;
-            fee_rate: string;
-            sender_address: string;
-            block_hash: string;
-            block_height: number;
-            tx_status: string;
-            events: any[];
-          }>;
-          getTransactionEvents(params?: { tx_id?: string; address?: string; limit?: number; offset?: number; type?: Array<'smart_contract_log' | 'stx_lock' | 'stx_asset' | 'fungible_token_asset' | 'non_fungible_token_asset'>; }): Promise<{
-            limit: number;
-            offset: number;
-            total: number;
-            results: Array<{
-              event_index: number;
-              event_type: string;
-              tx_id: string;
-              contract_log?: {
-                contract_id: string;
-                topic: string;
-                value: any;
-              };
-              stx_lock_event?: {
-                locked_amount: string;
-                unlock_height: number;
-                locked_address: string;
-              };
-              asset?: {
-                asset_event_type: string;
-                asset_id: string;
-                sender: string;
-                recipient: string;
-                amount: string;
-              };
-            }>;
-          }>;
-          
-          // Contract events
-          fetchContractEvents(address: string, options?: { limit?: number; offset?: number; }): Promise<{
-            limit: number;
-            offset: number;
-            total: number;
-            results: Array<{
-              event_index: number;
-              event_type: string;
-              tx_id: string;
-              contract_log: {
-                contract_id: string;
-                topic: string;
-                value: any;
-              };
-            }>;
-          }>;
-          fetcHoldToEarnLogs(contractAddress: string): Promise<Array<{
-            energy: bigint;
-            integral: bigint;
-            message: string;
-            op: string;
-            sender: string;
-            tx_id: string;
-            block_height?: number;
-            block_time?: number;
-            block_time_iso?: string;
-            tx_status?: string;
-          }>>;
-          
-          // BNS functions
-          getBnsNamesByAddress(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string[]>;
-          getPrimaryBnsName(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string | null>;
-          resolveBnsNameToAddress(name: string): Promise<string | null>;
-        };
-      }
-
-      declare const bot: BotContext;
-    `, 'strategy-context.d.ts');
+    // Setup auto-typings for automatic package type loading
+    await setupAutoTypings(editor, monaco);
 
     // Configure editor options
     editor.updateOptions({
@@ -319,6 +136,104 @@ export function StrategyCodeEditor({
       // Fix IntelliSense popup clipping
       fixedOverflowWidgets: true
     });
+  };
+
+  const setupAutoTypings = async (editor: any, monaco: any) => {
+    try {
+      // Configure TypeScript compiler options for Node.js environment
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.ES2022,
+        module: monaco.languages.typescript.ModuleKind.CommonJS,
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        allowNonTsExtensions: true,
+        noEmit: true,
+        esModuleInterop: true,
+        allowJs: true,
+        allowSyntheticDefaultImports: true,
+        strict: false
+      });
+
+      // Add all types manually for now (skip AutoTypings due to require() parsing issues)
+      // TODO: get AutoTypings working !!!
+      addBotContextTypes(monaco);
+
+      setTypesLoaded(true);
+      console.log('Manual typing setup completed');
+
+    } catch (error) {
+      console.error('Failed to setup types:', error);
+      // Fall back to basic bot context types only
+      addBotContextTypes(monaco);
+    }
+  };
+
+  const addBotContextTypes = (monaco: any) => {
+    // Combined types to avoid AutoTypings trying to resolve globals as packages
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(`
+      // Node.js globals
+      declare function require(id: string): any;
+      declare namespace NodeJS {
+        interface Global {
+          require: typeof require;
+        }
+      }
+      declare var process: any;
+      declare var console: Console;
+      declare var Buffer: any;
+      
+      // @stacks/transactions module types
+      declare module '@stacks/transactions' {
+        interface ContractCallOptions {
+          contractAddress: string;
+          contractName: string;
+          functionName: string;
+          functionArgs?: any[];
+          senderKey: string;
+          network?: any;
+          fee?: string | number;
+          nonce?: string | number;
+          anchorMode?: number;
+          postConditionMode?: number;
+          postConditions?: any[];
+        }
+        
+        export function makeContractCall(options: ContractCallOptions): Promise<any>;
+        export function broadcastTransaction(transaction: any, network?: any): Promise<any>;
+        
+        // Clarity value constructors
+        export function uintCV(value: string | number): any;
+        export function intCV(value: string | number): any;
+        export function boolCV(value: boolean): any;
+        export function stringAsciiCV(value: string): any;
+        export function stringUtf8CV(value: string): any;
+        export function bufferCV(value: Uint8Array): any;
+        export function listCV(values: any[]): any;
+        export function tupleCV(data: Record<string, any>): any;
+        export function standardPrincipalCV(address: string): any;
+        export function contractPrincipalCV(address: string, contractName: string): any;
+        export function someCV(value: any): any;
+        export function noneCV(): any;
+        export function okCV(value: any): any;
+        export function errCV(value: any): any;
+      }
+      
+      // Bot context types
+      interface BotWalletCredentials {
+        privateKey?: string;
+      }
+
+      interface BotContext {
+        // Bot metadata
+        id: string; // Bot ID is the wallet address
+        name: string;
+        status: 'active' | 'paused' | 'error' | 'inactive' | 'setup';
+        created_at: string;
+        last_active: string;
+        walletCredentials: BotWalletCredentials;
+      }
+
+      declare const bot: BotContext;
+    `, 'file:///node_modules/@types/strategy-globals/index.d.ts');
   };
 
   const handleTemplateSelect = (templateKey: string) => {
@@ -447,7 +362,7 @@ export function StrategyCodeEditor({
             <div className="border border-border rounded-none" style={{ overflow: 'visible' }}>
               <Editor
                 height={isFullscreen ? '70vh' : height}
-                defaultLanguage="javascript"
+                defaultLanguage="typescript"
                 value={code}
                 onChange={(value) => setCode(value || '')}
                 onMount={handleEditorDidMount}
@@ -467,7 +382,7 @@ export function StrategyCodeEditor({
               />
             </div>
             <div className="px-4 py-2 text-xs text-muted-foreground">
-              Write plain javascript code here for what you want your bot to do. Bitcoin, Stacks, and other helper libraries are available on the 'bot' object.
+              Write JavaScript or TypeScript code for your bot strategy. Use <code>const &#123; makeContractCall &#125; = require('@stacks/transactions')</code> to import packages. The 'bot' object provides wallet credentials and context.
             </div>
           </CardContent>
         </div>
