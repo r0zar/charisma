@@ -96,7 +96,7 @@ export default function BotWalletPage() {
               </div>
             </div>
 
-            <div>
+            <div className="col-span-1 md:col-span-2">
               <Label className="text-card-foreground">Public Key</Label>
               <div className="flex items-center gap-2 mt-1 w-full">
                 <Input
