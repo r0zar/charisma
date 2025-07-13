@@ -105,7 +105,7 @@ export class SearchService {
       const searchableFields = [
         bot.name,
         bot.strategy,
-        bot.ownerId,
+        bot.clerkUserId,
         bot.status,
         bot.id
       ];
@@ -136,7 +136,7 @@ export class SearchService {
           data: bot,
           metadata: {
             status: bot.status,
-            ownerId: bot.ownerId,
+            clerkUserId: bot.clerkUserId,
             strategyType: this.getStrategyDisplayName(bot.strategy),
             lastActive: bot.lastActive
           }

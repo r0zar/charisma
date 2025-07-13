@@ -46,6 +46,7 @@ import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
+import { useUser } from '@clerk/nextjs';
 import { useAlphaAccess } from '@/hooks/use-alpha-access';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
@@ -76,7 +77,16 @@ interface BotCardProps {
 
 function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
   const { showSuccess, showError } = useToast();
-  const { startBot, pauseBot, isTransitioning } = useBotStateMachine();
+  const { startBot, resumeBot, pauseBot, isTransitioning } = useBotStateMachine();
+
+  // Smart action handler that uses the correct transition based on bot status
+  const handleStartAction = async (bot: BotType, reason: string) => {
+    if (bot.status === 'paused') {
+      return await resumeBot(bot, reason);
+    } else {
+      return await startBot(bot, reason);
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -158,7 +168,7 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                     variant="outline"
                     onClick={async (e) => {
                       e.preventDefault();
-                      const updated = await startBot(bot, 'User started via list view');
+                      const updated = await handleStartAction(bot, 'User started via list view');
                       if (updated) onStart(bot.id);
                     }}
                     disabled={isTransitioning || bot.status === 'setup'}
@@ -323,7 +333,7 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                     variant="outline"
                     onClick={async (e) => {
                       e.preventDefault();
-                      const updated = await startBot(bot, 'User started via bot card');
+                      const updated = await handleStartAction(bot, 'User started via bot card');
                       if (updated) onStart(bot.id);
                     }}
                     disabled={isTransitioning}
@@ -503,9 +513,10 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
 
 export default function BotsPage() {
   const { bots, allBots, loading, deleteBot, refreshData } = useBots();
-  const { startBot, pauseBot } = useBotStateMachine();
+  const { startBot, resumeBot, pauseBot } = useBotStateMachine();
   const { showSuccess, showError } = useToast();
   const { walletState } = useWallet();
+  const { user, isSignedIn } = useUser();
   const hasAlphaAccess = useAlphaAccess();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -527,13 +538,13 @@ export default function BotsPage() {
     if (!allBots || allBots.length === 0) {
       return { totalBots: 0, activeBots: 0, pausedBots: 0, errorBots: 0, totalUsers: 0 };
     }
-    
+
     // For display purposes, exclude current user's bots from community stats
-    const communityBots = walletState.connected && walletState.address 
-      ? allBots.filter(bot => bot.ownerId !== walletState.address)
+    const communityBots = isSignedIn && user?.id
+      ? allBots.filter(bot => bot.clerkUserId !== user.id)
       : allBots;
-    
-    const uniqueOwners = new Set(communityBots.map(bot => bot.ownerId));
+
+    const uniqueOwners = new Set(communityBots.map(bot => bot.clerkUserId));
     return {
       totalBots: communityBots.length,
       activeBots: communityBots.filter(bot => bot.status === 'active').length,
@@ -541,7 +552,7 @@ export default function BotsPage() {
       errorBots: communityBots.filter(bot => bot.status === 'error').length,
       totalUsers: uniqueOwners.size,
     };
-  }, [allBots, walletState.connected, walletState.address]);
+  }, [allBots, isSignedIn, user?.id]);
 
   const filteredBots = useMemo(() => {
     return bots.filter(bot => {
@@ -567,7 +578,7 @@ export default function BotsPage() {
       }
 
       // Filter out current user's bots - only show other people's bots
-      if (walletState.connected && walletState.address && bot.ownerId === walletState.address) {
+      if (isSignedIn && user?.id && bot.clerkUserId === user.id) {
         return false;
       }
 
@@ -579,7 +590,7 @@ export default function BotsPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [allBots, searchQuery, statusFilter, walletState.connected, walletState.address]);
+  }, [allBots, searchQuery, statusFilter, isSignedIn, user?.id]);
 
   // Pagination for public bots
   const totalPages = Math.ceil(filteredPublicBots.length / botsPerPage);
@@ -592,6 +603,15 @@ export default function BotsPage() {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
 
+  // Smart action handler that uses the correct transition based on bot status
+  const handleStartAction = async (bot: BotType, reason: string) => {
+    if (bot.status === 'paused') {
+      return await resumeBot(bot, reason);
+    } else {
+      return await startBot(bot, reason);
+    }
+  };
+
   const handleStart = async (id: string) => {
     try {
       const bot = bots.find(b => b.id === id);
@@ -599,7 +619,7 @@ export default function BotsPage() {
         showError('Bot not found');
         return;
       }
-      const updatedBot = await startBot(bot, 'User started via main page');
+      const updatedBot = await handleStartAction(bot, 'User started via main page');
       if (updatedBot) {
         showSuccess('Bot started successfully');
       }
@@ -662,8 +682,8 @@ export default function BotsPage() {
           <p className="text-muted-foreground">Create, configure, and monitor your DeFi automation bots</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => refreshData()} 
+          <Button
+            onClick={() => refreshData()}
             variant="outline"
             className="flex items-center gap-2"
             disabled={loading}
@@ -679,8 +699,8 @@ export default function BotsPage() {
               </Link>
             </Button>
           ) : (
-            <Button 
-              disabled 
+            <Button
+              disabled
               className="bg-muted text-muted-foreground border-0 cursor-not-allowed"
               title="Bot creation is currently in alpha. Add #alpha to the URL for access."
             >
@@ -788,8 +808,8 @@ export default function BotsPage() {
                 </Link>
               </Button>
             ) : (
-              <Button 
-                disabled 
+              <Button
+                disabled
                 className="bg-muted text-muted-foreground border-0 cursor-not-allowed"
                 title="Bot creation is currently in alpha. Add #alpha to the URL for access."
               >
@@ -872,12 +892,6 @@ export default function BotsPage() {
                               </p>
                             </div>
                           </div>
-
-                          <div className="bg-card/50 mt-2 flex-shrink-0 flex flex-col relative">
-                            <div className="text-xs text-center text-muted-foreground">
-                              Owner: {truncateAddress(bot.ownerId)}
-                            </div>
-                          </div>
                         </div>
 
                         <div className="border-t border-border/50 pt-2 text-center">
@@ -892,7 +906,6 @@ export default function BotsPage() {
                           <div className="flex-1">
                             <h3 className="font-medium text-card-foreground group-hover:text-primary transition-colors">{bot.name}</h3>
                             <p className="text-sm text-muted-foreground">{getStrategyDisplayName(bot.strategy)}</p>
-                            <p className="text-xs text-muted-foreground">Owner: {truncateAddress(bot.ownerId)}</p>
                           </div>
                           <Badge className={statusColors[bot.status]}>
                             {statusIcons[bot.status]}

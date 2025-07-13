@@ -83,7 +83,7 @@ export class BotService {
         name: data.name,
         strategy: data.strategy,
         status: 'setup',
-        ownerId: userId,
+        clerkUserId: '', // Legacy method - clerk integration not available
         createdAt: now,
         lastActive: now,
         encryptedWallet: encryptedWallet.encryptedPrivateKey,
@@ -127,8 +127,7 @@ export class BotService {
         name: data.name,
         strategy: data.strategy,
         status: 'setup',
-        ownerId: walletCredentials.walletAddress, // Legacy field - use bot's own address
-        clerkUserId: clerkUserId, // Primary owner identifier
+        clerkUserId: clerkUserId,
         createdAt: now,
         lastActive: now,
         encryptedWallet: encryptedWallet.encryptedPrivateKey,
@@ -138,13 +137,32 @@ export class BotService {
         imageType: imageConfig.imageType,
         isScheduled: false,
         executionCount: 0,
+        
+        // Optional repository configuration
+        gitRepository: data.gitRepository,
+        isMonorepo: data.isMonorepo,
+        packagePath: data.packagePath,
+        buildCommands: data.buildCommands,
       };
 
-      const success = await botDataStore.createBotByClerkUserId(clerkUserId, newBot);
-      if (success) {
-        return newBot;
-      } else {
-        throw new Error('Failed to create bot');
+      try {
+        const success = await botDataStore.createBotByClerkUserId(clerkUserId, newBot);
+        if (success) {
+          console.log(`✅ Successfully created bot ${newBot.name} with ID ${newBot.id} for user ${clerkUserId}`);
+          return newBot;
+        } else {
+          throw new Error('Failed to create bot - storage operation returned false');
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('already exists')) {
+          // Bot ID collision - this is very rare but possible with crypto wallets
+          console.warn(`⚠️ Bot ID collision detected for ${newBot.id}, regenerating wallet...`);
+          // Recursively try again with a new wallet
+          return this.createBotByClerkUserId(clerkUserId, data);
+        } else {
+          // Re-throw other errors
+          throw error;
+        }
       }
     } else {
       // For static data, we can't actually create, so throw an error

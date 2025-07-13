@@ -29,7 +29,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
   const router = useRouter();
   const pathname = usePathname();
   const { bots, allBots, loading } = useBots();
-  const { startBot, pauseBot } = useBotStateMachine();
+  const { startBot, resumeBot, pauseBot } = useBotStateMachine();
 
   const [mounted, setMounted] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -55,9 +55,18 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
     }
   }, [mounted, loading, bot, router]);
 
+  // Smart action handler that uses the correct transition based on bot status
+  const handleStartAction = async (bot: any, reason: string) => {
+    if (bot.status === 'paused') {
+      return await resumeBot(bot, reason);
+    } else {
+      return await startBot(bot, reason);
+    }
+  };
+
   const handleStart = async () => {
     if (!bot) return;
-    await startBot(bot, 'User started via bot detail page');
+    await handleStartAction(bot, 'User started via bot detail page');
   };
 
   const handlePause = async () => {

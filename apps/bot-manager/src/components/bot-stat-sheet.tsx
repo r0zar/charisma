@@ -363,32 +363,6 @@ export function BotStatSheet({ bot }: BotStatSheetProps) {
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-400 text-sm">Owner Address</span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(bot.ownerId, 'Owner address')}
-                      className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openInExplorer(bot.ownerId)}
-                      className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="font-mono text-sm bg-slate-800 p-3 rounded border border-slate-700 break-all text-slate-200">
-                  {bot.ownerId}
-                </div>
-              </div>
             </div>
 
             {/* Security Info */}

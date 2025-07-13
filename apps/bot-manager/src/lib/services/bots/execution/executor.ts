@@ -60,7 +60,7 @@ export class BotExecutorService {
     } = options;
 
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const userId = bot.clerkUserId || bot.ownerId; // Prefer Clerk userId, fallback to legacy ownerId
+    const userId = bot.clerkUserId; // Use Clerk userId
     const startTime = new Date().toISOString();
     
     try {
@@ -219,7 +219,7 @@ export class BotExecutorService {
     console.log(`[BotExecutor] Updating bot ${bot.id} metadata:`, updateData);
 
     try {
-      const userId = bot.clerkUserId || bot.ownerId; // Prefer Clerk userId, fallback to legacy ownerId
+      const userId = bot.clerkUserId; // Use Clerk userId
 
       // Handle execution failure state transition
       if (!success) {
@@ -259,12 +259,8 @@ export class BotExecutorService {
       if (bot.clerkUserId) {
         await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
       } else {
-        // Use Clerk-based method if bot has clerkUserId, otherwise use legacy method
-        if (bot.clerkUserId) {
-          await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
-        } else {
-          await botService.updateBot(bot.ownerId, updatedBot);
-        }
+        // Use Clerk-based method (all bots now have clerkUserId)
+        await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
       }
       console.log(`[BotExecutor] Successfully updated bot ${bot.id} metadata`);
     } catch (error) {
@@ -281,7 +277,7 @@ export class BotExecutorService {
       const transitionResult = await BotStateMachine.requestTransition(
         bot,
         'error',
-        bot.clerkUserId || bot.ownerId, // Prefer Clerk userId, fallback to legacy ownerId
+        bot.clerkUserId, // Use Clerk userId
         `Execution failed: ${error}`
       );
       
@@ -292,12 +288,8 @@ export class BotExecutorService {
           lastActive: new Date().toISOString()
         };
         
-        // Use Clerk-based method if bot has clerkUserId, otherwise use legacy method
-        if (bot.clerkUserId) {
-          await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
-        } else {
-          await botService.updateBot(bot.ownerId, updatedBot);
-        }
+        // Use Clerk-based method (all bots now have clerkUserId)
+        await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
         console.log(`[BotExecutor] Successfully transitioned bot ${bot.id} to error state`);
       } else {
         console.error(`[BotExecutor] State transition validation failed for bot ${bot.id}:`, transitionResult.errors);
@@ -313,7 +305,7 @@ export class BotExecutorService {
         lastActive: new Date().toISOString()
       };
       
-      await botService.updateBot(bot.ownerId, updatedBot);
+      await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
     }
   }
 

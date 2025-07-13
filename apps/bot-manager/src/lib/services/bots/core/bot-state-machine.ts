@@ -202,7 +202,7 @@ export async function validateBotForTransition(
   // Additional business rule validations
   if (transition.to === 'active') {
     // Check if bot has required fields for execution
-    if (!bot.ownerId) {
+    if (!bot.clerkUserId) {
       errors.push('Bot must have an owner to become active');
     }
   }

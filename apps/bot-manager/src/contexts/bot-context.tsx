@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useState, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 
 import { Bot, BotStats, CreateBotRequest } from '@/schemas/bot.schema';
@@ -27,6 +27,7 @@ interface BotContextType {
   // Utilities
   getBot: (id: string) => Bot | undefined;
   refreshData: () => Promise<void>;
+  updateBotInContext: (botId: string, updates: Partial<Bot>) => void;
 }
 
 const BotContext = createContext<BotContextType | undefined>(undefined);
@@ -351,15 +352,11 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
     return bots.find(bot => bot.id === id);
   };
 
-  const refreshData = async (): Promise<void> => {
-    if (!isSignedIn || !user?.id) {
-      return;
-    }
-
+  const refreshData = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      // Fetch fresh data from KV store API using Clerk userId
-      const response = await fetch(`/api/v1/bots?userId=${user.id}`);
+      // Always fetch all bots - frontend filtering handles user-specific display
+      const response = await fetch('/api/v1/bots');
 
       if (!response.ok) {
         throw new Error('Failed to refresh data');
@@ -376,7 +373,14 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
     } finally {
       setLoading(false);
     }
+  }, []); // No dependencies needed - always calls same public API
+
+  const updateBotInContext = (botId: string, updates: Partial<Bot>) => {
+    setAllBots(prev => prev.map(bot => 
+      bot.id === botId ? { ...bot, ...updates } : bot
+    ));
   };
+
 
   const value: BotContextType = {
     bots,
@@ -393,7 +397,8 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
     fundBot,
     withdrawFromBot,
     getBot,
-    refreshData
+    refreshData,
+    updateBotInContext
   };
 
   return <BotContext.Provider value={value}>{children}</BotContext.Provider>;

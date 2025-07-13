@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
@@ -25,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { useBots } from '@/contexts/bot-context';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { useUser } from '@clerk/nextjs';
@@ -35,8 +37,9 @@ export default function BotSchedulingPage() {
   const { bot } = useCurrentBot();
   const { showSuccess, showError } = useToast();
   const { user } = useUser();
-
-  const [localBot, setLocalBot] = useState<BotType | null>(null);
+  const { updateBotInContext } = useBots();
+  const params = useParams();
+  const botId = params?.id as string;
   const [schedulingSettings, setSchedulingSettings] = useState({
     cronSchedule: '',
     isScheduled: false
@@ -60,8 +63,7 @@ export default function BotSchedulingPage() {
 
   useEffect(() => {
     if (bot) {
-      setLocalBot(bot);
-      // Sync scheduling settings
+      // Sync scheduling settings with current bot data
       setSchedulingSettings({
         cronSchedule: bot.cronSchedule || '',
         isScheduled: bot.isScheduled || false
@@ -146,8 +148,17 @@ export default function BotSchedulingPage() {
         throw new Error(errorData.message || 'Failed to update scheduling settings');
       }
 
-      const updatedBot = await response.json();
-      setLocalBot(updatedBot);
+      const responseData = await response.json();
+      
+      // Update bot in context immediately for instant UI feedback
+      const updates: Partial<BotType> = {
+        isScheduled: schedulingSettings.isScheduled,
+        cronSchedule: schedulingSettings.isScheduled ? schedulingSettings.cronSchedule : undefined,
+        nextExecution: responseData.schedule?.nextExecution,
+        lastExecution: responseData.schedule?.lastExecution,
+      };
+      
+      updateBotInContext(bot.id, updates);
       showSuccess('Scheduling settings saved successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -163,13 +174,13 @@ export default function BotSchedulingPage() {
   };
 
   // Helper function to determine composite execution status
-  const getExecutionStatus = (bot: BotType | null) => {
-    if (!bot) return { canExecute: false, status: 'Unknown', color: 'bg-gray-500/20 text-gray-400', priority: 'bot' };
+  const getExecutionStatus = (currentBot: BotType | null) => {
+    if (!currentBot) return { canExecute: false, status: 'Unknown', color: 'bg-gray-500/20 text-gray-400', priority: 'bot' };
     
-    const isScheduled = bot.isScheduled && bot.cronSchedule;
+    const isScheduled = currentBot.isScheduled && currentBot.cronSchedule;
     
     // Bot status takes priority over scheduling status
-    switch (bot.status) {
+    switch (currentBot.status) {
       case 'paused':
         return {
           canExecute: false,
@@ -225,7 +236,7 @@ export default function BotSchedulingPage() {
     }
   };
 
-  const executionStatus = getExecutionStatus(localBot || bot);
+  const executionStatus = getExecutionStatus(bot);
 
   // Helper function to get dynamic alert content
   const getAlertContent = () => {
@@ -493,7 +504,7 @@ export default function BotSchedulingPage() {
                   </Badge>
                   {executionStatus.priority === 'bot' && (
                     <Badge variant="outline" className="text-xs">
-                      Bot: {(localBot || bot)?.status}
+                      Bot: {bot?.status}
                     </Badge>
                   )}
                 </div>
@@ -502,23 +513,23 @@ export default function BotSchedulingPage() {
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Cron Expression</span>
                 <span className="text-sm font-mono text-card-foreground">
-                  {(localBot || bot)?.cronSchedule || 'Not set'}
+                  {bot?.cronSchedule || 'Not set'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Last Execution</span>
                 <span className="text-sm text-card-foreground">
-                  {(localBot || bot)?.lastExecution ? formatRelativeTime((localBot || bot)!.lastExecution!) : 'Never'}
+                  {bot?.lastExecution ? formatRelativeTime(bot.lastExecution) : 'Never'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Next Execution</span>
                 <div className="text-sm text-card-foreground">
-                  {executionStatus.canExecute && (localBot || bot)?.nextExecution ? (
+                  {executionStatus.canExecute && bot?.nextExecution ? (
                     <CountdownTimer
-                      targetDate={(localBot || bot)!.nextExecution!}
+                      targetDate={bot.nextExecution}
                       className="text-sm"
                     />
                   ) : executionStatus.canExecute ? (
@@ -534,7 +545,7 @@ export default function BotSchedulingPage() {
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Total Executions</span>
                 <span className="text-sm font-semibold text-card-foreground">
-                  {(localBot || bot)?.executionCount || 0}
+                  {bot?.executionCount || 0}
                 </span>
               </div>
             </div>
@@ -563,7 +574,12 @@ export default function BotSchedulingPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => (localBot || bot) && fetchExecutionHistory((localBot || bot)!.id)}
+              onClick={() => {
+                const currentBotId = bot?.id || botId;
+                if (currentBotId) {
+                  fetchExecutionHistory(currentBotId);
+                }
+              }}
               disabled={loadingHistory}
               className="h-8 w-8 p-0"
             >

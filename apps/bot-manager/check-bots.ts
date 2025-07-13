@@ -12,7 +12,6 @@ async function checkBots() {
   allBots.forEach(bot => {
     console.log(`Bot: ${bot.name}`);
     console.log(`  ID: ${bot.id}`);
-    console.log(`  ownerId: ${bot.ownerId}`);
     console.log(`  clerkUserId: ${bot.clerkUserId || 'NOT SET'}`);
     console.log(`  status: ${bot.status}`);
     console.log('---');

@@ -69,32 +69,6 @@ export default function BotWalletPage() {
               </div>
             </div>
 
-            <div>
-              <Label className="text-card-foreground">Owner Address</Label>
-              <div className="flex items-center gap-2 mt-1 w-full">
-                <Input
-                  value={bot.ownerId}
-                  disabled
-                  className="bg-input border-border text-foreground flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(bot.ownerId)}
-                  className="border-border text-foreground"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openInExplorer(bot.ownerId)}
-                  className="border-border text-foreground"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
 
             <div className="col-span-1 md:col-span-2">
               <Label className="text-card-foreground">Public Key</Label>

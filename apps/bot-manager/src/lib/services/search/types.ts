@@ -24,7 +24,7 @@ export interface BotSearchResult extends SearchResult {
   data: Bot;
   metadata: {
     status: string;
-    ownerId: string;
+    clerkUserId: string;
     strategyType?: string;
     lastActive: string;
   };

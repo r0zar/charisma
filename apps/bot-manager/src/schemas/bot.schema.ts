@@ -45,8 +45,7 @@ export const BotSchema = z.object({
   name: z.string().min(1),
   strategy: z.string().min(1), // Full JavaScript code as string
   status: z.enum(['active', 'paused', 'error', 'inactive', 'setup']),
-  ownerId: z.string().regex(/^S[PT][0-9A-Z]{37,39}$/, 'Invalid Stacks address format'), // Owner's STX address (legacy)
-  clerkUserId: z.string().optional(), // Primary owner identifier via Clerk
+  clerkUserId: z.string().min(1), // Owner identifier via Clerk
   createdAt: z.string().datetime(),
   lastActive: z.string().datetime(),
   

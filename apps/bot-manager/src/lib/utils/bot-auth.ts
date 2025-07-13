@@ -25,13 +25,11 @@ export async function verifyBotOwnership(botId: string, bot?: any) {
 
   // If bot is provided, verify ownership using clerkUserId
   if (bot) {
-    // Check if bot has clerkUserId (new system) or fall back to legacy ownerId check
-    const isOwner = bot.clerkUserId ? 
-      bot.clerkUserId === userId : 
-      false; // Legacy bots without clerkUserId are not accessible via new system
+    // Check if bot has clerkUserId ownership
+    const isOwner = bot.clerkUserId === userId;
 
     if (!isOwner) {
-      console.warn(`❌ Unauthorized bot access attempt: user ${userId} tried to access bot ${botId} owned by ${bot.clerkUserId || bot.ownerId}`);
+      console.warn(`❌ Unauthorized bot access attempt: user ${userId} tried to access bot ${botId} owned by ${bot.clerkUserId}`);
       return {
         error: NextResponse.json(
           {

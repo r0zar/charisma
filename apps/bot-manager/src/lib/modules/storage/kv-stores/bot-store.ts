@@ -12,29 +12,15 @@ export class BotKVStore {
   /**
    * Get user-specific bot index key
    */
-  private getUserIndexKey(userId: string): string {
-    return `${this.keyPrefix}:${userId}:index`;
+  private getUserIndexKey(clerkUserId: string): string {
+    return `${this.keyPrefix}:${clerkUserId}:index`;
   }
 
   /**
-   * Get user-specific bot key
+   * Get user-specific bot key (simplified Clerk-only pattern)
    */
-  private getUserBotKey(userId: string, botId: string): string {
-    return `${this.keyPrefix}:${userId}:${botId}`;
-  }
-
-  /**
-   * Get Clerk user-specific bot index key
-   */
-  private getClerkUserIndexKey(clerkUserId: string): string {
-    return `${this.keyPrefix}:clerk:${clerkUserId}:index`;
-  }
-
-  /**
-   * Get Clerk user-specific bot key
-   */
-  private getClerkUserBotKey(clerkUserId: string, botId: string): string {
-    return `${this.keyPrefix}:clerk:${clerkUserId}:${botId}`;
+  private getUserBotKey(clerkUserId: string, botId: string): string {
+    return `${this.keyPrefix}:${clerkUserId}:${botId}`;
   }
 
   /**
@@ -74,7 +60,7 @@ export class BotKVStore {
   async getAllBotsByClerkUserId(clerkUserId: string): Promise<import('@/schemas/bot.schema').Bot[]> {
     try {
       // Get all bot IDs for the Clerk user
-      const botIds = await kv.smembers(this.getClerkUserIndexKey(clerkUserId)) || [];
+      const botIds = await kv.smembers(this.getUserIndexKey(clerkUserId)) || [];
 
       if (botIds.length === 0) {
         return [];
@@ -83,7 +69,7 @@ export class BotKVStore {
       // Fetch all bots
       const bots: Bot[] = [];
       for (const id of botIds) {
-        const bot = await kv.get<Bot>(this.getClerkUserBotKey(clerkUserId, id as string));
+        const bot = await kv.get<Bot>(this.getUserBotKey(clerkUserId, id as string));
         if (bot) {
           bots.push(bot);
         }
@@ -117,7 +103,7 @@ export class BotKVStore {
    */
   async getBotByClerkUserId(clerkUserId: string, botId: string): Promise<Bot | null> {
     try {
-      const bot = await kv.get<Bot>(this.getClerkUserBotKey(clerkUserId, botId));
+      const bot = await kv.get<Bot>(this.getUserBotKey(clerkUserId, botId));
       return bot || null;
     } catch (error) {
       console.error('Failed to get bot by Clerk user ID:', error);
@@ -138,8 +124,8 @@ export class BotKVStore {
 
       // If bot has clerkUserId, also index by Clerk user ID
       if (bot.clerkUserId) {
-        await kv.set(this.getClerkUserBotKey(bot.clerkUserId, bot.id), bot);
-        await kv.sadd(this.getClerkUserIndexKey(bot.clerkUserId), bot.id);
+        await kv.set(this.getUserBotKey(bot.clerkUserId, bot.id), bot);
+        await kv.sadd(this.getUserIndexKey(bot.clerkUserId), bot.id);
       }
 
       return true;
@@ -158,10 +144,10 @@ export class BotKVStore {
       const botWithClerkUserId = { ...bot, clerkUserId };
 
       // Store the bot under Clerk user ID
-      await kv.set(this.getClerkUserBotKey(clerkUserId, bot.id), botWithClerkUserId);
+      await kv.set(this.getUserBotKey(clerkUserId, bot.id), botWithClerkUserId);
 
       // Add to Clerk user's bot index
-      await kv.sadd(this.getClerkUserIndexKey(clerkUserId), bot.id);
+      await kv.sadd(this.getUserIndexKey(clerkUserId), bot.id);
 
       return true;
     } catch (error) {
@@ -185,10 +171,34 @@ export class BotKVStore {
   }
 
   /**
-   * Create a new bot by Clerk user ID (alias for setBotByClerkUserId)
+   * Create a new bot by Clerk user ID with uniqueness validation
    */
   async createBotByClerkUserId(clerkUserId: string, bot: import('@/schemas/bot.schema').Bot): Promise<boolean> {
-    return this.setBotByClerkUserId(clerkUserId, bot);
+    try {
+      // Check if a bot with this ID already exists across all users
+      const allBots = await this.getAllBotsPublic();
+      const existingBot = allBots.find(existingBot => existingBot.id === bot.id);
+      
+      if (existingBot) {
+        console.error(`❌ Bot creation failed: Bot with ID '${bot.id}' already exists`);
+        console.error(`   Existing bot: ${existingBot.name} (owner: ${existingBot.clerkUserId})`);
+        console.error(`   Attempted bot: ${bot.name} (owner: ${clerkUserId})`);
+        throw new Error(`Bot with ID '${bot.id}' already exists. Bot IDs must be unique across all users.`);
+      }
+
+      // If no duplicate found, proceed with creation
+      console.log(`✅ Bot ID '${bot.id}' is unique, proceeding with creation`);
+      return this.setBotByClerkUserId(clerkUserId, bot);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        // Re-throw validation errors
+        throw error;
+      } else {
+        // Handle other errors
+        console.error('Failed to create bot by Clerk user ID:', error);
+        return false;
+      }
+    }
   }
 
   /**
@@ -214,8 +224,8 @@ export class BotKVStore {
 
       // Also clean up Clerk-based storage if clerkUserId exists
       if (bot?.clerkUserId) {
-        await kv.srem(this.getClerkUserIndexKey(bot.clerkUserId), botId);
-        await kv.del(this.getClerkUserBotKey(bot.clerkUserId, botId));
+        await kv.srem(this.getUserIndexKey(bot.clerkUserId), botId);
+        await kv.del(this.getUserBotKey(bot.clerkUserId, botId));
       }
 
       return true;
@@ -231,10 +241,10 @@ export class BotKVStore {
   async deleteBotByClerkUserId(clerkUserId: string, botId: string): Promise<boolean> {
     try {
       // Remove from Clerk user index
-      await kv.srem(this.getClerkUserIndexKey(clerkUserId), botId);
+      await kv.srem(this.getUserIndexKey(clerkUserId), botId);
 
       // Delete the bot
-      await kv.del(this.getClerkUserBotKey(clerkUserId, botId));
+      await kv.del(this.getUserBotKey(clerkUserId, botId));
 
       return true;
     } catch (error) {
@@ -261,7 +271,7 @@ export class BotKVStore {
    */
   async getBotCountByClerkUserId(clerkUserId: string): Promise<number> {
     try {
-      const botIds = await kv.smembers(this.getClerkUserIndexKey(clerkUserId)) || [];
+      const botIds = await kv.smembers(this.getUserIndexKey(clerkUserId)) || [];
       return botIds.length;
     } catch (error) {
       console.error('Failed to get bot count by Clerk user ID:', error);
@@ -319,11 +329,11 @@ export class BotKVStore {
 
   /**
    * Get all bots across all users (for public viewing)
-   * Returns both migrated and unmigrated bots, with deduplication
+   * Uses simplified Clerk-only storage pattern
    */
   async getAllBotsPublic(): Promise<import('@/schemas/bot.schema').Bot[]> {
     try {
-      // Get all keys that match the bot pattern (both legacy and Clerk-based)
+      // Get all bot keys using simplified pattern: bot-manager:bots:{clerkUserId}:{botId}
       const allKeys = await kv.keys(`${this.keyPrefix}:*:*`);
       const botKeys = allKeys.filter(key => !key.includes(':index'));
 
@@ -331,22 +341,17 @@ export class BotKVStore {
         return [];
       }
 
-      // Fetch all bots and deduplicate
-      const botMap = new Map<string, import('@/schemas/bot.schema').Bot>();
+      // Fetch all bots - no deduplication needed with simplified storage
+      const bots: import('@/schemas/bot.schema').Bot[] = [];
       
       for (const key of botKeys) {
         const bot = await kv.get<import('@/schemas/bot.schema').Bot>(key);
         if (bot) {
-          // If bot has clerkUserId, prefer it over legacy version
-          const existingBot = botMap.get(bot.id);
-          if (!existingBot || (bot.clerkUserId && !existingBot.clerkUserId)) {
-            botMap.set(bot.id, bot);
-          }
+          bots.push(bot);
         }
       }
 
-      // Convert map to array and sort by createdAt (newest first)
-      const bots = Array.from(botMap.values());
+      // Sort by createdAt (newest first)
       bots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       return bots;
@@ -368,7 +373,7 @@ export class BotKVStore {
   }> {
     try {
       const bots = await this.getAllBotsPublic();
-      const userIds = new Set(bots.map(bot => bot.ownerId));
+      const userIds = new Set(bots.map(bot => bot.clerkUserId));
 
       let activeBots = 0;
       let pausedBots = 0;
