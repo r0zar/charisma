@@ -173,8 +173,8 @@ export default function BotOverviewPage() {
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
               <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <h3 className="text-md font-semibold mb-2">No Performance Data</h3>
-              <p>Performance metrics will appear here once the bot starts executing trades.</p>
+              <h3 className="text-lg font-semibold mb-2">No Performance Data</h3>
+              <p className="text-sm text-muted-foreground">Performance metrics will appear here once the bot starts executing trades.</p>
             </div>
           </CardContent>
         </Card>
