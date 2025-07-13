@@ -15,7 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +66,7 @@ export default function BotSchedulingPage() {
     }
   }, [bot, fetchExecutionHistory]);
 
-  const fetchExecutionHistory = async (botId: string) => {
+  const fetchExecutionHistory = useCallback(async (botId: string) => {
     setLoadingHistory(true);
     try {
       // No need to pass userId - API gets it from Clerk auth automatically
@@ -82,7 +82,7 @@ export default function BotSchedulingPage() {
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [showError]);
 
   const fetchExecutionLogs = async (execution: any) => {
     if (!execution.logsUrl || executionLogs[execution.id]) {
