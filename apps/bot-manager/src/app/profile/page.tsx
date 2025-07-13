@@ -23,7 +23,7 @@ export default function ProfilePage() {
 
   const openExplorer = () => {
     if (walletState.address) {
-      const explorerUrl = network === 'mainnet' 
+      const explorerUrl = network === 'stacks-mainnet' 
         ? `https://explorer.stacks.co/address/${walletState.address}`
         : `https://explorer.stacks.co/address/${walletState.address}?chain=testnet`;
       window.open(explorerUrl, '_blank');
@@ -70,7 +70,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-medium">Wallet Address</span>
                   <Badge variant="outline" className="text-xs">
-                    {network === 'mainnet' ? 'Mainnet' : 'Testnet'}
+                    {network === 'stacks-mainnet' ? 'Mainnet' : 'Testnet'}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
@@ -122,15 +122,15 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium">Active Network</label>
                 <div className="flex gap-2 mt-2">
                   <Button
-                    variant={network === 'mainnet' ? 'default' : 'outline'}
-                    onClick={() => setNetwork('mainnet')}
+                    variant={network === 'stacks-mainnet' ? 'default' : 'outline'}
+                    onClick={() => setNetwork('stacks-mainnet')}
                     className="flex-1"
                   >
                     Mainnet
                   </Button>
                   <Button
-                    variant={network === 'testnet' ? 'default' : 'outline'}
-                    onClick={() => setNetwork('testnet')}
+                    variant={network === 'stacks-testnet' ? 'default' : 'outline'}
+                    onClick={() => setNetwork('stacks-testnet')}
                     className="flex-1"
                   >
                     Testnet

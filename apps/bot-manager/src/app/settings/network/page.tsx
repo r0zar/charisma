@@ -117,7 +117,7 @@ export default function NetworkSettingsPage() {
                   {/* Bitcoin Mainnet */}
                   {(() => {
                     const bitcoinAddresses = getBitcoinAddresses("mainnet");
-                    const isMainnetActive = network === "bitcoin-mainnet" || network === "stacks-mainnet" || network === "mainnet";
+                    const isMainnetActive = network === "bitcoin-mainnet" || network === "stacks-mainnet";
                     
                     return (
                       <div className={`p-4 bg-muted rounded-lg border-2 ${isMainnetActive ? 'border-primary' : 'border-transparent'}`}>
@@ -187,7 +187,7 @@ export default function NetworkSettingsPage() {
                   {/* Bitcoin Testnet */}
                   {(() => {
                     const bitcoinAddresses = getBitcoinAddresses("testnet");
-                    const isTestnetActive = network === "bitcoin-testnet" || network === "stacks-testnet" || network === "testnet";
+                    const isTestnetActive = network === "bitcoin-testnet" || network === "stacks-testnet";
                     
                     return (
                       <div className={`p-4 bg-muted rounded-lg border-2 ${isTestnetActive ? 'border-primary' : 'border-transparent'}`}>
@@ -336,7 +336,7 @@ export default function NetworkSettingsPage() {
                   {/* Stacks Mainnet */}
                   {(() => {
                     const stacksMainnet = getNetworkStatus('stacks-mainnet') || getNetworkStatus('mainnet');
-                    const isMainnetActive = network === "stacks-mainnet" || network === "mainnet" || network === "bitcoin-mainnet";
+                    const isMainnetActive = network === "stacks-mainnet" || network === "bitcoin-mainnet";
                     
                     return (
                       <div className={`p-4 bg-muted rounded-lg border-2 ${isMainnetActive ? 'border-primary' : 'border-transparent'}`}>
@@ -393,7 +393,7 @@ export default function NetworkSettingsPage() {
                   {/* Stacks Testnet */}
                   {(() => {
                     const stacksTestnet = getNetworkStatus('stacks-testnet') || getNetworkStatus('testnet');
-                    const isTestnetActive = network === "stacks-testnet" || network === "testnet" || network === "bitcoin-testnet";
+                    const isTestnetActive = network === "stacks-testnet" || network === "bitcoin-testnet";
                     
                     return (
                       <div className={`p-4 bg-muted rounded-lg border-2 ${isTestnetActive ? 'border-primary' : 'border-transparent'}`}>
@@ -452,7 +452,7 @@ export default function NetworkSettingsPage() {
                     <div>
                       <h4 className="text-sm font-medium mb-2">Active Network</h4>
                       <RadioGroup
-                        value={network.startsWith('stacks-') ? network : (network === 'mainnet' ? 'stacks-mainnet' : 'stacks-testnet')}
+                        value={network.startsWith('stacks-') ? network : 'stacks-mainnet'}
                         onValueChange={setNetwork}
                         className="flex gap-6"
                       >

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // Load only user's own data for searching using Clerk userId
     const [userBots, userNotifications] = await Promise.all([
       botService.getAllBotsByClerkUserId(userId),
-      notificationService.getUserNotifications(userId)
+      notificationService.getNotifications(userId)
     ]);
 
     // User data for search (only current user) - minimal data since we use Clerk now
@@ -137,12 +137,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`🔍 Authenticated advanced search request from user ${userId} (${userData.wallet.address}) for query: "${query}"`);
+    console.log(`🔍 Authenticated advanced search request from user ${userId} for query: "${query}"`);
 
     // Load only user's own data for searching using Clerk userId
     const [userBots, userNotifications] = await Promise.all([
       botService.getAllBotsByClerkUserId(userId),
-      notificationService.getUserNotifications(userId)
+      notificationService.getNotifications(userId)
     ]);
 
     // User data for search (only current user) - minimal data since we use Clerk now

@@ -3,8 +3,20 @@
     "//"
   ],
   "tasks": {
+    "generate-types": {
+      "inputs": [
+        "node_modules/@stacks/transactions/dist/**/*.d.ts",
+        "node_modules/@stacks/network/dist/**/*.d.ts", 
+        "scripts/generate-types.ts"
+      ],
+      "outputs": [
+        "src/generated/"
+      ],
+      "dependsOn": []
+    },
     "build": {
       "dependsOn": [
+        "generate-types",
         "@repo/tokens#build",
         "@repo/polyglot#build",
         "blaze-sdk#build"
@@ -41,6 +53,7 @@
     },
     "dev": {
       "dependsOn": [
+        "generate-types",
         "@repo/tokens#build",
         "@repo/polyglot#build",
         "blaze-sdk#build"

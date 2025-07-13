@@ -23,7 +23,8 @@ async function migrateExistingBots() {
   
   console.log(`Found ${botsByWallet.size} unique wallet addresses:`);
   
-  for (const [walletAddress, bots] of botsByWallet) {
+  for (const entry of Array.from(botsByWallet.entries())) {
+    const [walletAddress, bots] = entry;
     console.log(`\nWallet: ${walletAddress} (${bots.length} bots)`);
     bots.forEach(bot => {
       console.log(`  - ${bot.name} (${bot.id})`);

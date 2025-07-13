@@ -8,8 +8,7 @@
         ".env*"
       ],
       "dependsOn": [
-        "^build",
-        "generate-types"
+        "^build"
       ],
       "outputs": [
         "build/**",
@@ -71,22 +70,10 @@
     },
     "dev": {
       "dependsOn": [
-        "^build",
-        "generate-types"
+        "^build"
       ],
       "cache": false,
       "persistent": true
-    },
-    "generate-types": {
-      "inputs": [
-        "node_modules/@stacks/transactions/dist/**/*.d.ts",
-        "node_modules/@stacks/network/dist/**/*.d.ts", 
-        "scripts/generate-types.ts"
-      ],
-      "outputs": [
-        "src/generated/"
-      ],
-      "dependsOn": []
     }
   }
 }
