@@ -45,6 +45,7 @@ import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
+import { useAlphaAccess } from '@/hooks/use-alpha-access';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
@@ -504,6 +505,7 @@ export default function BotsPage() {
   const { startBot, pauseBot } = useBotStateMachine();
   const { showSuccess, showError } = useToast();
   const { walletState } = useWallet();
+  const hasAlphaAccess = useAlphaAccess();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -649,12 +651,23 @@ export default function BotsPage() {
           <h1 className="text-2xl font-bold text-foreground">My Bots</h1>
           <p className="text-muted-foreground">Create, configure, and monitor your DeFi automation bots</p>
         </div>
-        <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
-          <Link href="/bots/create">
+        {hasAlphaAccess ? (
+          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
+            <Link href="/bots/create">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Bot
+            </Link>
+          </Button>
+        ) : (
+          <Button 
+            disabled 
+            className="bg-muted text-muted-foreground border-0 cursor-not-allowed"
+            title="Bot creation is currently in alpha. Add #alpha to the URL for access."
+          >
             <Plus className="w-4 h-4 mr-2" />
-            Create Bot
-          </Link>
-        </Button>
+            Create Bot (Alpha)
+          </Button>
+        )}
       </div>
 
       {/* Filters and Search */}
@@ -746,12 +759,23 @@ export default function BotsPage() {
                 ? 'Try adjusting your search or filters'
                 : 'Create your first automation bot to get started'}
             </p>
-            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
-              <Link href="/bots/create">
+            {hasAlphaAccess ? (
+              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
+                <Link href="/bots/create">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Bot
+                </Link>
+              </Button>
+            ) : (
+              <Button 
+                disabled 
+                className="bg-muted text-muted-foreground border-0 cursor-not-allowed"
+                title="Bot creation is currently in alpha. Add #alpha to the URL for access."
+              >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Your First Bot
-              </Link>
-            </Button>
+                Create Your First Bot (Alpha)
+              </Button>
+            )}
           </div>
         ) : (
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 4xl:grid-cols-7 gap-4' : 'space-y-4'}>

@@ -14,12 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBots } from '@/contexts/bot-context';
 import { useToast } from '@/contexts/toast-context';
+import { useAlphaAccess } from '@/hooks/use-alpha-access';
 import { CreateBotRequest } from '@/schemas/bot.schema';
 
 export default function CreateBotPage() {
   const router = useRouter();
   const { createBot } = useBots();
   const { showSuccess, showError } = useToast();
+  const hasAlphaAccess = useAlphaAccess();
   const [isCreating, setIsCreating] = useState(false);
   const [strategyCode, setStrategyCode] = useState('');
   const [formData, setFormData] = useState({
@@ -78,6 +80,54 @@ export default function CreateBotPage() {
   const handleStrategySave = (code: string) => {
     setStrategyCode(code);
   };
+
+  // Show alpha access required message if no access
+  if (!hasAlphaAccess) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto bg-background min-h-screen">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button asChild variant="ghost" size="icon" className="text-foreground">
+            <Link href="/bots">
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Create New Bot</h1>
+            <p className="text-muted-foreground">Set up your automated trading bot</p>
+          </div>
+        </div>
+
+        {/* Alpha Access Required */}
+        <Card className="border-yellow-500/20 bg-yellow-500/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-600">
+              <AlertTriangle className="w-5 h-5" />
+              Alpha Access Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-foreground">
+              Bot creation is currently in alpha testing. To access this feature, add <code className="bg-muted px-2 py-1 rounded text-sm">#alpha</code> to your URL.
+            </p>
+            <div className="flex items-center gap-4">
+              <Button asChild>
+                <Link href="/bots#alpha">
+                  <Check className="w-4 h-4 mr-2" />
+                  Enable Alpha Access
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/bots">
+                  Back to Bots
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-background min-h-screen">

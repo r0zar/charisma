@@ -16,6 +16,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useBots } from '@/contexts/bot-context';
+import { useAlphaAccess } from '@/hooks/use-alpha-access';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -46,6 +47,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const { botStats } = useBots();
+  const hasAlphaAccess = useAlphaAccess();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -111,15 +113,26 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Create Bot Button */}
       <div className="p-4 border-t border-border/25">
-        <Button
-          asChild
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          <Link href="/bots/create">
+        {hasAlphaAccess ? (
+          <Button
+            asChild
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Link href="/bots/create">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Bot
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            disabled
+            className="w-full bg-muted text-muted-foreground cursor-not-allowed"
+            title="Bot creation is currently in alpha. Add #alpha to the URL for access."
+          >
             <Plus className="w-4 h-4 mr-2" />
-            Create Bot
-          </Link>
-        </Button>
+            Create Bot (Alpha)
+          </Button>
+        )}
       </div>
     </div>
   );

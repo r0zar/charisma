@@ -11,7 +11,7 @@ import { botDataStore } from '../src/lib/modules/storage/index.js';
 config({ path: '.env.local' });
 
 async function directDeleteBot() {
-  const botId = 'SP3BDJ7B0N8VHMGGM7577CJGJ2CRVMD4D5B3DJ1PW';
+  const botId = 'SP3XB72K1QSTXN5WDN0PAJ2ZY99BQX22NB777RF6N';
   const walletAddress = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
   const clerkUserId = 'user_2znyieHPBs2QVYWqDalHnjOYIwD';
   

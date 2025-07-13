@@ -71,14 +71,21 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
       throw new Error('You must be signed in to create a bot');
     }
 
+    // Check for alpha access via URL fragment
+    const hasAlphaAccess = typeof window !== 'undefined' && window.location.hash === '#alpha';
+    if (!hasAlphaAccess) {
+      throw new Error('Bot creation is currently in alpha. Add #alpha to the URL for access.');
+    }
+
     try {
       setLoading(true);
 
-      // Create bot via API using Clerk userId
-      const response = await fetch(`/api/v1/bots?userId=${user.id}`, {
+      // Create bot via API using Clerk userId, include alpha access
+      const response = await fetch(`/api/v1/bots?userId=${user.id}&alpha=true`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-alpha-access': 'true',
         },
         body: JSON.stringify(request),
       });

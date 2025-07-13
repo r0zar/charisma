@@ -114,6 +114,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for alpha access via query parameter or header
+    const searchParams = request.nextUrl.searchParams;
+    const alphaParam = searchParams.get('alpha');
+    const alphaHeader = request.headers.get('x-alpha-access');
+    const hasAlphaAccess = alphaParam === 'true' || alphaHeader === 'true';
+
+    if (!hasAlphaAccess) {
+      return NextResponse.json(
+        { 
+          error: 'Feature not available', 
+          message: 'Bot creation is currently in alpha. Please contact support for access.',
+          code: 'ALPHA_ACCESS_REQUIRED'
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const validation = CreateBotRequestSchema.safeParse(body);
     
