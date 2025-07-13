@@ -8,9 +8,16 @@
  *   node --import tsx scripts/execution/clear-execution-logs.ts --confirm
  */
 
+// Load environment variables from .env.local
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env.local file
+dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+
 // Using readline for confirmation prompts
 import { executionDataStore } from '@/lib/modules/storage';
-import { botService } from '@/lib/services/bots/service';
+import { botDataStore } from '@/lib/modules/storage';
 import { ExecutionLogService } from '@/lib/services/bots';
 import { syncLogger as logger } from '../utils/logger';
 
@@ -102,12 +109,12 @@ export async function clearExecutionLogs(options: ClearOptions = {}) {
 async function getBotsToProcess(userId: string, botId?: string): Promise<Array<{ id: string, name: string }>> {
   if (botId) {
     // Single bot
-    const allBots = await botService.scanAllBots();
+    const allBots = await botDataStore.getAllBotsPublic();
     const bot = allBots.find(b => b.id === botId);
     return bot ? [{ id: bot.id, name: bot.name }] : [];
   } else {
     // All bots
-    const allBots = await botService.scanAllBots();
+    const allBots = await botDataStore.getAllBotsPublic();
     return allBots.map(bot => ({ id: bot.id, name: bot.name }));
   }
 }

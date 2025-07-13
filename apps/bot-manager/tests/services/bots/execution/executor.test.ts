@@ -39,6 +39,13 @@ vi.mock('@/lib/services/bots/execution/scheduler', () => ({
   }
 }));
 
+vi.mock('@/lib/modules/storage', () => ({
+  executionDataStore: {
+    storeExecution: vi.fn().mockResolvedValue(true),
+    updateExecution: vi.fn().mockResolvedValue(true)
+  }
+}));
+
 // Mock console to avoid noise during tests
 vi.mock('console', () => ({
   log: vi.fn(),
@@ -96,7 +103,9 @@ describe('Bot Executor Service', () => {
         mockBot.strategy,
         mockBot,
         { timeout: 2, enableLogs: false },
-        expect.any(Object)
+        expect.any(Object),
+        mockBot.ownerId, // userId
+        expect.stringMatching(/^exec-\d+-[a-z0-9]+$/) // executionId pattern
       );
     });
 
@@ -135,7 +144,9 @@ describe('Bot Executor Service', () => {
         mockBot.strategy,
         mockBot,
         { timeout: 5, enableLogs: true },
-        expect.any(Object)
+        expect.any(Object),
+        mockBot.ownerId, // userId
+        expect.stringMatching(/^exec-\d+-[a-z0-9]+$/) // executionId pattern
       );
     });
 
@@ -524,7 +535,9 @@ describe('Bot Executor Service', () => {
         mockBot.strategy,
         mockBot,
         { timeout: 2, enableLogs: false },
-        expect.any(Object)
+        expect.any(Object),
+        mockBot.ownerId, // userId
+        expect.stringMatching(/^exec-\d+-[a-z0-9]+$/) // executionId pattern
       );
     });
 

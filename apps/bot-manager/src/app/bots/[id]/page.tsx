@@ -183,13 +183,30 @@ export default function BotOverviewPage() {
       {/* Recent Activity */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-card-foreground">Recent Activity</CardTitle>
+          <CardTitle className="text-card-foreground flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Recent Activity
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {botActivities.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">
-                No recent activity
+              <div className="text-center py-12">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+                    <Activity className="w-8 h-8 text-muted-foreground/50" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-card-foreground">No Recent Activity</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      Activity from bot executions, trades, and transactions will appear here once the bot starts running.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>Activity updates automatically</span>
+                  </div>
+                </div>
               </div>
             ) : (
               botActivities.slice(0, 3).map((tx) => {

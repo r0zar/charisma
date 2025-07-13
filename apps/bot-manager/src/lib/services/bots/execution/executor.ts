@@ -5,12 +5,14 @@
  * and handling execution state transitions without circular HTTP dependencies.
  */
 
-import { type Bot } from '@/schemas/bot.schema';
+import { type Bot, type BotExecution } from '@/schemas/bot.schema';
 
 import { BotStateMachine } from '../core/bot-state-machine';
 import { botService } from '../core/service';
 import { sandboxService } from '../sandbox/sandbox-service';
 import { botSchedulerService } from './scheduler';
+import { executionDataStore } from '@/lib/modules/storage';
+import { randomUUID } from 'crypto';
 
 export interface ExecutionResult {
   success: boolean;
@@ -58,9 +60,22 @@ export class BotExecutorService {
     } = options;
 
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const userId = bot.ownerId;
+    const startTime = new Date().toISOString();
     
     try {
       console.log(`[BotExecutor] Executing bot ${bot.id} (${bot.name}) - Execution ID: ${executionId}`);
+
+      // Create execution record for KV storage
+      const executionRecord: BotExecution = {
+        id: executionId,
+        botId: bot.id,
+        startedAt: startTime,
+        status: 'pending'
+      };
+
+      // Store initial execution record
+      await executionDataStore.storeExecution(userId, executionRecord);
 
       // Execute the bot's strategy using sandbox service
       const result = await sandboxService.executeStrategy(
@@ -79,28 +94,59 @@ export class BotExecutorService {
             console.log(`[BotExecutor] ${bot.id} [${level}]: ${message}`);
             onLog?.(level, message);
           }
-        }
+        },
+        userId, // Pass userId for blob storage
+        executionId // Pass executionId for consistent tracking
       );
+
+      // Update execution record with results
+      const completedAt = new Date().toISOString();
+      const updatedRecord: BotExecution = {
+        ...executionRecord,
+        completedAt,
+        status: result.success ? 'success' : 'failure',
+        executionTime: result.executionTime,
+        sandboxId: result.sandboxId,
+        logsUrl: result.logsUrl,
+        logsSize: result.logsSize
+      };
 
       if (result.success) {
         console.log(`[BotExecutor] Bot ${bot.id} executed successfully in ${result.executionTime}ms`);
-        return {
-          success: true,
-          executionTime: result.executionTime,
-          sandboxId: result.sandboxId
-        };
+        updatedRecord.output = result.result?.message || 'Execution completed successfully';
       } else {
         console.error(`[BotExecutor] Bot ${bot.id} execution failed:`, result.error);
-        return {
-          success: false,
-          executionTime: result.executionTime,
-          error: result.error,
-          sandboxId: result.sandboxId
-        };
+        updatedRecord.error = result.error;
       }
+
+      // Update execution record in KV storage
+      await executionDataStore.updateExecution(userId, updatedRecord);
+
+      return {
+        success: result.success,
+        executionTime: result.executionTime,
+        error: result.error,
+        sandboxId: result.sandboxId
+      };
 
     } catch (error) {
       console.error(`[BotExecutor] Error executing bot ${bot.id}:`, error);
+      
+      // Update execution record with error
+      try {
+        const errorRecord: BotExecution = {
+          id: executionId,
+          botId: bot.id,
+          startedAt: startTime,
+          completedAt: new Date().toISOString(),
+          status: 'failure',
+          error: error instanceof Error ? error.message : 'Unknown execution error'
+        };
+        await executionDataStore.updateExecution(userId, errorRecord);
+      } catch (storeError) {
+        console.error(`[BotExecutor] Failed to store error execution record:`, storeError);
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown execution error'

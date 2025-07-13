@@ -5,13 +5,11 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle,
-  ChevronDown,
   ChevronRight,
   Clock,
   ExternalLink,
   FileText,
   Info,
-  Play,
   RefreshCw,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -164,6 +162,181 @@ export default function BotSchedulingPage() {
       .catch(() => showError('Failed to copy to clipboard'));
   };
 
+  // Helper function to determine composite execution status
+  const getExecutionStatus = (bot: BotType | null) => {
+    if (!bot) return { canExecute: false, status: 'Unknown', color: 'bg-gray-500/20 text-gray-400', priority: 'bot' };
+    
+    const isScheduled = bot.isScheduled && bot.cronSchedule;
+    
+    // Bot status takes priority over scheduling status
+    switch (bot.status) {
+      case 'paused':
+        return {
+          canExecute: false,
+          status: isScheduled ? 'Paused - Schedule Inactive' : 'Paused - Manual Only',
+          color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+          priority: 'bot',
+          reason: 'Bot is paused',
+          action: 'Resume bot to activate schedule'
+        };
+      case 'error':
+        return {
+          canExecute: false,
+          status: isScheduled ? 'Error - Schedule Suspended' : 'Error - Manual Only',
+          color: 'bg-red-500/20 text-red-400 border-red-500/30',
+          priority: 'bot',
+          reason: 'Bot has errors',
+          action: 'Fix bot issues to resume execution'
+        };
+      case 'inactive':
+        return {
+          canExecute: false,
+          status: isScheduled ? 'Inactive - Schedule Disabled' : 'Inactive - Manual Only',
+          color: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+          priority: 'bot',
+          reason: 'Bot is inactive',
+          action: 'Activate bot to enable schedule'
+        };
+      case 'setup':
+        return {
+          canExecute: false,
+          status: isScheduled ? 'Setup Required - Schedule Pending' : 'Setup Required - Manual Only',
+          color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+          priority: 'bot',
+          reason: 'Bot setup is incomplete',
+          action: 'Complete bot configuration to enable execution'
+        };
+      case 'active':
+        return {
+          canExecute: isScheduled,
+          status: isScheduled ? 'Active & Scheduled' : 'Active - Manual Only',
+          color: isScheduled ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+          priority: isScheduled ? 'scheduled' : 'manual',
+          reason: isScheduled ? 'Bot is active and scheduled' : 'No schedule configured',
+          action: isScheduled ? undefined : 'Configure schedule for automatic execution'
+        };
+      default:
+        return {
+          canExecute: false,
+          status: 'Unknown Status',
+          color: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+          priority: 'bot'
+        };
+    }
+  };
+
+  const executionStatus = getExecutionStatus(localBot || bot);
+
+  // Helper function to get dynamic alert content
+  const getAlertContent = () => {
+    if (!bot) return null;
+    
+    const isScheduled = bot.isScheduled && bot.cronSchedule;
+    
+    switch (bot.status) {
+      case 'paused':
+        if (isScheduled) {
+          return {
+            type: 'warning' as const,
+            icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
+            message: 'Bot is paused - schedule is temporarily inactive. Resume the bot to reactivate automatic execution according to the cron schedule.',
+            bgColor: 'bg-yellow-500/10 border-yellow-500/30',
+            textColor: 'text-yellow-300'
+          };
+        }
+        return {
+          type: 'warning' as const,
+          icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
+          message: 'Bot is paused and has no schedule. Resume the bot and configure a schedule for automatic execution.',
+          bgColor: 'bg-yellow-500/10 border-yellow-500/30',
+          textColor: 'text-yellow-300'
+        };
+      
+      case 'error':
+        if (isScheduled) {
+          return {
+            type: 'error' as const,
+            icon: <AlertTriangle className="w-4 h-4 text-red-400" />,
+            message: 'Bot has errors - schedule is suspended. Check the bot overview and strategy pages to resolve issues before resuming execution.',
+            bgColor: 'bg-red-500/10 border-red-500/30',
+            textColor: 'text-red-300'
+          };
+        }
+        return {
+          type: 'error' as const,
+          icon: <AlertTriangle className="w-4 h-4 text-red-400" />,
+          message: 'Bot has errors and cannot execute. Fix the issues before configuring automatic execution.',
+          bgColor: 'bg-red-500/10 border-red-500/30',
+          textColor: 'text-red-300'
+        };
+      
+      case 'inactive':
+        if (isScheduled) {
+          return {
+            type: 'info' as const,
+            icon: <Info className="w-4 h-4 text-blue-400" />,
+            message: 'Bot is inactive - schedule is disabled. Activate the bot to enable automatic execution.',
+            bgColor: 'bg-blue-500/10 border-blue-500/30',
+            textColor: 'text-blue-300'
+          };
+        }
+        return {
+          type: 'info' as const,
+          icon: <Info className="w-4 h-4 text-gray-400" />,
+          message: 'Bot is inactive. Activate the bot and configure a schedule for automatic execution.',
+          bgColor: 'bg-gray-500/10 border-gray-500/30',
+          textColor: 'text-gray-300'
+        };
+      
+      case 'setup':
+        if (isScheduled) {
+          return {
+            type: 'info' as const,
+            icon: <Info className="w-4 h-4 text-blue-400" />,
+            message: 'Bot setup is incomplete - schedule is pending. Complete the bot configuration to enable automatic execution.',
+            bgColor: 'bg-blue-500/10 border-blue-500/30',
+            textColor: 'text-blue-300'
+          };
+        }
+        return {
+          type: 'info' as const,
+          icon: <Info className="w-4 h-4 text-blue-400" />,
+          message: 'Bot requires setup. Complete the configuration and add a schedule for automatic execution.',
+          bgColor: 'bg-blue-500/10 border-blue-500/30',
+          textColor: 'text-blue-300'
+        };
+      
+      case 'active':
+        if (isScheduled) {
+          return {
+            type: 'success' as const,
+            icon: <CheckCircle className="w-4 h-4 text-green-400" />,
+            message: 'Bot is active and scheduled for automatic execution. It will run according to the configured cron schedule.',
+            bgColor: 'bg-green-500/10 border-green-500/30',
+            textColor: 'text-green-300'
+          };
+        }
+        return {
+          type: 'info' as const,
+          icon: <Info className="w-4 h-4 text-gray-400" />,
+          message: 'Bot is active but has no schedule. Configure automatic execution above or use the "Execute Now" button for manual runs.',
+          bgColor: 'bg-gray-500/10 border-gray-500/30',
+          textColor: 'text-gray-300'
+        };
+      
+      default:
+        return {
+          type: 'info' as const,
+          icon: <Info className="w-4 h-4 text-gray-400" />,
+          message: 'Bot status unknown. Check the bot configuration.',
+          bgColor: 'bg-gray-500/10 border-gray-500/30',
+          textColor: 'text-gray-300'
+        };
+    }
+  };
+
+  const alertContent = getAlertContent();
+
   const colorizeLogLine = (line: string) => {
     // Remove any existing color/style codes
     const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '');
@@ -298,24 +471,6 @@ export default function BotSchedulingPage() {
               >
                 Reset
               </Button>
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  if (!(localBot || bot)) return;
-                  try {
-                    showSuccess('Triggering manual execution...', 'This may take a moment');
-                    // Manual execution trigger would call the sandbox service
-                    // For now, just refresh the execution history
-                    await fetchExecutionHistory((localBot || bot)!.id);
-                  } catch (error) {
-                    showError('Failed to trigger manual execution');
-                  }
-                }}
-                className="border-green-600 text-green-400 hover:bg-green-500/10"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                Execute Now
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -331,10 +486,17 @@ export default function BotSchedulingPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Current Status</span>
-                <Badge className={(localBot || bot)?.isScheduled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
-                  {(localBot || bot)?.isScheduled ? 'Scheduled' : 'Manual Only'}
-                </Badge>
+                <span className="text-sm text-muted-foreground">Execution Status</span>
+                <div className="flex items-center gap-2">
+                  <Badge className={executionStatus.color}>
+                    {executionStatus.status}
+                  </Badge>
+                  {executionStatus.priority === 'bot' && (
+                    <Badge variant="outline" className="text-xs">
+                      Bot: {(localBot || bot)?.status}
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
@@ -354,11 +516,15 @@ export default function BotSchedulingPage() {
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm text-muted-foreground">Next Execution</span>
                 <div className="text-sm text-card-foreground">
-                  {(localBot || bot)?.nextExecution ? (
+                  {executionStatus.canExecute && (localBot || bot)?.nextExecution ? (
                     <CountdownTimer
                       targetDate={(localBot || bot)!.nextExecution!}
                       className="text-sm"
                     />
+                  ) : executionStatus.canExecute ? (
+                    'Calculating...'
+                  ) : executionStatus.action ? (
+                    <span className="text-muted-foreground italic">{executionStatus.action}</span>
                   ) : (
                     'Not scheduled'
                   )}
@@ -373,20 +539,11 @@ export default function BotSchedulingPage() {
               </div>
             </div>
 
-            {(localBot || bot)?.isScheduled && (
-              <Alert className="bg-blue-500/10 border-blue-500/30">
-                <Info className="w-4 h-4 text-blue-400" />
-                <AlertDescription className="text-blue-300">
-                  This bot is configured for automatic execution. It will run based on the cron schedule.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {!(localBot || bot)?.isScheduled && (
-              <Alert className="bg-yellow-500/10 border-yellow-500/30">
-                <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                <AlertDescription className="text-yellow-300">
-                  Automatic execution is disabled. The bot will only run when manually triggered.
+            {alertContent && (
+              <Alert className={alertContent.bgColor}>
+                {alertContent.icon}
+                <AlertDescription className={alertContent.textColor}>
+                  {alertContent.message}
                 </AlertDescription>
               </Alert>
             )}
