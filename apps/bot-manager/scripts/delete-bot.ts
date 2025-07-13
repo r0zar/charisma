@@ -25,6 +25,7 @@ config({ path: '.env.local' });
 
 interface ScriptArgs {
   userId?: string;
+  walletAddress?: string;
   botId?: string;
   list?: boolean;
   help?: boolean;
@@ -36,6 +37,8 @@ function parseArgs(): ScriptArgs {
   process.argv.slice(2).forEach(arg => {
     if (arg.startsWith('--userId=')) {
       args.userId = arg.split('=')[1];
+    } else if (arg.startsWith('--walletAddress=')) {
+      args.walletAddress = arg.split('=')[1];
     } else if (arg.startsWith('--botId=')) {
       args.botId = arg.split('=')[1];
     } else if (arg === '--list') {
@@ -72,14 +75,19 @@ Examples:
 `);
 }
 
-async function listUserBots(userId: string) {
-  console.log(`📋 Listing all bots for user: ${userId}`);
+async function listUserBots(userId?: string, walletAddress?: string) {
+  const identifier = userId || walletAddress;
+  const type = userId ? 'Clerk user' : 'wallet address';
+  
+  console.log(`📋 Listing all bots for ${type}: ${identifier}`);
   
   try {
-    const bots = await botService.getAllBotsByClerkUserId(userId);
+    const bots = userId 
+      ? await botService.getAllBotsByClerkUserId(userId)
+      : await botService.getAllBots(walletAddress!);
     
     if (bots.length === 0) {
-      console.log('❌ No bots found for this user');
+      console.log(`❌ No bots found for this ${type}`);
       return;
     }
     
@@ -100,15 +108,20 @@ async function listUserBots(userId: string) {
   }
 }
 
-async function deleteBot(userId: string, botId: string) {
-  console.log(`🗑️  Deleting bot ${botId} for user ${userId}...`);
+async function deleteBot(userId?: string, walletAddress?: string, botId?: string) {
+  const identifier = userId || walletAddress;
+  const type = userId ? 'Clerk user' : 'wallet address';
+  
+  console.log(`🗑️  Deleting bot ${botId} for ${type} ${identifier}...`);
   
   try {
     // First check if the bot exists
-    const bot = await botService.getBotByClerkUserId(userId, botId);
+    const bot = userId 
+      ? await botService.getBotByClerkUserId(userId, botId!)
+      : await botService.getBot(walletAddress!, botId!);
     
     if (!bot) {
-      console.error(`❌ Bot with ID "${botId}" not found for user "${userId}"`);
+      console.error(`❌ Bot with ID "${botId}" not found for ${type} "${identifier}"`);
       console.log('\n💡 Tip: Use --list to see all available bots');
       process.exit(1);
     }
@@ -119,7 +132,11 @@ async function deleteBot(userId: string, botId: string) {
     // In a real implementation, you might want to add a confirmation prompt
     // For now, we'll proceed directly
     
-    await botService.deleteBotByClerkUserId(userId, botId);
+    if (userId) {
+      await botService.deleteBotByClerkUserId(userId, botId!);
+    } else {
+      await botService.deleteBot(walletAddress!, botId!);
+    }
     
     console.log(`✅ Successfully deleted bot "${bot.name}" (${botId})`);
     
@@ -137,14 +154,14 @@ async function main() {
     return;
   }
   
-  if (!args.userId) {
-    console.error('❌ Error: --userId is required');
+  if (!args.userId && !args.walletAddress) {
+    console.error('❌ Error: Either --userId or --walletAddress is required');
     console.log('Use --help for usage information');
     process.exit(1);
   }
   
   if (args.list) {
-    await listUserBots(args.userId);
+    await listUserBots(args.userId, args.walletAddress);
     return;
   }
   
@@ -154,7 +171,7 @@ async function main() {
     process.exit(1);
   }
   
-  await deleteBot(args.userId, args.botId);
+  await deleteBot(args.userId, args.walletAddress, args.botId);
 }
 
 // Run the script

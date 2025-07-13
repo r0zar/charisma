@@ -306,11 +306,9 @@ export class BotPerformanceService {
     if (performance) {
       const totalReturn = isNaN(performance.totalReturnPercentage) ? 0 : performance.totalReturnPercentage;
       const successRate = isNaN(performance.successRate) ? 0 : performance.successRate;
-      const riskScore = isNaN(performance.riskScore) ? 0 : performance.riskScore;
       
       score += Math.min(20, totalReturn);
       score += Math.min(10, successRate);
-      score -= riskScore * 0.1;
     }
 
     const finalScore = Math.max(0, Math.min(100, score));
