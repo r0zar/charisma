@@ -55,17 +55,6 @@ export default function BotSchedulingPage() {
   const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
   const [showConfiguration, setShowConfiguration] = useState(false);
 
-  useEffect(() => {
-    if (bot) {
-      // Sync scheduling settings with current bot data
-      setSchedulingSettings({
-        cronSchedule: bot.cronSchedule || ''
-      });
-      // Fetch execution history
-      fetchExecutionHistory(bot.id);
-    }
-  }, [bot, fetchExecutionHistory]);
-
   const fetchExecutionHistory = useCallback(async (botId: string) => {
     setLoadingHistory(true);
     try {
@@ -83,6 +72,17 @@ export default function BotSchedulingPage() {
       setLoadingHistory(false);
     }
   }, [showError]);
+
+  useEffect(() => {
+    if (bot) {
+      // Sync scheduling settings with current bot data
+      setSchedulingSettings({
+        cronSchedule: bot.cronSchedule || ''
+      });
+      // Fetch execution history
+      fetchExecutionHistory(bot.id);
+    }
+  }, [bot, fetchExecutionHistory]);
 
   const fetchExecutionLogs = async (execution: any) => {
     if (!execution.logsUrl || executionLogs[execution.id]) {
@@ -141,14 +141,14 @@ export default function BotSchedulingPage() {
       }
 
       const responseData = await response.json();
-      
+
       // Update bot in context immediately for instant UI feedback
       const updates: Partial<BotType> = {
         cronSchedule: schedulingSettings.cronSchedule || undefined,
         nextExecution: responseData.schedule?.nextExecution,
         lastExecution: responseData.schedule?.lastExecution,
       };
-      
+
       updateBotInContext(bot.id, updates);
       setShowConfiguration(false);
       showSuccess('Schedule saved successfully');
@@ -182,7 +182,7 @@ export default function BotSchedulingPage() {
         nextExecution: undefined,
       };
       updateBotInContext(bot.id, updates);
-      
+
       showSuccess('Schedule cleared successfully');
     } catch (error) {
       console.error('Error clearing schedule:', error);
@@ -199,9 +199,9 @@ export default function BotSchedulingPage() {
   // Helper function to determine composite execution status
   const getExecutionStatus = (currentBot: BotType | null) => {
     if (!currentBot) return { canExecute: false, status: 'Unknown', color: 'bg-gray-500/20 text-gray-400', priority: 'bot' };
-    
+
     const isScheduled = currentBot.cronSchedule && currentBot.status === 'active';
-    
+
     // Bot status takes priority over scheduling status
     switch (currentBot.status) {
       case 'paused':
@@ -261,119 +261,12 @@ export default function BotSchedulingPage() {
 
   const executionStatus = getExecutionStatus(bot);
 
-  // Helper function to get dynamic alert content
-  const getAlertContent = () => {
-    if (!bot) return null;
-    
-    const isScheduled = bot.cronSchedule && bot.status === 'active';
-    
-    switch (bot.status) {
-      case 'paused':
-        if (isScheduled) {
-          return {
-            type: 'warning' as const,
-            icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-            message: 'Bot is paused - schedule is temporarily inactive. Resume the bot to reactivate automatic execution according to the cron schedule.',
-            bgColor: 'bg-yellow-500/10 border-yellow-500/30',
-            textColor: 'text-yellow-300'
-          };
-        }
-        return {
-          type: 'warning' as const,
-          icon: <AlertTriangle className="w-4 h-4 text-yellow-400" />,
-          message: 'Bot is paused and has no schedule. Resume the bot and configure a schedule for automatic execution.',
-          bgColor: 'bg-yellow-500/10 border-yellow-500/30',
-          textColor: 'text-yellow-300'
-        };
-      
-      case 'error':
-        if (isScheduled) {
-          return {
-            type: 'error' as const,
-            icon: <AlertTriangle className="w-4 h-4 text-red-400" />,
-            message: 'Bot has errors - schedule is suspended. Check the bot overview and strategy pages to resolve issues before resuming execution.',
-            bgColor: 'bg-red-500/10 border-red-500/30',
-            textColor: 'text-red-300'
-          };
-        }
-        return {
-          type: 'error' as const,
-          icon: <AlertTriangle className="w-4 h-4 text-red-400" />,
-          message: 'Bot has errors and cannot execute. Fix the issues before configuring automatic execution.',
-          bgColor: 'bg-red-500/10 border-red-500/30',
-          textColor: 'text-red-300'
-        };
-      
-      case 'inactive':
-        if (isScheduled) {
-          return {
-            type: 'info' as const,
-            icon: <Info className="w-4 h-4 text-blue-400" />,
-            message: 'Bot is inactive - schedule is disabled. Activate the bot to enable automatic execution.',
-            bgColor: 'bg-blue-500/10 border-blue-500/30',
-            textColor: 'text-blue-300'
-          };
-        }
-        return {
-          type: 'info' as const,
-          icon: <Info className="w-4 h-4 text-gray-400" />,
-          message: 'Bot is inactive. Activate the bot and configure a schedule for automatic execution.',
-          bgColor: 'bg-gray-500/10 border-gray-500/30',
-          textColor: 'text-gray-300'
-        };
-      
-      case 'setup':
-        if (isScheduled) {
-          return {
-            type: 'info' as const,
-            icon: <Info className="w-4 h-4 text-blue-400" />,
-            message: 'Bot setup is incomplete - schedule is pending. Complete the bot configuration to enable automatic execution.',
-            bgColor: 'bg-blue-500/10 border-blue-500/30',
-            textColor: 'text-blue-300'
-          };
-        }
-        return {
-          type: 'info' as const,
-          icon: <Info className="w-4 h-4 text-blue-400" />,
-          message: 'Bot requires setup. Complete the configuration and add a schedule for automatic execution.',
-          bgColor: 'bg-blue-500/10 border-blue-500/30',
-          textColor: 'text-blue-300'
-        };
-      
-      case 'active':
-        if (isScheduled) {
-          return {
-            type: 'success' as const,
-            icon: <CheckCircle className="w-4 h-4 text-green-400" />,
-            message: 'Bot is active and scheduled for automatic execution. It will run according to the configured cron schedule.',
-            bgColor: 'bg-green-500/10 border-green-500/30',
-            textColor: 'text-green-300'
-          };
-        }
-        return {
-          type: 'info' as const,
-          icon: <Info className="w-4 h-4 text-gray-400" />,
-          message: 'Bot is active but has no schedule. Configure automatic execution above or use the "Execute Now" button for manual runs.',
-          bgColor: 'bg-gray-500/10 border-gray-500/30',
-          textColor: 'text-gray-300'
-        };
-      
-      default:
-        return {
-          type: 'info' as const,
-          icon: <Info className="w-4 h-4 text-gray-400" />,
-          message: 'Bot status unknown. Check the bot configuration.',
-          bgColor: 'bg-gray-500/10 border-gray-500/30',
-          textColor: 'text-gray-300'
-        };
-    }
-  };
 
 
   const colorizeLogLine = (line: string) => {
     // Remove any existing color/style codes
     const cleanLine = line.replace(/\u001b\[[0-9;]*m/g, '');
-    
+
     // Define patterns and their corresponding classes
     const patterns = [
       { regex: /^.*\b(ERROR|FATAL|FAIL)\b.*$/i, className: 'text-red-400' },
@@ -493,14 +386,14 @@ export default function BotSchedulingPage() {
               </div>
               <div className="text-xs text-muted-foreground mt-1">Schedule</div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-card-foreground">
                 {bot?.lastExecution ? formatRelativeTime(bot.lastExecution) : 'Never'}
               </div>
               <div className="text-xs text-muted-foreground mt-1">Last Run</div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-card-foreground">
                 {executionStatus.canExecute && bot?.nextExecution ? (
@@ -511,7 +404,7 @@ export default function BotSchedulingPage() {
               </div>
               <div className="text-xs text-muted-foreground mt-1">Next Run</div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-2xl font-bold text-card-foreground">{bot?.executionCount || 0}</div>
               <div className="text-xs text-muted-foreground mt-1">Total Runs</div>
@@ -552,9 +445,8 @@ export default function BotSchedulingPage() {
                   return (
                     <div
                       key={execution.id}
-                      className={`flex-shrink-0 p-3 rounded-lg border ${statusColor} ${
-                        isLatest ? 'ring-2 ring-blue-500/20' : ''
-                      } min-w-[120px] relative group cursor-pointer hover:scale-105 transition-transform`}
+                      className={`flex-shrink-0 p-3 rounded-lg border ${statusColor} ${isLatest ? 'ring-2 ring-blue-500/20' : ''
+                        } min-w-[120px] relative group cursor-pointer hover:scale-105 transition-transform`}
                       title={`${execution.status} - ${formatRelativeTime(execution.startedAt)}`}
                       onClick={() => {
                         // Scroll to the execution history section
@@ -587,7 +479,7 @@ export default function BotSchedulingPage() {
                     </div>
                   );
                 })}
-                
+
                 {/* View All Link */}
                 <div className="flex-shrink-0 flex items-center">
                   <button
@@ -654,11 +546,10 @@ export default function BotSchedulingPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => setSchedulingSettings({ cronSchedule: preset.value })}
-                        className={`text-xs ${
-                          schedulingSettings.cronSchedule === preset.value
+                        className={`text-xs ${schedulingSettings.cronSchedule === preset.value
                             ? 'bg-blue-500/20 border-blue-500 text-blue-300'
                             : 'border-border text-muted-foreground hover:text-card-foreground'
-                        }`}
+                          }`}
                       >
                         {preset.label}
                       </Button>
@@ -677,9 +568,9 @@ export default function BotSchedulingPage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Format: minute hour day month weekday. Use{' '}
-                    <a 
-                      href="https://crontab.guru" 
-                      target="_blank" 
+                    <a
+                      href="https://crontab.guru"
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-400 hover:text-blue-300 underline"
                     >
