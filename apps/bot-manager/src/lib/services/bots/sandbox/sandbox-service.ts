@@ -189,7 +189,6 @@ export class SandboxService {
     botId: string,
     executionId: string,
     logs: string[],
-    allOutput: string,
     allError: string
   ): Promise<{ logsUrl?: string; logsSize?: number }> {
     try {
@@ -203,20 +202,6 @@ export class SandboxService {
         ...logs,
         ``
       ];
-
-      // Only add raw output if it meaningfully differs from processed logs
-      if (allOutput && allOutput.trim()) {
-        const processedContent = logs.join('\n').trim();
-        const rawContent = allOutput.trim();
-        
-        // Compare content - only show raw output if it has additional information
-        const contentDiffers = rawContent !== processedContent && 
-                              rawContent.length > processedContent.length;
-        
-        if (contentDiffers) {
-          logLines.push(`=== Raw Output ===`, rawContent, ``);
-        }
-      }
 
       // Add errors if present
       if (allError && allError.trim()) {
@@ -512,14 +497,13 @@ export class SandboxService {
 
       // Store logs in blob storage if userId is provided and we have logs
       let logMetadata: { logsUrl?: string; logsSize?: number } = {};
-      if (userId && (logs.length > 0 || allOutput || allError)) {
+      if (userId && (logs.length > 0 || allError)) {
         const logId = executionId || randomUUID();
         logMetadata = await this.storeExecutionLogs(
           userId,
           botInstance.id,
           logId,
           logs,
-          allOutput,
           allError
         );
       }
@@ -556,7 +540,6 @@ export class SandboxService {
           botInstance.id,
           logId,
           [`Execution failed: ${errorMessage}`],
-          '',
           errorMessage
         );
       }
