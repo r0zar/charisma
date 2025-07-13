@@ -7,7 +7,7 @@ import {
 import React, { useEffect, useState } from 'react';
 
 import { StrategyCodeEditor } from '@/components/strategy-code-editor';
-import type { HelpContextualInfo } from '@/lib/help/types';
+import type { HelpContextualInfo } from '@/components/strategy-editor-help/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,8 @@ import { useBots } from '@/contexts/bot-context';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-import type { SandboxStreamEvent } from '@/lib/services/sandbox/client';
-import { sandboxClient } from '@/lib/services/sandbox/client';
+import type { SandboxStreamEvent } from '@/lib/services/bots';
+import { sandboxClient } from '@/lib/services/bots';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotStrategyPage() {
@@ -129,7 +129,7 @@ export default function BotStrategyPage() {
       {/* Repository Configuration */}
       <Card className="bg-card border-border">
         <CardHeader
-          className="cursor-pointer p-4 sm:p-6"
+          className="cursor-pointer p-2 sm:p-3"
           onClick={() => setShowRepoConfig(!showRepoConfig)}
         >
           <div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ export default function BotStrategyPage() {
 
       {/* Strategy Code */}
       <Card className="bg-card border-border">
-        <CardContent className="p-4 sm:p-6 pt-0">
+        <CardContent className="px-2 sm:px-3 pt-0">
           <StrategyCodeEditor
             initialCode={bot?.strategy || ''}
             onSave={async (code) => {
@@ -300,6 +300,22 @@ export default function BotStrategyPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Info Alert Section */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+        <div className="flex gap-3 items-center flex-col sm:flex-row">
+          <div className="flex-shrink-0">
+            <svg className="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="flex-1 text-sm text-blue-300 leading-relaxed">
+            <div>Write JavaScript or TypeScript code for your bot strategy.</div>
+            <div>Use <code className="bg-blue-500/20 px-1 rounded text-blue-200">const &#123; makeContractCall &#125; = require('@stacks/transactions')</code> to import packages.</div>
+            <div>The <code className="bg-blue-500/20 px-1 rounded text-blue-200">bot</code> object provides wallet credentials and context.</div>
+          </div>
+        </div>
+      </div>
 
     </div>
   );

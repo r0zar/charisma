@@ -17,3 +17,7 @@ coverage
 
 # analytics
 .env.sentry-build-plugin
+
+# vitest ui and coverage
+html
+coverage

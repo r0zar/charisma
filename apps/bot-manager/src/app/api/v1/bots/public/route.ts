@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botService } from '@/lib/services/bots/service';
+import { botService } from '@/lib/services/bots';
 
 /**
  * GET /api/v1/bots/public

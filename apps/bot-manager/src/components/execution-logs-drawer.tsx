@@ -1,29 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import {
+  Activity,
+  ArrowDown,
+  Download,
+  Pause,
+  Play,
+  RefreshCw,
+  Search,
+  Trash2} from 'lucide-react';
+import React, { useEffect, useRef,useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-  DrawerDescription,
-  DrawerPortal,
-  DrawerOverlay,
 } from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Activity,
-  Search,
-  Download,
-  RefreshCw,
-  Trash2,
-  Filter,
-  Play,
-  Pause,
-  ArrowDown
-} from 'lucide-react';
 import {
   Select,
   SelectContent,

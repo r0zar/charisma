@@ -15,10 +15,10 @@ import {
 import React from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
+import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentBot } from '@/contexts/current-bot-context';
-import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 
 const statusColors = {

@@ -1,12 +1,13 @@
 'use client';
 
+import { Check,Copy } from 'lucide-react';
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CodeExample } from '@/lib/help/types';
 
 interface CodeExampleProps {
@@ -62,8 +63,8 @@ export function CodeExample({ example, onCopy, isCopied }: CodeExampleProps) {
               backgroundColor: 'hsl(var(--muted))',
             }}
             showLineNumbers={false}
-            wrapLines={true}
-            wrapLongLines={true}
+            wrapLines
+            wrapLongLines
           >
             {example.code}
           </SyntaxHighlighter>

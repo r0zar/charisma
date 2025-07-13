@@ -1,37 +1,31 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { 
+  AlertCircle, 
+  Code, 
+  ExternalLink,
+  HelpCircle,
+  Lightbulb,
+  Search, 
+  Settings} from 'lucide-react';
+import React, { useMemo,useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
-  DrawerDescription,
 } from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, 
-  Copy, 
-  Check, 
-  ExternalLink,
-  AlertCircle,
-  Lightbulb,
-  Code,
-  Settings,
-  HelpCircle
-} from 'lucide-react';
 import { helpContent } from '@/lib/help/content';
 import type { 
-  HelpContent, 
-  HelpTab, 
-  HelpSection, 
-  CodeExample, 
-  TroubleshootingItem,
-  HelpContextualInfo 
-} from '@/lib/help/types';
+  HelpContextualInfo, 
+  HelpSection} from '@/lib/help/types';
+
 import { CodeExample as CodeExampleComponent } from './code-example';
 
 interface StrategyEditorHelpProps {

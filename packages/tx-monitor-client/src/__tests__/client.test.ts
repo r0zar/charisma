@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from 'vitest';
 import { TxMonitorClient } from '../client';
 import { TxMonitorError, TxMonitorNotFoundError, TxMonitorTimeoutError } from '../types';
 
 // Mock fetch globally
-const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+const mockFetch = vi.fn() as vi.MockedFunction<typeof fetch>;
 global.fetch = mockFetch;
 
 describe('TxMonitorClient', () => {

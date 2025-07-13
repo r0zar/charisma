@@ -1,4 +1,4 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   Router,
   defaultConfig,
@@ -9,16 +9,16 @@ import {
 } from "../index";
 
 // Mock external dependencies
-jest.mock('@repo/polyglot');
-jest.mock('@repo/tokens');
+vi.mock('@repo/polyglot');
+vi.mock('@repo/tokens');
 
-const polyglotMock = jest.requireMock('@repo/polyglot') as any;
-const tokensMock = jest.requireMock('@repo/tokens') as any;
-const mockCallReadOnly = polyglotMock.callReadOnly as jest.MockedFunction<any>;
-const mockGetTokenMetadataCached = tokensMock.getTokenMetadataCached as jest.MockedFunction<any>;
+const polyglotMock = await vi.importMock('@repo/polyglot') as any;
+const tokensMock = await vi.importMock('@repo/tokens') as any;
+const mockCallReadOnly = polyglotMock.callReadOnly;
+const mockGetTokenMetadataCached = tokensMock.getTokenMetadataCached;
 
 // Mock fetch for API calls
-global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+global.fetch = vi.fn();
 
 // Mock data
 const mockTokenA: Token = {
@@ -63,7 +63,7 @@ const mockVault: Vault = {
 
 describe("dexterity-sdk (mocked)", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock token metadata responses
     mockGetTokenMetadataCached.mockImplementation((contractId: string) => {
@@ -93,7 +93,7 @@ describe("dexterity-sdk (mocked)", () => {
     });
 
     // Mock fetch responses
-    (global.fetch as jest.MockedFunction<typeof fetch>).mockImplementation((url: any) => {
+    global.fetch.mockImplementation((url: any) => {
       const urlStr = url.toString();
       
       if (urlStr.includes('/vaults')) {
@@ -269,10 +269,10 @@ describe("dexterity-sdk (mocked)", () => {
 
   it("handles mocked network errors gracefully", async () => {
     // Temporarily clear all mocks and set up only the error mock
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock a network error for fetch
-    (global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValue(
+    global.fetch.mockRejectedValue(
       new Error('Network error')
     );
 

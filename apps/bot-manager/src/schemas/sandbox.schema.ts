@@ -96,6 +96,8 @@ export const StrategyExecutionResultSchema = z.object({
   executionTime: z.number().positive().optional(),
   sandboxId: z.string().optional(),
   botContext: BotContextSchema.partial().optional(),
+  logsUrl: z.string().url().optional(),
+  logsSize: z.number().int().min(0).optional(),
 });
 
 /**

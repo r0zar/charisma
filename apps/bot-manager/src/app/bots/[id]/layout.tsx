@@ -15,13 +15,13 @@ import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
+import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
 import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { CurrentBotProvider } from '@/contexts/current-bot-context';
-import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 
 export default function BotDetailLayout({ children, }: { children: React.ReactNode; }) {
   const params = useParams();

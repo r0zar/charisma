@@ -1,5 +1,4 @@
 'use client';
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import Editor from '@monaco-editor/react';
 import {
   Activity,
@@ -14,13 +13,14 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { getStrategyTemplates, type StrategyMetadata } from '@/components/strategy-code-editor/strategy-utils';
+import type { HelpContextualInfo } from '@/components/strategy-editor-help/types';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getStrategyTemplates, type StrategyMetadata } from '@/lib/services/bots/strategy-parser';
+
+import { type ExecutionLog, ExecutionLogsDrawer } from './execution-logs-drawer';
 import { StrategyEditorHelp } from './strategy-editor-help';
-import { ExecutionLogsDrawer, type ExecutionLog } from './execution-logs-drawer';
-import type { HelpContextualInfo } from '@/lib/help/types';
 // Note: We define polyglot types inline since Monaco can't resolve monorepo imports
 
 const templates = getStrategyTemplates();
@@ -289,15 +289,14 @@ export function StrategyCodeEditor({
 
   return (
     <div className={`${className} ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
-      <div className="space-y-4 h-full">
+      <div className="space-y-4 h-full p-2 sm:p-3">
 
         {/* Code Editor */}
         <div className="bg-card border-border flex-1">
           <CardHeader className="px-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-2 mb-2">
               <CardTitle className="text-card-foreground flex items-center gap-2 text-base sm:text-lg">
-                <Code className="w-4 h-4 sm:w-5 sm:h-5" />
-                Text Editor
+                <Code className="w-4 h-4 sm:w-5 sm:h-5" /> Text Editor
               </CardTitle>
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
@@ -367,7 +366,7 @@ export function StrategyCodeEditor({
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <div className="p-0">
             <div className="border border-border rounded-none" style={{ overflow: 'visible' }}>
               <Editor
                 height={isFullscreen ? '70vh' : height}
@@ -390,10 +389,7 @@ export function StrategyCodeEditor({
                 className=''
               />
             </div>
-            <div className="px-3 sm:px-4 py-2 text-xs text-muted-foreground leading-relaxed">
-              Write JavaScript or TypeScript code for your bot strategy. Use <code className="bg-muted/50 px-1 rounded">const &#123; makeContractCall &#125; = require('@stacks/transactions')</code> to import packages. The 'bot' object provides wallet credentials and context.
-            </div>
-          </CardContent>
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -443,7 +439,7 @@ export function StrategyCodeEditor({
           onClose={() => setIsLogsOpen(false)}
           logs={executionLogs}
           isExecuting={isExecuting}
-          onClearLogs={onClearLogs || (() => {})}
+          onClearLogs={onClearLogs || (() => { })}
         />
       </div>
     </div>

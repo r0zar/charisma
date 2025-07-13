@@ -1,8 +1,16 @@
 /**
  * Bots Feature
- * Bot-specific functionality including images, strategy parsing, and service layer
+ * Bot-specific functionality organized by domain
  */
 
-export * from './images';
-export * from './service';
-export * from './strategy-parser';
+// Core bot management
+export * from './core';
+
+// Execution management  
+export * from './execution';
+
+// Sandbox functionality
+export * from './sandbox';
+
+// Assets and media
+export * from './assets';

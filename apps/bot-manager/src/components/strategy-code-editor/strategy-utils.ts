@@ -162,7 +162,7 @@ export function formatCronExpression(cron: string): string {
     const parts = cron.split(' ');
     if (parts.length !== 5) return cron;
 
-    const [minute, hour, day, month, dayOfWeek] = parts;
+    const [minute, hour, _day, _month, _dayOfWeek] = parts;
 
     // Common patterns
     if (cron === '0 */6 * * *') return 'Every 6 hours';

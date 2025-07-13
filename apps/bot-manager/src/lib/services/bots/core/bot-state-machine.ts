@@ -224,8 +224,8 @@ export class BotStateMachine {
   static async requestTransition(
     bot: Bot,
     action: string,
-    userId: string,
-    reason?: string
+    _userId: string,
+    _reason?: string
   ): Promise<TransitionResult> {
     const transitionId = `transition_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = new Date().toISOString();

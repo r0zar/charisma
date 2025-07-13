@@ -25,6 +25,8 @@ import {
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
 
+// Removed usePublicBots hook - using SSR data instead
+import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
 import { Badge } from '@/components/ui/badge';
 import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
@@ -43,8 +45,6 @@ import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-// Removed usePublicBots hook - using SSR data instead
-import { getStrategyDisplayName } from '@/lib/services/bots/strategy-parser';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
 

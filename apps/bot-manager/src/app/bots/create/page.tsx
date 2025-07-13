@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 import { StrategyCodeEditor } from '@/components/strategy-code-editor';
+import { getStrategyTemplates } from '@/components/strategy-code-editor/strategy-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBots } from '@/contexts/bot-context';
 import { useToast } from '@/contexts/toast-context';
-import { getStrategyTemplates } from '@/lib/services/bots/strategy-parser';
 import { CreateBotRequest } from '@/schemas/bot.schema';
 
 export default function CreateBotPage() {

@@ -5,8 +5,8 @@
  * Usage: pnpm run create-bot --name "Bot Name" --owner "SP1234..." --pokemon "Charmander"
  */
 
-import { Bot, CreateBotRequest } from '../src/schemas/bot.schema';
-import { createBotImageConfig } from '../src/lib/features/bots/images';
+import { CreateBotRequest } from '../src/schemas/bot.schema';
+import { createBotImageConfig } from '../src/lib/services/bots/assets';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -37,7 +37,7 @@ async function createBot() {
   console.log(`🚀 Creating bot: ${botName}`);
   console.log(`👤 Owner: ${ownerAddress}`);
   console.log(`🎨 Pokemon: ${pokemonName}`);
-  
+
   // Default migration strategy if none provided
   const defaultStrategy = `console.log('🚀 Starting strategy for', bot.name);
 
@@ -123,14 +123,14 @@ try {
     console.log(`🖼️  Bot Image: ${newBot.image}`);
     console.log(`📊 Bot Status: ${newBot.status}`);
     console.log(`🎨 Image Type: ${newBot.imageType}`);
-    
+
     // If we want to update the image to use a specific Pokemon
     if (pokemonName && pokemonName !== botName) {
       console.log(`🎨 Updating image to use ${pokemonName}...`);
-      
+
       // Generate image config for the specified Pokemon
       const imageConfig = createBotImageConfig(pokemonName!, newBot.id, 'pokemon');
-      
+
       // Update the bot with the new image
       const updateResponse = await fetch(`http://localhost:3420/api/v1/bots?userId=${ownerAddress}&botId=${newBot.id}`, {
         method: 'PUT',
@@ -151,7 +151,7 @@ try {
         console.log('⚠️  Failed to update image, but bot was created successfully');
       }
     }
-    
+
     return newBot;
   } catch (error) {
     console.error('❌ Failed to create bot:', (error as Error).message);

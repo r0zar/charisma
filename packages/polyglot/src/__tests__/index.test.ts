@@ -1,22 +1,22 @@
-import { describe, it, expect, jest, beforeEach } from "@jest/globals";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { callReadOnlyFunction, getContractInterface, getContractInfo, fetchContractEvents, fetcHoldToEarnLogs, callReadOnly } from "../index";
 import { cvToHex, principalCV } from "@stacks/transactions";
 
 // Mock the API client
-jest.mock('../blockchain-api-client', () => ({
+vi.mock('../blockchain-api-client', () => ({
   apiClient: {
-    GET: jest.fn(),
-    POST: jest.fn(),
+    GET: vi.fn(),
+    POST: vi.fn(),
   }
 }));
 
 import { apiClient } from '../blockchain-api-client';
 
-const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
+const mockApiClient = apiClient as vi.Mocked<typeof apiClient>;
 
 describe("polyglot-sdk (mocked)", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("getContractInterface", () => {
@@ -239,7 +239,7 @@ describe("polyglot-sdk (mocked)", () => {
 
     it("should return null for a non-existent contract (mocked)", async () => {
       const contract_id = "SP000000000000000000002Q6VF78.this-contract-does-not-exist";
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       // Mock 404 response
       const mockError = new Error('Not found');

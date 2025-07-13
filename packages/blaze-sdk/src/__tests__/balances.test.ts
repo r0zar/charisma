@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import { getUserTokenBalance } from '..';
 
 // Random sample tokens & addresses – they need not be valid because we are
