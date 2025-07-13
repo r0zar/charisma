@@ -97,7 +97,9 @@ describe('BotExecutorService', () => {
           timeout: 2,
           enableLogs: false
         },
-        expect.any(Object)
+        expect.any(Object),
+        mockBot.ownerId, // userId
+        expect.stringMatching(/^exec-\d+-[a-z0-9]+$/) // executionId pattern
       );
     });
 
@@ -159,7 +161,9 @@ describe('BotExecutorService', () => {
         expect.objectContaining({
           onStatus: expect.any(Function),
           onLog: expect.any(Function)
-        })
+        }),
+        mockBot.ownerId, // userId
+        expect.stringMatching(/^exec-\d+-[a-z0-9]+$/) // executionId pattern
       );
     });
   });
