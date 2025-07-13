@@ -7,7 +7,7 @@ import { Bot } from '@/schemas/bot.schema';
 
 import { useBots } from './bot-context';
 import { useToast } from './toast-context';
-import { useWallet } from './wallet-context';
+import { useUser } from '@clerk/nextjs';
 
 interface StateMachineTransition {
   botId: string;
@@ -58,7 +58,7 @@ export function BotStateMachineProvider({ children }: { children: React.ReactNod
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [lastTransition, setLastTransition] = useState<StateMachineTransition | null>(null);
   
-  const { getUserId, authenticatedFetchWithTimestamp } = useWallet();
+  const { user } = useUser();
   const { showSuccess, showError, showWarning } = useToast();
   const { refreshData } = useBots();
 
@@ -78,23 +78,20 @@ export function BotStateMachineProvider({ children }: { children: React.ReactNod
     setIsTransitioning(true);
 
     try {
-      const userId = getUserId();
-      const message = `bot_transition_${bot.id}_${action}`;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
 
-      const response = await authenticatedFetchWithTimestamp(
-        `/api/v1/bots/${bot.id}/transitions?userId=${encodeURIComponent(userId)}`,
-        {
-          method: 'POST',
-          message,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action,
-            reason
-          })
-        }
-      );
+      const response = await fetch(`/api/v1/bots/${bot.id}/transitions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          reason
+        })
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -172,7 +169,7 @@ export function BotStateMachineProvider({ children }: { children: React.ReactNod
     } finally {
       setIsTransitioning(false);
     }
-  }, [isTransitioning, getUserId, authenticatedFetchWithTimestamp, showSuccess, showError, showWarning, refreshData]);
+  }, [isTransitioning, user?.id, showSuccess, showError, showWarning, refreshData]);
 
   // Convenience methods for specific transitions
   const startBot = useCallback((bot: Bot, reason?: string) => 
@@ -215,7 +212,14 @@ export function BotStateMachineProvider({ children }: { children: React.ReactNod
   // Validation method
   const validateTransition = useCallback(async (bot: Bot, action: string) => {
     try {
-      const result = await BotStateMachine.requestTransition(bot, action, getUserId());
+      if (!user?.id) {
+        return {
+          isValid: false,
+          errors: ['User not authenticated'],
+          warnings: []
+        };
+      }
+      const result = await BotStateMachine.requestTransition(bot, action, user.id);
       return {
         isValid: result.success,
         errors: result.errors || [],
@@ -228,7 +232,7 @@ export function BotStateMachineProvider({ children }: { children: React.ReactNod
         warnings: []
       };
     }
-  }, [getUserId]);
+  }, [user?.id]);
 
   const value: BotStateMachineContextType = {
     // State

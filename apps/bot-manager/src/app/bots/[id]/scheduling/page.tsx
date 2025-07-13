@@ -27,14 +27,14 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
-import { useWallet } from '@/contexts/wallet-context';
+import { useUser } from '@clerk/nextjs';
 import { formatRelativeTime } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotSchedulingPage() {
   const { bot } = useCurrentBot();
   const { showSuccess, showError } = useToast();
-  const { getUserId, authenticatedFetchWithTimestamp } = useWallet();
+  const { user } = useUser();
 
   const [localBot, setLocalBot] = useState<BotType | null>(null);
   const [schedulingSettings, setSchedulingSettings] = useState({
@@ -126,12 +126,12 @@ export default function BotSchedulingPage() {
     if (!bot) return;
 
     try {
-      const userId = getUserId();
-      const message = `update_schedule_${bot.id}`;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
 
-      const response = await authenticatedFetchWithTimestamp(`/api/v1/bots/${bot.id}/schedule?userId=${encodeURIComponent(userId)}`, {
+      const response = await fetch(`/api/v1/bots/${bot.id}/schedule`, {
         method: 'PUT',
-        message,
         headers: {
           'Content-Type': 'application/json',
         },
