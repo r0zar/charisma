@@ -204,9 +204,18 @@ export class SandboxService {
         ``
       ];
 
-      // Add raw output if it differs from processed logs
+      // Only add raw output if it meaningfully differs from processed logs
       if (allOutput && allOutput.trim()) {
-        logLines.push(`=== Raw Output ===`, allOutput.trim(), ``);
+        const processedContent = logs.join('\n').trim();
+        const rawContent = allOutput.trim();
+        
+        // Compare content - only show raw output if it has additional information
+        const contentDiffers = rawContent !== processedContent && 
+                              rawContent.length > processedContent.length;
+        
+        if (contentDiffers) {
+          logLines.push(`=== Raw Output ===`, rawContent, ``);
+        }
       }
 
       // Add errors if present
