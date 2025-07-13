@@ -15,6 +15,7 @@ import {
   Pause,
   Play,
   Plus,
+  RefreshCw,
   Search,
   Settings,
   Target,
@@ -23,7 +24,7 @@ import {
   XCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 // Removed usePublicBots hook - using SSR data instead
 import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
@@ -501,7 +502,7 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
 }
 
 export default function BotsPage() {
-  const { bots, allBots, loading, deleteBot } = useBots();
+  const { bots, allBots, loading, deleteBot, refreshData } = useBots();
   const { startBot, pauseBot } = useBotStateMachine();
   const { showSuccess, showError } = useToast();
   const { walletState } = useWallet();
@@ -511,6 +512,15 @@ export default function BotsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const botsPerPage = 20;
+
+  // Auto-refresh bot data every 30 seconds to reduce stale cache issues
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   // Calculate public stats from all bots (excluding current user's bots for community display)
   const publicStats = useMemo(() => {
@@ -651,23 +661,34 @@ export default function BotsPage() {
           <h1 className="text-2xl font-bold text-foreground">My Bots</h1>
           <p className="text-muted-foreground">Create, configure, and monitor your DeFi automation bots</p>
         </div>
-        {hasAlphaAccess ? (
-          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
-            <Link href="/bots/create">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Bot
-            </Link>
-          </Button>
-        ) : (
+        <div className="flex gap-2">
           <Button 
-            disabled 
-            className="bg-muted text-muted-foreground border-0 cursor-not-allowed"
-            title="Bot creation is currently in alpha. Add #alpha to the URL for access."
+            onClick={() => refreshData()} 
+            variant="outline"
+            className="flex items-center gap-2"
+            disabled={loading}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Bot (Alpha)
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-        )}
+          {hasAlphaAccess ? (
+            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground border-0">
+              <Link href="/bots/create">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Bot
+              </Link>
+            </Button>
+          ) : (
+            <Button 
+              disabled 
+              className="bg-muted text-muted-foreground border-0 cursor-not-allowed"
+              title="Bot creation is currently in alpha. Add #alpha to the URL for access."
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Bot (Alpha)
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filters and Search */}

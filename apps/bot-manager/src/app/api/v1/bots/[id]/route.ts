@@ -98,7 +98,9 @@ export async function GET(
     return NextResponse.json(responseData, {
       status: 200,
       headers: {
-        'Cache-Control': useKV ? 'private, s-maxage=10, stale-while-revalidate=60' : 'private, s-maxage=30, stale-while-revalidate=120',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'Content-Type': 'application/json',
       },
     });
@@ -204,7 +206,9 @@ export async function PUT(
     return NextResponse.json(responseData, {
       status: 200,
       headers: {
-        'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=60',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'Content-Type': 'application/json',
       },
     });
@@ -281,7 +285,9 @@ export async function DELETE(
     return NextResponse.json(responseData, {
       status: 200,
       headers: {
-        'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=60',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'Content-Type': 'application/json',
       },
     });

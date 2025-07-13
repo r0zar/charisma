@@ -83,7 +83,14 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Returned ${paginatedBots.length} of ${totalBots} ${userId ? 'user' : 'public'} bots`);
 
-    return NextResponse.json(responseData);
+    const response = NextResponse.json(responseData);
+    
+    // Disable caching for fresh bot data
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
 
   } catch (error) {
     console.error('Bots API error:', error);
