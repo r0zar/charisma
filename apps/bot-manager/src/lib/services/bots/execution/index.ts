@@ -4,5 +4,7 @@
  */
 
 export * from './execution-log-service';
-export * from './executor';
-export * from './scheduler';
+
+// Server-only exports - only import these in server components or API routes
+export { BotExecutorService, botExecutorService } from './executor';
+export { BotSchedulerService, botSchedulerService } from './scheduler';

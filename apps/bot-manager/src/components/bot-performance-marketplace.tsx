@@ -1,5 +1,6 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import Editor from '@monaco-editor/react';
 import {
   ArrowDown,
@@ -7,12 +8,11 @@ import {
   Copy,
   GitFork,
   Plus,
-  TrendingDown,
   TrendingUp,
   Trophy,
   Zap
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -22,17 +22,16 @@ import {
   YAxis
 } from 'recharts';
 
-import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Badge } from '@/components/ui/badge';
+import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMonacoTypeDefinitions } from '@/generated/types';
-import { useToast } from '@/contexts/toast-context';
 import { useBots } from '@/contexts/bot-context';
-import { useUser } from '@clerk/nextjs';
+import { useToast } from '@/contexts/toast-context';
+import { getMonacoTypeDefinitions } from '@/generated/types';
+import { BotPerformanceService } from '@/lib/services/performance/service';
 import { formatCurrency } from '@/lib/utils';
 import { Bot } from '@/schemas/bot.schema';
-import { BotPerformanceService } from '@/lib/services/performance/service';
 
 interface BotPerformanceMarketplaceProps {
   bot: Bot;

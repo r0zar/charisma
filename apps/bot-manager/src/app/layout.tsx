@@ -1,7 +1,7 @@
 import "./globals.css";
 
-import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
@@ -10,15 +10,12 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { SearchOverlay } from "@/components/search";
 import { AuthProvider, SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
-import { BotStateMachineProvider } from "@/contexts/bot-state-machine-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
 import { SearchProvider } from "@/contexts/search-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { botService } from "@/lib/services/bots/core/service";
-import { metadataService } from "@/lib/services/metadata/service";
 import { notificationService } from "@/lib/services/notifications/service";
-import { userService } from "@/lib/services/user/service";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -34,11 +31,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Load data server-side using services directly
-  const [bots, notifications, allUsersData, metadata] = await Promise.all([
-    botService.scanAllBots(),
+  const [bots, notifications] = await Promise.all([
+    botService.listBots(), // Get all bots for server-side rendering
     notificationService.scanAllNotifications(),
-    userService.getAllUsersData(),
-    metadataService.getAppMetadata()
   ]);
 
   return (
@@ -173,22 +168,20 @@ export default async function RootLayout({
                   <WalletProvider>
                     <AuthProvider>
                       <BotProvider initialBots={bots}>
-                        <BotStateMachineProvider>
-                          <NotificationsProvider initialNotifications={notifications}>
-                            <SearchProvider>
-                              <div className="flex h-screen bg-background">
-                                <Sidebar />
-                                <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-                                  <Header />
-                                  <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
-                                    {children}
-                                  </main>
-                                </div>
+                        <NotificationsProvider initialNotifications={notifications}>
+                          <SearchProvider>
+                            <div className="flex h-screen bg-background">
+                              <Sidebar />
+                              <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+                                <Header />
+                                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
+                                  {children}
+                                </main>
                               </div>
-                              <SearchOverlay />
-                            </SearchProvider>
-                          </NotificationsProvider>
-                        </BotStateMachineProvider>
+                            </div>
+                            <SearchOverlay />
+                          </SearchProvider>
+                        </NotificationsProvider>
                       </BotProvider>
                     </AuthProvider>
                   </WalletProvider>

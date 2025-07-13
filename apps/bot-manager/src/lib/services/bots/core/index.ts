@@ -4,4 +4,6 @@
  */
 
 export * from './bot-state-machine';
-export * from './service';
+
+// Server-only exports - only import these in server components or API routes
+export { BotService, botService } from './service';

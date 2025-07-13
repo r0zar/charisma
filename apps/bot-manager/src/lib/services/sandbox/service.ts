@@ -9,8 +9,6 @@
 
 // Replaced ms import with simple conversion function
 import { Sandbox } from "@vercel/sandbox";
-import { config } from "dotenv";
-import { resolve } from "path";
 
 // Note: dataLoader removed - using specific services instead
 import type { Bot } from "@/schemas/bot.schema";
@@ -24,10 +22,6 @@ import type {
 } from "@/schemas/sandbox.schema";
 
 import { strategyWrapperTemplate } from "./templates/strategy-wrapper";
-// Dynamic import for wallet encryption to avoid env var requirement at module load
-
-// Load environment variables
-config({ path: resolve(process.cwd(), '.env.local') });
 
 // Server-side logger (can use more sophisticated logging later)
 const logger = {
@@ -48,7 +42,7 @@ export class SandboxService {
   constructor(config?: Partial<SandboxConfig>) {
     this.defaultConfig = {
       runtime: 'node22',
-      timeout: 2 * 60 * 1000, // 2 minutes in milliseconds
+      timeout: 30 * 1000, // 30 seconds in milliseconds
       teamId: process.env.VERCEL_TEAM_ID,
       projectId: process.env.VERCEL_PROJECT_ID,
       token: process.env.VERCEL_TOKEN,
@@ -185,7 +179,7 @@ export class SandboxService {
    */
   async executeStrategy(
     strategyCode: string,
-    bot: Bot | string,
+    bot: Bot,
     options: StrategyExecutionOptions = {},
     callbacks?: ExecutionCallbacks
   ): Promise<StrategyExecutionResult> {
@@ -193,9 +187,6 @@ export class SandboxService {
     let sandbox: any = null;
 
     try {
-      // Load bot if ID was provided
-      const botInstance = await this.loadBot(bot);
-
       callbacks?.onStatus?.('Initializing sandbox...', new Date().toISOString());
 
       // Validate credentials
@@ -204,9 +195,9 @@ export class SandboxService {
       }
 
       // Build bot context
-      const botContext = await this.buildBotContext(botInstance);
+      const botContext = await this.buildBotContext(bot);
 
-      callbacks?.onStatus?.(`Creating sandbox for ${botInstance.name}...`, new Date().toISOString());
+      callbacks?.onStatus?.(`Creating sandbox for ${bot.name}...`, new Date().toISOString());
 
       // Create wrapper code
       const wrapperCode = this.createStrategyWrapper(strategyCode, botContext);
@@ -220,19 +211,19 @@ export class SandboxService {
       };
 
       // Check if custom repository is specified
-      if (botInstance.gitRepository) {
+      if (bot.gitRepository) {
         // Custom repository execution path
         callbacks?.onStatus?.("Using custom repository for execution...", new Date().toISOString());
 
         // Validate custom git repository
-        if (!this.validateGitRepository(botInstance.gitRepository)) {
-          throw new Error(`Invalid or unsupported git repository: ${botInstance.gitRepository}`);
+        if (!this.validateGitRepository(bot.gitRepository)) {
+          throw new Error(`Invalid or unsupported git repository: ${bot.gitRepository}`);
         }
 
         // Validate and sanitize build configuration
-        const isMonorepo = botInstance.isMonorepo || false;
-        const packagePath = botInstance.packagePath ? this.sanitizePackagePath(botInstance.packagePath) : (isMonorepo ? "packages/polyglot" : "");
-        const buildCommands = botInstance.buildCommands || ["pnpm install --frozen-lockfile", "pnpm run build"];
+        const isMonorepo = bot.isMonorepo || false;
+        const packagePath = bot.packagePath ? this.sanitizePackagePath(bot.packagePath) : (isMonorepo ? "packages/polyglot" : "");
+        const buildCommands = bot.buildCommands || ["pnpm install --frozen-lockfile", "pnpm run build"];
 
         // Validate build commands
         if (!this.validateBuildCommands(buildCommands)) {
@@ -241,7 +232,7 @@ export class SandboxService {
 
         sandbox = await Sandbox.create({
           source: {
-            url: botInstance.gitRepository,
+            url: bot.gitRepository,
             type: "git",
           },
           runtime: sandboxConfig.runtime,
@@ -251,7 +242,7 @@ export class SandboxService {
           token: sandboxConfig.token,
         });
 
-        callbacks?.onStatus?.(`Sandbox created from ${botInstance.gitRepository}: ${sandbox.sandboxId}`, new Date().toISOString());
+        callbacks?.onStatus?.(`Sandbox created from ${bot.gitRepository}: ${sandbox.sandboxId}`, new Date().toISOString());
 
         if (isMonorepo && packagePath) {
           // Monorepo: install and build specific package
@@ -276,38 +267,6 @@ export class SandboxService {
           }
 
           callbacks?.onStatus?.(`Package ${packagePath} built successfully`, new Date().toISOString());
-
-          // Create minimal package.json at root for strategy dependencies
-          // callbacks?.onStatus?.("Creating root package.json for strategy execution...", new Date().toISOString());
-
-          // const rootPackageJson = {
-          //   "name": "strategy-execution",
-          //   "version": "1.0.0",
-          //   "private": true
-          // };
-
-          // await sandbox.writeFiles([
-          //   {
-          //     path: "package.json",
-          //     content: Buffer.from(JSON.stringify(rootPackageJson, null, 2), 'utf8')
-          //   }
-          // ]);
-
-          // Install strategy dependencies at root level
-          // callbacks?.onStatus?.("Installing strategy dependencies at root...", new Date().toISOString());
-
-          // const rootInstallResult = await sandbox.runCommand({
-          //   cmd: 'pnpm',
-          //   args: ['add', '@stacks/transactions'],
-          //   cwd: '/vercel/sandbox'
-          // });
-
-          // if (rootInstallResult.exitCode !== 0) {
-          //   const stderr = typeof rootInstallResult.stderr === 'function' ? await rootInstallResult.stderr() : rootInstallResult.stderr;
-          //   callbacks?.onStatus?.(`Warning: Failed to install root dependencies: ${stderr}`, new Date().toISOString());
-          // } else {
-          //   callbacks?.onStatus?.("Strategy dependencies installed at root", new Date().toISOString());
-          // }
         } else {
           // Standalone repo: install and build at root
           callbacks?.onStatus?.("Installing dependencies at repository root...", new Date().toISOString());
@@ -346,8 +305,8 @@ export class SandboxService {
       }
 
       // Determine execution directory and write strategy code
-      const executionDir = (botInstance.gitRepository && botInstance.isMonorepo && botInstance.packagePath)
-        ? botInstance.packagePath
+      const executionDir = (bot.gitRepository && bot.isMonorepo && bot.packagePath)
+        ? bot.packagePath
         : "";
 
       const strategyPath = executionDir ? `${executionDir}/strategy.cjs` : "strategy.cjs";
@@ -478,46 +437,6 @@ export class SandboxService {
         }
       }
     }
-  }
-
-  /**
-   * Load bot by ID or return bot instance
-   * 
-   * @param bot - Bot instance or bot ID
-   * @returns Promise<Bot>
-   */
-  private async loadBot(bot: Bot | string): Promise<Bot> {
-    if (typeof bot === 'object') {
-      return bot;
-    }
-
-    const botId = bot;
-
-    // Try API first if enabled
-    if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS === 'true') {
-      try {
-        const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/bots/${botId}?userId=${encodeURIComponent(userId)}`;
-        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}${apiUrl}`);
-        if (response.ok) {
-          const apiBot = await response.json();
-          return apiBot.bot || apiBot;
-        }
-      } catch (error) {
-        console.warn(`Failed to load bot ${botId} from API, falling back to static data:`, error);
-      }
-    }
-
-    // Fallback to static data
-    const { botService } = await import('@/lib/services/bots/core/service');
-    const allBots = await botService.scanAllBots();
-    const foundBot = allBots.find(b => b.id === botId);
-
-    if (!foundBot) {
-      throw new Error(`Bot with ID '${botId}' not found in API or static data`);
-    }
-
-    return foundBot;
   }
 }
 

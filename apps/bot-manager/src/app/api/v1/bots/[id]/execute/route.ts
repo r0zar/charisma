@@ -54,7 +54,7 @@ export async function POST(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const allBots = await botService.scanAllBots();
+      const allBots = await botService.listBots() // Get all bots;
       bot = allBots.find(b => b.id === botId);
     }
 
@@ -84,12 +84,12 @@ export async function POST(
     }
 
     // Verify user owns this bot using clerkUserId
-    const isOwner = bot.clerkUserId ?
-      bot.clerkUserId === userId :
+    const isOwner = bot.ownerId ?
+      bot.ownerId === userId :
       false; // Legacy bots without clerkUserId are not accessible via new system
 
     if (!isOwner) {
-      console.warn(`❌ Unauthorized bot execution attempt: user ${userId} tried to execute bot ${botId} owned by ${bot.clerkUserId || bot.ownerId}`);
+      console.warn(`❌ Unauthorized bot execution attempt: user ${userId} tried to execute bot ${botId} owned by ${bot.ownerId || bot.ownerId}`);
       return NextResponse.json(
         {
           error: 'Unauthorized',
@@ -167,7 +167,7 @@ export async function GET(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const allBots = await botService.scanAllBots();
+      const allBots = await botService.listBots() // Get all bots;
       bot = allBots.find(b => b.id === botId);
     }
 

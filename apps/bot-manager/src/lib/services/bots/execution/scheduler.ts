@@ -26,7 +26,7 @@ export class BotSchedulerService {
    * Determines if a bot should be executed based on its schedule
    */
   shouldExecuteBot(bot: Bot, currentTime: Date = new Date()): boolean {
-    if (!bot.cronSchedule || !bot.isScheduled || bot.status !== 'active') {
+    if (!bot.cronSchedule || bot.status !== 'active') {
       return false;
     }
 
@@ -70,7 +70,6 @@ export class BotSchedulerService {
    */
   getScheduledBots(allBots: Bot[]): Bot[] {
     return allBots.filter(bot =>
-      bot.isScheduled &&
       bot.status === 'active' &&
       bot.cronSchedule
     );

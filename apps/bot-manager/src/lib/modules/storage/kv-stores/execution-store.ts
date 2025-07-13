@@ -164,6 +164,93 @@ export class ExecutionKVStore {
   }
 
   /**
+   * Delete all executions and related data for a bot (used during bot deletion)
+   * This method provides comprehensive cleanup including blob storage
+   */
+  async deleteAllExecutionsForBot(userId: string, botId: string): Promise<{ 
+    success: boolean; 
+    deletedExecutions: number; 
+    deletedBlobs: number; 
+    errors: string[] 
+  }> {
+    const result = {
+      success: false,
+      deletedExecutions: 0,
+      deletedBlobs: 0,
+      errors: [] as string[]
+    };
+
+    try {
+      // Get all execution IDs from the index
+      const executionIds = await kv.zrange(this.getBotExecutionsIndexKey(userId, botId), 0, -1) || [];
+      
+      if (executionIds.length === 0) {
+        result.success = true;
+        return result;
+      }
+
+      console.log(`🧹 Cleaning up ${executionIds.length} executions for bot ${botId}`);
+
+      // Import ExecutionLogService for blob cleanup
+      const { ExecutionLogService } = await import('@/lib/services/bots/execution/execution-log-service');
+
+      // Delete each execution and its associated blob data
+      for (const id of executionIds) {
+        try {
+          const executionKey = this.getExecutionKey(userId, botId, id as string);
+          
+          // Get execution data to find blob URLs before deletion
+          const execution = await kv.get<BotExecution>(executionKey);
+          
+          // Delete the execution data from KV
+          await kv.del(executionKey);
+          result.deletedExecutions++;
+
+          // Clean up blob storage if execution has logs
+          if (execution?.logsUrl) {
+            try {
+              const blobDeleted = await ExecutionLogService.delete(execution.logsUrl);
+              if (blobDeleted) {
+                result.deletedBlobs++;
+              } else {
+                result.errors.push(`Failed to delete blob for execution ${id}`);
+              }
+            } catch (blobError) {
+              result.errors.push(`Blob deletion error for execution ${id}: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`);
+            }
+          }
+        } catch (executionError) {
+          result.errors.push(`Failed to delete execution ${id}: ${executionError instanceof Error ? executionError.message : 'Unknown error'}`);
+        }
+      }
+
+      // Clear the execution index
+      try {
+        await kv.del(this.getBotExecutionsIndexKey(userId, botId));
+        console.log(`🧹 Cleared execution index for bot ${botId}`);
+      } catch (indexError) {
+        result.errors.push(`Failed to clear execution index: ${indexError instanceof Error ? indexError.message : 'Unknown error'}`);
+      }
+
+      result.success = result.errors.length === 0 || result.deletedExecutions > 0;
+      
+      if (result.deletedExecutions > 0) {
+        console.log(`✅ Successfully cleaned ${result.deletedExecutions} executions and ${result.deletedBlobs} blobs for bot ${botId}`);
+      }
+      
+      if (result.errors.length > 0) {
+        console.warn(`⚠️ Some cleanup operations failed for bot ${botId}:`, result.errors);
+      }
+
+      return result;
+    } catch (error) {
+      result.errors.push(`Critical error during execution cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to delete all executions for bot:', error);
+      return result;
+    }
+  }
+
+  /**
    * Get recent executions across all bots for a user (for dashboard)
    */
   async getRecentExecutions(userId: string, limit = 10): Promise<BotExecution[]> {

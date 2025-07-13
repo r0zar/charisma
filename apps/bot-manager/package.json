@@ -29,7 +29,11 @@
     "clear-executions": "node --import tsx scripts/execution/clear-execution-logs.ts",
     "clear-executions:confirm": "node --import tsx scripts/execution/clear-execution-logs.ts --confirm",
     "seed-executions:prod": "node --import tsx scripts/execution/seed-execution-logs.ts --profile production",
-    "generate-types": "node --import tsx scripts/generate-types.ts"
+    "generate-types": "node --import tsx scripts/generate-types.ts",
+    "clear-bots": "node --import tsx scripts/clear-all-bots.ts",
+    "clear-bots:dry-run": "node --import tsx scripts/clear-all-bots.ts --dry-run",
+    "clear-bots:confirm": "node --import tsx scripts/clear-all-bots.ts --confirm",
+    "seed-pokemon": "node --import tsx scripts/seed-pokemon-bots.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.24.0",

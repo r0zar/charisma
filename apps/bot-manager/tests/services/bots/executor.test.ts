@@ -64,7 +64,7 @@ describe('BotExecutorService', () => {
       createdAt: '2025-01-15T09:00:00.000Z',
       lastActive: '2025-01-15T10:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: true,
+
       executionCount: 5,
       cronSchedule: '0 * * * *',
       encryptedWallet: 'encrypted_wallet_data',
@@ -410,7 +410,6 @@ describe('BotExecutorService', () => {
     it('should detect missing scheduling configuration', () => {
       const bot = { 
         ...mockBot, 
-        isScheduled: false,
         cronSchedule: undefined
       };
       const result = botExecutorService.validateBotForExecution(bot);
@@ -439,7 +438,7 @@ describe('BotExecutorService', () => {
         ...mockBot, 
         strategy: '',
         status: 'error' as const,
-        isScheduled: false,
+        cronSchedule: undefined,
         encryptedWallet: undefined
       };
       const result = botExecutorService.validateBotForExecution(bot);

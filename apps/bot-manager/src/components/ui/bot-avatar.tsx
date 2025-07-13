@@ -4,7 +4,7 @@ import { Bot as BotIcon } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getBotImageFallback, getBotImageWithFallback } from '@/lib/services/bots/images';
+import { getBotImageFallback, getBotImageWithFallback } from '@/lib/services/bots/assets/images';
 import { cn } from '@/lib/utils';
 import { Bot } from '@/schemas/bot.schema';
 

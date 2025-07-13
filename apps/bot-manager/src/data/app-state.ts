@@ -431,7 +431,7 @@ export const appState: AppState = {
         "name": "Raticate",
         "strategy": "// Basic trading strategy\nconsole.log('Checking trading opportunities...');\nconsole.log('Bot wallet:', bot.id);",
         "status": "active",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-05-26T21:44:48.442Z",
         "lastActive": "2025-07-12T09:12:48.442Z",
         "encryptedWallet": "2fee60e772b523e66c491d5fbfbde72e8d6955a374f5229d8ef64d03a685b6a45ac4002be425a1ccbf419433f9fc019b138987d73d1c6fff0dda3f74ff2167258f32b7cb6f82c727d491297e93475f69",
@@ -439,7 +439,6 @@ export const appState: AppState = {
         "publicKey": "03d7ce45ed9c0d7d861319be5bd018415f294977d454de7533ae51d6cc631564e9",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/20.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -447,7 +446,7 @@ export const appState: AppState = {
         "name": "Horsea",
         "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
         "status": "active",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-06-06T06:01:48.535Z",
         "lastActive": "2025-07-11T00:27:48.535Z",
         "encryptedWallet": "f364c035a24536b273aebc30e152b8ed3f4c3ccf8ac3de3a376223078f078deba619d2b16a7c0b5f58c08716f153e4a74d6e6ffb840808ed45dba63f0f669e1d18fd486f8f4d63447559ae7f7488097b",
@@ -455,7 +454,6 @@ export const appState: AppState = {
         "publicKey": "020a77eb5345375970823fa1de956274b008900090bbd3be987de21a217dcfbba7",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/116.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -463,7 +461,7 @@ export const appState: AppState = {
         "name": "Articuno",
         "strategy": "// Basic trading strategy\nconsole.log('Checking trading opportunities...');\nconsole.log('Bot wallet:', bot.id);",
         "status": "setup",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-04-19T09:40:48.620Z",
         "lastActive": "2025-07-12T21:19:48.620Z",
         "encryptedWallet": "d272c24339ec583b94d1ea043c66db1eed715880669db1a76afabc460fd7e80a8a235a36ea795141c742dec619ada62da26b71de817f8a2e1518cdb14cac972d8d1c40cd8f6dc3b28c9e3c474b14b2ee",
@@ -471,7 +469,6 @@ export const appState: AppState = {
         "publicKey": "024a1b5a874807605833575f501c6c7d2411e9f656adb7111d32e42a785731f0e9",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/144.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -479,7 +476,7 @@ export const appState: AppState = {
         "name": "Tentacruel",
         "strategy": "// Simple monitoring strategy\nconsole.log('Monitoring market conditions...');\nconsole.log('Bot status:', bot.status);",
         "status": "active",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-07-08T07:46:48.705Z",
         "lastActive": "2025-07-11T06:48:48.705Z",
         "encryptedWallet": "2b12447c9260cccd9ea65dcd84a5937549bef05b8235fd3c2ae70f017041cbf1f99d8f6852a19d45f3a875166ff1e3c7d265c7cd6eadf08ea36213af8b4bdca72f18faca2d199934e7b0665b9311ece1",
@@ -487,7 +484,6 @@ export const appState: AppState = {
         "publicKey": "029ff1c060f7aef34f66d432c905431f8383ce154e05bd991c6226c2eab3834433",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/73.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -495,7 +491,7 @@ export const appState: AppState = {
         "name": "Diglett",
         "strategy": "// Simple monitoring strategy\nconsole.log('Monitoring market conditions...');\nconsole.log('Bot status:', bot.status);",
         "status": "setup",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-07-04T00:38:48.790Z",
         "lastActive": "2025-07-12T16:24:48.790Z",
         "encryptedWallet": "51725db99ed2fe78f05898afee9df6345a3699d52df9f543ac939ddee051c6aedf6841b75dfd6d227563661deb6f78b5c9e8295e811e21951e25f8c237ce0d82a1d5062ca30ad0188469e8fbb01845bd",
@@ -503,7 +499,6 @@ export const appState: AppState = {
         "publicKey": "0360bfbe35d60a07d9b57298f1c23d007c07028aebd35f7b4c00c68fcb88ac7d6f",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -511,7 +506,7 @@ export const appState: AppState = {
         "name": "Machop",
         "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
         "status": "paused",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-04-15T10:47:48.874Z",
         "lastActive": "2025-07-12T00:14:48.874Z",
         "encryptedWallet": "da2bffb1f7da7e72caceb88b31a2802ba1fe6093aec4f97799b2dfafcb1762061d836d47e5285e43bf4d9f4d3683ca85942f3acaf073ae89ae45cf05f6c54832c377a440904330deaab80fbe9def9a83",
@@ -519,7 +514,6 @@ export const appState: AppState = {
         "publicKey": "020e14c6be296bbe41bee8caecfc11711575bfb3937df48ac860f35f478ace4ad0",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -527,7 +521,7 @@ export const appState: AppState = {
         "name": "Ekans",
         "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
         "status": "paused",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-05-02T23:50:48.958Z",
         "lastActive": "2025-07-11T18:45:48.958Z",
         "encryptedWallet": "3662db96216321cadaadae15ec9d8e6069d72b01cb20f9c9ecb4abb7eb64c572737d0ef5797235465afa96847da0f38f926eb3755e12773b8d8fc33186154f19aeb9bf97363887106c7d10bcc72a18a8",
@@ -535,7 +529,6 @@ export const appState: AppState = {
         "publicKey": "03248028e3d34ddc2fe03a073335ab7fb37d82ed818bccc108dc39b4dd330130dc",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/23.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -543,7 +536,7 @@ export const appState: AppState = {
         "name": "Diglett",
         "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
         "status": "setup",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-05-30T04:07:49.043Z",
         "lastActive": "2025-07-12T03:35:49.043Z",
         "encryptedWallet": "a91b3f154da4f321a4a34d7a4ec520eab348d35a2763a8d205c6ecd5439d481736c9b51c6f56e31785bf810721a3603808dd1b58d48f45589ff6c1d97b7a47cc7d9c015d8bc839d16166fbae24a9580b",
@@ -551,7 +544,6 @@ export const appState: AppState = {
         "publicKey": "02a921ade4ab9a88367fb382374141825ffb5b9a54db5b343fdb72fd8597f7735a",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -559,7 +551,7 @@ export const appState: AppState = {
         "name": "Spearow",
         "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
         "status": "paused",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-05-03T13:02:49.128Z",
         "lastActive": "2025-07-11T12:36:49.128Z",
         "encryptedWallet": "f9b92dffa71d737752617e3a84debc8977e7a96c8b12cff5fb44699aff3e5eb31080a0099716d978ecbb4d1ead90a5201dd3a0759a3435e582517ab12171bdfb18030d9a3cda1ea78728089e77278ecc",
@@ -567,7 +559,6 @@ export const appState: AppState = {
         "publicKey": "0225ef8adb4c9267007b5b10349b5fa14006dc30effb2dcefd17a18e83df4b4b90",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/21.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       },
       {
@@ -575,7 +566,7 @@ export const appState: AppState = {
         "name": "Tentacool",
         "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
         "status": "setup",
-        "clerkUserId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
+        "ownerId": "user_2znyieHPBs2QVYWqDalHnjOYIwD",
         "createdAt": "2025-07-05T13:35:49.221Z",
         "lastActive": "2025-07-12T11:43:49.221Z",
         "encryptedWallet": "ea76e9e315fd2aa4bca75badcc2f38c89607404290d3ac39012bc24c2eaac242bbba1801641abb124ed75fce4484eb498c7ff9193ecdcbcb6c253e664689d33dda73766f571890df6e97f6c4833b771c",
@@ -583,7 +574,6 @@ export const appState: AppState = {
         "publicKey": "0359ed6298a422a60156dfb46a2f15ab114881abfd8ee46db39be5d4633924eadf",
         "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/72.png",
         "imageType": "pokemon",
-        "isScheduled": false,
         "executionCount": 0
       }
     ],

@@ -7,14 +7,15 @@ import { Bot } from '@/schemas/bot.schema';
 import { StoredNotification } from '@/schemas/notification.schema';
 import { WalletTransaction } from '@/schemas/wallet.schema';
 
-import { 
-  BotSearchResult, 
-  NotificationSearchResult, 
-  SearchOptions, 
-  SearchQuery, 
+import {
+  BotSearchResult,
+  NotificationSearchResult,
+  SearchOptions,
+  SearchQuery,
   SearchResults,
   TransactionSearchResult,
-  UserSearchResult} from './types';
+  UserSearchResult
+} from './types';
 
 interface SearchableData {
   bots: Bot[];
@@ -43,7 +44,7 @@ export class SearchService {
   async search(query: SearchQuery, data: SearchableData): Promise<SearchResults> {
     const startTime = Date.now();
     const options = { ...this.defaultOptions, ...query.options };
-    
+
     if (!query.query.trim()) {
       return {
         bots: [],
@@ -87,8 +88,8 @@ export class SearchService {
       results.transactions = this.searchTransactions(searchTerm, data.transactions, options);
     }
 
-    results.totalResults = results.bots.length + results.notifications.length + 
-                          results.users.length + results.transactions.length;
+    results.totalResults = results.bots.length + results.notifications.length +
+      results.users.length + results.transactions.length;
     results.searchTime = Date.now() - startTime;
 
     return results;
@@ -99,13 +100,13 @@ export class SearchService {
    */
   private searchBots(searchTerm: string, bots: Bot[], options: SearchOptions): BotSearchResult[] {
     const results: BotSearchResult[] = [];
-    
+
     for (const bot of bots) {
       let score = 0;
       const searchableFields = [
         bot.name,
         bot.strategy,
-        bot.clerkUserId,
+        bot.ownerId,
         bot.status,
         bot.id
       ];
@@ -136,7 +137,7 @@ export class SearchService {
           data: bot,
           metadata: {
             status: bot.status,
-            clerkUserId: bot.clerkUserId,
+            clerkUserId: bot.ownerId,
             strategyType: this.getStrategyDisplayName(bot.strategy),
             lastActive: bot.lastActive
           }
@@ -154,7 +155,7 @@ export class SearchService {
    */
   private searchNotifications(searchTerm: string, notifications: StoredNotification[], options: SearchOptions): NotificationSearchResult[] {
     const results: NotificationSearchResult[] = [];
-    
+
     for (const notification of notifications) {
       let score = 0;
       const searchableFields = [
@@ -216,7 +217,7 @@ export class SearchService {
     lastActive?: string;
   }>, options: SearchOptions): UserSearchResult[] {
     const results: UserSearchResult[] = [];
-    
+
     for (const user of users) {
       let score = 0;
       const searchableFields = [
@@ -264,7 +265,7 @@ export class SearchService {
    */
   private searchTransactions(searchTerm: string, transactions: WalletTransaction[], options: SearchOptions): TransactionSearchResult[] {
     const results: TransactionSearchResult[] = [];
-    
+
     for (const transaction of transactions) {
       let score = 0;
       const searchableFields = [
@@ -316,11 +317,11 @@ export class SearchService {
    */
   private calculateFuzzyScore(searchTerm: string, text: string): number {
     if (!searchTerm || !text) return 0;
-    
+
     const maxLength = Math.max(searchTerm.length, text.length);
     const distance = this.levenshteinDistance(searchTerm, text);
     const similarity = 1 - (distance / maxLength);
-    
+
     return similarity > 0.6 ? Math.floor(similarity * 10) : 0;
   }
 
@@ -329,15 +330,15 @@ export class SearchService {
    */
   private levenshteinDistance(str1: string, str2: string): number {
     const matrix = [];
-    
+
     for (let i = 0; i <= str2.length; i++) {
       matrix[i] = [i];
     }
-    
+
     for (let j = 0; j <= str1.length; j++) {
       matrix[0][j] = j;
     }
-    
+
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -351,7 +352,7 @@ export class SearchService {
         }
       }
     }
-    
+
     return matrix[str2.length][str1.length];
   }
 
@@ -368,7 +369,7 @@ export class SearchService {
    */
   private getStrategyDisplayName(strategy: string): string {
     if (!strategy) return 'Unknown Strategy';
-    
+
     // Try to extract strategy type from code
     if (strategy.includes('yield') || strategy.includes('farming')) {
       return 'Yield Farming';
@@ -382,7 +383,7 @@ export class SearchService {
     if (strategy.includes('liquidity')) {
       return 'Liquidity Provision';
     }
-    
+
     return 'Custom Strategy';
   }
 }

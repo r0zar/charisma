@@ -135,9 +135,9 @@ export function getValidTransitions(fromStatus: BotStatus): StateTransition[] {
  */
 export function isValidTransition(fromStatus: BotStatus, toStatus: BotStatus, action: string): boolean {
   return STATE_TRANSITIONS.some(
-    transition => 
-      transition.from === fromStatus && 
-      transition.to === toStatus && 
+    transition =>
+      transition.from === fromStatus &&
+      transition.to === toStatus &&
       transition.action === action
   );
 }
@@ -155,7 +155,7 @@ export function getTransitionByAction(fromStatus: BotStatus, action: string): St
  * Validate bot for state transition
  */
 export async function validateBotForTransition(
-  bot: Bot, 
+  bot: Bot,
   transition: StateTransition
 ): Promise<ValidationResult> {
   const errors: string[] = [];
@@ -202,7 +202,7 @@ export async function validateBotForTransition(
   // Additional business rule validations
   if (transition.to === 'active') {
     // Check if bot has required fields for execution
-    if (!bot.clerkUserId) {
+    if (!bot.ownerId) {
       errors.push('Bot must have an owner to become active');
     }
   }
@@ -232,7 +232,7 @@ export class BotStateMachine {
 
     // Find the transition
     const transition = getTransitionByAction(bot.status, action);
-    
+
     if (!transition) {
       return {
         success: false,
@@ -246,7 +246,7 @@ export class BotStateMachine {
 
     // Validate the transition
     const validation = await validateBotForTransition(bot, transition);
-    
+
     if (!validation.isValid) {
       return {
         success: false,

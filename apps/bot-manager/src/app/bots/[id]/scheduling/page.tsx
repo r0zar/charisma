@@ -1,5 +1,7 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Activity,
   AlertTriangle,
@@ -12,37 +14,28 @@ import {
   Info,
   RefreshCw,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { useBots } from '@/contexts/bot-context';
-import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
-import { useUser } from '@clerk/nextjs';
 import { formatRelativeTime } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotSchedulingPage() {
-  const { bot } = useCurrentBot();
+  const { currentBot: bot, updateBotInContext } = useBots();
   const { showSuccess, showError } = useToast();
   const { user } = useUser();
-  const { updateBotInContext } = useBots();
   const params = useParams();
   const botId = params?.id as string;
   const [schedulingSettings, setSchedulingSettings] = useState({
-    cronSchedule: '',
-    isScheduled: false
+    cronSchedule: ''
   });
   const [executionHistory, setExecutionHistory] = useState<Array<{
     id: string;
@@ -60,18 +53,18 @@ export default function BotSchedulingPage() {
   const [expandedExecution, setExpandedExecution] = useState<string | null>(null);
   const [executionLogs, setExecutionLogs] = useState<{ [key: string]: string }>({});
   const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
+  const [showConfiguration, setShowConfiguration] = useState(false);
 
   useEffect(() => {
     if (bot) {
       // Sync scheduling settings with current bot data
       setSchedulingSettings({
-        cronSchedule: bot.cronSchedule || '',
-        isScheduled: bot.isScheduled || false
+        cronSchedule: bot.cronSchedule || ''
       });
       // Fetch execution history
       fetchExecutionHistory(bot.id);
     }
-  }, [bot]);
+  }, [bot, fetchExecutionHistory]);
 
   const fetchExecutionHistory = async (botId: string) => {
     setLoadingHistory(true);
@@ -139,7 +132,6 @@ export default function BotSchedulingPage() {
         },
         body: JSON.stringify({
           cronSchedule: schedulingSettings.cronSchedule,
-          isScheduled: schedulingSettings.isScheduled,
         }),
       });
 
@@ -152,18 +144,49 @@ export default function BotSchedulingPage() {
       
       // Update bot in context immediately for instant UI feedback
       const updates: Partial<BotType> = {
-        isScheduled: schedulingSettings.isScheduled,
-        cronSchedule: schedulingSettings.isScheduled ? schedulingSettings.cronSchedule : undefined,
+        cronSchedule: schedulingSettings.cronSchedule || undefined,
         nextExecution: responseData.schedule?.nextExecution,
         lastExecution: responseData.schedule?.lastExecution,
       };
       
       updateBotInContext(bot.id, updates);
-      showSuccess('Scheduling settings saved successfully');
+      setShowConfiguration(false);
+      showSuccess('Schedule saved successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      showError('Failed to save scheduling settings', errorMessage);
-      console.error('Error saving scheduling settings:', error);
+      showError('Failed to save schedule', errorMessage);
+      console.error('Error saving schedule:', error);
+    }
+  };
+
+  const handleClearSchedule = async () => {
+    if (!bot) return;
+
+    try {
+      const response = await fetch(`/api/v1/bots/${bot.id}/schedule`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to clear schedule');
+      }
+
+      // Update local state
+      setSchedulingSettings({ cronSchedule: '' });
+      const updates: Partial<BotType> = {
+        cronSchedule: undefined,
+        nextExecution: undefined,
+      };
+      updateBotInContext(bot.id, updates);
+      
+      showSuccess('Schedule cleared successfully');
+    } catch (error) {
+      console.error('Error clearing schedule:', error);
+      showError('Failed to clear schedule. Please try again.');
     }
   };
 
@@ -177,7 +200,7 @@ export default function BotSchedulingPage() {
   const getExecutionStatus = (currentBot: BotType | null) => {
     if (!currentBot) return { canExecute: false, status: 'Unknown', color: 'bg-gray-500/20 text-gray-400', priority: 'bot' };
     
-    const isScheduled = currentBot.isScheduled && currentBot.cronSchedule;
+    const isScheduled = currentBot.cronSchedule && currentBot.status === 'active';
     
     // Bot status takes priority over scheduling status
     switch (currentBot.status) {
@@ -242,7 +265,7 @@ export default function BotSchedulingPage() {
   const getAlertContent = () => {
     if (!bot) return null;
     
-    const isScheduled = bot.isScheduled && bot.cronSchedule;
+    const isScheduled = bot.cronSchedule && bot.status === 'active';
     
     switch (bot.status) {
       case 'paused':
@@ -346,11 +369,10 @@ export default function BotSchedulingPage() {
     }
   };
 
-  const alertContent = getAlertContent();
 
   const colorizeLogLine = (line: string) => {
     // Remove any existing color/style codes
-    const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '');
+    const cleanLine = line.replace(/\u001b\[[0-9;]*m/g, '');
     
     // Define patterns and their corresponding classes
     const patterns = [
@@ -368,7 +390,7 @@ export default function BotSchedulingPage() {
     ];
 
     // Apply coloring
-    let coloredLine = cleanLine;
+    const coloredLine = cleanLine;
     for (const pattern of patterns) {
       if (pattern.regex.test(coloredLine)) {
         return { line: coloredLine, className: pattern.className };
@@ -395,175 +417,325 @@ export default function BotSchedulingPage() {
   }
 
   return (
-    <div className="space-y-4 mb-96">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Scheduling Configuration */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-card-foreground flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Scheduling Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+    <div className="space-y-6 mb-96">
+      {/* Main Status Dashboard */}
+      <Card className="bg-card border-border">
+        <CardContent className="p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            {/* Status Display */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30">
+                {executionStatus.canExecute ? (
+                  <Activity className="w-8 h-8 text-green-400" />
+                ) : bot?.cronSchedule ? (
+                  <Clock className="w-8 h-8 text-yellow-400" />
+                ) : (
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                )}
+              </div>
               <div className="space-y-1">
-                <Label className="text-card-foreground font-medium">Enable Automatic Execution</Label>
-                <p className="text-sm text-muted-foreground">
-                  Allow this bot to execute automatically based on the cron schedule
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Switch
-                  id="enable-scheduling"
-                  checked={schedulingSettings.isScheduled}
-                  onCheckedChange={(checked) => setSchedulingSettings(prev => ({ ...prev, isScheduled: checked }))}
-                />
-                <Label htmlFor="enable-scheduling" className="text-sm font-medium text-card-foreground">
-                  {schedulingSettings.isScheduled ? 'Enabled' : 'Disabled'}
-                </Label>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label className="text-card-foreground">Cron Schedule</Label>
-              <Select
-                value={schedulingSettings.cronSchedule}
-                onValueChange={(value) => setSchedulingSettings(prev => ({ ...prev, cronSchedule: value }))}
-              >
-                <SelectTrigger className="bg-input border-border text-foreground">
-                  <SelectValue placeholder="Select execution frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="*/5 * * * *">Every 5 minutes</SelectItem>
-                  <SelectItem value="*/15 * * * *">Every 15 minutes</SelectItem>
-                  <SelectItem value="*/30 * * * *">Every 30 minutes</SelectItem>
-                  <SelectItem value="0 * * * *">Every hour</SelectItem>
-                  <SelectItem value="0 */6 * * *">Every 6 hours</SelectItem>
-                  <SelectItem value="0 0 * * *">Daily at midnight</SelectItem>
-                  <SelectItem value="0 0 * * 1">Weekly (Mondays at midnight)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Choose how often the bot should execute its strategy
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-card-foreground">Custom Cron Expression</Label>
-              <Input
-                placeholder="0 */4 * * * (every 4 hours)"
-                value={schedulingSettings.cronSchedule}
-                onChange={(e) => setSchedulingSettings(prev => ({ ...prev, cronSchedule: e.target.value }))}
-                className="bg-input border-border text-foreground font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Advanced: Enter a custom cron expression (min hour day month weekday)
-              </p>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                onClick={handleSaveScheduling}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!schedulingSettings.cronSchedule}
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                Save Schedule
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSchedulingSettings({ cronSchedule: '', isScheduled: false });
-                }}
-                className="border-border text-foreground"
-              >
-                Reset
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Scheduling Status */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-card-foreground flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Scheduling Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Execution Status</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-card-foreground">
+                    {executionStatus.canExecute ? 'Automated' : bot?.cronSchedule ? 'Scheduled' : 'Manual'}
+                  </h2>
                   <Badge className={executionStatus.color}>
                     {executionStatus.status}
                   </Badge>
-                  {executionStatus.priority === 'bot' && (
-                    <Badge variant="outline" className="text-xs">
-                      Bot: {bot?.status}
-                    </Badge>
-                  )}
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Cron Expression</span>
-                <span className="text-sm font-mono text-card-foreground">
-                  {bot?.cronSchedule || 'Not set'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Last Execution</span>
-                <span className="text-sm text-card-foreground">
-                  {bot?.lastExecution ? formatRelativeTime(bot.lastExecution) : 'Never'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Next Execution</span>
-                <div className="text-sm text-card-foreground">
-                  {executionStatus.canExecute && bot?.nextExecution ? (
-                    <CountdownTimer
-                      targetDate={bot.nextExecution}
-                      className="text-sm"
-                    />
-                  ) : executionStatus.canExecute ? (
-                    'Calculating...'
-                  ) : executionStatus.action ? (
-                    <span className="text-muted-foreground italic">{executionStatus.action}</span>
-                  ) : (
-                    'Not scheduled'
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Total Executions</span>
-                <span className="text-sm font-semibold text-card-foreground">
-                  {bot?.executionCount || 0}
-                </span>
+                <p className="text-muted-foreground">
+                  {executionStatus.reason}
+                </p>
               </div>
             </div>
 
-            {alertContent && (
-              <Alert className={alertContent.bgColor}>
-                {alertContent.icon}
-                <AlertDescription className={alertContent.textColor}>
-                  {alertContent.message}
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            {/* Context-Sensitive Actions */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {!bot?.cronSchedule ? (
+                <Button
+                  onClick={() => setShowConfiguration(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Set Schedule
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowConfiguration(true)}
+                    className="border-border text-foreground"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Edit Schedule
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleClearSchedule}
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Clear Schedule
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-border">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-card-foreground">
+                {bot?.cronSchedule ? (
+                  <span className="font-mono text-sm bg-muted px-2 py-1 rounded">{bot.cronSchedule}</span>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Schedule</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-2xl font-bold text-card-foreground">
+                {bot?.lastExecution ? formatRelativeTime(bot.lastExecution) : 'Never'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Last Run</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-2xl font-bold text-card-foreground">
+                {executionStatus.canExecute && bot?.nextExecution ? (
+                  <CountdownTimer targetDate={bot.nextExecution} className="text-lg" />
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Next Run</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-2xl font-bold text-card-foreground">{bot?.executionCount || 0}</div>
+              <div className="text-xs text-muted-foreground mt-1">Total Runs</div>
+            </div>
+          </div>
+
+          {/* Mini Execution Timeline */}
+          {executionHistory.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-card-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Recent Activity
+                </h3>
+                <div className="text-xs text-muted-foreground">
+                  Last {Math.min(executionHistory.length, 5)} executions
+                </div>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {executionHistory.slice(0, 5).map((execution, index) => {
+                  const isLatest = index === 0;
+                  const statusColor = execution.status === 'success'
+                    ? 'bg-green-500/20 border-green-500/30 text-green-400'
+                    : execution.status === 'failure'
+                      ? 'bg-red-500/20 border-red-500/30 text-red-400'
+                      : execution.status === 'timeout'
+                        ? 'bg-orange-500/20 border-orange-500/30 text-orange-400'
+                        : 'bg-blue-500/20 border-blue-500/30 text-blue-400';
+
+                  const statusIcon = execution.status === 'success'
+                    ? <CheckCircle className="w-3 h-3" />
+                    : execution.status === 'failure'
+                      ? <AlertTriangle className="w-3 h-3" />
+                      : execution.status === 'timeout'
+                        ? <Clock className="w-3 h-3" />
+                        : <RefreshCw className="w-3 h-3" />;
+
+                  return (
+                    <div
+                      key={execution.id}
+                      className={`flex-shrink-0 p-3 rounded-lg border ${statusColor} ${
+                        isLatest ? 'ring-2 ring-blue-500/20' : ''
+                      } min-w-[120px] relative group cursor-pointer hover:scale-105 transition-transform`}
+                      title={`${execution.status} - ${formatRelativeTime(execution.startedAt)}`}
+                      onClick={() => {
+                        // Scroll to the execution history section
+                        const historyElement = document.querySelector('[data-execution-history]');
+                        if (historyElement) {
+                          historyElement.scrollIntoView({ behavior: 'smooth' });
+                          // Find and expand this specific execution
+                          const executionElement = document.querySelector(`[data-execution-id="${execution.id}"]`);
+                          if (executionElement && execution.logsUrl) {
+                            toggleExecutionExpansion(execution.id);
+                          }
+                        }
+                      }}
+                    >
+                      {isLatest && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+                      )}
+                      <div className="flex items-center gap-2 mb-1">
+                        {statusIcon}
+                        <span className="text-xs font-medium capitalize">{execution.status}</span>
+                      </div>
+                      <div className="text-xs opacity-75">
+                        {formatRelativeTime(execution.startedAt)}
+                      </div>
+                      {execution.executionTime && (
+                        <div className="text-xs opacity-60 mt-1">
+                          {execution.executionTime}ms
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {/* View All Link */}
+                <div className="flex-shrink-0 flex items-center">
+                  <button
+                    onClick={() => {
+                      const historyElement = document.querySelector('[data-execution-history]');
+                      if (historyElement) {
+                        historyElement.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="p-3 rounded-lg border border-border text-muted-foreground hover:text-card-foreground hover:border-border transition-colors min-w-[80px] flex flex-col items-center justify-center gap-1"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    <span className="text-xs">View All</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Expandable Configuration Panel */}
+      <AnimatePresence>
+        {showConfiguration && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="text-card-foreground flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Schedule Configuration
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowConfiguration(false)}
+                  >
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Quick Presets */}
+                <div className="space-y-3">
+                  <Label className="text-card-foreground text-sm font-medium">Quick Presets</Label>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    {[
+                      { label: '5 min', value: '*/5 * * * *' },
+                      { label: '15 min', value: '*/15 * * * *' },
+                      { label: '30 min', value: '*/30 * * * *' },
+                      { label: 'Hourly', value: '0 * * * *' },
+                      { label: '6 hours', value: '0 */6 * * *' },
+                      { label: 'Daily', value: '0 0 * * *' },
+                      { label: 'Weekly', value: '0 0 * * 1' },
+                      { label: 'Monthly', value: '0 0 1 * *' },
+                    ].map((preset) => (
+                      <Button
+                        key={preset.value}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSchedulingSettings({ cronSchedule: preset.value })}
+                        className={`text-xs ${
+                          schedulingSettings.cronSchedule === preset.value
+                            ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                            : 'border-border text-muted-foreground hover:text-card-foreground'
+                        }`}
+                      >
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom Cron Expression */}
+                <div className="space-y-3">
+                  <Label className="text-card-foreground text-sm font-medium">Custom Schedule</Label>
+                  <Input
+                    placeholder="0 */4 * * * (every 4 hours)"
+                    value={schedulingSettings.cronSchedule}
+                    onChange={(e) => setSchedulingSettings({ cronSchedule: e.target.value })}
+                    className="bg-input border-border text-foreground font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Format: minute hour day month weekday. Use{' '}
+                    <a 
+                      href="https://crontab.guru" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 underline"
+                    >
+                      crontab.guru
+                    </a>{' '}
+                    for help with cron expressions.
+                  </p>
+                </div>
+
+                {/* How It Works - Condensed */}
+                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-blue-300">Automatic Execution Requirements</h4>
+                      <ul className="text-xs text-blue-200/80 space-y-1">
+                        <li>• Bot status must be "Active"</li>
+                        <li>• Valid cron schedule must be set</li>
+                        <li>• Current time matches schedule timing</li>
+                      </ul>
+                      <p className="text-xs text-blue-200/60">
+                        💡 Tip: Change bot status to "Paused" to temporarily stop automatic execution
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={handleSaveScheduling}
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                    disabled={!schedulingSettings.cronSchedule}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Save Schedule
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSchedulingSettings({ cronSchedule: bot?.cronSchedule || '' });
+                      setShowConfiguration(false);
+                    }}
+                    className="border-border text-foreground"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Execution History */}
-      <Card className="bg-card border-border">
+      <Card className="bg-card border-border" data-execution-history>
         <CardHeader>
           <CardTitle className="text-card-foreground flex items-center gap-2">
             <Activity className="w-5 h-5" />
@@ -623,7 +795,7 @@ export default function BotSchedulingPage() {
                 const hasLogs = Boolean(execution.logsUrl);
 
                 return (
-                  <div key={execution.id} className="bg-muted rounded-lg overflow-hidden">
+                  <div key={execution.id} className="bg-muted rounded-lg overflow-hidden" data-execution-id={execution.id}>
                     <div
                       className={`p-4 space-y-3 ${hasLogs ? 'cursor-pointer hover:bg-muted/80' : ''}`}
                       onClick={hasLogs ? () => toggleExecutionExpansion(execution.id) : undefined}

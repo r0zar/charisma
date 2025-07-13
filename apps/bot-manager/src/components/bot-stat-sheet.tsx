@@ -19,16 +19,16 @@ import {
   Wallet,
   Zap
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
 import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
-import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Badge } from '@/components/ui/badge';
+import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMonacoTypeDefinitions } from '@/generated/types';
 import { useToast } from '@/contexts/toast-context';
+import { getMonacoTypeDefinitions } from '@/generated/types';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot } from '@/schemas/bot.schema';
 
@@ -158,7 +158,7 @@ export function BotStatSheet({ bot }: BotStatSheetProps) {
                   <div className="text-xs text-slate-400 uppercase tracking-wide">Status</div>
                 </div>
                 <div className="text-center p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                  <div className="text-2xl font-bold text-yellow-400 uppercase">{bot.isScheduled ? 'AUTO' : 'MANUAL'}</div>
+                  <div className="text-2xl font-bold text-yellow-400 uppercase">{bot.cronSchedule ? 'AUTO' : 'MANUAL'}</div>
                   <div className="text-xs text-slate-400 uppercase tracking-wide">Mode</div>
                 </div>
               </div>
@@ -227,12 +227,12 @@ export function BotStatSheet({ bot }: BotStatSheetProps) {
           <CardContent className="space-y-4">
             <div className="text-center">
               <div className="text-lg font-bold text-slate-200 mb-1">Execution Mode</div>
-              <Badge className={bot.isScheduled ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'}>
-                {bot.isScheduled ? 'Automated' : 'Manual'}
+              <Badge className={bot.cronSchedule ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'}>
+                {bot.cronSchedule ? 'Automated' : 'Manual'}
               </Badge>
             </div>
 
-            {bot.isScheduled ? (
+            {bot.cronSchedule ? (
               <>
                 <div className="text-center text-slate-400 text-sm">
                   {formatCronSchedule(bot.cronSchedule)}

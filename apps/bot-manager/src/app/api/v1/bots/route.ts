@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { botService } from '@/lib/services/bots';
-import { CreateBotRequestSchema, BotSchema } from '@/schemas/bot.schema';
+import { BotSchema,CreateBotRequestSchema } from '@/schemas/bot.schema';
 
 /**
  * GET /api/v1/bots
@@ -17,55 +17,27 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
-    const status = searchParams.get('status');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
-    let allBots;
-    let stats;
-
-    if (userId) {
-      // User-specific request - requires authentication
-      const { userId: clerkUserId } = await auth();
-      
-      if (!clerkUserId) {
-        return NextResponse.json(
-          { error: 'Authentication required', message: 'Must be signed in to access user bots' },
-          { status: 401 }
-        );
-      }
-
-      if (clerkUserId !== userId) {
-        return NextResponse.json(
-          { error: 'Unauthorized', message: 'Can only access your own bots' },
-          { status: 403 }
-        );
-      }
-
-      console.log(`👤 User bot data request for ${userId} (${botService.getDataSource()})`);
-
-      // Get user-specific bots
-      allBots = await botService.getAllBotsByClerkUserId(userId);
-      stats = await botService.getBotStatsByClerkUserId(userId);
-    } else {
-      // Public request
-      console.log(`🌍 Public bot data request (${botService.getDataSource()})`);
-
-      // Get all public bots
-      allBots = await botService.getPublicBots();
-      stats = await botService.getPublicBotStats();
-    }
-    
-    // Filter by status if specified
-    if (status && status !== 'all') {
-      allBots = allBots.filter(bot => bot.status === status);
-    }
+    // Get bots using new streamlined interface
+    const allBots = await botService.listBots({
+      ownerId: userId || undefined, // Get user's bots if userId provided, all bots if not
+    });
 
     // Apply pagination
     const totalBots = allBots.length;
-    const paginatedBots = limit 
+    const paginatedBots = limit
       ? allBots.slice(offset, offset + limit)
       : allBots.slice(offset);
+
+    // Calculate stats on the client side from the bot data
+    const stats = {
+      totalBots,
+      activeBots: allBots.filter(bot => bot.status === 'active').length,
+      pausedBots: allBots.filter(bot => bot.status === 'paused').length,
+      errorBots: allBots.filter(bot => bot.status === 'error').length,
+    };
 
     const responseData = {
       list: paginatedBots, // Use 'list' for compatibility with frontend
@@ -77,24 +49,24 @@ export async function GET(request: NextRequest) {
         limit: limit || totalBots,
         hasMore: limit ? (offset + limit) < totalBots : false
       },
-      source: botService.getDataSource(),
+      source: botService.useKV ? 'kv' : 'static',
       timestamp: new Date().toISOString(),
     };
 
     console.log(`📊 Returned ${paginatedBots.length} of ${totalBots} ${userId ? 'user' : 'public'} bots`);
 
     const response = NextResponse.json(responseData);
-    
+
     // Disable caching for fresh bot data
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
-    
+
     return response;
 
   } catch (error) {
     console.error('Bots API error:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -113,7 +85,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required', message: 'Must be signed in to create bots' },
@@ -129,8 +101,8 @@ export async function POST(request: NextRequest) {
 
     if (!hasAlphaAccess) {
       return NextResponse.json(
-        { 
-          error: 'Feature not available', 
+        {
+          error: 'Feature not available',
           message: 'Bot creation is currently in alpha. Please contact support for access.',
           code: 'ALPHA_ACCESS_REQUIRED'
         },
@@ -140,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validation = CreateBotRequestSchema.safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: validation.error.issues },
@@ -148,7 +120,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const bot = await botService.createBotByClerkUserId(userId, validation.data);
+    const bot = await botService.createBot(validation.data);
 
     return NextResponse.json({
       bot,
@@ -158,7 +130,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Create bot API error:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -179,7 +151,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required', message: 'Must be signed in to update bots' },
@@ -199,7 +171,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const validation = BotSchema.partial().safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: validation.error.issues },
@@ -207,7 +179,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const bot = await botService.updateBotByClerkUserId(userId, botId, validation.data);
+    const bot = await botService.updateBot(botId, validation.data);
 
     return NextResponse.json({
       bot,
@@ -217,7 +189,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Update bot API error:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Internal server error',
@@ -238,7 +210,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required', message: 'Must be signed in to delete bots' },
@@ -256,7 +228,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await botService.deleteBotByClerkUserId(userId, botId);
+    await botService.deleteBot(botId);
 
     return NextResponse.json({
       message: 'Bot deleted successfully',
@@ -265,7 +237,7 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     console.error('Delete bot API error:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Internal server error',

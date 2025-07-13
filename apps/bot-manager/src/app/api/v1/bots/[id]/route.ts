@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botDataStore } from '@/lib/modules/storage';
 import { botService } from '@/lib/services/bots/core/service';
-import { loadAndVerifyBot } from '@/lib/utils/bot-auth';
 import { ENABLE_API_BOTS } from '@/lib/utils/config';
 
 /**
@@ -33,9 +31,9 @@ export async function GET(
       );
     }
 
-    // For default requests, skip authentication (public static data)
+    // For default requests, skip authentication (all bots)
     if (useDefault) {
-      const allBots = await botService.scanAllBots();
+      const allBots = await botService.listBots(); // Get all bots
       const bot = allBots.find(b => b.id === botId);
 
       if (!bot) {
@@ -62,36 +60,10 @@ export async function GET(
       });
     }
 
-    // For authenticated requests, verify ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
-    }
-
-    const { userId, bot: verifiedBot } = authResult;
-    let bot = verifiedBot;
-    let source = 'static';
-
-    // Check if we should use KV store
-    const useKV = ENABLE_API_BOTS;
-
-    if (useKV && userId) {
-      // Use KV store
-      try {
-        const kvBot = await botDataStore.getBot(userId, botId);
-        if (kvBot) {
-          bot = kvBot;
-          source = 'kv';
-        }
-      } catch (error) {
-        console.error(`[Bot API] Failed to fetch bot ${botId} from KV:`, error);
-        // Don't return error here, fall back to verified bot
-      }
-    }
+    const bot = await botService.getBot(botId);
 
     const responseData = {
       bot,
-      source,
       timestamp: new Date().toISOString(),
     };
 
@@ -144,42 +116,21 @@ export async function PUT(
       );
     }
 
-    // Verify authentication and ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
-    }
+    const bot = await botService.getBot(botId);
 
-    const { userId } = authResult;
-
-    // Check if we should use KV store
-    const useKV = ENABLE_API_BOTS;
-
-    if (!useKV) {
+    if (!bot) {
       return NextResponse.json(
         {
-          error: 'KV store not available',
-          message: 'Bot updates require KV store to be enabled and available',
+          error: 'Bot not found',
+          message: `Bot with ID '${botId}' does not exist`,
           timestamp: new Date().toISOString(),
         },
-        { status: 503 }
+        { status: 404 }
       );
-    }
-
-    // Check for deprecated status changes
-    const deprecationWarnings: string[] = [];
-    if (body.status && body.status !== undefined) {
-      deprecationWarnings.push(
-        'Direct status updates are deprecated. Use /api/v1/bots/[id]/transitions endpoint for state changes.'
-      );
-      console.warn(`[DEPRECATED] Direct status update attempted for bot ${botId}. Use state machine transitions instead.`);
     }
 
     // Update bot in KV store
-    await botDataStore.updateBot(userId, body);
-
-    // Get the updated bot
-    const updatedBot = await botDataStore.getBot(botId, userId);
+    const updatedBot = await botService.updateBot(botId, body);
 
     if (!updatedBot) {
       return NextResponse.json(
@@ -195,12 +146,7 @@ export async function PUT(
     const responseData = {
       bot: updatedBot,
       message: 'Bot updated successfully',
-      source: 'kv',
       timestamp: new Date().toISOString(),
-      ...(deprecationWarnings.length > 0 && {
-        warnings: deprecationWarnings,
-        deprecated: true
-      }),
     };
 
     return NextResponse.json(responseData, {
@@ -250,35 +196,12 @@ export async function DELETE(
       );
     }
 
-    // Verify authentication and ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
-    }
-
-    const { userId } = authResult;
-
-    // Check if we should use KV store
-    const useKV = ENABLE_API_BOTS;
-
-    if (!useKV) {
-      return NextResponse.json(
-        {
-          error: 'KV store not available',
-          message: 'Bot deletion requires KV store to be enabled and available',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
-
     // Delete bot from KV store
-    await botDataStore.deleteBot(userId, botId);
+    await botService.deleteBot(botId);
 
     const responseData = {
       message: 'Bot deleted successfully',
       botId,
-      source: 'kv',
       timestamp: new Date().toISOString(),
     };
 

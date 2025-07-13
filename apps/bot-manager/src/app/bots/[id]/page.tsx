@@ -18,7 +18,7 @@ import { CountdownTimer } from '@/components/countdown-timer';
 import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCurrentBot } from '@/contexts/current-bot-context';
+import { useBots } from '@/contexts/bot-context';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 
 const statusColors = {
@@ -36,18 +36,6 @@ const statusIcons = {
   setup: <Clock className="w-4 h-4" />,
   inactive: <Clock className="w-4 h-4" />
 };
-
-// Transform BotActivity to transaction format for display
-const transformActivityToTransaction = (activity: any) => ({
-  id: activity.id,
-  type: activity.type,
-  amount: activity.amount || 0,
-  from: activity.token || 'STX',
-  to: activity.type === 'withdrawal' ? 'Wallet' : activity.type === 'deposit' ? 'Bot' : 'Pool',
-  status: activity.status === 'failed' ? 'error' : activity.status,
-  timestamp: new Date(activity.timestamp).getTime(),
-  txHash: activity.txid || ''
-});
 
 // Get the appropriate icon for activity type
 const getActivityIcon = (type: string) => {
@@ -104,7 +92,7 @@ const getActivityBgColor = (type: string) => {
 };
 
 export default function BotOverviewPage() {
-  const { bot } = useCurrentBot();
+  const { currentBot: bot } = useBots();
 
   // Bot activities have been moved to analytics system
   const botActivities: any[] = [];
@@ -147,12 +135,12 @@ export default function BotOverviewPage() {
 
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Scheduling</span>
-              <Badge className={bot.isScheduled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
-                {bot.isScheduled ? 'Auto' : 'Manual'}
+              <Badge className={bot.cronSchedule ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+                {bot.cronSchedule ? 'Auto' : 'Manual'}
               </Badge>
             </div>
 
-            {bot.isScheduled && bot.nextExecution && (
+            {bot.cronSchedule && bot.nextExecution && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Next Run</span>
                 <CountdownTimer

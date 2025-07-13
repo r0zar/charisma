@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Load all bots using the bot service
-    const allBots = await botService.scanAllBots();
+    const allBots = await botService.listBots(); // Get all bots for cron execution
 
     // Use scheduler service to determine which bots need execution
     const schedulingResult = botSchedulerService.getBotsToExecute(allBots);

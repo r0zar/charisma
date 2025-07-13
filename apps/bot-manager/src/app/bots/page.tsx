@@ -1,5 +1,6 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import {
   Bot,
   CheckCircle,
@@ -24,7 +25,7 @@ import {
   XCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 
 // Removed usePublicBots hook - using SSR data instead
 import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
@@ -43,10 +44,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBots } from '@/contexts/bot-context';
-import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { useUser } from '@clerk/nextjs';
 import { useAlphaAccess } from '@/hooks/use-alpha-access';
 import { formatRelativeTime, truncateAddress } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
@@ -77,7 +76,7 @@ interface BotCardProps {
 
 function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
   const { showSuccess, showError } = useToast();
-  const { startBot, resumeBot, pauseBot, isTransitioning } = useBotStateMachine();
+  const { startBot, resumeBot, pauseBot, isTransitioning } = useBots();
 
   // Smart action handler that uses the correct transition based on bot status
   const handleStartAction = async (bot: BotType, reason: string) => {
@@ -512,8 +511,7 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
 }
 
 export default function BotsPage() {
-  const { bots, allBots, loading, deleteBot, refreshData } = useBots();
-  const { startBot, resumeBot, pauseBot } = useBotStateMachine();
+  const { bots, allBots, loading, deleteBot, refreshData, startBot, resumeBot, pauseBot } = useBots();
   const { showSuccess, showError } = useToast();
   const { walletState } = useWallet();
   const { user, isSignedIn } = useUser();
@@ -524,27 +522,16 @@ export default function BotsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const botsPerPage = 20;
 
-  // Auto-refresh bot data every 30 seconds to reduce stale cache issues
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [refreshData]);
-
   // Calculate public stats from all bots (excluding current user's bots for community display)
-  const publicStats = useMemo(() => {
+  const getPublicStats = () => {
     if (!allBots || allBots.length === 0) {
       return { totalBots: 0, activeBots: 0, pausedBots: 0, errorBots: 0, totalUsers: 0 };
     }
-
     // For display purposes, exclude current user's bots from community stats
     const communityBots = isSignedIn && user?.id
-      ? allBots.filter(bot => bot.clerkUserId !== user.id)
+      ? allBots.filter(bot => bot.ownerId !== user.id)
       : allBots;
-
-    const uniqueOwners = new Set(communityBots.map(bot => bot.clerkUserId));
+    const uniqueOwners = new Set(communityBots.map(bot => bot.ownerId));
     return {
       totalBots: communityBots.length,
       activeBots: communityBots.filter(bot => bot.status === 'active').length,
@@ -552,47 +539,42 @@ export default function BotsPage() {
       errorBots: communityBots.filter(bot => bot.status === 'error').length,
       totalUsers: uniqueOwners.size,
     };
-  }, [allBots, isSignedIn, user?.id]);
+  };
 
-  const filteredBots = useMemo(() => {
-    return bots.filter(bot => {
+  const getFilteredBots = () =>
+    bots.filter(bot => {
       const matchesSearch = bot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         bot.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         getStrategyDisplayName(bot.strategy).toLowerCase().includes(searchQuery.toLowerCase());
-
       const matchesStatus = statusFilter === 'all' || bot.status === statusFilter;
-
       return matchesSearch && matchesStatus;
     });
-  }, [bots, searchQuery, statusFilter]);
 
-  const filteredPublicBots = useMemo(() => {
+  const getFilteredPublicBots = () => {
     if (!allBots || !Array.isArray(allBots)) {
       return [];
     }
-
     return allBots.filter(bot => {
       // Safety check - ensure bot and required properties exist
       if (!bot || !bot.name || !bot.id || !bot.strategy || !bot.status) {
         return false;
       }
-
       // Filter out current user's bots - only show other people's bots
-      if (isSignedIn && user?.id && bot.clerkUserId === user.id) {
+      if (isSignedIn && user?.id && bot.ownerId === user.id) {
         return false;
       }
-
       const matchesSearch = bot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         bot.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         getStrategyDisplayName(bot.strategy).toLowerCase().includes(searchQuery.toLowerCase());
-
       const matchesStatus = statusFilter === 'all' || bot.status === statusFilter;
-
       return matchesSearch && matchesStatus;
     });
-  }, [allBots, searchQuery, statusFilter, isSignedIn, user?.id]);
+  };
 
-  // Pagination for public bots
+  // Pagination for public bots (now inline)
+  const filteredBots = getFilteredBots();
+  const filteredPublicBots = getFilteredPublicBots();
+  const publicStats = getPublicStats();
   const totalPages = Math.ceil(filteredPublicBots.length / botsPerPage);
   const startIndex = (currentPage - 1) * botsPerPage;
   const endIndex = startIndex + botsPerPage;

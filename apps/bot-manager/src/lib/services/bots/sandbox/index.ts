@@ -4,4 +4,6 @@
  */
 
 export * from './sandbox-client';
-export * from './sandbox-service';
+
+// Server-only exports - only import these in server components or API routes
+export { SandboxService, sandboxService } from './sandbox-service';

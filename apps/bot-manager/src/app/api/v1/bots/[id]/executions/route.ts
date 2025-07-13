@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { executionDataStore } from '@/lib/modules/storage';
 import { botService } from '@/lib/services/bots/core/service';
-import { loadAndVerifyBot } from '@/lib/utils/bot-auth';
-import { BotExecutionSchema } from '@/schemas/bot.schema';
 
 export async function GET(
   request: NextRequest,
@@ -21,45 +18,17 @@ export async function GET(
       );
     }
 
-    // Verify authentication and ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
+    const bot = await botService.getBot(botId, { includeExecutions: true });
+    if (!bot) {
+      return NextResponse.json(
+        { error: 'Bot not found' },
+        { status: 404 }
+      );
     }
-
-    const { userId, bot } = authResult;
-
-    // Try to fetch executions using multiple strategies for backward compatibility
-    let executions: any[] = [];
-    
-    console.log(`[Executions API] Fetching executions for bot ${botId}:`, {
-      clerkUserId: bot.clerkUserId,
-      ownerId: bot.ownerId,
-      authUserId: userId
-    });
-    
-    // Strategy 1: Use Clerk userId (new system)
-    if (bot.clerkUserId) {
-      console.log(`[Executions API] Trying Clerk userId: ${bot.clerkUserId}`);
-      executions = await executionDataStore.getExecutions(bot.clerkUserId, botId, 20);
-      console.log(`[Executions API] Found ${executions.length} executions with Clerk userId`);
-    }
-    
-    // Strategy 2: If no executions found and bot has legacy ownerId, try that
-    if (executions.length === 0 && bot.ownerId) {
-      console.log(`[Executions API] Trying legacy ownerId: ${bot.ownerId}`);
-      executions = await executionDataStore.getExecutions(bot.ownerId, botId, 20);
-      console.log(`[Executions API] Found ${executions.length} executions with legacy ownerId`);
-    }
-
-    // Validate each execution (they should already be valid from storage)
-    const validatedExecutions = executions.map(exec =>
-      BotExecutionSchema.parse(exec)
-    );
 
     return NextResponse.json({
-      executions: validatedExecutions,
-      total: validatedExecutions.length
+      executions: bot.executions,
+      total: bot.executions?.length || 0
     });
 
   } catch (error) {

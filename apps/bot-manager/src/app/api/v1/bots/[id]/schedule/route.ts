@@ -1,10 +1,7 @@
 import { CronExpressionParser } from 'cron-parser';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botDataStore } from '@/lib/modules/storage';
 import { botService } from '@/lib/services/bots/core/service';
-import { loadAndVerifyBot } from '@/lib/utils/bot-auth';
-import { ENABLE_API_BOTS } from '@/lib/utils/config';
 
 /**
  * GET /api/v1/bots/[id]/schedule
@@ -19,29 +16,21 @@ export async function GET(
   try {
     const { id: botId } = await params;
 
-    // Verify authentication and ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
-    }
+    const bot = await botService.getBot(botId);
 
-    const { userId, bot } = authResult;
-
-    // Check if bot API is enabled
-    if (!ENABLE_API_BOTS) {
+    if (!bot) {
       return NextResponse.json(
         {
-          error: 'Bot API disabled',
-          message: 'Bot scheduling API is not enabled',
+          error: 'Bot not found',
+          message: `Bot ${botId} not found`,
           timestamp: new Date().toISOString(),
         },
-        { status: 503 }
+        { status: 404 }
       );
     }
 
     // Return scheduling information
     const scheduleInfo = {
-      isScheduled: bot.isScheduled || false,
       cronSchedule: bot.cronSchedule,
       lastExecution: bot.lastExecution,
       nextExecution: bot.nextExecution,
@@ -50,7 +39,7 @@ export async function GET(
     };
 
     // Calculate next execution if schedule exists
-    if (bot.cronSchedule && bot.isScheduled) {
+    if (bot.cronSchedule) {
       try {
         const interval = CronExpressionParser.parse(bot.cronSchedule);
         const nextRun = interval.next();
@@ -87,7 +76,7 @@ export async function GET(
  * Update bot scheduling configuration
  * Query params:
  * - userId: user ID that owns the bot (required)
- * Body: { isScheduled: boolean, cronSchedule?: string }
+ * Body: { cronSchedule?: string }
  */
 export async function PUT(
   request: NextRequest,
@@ -96,47 +85,26 @@ export async function PUT(
   try {
     const { id: botId } = await params;
 
-    // Verify authentication and ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
-    }
+    const bot = await botService.getBot(botId);
 
-    const { userId, bot } = authResult;
-    console.log(`[BotScheduleAPI] Authenticated request from user ${userId} for bot ${botId}`);
-
-    // Check if bot API is enabled
-    if (!ENABLE_API_BOTS) {
+    if (!bot) {
       return NextResponse.json(
         {
-          error: 'Bot API disabled',
-          message: 'Bot scheduling management is not enabled',
+          error: 'Bot not found',
+          message: `Bot ${botId} not found`,
           timestamp: new Date().toISOString(),
         },
-        { status: 503 }
+        { status: 404 }
       );
     }
-
 
     const body = await request.json();
-    const { isScheduled, cronSchedule } = body;
+    const { cronSchedule } = body;
 
-    if (typeof isScheduled !== 'boolean') {
-      return NextResponse.json(
-        {
-          error: 'Invalid data',
-          message: 'isScheduled must be a boolean',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
-
-
-    // Validate cron expression if scheduling is enabled
-    if (isScheduled && cronSchedule) {
+    // Validate cron expression if provided
+    if (cronSchedule) {
       try {
-        const interval = CronExpressionParser.parse(cronSchedule);
+        CronExpressionParser.parse(cronSchedule);
       } catch (error) {
         return NextResponse.json(
           {
@@ -150,7 +118,7 @@ export async function PUT(
     }
 
     // Check if bot has wallet for scheduled execution
-    if (isScheduled && (!bot.encryptedWallet || !bot.walletIv)) {
+    if (cronSchedule && (!bot.encryptedWallet || !bot.walletIv)) {
       return NextResponse.json(
         {
           error: 'Wallet required',
@@ -161,9 +129,9 @@ export async function PUT(
       );
     }
 
-    // Calculate next execution if enabling schedule
+    // Calculate next execution if setting schedule
     let nextExecution: string | undefined;
-    if (isScheduled && cronSchedule) {
+    if (cronSchedule) {
       try {
         const interval = CronExpressionParser.parse(cronSchedule);
         nextExecution = interval.next().toISOString() || undefined;
@@ -175,24 +143,22 @@ export async function PUT(
     // Update bot with new scheduling configuration
     const updatedBot = {
       ...bot,
-      isScheduled,
-      cronSchedule: isScheduled ? cronSchedule : undefined,
-      nextExecution: isScheduled ? nextExecution : undefined,
-      // Clear last execution if disabling schedule
-      lastExecution: isScheduled ? bot.lastExecution : undefined,
+      cronSchedule: cronSchedule || undefined,
+      nextExecution: cronSchedule ? nextExecution : undefined,
+      // Clear last execution if removing schedule
+      lastExecution: cronSchedule ? bot.lastExecution : undefined,
     };
 
     // Save updated bot
-    await botDataStore.updateBotByClerkUserId(userId, updatedBot);
+    await botService.updateBot(botId, updatedBot);
 
-    console.log(`[BotScheduleAPI] Bot ${botId} scheduling ${isScheduled ? 'enabled' : 'disabled'}${cronSchedule ? ` with schedule: ${cronSchedule}` : ''}`);
+    console.log(`[BotScheduleAPI] Bot ${botId} schedule ${cronSchedule ? `updated to: ${cronSchedule}` : 'cleared'}`);
 
     return NextResponse.json(
       {
         success: true,
-        message: `Bot scheduling ${isScheduled ? 'enabled' : 'disabled'}`,
+        message: `Bot schedule ${cronSchedule ? 'updated' : 'cleared'}`,
         schedule: {
-          isScheduled,
           cronSchedule: updatedBot.cronSchedule,
           nextExecution: updatedBot.nextExecution,
           lastExecution: updatedBot.lastExecution,
@@ -218,7 +184,7 @@ export async function PUT(
 
 /**
  * DELETE /api/v1/bots/[id]/schedule
- * Disable bot scheduling
+ * Clear bot scheduling
  * Query params:
  * - userId: user ID that owns the bot (required)
  */
@@ -229,53 +195,34 @@ export async function DELETE(
   try {
     const { id: botId } = await params;
 
-    // Verify authentication and ownership
-    const authResult = await loadAndVerifyBot(botId, botService);
-    if (authResult.error) {
-      return authResult.error;
-    }
+    const bot = await botService.getBot(botId);
 
-    const { userId, bot } = authResult;
-
-    // Check if bot API is enabled
-    if (!ENABLE_API_BOTS) {
-      return NextResponse.json(
-        {
-          error: 'Bot API disabled',
-          message: 'Bot scheduling management is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
-
-    // Disable scheduling
+    // Clear scheduling
     const updatedBot = {
       ...bot,
-      isScheduled: false,
       cronSchedule: undefined,
       nextExecution: undefined,
     };
 
     // Save updated bot
-    await botDataStore.updateBotByClerkUserId(userId, updatedBot);
+    await botService.updateBot(botId, updatedBot);
 
-    console.log(`[BotScheduleAPI] Scheduling disabled for bot ${botId}`);
+    console.log(`[BotScheduleAPI] Schedule cleared for bot ${botId}`);
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Bot scheduling disabled',
+        message: 'Bot schedule cleared',
         timestamp: new Date().toISOString(),
       },
       { status: 200 }
     );
 
   } catch (error) {
-    console.error('Error disabling bot schedule:', error);
+    console.error('Error clearing bot schedule:', error);
     return NextResponse.json(
       {
-        error: 'Failed to disable bot schedule',
+        error: 'Failed to clear bot schedule',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       },

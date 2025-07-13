@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         address: walletAddress,
         connectionMethod: 'stacks-connect',
         lastConnected: new Date().toISOString(),
-        publicKey: publicKey,
+        publicKey,
         verificationSignature: signature,
         verificationMessage: message,
         verificationTimestamp: new Date().toISOString()
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         message: 'Wallet synced successfully',
-        walletAddress: walletAddress,
+        walletAddress,
         timestamp: new Date().toISOString(),
       },
       { status: 200 }

@@ -34,7 +34,6 @@ describe('BotSchedulerService', () => {
       createdAt: '2025-01-15T09:00:00.000Z',
       lastActive: '2025-01-15T10:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: true,
       executionCount: 0,
       cronSchedule: '0 * * * *' // Every hour
     };
@@ -42,7 +41,7 @@ describe('BotSchedulerService', () => {
 
   describe('shouldExecuteBot', () => {
     it('should return false for bots that are not scheduled', () => {
-      const bot = { ...mockBot, isScheduled: false };
+      const bot = { ...mockBot, cronSchedule: undefined };
       expect(botSchedulerService.shouldExecuteBot(bot, currentTime)).toBe(false);
     });
 
@@ -120,11 +119,11 @@ describe('BotSchedulerService', () => {
   describe('getScheduledBots', () => {
     it('should filter bots correctly', () => {
       const bots: Bot[] = [
-        { ...mockBot, id: 'SP1', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' },
-        { ...mockBot, id: 'SP2', isScheduled: false, status: 'active', cronSchedule: '0 * * * *' }, // Not scheduled
-        { ...mockBot, id: 'SP3', isScheduled: true, status: 'paused', cronSchedule: '0 * * * *' }, // Not active
-        { ...mockBot, id: 'SP4', isScheduled: true, status: 'active', cronSchedule: undefined }, // No cron
-        { ...mockBot, id: 'SP5', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' } // Valid
+        { ...mockBot, id: 'SP1', status: 'active', cronSchedule: '0 * * * *' },
+        { ...mockBot, id: 'SP2', status: 'active', cronSchedule: undefined }, // Not scheduled
+        { ...mockBot, id: 'SP3', status: 'paused', cronSchedule: '0 * * * *' }, // Not active
+        { ...mockBot, id: 'SP4', status: 'active', cronSchedule: undefined }, // No cron
+        { ...mockBot, id: 'SP5', status: 'active', cronSchedule: '0 * * * *' } // Valid
       ];
 
       const result = botSchedulerService.getScheduledBots(bots);
@@ -134,7 +133,7 @@ describe('BotSchedulerService', () => {
 
     it('should return empty array when no bots match criteria', () => {
       const bots: Bot[] = [
-        { ...mockBot, isScheduled: false },
+        { ...mockBot, cronSchedule: undefined },
         { ...mockBot, status: 'paused' as const }
       ];
 
@@ -161,7 +160,7 @@ describe('BotSchedulerService', () => {
         {
           ...mockBot,
           id: 'SP3',
-          isScheduled: false // Not scheduled
+          cronSchedule: undefined // Not scheduled
         }
       ];
 

@@ -602,10 +602,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    walletAddress: walletAddress,
-                    message: message,
+                    walletAddress,
+                    message,
                     signature: signedMessage.signature,
-                    publicKey: publicKey
+                    publicKey
                 })
             });
             

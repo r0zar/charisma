@@ -66,7 +66,7 @@ describe('Legacy Sandbox Service', () => {
       createdAt: '2025-01-15T08:00:00.000Z',
       lastActive: '2025-01-15T08:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: false,
+      cronSchedule: undefined,
       executionCount: 0,
       encryptedWallet: 'encrypted_data',
       walletIv: 'iv_data',
@@ -568,7 +568,7 @@ describe('Legacy Sandbox Service', () => {
 
       const result = await sandboxService.executeStrategy(
         mockBot.strategy,
-        mockBot.id, // Pass bot ID instead of bot object
+        mockBot, // Pass bot object as expected by function signature
         { timeout: 1, enableLogs: false }
       );
 

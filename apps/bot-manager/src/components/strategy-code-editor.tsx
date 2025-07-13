@@ -15,10 +15,10 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { getStrategyTemplates, type StrategyMetadata } from '@/components/strategy-code-editor/strategy-utils';
 import type { HelpContextualInfo } from '@/components/strategy-editor-help/types';
-import { getMonacoTypeDefinitions } from '@/generated/types';
 import { Button } from '@/components/ui/button';
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getMonacoTypeDefinitions } from '@/generated/types';
 
 import { type ExecutionLog, ExecutionLogsDrawer } from './execution-logs-drawer';
 import { StrategyEditorHelp } from './strategy-editor-help';

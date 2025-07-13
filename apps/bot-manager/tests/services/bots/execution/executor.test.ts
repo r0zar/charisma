@@ -77,7 +77,6 @@ describe('Bot Executor Service', () => {
       createdAt: '2025-01-15T08:00:00.000Z',
       lastActive: '2025-01-15T08:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: true,
       cronSchedule: '0 * * * *',
       executionCount: 5,
       encryptedWallet: 'encrypted_data',
@@ -412,7 +411,7 @@ describe('Bot Executor Service', () => {
     });
 
     it('should reject unscheduled bot', () => {
-      const unscheduledBot = { ...mockBot, isScheduled: false };
+      const unscheduledBot = { ...mockBot, cronSchedule: undefined };
       const result = botExecutorService.validateBotForExecution(unscheduledBot);
 
       expect(result.valid).toBe(false);
@@ -440,7 +439,7 @@ describe('Bot Executor Service', () => {
         ...mockBot,
         strategy: '',
         status: 'setup' as const,
-        isScheduled: false
+        cronSchedule: undefined
       };
       const result = botExecutorService.validateBotForExecution(invalidBot);
 

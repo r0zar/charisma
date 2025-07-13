@@ -600,7 +600,7 @@ export class SandboxService {
 
     // Fallback to static data
     const { botService } = await import('../core/service');
-    const allBots = await botService.scanAllBots();
+    const allBots = await botService.listBots() // Get all bots;
     const foundBot = allBots.find(b => b.id === botId);
 
     if (!foundBot) {

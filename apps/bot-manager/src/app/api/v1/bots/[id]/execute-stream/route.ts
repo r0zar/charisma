@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 
 import { botService } from '@/lib/services/bots/core/service';
 import { sandboxService } from '@/lib/services/sandbox/service';
-import { userService } from '@/lib/services/user/service';
 
 /**
  * POST /api/v1/bots/[id]/execute-stream
@@ -56,22 +55,7 @@ export async function POST(
       );
     }
 
-    // Get user data to find their wallet address
-    const userData = await userService.getUserData(userId);
-    if (!userData || !userData.wallet.address) {
-      console.warn(`❌ User ${userId} has no wallet address configured`);
-      return new Response(
-        JSON.stringify({
-          error: 'Wallet not configured',
-          message: 'User must have a wallet address configured to execute bots',
-          timestamp: new Date().toISOString(),
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    // Note: Bot execution uses the bot's own encrypted wallet, not the user's wallet
 
     // Load bot data using the same logic as frontend
     let bot = null;
@@ -92,7 +76,7 @@ export async function POST(
 
     // Fallback to static data if API failed or not enabled
     if (!bot) {
-      const allBots = await botService.scanAllBots();
+      const allBots = await botService.listBots() // Get all bots;
       bot = allBots.find(b => b.id === botId);
     }
 
@@ -110,9 +94,9 @@ export async function POST(
       );
     }
 
-    // Verify user owns this bot
-    if (bot.ownerId !== userData.wallet.address) {
-      console.warn(`❌ Unauthorized bot execution stream attempt: user ${userId} (${userData.wallet.address}) tried to execute bot ${botId} owned by ${bot.ownerId}`);
+    // Verify user owns this bot (ownerId should match Clerk userId)
+    if (bot.ownerId !== userId) {
+      console.warn(`❌ Unauthorized bot execution stream attempt: user ${userId} tried to execute bot ${botId} owned by ${bot.ownerId}`);
       return new Response(
         JSON.stringify({
           error: 'Unauthorized',
@@ -126,7 +110,7 @@ export async function POST(
       );
     }
 
-    console.log(`✅ Authenticated bot execution stream request from user ${userId} (${userData.wallet.address}) for bot ${botId}`);
+    console.log(`✅ Authenticated bot execution stream request from user ${userId} for bot ${botId}`);
 
     // Create readable stream for real-time execution
     const stream = new ReadableStream({

@@ -4,32 +4,41 @@ import {
   ArrowLeft,
   BarChart3,
   Bot,
-  Calendar,
+  CalendarCog,
+  Code,
   Pause,
   Play,
   RefreshCw,
-  Settings,
   Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
+import { BotPerformanceMarketplace } from '@/components/bot-performance-marketplace';
 import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
 import { BotAvatar } from '@/components/ui/bot-avatar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
-import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
-import { CurrentBotProvider } from '@/contexts/current-bot-context';
-import { BotPerformanceMarketplace } from '@/components/bot-performance-marketplace';
 
-export default function BotDetailLayout({ children, }: { children: React.ReactNode; }) {
+interface BotDetailLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function BotDetailLayout({ children }: BotDetailLayoutProps) {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { bots, allBots, loading } = useBots();
-  const { startBot, resumeBot, pauseBot } = useBotStateMachine();
+  const {
+    bots,
+    allBots,
+    loading,
+    startBot,
+    resumeBot,
+    pauseBot,
+    setCurrentBot
+  } = useBots();
 
   const [mounted, setMounted] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -37,6 +46,13 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Set current bot when params change
+  React.useEffect(() => {
+    if (params.id && typeof params.id === 'string') {
+      setCurrentBot(params.id);
+    }
+  }, [params.id, setCurrentBot]);
 
   // All bots are now available through the main bot context
 
@@ -194,7 +210,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
                 href={`/bots/${bot.id}/strategy`}
                 className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <Code className="w-4 h-4 mr-2" />
                 <span className="hidden xs:inline sm:inline">Strategy</span>
               </Link>
             </TabsTrigger>
@@ -203,8 +219,8 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
                 href={`/bots/${bot.id}/scheduling`}
                 className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
               >
-                <Calendar className="w-4 h-4 mr-2" />
-                <span className="hidden xs:inline sm:inline">Scheduling</span>
+                <CalendarCog className="w-4 h-4 mr-2" />
+                <span className="hidden xs:inline sm:inline">Automation</span>
               </Link>
             </TabsTrigger>
             <TabsTrigger value="wallet" asChild>
@@ -220,16 +236,12 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
 
           {/* Page Content for owned bots */}
           <div className="space-y-4">
-            <CurrentBotProvider bot={bot} loading={loading} isOwnBot={isOwnBot}>
-              {children}
-            </CurrentBotProvider>
+            {children}
           </div>
         </Tabs>
       ) : (
         /* Performance Marketplace View for non-owned bots */
-        <CurrentBotProvider bot={bot} loading={loading} isOwnBot={isOwnBot}>
-          <BotPerformanceMarketplace bot={bot} />
-        </CurrentBotProvider>
+        <BotPerformanceMarketplace bot={bot} />
       )}
     </div>
   );

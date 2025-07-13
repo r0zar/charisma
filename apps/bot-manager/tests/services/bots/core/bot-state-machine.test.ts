@@ -40,7 +40,7 @@ describe('Bot State Machine', () => {
       createdAt: '2025-01-15T08:00:00.000Z',
       lastActive: '2025-01-15T08:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: false,
+      cronSchedule: undefined,
       executionCount: 0,
       encryptedWallet: 'encrypted_data',
       walletIv: 'iv_data',

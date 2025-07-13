@@ -11,7 +11,7 @@ import { type NextRequest } from 'next/server';
 // Mock the services used by the route
 vi.mock('@/lib/services/bots/core/service', () => ({
   botService: {
-    scanAllBots: vi.fn()
+    listBots: vi.fn()
   }
 }));
 
@@ -126,7 +126,7 @@ describe('Bot Executor Cron Route Tests', () => {
 
     it('should accept requests with valid authorization', async () => {
       // Mock successful workflow with no bots
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue([]);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue([]);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 0,
         botsToExecute: []
@@ -152,7 +152,7 @@ describe('Bot Executor Cron Route Tests', () => {
     });
 
     it('should handle scenario with no scheduled bots', async () => {
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue([]);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue([]);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 0,
         botsToExecute: [],
@@ -177,10 +177,10 @@ describe('Bot Executor Cron Route Tests', () => {
 
     it('should handle scenario with scheduled bots but none due for execution', async () => {
       const mockBots = [
-        { id: 'SP1', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' }
+        { id: 'SP1', status: 'active', cronSchedule: '0 * * * *' }
       ];
 
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue(mockBots);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue(mockBots);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 1,
         botsToExecute: [],
@@ -205,13 +205,13 @@ describe('Bot Executor Cron Route Tests', () => {
 
     it('should handle successful bot executions', async () => {
       const mockBots = [
-        { id: 'SP1', name: 'Bot 1', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' },
-        { id: 'SP2', name: 'Bot 2', isScheduled: true, status: 'active', cronSchedule: '*/5 * * * *' }
+        { id: 'SP1', name: 'Bot 1', status: 'active', cronSchedule: '0 * * * *' },
+        { id: 'SP2', name: 'Bot 2', status: 'active', cronSchedule: '*/5 * * * *' }
       ];
 
       const botsToExecute = [mockBots[0], mockBots[1]];
 
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue(mockBots);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue(mockBots);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 2,
         botsToExecute: botsToExecute,
@@ -266,7 +266,7 @@ describe('Bot Executor Cron Route Tests', () => {
       });
 
       // Verify services were called correctly
-      expect(botService.scanAllBots).toHaveBeenCalledTimes(1);
+      expect(botService.listBots).toHaveBeenCalledTimes(1);
       expect(botSchedulerService.getBotsToExecute).toHaveBeenCalledWith(mockBots);
       expect(botExecutorService.executeBots).toHaveBeenCalledWith(
         botsToExecute,
@@ -281,11 +281,11 @@ describe('Bot Executor Cron Route Tests', () => {
 
     it('should handle mixed success and failure executions', async () => {
       const mockBots = [
-        { id: 'SP1', name: 'Success Bot', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' },
-        { id: 'SP2', name: 'Failure Bot', isScheduled: true, status: 'active', cronSchedule: '*/5 * * * *' }
+        { id: 'SP1', name: 'Success Bot', status: 'active', cronSchedule: '0 * * * *' },
+        { id: 'SP2', name: 'Failure Bot', status: 'active', cronSchedule: '*/5 * * * *' }
       ];
 
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue(mockBots);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue(mockBots);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 2,
         botsToExecute: mockBots,
@@ -326,7 +326,7 @@ describe('Bot Executor Cron Route Tests', () => {
 
   describe('Error handling', () => {
     it('should handle bot service scan failure', async () => {
-      (botService.scanAllBots as MockedFunction<any>).mockRejectedValue(
+      (botService.listBots as MockedFunction<any>).mockRejectedValue(
         new Error('Database connection failed')
       );
 
@@ -342,7 +342,7 @@ describe('Bot Executor Cron Route Tests', () => {
     });
 
     it('should handle scheduler service failure', async () => {
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue([]);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue([]);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockImplementation(() => {
         throw new Error('Scheduler service error');
       });
@@ -360,10 +360,10 @@ describe('Bot Executor Cron Route Tests', () => {
 
     it('should handle executor service failure', async () => {
       const mockBots = [
-        { id: 'SP1', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' }
+        { id: 'SP1', status: 'active', cronSchedule: '0 * * * *' }
       ];
 
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue(mockBots);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue(mockBots);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 1,
         botsToExecute: mockBots,
@@ -386,7 +386,7 @@ describe('Bot Executor Cron Route Tests', () => {
     });
 
     it('should handle non-Error exceptions gracefully', async () => {
-      (botService.scanAllBots as MockedFunction<any>).mockRejectedValue(
+      (botService.listBots as MockedFunction<any>).mockRejectedValue(
         'String error instead of Error object'
       );
 
@@ -413,7 +413,7 @@ describe('Bot Executor Cron Route Tests', () => {
     });
 
     it('should include accurate execution timing in response', async () => {
-      (botService.scanAllBots as MockedFunction<any>).mockImplementation(async () => {
+      (botService.listBots as MockedFunction<any>).mockImplementation(async () => {
         // Simulate 100ms database call
         vi.advanceTimersByTime(100);
         return [];
@@ -438,10 +438,10 @@ describe('Bot Executor Cron Route Tests', () => {
 
     it('should call status and log callbacks during execution', async () => {
       const mockBots = [
-        { id: 'SP1', name: 'Test Bot', isScheduled: true, status: 'active', cronSchedule: '0 * * * *' }
+        { id: 'SP1', name: 'Test Bot', status: 'active', cronSchedule: '0 * * * *' }
       ];
 
-      (botService.scanAllBots as MockedFunction<any>).mockResolvedValue(mockBots);
+      (botService.listBots as MockedFunction<any>).mockResolvedValue(mockBots);
       (botSchedulerService.getBotsToExecute as MockedFunction<any>).mockReturnValue({
         totalScheduledBots: 1,
         botsToExecute: mockBots,

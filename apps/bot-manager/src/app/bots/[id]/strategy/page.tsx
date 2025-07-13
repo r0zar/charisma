@@ -15,16 +15,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useBots } from '@/contexts/bot-context';
-import { useCurrentBot } from '@/contexts/current-bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { useWallet } from '@/contexts/wallet-context';
-import type { SandboxStreamEvent } from '@/lib/services/bots';
-import { sandboxClient } from '@/lib/services/bots';
+import type { SandboxStreamEvent } from '@/lib/services/bots/client';
+import { sandboxClient } from '@/lib/services/bots/client';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotStrategyPage() {
-  const { bot, isOwnBot } = useCurrentBot();
-  const { updateBot } = useBots();
+  const { currentBot: bot, isOwnBot, updateBot } = useBots();
   const { showSuccess, showError } = useToast();
   const { walletState } = useWallet();
 

@@ -50,13 +50,13 @@ export async function GET(request: NextRequest) {
 
     // Load only user's own data for searching using Clerk userId
     const [userBots, userNotifications] = await Promise.all([
-      botService.getAllBotsByClerkUserId(userId),
+      botService.listBots(),
       notificationService.getNotifications(userId)
     ]);
 
     // User data for search (only current user) - minimal data since we use Clerk now
     const users = [{
-      userId: userId,
+      userId,
       address: 'clerk-user', // Placeholder since we don't rely on wallet addresses anymore
       connectionMethod: undefined,
       network: undefined,
@@ -141,13 +141,13 @@ export async function POST(request: NextRequest) {
 
     // Load only user's own data for searching using Clerk userId
     const [userBots, userNotifications] = await Promise.all([
-      botService.getAllBotsByClerkUserId(userId),
+      botService.listBots(),
       notificationService.getNotifications(userId)
     ]);
 
     // User data for search (only current user) - minimal data since we use Clerk now
     const users = [{
-      userId: userId,
+      userId,
       address: 'clerk-user', // Placeholder since we don't rely on wallet addresses anymore
       connectionMethod: undefined,
       network: undefined,

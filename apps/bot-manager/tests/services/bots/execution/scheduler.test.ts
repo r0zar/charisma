@@ -58,7 +58,6 @@ describe('Bot Scheduler Service', () => {
       createdAt: '2025-01-15T08:00:00.000Z',
       lastActive: '2025-01-15T08:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: true,
       cronSchedule: '0 * * * *', // Every hour
       executionCount: 5,
       encryptedWallet: 'encrypted_data',
@@ -80,7 +79,7 @@ describe('Bot Scheduler Service', () => {
     });
 
     it('should return false for unscheduled bot', () => {
-      const unscheduledBot = { ...mockBot, isScheduled: false };
+      const unscheduledBot = { ...mockBot, cronSchedule: undefined };
       const result = botSchedulerService.shouldExecuteBot(unscheduledBot);
       
       expect(result).toBe(false);
@@ -209,7 +208,7 @@ describe('Bot Scheduler Service', () => {
     it('should filter bots that are scheduled and active', () => {
       const bots: Bot[] = [
         mockBot, // scheduled, active, has cron
-        { ...mockBot, id: 'bot2', isScheduled: false }, // not scheduled
+        { ...mockBot, id: 'bot2', cronSchedule: undefined }, // not scheduled
         { ...mockBot, id: 'bot3', status: 'paused' }, // not active
         { ...mockBot, id: 'bot4', cronSchedule: undefined }, // no cron
         { ...mockBot, id: 'bot5', name: 'Valid Bot 2' } // valid
@@ -226,7 +225,7 @@ describe('Bot Scheduler Service', () => {
 
     it('should return empty array when no bots match criteria', () => {
       const bots: Bot[] = [
-        { ...mockBot, isScheduled: false },
+        { ...mockBot, cronSchedule: undefined },
         { ...mockBot, status: 'error' },
         { ...mockBot, cronSchedule: undefined }
       ];

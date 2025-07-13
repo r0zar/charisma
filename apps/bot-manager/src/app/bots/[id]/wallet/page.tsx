@@ -12,12 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCurrentBot } from '@/contexts/current-bot-context';
+import { useBots } from '@/contexts/bot-context';
 import { useToast } from '@/contexts/toast-context';
 import { formatCurrency } from '@/lib/utils';
 
 export default function BotWalletPage() {
-  const { bot } = useCurrentBot();
+  const { currentBot: bot } = useBots();
   const { showSuccess, showError } = useToast();
 
   const copyToClipboard = (text: string) => {

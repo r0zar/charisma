@@ -5,14 +5,12 @@
  * and handling execution state transitions without circular HTTP dependencies.
  */
 
+import { executionDataStore } from '@/lib/modules/storage';
 import { type Bot, type BotExecution } from '@/schemas/bot.schema';
 
-import { BotStateMachine } from '../core/bot-state-machine';
 import { botService } from '../core/service';
 import { sandboxService } from '../sandbox/sandbox-service';
 import { botSchedulerService } from './scheduler';
-import { executionDataStore } from '@/lib/modules/storage';
-import { randomUUID } from 'crypto';
 
 export interface ExecutionResult {
   success: boolean;
@@ -49,7 +47,7 @@ export class BotExecutorService {
    * Executes a single bot's strategy in the sandbox
    */
   async executeBotStrategy(
-    bot: Bot, 
+    bot: Bot,
     options: ExecutionOptions = {}
   ): Promise<ExecutionResult> {
     const {
@@ -60,9 +58,9 @@ export class BotExecutorService {
     } = options;
 
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const userId = bot.clerkUserId; // Use Clerk userId
+    const userId = bot.ownerId;
     const startTime = new Date().toISOString();
-    
+
     try {
       console.log(`[BotExecutor] Executing bot ${bot.id} (${bot.name}) - Execution ID: ${executionId}`);
 
@@ -131,7 +129,7 @@ export class BotExecutorService {
 
     } catch (error) {
       console.error(`[BotExecutor] Error executing bot ${bot.id}:`, error);
-      
+
       // Update execution record with error
       try {
         const errorRecord: BotExecution = {
@@ -158,7 +156,7 @@ export class BotExecutorService {
    * Executes multiple bots and returns a summary
    */
   async executeBots(
-    bots: Bot[], 
+    bots: Bot[],
     options: ExecutionOptions = {}
   ): Promise<ExecutionSummary> {
     const results: ExecutionSummary = {
@@ -203,13 +201,13 @@ export class BotExecutorService {
     let nextExecution: string | undefined;
     if (bot.cronSchedule) {
       const nextExecutionResult = botSchedulerService.calculateNextExecution(
-        bot.cronSchedule, 
+        bot.cronSchedule,
         now // Use current time as the new last execution
       );
       nextExecution = nextExecutionResult.nextExecution?.toISOString();
     }
 
-    let updateData: any = {
+    const updateData: Partial<Bot> = {
       lastExecution: now,
       nextExecution,
       executionCount: (bot.executionCount || 0) + 1,
@@ -219,50 +217,24 @@ export class BotExecutorService {
     console.log(`[BotExecutor] Updating bot ${bot.id} metadata:`, updateData);
 
     try {
-      const userId = bot.clerkUserId; // Use Clerk userId
-
       // Handle execution failure state transition
       if (!success) {
         console.log(`[BotExecutor] Bot ${bot.id} execution failed, transitioning to error state`);
-        
-        try {
-          // Use the state machine to validate and request the transition
-          const transitionResult = await BotStateMachine.requestTransition(
-            bot,
-            'error',
-            userId,
-            'Scheduled execution failed'
-          );
-          
-          if (transitionResult.success) {
-            updateData = { ...updateData, status: transitionResult.toStatus };
-            console.log(`[BotExecutor] Successfully validated transition for bot ${bot.id} to error state`);
-          } else {
-            console.error(`[BotExecutor] State transition validation failed for bot ${bot.id}:`, transitionResult.errors);
-            // Fall back to direct status update
-            updateData = { ...updateData, status: 'error' as const };
-          }
-        } catch (error) {
-          console.error(`[BotExecutor] Error during state transition for bot ${bot.id}:`, error);
-          // Fall back to direct status update
-          updateData = { ...updateData, status: 'error' as const };
-        }
-      }
 
-      // Update bot with new execution metadata
-      const updatedBot = {
-        ...bot,
-        ...updateData
-      };
+        // Use transitionAction to handle state machine validation
+        const updateWithTransition = {
+          ...updateData,
+          transitionAction: 'error',
+          transitionReason: 'Scheduled execution failed'
+        };
 
-      // Use Clerk-based method if bot has clerkUserId, otherwise use legacy method
-      if (bot.clerkUserId) {
-        await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
+        await botService.updateBot(bot.id, updateWithTransition);
+        console.log(`[BotExecutor] Successfully updated bot ${bot.id} metadata and transitioned to error state`);
       } else {
-        // Use Clerk-based method (all bots now have clerkUserId)
-        await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
+        // Normal metadata update without state transition
+        await botService.updateBot(bot.id, updateData);
+        console.log(`[BotExecutor] Successfully updated bot ${bot.id} metadata`);
       }
-      console.log(`[BotExecutor] Successfully updated bot ${bot.id} metadata`);
     } catch (error) {
       console.error(`[BotExecutor] Failed to update bot ${bot.id} metadata:`, error);
       throw error; // Re-throw to allow caller to handle
@@ -274,38 +246,18 @@ export class BotExecutorService {
    */
   async handleExecutionFailure(bot: Bot, error: string): Promise<void> {
     try {
-      const transitionResult = await BotStateMachine.requestTransition(
-        bot,
-        'error',
-        bot.clerkUserId, // Use Clerk userId
-        `Execution failed: ${error}`
-      );
-      
-      if (transitionResult.success) {
-        const updatedBot = {
-          ...bot,
-          status: transitionResult.toStatus,
-          lastActive: new Date().toISOString()
-        };
-        
-        // Use Clerk-based method (all bots now have clerkUserId)
-        await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
-        console.log(`[BotExecutor] Successfully transitioned bot ${bot.id} to error state`);
-      } else {
-        console.error(`[BotExecutor] State transition validation failed for bot ${bot.id}:`, transitionResult.errors);
-        throw new Error(`State transition failed: ${transitionResult.errors?.join(', ')}`);
-      }
+      console.log(`[BotExecutor] Handling execution failure for bot ${bot.id}: ${error}`);
+
+      await botService.updateBot(bot.id, {
+        transitionAction: 'error',
+        transitionReason: `Execution failed: ${error}`,
+        lastActive: new Date().toISOString()
+      });
+
+      console.log(`[BotExecutor] Successfully transitioned bot ${bot.id} to error state`);
     } catch (transitionError) {
       console.error(`[BotExecutor] Failed to transition bot ${bot.id} to error state:`, transitionError);
-      
-      // Fall back to direct bot update
-      const updatedBot = {
-        ...bot,
-        status: 'error' as const,
-        lastActive: new Date().toISOString()
-      };
-      
-      await botService.updateBotByClerkUserId(bot.clerkUserId, updatedBot);
+      throw transitionError; // Re-throw for caller to handle
     }
   }
 
@@ -323,9 +275,6 @@ export class BotExecutorService {
       errors.push(`Bot status is '${bot.status}', must be 'active'`);
     }
 
-    if (!bot.isScheduled) {
-      errors.push('Bot is not scheduled for execution');
-    }
 
     if (!bot.cronSchedule) {
       errors.push('Bot has no cron schedule defined');
@@ -353,7 +302,7 @@ export class BotExecutorService {
     const totalExecutions = bot.executionCount || 0;
     const lastExecution = bot.lastExecution ? new Date(bot.lastExecution) : null;
     const nextExecution = bot.nextExecution ? new Date(bot.nextExecution) : null;
-    
+
     const isOverdue = nextExecution ? new Date() > nextExecution : false;
 
     return {

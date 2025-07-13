@@ -13,7 +13,7 @@ import { type Bot } from '@/schemas/bot.schema';
 vi.mock('@/lib/services/bots/core/service', () => ({
   botService: {
     updateBot: vi.fn(),
-    scanAllBots: vi.fn()
+    listBots: vi.fn()
   }
 }));
 
@@ -65,7 +65,7 @@ describe('Bot Execution Workflow Integration Tests', () => {
         createdAt: '2025-01-15T08:00:00.000Z',
         lastActive: '2025-01-15T09:00:00.000Z',
         imageType: 'pokemon',
-        isScheduled: true,
+  
         executionCount: 5,
         cronSchedule: '0 * * * *', // Every hour
         lastExecution: '2025-01-15T09:00:00.000Z', // Should execute now (next was 10:00)
@@ -82,7 +82,7 @@ describe('Bot Execution Workflow Integration Tests', () => {
         createdAt: '2025-01-15T08:00:00.000Z',
         lastActive: '2025-01-15T08:00:00.000Z',
         imageType: 'pokemon',
-        isScheduled: true,
+  
         executionCount: 1,
         cronSchedule: '0 0 * * *', // Daily at midnight
         lastExecution: '2025-01-15T00:00:00.000Z', // Should not execute (next is tomorrow)
@@ -99,7 +99,7 @@ describe('Bot Execution Workflow Integration Tests', () => {
         createdAt: '2025-01-15T10:20:00.000Z',
         lastActive: '2025-01-15T10:20:00.000Z',
         imageType: 'pokemon',
-        isScheduled: true,
+  
         executionCount: 0,
         cronSchedule: '*/5 * * * *', // Every 5 minutes
         lastExecution: undefined, // First execution - should execute
@@ -116,7 +116,7 @@ describe('Bot Execution Workflow Integration Tests', () => {
         createdAt: '2025-01-15T08:00:00.000Z',
         lastActive: '2025-01-15T08:00:00.000Z',
         imageType: 'pokemon',
-        isScheduled: true, // Scheduled but paused
+   // Scheduled but paused
         executionCount: 3,
         cronSchedule: '0 * * * *',
         lastExecution: '2025-01-15T08:00:00.000Z',
@@ -133,9 +133,8 @@ describe('Bot Execution Workflow Integration Tests', () => {
         createdAt: '2025-01-15T08:00:00.000Z',
         lastActive: '2025-01-15T08:00:00.000Z',
         imageType: 'pokemon',
-        isScheduled: false, // Not scheduled
+        cronSchedule: undefined, // Not scheduled
         executionCount: 0,
-        cronSchedule: '0 * * * *',
         encryptedWallet: 'encrypted_data_5',
         walletIv: 'iv_data_5',
         publicKey: 'public_key_5'

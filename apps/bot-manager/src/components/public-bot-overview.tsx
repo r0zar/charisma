@@ -141,12 +141,12 @@ export function PublicBotOverview({ bot }: PublicBotOverviewProps) {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Scheduling Mode</span>
-              <Badge className={bot.isScheduled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
-                {bot.isScheduled ? 'Automated' : 'Manual'}
+              <Badge className={bot.cronSchedule ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+                {bot.cronSchedule ? 'Automated' : 'Manual'}
               </Badge>
             </div>
 
-            {bot.isScheduled && (
+            {bot.cronSchedule && (
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Schedule</span>
@@ -172,7 +172,7 @@ export function PublicBotOverview({ bot }: PublicBotOverviewProps) {
               </>
             )}
 
-            {!bot.isScheduled && (
+            {!bot.cronSchedule && (
               <div className="text-center py-4 text-muted-foreground">
                 <Timer className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">This bot runs manually by the owner</p>

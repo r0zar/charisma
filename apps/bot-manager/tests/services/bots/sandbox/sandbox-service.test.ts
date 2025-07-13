@@ -50,7 +50,7 @@ vi.mock('@/lib/services/bots/sandbox/templates/strategy-wrapper', () => ({
 
 vi.mock('@/lib/services/bots/core/service', () => ({
   botService: {
-    scanAllBots: vi.fn().mockResolvedValue([])
+    listBots: vi.fn().mockResolvedValue([])
   }
 }));
 
@@ -84,7 +84,7 @@ describe('Sandbox Service', () => {
       createdAt: '2025-01-15T08:00:00.000Z',
       lastActive: '2025-01-15T08:00:00.000Z',
       imageType: 'pokemon',
-      isScheduled: true,
+
       executionCount: 5,
       encryptedWallet: 'encrypted_data',
       walletIv: 'iv_data',
@@ -404,7 +404,7 @@ describe('Sandbox Service', () => {
 
     it('should handle bot ID instead of bot object', async () => {
       const { botService } = await import('@/lib/services/bots/core/service');
-      vi.mocked(botService.scanAllBots).mockResolvedValueOnce([mockBot]);
+      vi.mocked(botService.listBots).mockResolvedValueOnce([mockBot]);
 
       const result = await sandboxService.executeStrategy(
         mockBot.strategy,
@@ -413,7 +413,7 @@ describe('Sandbox Service', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(botService.scanAllBots).toHaveBeenCalled();
+      expect(botService.listBots).toHaveBeenCalled();
     });
   });
 
@@ -572,7 +572,7 @@ describe('Sandbox Service', () => {
 
     it('should handle bot not found error', async () => {
       const { botService } = await import('@/lib/services/bots/core/service');
-      vi.mocked(botService.scanAllBots).mockResolvedValueOnce([]);
+      vi.mocked(botService.listBots).mockResolvedValueOnce([]);
 
       const result = await sandboxService.executeStrategy(
         mockBot.strategy,
