@@ -28,7 +28,7 @@ interface ClearOptions {
  */
 export async function clearExecutionLogs(options: ClearOptions = {}) {
   const startTime = Date.now();
-  
+
   logger.info('🧹 Starting execution logs cleanup', {
     userId: options.userId,
     botId: options.botId,
@@ -39,13 +39,13 @@ export async function clearExecutionLogs(options: ClearOptions = {}) {
 
   try {
     // Get or use default user ID
-    const userId = options.userId || 
-                   process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 
-                   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
+    const userId = options.userId ||
+      process.env.NEXT_PUBLIC_DEFAULT_USER_ID ||
+      'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 
     // Get bots to clear
     const botsToProcess = await getBotsToProcess(userId, options.botId);
-    
+
     if (botsToProcess.length === 0) {
       logger.warn('⚠️  No bots found to process');
       return;
@@ -53,7 +53,7 @@ export async function clearExecutionLogs(options: ClearOptions = {}) {
 
     // Count existing executions
     const counts = await countExecutions(userId, botsToProcess, options.olderThan);
-    
+
     logger.info('📊 Found executions to clear:', {
       totalBots: botsToProcess.length,
       totalExecutions: counts.totalExecutions,
@@ -82,9 +82,9 @@ export async function clearExecutionLogs(options: ClearOptions = {}) {
 
     // Clear executions
     const result = await performClearing(userId, botsToProcess, options);
-    
+
     const duration = Date.now() - startTime;
-    
+
     logger.info('✅ Execution logs clearing complete!', {
       ...result,
       duration: `${duration}ms`
@@ -99,7 +99,7 @@ export async function clearExecutionLogs(options: ClearOptions = {}) {
 /**
  * Get bots to process based on options
  */
-async function getBotsToProcess(userId: string, botId?: string): Promise<Array<{id: string, name: string}>> {
+async function getBotsToProcess(userId: string, botId?: string): Promise<Array<{ id: string, name: string }>> {
   if (botId) {
     // Single bot
     const allBots = await botService.scanAllBots();
@@ -116,23 +116,23 @@ async function getBotsToProcess(userId: string, botId?: string): Promise<Array<{
  * Count executions to be cleared
  */
 async function countExecutions(
-  userId: string, 
-  bots: Array<{id: string, name: string}>,
+  userId: string,
+  bots: Array<{ id: string, name: string }>,
   olderThanDays?: number
 ) {
   let totalExecutions = 0;
   let withBlobs = 0;
   let totalBlobSize = 0;
 
-  const cutoffDate = olderThanDays ? 
-    new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000) : 
+  const cutoffDate = olderThanDays ?
+    new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000) :
     null;
 
   for (const bot of bots) {
     try {
       const executions = await executionDataStore.getExecutions(userId, bot.id, 1000);
-      
-      const filteredExecutions = cutoffDate ? 
+
+      const filteredExecutions = cutoffDate ?
         executions.filter(exec => new Date(exec.startedAt) < cutoffDate) :
         executions;
 
@@ -161,17 +161,17 @@ async function confirmDeletion(counts: any, options: ClearOptions): Promise<bool
   console.log(`Executions to delete: ${counts.totalExecutions}`);
   console.log(`Blob logs to delete: ${counts.withBlobs}`);
   console.log(`Estimated blob size: ${Math.round(counts.totalBlobSize / 1024)}KB`);
-  
+
   if (options.clearBlobs) {
     console.log('\n🗑️  Blob storage will also be cleared (irreversible)');
   }
-  
+
   if (options.olderThan) {
     console.log(`📅 Only clearing executions older than ${options.olderThan} days`);
   }
 
   console.log('\nThis action cannot be undone!');
-  
+
   // Use a simple prompt approach
   const readline = require('readline').createInterface({
     input: process.stdin,
@@ -190,8 +190,8 @@ async function confirmDeletion(counts: any, options: ClearOptions): Promise<bool
  * Perform the actual clearing operation
  */
 async function performClearing(
-  userId: string, 
-  bots: Array<{id: string, name: string}>,
+  userId: string,
+  bots: Array<{ id: string, name: string }>,
   options: ClearOptions
 ) {
   let clearedKV = 0;
@@ -199,8 +199,8 @@ async function performClearing(
   let failedKV = 0;
   let failedBlobs = 0;
 
-  const cutoffDate = options.olderThan ? 
-    new Date(Date.now() - options.olderThan * 24 * 60 * 60 * 1000) : 
+  const cutoffDate = options.olderThan ?
+    new Date(Date.now() - options.olderThan * 24 * 60 * 60 * 1000) :
     null;
 
   for (const bot of bots) {
@@ -236,7 +236,7 @@ async function performClearing(
         if (options.clearBlobs) {
           // Get executions to clear blobs first
           const executions = await executionDataStore.getExecutions(userId, bot.id, 1000);
-          
+
           for (const execution of executions) {
             if (execution.logsUrl) {
               try {
@@ -282,32 +282,32 @@ function parseArgs(): ClearOptions {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--user-id':
         options.userId = args[++i];
         break;
-        
+
       case '--bot-id':
         options.botId = args[++i];
         break;
-        
+
       case '--confirm':
         options.confirm = true;
         break;
-        
+
       case '--clear-blobs':
         options.clearBlobs = true;
         break;
-        
+
       case '--dry-run':
         options.dryRun = true;
         break;
-        
+
       case '--older-than':
         options.olderThan = parseInt(args[++i]);
         break;
-        
+
       case '--help':
         console.log(`
 Usage: node --import tsx scripts/execution/clear-execution-logs.ts [options]

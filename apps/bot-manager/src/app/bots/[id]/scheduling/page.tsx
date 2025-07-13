@@ -5,12 +5,16 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle,
+  ChevronDown,
+  ChevronRight,
   Clock,
   ExternalLink,
+  FileText,
   Info,
   Play,
   RefreshCw,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
@@ -48,8 +52,13 @@ export default function BotSchedulingPage() {
     error?: string;
     executionTime?: number;
     transactionId?: string;
+    logsUrl?: string;
+    logsSize?: number;
   }>>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [expandedExecution, setExpandedExecution] = useState<string | null>(null);
+  const [executionLogs, setExecutionLogs] = useState<{ [key: string]: string }>({});
+  const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
 
   useEffect(() => {
     if (bot) {
@@ -79,6 +88,39 @@ export default function BotSchedulingPage() {
       showError('Failed to load execution history');
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const fetchExecutionLogs = async (execution: any) => {
+    if (!execution.logsUrl || executionLogs[execution.id]) {
+      return; // No logs URL or already loaded
+    }
+
+    setLoadingLogs(execution.id);
+    try {
+      const response = await fetch(execution.logsUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch execution logs');
+      }
+      const logs = await response.text();
+      setExecutionLogs(prev => ({ ...prev, [execution.id]: logs }));
+    } catch (error) {
+      console.error('Error fetching execution logs:', error);
+      showError('Failed to load execution logs');
+    } finally {
+      setLoadingLogs(null);
+    }
+  };
+
+  const toggleExecutionExpansion = (executionId: string) => {
+    if (expandedExecution === executionId) {
+      setExpandedExecution(null);
+    } else {
+      setExpandedExecution(executionId);
+      const execution = executionHistory.find(e => e.id === executionId);
+      if (execution && execution.logsUrl) {
+        fetchExecutionLogs(execution);
+      }
     }
   };
 
@@ -122,12 +164,54 @@ export default function BotSchedulingPage() {
       .catch(() => showError('Failed to copy to clipboard'));
   };
 
+  const colorizeLogLine = (line: string) => {
+    // Remove any existing color/style codes
+    const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '');
+    
+    // Define patterns and their corresponding classes
+    const patterns = [
+      { regex: /^.*\b(ERROR|FATAL|FAIL)\b.*$/i, className: 'text-red-400' },
+      { regex: /^.*\b(WARN|WARNING)\b.*$/i, className: 'text-yellow-400' },
+      { regex: /^.*\b(INFO|INFORMATION)\b.*$/i, className: 'text-blue-400' },
+      { regex: /^.*\b(DEBUG|TRACE)\b.*$/i, className: 'text-gray-400' },
+      { regex: /^.*\b(SUCCESS|PASS|OK)\b.*$/i, className: 'text-green-400' },
+      { regex: /^\[.*\]/i, className: 'text-purple-400' }, // Timestamps or brackets
+      { regex: /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, className: 'text-cyan-400' }, // ISO timestamps
+      { regex: /\b\d{2}:\d{2}:\d{2}/, className: 'text-cyan-400' }, // Time stamps
+      { regex: /\b(GET|POST|PUT|DELETE|PATCH)\b/i, className: 'text-orange-400' }, // HTTP methods
+      { regex: /\b(200|201|204|301|302|400|401|403|404|500|502|503)\b/, className: 'text-pink-400' }, // HTTP status codes
+      { regex: /\$\d+|\d+ms|\d+s|\d+%/g, className: 'text-emerald-400' }, // Numbers with units
+    ];
+
+    // Apply coloring
+    let coloredLine = cleanLine;
+    for (const pattern of patterns) {
+      if (pattern.regex.test(coloredLine)) {
+        return { line: coloredLine, className: pattern.className };
+      }
+    }
+
+    return { line: coloredLine, className: 'text-card-foreground' };
+  };
+
+  const renderColorizedLogs = (logs: string) => {
+    const lines = logs.split('\n');
+    return lines.map((line, index) => {
+      const { line: processedLine, className } = colorizeLogLine(line);
+      return (
+        <div key={index} className={className}>
+          {processedLine}
+        </div>
+      );
+    });
+  };
+
   if (!bot) {
     return null; // Layout will handle loading state
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mb-96">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Scheduling Configuration */}
         <Card className="bg-card border-border">
@@ -316,7 +400,7 @@ export default function BotSchedulingPage() {
           <CardTitle className="text-card-foreground flex items-center gap-2">
             <Activity className="w-5 h-5" />
             Execution History
-            <Badge variant="outline" className="ml-auto">
+            <Badge variant="secondary" className="ml-auto">
               Last 20 executions
             </Badge>
             <Button
@@ -362,65 +446,164 @@ export default function BotSchedulingPage() {
                       ? <Clock className="w-4 h-4" />
                       : <RefreshCw className="w-4 h-4" />;
 
+                const isExpanded = expandedExecution === execution.id;
+                const hasLogs = Boolean(execution.logsUrl);
+
                 return (
-                  <div key={execution.id} className="p-4 bg-muted rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full ${statusColor} flex items-center justify-center`}>
-                          {statusIcon}
-                        </div>
-                        <div>
-                          <div className="font-medium text-card-foreground">
-                            Execution #{execution.id.split('-').pop()}
+                  <div key={execution.id} className="bg-muted rounded-lg overflow-hidden">
+                    <div
+                      className={`p-4 space-y-3 ${hasLogs ? 'cursor-pointer hover:bg-muted/80' : ''}`}
+                      onClick={hasLogs ? () => toggleExecutionExpansion(execution.id) : undefined}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full ${statusColor} flex items-center justify-center`}>
+                            {statusIcon}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatRelativeTime(execution.startedAt)}
+                          <div>
+                            <div className="font-medium text-card-foreground">
+                              Execution #{execution.id.split('-').pop()}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatRelativeTime(execution.startedAt)}
+                            </div>
+                          </div>
+                          {hasLogs && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <motion.div
+                                animate={{ rotate: isExpanded ? 90 : 0 }}
+                                transition={{ duration: 0.2, ease: "easeInOut" }}
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </motion.div>
+                              <FileText className="w-4 h-4" />
+                              <span className="text-xs">
+                                {execution.logsSize ? `${Math.round(execution.logsSize / 1024)}KB logs` : 'View logs'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right space-y-1">
+                          <Badge className={statusColor}>
+                            {execution.status}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground">
+                            Duration: {duration}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right space-y-1">
-                        <Badge className={statusColor}>
-                          {execution.status}
-                        </Badge>
-                        <div className="text-xs text-muted-foreground">
-                          Duration: {duration}
+
+                      {execution.output && (
+                        <div className="bg-background/50 p-3 rounded border-l-4 border-green-500">
+                          <div className="text-xs text-muted-foreground mb-1">Output:</div>
+                          <div className="text-sm text-card-foreground">{execution.output}</div>
                         </div>
-                      </div>
+                      )}
+
+                      {execution.error && (
+                        <div className="bg-background/50 p-3 rounded border-l-4 border-red-500">
+                          <div className="text-xs text-muted-foreground mb-1">Error:</div>
+                          <div className="text-sm text-red-400">{execution.error}</div>
+                        </div>
+                      )}
+
+                      {execution.transactionId && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-muted-foreground">Transaction:</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(execution.transactionId!);
+                            }}
+                            className="text-blue-400 hover:text-blue-300 font-mono"
+                          >
+                            {execution.transactionId.slice(0, 16)}...
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`https://explorer.stacks.co/txid/${execution.transactionId}`, '_blank');
+                            }}
+                            className="h-6 w-6 p-0"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
-                    {execution.output && (
-                      <div className="bg-background/50 p-3 rounded border-l-4 border-green-500">
-                        <div className="text-xs text-muted-foreground mb-1">Output:</div>
-                        <div className="text-sm text-card-foreground">{execution.output}</div>
-                      </div>
-                    )}
-
-                    {execution.error && (
-                      <div className="bg-background/50 p-3 rounded border-l-4 border-red-500">
-                        <div className="text-xs text-muted-foreground mb-1">Error:</div>
-                        <div className="text-sm text-red-400">{execution.error}</div>
-                      </div>
-                    )}
-
-                    {execution.transactionId && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-muted-foreground">Transaction:</span>
-                        <button
-                          onClick={() => copyToClipboard(execution.transactionId!)}
-                          className="text-blue-400 hover:text-blue-300 font-mono"
+                    {/* Expandable Logs Section */}
+                    <AnimatePresence>
+                      {isExpanded && hasLogs && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{
+                            duration: 0.3,
+                            ease: "easeInOut",
+                            opacity: { duration: 0.2 }
+                          }}
+                          className="border-t border-border/25 bg-background/30 overflow-hidden"
                         >
-                          {execution.transactionId.slice(0, 16)}...
-                        </button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(`https://explorer.stacks.co/txid/${execution.transactionId}`, '_blank')}
-                          className="h-6 w-6 p-0"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
+                          <motion.div
+                            initial={{ y: -10 }}
+                            animate={{ y: 0 }}
+                            exit={{ y: -10 }}
+                            transition={{ duration: 0.2, delay: 0.1 }}
+                            className="p-4"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm font-medium text-card-foreground">Execution Logs</span>
+                                {execution.logsSize && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {Math.round(execution.logsSize / 1024)}KB
+                                  </Badge>
+                                )}
+                              </div>
+                              {loadingLogs === execution.id && (
+                                <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                              )}
+                            </div>
+
+                            {loadingLogs === execution.id ? (
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
+                                className="bg-background/50 p-4 rounded border text-center text-muted-foreground"
+                              >
+                                Loading logs...
+                              </motion.div>
+                            ) : executionLogs[execution.id] ? (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.2, delay: 0.1 }}
+                                className="bg-background/50 p-4 rounded border border-border/25"
+                              >
+                                <div className="text-xs font-mono whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">
+                                  {renderColorizedLogs(executionLogs[execution.id])}
+                                </div>
+                              </motion.div>
+                            ) : (
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2 }}
+                                className="bg-background/50 p-4 rounded border text-center text-muted-foreground"
+                              >
+                                Failed to load logs
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               })

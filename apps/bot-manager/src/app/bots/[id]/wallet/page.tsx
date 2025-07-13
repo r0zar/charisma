@@ -35,7 +35,7 @@ export default function BotWalletPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mb-96">
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-card-foreground">Wallet Information</CardTitle>

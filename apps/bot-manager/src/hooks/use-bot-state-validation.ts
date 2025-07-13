@@ -1,6 +1,6 @@
 import { useEffect,useState } from 'react';
 
-import { BotStateMachine } from '@/lib/services/bots/bot-state-machine';
+import { BotStateMachine } from '@/lib/services/bots/core/bot-state-machine';
 import { Bot } from '@/schemas/bot.schema';
 
 interface ValidationState {
@@ -65,7 +65,7 @@ export function useBotStateValidation(bot: Bot | null): ValidationState {
     // Validate start action
     if (availableActions.includes('start')) {
       BotStateMachine.requestTransition(bot, 'start', 'validation-check')
-        .then(result => {
+        .then((result: any) => {
           if (!result.success && result.errors) {
             validationErrors.start = result.errors;
           }

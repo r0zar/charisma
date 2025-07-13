@@ -1,8 +1,27 @@
 // Bot Data Generator
 import { Bot, BotStats, LpTokenBalance, RewardTokenBalance } from '@/schemas/bot.schema';
 import { GeneratorOptions } from '@/schemas/app-state.schema';
-import { getStrategyTemplates } from '@/lib/services/bots/strategy-parser';
-import { createBotImageConfig } from '@/lib/services/bots/images';
+// Simple strategy templates for bot generation
+const getStrategyTemplates = () => ({
+  helloWorld: {
+    name: 'Hello World',
+    code: `console.log('Hello from bot:', bot.name);
+console.log('Bot wallet address:', bot.id);`
+  },
+  simpleMonitor: {
+    name: 'Simple Monitor',
+    code: `// Simple monitoring strategy
+console.log('Monitoring market conditions...');
+console.log('Bot status:', bot.status);`
+  },
+  basicTrader: {
+    name: 'Basic Trader',
+    code: `// Basic trading strategy
+console.log('Checking trading opportunities...');
+console.log('Bot wallet:', bot.id);`
+  }
+});
+import { createBotImageConfig } from '@/lib/services/bots';
 import { syncLogger as logger } from '../../utils/logger';
 // Note: wallet-encryption import moved to conditional usage to avoid env var requirement
 import {
@@ -141,7 +160,7 @@ async function generateBot(rng: SeededRandom, options: GeneratorOptions, index: 
     // Generate real wallet with encryption
     try {
       // Dynamic import to avoid env var requirement when not needed
-      const { generateBotWallet, encryptWalletCredentials } = await import('../../../src/lib/infrastructure/security/wallet-encryption');
+      const { generateBotWallet, encryptWalletCredentials } = await import('../../../src/lib/modules/security/wallet-encryption');
 
       const walletCredentials = await generateBotWallet();
       const encrypted = encryptWalletCredentials(walletCredentials);

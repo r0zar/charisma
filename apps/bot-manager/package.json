@@ -27,7 +27,8 @@
     "seed-executions:demo": "node --import tsx scripts/execution/seed-execution-logs.ts --profile demo",
     "seed-executions:test": "node --import tsx scripts/execution/seed-execution-logs.ts --profile testing",
     "clear-executions": "node --import tsx scripts/execution/clear-execution-logs.ts",
-    "clear-executions:confirm": "node --import tsx scripts/execution/clear-execution-logs.ts --confirm"
+    "clear-executions:confirm": "node --import tsx scripts/execution/clear-execution-logs.ts --confirm",
+    "seed-executions:prod": "node --import tsx scripts/execution/seed-execution-logs.ts --profile production"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

@@ -6,10 +6,12 @@
 // Export store classes
 // Create and export singleton instances
 import { BotKVStore } from './bot-store';
+import { ExecutionKVStore } from './execution-store';
 import { NotificationKVStore } from './notification-store';
 import { UserDataKVStore } from './user-store';
 
 export { BotKVStore } from './bot-store';
+export { ExecutionKVStore } from './execution-store';
 export { NotificationKVStore } from './notification-store';
 export { UserDataKVStore } from './user-store';
 
@@ -18,4 +20,5 @@ export { UserDataKVStore } from './user-store';
 
 export const userDataStore = new UserDataKVStore();
 export const botDataStore = new BotKVStore();
+export const executionDataStore = new ExecutionKVStore();
 export const notificationStore = new NotificationKVStore();

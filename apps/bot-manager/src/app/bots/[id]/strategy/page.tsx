@@ -125,7 +125,7 @@ export default function BotStrategyPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mb-96">
       {/* Repository Configuration */}
       <Card className="bg-card border-border">
         <CardHeader

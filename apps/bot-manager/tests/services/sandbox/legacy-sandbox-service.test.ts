@@ -23,7 +23,7 @@ vi.mock('dotenv', () => ({
 
 // Mock path
 vi.mock('path', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as any;
   return {
     ...actual,
     resolve: vi.fn().mockReturnValue('/mock/path')
@@ -88,7 +88,7 @@ describe('Legacy Sandbox Service', () => {
 
     it('should accept custom config', () => {
       const customConfig = {
-        runtime: 'node18' as const,
+        runtime: 'node22' as const,
         timeout: 5000
       };
       const service = new SandboxService(customConfig);
@@ -194,7 +194,7 @@ describe('Legacy Sandbox Service', () => {
 
       // Mock template to throw error
       const { strategyWrapperTemplate } = await import('@/lib/services/sandbox/templates/strategy-wrapper');
-      strategyWrapperTemplate.mockImplementationOnce(() => {
+      (strategyWrapperTemplate as any).mockImplementationOnce(() => {
         throw new Error('Template error');
       });
 

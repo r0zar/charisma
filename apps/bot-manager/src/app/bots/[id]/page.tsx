@@ -114,7 +114,7 @@ export default function BotOverviewPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mb-96">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bot Status */}
         <Card className="bg-card border-border">

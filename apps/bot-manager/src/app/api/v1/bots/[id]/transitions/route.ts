@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { botDataStore } from '@/lib/modules/storage/kv-stores/bot-store';
 import { 
   BotStateMachine, 
-  getValidTransitions} from '@/lib/services/bots/bot-state-machine';
+  getValidTransitions} from '@/lib/services/bots/core/bot-state-machine';
 
 // Request validation schema
 const TransitionRequestSchema = z.object({
@@ -210,7 +210,7 @@ export async function GET(
       botId,
       currentStatus: bot.status,
       statusDescription: BotStateMachine.getStatusDescription(bot.status),
-      validTransitions: validTransitions.map(t => ({
+      validTransitions: validTransitions.map((t: any) => ({
         action: t.action,
         toStatus: t.to,
         requiresValidation: t.requiresValidation,

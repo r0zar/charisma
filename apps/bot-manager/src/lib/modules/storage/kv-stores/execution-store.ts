@@ -87,7 +87,10 @@ export class ExecutionKVStore {
 
       return true;
     } catch (error) {
-      console.error('Failed to store execution:', error);
+      console.error('Failed to store execution:', execution.id, error);
+      console.error('Execution key:', this.getExecutionKey(userId, execution.botId, execution.id));
+      console.error('Index key:', this.getBotExecutionsIndexKey(userId, execution.botId));
+      console.error('Execution data size:', JSON.stringify(execution).length, 'bytes');
       return false;
     }
   }

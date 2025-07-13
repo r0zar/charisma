@@ -36,6 +36,8 @@ export const BotExecutionSchema = z.object({
   transactionId: z.string().optional(),
   executionTime: z.number().int().min(0).optional(), // Execution time in milliseconds
   sandboxId: z.string().optional(), // Vercel Sandbox ID
+  logsUrl: z.string().url().optional(), // Blob storage URL for execution logs
+  logsSize: z.number().int().min(0).optional(), // Size of logs in bytes
 });
 
 export const BotSchema = z.object({

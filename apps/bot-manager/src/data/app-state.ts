@@ -23,17 +23,17 @@ export const appState: AppState = {
     },
     "isServer": false,
     "isClient": false,
-    "timestamp": "2025-07-10T22:07:16.084Z"
+    "timestamp": "2025-07-13T00:42:48.001Z"
   },
   "user": {
     "settings": {
       "general": {
-        "isDarkMode": true,
-        "compactMode": true,
+        "isDarkMode": false,
+        "compactMode": false,
         "autoRefresh": true
       },
       "network": {
-        "network": "mainnet",
+        "network": "testnet",
         "rpcEndpoint": "https://stacks-node-api.mainnet.stacks.co"
       },
       "botDefaults": {
@@ -42,553 +42,687 @@ export const appState: AppState = {
       "notifications": {
         "trade": true,
         "error": true,
-        "status": true,
+        "status": false,
         "performance": true,
         "security": true
       },
       "notificationChannel": "webhook",
       "security": {
-        "apiKey": "sk-3242895322b30655bd9021cc560b45ad288edc0f",
-        "autoLockTimeout": "60",
-        "requireConfirmation": false
+        "apiKey": "sk-31b6860e49a973e109e604eaadd6b20ddea67a30",
+        "autoLockTimeout": "never",
+        "requireConfirmation": true
       },
       "advanced": {
-        "debugMode": true,
+        "debugMode": false,
         "performanceMonitoring": true
       }
     },
     "wallet": {
       "isConnected": true,
-      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "address": "SPN94WUCRGSLJTVIVYSEASRAXEDLQY96GA5A51V7",
       "network": "mainnet",
       "balance": {
-        "stx": 1899.054355281207,
+        "stx": 12586.106824417011,
         "tokens": [
           {
-            "contractId": "SPP0T3FJM4CPINQ0V61FEZQVB6YF83P9PMQ7J00W.cha",
-            "symbol": "CHA",
-            "name": "Charisma",
-            "balance": 1545,
-            "decimals": 6,
-            "usdValue": 0.008496909632949173
+            "contractId": "SPOL8WFZ0BJFMCKSTT8ENDFGMEMEPM4RT6YN1RJ2.usda",
+            "symbol": "USDA",
+            "name": "USD Alex",
+            "balance": 18679,
+            "decimals": 8,
+            "usdValue": 0.001045935081456449
           },
           {
-            "contractId": "SPQ7M0ETSL4H6YIJQA4U7DRQNV8EK61AXZHXNILF.welsh",
+            "contractId": "SPR5ESPI2ZI1ER2DPLAR0MBSQUB3Q02D938JLO7Z.leo",
+            "symbol": "LEO",
+            "name": "Leo",
+            "balance": 14898,
+            "decimals": 8,
+            "usdValue": 0.0002618823673281406
+          },
+          {
+            "contractId": "SP3G3VWNXEQOETJAAXJJ8J0XP5EFB16YBBHLABBI.lisa",
+            "symbol": "LISA",
+            "name": "Lisa",
+            "balance": 13985,
+            "decimals": 6,
+            "usdValue": 0.12124519147203883
+          },
+          {
+            "contractId": "SPJRESBV0Z8L6Y0BFMS2V296JHZL3NOJM88AMM4A.leo",
+            "symbol": "LEO",
+            "name": "Leo",
+            "balance": 8963,
+            "decimals": 8,
+            "usdValue": 0.00006251556273212977
+          },
+          {
+            "contractId": "SP0U4VL3141ZWC3AERQOGNJJGGGKSNEZHDGEWMTD.welsh",
             "symbol": "WELSH",
             "name": "Welsh",
-            "balance": 353,
+            "balance": 13260,
             "decimals": 6,
-            "usdValue": 0.002877776657683794
+            "usdValue": 0.11987188932701814
+          },
+          {
+            "contractId": "SPPSXG7TJSDFXYH306NYV170P600AAEX9AKC3KY7.alex",
+            "symbol": "ALEX",
+            "name": "Alex",
+            "balance": 5824,
+            "decimals": 8,
+            "usdValue": 0.00023452797744841677
           }
         ]
       },
       "transactions": [
         {
-          "txId": "0x20068d10bcd2b896645edc7837d163c9fc895a81424dd5d1ca4fad5424fa32c8",
-          "timestamp": "2025-07-10T19:12:16.085Z",
-          "type": "receive",
-          "amount": 51.89236111111111,
-          "token": "LEO",
+          "txId": "0x115bd735c10cc4c99403b8c678c3e5467068e5f49399b4bdc7063aa53f50b994",
+          "timestamp": "2025-07-06T09:42:48.003Z",
+          "type": "send",
+          "amount": 970.2387688614541,
+          "token": "DIKO",
           "status": "pending",
-          "fee": 0.007494174382716051
+          "fee": 0.0023171682098765433
         },
         {
-          "txId": "0x8fe3a497f0d4f2cdec07bf30191c157f38c17e7aba7b1634cb9295c41323cb1e",
-          "timestamp": "2025-07-09T21:46:16.085Z",
-          "type": "receive",
-          "amount": 63.703832304526756,
+          "txId": "0xf1dad38ed1cfad2b8ba31e6be60fa6aa54b14541e22c2d7c856bd7d553475138",
+          "timestamp": "2025-07-05T18:32:48.003Z",
+          "type": "send",
+          "amount": 456.6490912208505,
           "token": "ALEX",
-          "status": "pending",
-          "fee": 0.0017481095679012346
+          "status": "failed",
+          "fee": 0.0042084490740740745
         },
         {
-          "txId": "0xf5f8b45e7d2e6f07c46f1bfcc2dffbceb836c71c021520b60b59a60ffc18466f",
-          "timestamp": "2025-07-09T17:01:16.085Z",
-          "type": "deploy",
-          "amount": 84.78317901234567,
-          "token": "STX",
-          "status": "pending",
-          "fee": 0.003343827160493827
-        },
-        {
-          "txId": "0x2860c027e0060e0862102f38a5a9ce20cc79d7dd8f104164306e6f9d7ac47bd8",
-          "timestamp": "2025-07-09T14:29:16.085Z",
-          "type": "contract-call",
-          "amount": 196.26971879286694,
-          "token": "PEPE",
-          "status": "pending",
-          "fee": 0.0031895833333333333,
-          "memo": "Trading profit"
-        },
-        {
-          "txId": "0x2bceeff749c344276889ad21f93255fc0a49c58b52eafac682cc09004862bab1",
-          "timestamp": "2025-07-09T09:48:16.085Z",
-          "type": "deploy",
-          "amount": 45.547625171467764,
-          "token": "USDA",
-          "status": "pending",
-          "fee": 0.009869560185185186
-        },
-        {
-          "txId": "0xc0c06a65334ef820a4dfdde16e906bfcdc66dcc95766eb76ee6715c9b3ac4c14",
-          "timestamp": "2025-07-09T02:59:16.085Z",
+          "txId": "0xe597295a7d4967679572dd83e10248f84c3a0df1cc667526681fcd6713f4cae7",
+          "timestamp": "2025-07-01T02:42:48.003Z",
           "type": "receive",
-          "amount": 89.684670781893,
-          "token": "LEO",
-          "status": "confirmed",
-          "fee": 0.00788155864197531,
-          "blockHeight": 927881
-        },
-        {
-          "txId": "0xac98543351c4b886c7807aa00183b580f65c523adbcd92953656d103e9f47891",
-          "timestamp": "2025-07-08T18:07:16.085Z",
-          "type": "deploy",
-          "amount": 73.75604423868313,
+          "amount": 119.20524691358025,
           "token": "DIKO",
-          "status": "failed",
-          "fee": 0.00891871141975309
+          "status": "confirmed",
+          "fee": 0.008059104938271607,
+          "blockHeight": 463692
         },
         {
-          "txId": "0x6dbf276cb34fcf875ecb6199c5c46512d8191801f90ca46b5418b34490483283",
-          "timestamp": "2025-07-08T10:02:16.085Z",
+          "txId": "0xfa4afba6b55b121654a3a34b9fc2955ac8983b0b8a76cfce816abbb141a74cba",
+          "timestamp": "2025-06-29T23:46:48.003Z",
           "type": "contract-call",
-          "amount": 79.16332304526749,
-          "token": "LEO",
+          "amount": 1838.042266803841,
+          "token": "USDA",
           "status": "pending",
-          "fee": 0.005355401234567902,
-          "memo": "Yield farming reward"
+          "fee": 0.006816705246913581
         },
         {
-          "txId": "0x8ab8a09f64f4e01ea3b21c126cc2a65167a4d96f63270f46b2be84dea092d14b",
-          "timestamp": "2025-07-08T09:05:16.085Z",
-          "type": "deploy",
-          "amount": 159.53540809327848,
+          "txId": "0x7710f154bce7c3abad1943779be9bdaec3b2a955ddc0e56278d9c6185530e3e0",
+          "timestamp": "2025-06-25T13:19:48.003Z",
+          "type": "receive",
+          "amount": 225.45310356652948,
           "token": "USDA",
           "status": "confirmed",
-          "fee": 0.0014217592592592593,
-          "blockHeight": 168476
+          "fee": 0.003029976851851852,
+          "blockHeight": 171658
         },
         {
-          "txId": "0x5ee679faa6d827aa074c564c8d00fb5f1e6919b4fd0e69fc7661bad4029e6fa0",
-          "timestamp": "2025-07-08T08:52:16.085Z",
-          "type": "deploy",
-          "amount": 174.53798010973935,
-          "token": "LISA",
-          "status": "pending",
-          "fee": 0.005521296296296297
+          "txId": "0xda88b9fef6a065247d758777934403f5c1751f6424277155834e7c9730b09a9c",
+          "timestamp": "2025-06-12T16:25:48.003Z",
+          "type": "receive",
+          "amount": 1227.8562242798353,
+          "token": "USDA",
+          "status": "confirmed",
+          "fee": 0.009713387345679014,
+          "blockHeight": 111759
         },
         {
-          "txId": "0x8ce0013d488d58315d3412c5341f3bafbdf5ea22682ad4c8e4088c7f22f90e78",
-          "timestamp": "2025-07-08T07:52:16.085Z",
+          "txId": "0x1cdf60761f48e69b3dd1a9667b9e483abf2874625b6efb377cb111f6093e4f37",
+          "timestamp": "2025-06-04T21:36:48.002Z",
           "type": "send",
-          "amount": 71.24339849108367,
-          "token": "DIKO",
+          "amount": 203.59267832647464,
+          "token": "USDA",
+          "status": "confirmed",
+          "fee": 0.006796797839506173,
+          "blockHeight": 891859
+        },
+        {
+          "txId": "0x0f88085d6eeba9bf6f49d0ba92f642d8965c72075cc57c89056c47991cdcd6e1",
+          "timestamp": "2025-06-04T17:36:48.003Z",
+          "type": "contract-call",
+          "amount": 1427.3366769547324,
+          "token": "ROOS",
           "status": "failed",
-          "fee": 0.0018876543209876543
-        },
-        {
-          "txId": "0x48b70d3930922723a979d59653adc04ce08b87e21d6c0aec4f9c4c85ee835445",
-          "timestamp": "2025-07-08T04:48:16.085Z",
-          "type": "send",
-          "amount": 196.36908436213992,
-          "token": "CHA",
-          "status": "pending",
-          "fee": 0.0030183641975308644,
+          "fee": 0.0016027391975308642,
           "memo": "Bot funding"
         },
         {
-          "txId": "0xc18db41ede29bdef7406150c4cb525e61616399b427a8b000e3ba64bf0778630",
-          "timestamp": "2025-07-07T03:00:16.085Z",
+          "txId": "0xa77957b3e67329e6f37fbc1ccbcf339163bd27eed0d296e1f8df55ddff72c85b",
+          "timestamp": "2025-05-30T21:08:48.003Z",
           "type": "send",
-          "amount": 169.9191100823045,
-          "token": "PEPE",
-          "status": "confirmed",
-          "fee": 0.0015293595679012348,
-          "blockHeight": 347523,
+          "amount": 1098.4447873799727,
+          "token": "ROOS",
+          "status": "pending",
+          "fee": 0.00279945987654321
+        },
+        {
+          "txId": "0x94c4360f52f03ad8628a7ad344bd87cfd7f36e2e5e78f60c42b56321a1c88b2e",
+          "timestamp": "2025-05-30T05:41:48.002Z",
+          "type": "receive",
+          "amount": 935.4689643347051,
+          "token": "STX",
+          "status": "failed",
+          "fee": 0.0068330246913580256
+        },
+        {
+          "txId": "0xed24972a7e5ae25960691b1f061adc0d9addd4f186b0943e17b9383dc5dc690d",
+          "timestamp": "2025-05-30T03:33:48.003Z",
+          "type": "receive",
+          "amount": 1077.4069787379972,
+          "token": "ROOS",
+          "status": "pending",
+          "fee": 0.0014081404320987654,
+          "memo": "Staking reward"
+        },
+        {
+          "txId": "0x9f010f62c1bd7290d613b1be8b7cbc30352476515c940699edc951c8dfd88a8e",
+          "timestamp": "2025-05-20T13:16:48.002Z",
+          "type": "send",
+          "amount": 940.8363340192044,
+          "token": "USDA",
+          "status": "failed",
+          "fee": 0.005613078703703704
+        },
+        {
+          "txId": "0x4473e6c997d8a18bb11294d791187e635bfcdfa4a65877e2140a158aa265fdc5",
+          "timestamp": "2025-05-18T13:21:48.003Z",
+          "type": "deploy",
+          "amount": 708.5815329218108,
+          "token": "USDA",
+          "status": "failed",
+          "fee": 0.007420331790123458,
+          "memo": "Staking reward"
+        },
+        {
+          "txId": "0x900223b1ac4da22d11b8eae22939076a5fd4b0b19080a5bf006077a5673cc5f0",
+          "timestamp": "2025-05-16T15:57:48.003Z",
+          "type": "contract-call",
+          "amount": 609.7127914951989,
+          "token": "USDA",
+          "status": "failed",
+          "fee": 0.006456635802469137
+        },
+        {
+          "txId": "0x3922f8dffcfd459c9bc17a36b7e8267c3ece47c0548dd34d82cedfbce56031ad",
+          "timestamp": "2025-05-15T16:17:48.003Z",
+          "type": "deploy",
+          "amount": 674.4388717421125,
+          "token": "DIKO",
+          "status": "failed",
+          "fee": 0.006221566358024692
+        },
+        {
+          "txId": "0x11c2ce66525ad02dd5b48bb359bf391220ce3622962a0b17331186b7b858fa36",
+          "timestamp": "2025-05-15T02:02:48.003Z",
+          "type": "deploy",
+          "amount": 1678.878172153635,
+          "token": "DIKO",
+          "status": "pending",
+          "fee": 0.0037016589506172846,
           "memo": "Trading profit"
         },
         {
-          "txId": "0xcd8452811e7cedaec348b89bf6825a5d7146b2dac36ae427bb23c70bdce9bd35",
-          "timestamp": "2025-07-06T19:11:16.085Z",
-          "type": "deploy",
-          "amount": 186.1898148148148,
-          "token": "ALEX",
-          "status": "failed",
-          "fee": 0.0012306327160493827
-        },
-        {
-          "txId": "0x3f6c1cb1385196d48d0485f580a0ee4f8bbfc88ccc3ef75af731cf6a7271ca3c",
-          "timestamp": "2025-07-05T14:30:16.085Z",
+          "txId": "0x323118c45c3f54e1e7483587c4af525f84a03d28e4b4e25538065710fa208103",
+          "timestamp": "2025-05-03T21:49:48.002Z",
           "type": "contract-call",
-          "amount": 141.45576131687244,
+          "amount": 589.4894547325102,
           "token": "USDA",
           "status": "pending",
-          "fee": 0.005722762345679013
-        },
-        {
-          "txId": "0x9e361785673691d56218c4e25eab0bbabd2180529c16ddbec184dfd6cd44bced",
-          "timestamp": "2025-07-05T09:00:16.085Z",
-          "type": "receive",
-          "amount": 79.02323388203018,
-          "token": "STX",
-          "status": "failed",
-          "fee": 0.007367283950617285
-        },
-        {
-          "txId": "0x1161a633de007a77683ca213aeb37735f1d936c17f0777cdee6a193fdfc94f3a",
-          "timestamp": "2025-07-04T22:46:16.085Z",
-          "type": "deploy",
-          "amount": 21.253557956104252,
-          "token": "ALEX",
-          "status": "failed",
-          "fee": 0.005255825617283951
-        },
-        {
-          "txId": "0xdb6a216aa8b86b390052737d86ab643c360cc86bc8919dffec13e61d41f28b7d",
-          "timestamp": "2025-07-04T21:53:16.085Z",
-          "type": "contract-call",
-          "amount": 99.93072702331962,
-          "token": "WELSH",
-          "status": "pending",
-          "fee": 0.005570601851851853
-        },
-        {
-          "txId": "0x8fec79de01b9f4ce0f568acf4aa95f0461f50c26059430e404f2d9b0a239edb5",
-          "timestamp": "2025-07-04T21:36:16.085Z",
-          "type": "send",
-          "amount": 80.78900891632374,
-          "token": "WELSH",
-          "status": "pending",
-          "fee": 0.009636111111111113,
+          "fee": 0.0013839891975308642,
           "memo": "LP token withdrawal"
         },
         {
-          "txId": "0xc8d83a8ff111a09b3c911c0f97d9d11818f5584eb3aea08f6f849eff5e559456",
-          "timestamp": "2025-07-04T12:01:16.085Z",
+          "txId": "0xf5a41a34834ba8ae7b774bfe15df19c99f43f7d1b0d60ad5e96ff95756618423",
+          "timestamp": "2025-05-02T11:35:48.003Z",
           "type": "receive",
-          "amount": 31.90929355281207,
-          "token": "LISA",
-          "status": "failed",
-          "fee": 0.0071077932098765435,
-          "memo": "Trading profit"
-        },
-        {
-          "txId": "0x0e865740318343d3776aa25afcf2804e396fa6ad4c87a27c299e45efa71d0141",
-          "timestamp": "2025-07-04T11:11:16.085Z",
-          "type": "receive",
-          "amount": 60.13563100137175,
-          "token": "CHA",
-          "status": "pending",
-          "fee": 0.009667052469135805,
-          "memo": "Trading profit"
-        },
-        {
-          "txId": "0xb56164660fe043abd6b29a8b08326689c8ac9db2a18844cbbed45067b8a5f644",
-          "timestamp": "2025-07-03T21:11:16.085Z",
-          "type": "deploy",
-          "amount": 31.893818587105624,
-          "token": "LEO",
+          "amount": 1095.8303326474622,
+          "token": "STX",
           "status": "confirmed",
-          "fee": 0.00816724537037037,
-          "blockHeight": 245108
+          "fee": 0.008856520061728396,
+          "blockHeight": 539498,
+          "memo": "Trading profit"
         },
         {
-          "txId": "0x5db0c768ef96156234998de859b706ab24f5c44af8396e661fd5a3edf5f6f703",
-          "timestamp": "2025-07-03T13:55:16.085Z",
+          "txId": "0x3c19a95f7e42bfe26490a83767183f6c7691e137c35e900af7f8bc22a33e34f7",
+          "timestamp": "2025-04-30T22:17:48.003Z",
+          "type": "send",
+          "amount": 1554.0847908093278,
+          "token": "USDA",
+          "status": "pending",
+          "fee": 0.005434606481481482,
+          "memo": "Yield farming reward"
+        },
+        {
+          "txId": "0x776b30184fcab69de6a8abda43ce19ec6bdad9c9726e4b47f129ade7d6fa77a8",
+          "timestamp": "2025-04-29T03:36:48.003Z",
           "type": "deploy",
-          "amount": 149.0946930727023,
+          "amount": 907.1090534979423,
           "token": "DIKO",
           "status": "confirmed",
-          "fee": 0.005691087962962964,
-          "blockHeight": 271103
+          "fee": 0.0010968364197530864,
+          "blockHeight": 357743
         },
         {
-          "txId": "0xe3d1dbed6bb7fc31817588bebfb7841d1259e61e708fe2413df11f4583213e0b",
-          "timestamp": "2025-07-03T05:38:16.085Z",
-          "type": "contract-call",
-          "amount": 189.9811814128944,
+          "txId": "0xca6b4e1315c7e651837984f911d46c34c523078c920e81f06116a193731bda2c",
+          "timestamp": "2025-04-27T03:31:48.003Z",
+          "type": "receive",
+          "amount": 924.0582133058984,
+          "token": "ALEX",
+          "status": "failed",
+          "fee": 0.005848418209876543
+        },
+        {
+          "txId": "0x0086ae55638899acf430b44670d1c5be69d64fc1be793ee2b115973cbc247179",
+          "timestamp": "2025-04-27T00:42:48.003Z",
+          "type": "send",
+          "amount": 1898.5982510288065,
+          "token": "ROOS",
+          "status": "failed",
+          "fee": 0.006710030864197532,
+          "memo": "Staking reward"
+        },
+        {
+          "txId": "0x4539b6533d41766cea142dd671c56bf4aa0ed100e58e4d7450c6028dc1e38ab3",
+          "timestamp": "2025-04-26T06:26:48.003Z",
+          "type": "receive",
+          "amount": 932.1459190672153,
           "token": "LISA",
           "status": "pending",
-          "fee": 0.002664853395061729
+          "fee": 0.0063728395061728406
+        },
+        {
+          "txId": "0x2b6032ddd0fd1094772af117715c11590afb1861da04c633817e5de5cf8c862e",
+          "timestamp": "2025-04-24T02:32:48.003Z",
+          "type": "receive",
+          "amount": 512.8720850480111,
+          "token": "USDA",
+          "status": "failed",
+          "fee": 0.006766435185185186
+        },
+        {
+          "txId": "0x4480ba7521974ee8af25095940fada130097e471d609b2fcc7075e92d842a158",
+          "timestamp": "2025-04-21T07:20:48.003Z",
+          "type": "contract-call",
+          "amount": 244.55246913580245,
+          "token": "ROOS",
+          "status": "failed",
+          "fee": 0.004902854938271605
+        },
+        {
+          "txId": "0xd1506ee37ef66f2ec1bca5451d78c7e9bc9c84e81a355086514a554c1ace4c27",
+          "timestamp": "2025-04-21T02:22:48.003Z",
+          "type": "receive",
+          "amount": 546.7704046639232,
+          "token": "DIKO",
+          "status": "confirmed",
+          "fee": 0.007269598765432099,
+          "blockHeight": 544000
+        },
+        {
+          "txId": "0x151b1d38cf1361ae0705105f68694fe0fd3dd3047f86f1695e2b5291e68e9379",
+          "timestamp": "2025-04-20T05:41:48.003Z",
+          "type": "send",
+          "amount": 961.0270919067216,
+          "token": "ALEX",
+          "status": "pending",
+          "fee": 0.007592978395061729
+        },
+        {
+          "txId": "0x2fef3acf009517261d6ec7370827274aad538b9d121f4db75c12889741ec2541",
+          "timestamp": "2025-04-19T05:19:48.003Z",
+          "type": "send",
+          "amount": 438.7307098765432,
+          "token": "USDA",
+          "status": "confirmed",
+          "fee": 0.004197646604938272,
+          "blockHeight": 821296
+        },
+        {
+          "txId": "0xcfe8cc80d4292879acfd0c8963f336a07209290f3524e032167a4424f1c0d4dc",
+          "timestamp": "2025-04-18T19:46:48.003Z",
+          "type": "send",
+          "amount": 274.98113854595334,
+          "token": "LISA",
+          "status": "pending",
+          "fee": 0.004528472222222223
+        },
+        {
+          "txId": "0x871cf640852c5cbc4911fa93d4b17eea39409ad53f47ddbf57a4160180b9b8e7",
+          "timestamp": "2025-04-16T18:35:48.003Z",
+          "type": "deploy",
+          "amount": 1770.7343106995884,
+          "token": "ROOS",
+          "status": "pending",
+          "fee": 0.007201581790123457,
+          "memo": "Bot funding"
+        },
+        {
+          "txId": "0xa1bb8e949cb195d775d9e220c712f7b2ad60f107a0d8772cce513af70c2fd9cb",
+          "timestamp": "2025-04-13T12:09:48.003Z",
+          "type": "receive",
+          "amount": 597.9925411522634,
+          "token": "STX",
+          "status": "failed",
+          "fee": 0.007590933641975309
         }
       ],
-      "connectionMethod": "hiro"
+      "connectionMethod": "xverse"
     },
     "preferences": {
       "sidebarCollapsed": false,
       "theme": "light",
-      "skin": "forest",
-      "language": "es",
-      "timezone": "America/Los_Angeles",
-      "dateFormat": "ISO",
-      "numberFormat": "EU"
+      "skin": "default",
+      "language": "de",
+      "timezone": "Europe/Berlin",
+      "dateFormat": "US",
+      "numberFormat": "US"
     }
   },
   "bots": {
     "list": [
       {
-        "id": "SP395B5MZ93VATE5KV6GVQ6VAP9N0FWY3ND2RJ1RY",
-        "name": "Parasect",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
-        "status": "setup",
-        "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
-        "createdAt": "2025-07-05T20:46:16.453Z",
-        "lastActive": "2025-07-10T06:21:16.453Z",
-        "encryptedWallet": "49749ed8e19b37fc5ba9d5906baac9024f174dc7cf926030d8260fbeda14cdddc134f10085477e818792ed8ae40d19b6bd402e729f161f2fbbe11af41323427f7b49f53baad983d9a160a63babc7419a",
-        "walletIv": "3df3c0822894622056cfe93790942572",
-        "publicKey": "03387b5af3c587bbffb5638ec391257948afe10b532dad20b23305497b6b18ee8c",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/47.png",
+        "id": "SP3N8VZKGYNJKKZJ3ZFWV2SSHBJ6CFDYK6FR4ZJ1K",
+        "name": "Raticate",
+        "strategy": "// Basic trading strategy\nconsole.log('Checking trading opportunities...');\nconsole.log('Bot wallet:', bot.id);",
+        "status": "active",
+        "ownerId": "SP3N8VZKGYNJKKZJ3ZFWV2SSHBJ6CFDYK6FR4ZJ1K",
+        "createdAt": "2025-05-26T21:44:48.442Z",
+        "lastActive": "2025-07-12T09:12:48.442Z",
+        "encryptedWallet": "2fee60e772b523e66c491d5fbfbde72e8d6955a374f5229d8ef64d03a685b6a45ac4002be425a1ccbf419433f9fc019b138987d73d1c6fff0dda3f74ff2167258f32b7cb6f82c727d491297e93475f69",
+        "walletIv": "f74a7406a050a01b3cc6988e607524b3",
+        "publicKey": "03d7ce45ed9c0d7d861319be5bd018415f294977d454de7533ae51d6cc631564e9",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/20.png",
         "imageType": "pokemon",
         "isScheduled": false,
         "executionCount": 0
       },
       {
-        "id": "SP3GMN0SH7G303HZAQG51ZYVMAYNNBFE8GB07V2KV",
-        "name": "Omanyte",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
-        "status": "setup",
-        "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
-        "createdAt": "2025-07-05T14:40:16.550Z",
-        "lastActive": "2025-07-10T14:18:16.550Z",
-        "encryptedWallet": "0f9933636078251167be721da69bcecfefa767be19745d7c99d1b7c82814ed9de17344091db42440fad667fbaa9e29c7b558c296de446a0980ee7fa01d25991bf4bb11809c4676e16474dc8b1bc47e68",
-        "walletIv": "ecb6af6f084d3d9732052b3c8daa4e9e",
-        "publicKey": "02950e7aed7b94c1f5c2116bd5df7deef3a5670218335335e03636e5f0bb54dd0e",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/138.png",
+        "id": "SP1CX6CQ712AES6NVGAR2RJ8QC6VVYRVYC1ZQP825",
+        "name": "Horsea",
+        "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
+        "status": "active",
+        "ownerId": "SP1CX6CQ712AES6NVGAR2RJ8QC6VVYRVYC1ZQP825",
+        "createdAt": "2025-06-06T06:01:48.535Z",
+        "lastActive": "2025-07-11T00:27:48.535Z",
+        "encryptedWallet": "f364c035a24536b273aebc30e152b8ed3f4c3ccf8ac3de3a376223078f078deba619d2b16a7c0b5f58c08716f153e4a74d6e6ffb840808ed45dba63f0f669e1d18fd486f8f4d63447559ae7f7488097b",
+        "walletIv": "10c0e80789f052f7d9b2086c77ad73a7",
+        "publicKey": "020a77eb5345375970823fa1de956274b008900090bbd3be987de21a217dcfbba7",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/116.png",
         "imageType": "pokemon",
         "isScheduled": false,
         "executionCount": 0
       },
       {
-        "id": "SP32JMY5YNZEMZPTF1KPZYB38PETW774XQ3BP3K3D",
-        "name": "Magnemite",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "id": "SPBXB8QX8DFZB9ZEER03WEDQ29K0F96N5MFR46VY",
+        "name": "Articuno",
+        "strategy": "// Basic trading strategy\nconsole.log('Checking trading opportunities...');\nconsole.log('Bot wallet:', bot.id);",
         "status": "setup",
-        "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
-        "createdAt": "2025-07-05T20:17:16.641Z",
-        "lastActive": "2025-07-08T23:02:16.641Z",
-        "encryptedWallet": "33c993ec46d0dd1be4f8da88f5ca0286caba7128ea11e83e50181d8653a2e8cf9df42be29898d377ffe8dd67c5ea4a39f3d7e5eae75a0c0dbae37b89171b1948a096013457399b32673d053fc1a4ff74",
-        "walletIv": "39038524f5a143db155b726f403c9c76",
-        "publicKey": "0374eacf8a0beb8832e5723deb8c6be2b43614c3dca4757c472a166becfe2e5d92",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/81.png",
+        "ownerId": "SPBXB8QX8DFZB9ZEER03WEDQ29K0F96N5MFR46VY",
+        "createdAt": "2025-04-19T09:40:48.620Z",
+        "lastActive": "2025-07-12T21:19:48.620Z",
+        "encryptedWallet": "d272c24339ec583b94d1ea043c66db1eed715880669db1a76afabc460fd7e80a8a235a36ea795141c742dec619ada62da26b71de817f8a2e1518cdb14cac972d8d1c40cd8f6dc3b28c9e3c474b14b2ee",
+        "walletIv": "5d46720343f7138296c47cc046efc461",
+        "publicKey": "024a1b5a874807605833575f501c6c7d2411e9f656adb7111d32e42a785731f0e9",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/144.png",
         "imageType": "pokemon",
         "isScheduled": false,
         "executionCount": 0
       },
       {
-        "id": "SPK2K9H9DRG2C50KGARFJZT9TZFR4PFA7SWS0ZAS",
-        "name": "Kakuna",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
-        "status": "setup",
-        "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
-        "createdAt": "2025-07-04T23:49:16.733Z",
-        "lastActive": "2025-07-09T17:50:16.733Z",
-        "encryptedWallet": "70b2eca86fb3b638329035279cdca04c5e18993d0ecf65e4bc402487b4ef5ce0523372167b784d2e25368bec1481b59d14089b01b0c1f11a1a0150b9a2c852f00eb62e4596be7fdd49af4fdd942a81e1",
-        "walletIv": "7e3f2982bdffe061e5944dec4c10115b",
-        "publicKey": "02693dc3a661ea7997a16441b4ca523901ff4f7ffb65488a17ed386ddd3951fe6b",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/14.png",
+        "id": "SP21NDEHY42VPNMC11Y4E7S96TX93P6E9K9VQR4GB",
+        "name": "Tentacruel",
+        "strategy": "// Simple monitoring strategy\nconsole.log('Monitoring market conditions...');\nconsole.log('Bot status:', bot.status);",
+        "status": "active",
+        "ownerId": "SP21NDEHY42VPNMC11Y4E7S96TX93P6E9K9VQR4GB",
+        "createdAt": "2025-07-08T07:46:48.705Z",
+        "lastActive": "2025-07-11T06:48:48.705Z",
+        "encryptedWallet": "2b12447c9260cccd9ea65dcd84a5937549bef05b8235fd3c2ae70f017041cbf1f99d8f6852a19d45f3a875166ff1e3c7d265c7cd6eadf08ea36213af8b4bdca72f18faca2d199934e7b0665b9311ece1",
+        "walletIv": "1bf5942448ad4c541d8b8f9a9f166d53",
+        "publicKey": "029ff1c060f7aef34f66d432c905431f8383ce154e05bd991c6226c2eab3834433",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/73.png",
         "imageType": "pokemon",
         "isScheduled": false,
         "executionCount": 0
       },
       {
-        "id": "SP12WAGTKRMMZC1M3Y7X4CGC2NET2ST75M4BHYA7R",
-        "name": "Jolteon",
-        "strategy": "console.log('🚀 Starting fetch strategy for', bot.name);\n\ntry {\n  const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');\n  const data = await response.json();\n  console.log('📊 Bitcoin price data:', data.bitcoin.usd);\n  \n  \n} catch (error) {\n  console.log('❌ Fetch failed:', error.message);\n}",
+        "id": "SPNCX81FVBV3KS6HTQTY1SV96NK99XGJ788X5NA8",
+        "name": "Diglett",
+        "strategy": "// Simple monitoring strategy\nconsole.log('Monitoring market conditions...');\nconsole.log('Bot status:', bot.status);",
         "status": "setup",
-        "ownerId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
-        "createdAt": "2025-07-10T20:23:16.836Z",
-        "lastActive": "2025-07-10T13:17:16.836Z",
-        "encryptedWallet": "0c7053603b37dc3625ef2ee99fa8da78f7787894a84377c199aa0eb42bc0b2c9b85f48fc2efce93a1d5147b49e97de3d043774c358053c055723b07108684e2b39b070aaf37877ce5e3ed25b17343d50",
-        "walletIv": "07684eeb8415062c5753ec9132ed62c8",
-        "publicKey": "03a835daa0cfc57a88645a8b41fbe01a0c2345cdbe5e23235947dfb0ea3619f5b3",
-        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/135.png",
+        "ownerId": "SPNCX81FVBV3KS6HTQTY1SV96NK99XGJ788X5NA8",
+        "createdAt": "2025-07-04T00:38:48.790Z",
+        "lastActive": "2025-07-12T16:24:48.790Z",
+        "encryptedWallet": "51725db99ed2fe78f05898afee9df6345a3699d52df9f543ac939ddee051c6aedf6841b75dfd6d227563661deb6f78b5c9e8295e811e21951e25f8c237ce0d82a1d5062ca30ad0188469e8fbb01845bd",
+        "walletIv": "a3258af5acbfe1921d3912399802a82a",
+        "publicKey": "0360bfbe35d60a07d9b57298f1c23d007c07028aebd35f7b4c00c68fcb88ac7d6f",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png",
+        "imageType": "pokemon",
+        "isScheduled": false,
+        "executionCount": 0
+      },
+      {
+        "id": "SP2BPPW28KE5VM8T1SZHYM8FWM7VEPK02W1RYXTBC",
+        "name": "Machop",
+        "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
+        "status": "paused",
+        "ownerId": "SP2BPPW28KE5VM8T1SZHYM8FWM7VEPK02W1RYXTBC",
+        "createdAt": "2025-04-15T10:47:48.874Z",
+        "lastActive": "2025-07-12T00:14:48.874Z",
+        "encryptedWallet": "da2bffb1f7da7e72caceb88b31a2802ba1fe6093aec4f97799b2dfafcb1762061d836d47e5285e43bf4d9f4d3683ca85942f3acaf073ae89ae45cf05f6c54832c377a440904330deaab80fbe9def9a83",
+        "walletIv": "192a1c895e915220ed1ee23647f698af",
+        "publicKey": "020e14c6be296bbe41bee8caecfc11711575bfb3937df48ac860f35f478ace4ad0",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png",
+        "imageType": "pokemon",
+        "isScheduled": false,
+        "executionCount": 0
+      },
+      {
+        "id": "SP28GCWMQN9M8EDFYH32D1G1FT9Y0PF0JS09SB993",
+        "name": "Ekans",
+        "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
+        "status": "paused",
+        "ownerId": "SP28GCWMQN9M8EDFYH32D1G1FT9Y0PF0JS09SB993",
+        "createdAt": "2025-05-02T23:50:48.958Z",
+        "lastActive": "2025-07-11T18:45:48.958Z",
+        "encryptedWallet": "3662db96216321cadaadae15ec9d8e6069d72b01cb20f9c9ecb4abb7eb64c572737d0ef5797235465afa96847da0f38f926eb3755e12773b8d8fc33186154f19aeb9bf97363887106c7d10bcc72a18a8",
+        "walletIv": "92aa47457eb6d5821f857cb0191c4cd6",
+        "publicKey": "03248028e3d34ddc2fe03a073335ab7fb37d82ed818bccc108dc39b4dd330130dc",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/23.png",
+        "imageType": "pokemon",
+        "isScheduled": false,
+        "executionCount": 0
+      },
+      {
+        "id": "SP1ZFA9R0GQYWP3C52EEDPBN7Y2AA901KFQ3J7097",
+        "name": "Diglett",
+        "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
+        "status": "setup",
+        "ownerId": "SP1ZFA9R0GQYWP3C52EEDPBN7Y2AA901KFQ3J7097",
+        "createdAt": "2025-05-30T04:07:49.043Z",
+        "lastActive": "2025-07-12T03:35:49.043Z",
+        "encryptedWallet": "a91b3f154da4f321a4a34d7a4ec520eab348d35a2763a8d205c6ecd5439d481736c9b51c6f56e31785bf810721a3603808dd1b58d48f45589ff6c1d97b7a47cc7d9c015d8bc839d16166fbae24a9580b",
+        "walletIv": "e01e4d412c49f53567aff38d135bda26",
+        "publicKey": "02a921ade4ab9a88367fb382374141825ffb5b9a54db5b343fdb72fd8597f7735a",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/50.png",
+        "imageType": "pokemon",
+        "isScheduled": false,
+        "executionCount": 0
+      },
+      {
+        "id": "SP252VHN0KS8Z59DEKDK2CZAPAG99TVXXHQ4CWZ4N",
+        "name": "Spearow",
+        "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
+        "status": "paused",
+        "ownerId": "SP252VHN0KS8Z59DEKDK2CZAPAG99TVXXHQ4CWZ4N",
+        "createdAt": "2025-05-03T13:02:49.128Z",
+        "lastActive": "2025-07-11T12:36:49.128Z",
+        "encryptedWallet": "f9b92dffa71d737752617e3a84debc8977e7a96c8b12cff5fb44699aff3e5eb31080a0099716d978ecbb4d1ead90a5201dd3a0759a3435e582517ab12171bdfb18030d9a3cda1ea78728089e77278ecc",
+        "walletIv": "5892441035842fdfcb4eeb2b878ec788",
+        "publicKey": "0225ef8adb4c9267007b5b10349b5fa14006dc30effb2dcefd17a18e83df4b4b90",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/21.png",
+        "imageType": "pokemon",
+        "isScheduled": false,
+        "executionCount": 0
+      },
+      {
+        "id": "SP2ARJ8QC9GEK6F7444TZR9GEYMHZYHXRK37NNVK8",
+        "name": "Tentacool",
+        "strategy": "console.log('Hello from bot:', bot.name);\nconsole.log('Bot wallet address:', bot.id);",
+        "status": "setup",
+        "ownerId": "SP2ARJ8QC9GEK6F7444TZR9GEYMHZYHXRK37NNVK8",
+        "createdAt": "2025-07-05T13:35:49.221Z",
+        "lastActive": "2025-07-12T11:43:49.221Z",
+        "encryptedWallet": "ea76e9e315fd2aa4bca75badcc2f38c89607404290d3ac39012bc24c2eaac242bbba1801641abb124ed75fce4484eb498c7ff9193ecdcbcb6c253e664689d33dda73766f571890df6e97f6c4833b771c",
+        "walletIv": "0fe43316a9116ae4e2cedc9f5ea42a8e",
+        "publicKey": "0359ed6298a422a60156dfb46a2f15ab114881abfd8ee46db39be5d4633924eadf",
+        "image": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/72.png",
         "imageType": "pokemon",
         "isScheduled": false,
         "executionCount": 0
       }
     ],
     "stats": {
-      "totalBots": 5,
-      "activeBots": 0,
-      "pausedBots": 0,
+      "totalBots": 10,
+      "activeBots": 3,
+      "pausedBots": 3,
       "errorBots": 0
     }
   },
   "notifications": [
     {
-      "id": "notification-110119",
+      "id": "notification-556998",
       "type": "success",
-      "title": "LP tokens staked",
-      "message": "Successfully swapped 100 STX for ALEX",
-      "timestamp": "2025-07-09T03:17:16.837Z",
+      "title": "Bot started successfully",
+      "message": "Collected 5.2 CHA tokens in farming rewards",
+      "timestamp": "2025-06-30T16:53:49.222Z",
       "read": true,
-      "persistent": true,
-      "actionUrl": "http://localhost:3420/market"
+      "persistent": false,
+      "actionUrl": "http://localhost:3420/settings"
     },
     {
-      "id": "notification-163514",
+      "id": "notification-723190",
+      "type": "error",
+      "title": "Insufficient balance",
+      "message": "Bot encountered an error and has been paused",
+      "timestamp": "2025-06-30T02:19:49.222Z",
+      "read": true,
+      "persistent": false
+    },
+    {
+      "id": "notification-363163",
+      "type": "success",
+      "title": "Settings updated",
+      "message": "Added 250 STX to liquidity pool",
+      "timestamp": "2025-06-28T00:20:49.222Z",
+      "read": true,
+      "persistent": true
+    },
+    {
+      "id": "notification-899324",
+      "type": "error",
+      "title": "Network connection lost",
+      "message": "Unable to connect to RPC endpoint",
+      "timestamp": "2025-06-23T08:15:49.222Z",
+      "read": false,
+      "persistent": false,
+      "actionUrl": "http://localhost:3420/analytics"
+    },
+    {
+      "id": "notification-560354",
       "type": "success",
       "title": "LP tokens staked",
-      "message": "Successfully swapped 100 STX for ALEX",
-      "timestamp": "2025-07-08T04:11:16.837Z",
+      "message": "Added 250 STX to liquidity pool",
+      "timestamp": "2025-06-20T15:39:49.221Z",
+      "read": true,
+      "persistent": false
+    },
+    {
+      "id": "notification-752754",
+      "type": "error",
+      "title": "Bot execution failed",
+      "message": "Unable to connect to RPC endpoint",
+      "timestamp": "2025-06-17T08:12:49.221Z",
       "read": false,
       "persistent": false
     },
     {
-      "id": "notification-609332",
-      "type": "info",
-      "title": "Price alert triggered",
-      "message": "WELSH token now available for trading",
-      "timestamp": "2025-07-07T19:26:16.837Z",
+      "id": "notification-406253",
+      "type": "error",
+      "title": "Bot execution failed",
+      "message": "Bot encountered an error and has been paused",
+      "timestamp": "2025-06-03T09:41:49.222Z",
+      "read": false,
+      "persistent": false
+    },
+    {
+      "id": "notification-971246",
+      "type": "warning",
+      "title": "High slippage detected",
+      "message": "Less than 10 STX remaining in wallet",
+      "timestamp": "2025-05-31T21:17:49.221Z",
+      "read": true,
+      "persistent": false,
+      "actionUrl": "http://localhost:3420/analytics"
+    },
+    {
+      "id": "notification-862299",
+      "type": "success",
+      "title": "Bot started successfully",
+      "message": "Collected 5.2 CHA tokens in farming rewards",
+      "timestamp": "2025-05-26T23:25:49.222Z",
       "read": false,
       "persistent": false,
       "actionUrl": "http://localhost:3420/settings"
     },
     {
-      "id": "notification-285081",
+      "id": "notification-105868",
       "type": "info",
       "title": "Price alert triggered",
-      "message": "STX price increased by 15% in last hour",
-      "timestamp": "2025-07-07T18:53:16.837Z",
-      "read": true,
-      "persistent": false
-    },
-    {
-      "id": "notification-619579",
-      "type": "error",
-      "title": "Network connection lost",
-      "message": "Smart contract rejected the transaction",
-      "timestamp": "2025-07-07T16:11:16.837Z",
-      "read": false,
-      "persistent": false,
-      "actionUrl": "http://localhost:3420/market"
-    },
-    {
-      "id": "notification-971643",
-      "type": "error",
-      "title": "Bot execution failed",
-      "message": "Unable to connect to RPC endpoint",
-      "timestamp": "2025-07-07T14:13:16.837Z",
-      "read": false,
-      "persistent": false,
-      "actionUrl": "http://localhost:3420/bots"
-    },
-    {
-      "id": "notification-666446",
-      "type": "warning",
-      "title": "High slippage detected",
-      "message": "Your bot has not made a profit in 24 hours",
-      "timestamp": "2025-07-07T13:09:16.837Z",
-      "read": true,
-      "persistent": false
-    },
-    {
-      "id": "notification-723468",
-      "type": "warning",
-      "title": "Bot performance declining",
-      "message": "Network gas prices are 50% above normal",
-      "timestamp": "2025-07-07T11:36:16.837Z",
-      "read": false,
-      "persistent": false
-    },
-    {
-      "id": "notification-799602",
-      "type": "info",
-      "title": "Market volatility increased",
       "message": "New STX-ALEX pool offers 25% APR",
-      "timestamp": "2025-07-07T04:19:16.837Z",
+      "timestamp": "2025-05-24T05:39:49.222Z",
+      "read": true,
+      "persistent": true,
+      "actionUrl": "http://localhost:3420/wallet"
+    },
+    {
+      "id": "notification-579610",
+      "type": "info",
+      "title": "New token listing detected",
+      "message": "STX price increased by 15% in last hour",
+      "timestamp": "2025-05-07T10:55:49.222Z",
       "read": true,
       "persistent": false
     },
     {
-      "id": "notification-848695",
-      "type": "error",
-      "title": "Insufficient balance",
-      "message": "Bot encountered an error and has been paused",
-      "timestamp": "2025-07-06T23:17:16.837Z",
-      "read": true,
-      "persistent": false,
-      "actionUrl": "http://localhost:3420/analytics"
-    },
-    {
-      "id": "notification-805655",
-      "type": "success",
-      "title": "LP tokens staked",
-      "message": "Collected 5.2 CHA tokens in farming rewards",
-      "timestamp": "2025-07-06T20:39:16.837Z",
-      "read": false,
-      "persistent": true,
-      "actionUrl": "http://localhost:3420/analytics"
-    },
-    {
-      "id": "notification-127943",
+      "id": "notification-166450",
       "type": "success",
       "title": "Settings updated",
-      "message": "Successfully swapped 100 STX for ALEX",
-      "timestamp": "2025-07-06T17:37:16.837Z",
-      "read": true,
-      "persistent": false
-    },
-    {
-      "id": "notification-823634",
-      "type": "success",
-      "title": "Yield harvested",
-      "message": "Notification preferences have been saved",
-      "timestamp": "2025-07-05T19:07:16.837Z",
-      "read": true,
-      "persistent": false
-    },
-    {
-      "id": "notification-773198",
-      "type": "info",
-      "title": "Market volatility increased",
-      "message": "New STX-ALEX pool offers 25% APR",
-      "timestamp": "2025-07-04T20:27:16.837Z",
-      "read": true,
+      "message": "Collected 5.2 CHA tokens in farming rewards",
+      "timestamp": "2025-05-06T16:42:49.222Z",
+      "read": false,
       "persistent": true
     },
     {
-      "id": "notification-247658",
-      "type": "info",
-      "title": "New farming opportunity available",
-      "message": "Maintenance window: 2 AM - 4 AM UTC",
-      "timestamp": "2025-07-04T12:30:16.837Z",
+      "id": "notification-487642",
+      "type": "success",
+      "title": "Trade executed",
+      "message": "Collected 5.2 CHA tokens in farming rewards",
+      "timestamp": "2025-04-21T05:37:49.221Z",
       "read": false,
       "persistent": false
     },
     {
-      "id": "notification-739479",
-      "type": "info",
-      "title": "Price alert triggered",
-      "message": "Bitcoin price movement may affect STX",
-      "timestamp": "2025-07-04T03:40:16.837Z",
-      "read": true,
-      "persistent": false
-    },
-    {
-      "id": "notification-799803",
-      "type": "error",
-      "title": "Transaction reverted",
-      "message": "Wallet balance too low to execute trade",
-      "timestamp": "2025-07-04T00:07:16.837Z",
-      "read": false,
-      "persistent": false
-    },
-    {
-      "id": "notification-442885",
-      "type": "error",
-      "title": "Network connection lost",
-      "message": "Bot encountered an error and has been paused",
-      "timestamp": "2025-07-03T14:27:16.837Z",
-      "read": false,
-      "persistent": false
-    },
-    {
-      "id": "notification-274355",
-      "type": "error",
-      "title": "Bot execution failed",
-      "message": "Smart contract rejected the transaction",
-      "timestamp": "2025-07-03T13:27:16.837Z",
+      "id": "notification-700362",
+      "type": "warning",
+      "title": "Wallet balance low",
+      "message": "Approaching 80% of hourly API limit",
+      "timestamp": "2025-04-13T09:16:49.221Z",
       "read": false,
       "persistent": false
     }

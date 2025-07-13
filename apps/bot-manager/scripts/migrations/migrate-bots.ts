@@ -12,9 +12,8 @@
 
 import path from 'path';
 import fs from 'fs';
-import { botDataStore } from '../../src/lib/infrastructure/storage';
+import { botDataStore } from '../../src/lib/modules/storage';
 import { appState } from '../../src/data/app-state';
-import { defaultState } from '../../src/data/default-state';
 import { syncLogger as logger } from '../utils/logger';
 import type { Bot } from '../../src/schemas/bot.schema';
 
@@ -114,7 +113,7 @@ Examples:
 }
 
 function showPreview(options: MigrationOptions) {
-  const sourceData = options.source === 'default' ? defaultState : appState;
+  const sourceData = appState;
   const rawBots = sourceData.bots.list;
   
   // Transform bots to new schema for preview
@@ -260,7 +259,7 @@ async function validateBotData(bots: Bot[]): Promise<boolean> {
 }
 
 async function migrateBotData(options: MigrationOptions) {
-  const sourceData = options.source === 'default' ? defaultState : appState;
+  const sourceData = appState;
   const rawBots = sourceData.bots.list;
 
   logger.info(`🚀 Starting bot data migration for user ${options.userId}...`);

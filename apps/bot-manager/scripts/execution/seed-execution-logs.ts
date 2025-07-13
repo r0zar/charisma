@@ -8,8 +8,14 @@
  *   node --import tsx scripts/execution/seed-execution-logs.ts --profile development
  */
 
-import { executionDataStore } from '@/lib/modules/storage';
-import { botService } from '@/lib/services/bots/service';
+// Load environment variables from .env.local
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env.local file
+dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+
+import { executionDataStore, botDataStore } from '@/lib/modules/storage';
 import { generateExecutions, ExecutionGeneratorOptions } from './execution-generator';
 import { SeededRandom } from '../data/generators/helpers';
 import { syncLogger as logger } from '../utils/logger';
@@ -42,8 +48,8 @@ const PROFILE_CONFIGS = {
     generateBlobs: true, // Generate blobs for demo
   },
   production: {
-    executionCount: 0, // Don't seed production by default
-    daysPast: 0,
+    executionCount: 50, // Allow seeding for existing production bots
+    daysPast: 14,
     generateBlobs: false,
   }
 } as const;
@@ -53,7 +59,7 @@ const PROFILE_CONFIGS = {
  */
 export async function seedExecutionLogs(options: SeedOptions = { profile: 'development' }) {
   const startTime = Date.now();
-  
+
   logger.info('🌱 Starting execution logs seeding', {
     profile: options.profile,
     userId: options.userId,
@@ -67,16 +73,12 @@ export async function seedExecutionLogs(options: SeedOptions = { profile: 'devel
     const daysPast = options.daysPast ?? config.daysPast;
     const generateBlobs = options.generateBlobs ?? config.generateBlobs;
 
-    // Validate profile
-    if (options.profile === 'production' && !options.executionCount) {
-      logger.warn('⚠️  Production profile detected. Use --execution-count to override safety limit.');
-      return;
-    }
+    // Validate profile - removed production restriction since we want to seed existing bots
 
     // Get or use default user ID
-    const userId = options.userId || 
-                   process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 
-                   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
+    const userId = options.userId ||
+      process.env.NEXT_PUBLIC_DEFAULT_USER_ID ||
+      'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 
     // Clear existing executions if requested
     if (options.clearFirst) {
@@ -84,9 +86,12 @@ export async function seedExecutionLogs(options: SeedOptions = { profile: 'devel
       await clearAllExecutions(userId);
     }
 
-    // Load available bots
-    const allBots = await botService.scanAllBots();
+    // Load available bots directly from KV store
+    logger.info('🔍 Scanning for existing bots in KV store...');
+    const allBots = await botDataStore.getAllBotsPublic();
     const botIds = allBots.map(bot => bot.id);
+
+    logger.info(`🔍 Found ${allBots.length} bots total in KV`);
 
     if (botIds.length === 0) {
       logger.error('❌ No bots found. Please run bot generation first.');
@@ -94,6 +99,7 @@ export async function seedExecutionLogs(options: SeedOptions = { profile: 'devel
     }
 
     logger.info(`📊 Found ${botIds.length} bots for execution generation`);
+    logger.info(`📋 Bot IDs: ${botIds.slice(0, 3).join(', ')}${botIds.length > 3 ? '...' : ''}`);
 
     // Initialize seeded random generator
     const seed = options.seed ?? Date.now();
@@ -122,10 +128,12 @@ export async function seedExecutionLogs(options: SeedOptions = { profile: 'devel
         if (success) {
           storedCount++;
         } else {
+          logger.error('Failed to store execution:', execution.id);
           failedCount++;
         }
       } catch (error) {
-        logger.error('Failed to store execution:', execution.id, error);
+        logger.error('Exception storing execution:', execution.id, error);
+        logger.error('Execution data:', JSON.stringify(execution, null, 2));
         failedCount++;
       }
 
@@ -136,7 +144,7 @@ export async function seedExecutionLogs(options: SeedOptions = { profile: 'devel
     }
 
     const duration = Date.now() - startTime;
-    
+
     logger.info('✅ Execution logs seeding complete!', {
       profile: options.profile,
       totalGenerated: executions.length,
@@ -193,7 +201,7 @@ function parseArgs(): SeedOptions {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--profile':
         const profile = args[++i] as SeedOptions['profile'];
@@ -203,31 +211,31 @@ function parseArgs(): SeedOptions {
           throw new Error(`Invalid profile: ${profile}`);
         }
         break;
-        
+
       case '--user-id':
         options.userId = args[++i];
         break;
-        
+
       case '--count':
         options.executionCount = parseInt(args[++i]);
         break;
-        
+
       case '--days':
         options.daysPast = parseInt(args[++i]);
         break;
-        
+
       case '--seed':
         options.seed = parseInt(args[++i]);
         break;
-        
+
       case '--generate-blobs':
         options.generateBlobs = true;
         break;
-        
+
       case '--clear-first':
         options.clearFirst = true;
         break;
-        
+
       case '--help':
         console.log(`
 Usage: node --import tsx scripts/execution/seed-execution-logs.ts [options]
