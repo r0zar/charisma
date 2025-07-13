@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { CreateNotificationData,NotificationFilters, notificationService } from '@/lib/services/notifications/service';
@@ -16,8 +17,22 @@ import { CreateNotificationData,NotificationFilters, notificationService } from 
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication via Clerk
+    const { userId } = await auth();
+    
+    if (!userId) {
+      console.warn(`❌ Unauthenticated notifications request`);
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'User must be authenticated to access notifications',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
     const unreadOnly = searchParams.get('unread') === 'true';
     const type = searchParams.get('type');
     const category = searchParams.get('category');
@@ -25,17 +40,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
-    // For multi-user notifications, userId is required
-    if (!userId) {
-      return NextResponse.json(
-        {
-          error: 'Missing userId',
-          message: 'userId parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
+    console.log(`📫 Authenticated notifications request from user ${userId}`);
 
     // Build filters
     const filters: NotificationFilters = {
@@ -102,21 +107,23 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-
-    // For multi-user notifications, userId is required
+    // Verify authentication via Clerk
+    const { userId } = await auth();
+    
     if (!userId) {
+      console.warn(`❌ Unauthenticated notification creation request`);
       return NextResponse.json(
         {
-          error: 'Missing userId',
-          message: 'userId parameter is required',
+          error: 'Authentication required',
+          message: 'User must be authenticated to create notifications',
           timestamp: new Date().toISOString(),
         },
-        { status: 400 }
+        { status: 401 }
       );
     }
+
+    const body = await request.json();
+    console.log(`📫 Authenticated notification creation request from user ${userId}`);
 
     // Check if notification creation is available
     if (!notificationService.isKVEnabled()) {
@@ -206,22 +213,26 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    // Verify authentication via Clerk
+    const { userId } = await auth();
+    
+    if (!userId) {
+      console.warn(`❌ Unauthenticated notification update request`);
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'User must be authenticated to update notifications',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
     const notificationId = searchParams.get('id');
     const action = searchParams.get('action'); // 'read', 'unread', 'mark-all-read'
 
-    // For multi-user notifications, userId is required
-    if (!userId) {
-      return NextResponse.json(
-        {
-          error: 'Missing userId',
-          message: 'userId parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
+    console.log(`📫 Authenticated notification update request from user ${userId} for action: ${action}`);
 
     // Check if notification updates are available
     if (!notificationService.isKVEnabled()) {
@@ -338,22 +349,26 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    // Verify authentication via Clerk
+    const { userId } = await auth();
+    
+    if (!userId) {
+      console.warn(`❌ Unauthenticated notification deletion request`);
+      return NextResponse.json(
+        {
+          error: 'Authentication required',
+          message: 'User must be authenticated to delete notifications',
+          timestamp: new Date().toISOString(),
+        },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
     const notificationId = searchParams.get('id');
     const action = searchParams.get('action'); // 'clear-all'
 
-    // For multi-user notifications, userId is required
-    if (!userId) {
-      return NextResponse.json(
-        {
-          error: 'Missing userId',
-          message: 'userId parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
+    console.log(`📫 Authenticated notification deletion request from user ${userId}`);
 
     // Check if notification deletion is available
     if (!notificationService.isKVEnabled()) {

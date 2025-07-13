@@ -25,13 +25,20 @@ export const WalletTransactionSchema = z.object({
 export const WalletStateSchema = z.object({
   isConnected: z.boolean(),
   address: z.string().nullable(),
-  network: z.enum(['mainnet', 'testnet', 'devnet']),
+  network: z.enum(['stacks-mainnet', 'stacks-testnet', 'bitcoin-mainnet', 'bitcoin-testnet', 'mainnet', 'testnet', 'devnet']),
   balance: z.object({
     stx: z.number().min(0),
+    btc: z.number().min(0).optional(),
     tokens: z.array(TokenBalanceSchema),
   }),
   transactions: z.array(WalletTransactionSchema),
-  connectionMethod: z.enum(['hiro', 'xverse', 'ledger']).nullable(),
+  connectionMethod: z.enum(['hiro', 'xverse', 'leather', 'ledger', 'stacks-connect']).nullable(),
+  // Verification fields for secure wallet sync
+  publicKey: z.string().optional(),
+  verificationSignature: z.string().optional(),
+  verificationMessage: z.string().optional(),
+  verificationTimestamp: z.string().optional(),
+  lastConnected: z.string().optional(),
 });
 
 // Infer TypeScript types from schemas

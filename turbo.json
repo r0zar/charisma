@@ -8,7 +8,8 @@
         ".env*"
       ],
       "dependsOn": [
-        "^build"
+        "^build",
+        "generate-types"
       ],
       "outputs": [
         "build/**",
@@ -33,7 +34,9 @@
         "DEBUG",
         "VERCEL_TEAM_ID",
         "VERCEL_PROJECT_ID",
-        "VERCEL_TOKEN"
+        "VERCEL_TOKEN",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "CLERK_SECRET_KEY"
       ]
     },
     "test": {
@@ -68,10 +71,22 @@
     },
     "dev": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "generate-types"
       ],
       "cache": false,
       "persistent": true
+    },
+    "generate-types": {
+      "inputs": [
+        "node_modules/@stacks/transactions/dist/**/*.d.ts",
+        "node_modules/@stacks/network/dist/**/*.d.ts", 
+        "scripts/generate-types.ts"
+      ],
+      "outputs": [
+        "src/generated/"
+      ],
+      "dependsOn": []
     }
   }
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { createContext, ReactNode, useContext, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 
 import { Bot, BotStats, CreateBotRequest } from '@/schemas/bot.schema';
 
 import { useToast } from './toast-context';
-import { useWallet } from './wallet-context';
 
 interface BotContextType {
   // Data
@@ -46,16 +46,15 @@ interface BotProviderProps {
 
 export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   const { showSuccess, showError } = useToast();
-  const { walletState } = useWallet();
+  const { user, isSignedIn } = useUser();
 
   const [allBots, setAllBots] = useState<Bot[]>(initialBots);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
-  // Derive filtered bots based on wallet connection
-  const bots = walletState.connected && walletState.address
-    ? allBots.filter(bot => bot.ownerId === walletState.address)
+  // Derive filtered bots based on Clerk authentication
+  const bots = isSignedIn && user?.id
+    ? allBots.filter(bot => bot.clerkUserId === user.id)
     : [];
 
   // Derive stats from filtered bots
@@ -67,16 +66,16 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   };
 
   const createBot = async (request: CreateBotRequest): Promise<Bot> => {
-    // Require wallet connection for bot creation
-    if (!walletState.connected || !walletState.address) {
-      throw new Error('Wallet must be connected to create a bot');
+    // Require Clerk authentication for bot creation
+    if (!isSignedIn || !user?.id) {
+      throw new Error('You must be signed in to create a bot');
     }
 
     try {
       setLoading(true);
 
-      // Create bot via API
-      const response = await fetch(`/api/v1/bots?userId=${walletState.address}`, {
+      // Create bot via API using Clerk userId
+      const response = await fetch(`/api/v1/bots?userId=${user.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,9 +106,9 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   };
 
   const updateBot = async (id: string, updates: Partial<Bot>): Promise<Bot> => {
-    // Require wallet connection and ownership
-    if (!walletState.connected || !walletState.address) {
-      throw new Error('Wallet must be connected to update bots');
+    // Require Clerk authentication
+    if (!isSignedIn || !user?.id) {
+      throw new Error('You must be signed in to update bots');
     }
 
     setLoading(true);
@@ -119,15 +118,15 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
         throw new Error('Bot not found');
       }
 
-      // Verify ownership
-      if (existingBot.ownerId !== walletState.address) {
+      // Verify ownership using clerkUserId
+      if (existingBot.clerkUserId !== user.id) {
         throw new Error('You can only update bots you own');
       }
 
       const updatedBot = { ...existingBot, ...updates };
 
-      // Update bot via API
-      const response = await fetch(`/api/v1/bots?userId=${walletState.address}&botId=${id}`, {
+      // Update bot via API using Clerk userId
+      const response = await fetch(`/api/v1/bots?userId=${user.id}&botId=${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -157,9 +156,9 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   };
 
   const deleteBot = async (id: string): Promise<void> => {
-    // Require wallet connection and ownership
-    if (!walletState.connected || !walletState.address) {
-      throw new Error('Wallet must be connected to delete bots');
+    // Require Clerk authentication
+    if (!isSignedIn || !user?.id) {
+      throw new Error('You must be signed in to delete bots');
     }
 
     try {
@@ -170,13 +169,13 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
         throw new Error('Bot not found');
       }
 
-      // Verify ownership
-      if (existingBot.ownerId !== walletState.address) {
+      // Verify ownership using clerkUserId
+      if (existingBot.clerkUserId !== user.id) {
         throw new Error('You can only delete bots you own');
       }
 
-      // Delete bot via API
-      const response = await fetch(`/api/v1/bots?userId=${walletState.address}&botId=${id}`, {
+      // Delete bot via API using Clerk userId
+      const response = await fetch(`/api/v1/bots?userId=${user.id}&botId=${id}`, {
         method: 'DELETE',
       });
 
@@ -199,9 +198,9 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   };
 
   const startBot = async (id: string): Promise<void> => {
-    // Require wallet connection and ownership
-    if (!walletState.connected || !walletState.address) {
-      throw new Error('Wallet must be connected to start bots');
+    // Require Clerk authentication
+    if (!isSignedIn || !user?.id) {
+      throw new Error('You must be signed in to start bots');
     }
 
     try {
@@ -210,19 +209,19 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
         throw new Error('Bot not found');
       }
 
-      // Verify ownership
+      // Verify ownership using clerkUserId
       console.log('🔍 Bot ownership validation:');
       console.log('  Bot ID:', id);
-      console.log('  Bot ownerId:', existingBot.ownerId);
-      console.log('  Current wallet address:', walletState.address);
-      console.log('  Addresses match:', existingBot.ownerId === walletState.address);
+      console.log('  Bot clerkUserId:', existingBot.clerkUserId);
+      console.log('  Current user ID:', user.id);
+      console.log('  User IDs match:', existingBot.clerkUserId === user.id);
 
-      if (existingBot.ownerId !== walletState.address) {
-        throw new Error(`You can only start bots you own. Bot owner: ${existingBot.ownerId}, Your address: ${walletState.address}`);
+      if (existingBot.clerkUserId !== user.id) {
+        throw new Error(`You can only start bots you own. Bot owner: ${existingBot.clerkUserId}, Your user ID: ${user.id}`);
       }
 
       // Use state machine for transition
-      const userId = walletState.address;
+      const userId = user.id;
       const message = `bot_transition_${id}_start`;
 
       const response = await fetch(`/api/v1/bots/${id}/transitions?userId=${encodeURIComponent(userId)}`, {
@@ -257,9 +256,9 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   };
 
   const pauseBot = async (id: string): Promise<void> => {
-    // Require wallet connection and ownership
-    if (!walletState.connected || !walletState.address) {
-      throw new Error('Wallet must be connected to pause bots');
+    // Require Clerk authentication
+    if (!isSignedIn || !user?.id) {
+      throw new Error('You must be signed in to pause bots');
     }
 
     try {
@@ -268,19 +267,19 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
         throw new Error('Bot not found');
       }
 
-      // Verify ownership
+      // Verify ownership using clerkUserId
       console.log('🔍 Bot ownership validation (pause):');
       console.log('  Bot ID:', id);
-      console.log('  Bot ownerId:', existingBot.ownerId);
-      console.log('  Current wallet address:', walletState.address);
-      console.log('  Addresses match:', existingBot.ownerId === walletState.address);
+      console.log('  Bot clerkUserId:', existingBot.clerkUserId);
+      console.log('  Current user ID:', user.id);
+      console.log('  User IDs match:', existingBot.clerkUserId === user.id);
 
-      if (existingBot.ownerId !== walletState.address) {
-        throw new Error(`You can only pause bots you own. Bot owner: ${existingBot.ownerId}, Your address: ${walletState.address}`);
+      if (existingBot.clerkUserId !== user.id) {
+        throw new Error(`You can only pause bots you own. Bot owner: ${existingBot.clerkUserId}, Your user ID: ${user.id}`);
       }
 
       // Use state machine for transition
-      const userId = walletState.address;
+      const userId = user.id;
       const message = `bot_transition_${id}_pause`;
 
       const response = await fetch(`/api/v1/bots/${id}/transitions?userId=${encodeURIComponent(userId)}`, {
@@ -346,14 +345,14 @@ export function BotProvider({ children, initialBots = [] }: BotProviderProps) {
   };
 
   const refreshData = async (): Promise<void> => {
-    if (!walletState.connected || !walletState.address) {
+    if (!isSignedIn || !user?.id) {
       return;
     }
 
     setLoading(true);
     try {
-      // Fetch fresh data from KV store API
-      const response = await fetch(`/api/v1/bots?userId=${walletState.address}`);
+      // Fetch fresh data from KV store API using Clerk userId
+      const response = await fetch(`/api/v1/bots?userId=${user.id}`);
 
       if (!response.ok) {
         throw new Error('Failed to refresh data');

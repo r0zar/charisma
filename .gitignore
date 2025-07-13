@@ -21,3 +21,6 @@ coverage
 # vitest ui and coverage
 html
 coverage
+
+# generated files
+**/src/generated/

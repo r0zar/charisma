@@ -74,8 +74,8 @@ export default function BotSchedulingPage() {
   const fetchExecutionHistory = async (botId: string) => {
     setLoadingHistory(true);
     try {
-      const userId = getUserId();
-      const response = await fetch(`/api/v1/bots/${botId}/executions?userId=${encodeURIComponent(userId)}`);
+      // No need to pass userId - API gets it from Clerk auth automatically
+      const response = await fetch(`/api/v1/bots/${botId}/executions`);
       if (!response.ok) {
         throw new Error('Failed to fetch execution history');
       }

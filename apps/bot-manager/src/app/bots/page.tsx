@@ -503,7 +503,7 @@ export default function BotsPage() {
   const { bots, allBots, loading, deleteBot } = useBots();
   const { startBot, pauseBot } = useBotStateMachine();
   const { showSuccess, showError } = useToast();
-  const { walletState, connectWallet, isConnecting } = useWallet();
+  const { walletState } = useWallet();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -624,39 +624,8 @@ export default function BotsPage() {
     }
   };
 
-  // Authentication guard - require wallet connection
-  if (!walletState.connected) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center max-w-md mx-auto">
-          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Wallet className="w-8 h-8 text-blue-400" />
-          </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Connect Your Wallet</h2>
-          <p className="text-muted-foreground mb-6">
-            Connect your wallet to view and manage your bots. Your bots are tied to your wallet address for security.
-          </p>
-          <Button
-            onClick={connectWallet}
-            disabled={isConnecting}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            {isConnecting ? (
-              <>
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/20 border-t-white mr-2" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <Wallet className="w-4 h-4 mr-2" />
-                Connect Wallet
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Note: Authentication is now handled by middleware
+  // Users will be redirected to sign-in if not authenticated
 
   if (loading) {
     return (

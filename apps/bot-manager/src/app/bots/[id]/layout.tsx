@@ -22,66 +22,38 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
 import { useBotStateMachine } from '@/contexts/bot-state-machine-context';
 import { CurrentBotProvider } from '@/contexts/current-bot-context';
+import { BotPerformanceMarketplace } from '@/components/bot-performance-marketplace';
 
 export default function BotDetailLayout({ children, }: { children: React.ReactNode; }) {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
-  const { bots, loading } = useBots();
+  const { bots, allBots, loading } = useBots();
   const { startBot, pauseBot } = useBotStateMachine();
 
   const [mounted, setMounted] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
-  const [publicBots, setPublicBots] = React.useState<any[]>([]);
-  const [publicLoading, setPublicLoading] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Load public bots for viewing other users' bots
-  React.useEffect(() => {
-    const loadPublicBots = async () => {
-      if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS !== 'true') return;
-
-      setPublicLoading(true);
-      try {
-        const response = await fetch('/api/v1/bots/public');
-        if (response.ok) {
-          const data = await response.json();
-          setPublicBots(data.bots || []);
-        }
-      } catch (error) {
-        console.error('Failed to load public bots:', error);
-      } finally {
-        setPublicLoading(false);
-      }
-    };
-
-    if (mounted) {
-      loadPublicBots();
-    }
-  }, [mounted]);
+  // All bots are now available through the main bot context
 
   const bot = React.useMemo(() => {
-    // First check user's own bots
-    const userBot = bots.find(b => b.id === params.id);
-    if (userBot) return userBot;
+    // Check user's own bots first, then all public bots
+    return bots.find(b => b.id === params.id) || allBots.find(b => b.id === params.id);
+  }, [bots, allBots, params.id]);
 
-    // Then check public bots
-    const publicBot = publicBots.find(b => b.id === params.id);
-    return publicBot;
-  }, [bots, publicBots, params.id]);
-
-  const isPublicBot = React.useMemo(() => {
-    return !bots.find(b => b.id === params.id) && publicBots.find(b => b.id === params.id);
-  }, [bots, publicBots, params.id]);
+  const isOwnBot = React.useMemo(() => {
+    return bots.some(b => b.id === params.id);
+  }, [bots, params.id]);
 
   React.useEffect(() => {
-    if (mounted && bots.length > 0 && publicBots.length > 0 && !bot) {
+    if (mounted && !loading && !bot) {
       router.push('/bots');
     }
-  }, [mounted, bots, publicBots, bot, router]);
+  }, [mounted, loading, bot, router]);
 
   const handleStart = async () => {
     if (!bot) return;
@@ -113,7 +85,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
     return lastSegment;
   };
 
-  if (!mounted || loading || publicLoading || !bot) {
+  if (!mounted || loading || !bot) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -143,7 +115,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">{bot.name}</h1>
-                {isPublicBot && (
+                {!isOwnBot && (
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex-shrink-0">
                     Public Bot
                   </span>
@@ -168,7 +140,7 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
             <span className="ml-1 sm:ml-2 hidden xs:inline">Refresh</span>
           </Button>
 
-          {!isPublicBot && (
+          {isOwnBot && (
             bot.status === 'active' ? (
               <Button
                 variant="outline"
@@ -195,58 +167,61 @@ export default function BotDetailLayout({ children, }: { children: React.ReactNo
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <Tabs value={getCurrentTab()} className="space-y-3 sm:space-y-4">
-        <TabsList className={`grid w-full bg-card border-border text-xs sm:text-sm ${isPublicBot ? 'grid-cols-2' : 'grid-cols-4'}`}>
-          <TabsTrigger value="overview" asChild>
-            <Link
-              href={`/bots/${bot.id}`}
-              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              <span className="hidden xs:inline sm:inline">Overview</span>
-            </Link>
-          </TabsTrigger>
-          <TabsTrigger value="strategy" asChild>
-            <Link
-              href={`/bots/${bot.id}/strategy`}
-              className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              <span className="hidden xs:inline sm:inline">Strategy</span>
-            </Link>
-          </TabsTrigger>
-          {!isPublicBot && (
-            <>
-              <TabsTrigger value="scheduling" asChild>
-                <Link
-                  href={`/bots/${bot.id}/scheduling`}
-                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span className="hidden xs:inline sm:inline">Scheduling</span>
-                </Link>
-              </TabsTrigger>
-              <TabsTrigger value="wallet" asChild>
-                <Link
-                  href={`/bots/${bot.id}/wallet`}
-                  className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
-                >
-                  <Wallet className="w-4 h-4 mr-2" />
-                  <span className="hidden xs:inline sm:inline">Wallet</span>
-                </Link>
-              </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+      {/* Conditional Content: Tabs for owned bots, unified view for non-owned */}
+      {isOwnBot ? (
+        <Tabs value={getCurrentTab()} className="space-y-3 sm:space-y-4">
+          <TabsList className="grid w-full bg-card border-border text-xs sm:text-sm grid-cols-4">
+            <TabsTrigger value="overview" asChild>
+              <Link
+                href={`/bots/${bot.id}`}
+                className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                <span className="hidden xs:inline sm:inline">Overview</span>
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="strategy" asChild>
+              <Link
+                href={`/bots/${bot.id}/strategy`}
+                className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                <span className="hidden xs:inline sm:inline">Strategy</span>
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="scheduling" asChild>
+              <Link
+                href={`/bots/${bot.id}/scheduling`}
+                className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                <span className="hidden xs:inline sm:inline">Scheduling</span>
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="wallet" asChild>
+              <Link
+                href={`/bots/${bot.id}/wallet`}
+                className="text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center justify-center gap-1 sm:gap-2"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                <span className="hidden xs:inline sm:inline">Wallet</span>
+              </Link>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Page Content */}
-        <div className="space-y-4">
-          <CurrentBotProvider bot={bot} loading={loading}>
-            {children}
-          </CurrentBotProvider>
-        </div>
-      </Tabs>
+          {/* Page Content for owned bots */}
+          <div className="space-y-4">
+            <CurrentBotProvider bot={bot} loading={loading} isOwnBot={isOwnBot}>
+              {children}
+            </CurrentBotProvider>
+          </div>
+        </Tabs>
+      ) : (
+        /* Performance Marketplace View for non-owned bots */
+        <CurrentBotProvider bot={bot} loading={loading} isOwnBot={isOwnBot}>
+          <BotPerformanceMarketplace bot={bot} />
+        </CurrentBotProvider>
+      )}
     </div>
   );
 }

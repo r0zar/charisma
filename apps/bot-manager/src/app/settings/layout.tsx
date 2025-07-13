@@ -53,16 +53,16 @@ export default function SettingsLayout({
               <span className="hidden sm:inline">General</span>
             </TabsTrigger>
           </Link>
+          <Link href="/settings/network">
+            <TabsTrigger value="network" className="flex items-center gap-2 w-full">
+              <Network className="h-4 w-4" />
+              <span className="hidden sm:inline">Networks</span>
+            </TabsTrigger>
+          </Link>
           <Link href="/settings/appearance">
             <TabsTrigger value="appearance" className="flex items-center gap-2 w-full">
               <Palette className="h-4 w-4" />
               <span className="hidden sm:inline">Appearance</span>
-            </TabsTrigger>
-          </Link>
-          <Link href="/settings/network">
-            <TabsTrigger value="network" className="flex items-center gap-2 w-full">
-              <Network className="h-4 w-4" />
-              <span className="hidden sm:inline">Network</span>
             </TabsTrigger>
           </Link>
         </TabsList>

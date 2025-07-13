@@ -15,6 +15,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { getStrategyTemplates, type StrategyMetadata } from '@/components/strategy-code-editor/strategy-utils';
 import type { HelpContextualInfo } from '@/components/strategy-editor-help/types';
+import { getMonacoTypeDefinitions } from '@/generated/types';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +34,7 @@ interface StrategyCodeEditorProps {
   onSave?: (code: string) => void;
   onTest?: (code: string) => void;
   readOnly?: boolean;
+  canExecute?: boolean;
   height?: string;
   className?: string;
   helpContextualInfo?: HelpContextualInfo;
@@ -49,6 +51,7 @@ export function StrategyCodeEditor({
   onSave,
   onTest,
   readOnly = false,
+  canExecute = true,
   height = '500px',
   className = '',
   helpContextualInfo,
@@ -155,85 +158,29 @@ export function StrategyCodeEditor({
         strict: false
       });
 
-      // Add manual type definitions for bot context and common packages
-      addBotContextTypes(monaco);
+      // Add generated type definitions from build-time script
+      addGeneratedTypes(monaco);
 
       console.log('Monaco type definitions loaded successfully');
 
     } catch (error) {
       console.error('Failed to setup Monaco types:', error);
-      // Fall back to basic bot context types only
-      addBotContextTypes(monaco);
+      // Fall back to generated types only
+      addGeneratedTypes(monaco);
     }
   };
 
-  const addBotContextTypes = (monaco: any) => {
-    // Manual type definitions for bot context, Node.js globals, and @stacks/transactions
-    monaco.languages.typescript.typescriptDefaults.addExtraLib(`
-      // Node.js globals
-      declare function require(id: string): any;
-      declare namespace NodeJS {
-        interface Global {
-          require: typeof require;
-        }
-      }
-      declare var process: any;
-      declare var console: Console;
-      declare var Buffer: any;
-      
-      // @stacks/transactions module types
-      declare module '@stacks/transactions' {
-        interface ContractCallOptions {
-          contractAddress: string;
-          contractName: string;
-          functionName: string;
-          functionArgs?: any[];
-          senderKey: string;
-          network?: any;
-          fee?: string | number;
-          nonce?: string | number;
-          anchorMode?: number;
-          postConditionMode?: number;
-          postConditions?: any[];
-        }
-        
-        export function makeContractCall(options: ContractCallOptions): Promise<any>;
-        export function broadcastTransaction(transaction: any, network?: any): Promise<any>;
-        
-        // Clarity value constructors
-        export function uintCV(value: string | number): any;
-        export function intCV(value: string | number): any;
-        export function boolCV(value: boolean): any;
-        export function stringAsciiCV(value: string): any;
-        export function stringUtf8CV(value: string): any;
-        export function bufferCV(value: Uint8Array): any;
-        export function listCV(values: any[]): any;
-        export function tupleCV(data: Record<string, any>): any;
-        export function standardPrincipalCV(address: string): any;
-        export function contractPrincipalCV(address: string, contractName: string): any;
-        export function someCV(value: any): any;
-        export function noneCV(): any;
-        export function okCV(value: any): any;
-        export function errCV(value: any): any;
-      }
-      
-      // Bot context types
-      interface BotWalletCredentials {
-        privateKey?: string;
-      }
+  const addGeneratedTypes = (monaco: any) => {
+    // Load all generated type definitions from build-time script
+    const typeDefinitions = getMonacoTypeDefinitions();
 
-      interface BotContext {
-        // Bot metadata
-        id: string; // Bot ID is the wallet address
-        name: string;
-        status: 'active' | 'paused' | 'error' | 'inactive' | 'setup';
-        created_at: string;
-        last_active: string;
-        walletCredentials: BotWalletCredentials;
-      }
+    console.log('typeDefinitions', typeDefinitions);
 
-      declare const bot: BotContext;
-    `, 'file:///node_modules/@types/strategy-globals/index.d.ts');
+    typeDefinitions.forEach(({ content, filePath }: { content: string, filePath: string }) => {
+      monaco.languages.typescript.typescriptDefaults.addExtraLib(content, filePath);
+    });
+
+    console.log(`📚 Loaded ${typeDefinitions.length} type definition files for Monaco Editor`);
   };
 
   const handleTemplateSelect = (templateKey: string) => {
@@ -289,7 +236,7 @@ export function StrategyCodeEditor({
 
   return (
     <div className={`${className} ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
-      <div className="space-y-4 h-full p-2 sm:p-3">
+      <div className="space-y-4 h-full p-2 sm:p-3 bg-card">
 
         {/* Code Editor */}
         <div className="bg-card border-border flex-1">
@@ -326,8 +273,9 @@ export function StrategyCodeEditor({
                     variant="outline"
                     size="sm"
                     onClick={handleTest}
-                    disabled={!code.trim() || isTesting}
-                    className="border-blue-600 text-blue-400 hover:bg-blue-500/10 h-8 w-8 sm:h-9 sm:w-9"
+                    disabled={!code.trim() || isTesting || !canExecute}
+                    className={`h-8 w-8 sm:h-9 sm:w-9 ${canExecute ? 'border-blue-600 text-blue-400 hover:bg-blue-500/10' : 'border-gray-600 text-gray-400 cursor-not-allowed'}`}
+                    title={!canExecute ? 'You can only execute bots that you own' : undefined}
                   >
                     {isTesting ? (
                       <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -369,7 +317,7 @@ export function StrategyCodeEditor({
           <div className="p-0">
             <div className="border border-border rounded-none" style={{ overflow: 'visible' }}>
               <Editor
-                height={isFullscreen ? '70vh' : height}
+                height={isFullscreen ? '90vh' : height}
                 defaultLanguage="typescript"
                 value={code}
                 onChange={(value) => setCode(value || '')}

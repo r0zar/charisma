@@ -1,3 +1,4 @@
+export { AuthProvider, useAppAuth } from "./auth-context";
 export { BotProvider, useBots } from "./bot-context";
 export { SettingsProvider, useSettings } from "./settings-context";
 export { SkinProvider, useSkin } from "./skin-context";

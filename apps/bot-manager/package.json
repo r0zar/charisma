@@ -28,9 +28,12 @@
     "seed-executions:test": "node --import tsx scripts/execution/seed-execution-logs.ts --profile testing",
     "clear-executions": "node --import tsx scripts/execution/clear-execution-logs.ts",
     "clear-executions:confirm": "node --import tsx scripts/execution/clear-execution-logs.ts --confirm",
-    "seed-executions:prod": "node --import tsx scripts/execution/seed-execution-logs.ts --profile production"
+    "seed-executions:prod": "node --import tsx scripts/execution/seed-execution-logs.ts --profile production",
+    "generate-types": "node --import tsx scripts/generate-types.ts"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.24.0",
+    "@clerk/themes": "^2.2.55",
     "@hookform/resolvers": "^5.1.1",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-avatar": "^1.1.10",

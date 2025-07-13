@@ -1,15 +1,14 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botService } from '@/lib/services/bots/service';
-import { type Bot, BotSchema, type CreateBotRequest, CreateBotRequestSchema } from '@/schemas/bot.schema';
+import { botService } from '@/lib/services/bots';
+import { CreateBotRequestSchema, BotSchema } from '@/schemas/bot.schema';
 
 /**
  * GET /api/v1/bots
- * Returns bot data (list, stats)
+ * Returns bots - either user-specific or all public bots
  * Query params:
- * - userId: user ID to get bots for (required for KV)
- * - default: 'true' to use default state (ignores KV)
- * - section: 'list' | 'stats' to get specific section
+ * - userId: if provided, return bots for that Clerk user ID (requires auth)
  * - status: filter bots by status (active, paused, error, setup)
  * - limit: limit number of results
  * - offset: offset for pagination
@@ -18,96 +17,81 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const userId = searchParams.get('userId');
-    const useDefault = searchParams.get('default') === 'true';
-    const section = searchParams.get('section') as 'list' | 'stats' | null;
     const status = searchParams.get('status');
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0;
 
-    // Require userId for KV operations
-    if (!userId && !useDefault) {
-      return NextResponse.json(
-        {
-          error: 'Missing userId',
-          message: 'userId query parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
+    let allBots;
+    let stats;
 
-    let responseData;
-
-    if (section === 'list') {
-      // Get bots with filtering and pagination
-      let bots = await botService.getAllBots(userId!);
-
-      // Filter by status
-      if (status) {
-        bots = bots.filter(bot => bot.status === status);
+    if (userId) {
+      // User-specific request - requires authentication
+      const { userId: clerkUserId } = await auth();
+      
+      if (!clerkUserId) {
+        return NextResponse.json(
+          { error: 'Authentication required', message: 'Must be signed in to access user bots' },
+          { status: 401 }
+        );
       }
 
-      // Apply pagination
-      const total = bots.length;
-      if (limit !== undefined) {
-        bots = bots.slice(offset, offset + limit);
+      if (clerkUserId !== userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized', message: 'Can only access your own bots' },
+          { status: 403 }
+        );
       }
 
-      responseData = {
-        list: bots,
-        pagination: { offset, limit, total },
-        source: botService.getDataSource(),
-        timestamp: new Date().toISOString(),
-      };
-    } else if (section === 'stats') {
-      // Get bot statistics
-      const stats = await botService.getBotStats(userId!);
-      responseData = {
-        stats,
-        source: botService.getDataSource(),
-        timestamp: new Date().toISOString(),
-      };
+      console.log(`👤 User bot data request for ${userId} (${botService.getDataSource()})`);
+
+      // Get user-specific bots
+      allBots = await botService.getAllBotsByClerkUserId(userId);
+      stats = await botService.getBotStatsByClerkUserId(userId);
     } else {
-      // Return all bot data
-      const [bots, stats] = await Promise.all([
-        botService.getAllBots(userId!),
-        botService.getBotStats(userId!)
-      ]);
+      // Public request
+      console.log(`🌍 Public bot data request (${botService.getDataSource()})`);
 
-      // Apply status filter to bots if specified
-      let filteredBots = bots;
-      if (status) {
-        filteredBots = bots.filter(bot => bot.status === status);
-      }
-
-      // Apply pagination to bots
-      const total = filteredBots.length;
-      if (limit !== undefined) {
-        filteredBots = filteredBots.slice(offset, offset + limit);
-      }
-
-      responseData = {
-        list: filteredBots,
-        stats,
-        pagination: { offset, limit, total },
-        source: botService.getDataSource(),
-        timestamp: new Date().toISOString(),
-      };
+      // Get all public bots
+      allBots = await botService.getPublicBots();
+      stats = await botService.getPublicBotStats();
+    }
+    
+    // Filter by status if specified
+    if (status && status !== 'all') {
+      allBots = allBots.filter(bot => bot.status === status);
     }
 
-    return NextResponse.json(responseData, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=120',
-        'Content-Type': 'application/json',
+    // Apply pagination
+    const totalBots = allBots.length;
+    const paginatedBots = limit 
+      ? allBots.slice(offset, offset + limit)
+      : allBots.slice(offset);
+
+    const responseData = {
+      list: paginatedBots, // Use 'list' for compatibility with frontend
+      bots: paginatedBots,
+      stats,
+      pagination: {
+        total: totalBots,
+        offset,
+        limit: limit || totalBots,
+        hasMore: limit ? (offset + limit) < totalBots : false
       },
-    });
+      source: botService.getDataSource(),
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log(`📊 Returned ${paginatedBots.length} of ${totalBots} ${userId ? 'user' : 'public'} bots`);
+
+    return NextResponse.json(responseData);
+
   } catch (error) {
-    console.error('Error fetching bot data:', error);
+    console.error('Bots API error:', error);
+    
     return NextResponse.json(
       {
-        error: 'Failed to fetch bot data',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
+        message: 'Failed to process bot data request',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
@@ -117,76 +101,44 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/v1/bots
- * Create new bot
- * Body: CreateBotRequest
- * Query params:
- * - userId: user ID to create bot for (required)
+ * Create a new bot for the authenticated user
  */
 export async function POST(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-
+    const { userId } = await auth();
+    
     if (!userId) {
       return NextResponse.json(
-        {
-          error: 'Missing userId',
-          message: 'userId query parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
-
-    // Check if bot creation is available
-    if (!botService.isKVEnabled()) {
-      return NextResponse.json(
-        {
-          error: 'Bot creation disabled',
-          message: 'Bot creation via API is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
+        { error: 'Authentication required', message: 'Must be signed in to create bots' },
+        { status: 401 }
       );
     }
 
     const body = await request.json();
-
-    // Validate request body
-    const validationResult = CreateBotRequestSchema.safeParse(body);
-    if (!validationResult.success) {
+    const validation = CreateBotRequestSchema.safeParse(body);
+    
+    if (!validation.success) {
       return NextResponse.json(
-        {
-          error: 'Validation failed',
-          message: 'Invalid bot data provided',
-          details: validationResult.error.issues,
-          timestamp: new Date().toISOString(),
-        },
+        { error: 'Invalid request body', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const createRequest: CreateBotRequest = validationResult.data;
+    const bot = await botService.createBotByClerkUserId(userId, validation.data);
 
-    // Create bot using service
-    const newBot = await botService.createBot(userId, createRequest);
-
-    return NextResponse.json(
-      {
-        success: true,
-        bot: newBot,
-        message: 'Bot created successfully',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      bot,
+      message: 'Bot created successfully',
+      timestamp: new Date().toISOString(),
+    });
 
   } catch (error) {
-    console.error('Error creating bot:', error);
+    console.error('Create bot API error:', error);
+    
     return NextResponse.json(
       {
-        error: 'Failed to create bot',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Failed to create bot',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
@@ -196,90 +148,56 @@ export async function POST(request: NextRequest) {
 
 /**
  * PUT /api/v1/bots
- * Update existing bot
- * Body: Bot object
+ * Update a bot for the authenticated user
  * Query params:
- * - userId: user ID that owns the bot (required)
- * - botId: bot ID to update (required)
+ * - botId: ID of the bot to update
  */
 export async function PUT(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    const botId = searchParams.get('botId');
-
-    if (!userId || !botId) {
+    const { userId } = await auth();
+    
+    if (!userId) {
       return NextResponse.json(
-        {
-          error: 'Missing parameters',
-          message: 'userId and botId query parameters are required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
+        { error: 'Authentication required', message: 'Must be signed in to update bots' },
+        { status: 401 }
       );
     }
 
-    // Check if bot updates are available
-    if (!botService.isKVEnabled()) {
+    const searchParams = request.nextUrl.searchParams;
+    const botId = searchParams.get('botId');
+
+    if (!botId) {
       return NextResponse.json(
-        {
-          error: 'Bot updates disabled',
-          message: 'Bot updates via API are not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
+        { error: 'Bad request', message: 'botId parameter is required' },
+        { status: 400 }
       );
     }
 
     const body = await request.json();
-
-    // Validate request body
-    const validationResult = BotSchema.safeParse(body);
-    if (!validationResult.success) {
+    const validation = BotSchema.partial().safeParse(body);
+    
+    if (!validation.success) {
       return NextResponse.json(
-        {
-          error: 'Validation failed',
-          message: 'Invalid bot data provided',
-          details: validationResult.error.issues,
-          timestamp: new Date().toISOString(),
-        },
+        { error: 'Invalid request body', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const botUpdate: Bot = validationResult.data;
+    const bot = await botService.updateBotByClerkUserId(userId, botId, validation.data);
 
-    // Verify bot ID matches
-    if (botUpdate.id !== botId) {
-      return NextResponse.json(
-        {
-          error: 'ID mismatch',
-          message: 'Bot ID in body must match botId query parameter',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
-    }
-
-    // Update bot using service
-    const updatedBot = await botService.updateBot(userId, botId, botUpdate);
-
-    return NextResponse.json(
-      {
-        success: true,
-        bot: updatedBot,
-        message: 'Bot updated successfully',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      bot,
+      message: 'Bot updated successfully',
+      timestamp: new Date().toISOString(),
+    });
 
   } catch (error) {
-    console.error('Error updating bot:', error);
+    console.error('Update bot API error:', error);
+    
     return NextResponse.json(
       {
-        error: 'Failed to update bot',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Failed to update bot',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }
@@ -289,58 +207,45 @@ export async function PUT(request: NextRequest) {
 
 /**
  * DELETE /api/v1/bots
- * Delete a bot
+ * Delete a bot for the authenticated user
  * Query params:
- * - userId: user ID that owns the bot (required)
- * - botId: bot ID to delete (required)
+ * - botId: ID of the bot to delete
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required', message: 'Must be signed in to delete bots' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
     const botId = searchParams.get('botId');
 
-    if (!userId || !botId) {
+    if (!botId) {
       return NextResponse.json(
-        {
-          error: 'Missing parameters',
-          message: 'userId and botId query parameters are required',
-          timestamp: new Date().toISOString(),
-        },
+        { error: 'Bad request', message: 'botId parameter is required' },
         { status: 400 }
       );
     }
 
-    // Check if bot deletion is available
-    if (!botService.isKVEnabled()) {
-      return NextResponse.json(
-        {
-          error: 'Bot deletion disabled',
-          message: 'Bot deletion via API is not enabled',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 503 }
-      );
-    }
+    await botService.deleteBotByClerkUserId(userId, botId);
 
-    // Delete bot using service
-    await botService.deleteBot(userId, botId);
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Bot deleted successfully',
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      message: 'Bot deleted successfully',
+      timestamp: new Date().toISOString(),
+    });
 
   } catch (error) {
-    console.error('Error deleting bot:', error);
+    console.error('Delete bot API error:', error);
+    
     return NextResponse.json(
       {
-        error: 'Failed to delete bot',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Failed to delete bot',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { PublicBotOverview } from '@/components/public-bot-overview';
 import { StrategyCodeEditor } from '@/components/strategy-code-editor';
 import type { HelpContextualInfo } from '@/components/strategy-editor-help/types';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import { sandboxClient } from '@/lib/services/bots';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotStrategyPage() {
-  const { bot } = useCurrentBot();
+  const { bot, isOwnBot } = useCurrentBot();
   const { updateBot } = useBots();
   const { showSuccess, showError } = useToast();
   const { walletState } = useWallet();
@@ -51,6 +52,12 @@ export default function BotStrategyPage() {
 
   const handleTestStrategy = async (code: string) => {
     if (!bot) return;
+
+    // Only allow execution for owned bots
+    if (!isOwnBot) {
+      showError('Cannot execute strategy', 'You can only execute bots that you own');
+      return;
+    }
 
     setIsExecuting(true);
     setExecutionLogs([]);
@@ -122,6 +129,11 @@ export default function BotStrategyPage() {
 
   if (!bot) {
     return null; // Layout will handle loading state
+  }
+
+  // Show public overview for non-owned bots
+  if (!isOwnBot) {
+    return <PublicBotOverview bot={bot} />;
   }
 
   return (
@@ -265,7 +277,9 @@ export default function BotStrategyPage() {
         <CardContent className="px-2 sm:px-3 pt-0">
           <StrategyCodeEditor
             initialCode={bot?.strategy || ''}
-            onSave={async (code) => {
+            canExecute={isOwnBot}
+            readOnly={!isOwnBot}
+            onSave={isOwnBot ? async (code) => {
               if (!localBot) return;
 
               try {
@@ -290,7 +304,7 @@ export default function BotStrategyPage() {
                 const errorMessage = error instanceof Error ? error.message : 'Failed to save strategy';
                 showError('Save failed', errorMessage);
               }
-            }}
+            } : undefined}
             onTest={handleTestStrategy}
             height="300px"
             helpContextualInfo={helpContextualInfo}

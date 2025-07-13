@@ -7,7 +7,7 @@ import { AppMetadataSchema } from '@/schemas/app-metadata.schema';
  * GET /api/v1/metadata
  * Returns app metadata from static app state
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Use static metadata from app state
     const metadata = appState.metadata;

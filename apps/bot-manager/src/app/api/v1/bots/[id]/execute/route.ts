@@ -1,7 +1,7 @@
-import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { botService } from '@/lib/services/bots/service';
+import { botService } from '@/lib/services/bots/core/service';
 import { sandboxService } from '@/lib/services/sandbox/service';
 
 /**
@@ -69,54 +69,37 @@ export async function POST(
       );
     }
 
-    // Verify authentication via signature headers
-    const hasSignatureHeaders = request.headers.get('x-signature') &&
-      request.headers.get('x-public-key') &&
-      request.headers.get('x-timestamp');
+    // Verify authentication via Clerk
+    const { userId } = await auth();
 
-    if (hasSignatureHeaders) {
-      const baseMessage = `execute_bot_${botId}_${Date.now()}`;
-
-      const verificationResult = await verifySignatureAndGetSignerWithTimestamp(request, {
-        message: baseMessage,
-        ttl: 5 // 5 minute window
-      });
-
-      if (!verificationResult.ok) {
-        console.warn(`❌ Authentication failed for bot execution: ${verificationResult.error}`);
-        return NextResponse.json(
-          {
-            error: 'Authentication failed',
-            message: verificationResult.error,
-          },
-          { status: verificationResult.status }
-        );
-      }
-
-      // Verify signer matches the bot's wallet address
-      if (verificationResult.signer !== bot.walletAddress) {
-        console.warn(`❌ Unauthorized bot execution attempt: ${verificationResult.signer} tried to execute bot ${botId} owned by ${bot.walletAddress}`);
-        return NextResponse.json(
-          {
-            error: 'Unauthorized',
-            message: 'You can only execute bots that you own',
-          },
-          { status: 403 }
-        );
-      }
-
-      console.log(`✅ Authenticated bot execution request from ${verificationResult.signer} for bot ${botId}`);
-    } else {
-      // No signature headers - deny access
+    if (!userId) {
       console.warn(`❌ Unauthenticated bot execution request for bot: ${botId}`);
       return NextResponse.json(
         {
           error: 'Authentication required',
-          message: 'Wallet signature authentication is required to execute bots',
+          message: 'User must be authenticated to execute bots',
         },
         { status: 401 }
       );
     }
+
+    // Verify user owns this bot using clerkUserId
+    const isOwner = bot.clerkUserId ?
+      bot.clerkUserId === userId :
+      false; // Legacy bots without clerkUserId are not accessible via new system
+
+    if (!isOwner) {
+      console.warn(`❌ Unauthorized bot execution attempt: user ${userId} tried to execute bot ${botId} owned by ${bot.clerkUserId || bot.ownerId}`);
+      return NextResponse.json(
+        {
+          error: 'Unauthorized',
+          message: 'You can only execute bots that you own',
+        },
+        { status: 403 }
+      );
+    }
+
+    console.log(`✅ Authenticated bot execution request from user ${userId} for bot ${botId}`);
 
     // Execute strategy in sandbox
     const result = await sandboxService.executeStrategy(code, bot, {

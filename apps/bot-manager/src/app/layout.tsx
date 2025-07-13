@@ -1,20 +1,21 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { SearchOverlay } from "@/components/search";
-import { SkinProvider, WalletProvider } from "@/contexts";
+import { AuthProvider, SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
 import { BotStateMachineProvider } from "@/contexts/bot-state-machine-context";
 import { NotificationsProvider } from "@/contexts/notifications-context";
 import { SearchProvider } from "@/contexts/search-context";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { ToastProvider } from "@/contexts/toast-context";
-import { botService } from "@/lib/services/bots/service";
+import { botService } from "@/lib/services/bots/core/service";
 import { metadataService } from "@/lib/services/metadata/service";
 import { notificationService } from "@/lib/services/notifications/service";
 import { userService } from "@/lib/services/user/service";
@@ -39,12 +40,6 @@ export default async function RootLayout({
     userService.getAllUsersData(),
     metadataService.getAppMetadata()
   ]);
-
-  // Log the user data for debugging
-  console.log(`[Layout] Loaded ${allUsersData.length} users from ${userService.getDataSource()}`);
-  if (allUsersData.length > 0) {
-    console.log(`[Layout] User data available:`, allUsersData.map(u => ({ userId: u.userId, hasSettings: !!u.userData.settings })));
-  }
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -163,41 +158,45 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          storageKey="theme"
-          themes={["light", "dark"]}
-          disableTransitionOnChange={false}
-        >
-          <SettingsProvider>
-            <ToastProvider>
-              <SkinProvider>
-                <WalletProvider>
-                  <BotProvider initialBots={bots}>
-                    <BotStateMachineProvider>
-                      <NotificationsProvider initialNotifications={notifications}>
-                        <SearchProvider>
-                          <div className="flex h-screen bg-background">
-                            <Sidebar />
-                            <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-                              <Header />
-                              <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
-                                {children}
-                              </main>
-                            </div>
-                          </div>
-                          <SearchOverlay />
-                        </SearchProvider>
-                      </NotificationsProvider>
-                    </BotStateMachineProvider>
-                  </BotProvider>
-                </WalletProvider>
-              </SkinProvider>
-            </ToastProvider>
-          </SettingsProvider>
-        </ThemeProvider>
+        <ClerkProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            storageKey="theme"
+            themes={["light", "dark"]}
+            disableTransitionOnChange={false}
+          >
+            <SettingsProvider>
+              <ToastProvider>
+                <SkinProvider>
+                  <WalletProvider>
+                    <AuthProvider>
+                      <BotProvider initialBots={bots}>
+                        <BotStateMachineProvider>
+                          <NotificationsProvider initialNotifications={notifications}>
+                            <SearchProvider>
+                              <div className="flex h-screen bg-background">
+                                <Sidebar />
+                                <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+                                  <Header />
+                                  <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
+                                    {children}
+                                  </main>
+                                </div>
+                              </div>
+                              <SearchOverlay />
+                            </SearchProvider>
+                          </NotificationsProvider>
+                        </BotStateMachineProvider>
+                      </BotProvider>
+                    </AuthProvider>
+                  </WalletProvider>
+                </SkinProvider>
+              </ToastProvider>
+            </SettingsProvider>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

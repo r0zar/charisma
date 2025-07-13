@@ -47,8 +47,8 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
     },
     {
       icon: Settings,
-      title: "Network",
-      href: "/settings",
+      title: "Networks",
+      href: "/settings/network",
       hidden: !walletState.connected,
     },
     {
@@ -65,8 +65,8 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
       {/* Connection Status */}
       {walletState.connected && (
         <div className="mb-6 text-center">
-          <Badge variant={network === "mainnet" ? "default" : "secondary"} className="mb-2">
-            {network}
+          <Badge variant={network.includes("mainnet") ? "default" : "secondary"} className="mb-2">
+            {network.replace("-", " ")}
           </Badge>
           <div className="text-xs font-mono text-muted-foreground">
             {walletState.address.slice(0, 8)}...{walletState.address.slice(-6)}
@@ -129,10 +129,10 @@ export function WalletDropdown() {
         </AvatarFallback>
       </Avatar>
       <Badge
-        variant={network === "mainnet" ? "default" : "secondary"}
+        variant={network.includes("mainnet") ? "default" : "secondary"}
         className="absolute -top-1 -right-1 h-4 w-4 text-xs p-0 flex items-center justify-center"
       >
-        {network === "mainnet" ? "M" : "T"}
+        {network.includes("mainnet") ? "M" : "T"}
       </Badge>
     </Button>
   ) : (

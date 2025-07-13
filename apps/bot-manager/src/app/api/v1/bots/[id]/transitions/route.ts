@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { botDataStore } from '@/lib/modules/storage/kv-stores/bot-store';
-import { 
-  BotStateMachine, 
-  getValidTransitions} from '@/lib/services/bots/core/bot-state-machine';
+import {
+  BotStateMachine,
+  getValidTransitions
+} from '@/lib/services/bots/core/bot-state-machine';
+import { botService } from '@/lib/services/bots/core/service';
+import { loadAndVerifyBot } from '@/lib/utils/bot-auth';
 
 // Request validation schema
 const TransitionRequestSchema = z.object({
@@ -21,42 +24,31 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: botId } = await params;
-  
-  try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'userId parameter is required' },
-        { status: 400 }
-      );
+  try {
+    // Verify authentication and ownership
+    const authResult = await loadAndVerifyBot(botId, botService);
+    if (authResult.error) {
+      return authResult.error;
     }
+
+    const { userId, bot } = authResult;
 
     // Parse and validate request body
     const body = await request.json();
     const validation = TransitionRequestSchema.safeParse(body);
-    
+
     if (!validation.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Invalid request body',
-          details: validation.error.issues 
+          details: validation.error.issues
         },
         { status: 400 }
       );
     }
 
     const { action, reason } = validation.data;
-
-    // Get the bot
-    const bot = await botDataStore.getBot(userId, botId);
-    if (!bot) {
-      return NextResponse.json(
-        { error: 'Bot not found' },
-        { status: 404 }
-      );
-    }
 
     console.log('Bot state transition requested', {
       botId,
@@ -114,14 +106,14 @@ export async function POST(
         // Bot becoming active
         updatedBot.lastActive = new Date().toISOString();
         break;
-      
+
       case 'error':
         // Record error information if provided
         if (reason) {
           updatedBot.lastActive = new Date().toISOString();
         }
         break;
-      
+
       case 'reset':
         // Reset execution counters on reset
         updatedBot.executionCount = 0;
@@ -180,7 +172,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: botId } = await params;
-  
+
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');

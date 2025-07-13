@@ -1,7 +1,9 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest } from 'next/server';
 
-import { botService } from '@/lib/services/bots/service';
+import { botService } from '@/lib/services/bots/core/service';
 import { sandboxService } from '@/lib/services/sandbox/service';
+import { userService } from '@/lib/services/user/service';
 
 /**
  * POST /api/v1/bots/[id]/execute-stream
@@ -36,13 +38,47 @@ export async function POST(
       );
     }
 
+    // Verify authentication via Clerk
+    const { userId } = await auth();
+
+    if (!userId) {
+      console.warn(`❌ Unauthenticated bot execution stream request for bot: ${botId}`);
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication required',
+          message: 'User must be authenticated to execute bots',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Get user data to find their wallet address
+    const userData = await userService.getUserData(userId);
+    if (!userData || !userData.wallet.address) {
+      console.warn(`❌ User ${userId} has no wallet address configured`);
+      return new Response(
+        JSON.stringify({
+          error: 'Wallet not configured',
+          message: 'User must have a wallet address configured to execute bots',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Load bot data using the same logic as frontend
     let bot = null;
 
     // First try API if enabled
     if (process.env.NEXT_PUBLIC_ENABLE_API_BOTS === 'true') {
       try {
-        const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
         const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/bots/${botId}?userId=${encodeURIComponent(userId)}`;
         const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3420'}${apiUrl}`);
         if (response.ok) {
@@ -73,6 +109,24 @@ export async function POST(
         }
       );
     }
+
+    // Verify user owns this bot
+    if (bot.ownerId !== userData.wallet.address) {
+      console.warn(`❌ Unauthorized bot execution stream attempt: user ${userId} (${userData.wallet.address}) tried to execute bot ${botId} owned by ${bot.ownerId}`);
+      return new Response(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message: 'You can only execute bots that you own',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log(`✅ Authenticated bot execution stream request from user ${userId} (${userData.wallet.address}) for bot ${botId}`);
 
     // Create readable stream for real-time execution
     const stream = new ReadableStream({

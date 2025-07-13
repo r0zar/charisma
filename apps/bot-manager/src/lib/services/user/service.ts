@@ -58,6 +58,7 @@ const defaultWallet: WalletState = {
   network: 'mainnet',
   balance: {
     stx: 0,
+    btc: 0,
     tokens: [],
   },
   transactions: [],

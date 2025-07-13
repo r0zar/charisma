@@ -7,6 +7,7 @@ import { Bot } from '@/schemas/bot.schema';
 interface CurrentBotContextType {
   bot: Bot | null;
   loading: boolean;
+  isOwnBot: boolean;
 }
 
 const CurrentBotContext = createContext<CurrentBotContextType | undefined>(undefined);
@@ -23,11 +24,12 @@ interface CurrentBotProviderProps {
   children: React.ReactNode;
   bot: Bot | null;
   loading: boolean;
+  isOwnBot: boolean;
 }
 
-export function CurrentBotProvider({ children, bot, loading }: CurrentBotProviderProps) {
+export function CurrentBotProvider({ children, bot, loading, isOwnBot }: CurrentBotProviderProps) {
   return (
-    <CurrentBotContext.Provider value={{ bot, loading }}>
+    <CurrentBotContext.Provider value={{ bot, loading, isOwnBot }}>
       {children}
     </CurrentBotContext.Provider>
   );

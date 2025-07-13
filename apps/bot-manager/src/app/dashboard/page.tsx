@@ -5,34 +5,10 @@ import Link from 'next/link';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { useWallet } from '@/contexts/wallet-context';
 
 export default function DashboardPage() {
-  const { walletState, connectWallet, isConnecting } = useWallet();
-
-  // Authentication guard - require wallet connection
-  if (!walletState.connected) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center max-w-md mx-auto">
-          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Bot className="w-8 h-8 text-blue-400" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to Tokemon</h1>
-          <p className="text-muted-foreground mb-6">
-            Connect your wallet to access your bot management dashboard
-          </p>
-          <Button
-            onClick={connectWallet}
-            disabled={isConnecting}
-            className="w-full"
-          >
-            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Note: Authentication is now handled by middleware
+  // Users will be redirected to sign-in if not authenticated
 
   return (
     <div className="container mx-auto p-6 h-full flex items-center justify-center">

@@ -24,7 +24,21 @@ export class BotKVStore {
   }
 
   /**
-   * Get all bots for a user
+   * Get Clerk user-specific bot index key
+   */
+  private getClerkUserIndexKey(clerkUserId: string): string {
+    return `${this.keyPrefix}:clerk:${clerkUserId}:index`;
+  }
+
+  /**
+   * Get Clerk user-specific bot key
+   */
+  private getClerkUserBotKey(clerkUserId: string, botId: string): string {
+    return `${this.keyPrefix}:clerk:${clerkUserId}:${botId}`;
+  }
+
+  /**
+   * Get all bots for a user (legacy wallet-based)
    */
   async getAllBots(userId: string): Promise<import('@/schemas/bot.schema').Bot[]> {
     try {
@@ -55,7 +69,38 @@ export class BotKVStore {
   }
 
   /**
-   * Get a specific bot
+   * Get all bots for a Clerk user
+   */
+  async getAllBotsByClerkUserId(clerkUserId: string): Promise<import('@/schemas/bot.schema').Bot[]> {
+    try {
+      // Get all bot IDs for the Clerk user
+      const botIds = await kv.smembers(this.getClerkUserIndexKey(clerkUserId)) || [];
+
+      if (botIds.length === 0) {
+        return [];
+      }
+
+      // Fetch all bots
+      const bots: Bot[] = [];
+      for (const id of botIds) {
+        const bot = await kv.get<Bot>(this.getClerkUserBotKey(clerkUserId, id as string));
+        if (bot) {
+          bots.push(bot);
+        }
+      }
+
+      // Sort by createdAt (newest first)
+      bots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return bots;
+    } catch (error) {
+      console.error('Failed to get all bots by Clerk user ID:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get a specific bot (legacy wallet-based)
    */
   async getBot(userId: string, botId: string): Promise<Bot | null> {
     try {
@@ -68,7 +113,20 @@ export class BotKVStore {
   }
 
   /**
-   * Create or update a bot
+   * Get a specific bot by Clerk user ID
+   */
+  async getBotByClerkUserId(clerkUserId: string, botId: string): Promise<Bot | null> {
+    try {
+      const bot = await kv.get<Bot>(this.getClerkUserBotKey(clerkUserId, botId));
+      return bot || null;
+    } catch (error) {
+      console.error('Failed to get bot by Clerk user ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create or update a bot (legacy wallet-based)
    */
   async setBot(userId: string, bot: import('@/schemas/bot.schema').Bot): Promise<boolean> {
     try {
@@ -78,9 +136,36 @@ export class BotKVStore {
       // Add to user's bot index
       await kv.sadd(this.getUserIndexKey(userId), bot.id);
 
+      // If bot has clerkUserId, also index by Clerk user ID
+      if (bot.clerkUserId) {
+        await kv.set(this.getClerkUserBotKey(bot.clerkUserId, bot.id), bot);
+        await kv.sadd(this.getClerkUserIndexKey(bot.clerkUserId), bot.id);
+      }
+
       return true;
     } catch (error) {
       console.error('Failed to set bot:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Create or update a bot by Clerk user ID
+   */
+  async setBotByClerkUserId(clerkUserId: string, bot: import('@/schemas/bot.schema').Bot): Promise<boolean> {
+    try {
+      // Ensure bot has clerkUserId set
+      const botWithClerkUserId = { ...bot, clerkUserId };
+
+      // Store the bot under Clerk user ID
+      await kv.set(this.getClerkUserBotKey(clerkUserId, bot.id), botWithClerkUserId);
+
+      // Add to Clerk user's bot index
+      await kv.sadd(this.getClerkUserIndexKey(clerkUserId), bot.id);
+
+      return true;
+    } catch (error) {
+      console.error('Failed to set bot by Clerk user ID:', error);
       return false;
     }
   }
@@ -100,15 +185,38 @@ export class BotKVStore {
   }
 
   /**
-   * Delete a bot
+   * Create a new bot by Clerk user ID (alias for setBotByClerkUserId)
+   */
+  async createBotByClerkUserId(clerkUserId: string, bot: import('@/schemas/bot.schema').Bot): Promise<boolean> {
+    return this.setBotByClerkUserId(clerkUserId, bot);
+  }
+
+  /**
+   * Update an existing bot by Clerk user ID (alias for setBotByClerkUserId)
+   */
+  async updateBotByClerkUserId(clerkUserId: string, bot: import('@/schemas/bot.schema').Bot): Promise<boolean> {
+    return this.setBotByClerkUserId(clerkUserId, bot);
+  }
+
+  /**
+   * Delete a bot (legacy wallet-based)
    */
   async deleteBot(userId: string, botId: string): Promise<boolean> {
     try {
-      // Remove from index
+      // Get the bot first to check for clerkUserId
+      const bot = await kv.get<Bot>(this.getUserBotKey(userId, botId));
+
+      // Remove from wallet-based index
       await kv.srem(this.getUserIndexKey(userId), botId);
 
-      // Delete the bot
+      // Delete the wallet-based bot
       await kv.del(this.getUserBotKey(userId, botId));
+
+      // Also clean up Clerk-based storage if clerkUserId exists
+      if (bot?.clerkUserId) {
+        await kv.srem(this.getClerkUserIndexKey(bot.clerkUserId), botId);
+        await kv.del(this.getClerkUserBotKey(bot.clerkUserId, botId));
+      }
 
       return true;
     } catch (error) {
@@ -118,7 +226,25 @@ export class BotKVStore {
   }
 
   /**
-   * Get bot count for a user
+   * Delete a bot by Clerk user ID
+   */
+  async deleteBotByClerkUserId(clerkUserId: string, botId: string): Promise<boolean> {
+    try {
+      // Remove from Clerk user index
+      await kv.srem(this.getClerkUserIndexKey(clerkUserId), botId);
+
+      // Delete the bot
+      await kv.del(this.getClerkUserBotKey(clerkUserId, botId));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to delete bot by Clerk user ID:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get bot count for a user (legacy wallet-based)
    */
   async getBotCount(userId: string): Promise<number> {
     try {
@@ -126,6 +252,19 @@ export class BotKVStore {
       return botIds.length;
     } catch (error) {
       console.error('Failed to get bot count:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get bot count for a Clerk user
+   */
+  async getBotCountByClerkUserId(clerkUserId: string): Promise<number> {
+    try {
+      const botIds = await kv.smembers(this.getClerkUserIndexKey(clerkUserId)) || [];
+      return botIds.length;
+    } catch (error) {
+      console.error('Failed to get bot count by Clerk user ID:', error);
       return 0;
     }
   }
@@ -180,10 +319,11 @@ export class BotKVStore {
 
   /**
    * Get all bots across all users (for public viewing)
+   * Returns both migrated and unmigrated bots, with deduplication
    */
   async getAllBotsPublic(): Promise<import('@/schemas/bot.schema').Bot[]> {
     try {
-      // Get all keys that match the bot pattern
+      // Get all keys that match the bot pattern (both legacy and Clerk-based)
       const allKeys = await kv.keys(`${this.keyPrefix}:*:*`);
       const botKeys = allKeys.filter(key => !key.includes(':index'));
 
@@ -191,16 +331,22 @@ export class BotKVStore {
         return [];
       }
 
-      // Fetch all bots
-      const bots: import('@/schemas/bot.schema').Bot[] = [];
+      // Fetch all bots and deduplicate
+      const botMap = new Map<string, import('@/schemas/bot.schema').Bot>();
+      
       for (const key of botKeys) {
         const bot = await kv.get<import('@/schemas/bot.schema').Bot>(key);
         if (bot) {
-          bots.push(bot);
+          // If bot has clerkUserId, prefer it over legacy version
+          const existingBot = botMap.get(bot.id);
+          if (!existingBot || (bot.clerkUserId && !existingBot.clerkUserId)) {
+            botMap.set(bot.id, bot);
+          }
         }
       }
 
-      // Sort by createdAt (newest first)
+      // Convert map to array and sort by createdAt (newest first)
+      const bots = Array.from(botMap.values());
       bots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       return bots;
@@ -262,7 +408,7 @@ export class BotKVStore {
   }
 
   /**
-   * Get bot statistics
+   * Get bot statistics (legacy wallet-based)
    */
   async getBotStats(userId: string): Promise<{
     totalBots: number;
@@ -299,6 +445,53 @@ export class BotKVStore {
       };
     } catch (error) {
       console.error('Failed to get bot stats:', error);
+      return {
+        totalBots: 0,
+        activeBots: 0,
+        pausedBots: 0,
+        errorBots: 0,
+      };
+    }
+  }
+
+  /**
+   * Get bot statistics by Clerk user ID
+   */
+  async getBotStatsByClerkUserId(clerkUserId: string): Promise<{
+    totalBots: number;
+    activeBots: number;
+    pausedBots: number;
+    errorBots: number;
+  }> {
+    try {
+      const bots = await this.getAllBotsByClerkUserId(clerkUserId);
+
+      let activeBots = 0;
+      let pausedBots = 0;
+      let errorBots = 0;
+
+      for (const bot of bots) {
+        switch (bot.status) {
+          case 'active':
+            activeBots++;
+            break;
+          case 'paused':
+            pausedBots++;
+            break;
+          case 'error':
+            errorBots++;
+            break;
+        }
+      }
+
+      return {
+        totalBots: bots.length,
+        activeBots,
+        pausedBots,
+        errorBots,
+      };
+    } catch (error) {
+      console.error('Failed to get bot stats by Clerk user ID:', error);
       return {
         totalBots: 0,
         activeBots: 0,

@@ -1,8 +1,9 @@
-import { verifySignatureAndGetSignerWithTimestamp } from 'blaze-sdk';
 import { CronExpressionParser } from 'cron-parser';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { botDataStore } from '@/lib/modules/storage';
+import { botService } from '@/lib/services/bots/core/service';
+import { loadAndVerifyBot } from '@/lib/utils/bot-auth';
 import { ENABLE_API_BOTS } from '@/lib/utils/config';
 
 /**
@@ -17,24 +18,19 @@ export async function GET(
 ) {
   try {
     const { id: botId } = await params;
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          error: 'Missing userId',
-          message: 'userId query parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
+
+    // Verify authentication and ownership
+    const authResult = await loadAndVerifyBot(botId, botService);
+    if (authResult.error) {
+      return authResult.error;
     }
-    
+
+    const { userId, bot } = authResult;
+
     // Check if bot API is enabled
     if (!ENABLE_API_BOTS) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bot API disabled',
           message: 'Bot scheduling API is not enabled',
           timestamp: new Date().toISOString(),
@@ -42,21 +38,7 @@ export async function GET(
         { status: 503 }
       );
     }
-    
-    
-    // Get bot
-    const bot = await botDataStore.getBot(userId, botId);
-    if (!bot) {
-      return NextResponse.json(
-        { 
-          error: 'Bot not found',
-          message: `Bot ${botId} not found for user ${userId}`,
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-    
+
     // Return scheduling information
     const scheduleInfo = {
       isScheduled: bot.isScheduled || false,
@@ -66,7 +48,7 @@ export async function GET(
       executionCount: bot.executionCount || 0,
       status: bot.status,
     };
-    
+
     // Calculate next execution if schedule exists
     if (bot.cronSchedule && bot.isScheduled) {
       try {
@@ -77,7 +59,7 @@ export async function GET(
         console.error(`Invalid cron expression for bot ${botId}:`, error);
       }
     }
-    
+
     return NextResponse.json(
       {
         success: true,
@@ -86,11 +68,11 @@ export async function GET(
       },
       { status: 200 }
     );
-    
+
   } catch (error) {
     console.error('Error fetching bot schedule:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch bot schedule',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -113,72 +95,20 @@ export async function PUT(
 ) {
   try {
     const { id: botId } = await params;
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          error: 'Missing userId',
-          message: 'userId query parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
+
+    // Verify authentication and ownership
+    const authResult = await loadAndVerifyBot(botId, botService);
+    if (authResult.error) {
+      return authResult.error;
     }
 
-    // Check for signature-based authentication
-    const hasSignatureHeaders = request.headers.get('x-signature') && 
-                                request.headers.get('x-public-key') && 
-                                request.headers.get('x-timestamp');
+    const { userId, bot } = authResult;
+    console.log(`[BotScheduleAPI] Authenticated request from user ${userId} for bot ${botId}`);
 
-    if (hasSignatureHeaders && userId) {
-      // The message should match what the client signed - we need to extract it from the request
-      // For now, we'll reconstruct it based on the pattern used in the frontend
-      // In a production system, the message could be included in the request body
-      
-      // Try to extract timestamp from headers to reconstruct the exact message
-      const timestamp = request.headers.get('x-timestamp');
-      const baseMessage = `update_schedule_${botId}`;
-      
-      // For timestamped verification, we need to parse the signed message structure
-      const verificationResult = await verifySignatureAndGetSignerWithTimestamp(request, {
-        message: baseMessage,
-        ttl: 5 // 5 minute window
-      });
-
-      if (!verificationResult.ok) {
-        return NextResponse.json(
-          { 
-            error: 'Authentication failed',
-            message: verificationResult.error,
-            timestamp: new Date().toISOString(),
-          },
-          { status: verificationResult.status }
-        );
-      }
-
-      // Check if the signer matches the provided userId
-      if (verificationResult.signer !== userId) {
-        return NextResponse.json(
-          { 
-            error: 'Unauthorized',
-            message: 'Signature does not match the provided user ID',
-            timestamp: new Date().toISOString(),
-          },
-          { status: 403 }
-        );
-      }
-
-      console.log(`[BotScheduleAPI] Authenticated request from ${verificationResult.signer} for bot ${botId}`);
-    } else {
-      console.warn(`[BotScheduleAPI] Unauthenticated request for bot ${botId} from user ${userId}`);
-    }
-    
     // Check if bot API is enabled
     if (!ENABLE_API_BOTS) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bot API disabled',
           message: 'Bot scheduling management is not enabled',
           timestamp: new Date().toISOString(),
@@ -186,14 +116,14 @@ export async function PUT(
         { status: 503 }
       );
     }
-    
-    
+
+
     const body = await request.json();
     const { isScheduled, cronSchedule } = body;
-    
+
     if (typeof isScheduled !== 'boolean') {
       return NextResponse.json(
-        { 
+        {
           error: 'Invalid data',
           message: 'isScheduled must be a boolean',
           timestamp: new Date().toISOString(),
@@ -202,14 +132,14 @@ export async function PUT(
       );
     }
 
-    
+
     // Validate cron expression if scheduling is enabled
     if (isScheduled && cronSchedule) {
       try {
         const interval = CronExpressionParser.parse(cronSchedule);
       } catch (error) {
         return NextResponse.json(
-          { 
+          {
             error: 'Invalid cron expression',
             message: `Invalid cron schedule: ${cronSchedule}`,
             timestamp: new Date().toISOString(),
@@ -218,24 +148,11 @@ export async function PUT(
         );
       }
     }
-    
-    // Get bot
-    const bot = await botDataStore.getBot(userId, botId);
-    if (!bot) {
-      return NextResponse.json(
-        { 
-          error: 'Bot not found',
-          message: `Bot ${botId} not found for user ${userId}`,
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-    
+
     // Check if bot has wallet for scheduled execution
     if (isScheduled && (!bot.encryptedWallet || !bot.walletIv)) {
       return NextResponse.json(
-        { 
+        {
           error: 'Wallet required',
           message: 'Bot must have a wallet configured for scheduled execution',
           timestamp: new Date().toISOString(),
@@ -243,7 +160,7 @@ export async function PUT(
         { status: 400 }
       );
     }
-    
+
     // Calculate next execution if enabling schedule
     let nextExecution: string | undefined;
     if (isScheduled && cronSchedule) {
@@ -254,7 +171,7 @@ export async function PUT(
         console.error(`Failed to calculate next execution for bot ${botId}:`, error);
       }
     }
-    
+
     // Update bot with new scheduling configuration
     const updatedBot = {
       ...bot,
@@ -264,12 +181,12 @@ export async function PUT(
       // Clear last execution if disabling schedule
       lastExecution: isScheduled ? bot.lastExecution : undefined,
     };
-    
+
     // Save updated bot
-    await botDataStore.updateBot(userId, updatedBot);
-    
+    await botDataStore.updateBotByClerkUserId(userId, updatedBot);
+
     console.log(`[BotScheduleAPI] Bot ${botId} scheduling ${isScheduled ? 'enabled' : 'disabled'}${cronSchedule ? ` with schedule: ${cronSchedule}` : ''}`);
-    
+
     return NextResponse.json(
       {
         success: true,
@@ -285,11 +202,11 @@ export async function PUT(
       },
       { status: 200 }
     );
-    
+
   } catch (error) {
     console.error('Error updating bot schedule:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to update bot schedule',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
@@ -311,24 +228,19 @@ export async function DELETE(
 ) {
   try {
     const { id: botId } = await params;
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          error: 'Missing userId',
-          message: 'userId query parameter is required',
-          timestamp: new Date().toISOString(),
-        },
-        { status: 400 }
-      );
+
+    // Verify authentication and ownership
+    const authResult = await loadAndVerifyBot(botId, botService);
+    if (authResult.error) {
+      return authResult.error;
     }
-    
+
+    const { userId, bot } = authResult;
+
     // Check if bot API is enabled
     if (!ENABLE_API_BOTS) {
       return NextResponse.json(
-        { 
+        {
           error: 'Bot API disabled',
           message: 'Bot scheduling management is not enabled',
           timestamp: new Date().toISOString(),
@@ -336,21 +248,7 @@ export async function DELETE(
         { status: 503 }
       );
     }
-    
-    
-    // Get bot
-    const bot = await botDataStore.getBot(userId, botId);
-    if (!bot) {
-      return NextResponse.json(
-        { 
-          error: 'Bot not found',
-          message: `Bot ${botId} not found for user ${userId}`,
-          timestamp: new Date().toISOString(),
-        },
-        { status: 404 }
-      );
-    }
-    
+
     // Disable scheduling
     const updatedBot = {
       ...bot,
@@ -358,12 +256,12 @@ export async function DELETE(
       cronSchedule: undefined,
       nextExecution: undefined,
     };
-    
+
     // Save updated bot
-    await botDataStore.updateBot(userId, updatedBot);
-    
+    await botDataStore.updateBotByClerkUserId(userId, updatedBot);
+
     console.log(`[BotScheduleAPI] Scheduling disabled for bot ${botId}`);
-    
+
     return NextResponse.json(
       {
         success: true,
@@ -372,11 +270,11 @@ export async function DELETE(
       },
       { status: 200 }
     );
-    
+
   } catch (error) {
     console.error('Error disabling bot schedule:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to disable bot schedule',
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),

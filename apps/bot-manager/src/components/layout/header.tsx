@@ -1,5 +1,6 @@
 'use client';
 
+import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import {
   Bell,
   Globe,
@@ -8,8 +9,7 @@ import {
   RefreshCw,
   Search,
   Settings,
-  User,
-  Wallet
+  User
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
@@ -25,10 +25,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAppAuth } from '@/contexts/auth-context';
 import { useBots } from '@/contexts/bot-context';
 import { useNotificationsData } from '@/contexts/notifications-context';
 import { useSearch } from '@/contexts/search-context';
-import { useWallet } from '@/contexts/wallet-context';
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -46,7 +46,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { refreshData, loading, botStats } = useBots();
-  const { walletState, connectWallet, disconnectWallet, isConnecting } = useWallet();
+  const { isAuthenticated } = useAppAuth();
   const { openSearch } = useSearch();
   const {
     notifications: liveNotifications,
@@ -63,18 +63,6 @@ export function Header() {
     await refreshData();
   };
 
-  const formatAddress = (address: string) => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-6)}`;
-  };
-
-  const handleWalletAction = async () => {
-    if (walletState.connected) {
-      disconnectWallet();
-    } else {
-      await connectWallet();
-    }
-  };
 
   // Get notifications from the new context
   const unreadCount = getUnreadCount();
@@ -154,7 +142,7 @@ export function Header() {
                 {unreadCount > 0 && (
                   <Badge
                     variant="destructive"
-                    className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center text-xs bg-red-500 text-white"
+                    className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center text-xs bg-destructive text-destructive-foreground"
                   >
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </Badge>
@@ -200,7 +188,7 @@ export function Header() {
                           </p>
                           <div className="flex items-center gap-1">
                             {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                              <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
                             )}
                             <Button
                               variant="ghost"
@@ -209,7 +197,7 @@ export function Header() {
                                 e.stopPropagation();
                                 deleteNotification(notification.id);
                               }}
-                              className="h-4 w-4 p-0 text-xs opacity-0 group-hover:opacity-100 hover:text-red-500"
+                              className="h-4 w-4 p-0 text-xs opacity-0 group-hover:opacity-100 hover:text-destructive"
                             >
                               ×
                             </Button>
@@ -240,83 +228,33 @@ export function Header() {
           </DropdownMenu>
 
           {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="relative h-10 px-3 rounded-lg">
-                {walletState.connected ? (
-                  <span className="text-sm font-mono">
-                    {walletState.address.slice(-4)}
-                  </span>
-                ) : (
-                  <Avatar className="h-6 w-6 border border-border">
-                    <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                    <AvatarFallback className="bg-card text-foreground text-xs">
-                      U
-                    </AvatarFallback>
-                  </Avatar>
-                )}
+          <SignedIn>
+            <UserButton 
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: {
+                    width: '2.5rem',  // 40px to match h-10 w-10
+                    height: '2.5rem', // 40px to match h-10 w-10
+                  },
+                },
+              }}
+            />
+          </SignedIn>
+
+          <SignedOut>
+            <SignInButton
+              mode="modal"
+              signUpForceRedirectUrl="/dashboard"
+              forceRedirectUrl="/dashboard"
+            >
+              <Button
+                variant="outline"
+                className="h-10 bg-background/5 backdrop-blur-2xl border-border/30 hover:bg-background/10 hover:border-primary/50 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                Sign In
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-background/5 backdrop-blur-2xl border-border/30 shadow-2xl ring-1 ring-background/10" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal text-foreground">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">
-                    {walletState.connected ? 'Wallet Connected' : 'Not Connected'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {walletState.connected ? formatAddress(walletState.address) : 'Connect wallet to get started'}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={() => router.push('/profile')}
-              >
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={() => router.push('/settings/general')}
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                <span>General</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={() => router.push('/settings/appearance')}
-              >
-                <Palette className="mr-2 h-4 w-4" />
-                <span>Appearance</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={() => router.push('/settings/network')}
-              >
-                <Globe className="mr-2 h-4 w-4" />
-                <span>Network</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={() => window.open('https://docs.charisma.rocks', '_blank')}
-              >
-                <HelpCircle className="mr-2 h-4 w-4" />
-                <span>Help</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/30" />
-              <DropdownMenuItem
-                className="text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl"
-                onClick={handleWalletAction}
-                disabled={isConnecting}
-              >
-                <Wallet className="mr-2 h-4 w-4" />
-                <span>
-                  {isConnecting ? 'Connecting...' : walletState.connected ? 'Disconnect Wallet' : 'Connect Wallet'}
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SignInButton>
+          </SignedOut>
         </div>
       </div>
 

@@ -69,17 +69,17 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="grid grid-cols-2 gap-3">
           <div className="p-1 bg-card rounded-lg flex flex-row items-center justify-center gap-2">
             <div className="flex items-center gap-2">
-              <Bot className="w-4 h-4 text-blue-400" />
+              <Bot className="w-4 h-4 text-primary" />
               {/* <span className="text-xs text-muted-foreground">Total</span> */}
             </div>
             <p className="text-lg font-semibold text-foreground">{botStats.totalBots}</p>
           </div>
           <div className="p-1 bg-card rounded-lg flex flex-row items-center justify-center gap-2">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-green-400" />
+              <TrendingUp className="w-4 h-4 text-green-500" />
               {/* <span className="text-xs text-muted-foreground">Active</span> */}
             </div>
-            <p className="text-lg font-semibold text-green-400">{botStats.activeBots}</p>
+            <p className="text-lg font-semibold text-green-500">{botStats.activeBots}</p>
           </div>
         </div>
       </div>
