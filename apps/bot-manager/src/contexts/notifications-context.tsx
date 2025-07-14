@@ -321,7 +321,7 @@ export function NotificationsProvider({ children, initialNotifications = [] }: N
       showError('Failed to delete notification', err instanceof Error ? err.message : 'Unknown error', 3000);
       return false;
     }
-  }, [getUserId, apiClient, notifications, showError, showSuccess]);
+  }, [getUserId, apiClient, showError, showSuccess]);
 
   /**
    * Clear all notifications
@@ -417,7 +417,7 @@ export function NotificationsProvider({ children, initialNotifications = [] }: N
       showError('Batch operation failed', err instanceof Error ? err.message : 'Unknown error', 3000);
       return { success: 0, failed: notificationIds.length };
     }
-  }, [getUserId, apiClient, notifications, showError, showSuccess]);
+  }, [getUserId, apiClient, showError, showSuccess]);
 
   /**
    * Set filters and reload notifications

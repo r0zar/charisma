@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
   console.log('[BotExecutor] Starting scheduled bot execution check...');
 
   try {
+    // Set admin context for cron execution (no user session available)
+    botService.setAdminContext('system-cron');
+    
     // Load all bots using the bot service
     const allBots = await botService.listBots(); // Get all bots for cron execution
 
@@ -84,6 +87,9 @@ export async function GET(request: NextRequest) {
     const totalExecutionTime = Date.now() - startTime;
     console.log(`[BotExecutor] Completed execution. Success: ${executionResult.successfulExecutions}, Failed: ${executionResult.failedExecutions}, Time: ${totalExecutionTime}ms`);
 
+    // Clear admin context
+    botService.clearAdminContext();
+
     return NextResponse.json({
       status: 'success',
       message: `Executed ${executionResult.processedBots} bots`,
@@ -97,6 +103,9 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[BotExecutor] Fatal error during execution:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Clear admin context on error
+    botService.clearAdminContext();
 
     return NextResponse.json({
       status: 'error',

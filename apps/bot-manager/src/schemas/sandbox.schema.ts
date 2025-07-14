@@ -70,6 +70,7 @@ export const BotContextSchema = z.object({
   status: z.enum(['active', 'paused', 'error', 'inactive', 'setup']),
   created_at: z.string().datetime(),
   last_active: z.string().datetime(),
+  ownerId: z.string().min(1),
 
   // Wallet credentials
   walletCredentials: z.object({

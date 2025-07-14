@@ -417,13 +417,13 @@ export default function BotSchedulingPage() {
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-medium text-card-foreground flex items-center gap-2">
                   <Activity className="w-4 h-4" />
-                  Recent Activity
+                  Recent Executions
                 </h3>
                 <div className="text-xs text-muted-foreground">
                   Last {Math.min(executionHistory.length, 5)} executions
                 </div>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <div className="flex gap-2 pb-2">
                 {executionHistory.slice(0, 5).map((execution, index) => {
                   const isLatest = index === 0;
                   const statusColor = execution.status === 'success'
@@ -547,8 +547,8 @@ export default function BotSchedulingPage() {
                         size="sm"
                         onClick={() => setSchedulingSettings({ cronSchedule: preset.value })}
                         className={`text-xs ${schedulingSettings.cronSchedule === preset.value
-                            ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                            : 'border-border text-muted-foreground hover:text-card-foreground'
+                          ? 'bg-blue-500/20 border-blue-500 text-blue-300'
+                          : 'border-border text-muted-foreground hover:text-card-foreground'
                           }`}
                       >
                         {preset.label}

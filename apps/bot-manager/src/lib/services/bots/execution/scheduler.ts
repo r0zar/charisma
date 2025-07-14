@@ -27,6 +27,7 @@ export class BotSchedulerService {
    */
   shouldExecuteBot(bot: Bot, currentTime: Date = new Date()): boolean {
     if (!bot.cronSchedule || bot.status !== 'active') {
+      console.log(`[BotScheduler] Bot ${bot.name} (${bot.id}): Not scheduled or not active. Status: ${bot.status}, Schedule: ${bot.cronSchedule}`);
       return false;
     }
 
@@ -43,8 +44,9 @@ export class BotSchedulerService {
           tz: 'UTC'
         });
         const firstScheduledTime = intervalFromCreation.next();
-        // Execute if current time is past the first scheduled time
-        return !isBefore(currentTime, firstScheduledTime.toDate());
+        const shouldExecute = !isBefore(currentTime, firstScheduledTime.toDate());
+        console.log(`[BotScheduler] Bot ${bot.name} (${bot.id}): First execution check. Created: ${bot.createdAt}, First scheduled: ${firstScheduledTime.toDate().toISOString()}, Current: ${currentTime.toISOString()}, Should execute: ${shouldExecute}`);
+        return shouldExecute;
       }
 
       // Get the next scheduled time after the last execution
@@ -58,7 +60,9 @@ export class BotSchedulerService {
       const nextScheduled = intervalFromLast.next();
 
       // Execute if current time is past the next scheduled time
-      return !isBefore(currentTime, nextScheduled.toDate());
+      const shouldExecute = !isBefore(currentTime, nextScheduled.toDate());
+      console.log(`[BotScheduler] Bot ${bot.name} (${bot.id}): Schedule: ${bot.cronSchedule}, Last execution: ${bot.lastExecution}, Next scheduled: ${nextScheduled.toDate().toISOString()}, Current: ${currentTime.toISOString()}, Should execute: ${shouldExecute}`);
+      return shouldExecute;
     } catch (error) {
       console.error(`[BotScheduler] Invalid cron expression for bot ${bot.id}: ${bot.cronSchedule}`, error);
       return false;

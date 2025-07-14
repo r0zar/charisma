@@ -22,11 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBots } from '@/contexts/bot-context';
 
-interface BotDetailLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function BotDetailLayout({ children }: BotDetailLayoutProps) {
+export default function BotDetailLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const router = useRouter();
   const pathname = usePathname();

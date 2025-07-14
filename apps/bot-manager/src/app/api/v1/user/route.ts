@@ -44,11 +44,10 @@ export async function GET(request: NextRequest) {
 
     console.log(`👤 User data request for user: ${userId.slice(0, 8)}...`);
 
-    let userData;
     const dataSource = 'kv';
 
     // Try to get user data from KV store
-    userData = await userDataStore.getUserData(userId);
+    const userData = await userDataStore.getUserData(userId);
 
     if (!userData) {
       return NextResponse.json(
