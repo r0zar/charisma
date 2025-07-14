@@ -13,7 +13,8 @@ import {
   Bot,
   BotSchema,
   CreateBotRequest,
-  CreateBotRequestSchema} from '@/schemas/bot.schema';
+  CreateBotRequestSchema
+} from '@/schemas/bot.schema';
 
 import { BotStateMachine } from './bot-state-machine';
 
@@ -47,6 +48,7 @@ export class BotService {
    * Get current user ID from admin context or Clerk auth
    */
   private async getCurrentUserId(): Promise<string | null> {
+    console.log('getCurrentUserId', this.adminContext);
     // Check admin context first (for scripts and machine-to-machine operations)
     if (this.adminContext) {
       return this.adminContext.userId;
@@ -255,7 +257,7 @@ export class BotService {
           if (key.includes(':index') || key.includes(':owned-bots')) {
             continue;
           }
-          
+
           try {
             const bot = await kv.get<Bot>(key);
             if (bot) rawBots.push(bot);
