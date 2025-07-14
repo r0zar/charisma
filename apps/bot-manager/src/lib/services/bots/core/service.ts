@@ -48,7 +48,6 @@ export class BotService {
    * Get current user ID from admin context or Clerk auth
    */
   private async getCurrentUserId(): Promise<string | null> {
-    console.log('getCurrentUserId', this.adminContext);
     // Check admin context first (for scripts and machine-to-machine operations)
     if (this.adminContext) {
       return this.adminContext.userId;
@@ -69,6 +68,11 @@ export class BotService {
   private async validateBotOwnership(botId: string): Promise<boolean> {
     const userId = await this.getCurrentUserId();
     if (!userId) return false;
+
+    // Skip ownership validation for admin context (system operations)
+    if (this.adminContext) {
+      return true; // Admin context has access to all bots
+    }
 
     try {
       const userBots = await kv.smembers(`${this.userBotIndexPrefix}:${userId}:owned-bots`) || [];
