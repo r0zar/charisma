@@ -401,11 +401,11 @@ export default function BotSchedulingPage() {
                   Recent Executions
                 </h3>
                 <div className="text-xs text-muted-foreground">
-                  Last {Math.min(executionHistory.length, 5)} executions
+                  Last {Math.min(executionHistory.length, 20)} executions
                 </div>
               </div>
-              <div className="flex gap-2 pb-2">
-                {executionHistory.slice(0, 5).map((execution, index) => {
+              <div className="flex overflow-x-auto gap-2 pb-2 p-2">
+                {executionHistory.slice(0, 20).map((execution, index) => {
                   const isLatest = index === 0;
                   const statusColor = execution.status === 'success'
                     ? 'bg-green-500/20 border-green-500/30 text-green-400'
@@ -427,7 +427,7 @@ export default function BotSchedulingPage() {
                     <div
                       key={execution.id}
                       className={`flex-shrink-0 p-3 rounded-lg border ${statusColor} ${isLatest ? 'ring-2 ring-blue-500/20' : ''
-                        } min-w-[120px] relative group cursor-pointer hover:scale-105 transition-transform`}
+                        } min-w-[120px] relative group cursor-pointer hover:brightness-105 hover:scale-105 hover:shadow-lg transition-all`}
                       title={`${execution.status} - ${formatRelativeTime(execution.startedAt)}`}
                       onClick={() => {
                         // Scroll to the execution history section

@@ -87,9 +87,6 @@ export async function GET(request: NextRequest) {
     const totalExecutionTime = Date.now() - startTime;
     console.log(`[BotExecutor] Completed execution. Success: ${executionResult.successfulExecutions}, Failed: ${executionResult.failedExecutions}, Time: ${totalExecutionTime}ms`);
 
-    // Clear admin context
-    botService.clearAdminContext();
-
     return NextResponse.json({
       status: 'success',
       message: `Executed ${executionResult.processedBots} bots`,
@@ -104,14 +101,14 @@ export async function GET(request: NextRequest) {
     console.error('[BotExecutor] Fatal error during execution:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Clear admin context on error
-    botService.clearAdminContext();
-
     return NextResponse.json({
       status: 'error',
       message: `Cron execution failed: ${errorMessage}`,
       executionTime: Date.now() - startTime
     }, { status: 500 });
+  } finally {
+    // Always clear admin context
+    botService.clearAdminContext();
   }
 }
 
