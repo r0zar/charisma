@@ -11,11 +11,9 @@ import {
 } from 'lightweight-charts';
 import { usePriceSeriesService } from '@/lib/price-series-service';
 import { perfMonitor } from '@/lib/performance-monitor';
-import { useBlaze } from 'blaze-sdk/realtime';
-import { useWallet } from '@/contexts/wallet-context';
-import { 
-    enhanceSparseTokenData, 
-    calculateResilientRatioData, 
+import {
+    enhanceSparseTokenData,
+    calculateResilientRatioData,
     type ChartDataPoint
 } from '@/lib/chart-data-utils';
 
@@ -38,11 +36,6 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
     const [activeTimeRange, setActiveTimeRange] = useState<string>('7D');
     const [comparisonMode, setComparisonMode] = useState<'absolute' | 'ratio'>('absolute');
 
-    // Real-time price integration
-    const { address } = useWallet();
-    const { getPrice, isConnected } = useBlaze({ userId: address });
-    const lastPrimaryPriceRef = useRef<number | null>(null);
-    const lastComparePriceRef = useRef<number | null>(null);
 
     // Time range definitions
     const timeRanges = useMemo(() => {
@@ -69,8 +62,8 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             vertLines: { color: 'rgba(133, 133, 133, 0.1)' },
             horzLines: { color: 'rgba(133, 133, 133, 0.1)' },
         },
-        timeScale: { 
-            timeVisible: true, 
+        timeScale: {
+            timeVisible: true,
             secondsVisible: false,
             rightOffset: 12,
             barSpacing: 3,
@@ -91,6 +84,26 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
         crosshair: {
             mode: 1, // Normal crosshair mode
         },
+        localization: {
+            priceFormatter: (price: number) => {
+                // For very small numbers, show up to 10 decimal places
+                if (price < 0.001) {
+                    return price.toFixed(10);
+                }
+                // For small numbers, show 8 decimal places
+                else if (price < 1) {
+                    return price.toFixed(8);
+                }
+                // For larger numbers, show 6 decimal places
+                else if (price < 1000) {
+                    return price.toFixed(6);
+                }
+                // For very large numbers, show 2 decimal places
+                else {
+                    return price.toFixed(2);
+                }
+            },
+        },
         handleScroll: {
             mouseWheel: true,
             pressedMouseMove: true,
@@ -105,11 +118,14 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
     /* -------- initialise chart -------- */
     useEffect(() => {
         if (!containerRef.current) return;
-        
+
         const timer = perfMonitor.startTiming('chart-initialization');
-        
+
         try {
             chartRef.current = createChart(containerRef.current, chartConfig);
+
+            // Chart created with dynamic precision via priceFormatter
+
             primarySeriesRef.current = chartRef.current.addSeries(LineSeries, {
                 color: primaryColor,
                 priceScaleId: 'left',
@@ -119,8 +135,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             }) as ISeriesApi<'Line'>;
 
             timer.end({ success: true });
-            console.log('[TOKEN-CHART] Chart initialized successfully');
-            
+
         } catch (error) {
             timer.end({ success: false, error: String(error) });
             console.error('[TOKEN-CHART] Failed to initialize chart:', error);
@@ -156,53 +171,53 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
     /* -------- load token series data (primary + comparison in bulk) -------- */
     useEffect(() => {
         if (!primarySeriesRef.current) return;
-        
+
         const timer = perfMonitor.startTiming('chart-load-bulk-data');
         setLoading(true);
         setError(null);
-        
+
         // Determine which tokens to fetch
         const tokensToFetch = [primary];
         if (compareId) {
             tokensToFetch.push(compareId);
         }
-        
+
         console.log('[TOKEN-CHART] Loading bulk token data:', {
             primary: primary.substring(0, 10),
             compare: compareId?.substring(0, 10),
             total: tokensToFetch.length
         });
-        
+
         // Use bulk fetch for efficiency
         priceSeriesService.fetchBulkPriceSeries(tokensToFetch)
             .then((bulkData) => {
                 const rawPrimaryData = bulkData[primary] || [];
                 const rawCompareData = compareId ? (bulkData[compareId] || []) : [];
-                
+
                 // Determine if we should use ratio comparison mode
                 const useRatioMode = compareId && rawCompareData.length > 0;
-                
+
                 let primaryData: LineData[];
-                
+
                 if (useRatioMode) {
                     console.log('[TOKEN-CHART] Computing ratio with extrapolation...');
-                    
+
                     // Convert to ChartDataPoint format for extrapolation utilities
                     const primaryChartData = convertToChartDataPoints(rawPrimaryData);
                     const compareChartData = convertToChartDataPoints(rawCompareData);
-                    
+
                     // Use resilient ratio calculation with extrapolation
                     const ratioChartData = calculateResilientRatioData(primaryChartData, compareChartData, {
                         minPoints: 15, // Ensure smooth charts even with sparse data
                         defaultTimeRangeMs: 30 * 24 * 60 * 60 * 1000 // 30 days
                     });
-                    
+
                     // Convert back to LineData format
                     primaryData = convertToLineData(ratioChartData);
                     setComparisonMode('ratio');
-                    
+
                     console.log(`[TOKEN-CHART] Ratio calculation: ${rawPrimaryData.length}+${rawCompareData.length} -> ${primaryData.length} points`);
-                    
+
                     // Remove comparison series since we only show ratio
                     if (compareSeriesRef.current && chartRef.current) {
                         chartRef.current.removeSeries(compareSeriesRef.current);
@@ -211,19 +226,19 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                     }
                 } else {
                     console.log('[TOKEN-CHART] Enhancing sparse token data...');
-                    
+
                     // Convert to ChartDataPoint format
                     const primaryChartData = convertToChartDataPoints(rawPrimaryData);
-                    
+
                     // Enhance sparse data with extrapolation
                     const enhancedChartData = enhanceSparseTokenData(primaryChartData, undefined, 15);
-                    
+
                     // Convert back to LineData format
                     primaryData = convertToLineData(enhancedChartData);
                     setComparisonMode('absolute');
-                    
+
                     console.log(`[TOKEN-CHART] Data enhancement: ${rawPrimaryData.length} -> ${primaryData.length} points`);
-                    
+
                     // Remove comparison series if switching back to single token
                     if (compareSeriesRef.current && chartRef.current) {
                         chartRef.current.removeSeries(compareSeriesRef.current);
@@ -231,24 +246,24 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         setCompareDataCount(0);
                     }
                 }
-                
+
                 // Sort by time and remove duplicates (required by lightweight-charts)
                 const sortedData = primaryData.sort((a, b) => Number(a.time) - Number(b.time));
                 const deduplicatedData = sortedData.filter((point, index) => {
                     if (index === 0) return true;
                     return Number(point.time) !== Number(sortedData[index - 1].time);
                 });
-                
+
                 if (primarySeriesRef.current) {
                     primarySeriesRef.current.setData(deduplicatedData);
                     setPrimaryDataCount(deduplicatedData.length);
-                    
+
                     console.log('[TOKEN-CHART] Data deduplication:', {
                         originalPoints: primaryData.length,
                         finalPoints: deduplicatedData.length,
                         duplicatesRemoved: primaryData.length - deduplicatedData.length
                     });
-                    
+
                     // Set initial time range to show recent data
                     if (chartRef.current && deduplicatedData.length > 0) {
                         setTimeout(() => {
@@ -267,37 +282,37 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         }, 100); // Small delay to ensure data is rendered
                     }
                 }
-                
+
                 // Update price scale formatting based on mode
                 if (chartRef.current) {
                     chartRef.current.applyOptions({
                         leftPriceScale: {
                             ...chartConfig.leftPriceScale,
                             // Format as ratio when in comparison mode
-                            ...(useRatioMode ? { 
+                            ...(useRatioMode ? {
                                 priceFormat: {
-                                    type: 'price' as const, 
+                                    type: 'price' as const,
                                     precision: 6,
                                     minMove: 0.000001
                                 }
-                            } : { 
+                            } : {
                                 priceFormat: {
-                                    type: 'price' as const, 
+                                    type: 'price' as const,
                                     precision: 4
                                 }
                             })
                         }
                     });
                 }
-                
-                timer.end({ 
-                    success: true, 
+
+                timer.end({
+                    success: true,
                     primaryDataPoints: primaryData.length,
                     compareDataPoints: compareId ? rawCompareData.length : 0,
                     bulkFetch: true,
                     comparisonMode: useRatioMode ? 'ratio' : 'absolute'
                 });
-                
+
                 console.log('[TOKEN-CHART] Bulk data loaded:', {
                     primaryPoints: primaryData.length,
                     rawComparePoints: compareId ? rawCompareData.length : 0,
@@ -313,43 +328,6 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             });
     }, [primary, compareId, priceSeriesService, compareColor]);
 
-    /* -------- real-time price updates -------- */
-    useEffect(() => {
-        if (!primarySeriesRef.current) return;
-
-        const primaryPrice = getPrice(primary);
-        const comparePrice = compareId ? getPrice(compareId) : null;
-        
-        // Update primary series with real-time price
-        if (primaryPrice !== null && primaryPrice !== lastPrimaryPriceRef.current) {
-            const now = Math.floor(Date.now() / 1000);
-            try {
-                primarySeriesRef.current.update({
-                    time: now as any,
-                    value: primaryPrice
-                });
-                lastPrimaryPriceRef.current = primaryPrice ?? null;
-                console.log('[TOKEN-CHART] Updated primary price:', primaryPrice);
-            } catch (error) {
-                console.warn('[TOKEN-CHART] Failed to update primary price:', error);
-            }
-        }
-
-        // Update comparison series with real-time price
-        if (compareSeriesRef.current && comparePrice !== null && comparePrice !== lastComparePriceRef.current) {
-            const now = Math.floor(Date.now() / 1000);
-            try {
-                compareSeriesRef.current.update({
-                    time: now as any,
-                    value: comparePrice
-                });
-                lastComparePriceRef.current = comparePrice ?? null;
-                console.log('[TOKEN-CHART] Updated compare price:', comparePrice);
-            } catch (error) {
-                console.warn('[TOKEN-CHART] Failed to update compare price:', error);
-            }
-        }
-    }, [getPrice(primary), compareId ? getPrice(compareId) : null, primary, compareId]);
 
     /* -------- time range selection -------- */
     const handleTimeRangeChange = (rangeKey: string) => {
@@ -357,7 +335,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
         if (!range || !chartRef.current) return;
 
         const timer = perfMonitor.startTiming('chart-time-range-change');
-        
+
         try {
             if (range.from && range.to) {
                 // Set visible range for specific time periods
@@ -375,15 +353,15 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                     }
                 }, 50);
             }
-            
+
             setActiveTimeRange(rangeKey);
-            timer.end({ 
-                success: true, 
+            timer.end({
+                success: true,
                 range: rangeKey,
                 from: range.from,
-                to: range.to 
+                to: range.to
             });
-            
+
             console.log(`[TOKEN-CHART] Changed time range to ${rangeKey}`);
         } catch (error) {
             timer.end({ success: false, error: String(error) });
@@ -421,28 +399,16 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         <button
                             key={key}
                             onClick={() => handleTimeRangeChange(key)}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-all duration-200 ${
-                                activeTimeRange === key
+                            className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-all duration-200 ${activeTimeRange === key
                                     ? 'bg-white/[0.08] text-white border border-white/[0.2]'
                                     : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
-                            }`}
+                                }`}
                         >
                             {range.label}
                         </button>
                     ))}
                 </div>
-                
-                {/* Enhanced real-time indicator with glow */}
-                {isConnected && (
-                    <div className="flex items-center gap-2 text-xs text-white/40">
-                        <div className="relative">
-                            <div className="h-2 w-2 bg-emerald-400 rounded-full animate-pulse" />
-                            <div className="absolute inset-0 h-2 w-2 bg-emerald-400/40 rounded-full animate-ping" />
-                            <div className="absolute inset-[-2px] h-3 w-3 bg-emerald-400/20 rounded-full blur-sm animate-pulse" />
-                        </div>
-                        <span className="animate-pulse">Live data</span>
-                    </div>
-                )}
+
             </div>
 
             {/* Minimal chart info */}
@@ -451,13 +417,13 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                     {comparisonMode === 'ratio' && compareId ? (
                         <div className="flex items-center gap-3 text-xs text-white/50">
                             <div className="flex items-center gap-1.5">
-                                <div 
-                                    className="w-2.5 h-2.5 rounded-full" 
+                                <div
+                                    className="w-2.5 h-2.5 rounded-full"
                                     style={{ backgroundColor: primaryColor }}
                                 />
                                 <span className="text-white/30">/</span>
-                                <div 
-                                    className="w-2.5 h-2.5 rounded-full" 
+                                <div
+                                    className="w-2.5 h-2.5 rounded-full"
                                     style={{ backgroundColor: compareColor }}
                                 />
                             </div>
@@ -465,8 +431,8 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         </div>
                     ) : (
                         <div className="flex items-center gap-3 text-xs text-white/50">
-                            <div 
-                                className="w-2.5 h-2.5 rounded-full" 
+                            <div
+                                className="w-2.5 h-2.5 rounded-full"
                                 style={{ backgroundColor: primaryColor }}
                             />
                             <span>Price • {primaryDataCount} points</span>
@@ -490,13 +456,13 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         </div>
                     </div>
                 )}
-                
+
                 {error && !loading && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
                         <div className="text-center p-6 rounded-2xl bg-red-500/10 border border-red-500/20 backdrop-blur-sm">
                             <div className="text-red-400 text-sm font-medium mb-2">Chart Error</div>
                             <div className="text-red-300/80 text-xs mb-4">{error}</div>
-                            <button 
+                            <button
                                 onClick={() => window.location.reload()}
                                 className="px-4 py-2 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl transition-colors duration-200"
                             >
