@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, type ReactNode,useContext, useEffect, useState } from "react";
+import React, { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 type Skin = "default" | "dark" | "ocean" | "sunset" | "forest" | "lavender";
 
@@ -16,16 +16,16 @@ interface SkinProviderProps {
 }
 
 export function SkinProvider({ children }: SkinProviderProps) {
-  const [skin, setSkinState] = useState<Skin>("default");
+  const [skin, setSkinState] = useState<Skin>("dark");
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize from localStorage after component mounts to avoid hydration issues
   useEffect(() => {
     const savedSkin = localStorage.getItem("skin") as Skin | null;
-    const validSkin = (savedSkin === "default" || savedSkin === "dark" || savedSkin === "ocean" || savedSkin === "sunset" || savedSkin === "forest" || savedSkin === "lavender") 
-      ? savedSkin 
-      : "default";
-    
+    const validSkin = (savedSkin === "default" || savedSkin === "dark" || savedSkin === "ocean" || savedSkin === "sunset" || savedSkin === "forest" || savedSkin === "lavender")
+      ? savedSkin
+      : "dark";
+
     setSkinState(validSkin);
     setIsInitialized(true);
   }, []);
@@ -33,16 +33,14 @@ export function SkinProvider({ children }: SkinProviderProps) {
   // Apply skin to DOM when it changes
   useEffect(() => {
     if (!isInitialized) return;
-    
+
     const root = document.documentElement;
-    
+
     // Remove all skin classes
     root.classList.remove("dark", "ocean", "sunset", "forest", "lavender");
-    
-    // Apply skin class (only if not default)
-    if (skin !== "default") {
-      root.classList.add(skin);
-    }
+
+    // Apply skin class
+    root.classList.add(skin);
 
     // Save to localStorage
     localStorage.setItem("skin", skin);
