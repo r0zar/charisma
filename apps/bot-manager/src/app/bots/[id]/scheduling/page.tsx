@@ -29,7 +29,7 @@ import { formatRelativeTime } from '@/lib/utils';
 import { Bot as BotType } from '@/schemas/bot.schema';
 
 export default function BotSchedulingPage() {
-  const { currentBot: bot, updateBotInContext } = useBots();
+  const { currentBot: bot, updateBotInContext, setCurrentBot } = useBots();
   const { showSuccess, showError } = useToast();
   const { user } = useUser();
   const params = useParams();
@@ -49,29 +49,10 @@ export default function BotSchedulingPage() {
     logsUrl?: string;
     logsSize?: number;
   }>>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [expandedExecution, setExpandedExecution] = useState<string | null>(null);
   const [executionLogs, setExecutionLogs] = useState<{ [key: string]: string }>({});
   const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
   const [showConfiguration, setShowConfiguration] = useState(false);
-
-  const fetchExecutionHistory = useCallback(async (botId: string) => {
-    setLoadingHistory(true);
-    try {
-      // No need to pass userId - API gets it from Clerk auth automatically
-      const response = await fetch(`/api/v1/bots/${botId}/executions`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch execution history');
-      }
-      const data = await response.json();
-      setExecutionHistory(data.executions || []);
-    } catch (error) {
-      console.error('Error fetching execution history:', error);
-      showError('Failed to load execution history');
-    } finally {
-      setLoadingHistory(false);
-    }
-  }, [showError]);
 
   useEffect(() => {
     if (bot) {
@@ -79,10 +60,10 @@ export default function BotSchedulingPage() {
       setSchedulingSettings({
         cronSchedule: bot.cronSchedule || ''
       });
-      // Fetch execution history
-      fetchExecutionHistory(bot.id);
+      // Use execution history from bot object (loaded via bot API)
+      setExecutionHistory(bot.executions || []);
     }
-  }, [bot, fetchExecutionHistory]);
+  }, [bot]);
 
   const fetchExecutionLogs = async (execution: any) => {
     if (!execution.logsUrl || executionLogs[execution.id]) {
@@ -640,24 +621,20 @@ export default function BotSchedulingPage() {
               onClick={() => {
                 const currentBotId = bot?.id || botId;
                 if (currentBotId) {
-                  fetchExecutionHistory(currentBotId);
+                  // Refresh the current bot data (which includes execution history)
+                  setCurrentBot(currentBotId);
                 }
               }}
-              disabled={loadingHistory}
+              disabled={false}
               className="h-8 w-8 p-0"
             >
-              <RefreshCw className={`w-4 h-4 ${loadingHistory ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-4 h-4" />
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {loadingHistory ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <RefreshCw className="w-16 h-16 mx-auto mb-4 opacity-50 animate-spin" />
-                <h3 className="text-lg font-semibold mb-2">Loading execution history...</h3>
-              </div>
-            ) : executionHistory.length === 0 ? (
+            {executionHistory.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Clock className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <h3 className="text-lg font-semibold mb-2">No execution history</h3>

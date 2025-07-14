@@ -162,20 +162,35 @@ export function BotProvider({
 
     setCurrentBotLoading(true);
     try {
-      // First try to find in local state
+      // Always fetch the bot with full execution metadata from the API
+      const response = await fetch(`/api/v1/bots/${botId}`);
+      if (response.ok) {
+        const responseData = await response.json();
+        const botData = responseData.bot; // Extract bot from API response structure
+        setCurrentBotState(botData);
+        onCurrentBotChange?.(botData);
+      } else {
+        // If API fetch fails, fall back to local state
+        const localBot = allBots.find(bot => bot.id === botId);
+        if (localBot) {
+          setCurrentBotState(localBot);
+          onCurrentBotChange?.(localBot);
+        } else {
+          setCurrentBotState(null);
+          onCurrentBotChange?.(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to set current bot:', error);
+      // Fall back to local state on error
       const localBot = allBots.find(bot => bot.id === botId);
       if (localBot) {
         setCurrentBotState(localBot);
         onCurrentBotChange?.(localBot);
       } else {
-        // If not found locally, we could fetch it (for now just set to null)
         setCurrentBotState(null);
         onCurrentBotChange?.(null);
       }
-    } catch (error) {
-      console.error('Failed to set current bot:', error);
-      setCurrentBotState(null);
-      onCurrentBotChange?.(null);
     } finally {
       setCurrentBotLoading(false);
     }

@@ -81,6 +81,7 @@ export class SandboxService {
       status: bot.status,
       created_at: bot.createdAt,
       last_active: bot.lastActive,
+      ownerId: bot.ownerId,
       walletCredentials
     };
 
