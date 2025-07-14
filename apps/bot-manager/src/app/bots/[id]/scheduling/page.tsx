@@ -674,11 +674,13 @@ export default function BotSchedulingPage() {
                             {statusIcon}
                           </div>
                           <div>
-                            <div className="font-medium text-card-foreground">
-                              Execution #{execution.id.split('-').pop()}
+                            <div className="font-medium text-card-foreground font-mono">
+                              <span className="text-muted-foreground text-sm">Execution</span>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {formatRelativeTime(execution.startedAt)}
+                            <div className="flex items-center gap-2 text-xs">
+                              <div className=" text-card-foreground">
+                                {formatRelativeTime(execution.startedAt)}
+                              </div>
                             </div>
                           </div>
                           {hasLogs && (
@@ -691,7 +693,8 @@ export default function BotSchedulingPage() {
                               </motion.div>
                               <FileText className="w-4 h-4" />
                               <span className="text-xs">
-                                {execution.logsSize ? `${Math.round(execution.logsSize / 1024)}KB logs` : 'View logs'}
+                                {/* show 1 decimal place */}
+                                {execution.logsSize ? `${(execution.logsSize / 1024).toFixed(1)}KB logs` : 'View logs'}
                               </span>
                             </div>
                           )}
@@ -774,7 +777,8 @@ export default function BotSchedulingPage() {
                                 <span className="text-sm font-medium text-card-foreground">Execution Logs</span>
                                 {execution.logsSize && (
                                   <Badge variant="secondary" className="text-xs">
-                                    {Math.round(execution.logsSize / 1024)}KB
+                                    {/* show 1 decimal place */}
+                                    {(execution.logsSize / 1024).toFixed(1)}KB
                                   </Badge>
                                 )}
                               </div>
