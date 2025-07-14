@@ -156,7 +156,7 @@ export default async function RootLayout({
         <ClerkProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="light"
+            defaultTheme="dark"
             enableSystem={false}
             storageKey="theme"
             themes={["light", "dark"]}
