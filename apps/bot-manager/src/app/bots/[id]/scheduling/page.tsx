@@ -395,8 +395,15 @@ export default function BotSchedulingPage() {
 
             <div className="text-center">
               <div className="text-2xl font-bold text-card-foreground">
-                {executionStatus.canExecute && bot?.nextExecution ? (
-                  <CountdownTimer targetDate={bot.nextExecution} className="text-lg" />
+                {bot?.nextExecution ? (
+                  // Check if nextExecution is in the future, otherwise show overdue
+                  new Date(bot.nextExecution) > new Date() ? (
+                    <CountdownTimer targetDate={bot.nextExecution} className="text-lg" />
+                  ) : (
+                    <span className="text-orange-400">Overdue</span>
+                  )
+                ) : bot?.cronSchedule ? (
+                  <span className="text-muted-foreground">Calculating...</span>
                 ) : (
                   <span className="text-muted-foreground">-</span>
                 )}
