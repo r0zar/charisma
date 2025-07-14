@@ -169,8 +169,16 @@ export class BotService {
           validationErrors.push('Bot strategy is empty');
         }
 
+        // Update direct bot fields with execution data  
+        const lastExecution = recentExecution?.startedAt;
+        const updatedExecutionCount = totalExecutions;
+
         const enhancedBot: Bot = {
           ...bot,
+          // Update direct fields for compatibility
+          lastExecution,
+          executionCount: updatedExecutionCount,
+          // Keep enhanced data
           executions,
           executionStats: {
             totalExecutions,
@@ -369,8 +377,16 @@ export class BotService {
                 validationErrors.push('Bot strategy is empty');
               }
 
+              // Update direct bot fields with execution data
+              const lastExecution = recentExecution?.startedAt;
+              const updatedExecutionCount = totalExecutions;
+
               return {
                 ...bot,
+                // Update direct fields for compatibility
+                lastExecution,
+                executionCount: updatedExecutionCount,
+                // Keep enhanced data
                 executions,
                 executionStats: {
                   totalExecutions,
