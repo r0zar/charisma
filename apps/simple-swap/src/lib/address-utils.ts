@@ -51,3 +51,25 @@ export function truncateSmartContract(contractAddress: string): string {
     // Fallback to regular address truncation for non-contract addresses
     return truncateAddress(contractAddress);
 }
+
+/**
+ * Truncates a UUID or similar identifier to show first 8 characters
+ * Commonly used for order UUIDs, strategy IDs, etc.
+ * @param identifier The UUID or identifier to truncate
+ * @returns Truncated string in format: "ABC12345"
+ */
+export function truncateUuid(identifier: string): string {
+    if (identifier.length <= 8) return identifier;
+    return identifier.substring(0, 8);
+}
+
+/**
+ * Truncates a UUID with ellipsis to show first 8 and last 4 characters
+ * Useful when you want to show more of the UUID for uniqueness
+ * @param identifier The UUID or identifier to truncate
+ * @returns Truncated string in format: "ABC12345...XYZ9"
+ */
+export function truncateUuidLong(identifier: string): string {
+    if (identifier.length <= 12) return identifier;
+    return `${identifier.substring(0, 8)}...${identifier.substring(identifier.length - 4)}`;
+}

@@ -9,7 +9,7 @@ import TokenLogo from '../TokenLogo';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { Copy, Check, Zap, Trash2, ChevronDown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { truncateAddress } from '@/lib/address-utils';
+import { truncateAddress, truncateSmartContract, truncateUuid } from '@/lib/address-utils';
 import { formatOrderDate, formatExecWindow, formatOrderStatusTime, formatStrategyStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
 
 interface EnhancedStrategyCardProps {
@@ -82,10 +82,10 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                 </>
             )}
 
-            <div className="relative p-6 space-y-4">
+            <div className="relative p-3 sm:p-6 space-y-4 overflow-hidden">
                 {/* Header Row */}
                 <div className="flex items-start justify-between">
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0 flex-1 pr-4">
                         <div className="text-sm font-medium text-white/90" title={
                             isSingleOrder
                                 ? formatOrderStatusTime(firstOrder).tooltip
@@ -99,7 +99,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                         {isSingleOrder ? (
                             <div className="flex items-center gap-2 text-xs text-white/40">
                                 <span className="font-mono" title={firstOrder.uuid}>
-                                    #{firstOrder.uuid.substring(0, 8)}
+                                    #{truncateUuid(firstOrder.uuid)}
                                 </span>
                                 <button
                                     onClick={(e) => {
@@ -117,10 +117,10 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                 </button>
                             </div>
                         ) : (
-                            <><div className="text-xs text-white/60">
+                            <><div className="text-xs text-white/60 truncate max-w-full">
                                 {description}
-                            </div><div className="text-xs text-white/40 font-mono">
-                                    {id}
+                            </div><div className="text-xs text-white/40 font-mono" title={id}>
+                                    {truncateSmartContract(id)}
                                 </div>
                             </>
                         )}
@@ -131,7 +131,7 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         {!isSingleOrder && (
                             <span className="text-xs text-white/60 px-2 py-1 rounded-lg bg-white/[0.05]">
                                 {orders.length} orders
@@ -363,10 +363,10 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                 : "max-h-0 opacity-0"
                                         )}>
                                             <div className={cn(
-                                                "px-3 pb-3 space-y-4 transition-all duration-300 ease-in-out",
+                                                "px-2 sm:px-3 pb-3 space-y-4 transition-all duration-300 ease-in-out",
                                                 isOrderExpanded ? "transform translate-y-0 pt-3" : "transform -translate-y-4 pt-0"
                                             )}>
-                                                <div className="grid gap-4 md:grid-cols-2 pt-3">
+                                                <div className="grid gap-4 lg:grid-cols-2 pt-3">
                                                     {/* Technical Parameters */}
                                                     <div className="space-y-3">
                                                         <h4 className="text-xs font-medium text-white/90 flex items-center gap-2">
@@ -374,10 +374,10 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                             Technical Parameters
                                                         </h4>
                                                         <div className="space-y-2 text-xs">
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Order UUID:</span>
-                                                                <div className="flex items-center gap-1">
-                                                                    <span className="font-mono text-white/80">{order.uuid}</span>
+                                                                <div className="flex items-center gap-1 min-w-0">
+                                                                    <span className="font-mono text-white/80 text-xs" title={order.uuid}>{truncateUuid(order.uuid)}</span>
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -393,23 +393,23 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Input Token:</span>
-                                                                <span className="font-mono text-white/80">{order.inputToken}</span>
+                                                                <span className="font-mono text-white/80 text-xs" title={order.inputToken}>{truncateSmartContract(order.inputToken)}</span>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Output Token:</span>
-                                                                <span className="font-mono text-white/80">{order.outputToken}</span>
+                                                                <span className="font-mono text-white/80 text-xs" title={order.outputToken}>{truncateSmartContract(order.outputToken)}</span>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Amount (micro units):</span>
                                                                 <span className="font-mono text-white/80">{order.amountIn}</span>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Recipient:</span>
                                                                 <span className="font-mono text-white/80">{truncateAddress(order.recipient)}</span>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Owner:</span>
                                                                 <span className="font-mono text-white/80">{truncateAddress(order.owner)}</span>
                                                             </div>
@@ -426,24 +426,24 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                             {order.conditionToken &&
                                                                 !(order.conditionToken === '*' && order.targetPrice === '0' && order.direction === 'gt') ? (
                                                                 <>
-                                                                    <div className="flex justify-between">
+                                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                         <span className="text-white/60">Condition Token:</span>
-                                                                        <span className="font-mono text-white/80">{order.conditionToken}</span>
+                                                                        <span className="font-mono text-white/80 text-xs" title={order.conditionToken}>{truncateSmartContract(order.conditionToken)}</span>
                                                                     </div>
-                                                                    <div className="flex justify-between">
+                                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                         <span className="text-white/60">Target Price:</span>
                                                                         <span className="font-mono text-white/80">{order.targetPrice}</span>
                                                                     </div>
-                                                                    <div className="flex justify-between">
+                                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                         <span className="text-white/60">Direction:</span>
                                                                         <span className="text-white/80 capitalize">{order.direction}</span>
                                                                     </div>
-                                                                    <div className="flex justify-between">
+                                                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                         <span className="text-white/60">Base Asset:</span>
-                                                                        <span className="font-mono text-white/80">{order.baseAsset || 'USD'}</span>
+                                                                        <span className="font-mono text-white/80 text-xs" title={order.baseAsset || 'USD'}>{order.baseAsset ? truncateSmartContract(order.baseAsset) : 'USD'}</span>
                                                                     </div>
                                                                     {order.creationPrice && (
-                                                                        <div className="flex justify-between">
+                                                                        <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                             <span className="text-white/60">Creation Price:</span>
                                                                             <span className="font-mono text-white/80">{order.creationPrice}</span>
                                                                         </div>
@@ -520,14 +520,14 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                             <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
                                                             Execution Window
                                                         </h4>
-                                                        <div className="grid gap-2 md:grid-cols-2 text-xs">
-                                                            <div className="flex justify-between">
+                                                        <div className="space-y-2 text-xs">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Valid From:</span>
-                                                                <span className="text-white/80">{order.validFrom || 'Immediate'}</span>
+                                                                <span className="text-white/80 truncate text-xs max-w-full">{order.validFrom ? formatOrderDate(order.validFrom) : 'Immediate'}</span>
                                                             </div>
-                                                            <div className="flex justify-between">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                                 <span className="text-white/60">Valid To:</span>
-                                                                <span className="text-white/80">{order.validTo || 'No expiry'}</span>
+                                                                <span className="text-white/80 truncate text-xs max-w-full">{order.validTo ? formatOrderDate(order.validTo) : 'No expiry'}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -845,13 +845,13 @@ export const EnhancedStrategyCard: React.FC<EnhancedStrategyCardProps> = ({
                                                 Execution Window
                                             </h4>
                                             <div className="space-y-3 text-xs">
-                                                <div className="flex justify-between">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                     <span className="text-white/60">Valid From:</span>
-                                                    <span className="text-white/80">{firstOrder.validFrom || 'Immediate'}</span>
+                                                    <span className="text-white/80 truncate text-xs max-w-full">{firstOrder.validFrom ? formatOrderDate(firstOrder.validFrom) : 'Immediate'}</span>
                                                 </div>
-                                                <div className="flex justify-between">
+                                                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                                                     <span className="text-white/60">Valid To:</span>
-                                                    <span className="text-white/80">{firstOrder.validTo || 'No expiry'}</span>
+                                                    <span className="text-white/80 truncate text-xs max-w-full">{firstOrder.validTo ? formatOrderDate(firstOrder.validTo) : 'No expiry'}</span>
                                                 </div>
                                             </div>
                                         </div>

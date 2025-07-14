@@ -6,7 +6,7 @@ import OrdersPanel from "@/components/orders/orders-panel";
 
 function OrdersPanelFallback() {
     return (
-        <div className="container max-w-6xl mx-auto px-4 py-8">
+        <div className="sm:container max-w-6xl mx-auto px-2 py-4 sm:px-4 sm:py-8">
             <div className="space-y-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm animate-pulse">

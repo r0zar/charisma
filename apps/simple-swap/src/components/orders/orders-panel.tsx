@@ -37,9 +37,9 @@ interface DisplayOrder extends LimitOrder {
 // Transaction Status Indicator for filled orders
 const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ txid }) => {
     const { status, isConfirmed, isFailed, isPending, isLoading } = useTransactionStatus(txid);
-    
+
     if (!txid || status === 'unknown') return null;
-    
+
     if (isLoading) {
         return (
             <Tooltip>
@@ -55,7 +55,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             </Tooltip>
         );
     }
-    
+
     if (isConfirmed) {
         return (
             <Tooltip>
@@ -71,7 +71,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             </Tooltip>
         );
     }
-    
+
     if (isFailed) {
         return (
             <Tooltip>
@@ -87,7 +87,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             </Tooltip>
         );
     }
-    
+
     if (isPending) {
         return (
             <Tooltip>
@@ -103,7 +103,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             </Tooltip>
         );
     }
-    
+
     return null;
 };
 
@@ -175,9 +175,9 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
     );
 
     // Determine if we should show a tooltip
-    const shouldShowTooltip = (status === 'failed' && failureReason) || 
-                             (status === 'broadcasted') ||
-                             (status === 'open');
+    const shouldShowTooltip = (status === 'failed' && failureReason) ||
+        (status === 'broadcasted') ||
+        (status === 'open');
 
     const getTooltipContent = () => {
         if (status === 'failed' && failureReason) {
@@ -214,8 +214,8 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
                     <TooltipTrigger asChild>
                         {badgeContent}
                     </TooltipTrigger>
-                    <TooltipContent 
-                        side="top" 
+                    <TooltipContent
+                        side="top"
                         align="center"
                         sideOffset={8}
                         className="max-w-xs z-50 bg-popover border border-border shadow-lg"
@@ -257,19 +257,18 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
     formatTokenAmount
 }) => {
     const isExpanded = expandedRow === o.uuid;
-    
+
     return (
-        <div 
-            className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer ${
-                isRecentlyUpdated 
-                    ? 'border-emerald-500/[0.3] bg-emerald-950/10 shadow-emerald-500/[0.1] ring-1 ring-emerald-500/[0.2]' 
-                    : 'border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15]'
-            } backdrop-blur-sm`}
+        <div
+            className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer ${isRecentlyUpdated
+                ? 'border-emerald-500/[0.3] bg-emerald-950/10 shadow-emerald-500/[0.1] ring-1 ring-emerald-500/[0.2]'
+                : 'border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15]'
+                } backdrop-blur-sm`}
             onClick={() => toggleRowExpansion(o.uuid)}
         >
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-            
+
             {/* Recently Updated Indicator */}
             {isRecentlyUpdated && (
                 <>
@@ -278,8 +277,8 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-400 animate-pulse z-10 rounded-t-2xl" />
                 </>
             )}
-            
-            <div className="relative p-6 space-y-4">
+
+            <div className="relative p-3 sm:p-6 space-y-4">
                 {/* Header Row */}
                 <div className="flex items-start justify-between">
                     <div className="space-y-1">
@@ -311,10 +310,10 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                             </div>
                         )}
                     </div>
-                    
-                    <PremiumStatusBadge 
-                        status={o.status} 
-                        txid={o.txid} 
+
+                    <PremiumStatusBadge
+                        status={o.status}
+                        txid={o.txid}
                         failureReason={o.failureReason}
                         conditionIcon={getConditionIcon(o, 'single')}
                     />
@@ -335,7 +334,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                             <span className="text-sm font-medium text-white/80">{o.outputTokenMeta.symbol}</span>
                         </div>
                     </div>
-                    
+
                     <div className="text-right">
                         <div className="text-sm font-mono text-white/90">
                             {formatTokenAmount(o.amountIn, o.inputTokenMeta.decimals!)}
@@ -394,7 +393,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
                             </>
                         )}
                     </div>
-                    
+
                     {/* Action buttons */}
                     {o.status === "open" && (
                         <div className="flex gap-2">
@@ -599,17 +598,17 @@ export default function OrdersPanel() {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
     const [recentlyUpdatedOrders, setRecentlyUpdatedOrders] = useState<Set<string>>(new Set());
-    
+
     // Strategy grouping state
     const [strategyGroups, setStrategyGroups] = useState<StrategyDisplayData[]>([]);
     const [currentPrices, setCurrentPrices] = useState<Map<string, number>>(new Map());
     const [expandedStrategies, setExpandedStrategies] = useState<Set<string>>(new Set());
-    
+
     // URL state management
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
-    
+
     // Pagination state
     const [pagination, setPagination] = useState<PaginationInfo>({
         total: 0,
@@ -627,25 +626,25 @@ export default function OrdersPanel() {
         const urlLimit = searchParams?.get('limit');
         const urlFilter = searchParams?.get('filter');
         const urlSearch = searchParams?.get('search');
-        
+
         if (urlPage) {
             const page = parseInt(urlPage, 10);
             if (!isNaN(page) && page > 0) {
                 setPagination(prev => ({ ...prev, page }));
             }
         }
-        
+
         if (urlLimit) {
             const limit = parseInt(urlLimit, 10);
             if (!isNaN(limit) && limit > 0 && limit <= 100) {
                 setPagination(prev => ({ ...prev, limit }));
             }
         }
-        
+
         if (urlFilter && ['all', 'open', 'confirmed', 'failed', 'cancelled'].includes(urlFilter)) {
             setActiveFilter(urlFilter);
         }
-        
+
         if (urlSearch) {
             setSearchQuery(urlSearch);
         }
@@ -658,44 +657,44 @@ export default function OrdersPanel() {
             setPagination(prev => ({ ...prev, total: 0, totalPages: 0 }));
             return;
         }
-        
+
         const isInitialLoad = displayOrders.length === 0;
         if (isInitialLoad) {
             setLoading(true);
         } else {
             setPaginationLoading(true);
         }
-        
+
         setError(null);
-        
+
         try {
             // Build query parameters - get ALL orders, filter at strategy level
             const params = new URLSearchParams({
                 owner: address
             });
-            
+
             if (usePagination) {
                 params.append('page', '1');
                 params.append('limit', '50'); // Get recent orders for strategy grouping
                 params.append('sortBy', 'createdAt');
                 params.append('sortOrder', 'desc');
-                
+
                 // Use server-side filtering for individual order status
                 if (activeFilter !== 'all') {
                     params.append('status', activeFilter);
                 }
-                
+
                 if (searchQuery && searchQuery.trim()) {
                     params.append('search', searchQuery.trim());
                 }
             }
-            
+
             const res = await fetch(`/api/v1/orders?${params}`);
             const j = await res.json();
-            
+
             if (res.ok) {
                 const rawOrders = j.data as LimitOrder[];
-                
+
                 // Update pagination info if available
                 if (j.pagination) {
                     setPagination({
@@ -850,7 +849,7 @@ export default function OrdersPanel() {
         // Group orders into strategies
         const grouped = groupOrdersByStrategy(displayOrders, tokenMetaMap);
         setStrategyGroups(grouped);
-        
+
         // Fetch current prices for condition tokens using useBlaze
         const priceMap = new Map<string, number>();
         const uniqueConditionTokens = new Set(
@@ -865,7 +864,7 @@ export default function OrdersPanel() {
                 priceMap.set(token, price as number);
             }
         });
-        
+
         setCurrentPrices(priceMap);
     }, [displayOrders, getPrice]);
 
@@ -1009,9 +1008,9 @@ export default function OrdersPanel() {
     };
 
     const handleLimitChange = (newLimit: number) => {
-        setPagination(prev => ({ 
-            ...prev, 
-            limit: newLimit, 
+        setPagination(prev => ({
+            ...prev,
+            limit: newLimit,
             page: 1 // Reset to first page when changing limit
         }));
         updateUrlParams({ limit: newLimit.toString(), page: '1' });
@@ -1035,7 +1034,7 @@ export default function OrdersPanel() {
     // Update URL parameters
     const updateUrlParams = (updates: Record<string, string>) => {
         const params = new URLSearchParams(searchParams?.toString() || '');
-        
+
         Object.entries(updates).forEach(([key, value]) => {
             if (value && value !== 'all' && value !== '1' && value !== '10') {
                 params.set(key, value);
@@ -1043,7 +1042,7 @@ export default function OrdersPanel() {
                 params.delete(key);
             }
         });
-        
+
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     };
 
@@ -1068,7 +1067,7 @@ export default function OrdersPanel() {
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="container max-w-6xl mx-auto px-4 py-8">
+            <div className="sm:container max-w-6xl mx-auto px-2 py-4 sm:px-4 sm:py-8">
                 {/* Immersive header - seamless design */}
                 <div className="space-y-8 mb-16">
                     <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
@@ -1083,7 +1082,7 @@ export default function OrdersPanel() {
                             </div>
                             <div className="flex items-center gap-6 text-sm text-white/40">
                                 <span>
-                                    {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'} 
+                                    {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'}
                                     ({pagination.total} {activeFilter === 'all' ? 'total' : activeFilter} orders)
                                 </span>
                                 <span>Page {pagination.page} of {pagination.totalPages}</span>
@@ -1115,20 +1114,19 @@ export default function OrdersPanel() {
 
                             {/* Premium filter tabs */}
                             <div className="flex items-center gap-2 flex-wrap">
-                            {[['all', 'All'], ['open', 'Open'], ['confirmed', 'Confirmed'], ['failed', 'Failed'], ['cancelled', 'Cancelled']].map(([value, label]) => (
-                                <button
-                                    key={value}
-                                    onClick={() => handleFilterChange(value)}
-                                    disabled={loading || paginationLoading}
-                                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 cursor-pointer ${
-                                        activeFilter === value
+                                {[['all', 'All'], ['open', 'Open'], ['confirmed', 'Confirmed'], ['failed', 'Failed'], ['cancelled', 'Cancelled']].map(([value, label]) => (
+                                    <button
+                                        key={value}
+                                        onClick={() => handleFilterChange(value)}
+                                        disabled={loading || paginationLoading}
+                                        className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 cursor-pointer ${activeFilter === value
                                             ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
                                             : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
-                                    }`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
+                                            }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -1209,10 +1207,10 @@ export default function OrdersPanel() {
                         <div className="space-y-6">
                             {strategyGroups.map((strategyData) => {
                                 // Check if any order in this strategy was recently updated
-                                const isRecentlyUpdated = strategyData.orders.some(order => 
+                                const isRecentlyUpdated = strategyData.orders.some(order =>
                                     recentlyUpdatedOrders.has(order.uuid)
                                 );
-                                
+
                                 return (
                                     <StrategyCardFactory
                                         key={strategyData.id}
@@ -1258,14 +1256,14 @@ export default function OrdersPanel() {
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="flex justify-end gap-3 pt-4">
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={() => setConfirmUuid(null)}
                                 className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white"
                             >
                                 Cancel
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={() => cancelOrder(confirmUuid)}
                                 className="bg-red-500/[0.15] border border-red-500/[0.3] text-red-400 hover:bg-red-500/[0.25] hover:border-red-400/[0.5]"
                             >

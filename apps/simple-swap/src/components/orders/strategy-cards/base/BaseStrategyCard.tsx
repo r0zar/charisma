@@ -19,11 +19,11 @@ export const BaseStrategyCard: React.FC<BaseStrategyCardLayoutProps> = ({
     onClick
 }) => {
     return (
-        <div 
+        <div
             className={cn(
                 "group relative rounded-2xl border transition-all duration-300 cursor-pointer",
-                isRecentlyUpdated 
-                    ? 'border-emerald-500/[0.3] bg-emerald-950/10 shadow-emerald-500/[0.1] ring-1 ring-emerald-500/[0.2]' 
+                isRecentlyUpdated
+                    ? 'border-emerald-500/[0.3] bg-emerald-950/10 shadow-emerald-500/[0.1] ring-1 ring-emerald-500/[0.2]'
                     : 'border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15]',
                 "backdrop-blur-sm"
             )}
@@ -31,7 +31,7 @@ export const BaseStrategyCard: React.FC<BaseStrategyCardLayoutProps> = ({
         >
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-            
+
             {/* Recently Updated Indicator */}
             {isRecentlyUpdated && (
                 <>
@@ -40,9 +40,9 @@ export const BaseStrategyCard: React.FC<BaseStrategyCardLayoutProps> = ({
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-400 animate-pulse z-10 rounded-t-2xl" />
                 </>
             )}
-            
+
             {/* Content */}
-            <div className="relative p-6 space-y-4">
+            <div className="relative p-3 sm:p-6 space-y-4">
                 {children}
             </div>
         </div>

@@ -30,8 +30,8 @@ export function formatRelativeTime(date: string | Date): string {
     if (isNaN(d.getTime())) return 'Invalid Date';
     
     const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
+    const diffMs = d.getTime() - now.getTime(); // Changed order to handle future dates
+    const diffSec = Math.floor(Math.abs(diffMs) / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
@@ -39,13 +39,25 @@ export function formatRelativeTime(date: string | Date): string {
     if (diffSec < 60) {
         return 'Just now';
     } else if (diffMin < 60) {
-        return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
+        if (diffMs > 0) {
+            return `${diffMin} min${diffMin > 1 ? 's' : ''} from now`;
+        } else {
+            return `${diffMin} min${diffMin > 1 ? 's' : ''} ago`;
+        }
     } else if (diffHour < 24) {
-        return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+        if (diffMs > 0) {
+            return `${diffHour} hour${diffHour > 1 ? 's' : ''} from now`;
+        } else {
+            return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+        }
     } else if (diffDay < 30) {
-        return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+        if (diffMs > 0) {
+            return `${diffDay} day${diffDay > 1 ? 's' : ''} from now`;
+        } else {
+            return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+        }
     } else {
-        // Fall back to short date if more than a month ago
+        // Fall back to short date if more than a month ago/from now
         return formatShortDate(d);
     }
 }
@@ -159,7 +171,15 @@ export function formatExecWindowHuman(validFrom?: string, validTo?: string, orde
         }
         
         if (from && to) {
-            return `Executed (valid ${formatRelativeTime(from)} to ${formatRelativeTime(to)})`;
+            const fromRelative = formatRelativeTime(from);
+            const toRelative = formatRelativeTime(to);
+            
+            // If both times format to "Just now", use absolute times for clarity
+            if (fromRelative === 'Just now' && toRelative === 'Just now') {
+                return `Executed (valid ${formatTime(from)} to ${formatTime(to)})`;
+            }
+            
+            return `Executed (valid ${fromRelative} to ${toRelative})`;
         }
     }
 
@@ -187,6 +207,11 @@ export function formatExecWindowHuman(validFrom?: string, validTo?: string, orde
         } else {
             const fromRelative = formatRelativeTime(from);
             const toRelative = formatRelativeTime(to);
+            
+            // If both times format to "Just now", use absolute times for clarity
+            if (fromRelative === 'Just now' && toRelative === 'Just now') {
+                return `Execute between ${formatTime(from)} and ${formatTime(to)}`;
+            }
             
             // If both are less than a day away, show more specific timing
             const fromDiffHours = Math.abs(from.getTime() - now.getTime()) / (1000 * 60 * 60);
