@@ -170,8 +170,7 @@ export class BotService {
             : 'Manual execution only';
 
         // Validate execution readiness
-        const availableActions = BotStateMachine.getAvailableActions(bot);
-        const canExecute = availableActions.includes('start') || availableActions.includes('resume');
+        const canExecute = bot.status === 'active';
         const validationErrors: string[] = [];
 
         if (!canExecute) {
@@ -371,8 +370,7 @@ export class BotService {
                   : 'Manual execution only';
 
               // Validate execution readiness
-              const availableActions = BotStateMachine.getAvailableActions(bot);
-              const canExecute = availableActions.includes('start') || availableActions.includes('resume');
+              const canExecute = bot.status === 'active';
               const validationErrors: string[] = [];
 
               if (!canExecute) {
