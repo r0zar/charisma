@@ -51,12 +51,6 @@ export async function GET(
         bot,
         source: 'static',
         timestamp: new Date().toISOString(),
-      }, {
-        status: 200,
-        headers: {
-          'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=120',
-          'Content-Type': 'application/json',
-        },
       });
     }
 
@@ -67,15 +61,7 @@ export async function GET(
       timestamp: new Date().toISOString(),
     };
 
-    return NextResponse.json(responseData, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching bot:', error);
     return NextResponse.json(
@@ -149,15 +135,7 @@ export async function PUT(
       timestamp: new Date().toISOString(),
     };
 
-    return NextResponse.json(responseData, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error updating bot:', error);
     return NextResponse.json(
@@ -205,15 +183,7 @@ export async function DELETE(
       timestamp: new Date().toISOString(),
     };
 
-    return NextResponse.json(responseData, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error deleting bot:', error);
     return NextResponse.json(

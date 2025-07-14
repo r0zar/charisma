@@ -116,16 +116,22 @@ export class BotService {
         return bot; // This handles future privacy logic
       }
 
-      // If execution data is not requested or user is not authenticated, return basic bot
+      // If execution data is not requested, return basic bot
+      if (!includeExecutions) {
+        return bot;
+      }
+
+      // For security, only load execution data if user owns the bot or admin
       const userId = await this.getCurrentUserId();
-      if (!includeExecutions || !userId || !isOwned) {
+      if (!userId || !isOwned) {
+        // Return bot without execution data for non-owners
         return bot;
       }
 
       // Add execution data for authenticated owned bots
       try {
         // Get execution history
-        const executions = await executionDataStore.getExecutions(userId, botId, executionLimit);
+        const executions = await executionDataStore.getExecutions(botId, executionLimit);
 
         // Calculate execution statistics
         const totalExecutions = executions.length;
@@ -175,16 +181,9 @@ export class BotService {
           validationErrors.push('Bot strategy is empty');
         }
 
-        // Update direct bot fields with execution data  
-        const lastExecution = recentExecution?.startedAt;
-        const updatedExecutionCount = totalExecutions;
-
         const enhancedBot: Bot = {
           ...bot,
-          // Update direct fields for compatibility
-          lastExecution,
-          executionCount: updatedExecutionCount,
-          // Keep enhanced data
+          // Enhanced execution data
           executions,
           executionStats: {
             totalExecutions,
@@ -333,7 +332,7 @@ export class BotService {
           bots.map(async (bot) => {
             try {
               // Get execution history
-              const executions = await executionDataStore.getExecutions(bot.ownerId, bot.id, executionLimit);
+              const executions = await executionDataStore.getExecutions(bot.id, executionLimit);
 
               // Calculate execution statistics
               const totalExecutions = executions.length;
@@ -383,16 +382,9 @@ export class BotService {
                 validationErrors.push('Bot strategy is empty');
               }
 
-              // Update direct bot fields with execution data
-              const lastExecution = recentExecution?.startedAt;
-              const updatedExecutionCount = totalExecutions;
-
               return {
                 ...bot,
-                // Update direct fields for compatibility
-                lastExecution,
-                executionCount: updatedExecutionCount,
-                // Keep enhanced data
+                // Enhanced execution data
                 executions,
                 executionStats: {
                   totalExecutions,
@@ -602,7 +594,7 @@ export class BotService {
 
       // Clean up all execution data and blob storage
       try {
-        const executionCleanup = await executionDataStore.deleteAllExecutionsForBot(userId, botId);
+        const executionCleanup = await executionDataStore.deleteAllExecutionsForBot(botId);
         if (executionCleanup.success && executionCleanup.deletedExecutions > 0) {
           console.log(`✅ Cleaned up ${executionCleanup.deletedExecutions} executions and ${executionCleanup.deletedBlobs} blobs`);
         }

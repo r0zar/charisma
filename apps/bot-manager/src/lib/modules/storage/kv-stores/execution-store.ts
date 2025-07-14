@@ -11,27 +11,27 @@ export class ExecutionKVStore {
   private readonly keyPrefix = 'bot-manager:executions';
 
   /**
-   * Get user-specific bot executions index key
+   * Get bot executions index key (bot-centric, not user-centric)
    */
-  private getBotExecutionsIndexKey(userId: string, botId: string): string {
-    return `${this.keyPrefix}:${userId}:${botId}:index`;
+  private getBotExecutionsIndexKey(botId: string): string {
+    return `${this.keyPrefix}:${botId}:index`;
   }
 
   /**
-   * Get user-specific execution key
+   * Get execution key (bot-centric, not user-centric)
    */
-  private getExecutionKey(userId: string, botId: string, executionId: string): string {
-    return `${this.keyPrefix}:${userId}:${botId}:${executionId}`;
+  private getExecutionKey(botId: string, executionId: string): string {
+    return `${this.keyPrefix}:${botId}:${executionId}`;
   }
 
   /**
    * Get all executions for a specific bot
    */
-  async getExecutions(userId: string, botId: string, limit = 50): Promise<BotExecution[]> {
+  async getExecutions(botId: string, limit = 50): Promise<BotExecution[]> {
     try {
       // Get execution IDs from sorted set (newest first)
       const executionIds = await kv.zrange(
-        this.getBotExecutionsIndexKey(userId, botId),
+        this.getBotExecutionsIndexKey(botId),
         0,
         limit - 1,
         { rev: true }
@@ -44,7 +44,7 @@ export class ExecutionKVStore {
       // Fetch all executions
       const executions: BotExecution[] = [];
       for (const id of executionIds) {
-        const execution = await kv.get<BotExecution>(this.getExecutionKey(userId, botId, id as string));
+        const execution = await kv.get<BotExecution>(this.getExecutionKey(botId, id as string));
         if (execution) {
           executions.push(execution);
         }
@@ -60,9 +60,9 @@ export class ExecutionKVStore {
   /**
    * Get a specific execution
    */
-  async getExecution(userId: string, botId: string, executionId: string): Promise<BotExecution | null> {
+  async getExecution(botId: string, executionId: string): Promise<BotExecution | null> {
     try {
-      const execution = await kv.get<BotExecution>(this.getExecutionKey(userId, botId, executionId));
+      const execution = await kv.get<BotExecution>(this.getExecutionKey(botId, executionId));
       return execution || null;
     } catch (error) {
       console.error('Failed to get execution:', error);
@@ -73,23 +73,23 @@ export class ExecutionKVStore {
   /**
    * Store a new execution
    */
-  async storeExecution(userId: string, execution: BotExecution): Promise<boolean> {
+  async storeExecution(execution: BotExecution): Promise<boolean> {
     try {
       // Store the execution
-      await kv.set(this.getExecutionKey(userId, execution.botId, execution.id), execution);
+      await kv.set(this.getExecutionKey(execution.botId, execution.id), execution);
 
       // Add to bot's execution index (sorted by timestamp)
       const timestamp = new Date(execution.startedAt).getTime();
       await kv.zadd(
-        this.getBotExecutionsIndexKey(userId, execution.botId),
+        this.getBotExecutionsIndexKey(execution.botId),
         { score: timestamp, member: execution.id }
       );
 
       return true;
     } catch (error) {
       console.error('Failed to store execution:', execution.id, error);
-      console.error('Execution key:', this.getExecutionKey(userId, execution.botId, execution.id));
-      console.error('Index key:', this.getBotExecutionsIndexKey(userId, execution.botId));
+      console.error('Execution key:', this.getExecutionKey(execution.botId, execution.id));
+      console.error('Index key:', this.getBotExecutionsIndexKey(execution.botId));
       console.error('Execution data size:', JSON.stringify(execution).length, 'bytes');
       return false;
     }
@@ -98,10 +98,10 @@ export class ExecutionKVStore {
   /**
    * Update an existing execution
    */
-  async updateExecution(userId: string, execution: BotExecution): Promise<boolean> {
+  async updateExecution(execution: BotExecution): Promise<boolean> {
     try {
       // Update the execution data
-      await kv.set(this.getExecutionKey(userId, execution.botId, execution.id), execution);
+      await kv.set(this.getExecutionKey(execution.botId, execution.id), execution);
       return true;
     } catch (error) {
       console.error('Failed to update execution:', error);
@@ -112,13 +112,13 @@ export class ExecutionKVStore {
   /**
    * Delete an execution
    */
-  async deleteExecution(userId: string, botId: string, executionId: string): Promise<boolean> {
+  async deleteExecution(botId: string, executionId: string): Promise<boolean> {
     try {
       // Remove from index
-      await kv.zrem(this.getBotExecutionsIndexKey(userId, botId), executionId);
+      await kv.zrem(this.getBotExecutionsIndexKey(botId), executionId);
 
       // Delete the execution
-      await kv.del(this.getExecutionKey(userId, botId, executionId));
+      await kv.del(this.getExecutionKey(botId, executionId));
 
       return true;
     } catch (error) {
@@ -130,9 +130,9 @@ export class ExecutionKVStore {
   /**
    * Get execution count for a bot
    */
-  async getExecutionCount(userId: string, botId: string): Promise<number> {
+  async getExecutionCount(botId: string): Promise<number> {
     try {
-      const count = await kv.zcard(this.getBotExecutionsIndexKey(userId, botId));
+      const count = await kv.zcard(this.getBotExecutionsIndexKey(botId));
       return count || 0;
     } catch (error) {
       console.error('Failed to get execution count:', error);
@@ -143,18 +143,18 @@ export class ExecutionKVStore {
   /**
    * Clear all executions for a bot
    */
-  async clearExecutions(userId: string, botId: string): Promise<boolean> {
+  async clearExecutions(botId: string): Promise<boolean> {
     try {
       // Get all execution IDs
-      const executionIds = await kv.zrange(this.getBotExecutionsIndexKey(userId, botId), 0, -1) || [];
+      const executionIds = await kv.zrange(this.getBotExecutionsIndexKey(botId), 0, -1) || [];
 
       // Delete all executions
       for (const id of executionIds) {
-        await kv.del(this.getExecutionKey(userId, botId, id as string));
+        await kv.del(this.getExecutionKey(botId, id as string));
       }
 
       // Clear the index
-      await kv.del(this.getBotExecutionsIndexKey(userId, botId));
+      await kv.del(this.getBotExecutionsIndexKey(botId));
 
       return true;
     } catch (error) {
@@ -167,7 +167,7 @@ export class ExecutionKVStore {
    * Delete all executions and related data for a bot (used during bot deletion)
    * This method provides comprehensive cleanup including blob storage
    */
-  async deleteAllExecutionsForBot(userId: string, botId: string): Promise<{ 
+  async deleteAllExecutionsForBot(botId: string): Promise<{ 
     success: boolean; 
     deletedExecutions: number; 
     deletedBlobs: number; 
@@ -182,7 +182,7 @@ export class ExecutionKVStore {
 
     try {
       // Get all execution IDs from the index
-      const executionIds = await kv.zrange(this.getBotExecutionsIndexKey(userId, botId), 0, -1) || [];
+      const executionIds = await kv.zrange(this.getBotExecutionsIndexKey(botId), 0, -1) || [];
       
       if (executionIds.length === 0) {
         result.success = true;
@@ -197,7 +197,7 @@ export class ExecutionKVStore {
       // Delete each execution and its associated blob data
       for (const id of executionIds) {
         try {
-          const executionKey = this.getExecutionKey(userId, botId, id as string);
+          const executionKey = this.getExecutionKey(botId, id as string);
           
           // Get execution data to find blob URLs before deletion
           const execution = await kv.get<BotExecution>(executionKey);
@@ -226,7 +226,7 @@ export class ExecutionKVStore {
 
       // Clear the execution index
       try {
-        await kv.del(this.getBotExecutionsIndexKey(userId, botId));
+        await kv.del(this.getBotExecutionsIndexKey(botId));
         console.log(`🧹 Cleared execution index for bot ${botId}`);
       } catch (indexError) {
         result.errors.push(`Failed to clear execution index: ${indexError instanceof Error ? indexError.message : 'Unknown error'}`);
@@ -251,18 +251,18 @@ export class ExecutionKVStore {
   }
 
   /**
-   * Get recent executions across all bots for a user (for dashboard)
+   * Get recent executions across all bots (for dashboard)
+   * Note: This is less efficient as we need to scan all execution keys
    */
-  async getRecentExecutions(userId: string, limit = 10): Promise<BotExecution[]> {
+  async getRecentExecutions(limit = 10): Promise<BotExecution[]> {
     try {
-      // This is a more complex query - we'd need to scan bot indices
-      // For now, implement a simple version that could be optimized later
-      const allKeys = await kv.keys(`${this.keyPrefix}:${userId}:*:*`);
+      // Scan all execution keys (bot-centric now)
+      const allKeys = await kv.keys(`${this.keyPrefix}:*:*`);
       const executionKeys = allKeys.filter(key => !key.includes(':index'));
 
       // Get all executions and sort by timestamp
       const executions: BotExecution[] = [];
-      for (const key of executionKeys) {
+      for (const key of executionKeys.slice(0, 100)) { // Limit scanning for performance
         const execution = await kv.get<BotExecution>(key);
         if (execution) {
           executions.push(execution);

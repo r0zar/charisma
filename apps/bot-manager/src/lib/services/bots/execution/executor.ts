@@ -73,7 +73,7 @@ export class BotExecutorService {
       };
 
       // Store initial execution record
-      await executionDataStore.storeExecution(userId, executionRecord);
+      await executionDataStore.storeExecution(executionRecord);
 
       // Execute the bot's strategy using sandbox service
       const result = await sandboxService.executeStrategy(
@@ -118,7 +118,7 @@ export class BotExecutorService {
       }
 
       // Update execution record in KV storage
-      await executionDataStore.updateExecution(userId, updatedRecord);
+      await executionDataStore.updateExecution(updatedRecord);
 
       return {
         success: result.success,
@@ -140,7 +140,7 @@ export class BotExecutorService {
           status: 'failure',
           error: error instanceof Error ? error.message : 'Unknown execution error'
         };
-        await executionDataStore.updateExecution(userId, errorRecord);
+        await executionDataStore.updateExecution(errorRecord);
       } catch (storeError) {
         console.error(`[BotExecutor] Failed to store error execution record:`, storeError);
       }

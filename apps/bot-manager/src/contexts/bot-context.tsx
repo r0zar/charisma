@@ -203,16 +203,7 @@ export function BotProvider({
     }
   }, [currentBotId, setCurrentBot]);
 
-  // Auto-sync current bot when allBots changes
-  useEffect(() => {
-    if (currentBot) {
-      const updatedBot = allBots.find(bot => bot.id === currentBot.id);
-      if (updatedBot && updatedBot !== currentBot) {
-        setCurrentBotState(updatedBot);
-        onCurrentBotChange?.(updatedBot);
-      }
-    }
-  }, [allBots, currentBot, onCurrentBotChange]);
+  // Note: Removed auto-sync that was overriding fresh API data with stale allBots data
 
   // ==================== CRUD OPERATIONS ====================
 
