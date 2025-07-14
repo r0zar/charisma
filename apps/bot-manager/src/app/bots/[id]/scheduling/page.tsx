@@ -53,6 +53,8 @@ export default function BotSchedulingPage() {
   const [executionLogs, setExecutionLogs] = useState<{ [key: string]: string }>({});
   const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
   const [showConfiguration, setShowConfiguration] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     if (bot) {
@@ -101,6 +103,7 @@ export default function BotSchedulingPage() {
   const handleSaveScheduling = async () => {
     if (!bot) return;
 
+    setIsSaving(true);
     try {
       if (!user?.id) {
         throw new Error('User not authenticated');
@@ -137,12 +140,15 @@ export default function BotSchedulingPage() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       showError('Failed to save schedule', errorMessage);
       console.error('Error saving schedule:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleClearSchedule = async () => {
     if (!bot) return;
 
+    setIsClearing(true);
     try {
       const response = await fetch(`/api/v1/bots/${bot.id}/schedule`, {
         method: 'DELETE',
@@ -168,6 +174,8 @@ export default function BotSchedulingPage() {
     } catch (error) {
       console.error('Error clearing schedule:', error);
       showError('Failed to clear schedule. Please try again.');
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -346,9 +354,19 @@ export default function BotSchedulingPage() {
                     variant="outline"
                     onClick={handleClearSchedule}
                     className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                    disabled={isClearing}
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Clear Schedule
+                    {isClearing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Clear Schedule
+                      </>
+                    )}
                   </Button>
                 </>
               )}
@@ -584,10 +602,19 @@ export default function BotSchedulingPage() {
                   <Button
                     onClick={handleSaveScheduling}
                     className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
-                    disabled={!schedulingSettings.cronSchedule}
+                    disabled={!schedulingSettings.cronSchedule || isSaving}
                   >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Save Schedule
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-4 h-4 mr-2" />
+                        Save Schedule
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="outline"
