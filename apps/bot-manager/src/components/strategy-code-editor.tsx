@@ -243,7 +243,7 @@ export function StrategyCodeEditor({
           <CardHeader className="px-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-2 mb-2">
               <CardTitle className="text-card-foreground flex items-center gap-2 text-base sm:text-lg">
-                <Code className="w-4 h-4 sm:w-5 sm:h-5" /> Text Editor
+                <Code className="w-4 h-4 sm:w-5 sm:h-5" /> Strategy Builder
               </CardTitle>
               <div className="flex flex-wrap items-center gap-2">
                 <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>

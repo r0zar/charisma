@@ -304,7 +304,6 @@ export default function BotStrategyPage() {
               }
             } : undefined}
             onTest={handleTestStrategy}
-            height="300px"
             helpContextualInfo={helpContextualInfo}
             executionLogs={executionLogs}
             isExecuting={isExecuting}
