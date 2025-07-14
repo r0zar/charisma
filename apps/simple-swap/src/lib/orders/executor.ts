@@ -357,9 +357,22 @@ export async function processOpenOrders(): Promise<string[]> {
         console.log({ orderUuid: order.uuid }, 'Lock acquired successfully');
 
         // -------------------------------------------------------------
-        // 1. Check execution window (validFrom / validTo)
+        // 1. Check execution window and order age limits
         // -------------------------------------------------------------
         const now = Date.now();
+        const orderAge = now - new Date(order.createdAt).getTime();
+        const ABSOLUTE_MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
+        
+        // Check 90-day absolute maximum age limit
+        if (orderAge > ABSOLUTE_MAX_AGE) {
+            const ageDays = Math.round(orderAge / (24 * 60 * 60 * 1000));
+            console.log({ orderUuid: order.uuid, ageDays }, 'Order exceeded 90-day maximum age. Marking cancelled.');
+            order.status = 'cancelled';
+            await updateOrder(order);
+            await releaseLock(order.uuid);
+            continue;
+        }
+        
         const validFromMs = order.validFrom ? Date.parse(order.validFrom) : undefined;
         const validToMs = order.validTo ? Date.parse(order.validTo) : undefined;
 

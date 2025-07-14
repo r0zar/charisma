@@ -20,6 +20,8 @@ interface CronOrderMonitorResult {
     failedTransactions: number;
     stillPending: number;
     expiredOrders: number;
+    expiredBy90Day: number;
+    expiredByBroadcast: number;
     errors: string[];
     orderResults: SingleTransactionResult[];
 }
@@ -46,6 +48,8 @@ export async function GET(request: NextRequest) {
         failedTransactions: 0,
         stillPending: 0,
         expiredOrders: 0,
+        expiredBy90Day: 0,
+        expiredByBroadcast: 0,
         errors: [],
         orderResults: []
     };
@@ -67,19 +71,60 @@ export async function GET(request: NextRequest) {
         console.log(`[ORDER-MONITOR] Found ${ordersToCheck.length} orders to check`);
         result.ordersChecked = ordersToCheck.length;
 
-        // First, check for expired orders (broadcasted for more than 24 hours)
-        const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        // Expiration constants
+        const BROADCASTED_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const ABSOLUTE_MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
         const now = Date.now();
         
+        // First pass: Check for orders that have exceeded 90-day absolute maximum
         for (const { uuid, order } of ordersToCheck) {
-            // Check if order has been broadcasted for too long
             const orderAge = now - new Date(order.createdAt).getTime();
-            if (orderAge > maxAge) {
-                console.log(`[ORDER-MONITOR] 🕐 Order ${uuid} has been broadcasted for ${Math.round(orderAge / (60 * 60 * 1000))} hours - cancelling due to age`);
+            
+            if (orderAge > ABSOLUTE_MAX_AGE) {
+                const ageDays = Math.round(orderAge / (24 * 60 * 60 * 1000));
+                console.log(`[ORDER-MONITOR] 📅 Order ${uuid} exceeded 90-day maximum (${ageDays} days old) - cancelling due to absolute age limit`);
                 
                 try {
                     await cancelOrder(uuid);
                     result.expiredOrders++;
+                    result.expiredBy90Day++;
+                    result.ordersUpdated++;
+                    
+                    // Create a result entry for the expired order
+                    const expiredResult: SingleTransactionResult = {
+                        txid: order.txid || 'N/A',
+                        orderId: uuid,
+                        previousStatus: order.status,
+                        currentStatus: 'not_found',
+                        orderUpdated: true,
+                        error: `Order cancelled due to 90-day age limit: ${ageDays} days old`
+                    };
+                    result.orderResults.push(expiredResult);
+                    
+                } catch (error) {
+                    console.error(`[ORDER-MONITOR] Error cancelling 90-day expired order ${uuid}:`, error);
+                    result.errors.push(`Error cancelling 90-day expired order ${uuid}: ${error}`);
+                }
+            }
+        }
+
+        // Second pass: Check for broadcasted orders that have exceeded 24-hour limit
+        for (const { uuid, order } of ordersToCheck) {
+            const orderAge = now - new Date(order.createdAt).getTime();
+            
+            // Skip if already processed in 90-day cleanup
+            if (orderAge > ABSOLUTE_MAX_AGE) {
+                continue;
+            }
+            
+            // Only check 24-hour limit for broadcasted orders
+            if (order.status === 'broadcasted' && orderAge > BROADCASTED_MAX_AGE) {
+                console.log(`[ORDER-MONITOR] 🕐 Order ${uuid} has been broadcasted for ${Math.round(orderAge / (60 * 60 * 1000))} hours - cancelling due to broadcast timeout`);
+                
+                try {
+                    await cancelOrder(uuid);
+                    result.expiredOrders++;
+                    result.expiredByBroadcast++;
                     result.ordersUpdated++;
                     
                     // Create a result entry for the expired order
@@ -89,25 +134,23 @@ export async function GET(request: NextRequest) {
                         previousStatus: order.status,
                         currentStatus: 'not_found',
                         orderUpdated: true,
-                        error: `Order cancelled due to age: ${Math.round(orderAge / (60 * 60 * 1000))} hours old`
+                        error: `Order cancelled due to broadcast timeout: ${Math.round(orderAge / (60 * 60 * 1000))} hours old`
                     };
                     result.orderResults.push(expiredResult);
                     
                 } catch (error) {
-                    console.error(`[ORDER-MONITOR] Error cancelling expired order ${uuid}:`, error);
-                    result.errors.push(`Error cancelling expired order ${uuid}: ${error}`);
+                    console.error(`[ORDER-MONITOR] Error cancelling broadcast-expired order ${uuid}:`, error);
+                    result.errors.push(`Error cancelling broadcast-expired order ${uuid}: ${error}`);
                 }
-                
-                continue; // Skip to next order
             }
         }
 
         // Monitor each order's transaction using tx-monitor-client
         for (const { uuid, order } of ordersToCheck) {
-            // Skip if order was already processed as expired
+            // Skip if order was already processed as expired (either 90-day or 24-hour)
             const orderAge = now - new Date(order.createdAt).getTime();
-            if (orderAge > maxAge) {
-                continue; // Already processed in the expired orders loop
+            if (orderAge > ABSOLUTE_MAX_AGE || (order.status === 'broadcasted' && orderAge > BROADCASTED_MAX_AGE)) {
+                continue; // Already processed in the expiration loops
             }
             
             try {
@@ -199,6 +242,8 @@ export async function GET(request: NextRequest) {
             failedTransactions: result.failedTransactions,
             stillPending: result.stillPending,
             expiredOrders: result.expiredOrders,
+            expiredBy90Day: result.expiredBy90Day,
+            expiredByBroadcast: result.expiredByBroadcast,
             errors: result.errors.length
         });
 

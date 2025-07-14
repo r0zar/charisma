@@ -27,6 +27,7 @@ import { logger } from './logger';
 
 interface ScriptArgs {
     hours?: number;
+    days?: number;
     dryRun?: boolean;
     verbose?: boolean;
     help?: boolean;
@@ -48,6 +49,15 @@ function parseArgs(args: string[]): ScriptArgs {
                 throw new Error('Invalid hours value. Must be a positive number.');
             }
             parsed.hours = hours;
+        } else if (arg.startsWith('--days=') || arg.startsWith('--max-days=')) {
+            const days = parseInt(arg.split('=')[1]);
+            if (isNaN(days) || days <= 0) {
+                throw new Error('Invalid days value. Must be a positive number.');
+            }
+            if (days > 90) {
+                throw new Error('Days value cannot exceed 90 (maximum order lifetime).');
+            }
+            parsed.days = days;
         } else {
             throw new Error(`Unknown argument: ${arg}`);
         }
@@ -67,6 +77,8 @@ Usage:
 
 Options:
   --hours=N       Maximum age in hours (default: 24)
+  --days=N        Maximum age in days (alternative to --hours, max: 90)
+  --max-days=N    Same as --days (for clarity)
   --dry-run, -d   Show what would be cleaned up without actually doing it
   --verbose, -v   Show detailed output
   --help, -h      Show this help message
@@ -74,6 +86,8 @@ Options:
 Examples:
   pnpm script cleanup-old-orders
   pnpm script cleanup-old-orders --hours=12
+  pnpm script cleanup-old-orders --days=7
+  pnpm script cleanup-old-orders --max-days=90
   pnpm script cleanup-old-orders --dry-run --verbose
   pnpm script cleanup-old-orders --hours=6 --dry-run
 
@@ -108,11 +122,27 @@ async function main() {
             return;
         }
         
-        const maxAgeHours = options.hours || 24;
-        const maxAge = maxAgeHours * 60 * 60 * 1000;
+        // Validate that only one time option is provided
+        if (options.hours && options.days) {
+            throw new Error('Cannot specify both --hours and --days options. Please use only one.');
+        }
+        
+        // Calculate max age in milliseconds
+        let maxAge: number;
+        let ageDescription: string;
+        
+        if (options.days) {
+            maxAge = options.days * 24 * 60 * 60 * 1000;
+            ageDescription = `${options.days} days`;
+        } else {
+            const maxAgeHours = options.hours || 24;
+            maxAge = maxAgeHours * 60 * 60 * 1000;
+            ageDescription = `${maxAgeHours} hours`;
+        }
+        
         const now = Date.now();
         
-        await logger.info(`🧹 Starting cleanup of orders older than ${maxAgeHours} hours...`);
+        await logger.info(`🧹 Starting cleanup of orders older than ${ageDescription}...`);
         
         if (options.dryRun) {
             await logger.info('🔍 DRY RUN MODE - No changes will be made');
@@ -166,7 +196,7 @@ async function main() {
         }
         
         if (oldOrders.length === 0) {
-            await logger.success(`No orders older than ${maxAgeHours} hours found`);
+            await logger.success(`No orders older than ${ageDescription} found`);
             return;
         }
         
