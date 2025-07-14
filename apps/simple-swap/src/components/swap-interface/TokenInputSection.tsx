@@ -15,6 +15,7 @@ import { formatCompactNumber } from '@/lib/swap-utils';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
+    const [forceTokenDropdownOpen, setForceTokenDropdownOpen] = useState(false);
 
     // Get all needed state from context
     const {
@@ -127,8 +128,12 @@ export default function TokenInputSection() {
         setDisplayAmount(rawActiveBalance.toString());
     };
 
+    const handleSectionClick = () => {
+        setForceTokenDropdownOpen(true);
+    };
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 cursor-pointer" onClick={handleSectionClick}>
             {/* Premium Header with Analytics */}
             <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
@@ -146,7 +151,7 @@ export default function TokenInputSection() {
                 {selectedFromToken && (
                     <button
                         type="button"
-                        onClick={() => setShowChart(!showChart)}
+                        onClick={(e) => { e.stopPropagation(); setShowChart(!showChart); }}
                         className="h-8 w-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white/90 hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
                         title={showChart ? 'Hide price chart' : 'Show price chart'}
                     >
@@ -163,7 +168,7 @@ export default function TokenInputSection() {
                             <div className="relative flex-shrink-0">
                                 {hasBothVersionsForToken && selectedFromToken && (
                                     <button
-                                        onClick={isToggleDisabled ? undefined : handleToggleSubnet}
+                                        onClick={isToggleDisabled ? undefined : (e) => { e.stopPropagation(); handleToggleSubnet(); }}
                                         className={`relative transition-all duration-200 ${isToggleDisabled
                                             ? 'cursor-default opacity-75'
                                             : 'cursor-pointer hover:scale-105'
@@ -219,19 +224,19 @@ export default function TokenInputSection() {
                             {/* Quick Balance Actions */}
                             <div className="flex items-center gap-1 mt-2">
                                 <button
-                                    onClick={() => handleBalancePercentageClick(0.25)}
+                                    onClick={(e) => { e.stopPropagation(); handleBalancePercentageClick(0.25); }}
                                     className="text-xs px-2 py-1 rounded bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white/90 transition-all duration-200"
                                 >
                                     25%
                                 </button>
                                 <button
-                                    onClick={() => handleBalancePercentageClick(0.5)}
+                                    onClick={(e) => { e.stopPropagation(); handleBalancePercentageClick(0.5); }}
                                     className="text-xs px-2 py-1 rounded bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white/90 transition-all duration-200"
                                 >
                                     50%
                                 </button>
                                 <button
-                                    onClick={() => handleBalancePercentageClick(1)}
+                                    onClick={(e) => { e.stopPropagation(); handleBalancePercentageClick(1); }}
                                     className="text-xs px-2 py-1 rounded bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white/90 transition-all duration-200"
                                 >
                                     MAX
@@ -264,6 +269,7 @@ export default function TokenInputSection() {
                             }}
                             placeholder="0.00"
                             className="bg-transparent border-none text-xl sm:text-2xl lg:text-3xl font-semibold focus:outline-none w-full placeholder:text-white/30 text-white/95"
+                            onClick={(e) => e.stopPropagation()}
                         />
                         <div className="text-sm text-white/60 mt-1">
                             {hasValidPrice(price) && displayAmount ? (() => {
@@ -275,7 +281,7 @@ export default function TokenInputSection() {
                     </div>
 
                     {/* Token Selector - Invisible until hover */}
-                    <div className="ml-2 sm:ml-4 min-w-0 w-32 sm:w-36 flex-shrink-0" onMouseEnter={(e) => e.stopPropagation()}>
+                    <div className="ml-2 sm:ml-4 min-w-0 w-32 sm:w-36 flex-shrink-0" onMouseEnter={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                         <div>
                             <TokenDropdown
                                 tokens={tokensToShow}
@@ -283,6 +289,8 @@ export default function TokenInputSection() {
                                 onSelect={handleSelectToken}
                                 label=""
                                 showBalances={true}
+                                forceOpen={forceTokenDropdownOpen}
+                                onForceOpenChange={setForceTokenDropdownOpen}
                             />
                         </div>
                     </div>

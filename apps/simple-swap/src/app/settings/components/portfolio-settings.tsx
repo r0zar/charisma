@@ -374,52 +374,52 @@ export default function PortfolioSettings() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.08]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08]">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/60 text-sm">Total Value</p>
-                  <p className="text-2xl font-bold text-white/95">
+                <div className="min-w-0 flex-1">
+                  <p className="text-white/60 text-xs sm:text-sm">Total Value</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white/95 truncate">
                     {formatCurrency(currentWalletData.totalValue)}
                   </p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-400" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.08]">
+            <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08]">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/60 text-sm">Total Tokens</p>
-                  <p className="text-2xl font-bold text-white/95">
+                <div className="min-w-0 flex-1">
+                  <p className="text-white/60 text-xs sm:text-sm">Total Tokens</p>
+                  <p className="text-xl sm:text-2xl font-bold text-white/95">
                     {currentWalletData.tokens.length}
                   </p>
                 </div>
-                <Hash className="w-8 h-8 text-blue-400" />
+                <Hash className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white/[0.03] rounded-xl p-4 border border-white/[0.08]">
+            <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08] sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white/60 text-sm">Connection Status</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-white/60 text-xs sm:text-sm">Connection Status</p>
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
-                    <p className="text-white/95 font-medium">
+                    <p className="text-white/95 font-medium text-sm sm:text-base">
                       {isConnected ? 'Connected' : 'Disconnected'}
                     </p>
                   </div>
                 </div>
-                <Activity className="w-8 h-8 text-purple-400" />
+                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0" />
               </div>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-white/60">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="text-xs sm:text-sm text-white/60">
               Last updated: {formatDate(lastUpdate)}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <BatchWalletImportDialog
                 onImport={handleImportWallets}
                 existingAddresses={watchedAddresses}
@@ -432,7 +432,7 @@ export default function PortfolioSettings() {
                 className="border-white/20 text-white/70 hover:text-white/90"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
               <Button
                 onClick={() => setShowDebugModal(true)}
@@ -441,7 +441,7 @@ export default function PortfolioSettings() {
                 className="border-white/20 text-white/70 hover:text-white/90"
               >
                 <Info className="w-4 h-4 mr-2" />
-                Debug Info
+                <span className="hidden sm:inline">Debug Info</span>
               </Button>
             </div>
           </div>
@@ -493,103 +493,107 @@ export default function PortfolioSettings() {
             </div>
 
             {/* Filters and Sort Controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Balance Filters */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hideZeroBalances}
-                    onChange={(e) => setHideZeroBalances(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
-                  />
-                  <span className="text-sm text-white/70">Hide zero balances</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hideDustAmounts}
-                    onChange={(e) => setHideDustAmounts(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
-                  />
-                  <span className="text-sm text-white/70">Hide dust (&lt;$0.01)</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={privacyMode}
-                    onChange={(e) => togglePrivacyMode()}
-                    className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
-                  />
-                  <span className="text-sm text-white/70">Privacy mode</span>
-                </label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="flex flex-wrap gap-3 sm:gap-4">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hideZeroBalances}
+                      onChange={(e) => setHideZeroBalances(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                    />
+                    <span className="text-xs sm:text-sm text-white/70">Hide zero balances</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hideDustAmounts}
+                      onChange={(e) => setHideDustAmounts(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                    />
+                    <span className="text-xs sm:text-sm text-white/70">Hide dust (&lt;$0.01)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={privacyMode}
+                      onChange={(e) => togglePrivacyMode()}
+                      className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                    />
+                    <span className="text-xs sm:text-sm text-white/70">Privacy mode</span>
+                  </label>
+                </div>
               </div>
               
               {/* Sort Controls */}
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:ml-auto">
-                <span className="text-xs text-white/60 hidden sm:inline">Sort by:</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (sortBy === 'value') {
-                    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                  } else {
-                    setSortBy('value');
-                    setSortOrder('desc');
-                  }
-                }}
-                className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'value' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
-                  }`}
-              >
-                Value
-                {sortBy === 'value' && (
-                  sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 ml-1" /> : <ArrowUp className="w-3 h-3 ml-1" />
-                )}
-                {sortBy !== 'value' && <ArrowUpDown className="w-3 h-3 ml-1" />}
-              </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <span className="text-xs text-white/60 font-medium">Sort by:</span>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (sortBy === 'value') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSortBy('value');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'value' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
+                      }`}
+                  >
+                    Value
+                    {sortBy === 'value' && (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 ml-1" /> : <ArrowUp className="w-3 h-3 ml-1" />
+                    )}
+                    {sortBy !== 'value' && <ArrowUpDown className="w-3 h-3 ml-1" />}
+                  </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (sortBy === 'balance') {
-                    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                  } else {
-                    setSortBy('balance');
-                    setSortOrder('desc');
-                  }
-                }}
-                className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'balance' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
-                  }`}
-              >
-                Balance
-                {sortBy === 'balance' && (
-                  sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 ml-1" /> : <ArrowUp className="w-3 h-3 ml-1" />
-                )}
-                {sortBy !== 'balance' && <ArrowUpDown className="w-3 h-3 ml-1" />}
-              </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (sortBy === 'balance') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSortBy('balance');
+                        setSortOrder('desc');
+                      }
+                    }}
+                    className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'balance' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
+                      }`}
+                  >
+                    Balance
+                    {sortBy === 'balance' && (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 ml-1" /> : <ArrowUp className="w-3 h-3 ml-1" />
+                    )}
+                    {sortBy !== 'balance' && <ArrowUpDown className="w-3 h-3 ml-1" />}
+                  </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (sortBy === 'name') {
-                    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                  } else {
-                    setSortBy('name');
-                    setSortOrder('asc');
-                  }
-                }}
-                className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'name' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
-                  }`}
-              >
-                Name
-                {sortBy === 'name' && (
-                  sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 ml-1" /> : <ArrowUp className="w-3 h-3 ml-1" />
-                )}
-                {sortBy !== 'name' && <ArrowUpDown className="w-3 h-3 ml-1" />}
-              </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (sortBy === 'name') {
+                        setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                      } else {
+                        setSortBy('name');
+                        setSortOrder('asc');
+                      }
+                    }}
+                    className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'name' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
+                      }`}
+                  >
+                    Name
+                    {sortBy === 'name' && (
+                      sortOrder === 'desc' ? <ArrowDown className="w-3 h-3 ml-1" /> : <ArrowUp className="w-3 h-3 ml-1" />
+                    )}
+                    {sortBy !== 'name' && <ArrowUpDown className="w-3 h-3 ml-1" />}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -641,67 +645,69 @@ export default function PortfolioSettings() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredTokens.map((token, index) => (
-                <div
-                  key={token.contractId}
-                  className="group p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200 cursor-pointer"
-                  onClick={() => setSelectedToken(token)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <TokenLogo
-                        token={createTokenCacheData(token)}
-                        size="lg"
-                        className="transition-all duration-200"
-                      />
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-white/95 group-hover:text-white transition-colors duration-200">
-                          {token.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm text-white/60 group-hover:text-white/70 transition-colors duration-200">
-                            {token.symbol}
-                          </p>
-                          <div className="flex items-center gap-1">
-                            {token.hasMainnet && (
-                              <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 bg-blue-500/10 px-1.5 py-0.5">
-                                Main
-                              </Badge>
-                            )}
-                            {token.hasSubnet && (
-                              <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400 bg-purple-500/10 px-1.5 py-0.5">
-                                <Zap className="w-2.5 h-2.5 mr-0.5" />
-                                Sub
-                              </Badge>
-                            )}
+            <div className="max-h-[60vh] overflow-y-auto max-w-[275px] sm:max-w-none" style={{ minHeight: '400px' }}>
+              <div className="space-y-2 pr-2">
+                {filteredTokens.map((token, index) => (
+                  <div
+                    key={token.contractId}
+                    className="group p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200 cursor-pointer"
+                    onClick={() => setSelectedToken(token)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <TokenLogo
+                          token={createTokenCacheData(token)}
+                          size="lg"
+                          className="transition-all duration-200 flex-shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-white/95 group-hover:text-white transition-colors duration-200 truncate">
+                            {token.name}
+                          </h3>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm text-white/60 group-hover:text-white/70 transition-colors duration-200">
+                              {token.symbol}
+                            </p>
+                            <div className="flex items-center gap-1">
+                              {token.hasMainnet && (
+                                <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 bg-blue-500/10 px-1.5 py-0.5">
+                                  Main
+                                </Badge>
+                              )}
+                              {token.hasSubnet && (
+                                <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400 bg-purple-500/10 px-1.5 py-0.5">
+                                  <Zap className="w-2.5 h-2.5 mr-0.5" />
+                                  Sub
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="text-right">
-                      <p className="font-semibold text-white/95 group-hover:text-white transition-colors duration-200">
-                        {formatCurrency(token.totalUsdValue)}
-                      </p>
-                      <div className="text-sm text-white/60 group-hover:text-white/70 transition-colors duration-200 space-y-0.5">
-                        {token.hasMainnet && (
-                          <div className="flex items-center justify-end gap-1">
-                            <span className="text-blue-400">Main:</span>
-                            <span>{formatCompactBalance(token.formattedBalance, token.symbol || 'TKN')}</span>
-                          </div>
-                        )}
-                        {token.hasSubnet && (
-                          <div className="flex items-center justify-end gap-1">
-                            <span className="text-purple-400">Sub:</span>
-                            <span>{formatCompactBalance(token.formattedSubnetBalance || 0, token.symbol || 'TKN')}</span>
-                          </div>
-                        )}
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-semibold text-white/95 group-hover:text-white transition-colors duration-200 text-sm sm:text-base">
+                          {formatCurrency(token.totalUsdValue)}
+                        </p>
+                        <div className="text-xs sm:text-sm text-white/60 group-hover:text-white/70 transition-colors duration-200 space-y-0.5 mt-1">
+                          {token.hasMainnet && (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-blue-400">Main:</span>
+                              <span className="truncate max-w-20 sm:max-w-none">{formatCompactBalance(token.formattedBalance, token.symbol || 'TKN')}</span>
+                            </div>
+                          )}
+                          {token.hasSubnet && (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-purple-400">Sub:</span>
+                              <span className="truncate max-w-20 sm:max-w-none">{formatCompactBalance(token.formattedSubnetBalance || 0, token.symbol || 'TKN')}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

@@ -13,6 +13,8 @@ interface TokenDropdownProps {
     label?: string;
     suppressFlame?: boolean;
     showBalances?: boolean;
+    forceOpen?: boolean;
+    onForceOpenChange?: (open: boolean) => void;
 }
 
 export default function TokenDropdown({
@@ -22,6 +24,8 @@ export default function TokenDropdown({
     label,
     suppressFlame = false,
     showBalances = false,
+    forceOpen = false,
+    onForceOpenChange,
 }: TokenDropdownProps) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -47,6 +51,9 @@ export default function TokenDropdown({
     const close = () => {
         setOpen(false);
         setSearch("");
+        if (onForceOpenChange) {
+            onForceOpenChange(false);
+        }
     };
 
     const handleSelect = (token: TokenCacheData) => {
@@ -56,6 +63,13 @@ export default function TokenDropdown({
 
     /* ---------------- effects ---------------- */
     useEffect(() => setMounted(true), []);
+
+    // Handle forceOpen prop
+    useEffect(() => {
+        if (forceOpen && !open) {
+            setOpen(true);
+        }
+    }, [forceOpen, open]);
 
     // Focus search input when modal opens
     useEffect(() => {
@@ -240,7 +254,7 @@ export default function TokenDropdown({
             {/* Premium Token Selector Button */}
             <button
                 type="button"
-                onClick={() => setOpen(true)}
+                onClick={() => { setOpen(true); if (onForceOpenChange) onForceOpenChange(false); }}
                 className="group relative w-full flex items-center justify-between p-3 bg-transparent hover:bg-white/[0.03] border-none cursor-pointer transition-all duration-200 rounded-xl"
             >
                 {selected ? (

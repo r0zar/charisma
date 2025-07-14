@@ -86,18 +86,39 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-black">
       <Header />
 
-      <div className="container max-w-7xl mx-auto p-6">
+      <div className="container max-w-7xl mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white/95 mb-2">Settings</h1>
-          <p className="text-white/70">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white/95 mb-2">Settings</h1>
+          <p className="text-white/70 text-sm sm:text-base">
             Manage your account preferences, security settings, and trading configurations.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Sidebar Navigation */}
-          <div className="lg:col-span-1">
+        {/* Mobile: Responsive grid tabs */}
+        <div className="lg:hidden mb-4">
+          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-1 backdrop-blur-sm">
+            <nav className="grid grid-cols-2 gap-1">
+              {settingsTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === tab.id
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] border border-transparent'
+                    }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Desktop: Vertical sidebar */}
+          <div className="hidden lg:block lg:col-span-1">
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-2 backdrop-blur-sm sticky top-6">
               <nav className="space-y-1">
                 {settingsTabs.map((tab) => (
@@ -126,18 +147,18 @@ export default function SettingsPage() {
           <div className="lg:col-span-3">
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl backdrop-blur-sm min-h-[600px]">
               {/* Tab Header */}
-              <div className="border-b border-white/[0.08] p-6">
+              <div className="border-b border-white/[0.08] p-4 sm:p-6">
                 <div className="flex items-center gap-3">
                   {activeTabData?.icon}
-                  <div>
-                    <h2 className="text-xl font-semibold text-white/95">{activeTabData?.label}</h2>
-                    <p className="text-white/60 text-sm mt-1">{activeTabData?.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg sm:text-xl font-semibold text-white/95 truncate">{activeTabData?.label}</h2>
+                    <p className="text-white/60 text-xs sm:text-sm mt-1 leading-tight">{activeTabData?.description}</p>
                   </div>
                 </div>
               </div>
 
               {/* Tab Content */}
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {ActiveComponent && <ActiveComponent />}
               </div>
             </div>
