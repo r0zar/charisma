@@ -71,7 +71,7 @@
     "cron-parser": "^5.3.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
-    "framer-motion": "^12.23.0",
+    "framer-motion": "^12.23.5",
     "lucide-react": "^0.525.0",
     "monaco-editor": "^0.52.2",
     "monaco-editor-auto-typings": "^0.4.6",
