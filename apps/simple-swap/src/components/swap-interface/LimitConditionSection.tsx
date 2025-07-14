@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 export default function LimitConditionSection() {
     const [showChart, setShowChart] = useState(true);
     const [shouldBounce, setShouldBounce] = useState(false);
+    const [wizardStep, setWizardStep] = useState(0);
 
     // Check if user has clicked the info button before
     useEffect(() => {
@@ -23,7 +24,28 @@ export default function LimitConditionSection() {
     const handleInfoClick = () => {
         localStorage.setItem('limit-condition-info-clicked', 'true');
         setShouldBounce(false);
+        setWizardStep(0); // Reset to first step when opening
     };
+
+    // Wizard steps configuration
+    const wizardSteps = [
+        {
+            title: "What are Triggered Swaps?",
+            content: "overview"
+        },
+        {
+            title: "Available Trigger Types",
+            content: "triggers"
+        },
+        {
+            title: "How Execution Works",
+            content: "execution"
+        },
+        {
+            title: "Strategic Benefits & Tips",
+            content: "benefits"
+        }
+    ];
 
     // Format price using significant digits based on token unit basis
     const formatPrice = (price: string): string => {
@@ -100,6 +122,145 @@ export default function LimitConditionSection() {
         if (hasRatioTrigger) setRatioTargetPrice(price);
     }, [hasPriceTrigger, hasRatioTrigger, setPriceTargetPrice, setRatioTargetPrice]);
 
+    // Render wizard step content
+    const renderWizardContent = () => {
+        switch (wizardSteps[wizardStep].content) {
+            case "overview":
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
+                            <p className="text-white/70 leading-relaxed">
+                                Triggered swaps allow you to automate your trading strategy with intelligent execution conditions. Unlike instant swaps that execute immediately, triggered swaps wait patiently until your specified conditions are met, then execute automatically.
+                            </p>
+                        </div>
+                    </div>
+                );
+            
+            case "triggers":
+                return (
+                    <div className="space-y-4">
+                        <div className="space-y-3">
+                            <div className="bg-blue-500/[0.05] border border-blue-500/[0.1] rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                                    <span className="font-medium text-blue-400">Price Trigger</span>
+                                </div>
+                                <p className="text-xs text-white/70 mb-2">Execute when a token reaches your target price</p>
+                                <div className="space-y-1 text-xs text-white/60">
+                                    <div>• <span className="text-white/80">vs USD:</span> "when WELSH ≥ $0.05"</div>
+                                    <div>• <span className="text-white/80">vs Token:</span> "when WELSH ≥ 0.05 sUSDT"</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-green-500/[0.05] border border-green-500/[0.1] rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                    <span className="font-medium text-green-400">Time Trigger</span>
+                                </div>
+                                <p className="text-xs text-white/70 mb-2">Execute orders at specific times or within time windows</p>
+                                <div className="space-y-1 text-xs text-white/60">
+                                    <div>• <span className="text-white/80">DCA Strategy:</span> "execute every hour/day for dollar-cost averaging"</div>
+                                    <div>• <span className="text-white/80">Pool Splitting:</span> "execute every 2-5 minutes across multiple pools"</div>
+                                    <div>• <span className="text-white/80">Scheduled:</span> "execute at 9:00 AM daily for optimal timing"</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-orange-500/[0.05] border border-orange-500/[0.1] rounded-lg p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+                                    <span className="font-medium text-orange-400">Manual Execution</span>
+                                </div>
+                                <p className="text-xs text-white/70 mb-2">Orders with no triggers - executed manually or via API</p>
+                                <div className="space-y-1 text-xs text-white/60">
+                                    <div>• <span className="text-white/80">API Control:</span> "execute via API calls with authentication"</div>
+                                    <div>• <span className="text-white/80">Custom Oracles:</span> "developers create unique automation triggers"</div>
+                                    <div>• <span className="text-white/80">Manual Trading:</span> "execute orders on-demand when ready"</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            
+            case "execution":
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
+                            <p className="text-white/70 leading-relaxed">
+                                Triggered swaps operate on Charisma's Blaze subnets, which require subnet tokens as the input currency. To use triggered swaps, simply swap your regular Stacks tokens into subnet tokens using our standard swap feature first.
+                            </p>
+                            <p className="text-white/70 leading-relaxed">
+                                Once you have subnet tokens, Charisma's decentralized price oracles continuously monitor market conditions. When your trigger conditions are met, orders are automatically executed on the subnet with built-in security guarantees and then bridged back to the main Stacks chain.
+                            </p>
+                        </div>
+                        
+                        <div className="bg-amber-500/[0.08] border border-amber-500/[0.15] rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">⚠️</span>
+                                <h4 className="font-medium text-amber-400">Important Notes</h4>
+                            </div>
+                            <div className="space-y-2 text-xs text-amber-300">
+                                <p>• Execution occurs at next available market price after trigger activation</p>
+                                <p>• All orders include automatic slippage protection and post-conditions</p>
+                                <p>• Price oracles provide tamper-resistant, decentralized market data</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            
+            case "benefits":
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
+                            <h4 className="font-semibold text-white/95">Strategic Benefits</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                                        <span className="font-medium text-white/90">Buy the Dip</span>
+                                    </div>
+                                    <p className="text-xs text-white/70 pl-3.5">Automatically purchase when prices drop to your target</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                        <span className="font-medium text-white/90">Take Profits</span>
+                                    </div>
+                                    <p className="text-xs text-white/70 pl-3.5">Sell automatically when reaching profit targets</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                                        <span className="font-medium text-white/90">24/7 Monitoring</span>
+                                    </div>
+                                    <p className="text-xs text-white/70 pl-3.5">Swaps execute around the clock without supervision</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                                        <span className="font-medium text-white/90">Disciplined Trading</span>
+                                    </div>
+                                    <p className="text-xs text-white/70 pl-3.5">Stick to strategy, avoid emotional decisions</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-lg">💡</span>
+                                <h4 className="font-medium text-blue-400">Pro Strategy</h4>
+                            </div>
+                            <p className="text-xs text-blue-300 leading-relaxed">
+                                Layer multiple triggered swaps at different price levels to create a comprehensive trading ladder. This approach helps you systematically capture both market dips and profit opportunities while maintaining disciplined risk management.
+                            </p>
+                        </div>
+                    </div>
+                );
+            
+            default:
+                return null;
+        }
+    };
+
     return (
         <div>
             {/* Header */}
@@ -118,111 +279,51 @@ export default function LimitConditionSection() {
                         <DialogContent className="max-w-2xl bg-background border border-border backdrop-blur-xl">
                             <DialogHeader className="space-y-3">
                                 <DialogTitle className="text-xl font-semibold text-white/95">
-                                    How Triggered Swaps Work
+                                    {wizardSteps[wizardStep].title}
                                 </DialogTitle>
+                                
+                                {/* Step Indicator */}
+                                <div className="flex items-center justify-center space-x-2">
+                                    {wizardSteps.map((_, index) => (
+                                        <div
+                                            key={index}
+                                            className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                                                index === wizardStep
+                                                    ? 'bg-blue-400 w-6'
+                                                    : index < wizardStep
+                                                    ? 'bg-blue-400/60'
+                                                    : 'bg-white/20'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
                             </DialogHeader>
 
-                            <div className="space-y-6 text-sm text-white/80">
-                                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
-                                    <h4 className="font-semibold text-white/95">What are Triggered Swaps?</h4>
-                                    <p className="text-white/70 leading-relaxed">
-                                        Triggered swaps allow you to automate your trading strategy with intelligent execution conditions. Unlike instant swaps that execute immediately, triggered swaps wait patiently until your specified conditions are met, then execute automatically.
-                                    </p>
-                                </div>
+                            <div className="text-sm text-white/80 min-h-[300px]">
+                                {renderWizardContent()}
+                            </div>
 
-                                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-4">
-                                    <h4 className="font-semibold text-white/95">Available Trigger Types</h4>
-                                    <div className="space-y-3">
-                                        <div className="bg-blue-500/[0.05] border border-blue-500/[0.1] rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                                                <span className="font-medium text-blue-400">Price Trigger</span>
-                                            </div>
-                                            <p className="text-xs text-white/70 mb-2">Execute when a token reaches your target price</p>
-                                            <div className="space-y-1 text-xs text-white/60">
-                                                <div>• <span className="text-white/80">vs USD:</span> "when WELSH ≥ $0.05"</div>
-                                                <div>• <span className="text-white/80">vs Token:</span> "when WELSH ≥ 0.05 sUSDT"</div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-green-500/[0.05] border border-green-500/[0.1] rounded-lg p-3">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                                                <span className="font-medium text-green-400">Time Trigger</span>
-                                            </div>
-                                            <p className="text-xs text-white/70 mb-2">Execute orders at specific times or within time windows</p>
-                                            <div className="space-y-1 text-xs text-white/60">
-                                                <div>• <span className="text-white/80">DCA Strategy:</span> "execute every hour/day for dollar-cost averaging"</div>
-                                                <div>• <span className="text-white/80">Pool Splitting:</span> "execute every 2-5 minutes across multiple pools"</div>
-                                                <div>• <span className="text-white/80">Scheduled:</span> "execute at 9:00 AM daily for optimal timing"</div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-
-                                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
-                                    <h4 className="font-semibold text-white/95">How Execution Works</h4>
-                                    <p className="text-white/70 leading-relaxed">
-                                        Charisma's decentralized price oracles continuously monitor market conditions. When your trigger conditions are met, orders are automatically submitted to the Stacks blockchain with built-in security guarantees.
-                                    </p>
-                                </div>
-
-                                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
-                                    <h4 className="font-semibold text-white/95">Strategic Benefits</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-xs">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                                                <span className="font-medium text-white/90">Buy the Dip</span>
-                                            </div>
-                                            <p className="text-xs text-white/70 pl-3.5">Automatically purchase when prices drop to your target</p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-xs">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                                                <span className="font-medium text-white/90">Take Profits</span>
-                                            </div>
-                                            <p className="text-xs text-white/70 pl-3.5">Sell automatically when reaching profit targets</p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-xs">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
-                                                <span className="font-medium text-white/90">24/7 Monitoring</span>
-                                            </div>
-                                            <p className="text-xs text-white/70 pl-3.5">Swaps execute around the clock without supervision</p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-xs">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
-                                                <span className="font-medium text-white/90">Disciplined Trading</span>
-                                            </div>
-                                            <p className="text-xs text-white/70 pl-3.5">Stick to strategy, avoid emotional decisions</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-xl p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-lg">💡</span>
-                                        <h4 className="font-medium text-blue-400">Pro Strategy</h4>
-                                    </div>
-                                    <p className="text-xs text-blue-300 leading-relaxed">
-                                        Layer multiple triggered swaps at different price levels to create a comprehensive trading ladder. This approach helps you systematically capture both market dips and profit opportunities while maintaining disciplined risk management.
-                                    </p>
-                                </div>
-
-                                <div className="bg-amber-500/[0.08] border border-amber-500/[0.15] rounded-xl p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-lg">⚠️</span>
-                                        <h4 className="font-medium text-amber-400">Important Notes</h4>
-                                    </div>
-                                    <div className="space-y-2 text-xs text-amber-300">
-                                        <p>• Execution occurs at next available market price after trigger activation</p>
-                                        <p>• All orders include automatic slippage protection and post-conditions</p>
-                                        <p>• Price oracles provide tamper-resistant, decentralized market data</p>
-                                    </div>
-                                </div>
+                            {/* Navigation Controls */}
+                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+                                <button
+                                    onClick={() => setWizardStep(Math.max(0, wizardStep - 1))}
+                                    disabled={wizardStep === 0}
+                                    className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Previous
+                                </button>
+                                
+                                <span className="text-xs text-white/50">
+                                    {wizardStep + 1} of {wizardSteps.length}
+                                </span>
+                                
+                                <button
+                                    onClick={() => setWizardStep(Math.min(wizardSteps.length - 1, wizardStep + 1))}
+                                    disabled={wizardStep === wizardSteps.length - 1}
+                                    className="px-4 py-2 text-sm font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
+                                >
+                                    {wizardStep === wizardSteps.length - 1 ? 'Done' : 'Next'}
+                                </button>
                             </div>
                         </DialogContent>
                     </Dialog>
