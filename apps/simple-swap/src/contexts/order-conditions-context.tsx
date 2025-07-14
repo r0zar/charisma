@@ -17,7 +17,7 @@ interface OrderConditionsContextType {
   priceTriggerToken: TokenCacheData | null;
   priceTargetPrice: string;
   priceDirection: ConditionDirection;
-  
+
   // Ratio trigger (token A vs token B)
   hasRatioTrigger: boolean;
   ratioTriggerToken: TokenCacheData | null;
@@ -38,7 +38,7 @@ interface OrderConditionsContextType {
   setPriceTriggerToken: (token: TokenCacheData | null) => void;
   setPriceTargetPrice: (price: string) => void;
   setPriceDirection: (dir: ConditionDirection) => void;
-  
+
   setHasRatioTrigger: (enabled: boolean) => void;
   setRatioTriggerToken: (token: TokenCacheData | null) => void;
   setRatioBaseToken: (token: TokenCacheData | null) => void;
@@ -227,43 +227,43 @@ export function OrderConditionsProvider({
     setPriceTriggerToken(null);
     setPriceTargetPrice('');
     setPriceDirection('gt');
-    
+
     setHasRatioTrigger(false);
     setRatioTriggerToken(null);
     setRatioBaseToken(null);
     setRatioTargetPrice('');
     setRatioDirection('gt');
-    
+
     setHasTimeTrigger(false);
     setTimeStartTime('');
     setTimeEndTime('');
-    
+
     setManualDescription('');
   }, []);
 
   const getPriceTriggerDisplay = useCallback((): string => {
     if (!hasPriceTrigger) return '';
-    
+
     // If no trigger token selected, show immediate execution with clearer messaging
     if (!priceTriggerToken) {
       return 'Execute immediately (market order)';
     }
-    
+
     // If token selected but no price, show placeholder with direction
     if (!priceTargetPrice) {
       const dirSymbol = priceDirection === 'gt' ? '>' : '<';
       return `when ${priceTriggerToken.symbol} is ${priceDirection === 'gt' ? 'greater than' : 'less than'} $0`;
     }
-    
+
     // Format price using significant digits based on token unit basis
     const formatPrice = (price: string): string => {
       const num = parseFloat(price);
       if (isNaN(num)) return price;
       if (num === 0) return '0';
-      
+
       // Use 4-5 significant digits, but ensure we show meaningful precision
       const magnitude = Math.floor(Math.log10(Math.abs(num)));
-      
+
       if (num >= 1) {
         // For values >= 1, show 2-4 decimal places max
         return num.toFixed(Math.min(4, Math.max(2, 4 - magnitude)));
@@ -274,7 +274,7 @@ export function OrderConditionsProvider({
         return num.toFixed(Math.min(8, Math.max(2, decimalPlaces)));
       }
     };
-    
+
     const dirSymbol = priceDirection === 'gt' ? '≥' : '≤';
     const formattedPrice = formatPrice(priceTargetPrice);
     return `${priceTriggerToken.symbol} ${dirSymbol} ${formattedPrice} USD`;
@@ -282,27 +282,27 @@ export function OrderConditionsProvider({
 
   const getRatioTriggerDisplay = useCallback((): string => {
     if (!hasRatioTrigger) return '';
-    
+
     // If no trigger token selected, show immediate execution
     if (!ratioTriggerToken) {
       return 'Execute immediately';
     }
-    
+
     // If token selected but no price, show placeholder with direction and base token
     if (!ratioTargetPrice) {
       const baseUnit = ratioBaseToken?.symbol || 'sUSDT';
       return `when ${ratioTriggerToken.symbol} is ${ratioDirection === 'gt' ? 'greater than' : 'less than'} 0 ${baseUnit}`;
     }
-    
+
     // Format price using significant digits based on token unit basis
     const formatPrice = (price: string): string => {
       const num = parseFloat(price);
       if (isNaN(num)) return price;
       if (num === 0) return '0';
-      
+
       // Use 4-5 significant digits, but ensure we show meaningful precision
       const magnitude = Math.floor(Math.log10(Math.abs(num)));
-      
+
       if (num >= 1) {
         // For values >= 1, show 2-4 decimal places max
         return num.toFixed(Math.min(4, Math.max(2, 4 - magnitude)));
@@ -313,7 +313,7 @@ export function OrderConditionsProvider({
         return num.toFixed(Math.min(8, Math.max(2, decimalPlaces)));
       }
     };
-    
+
     const dirSymbol = ratioDirection === 'gt' ? '≥' : '≤';
     const baseUnit = ratioBaseToken?.symbol || 'sUSDT';
     const formattedPrice = formatPrice(ratioTargetPrice);
@@ -322,10 +322,10 @@ export function OrderConditionsProvider({
 
   const getTimeTriggerDisplay = useCallback((): string => {
     if (!hasTimeTrigger) return '';
-    
+
     const startDisplay = timeStartTime ? new Date(timeStartTime).toLocaleString() : 'immediately';
     const endDisplay = timeEndTime ? ` until ${new Date(timeEndTime).toLocaleString()}` : '';
-    
+
     if (timeStartTime && timeEndTime) {
       return `Execute between ${startDisplay} and ${new Date(timeEndTime).toLocaleString()}`;
     } else if (timeStartTime) {
@@ -353,11 +353,11 @@ export function OrderConditionsProvider({
 
     // Build payload based on enabled triggers
     let conditionToken, baseAsset, targetPrice, direction;
-    
+
     if (hasPriceTrigger && hasRatioTrigger) {
       throw new Error('Cannot have both price and ratio triggers enabled simultaneously');
     }
-    
+
     if (hasPriceTrigger) {
       if (priceTriggerToken && priceTargetPrice) {
         // User has configured specific price trigger
@@ -396,7 +396,7 @@ export function OrderConditionsProvider({
       recipient: walletAddress,
       uuid: globalThis.crypto?.randomUUID() ?? Date.now().toString(),
     };
-    
+
     // Add manual description if it's a manual order
     if (isManualOrder && manualDescription) {
       payload.description = manualDescription;
@@ -413,6 +413,11 @@ export function OrderConditionsProvider({
     walletAddress: string;
   }) => {
     console.log('📝 OrderConditionsContext createOrder called with:', params);
+
+    // if from token is not a subnet token, throw an error (subnet tokens are .type = 'SUBNET')
+    if (availableTokens.find(t => t.contractId === params.fromToken)?.type !== 'SUBNET') {
+      throw new Error('Must use a subnet token as the from token for triggered swaps');
+    }
 
     setIsCreatingOrder(true);
     setOrderError(null);
@@ -436,7 +441,7 @@ export function OrderConditionsProvider({
         uuid: payload.uuid as string,
         amount: BigInt(params.amountIn),
       };
-      
+
       const signature = await signTriggeredSwap(signatureData);
       console.log('✅ Signature received:', signature);
 
@@ -492,7 +497,7 @@ export function OrderConditionsProvider({
     priceTriggerToken,
     priceTargetPrice,
     priceDirection,
-    
+
     // Ratio trigger
     hasRatioTrigger,
     ratioTriggerToken,
@@ -513,7 +518,7 @@ export function OrderConditionsProvider({
     setPriceTriggerToken,
     setPriceTargetPrice,
     setPriceDirection,
-    
+
     setHasRatioTrigger,
     setRatioTriggerToken,
     setRatioBaseToken,
