@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import TokenDropdown from '../TokenDropdown';
 import { ChevronDown, Info, DollarSign } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
@@ -11,6 +11,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 export default function LimitConditionSection() {
     const [showChart, setShowChart] = useState(true);
+    const [shouldBounce, setShouldBounce] = useState(false);
+
+    // Check if user has clicked the info button before
+    useEffect(() => {
+        const hasClickedInfo = localStorage.getItem('limit-condition-info-clicked');
+        setShouldBounce(!hasClickedInfo);
+    }, []);
+
+    // Handle info button click
+    const handleInfoClick = () => {
+        localStorage.setItem('limit-condition-info-clicked', 'true');
+        setShouldBounce(false);
+    };
 
     // Format price using significant digits based on token unit basis
     const formatPrice = (price: string): string => {
@@ -95,7 +108,10 @@ export default function LimitConditionSection() {
                     <h3 className="text-sm font-medium text-white/95">Swap Triggers</h3>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <button className="h-5 w-5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center">
+                            <button
+                                onClick={handleInfoClick}
+                                className={`cursor-pointer h-5 w-5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center ${shouldBounce ? 'animate-bounce' : ''}`}
+                            >
                                 <Info className="w-3 h-3" />
                             </button>
                         </DialogTrigger>
@@ -134,7 +150,12 @@ export default function LimitConditionSection() {
                                                 <div className="w-2 h-2 rounded-full bg-green-400"></div>
                                                 <span className="font-medium text-green-400">Time Trigger</span>
                                             </div>
-                                            <p className="text-xs text-white/70">Execute orders at specific times or within time windows</p>
+                                            <p className="text-xs text-white/70 mb-2">Execute orders at specific times or within time windows</p>
+                                            <div className="space-y-1 text-xs text-white/60">
+                                                <div>• <span className="text-white/80">DCA Strategy:</span> "execute every hour/day for dollar-cost averaging"</div>
+                                                <div>• <span className="text-white/80">Pool Splitting:</span> "execute every 2-5 minutes across multiple pools"</div>
+                                                <div>• <span className="text-white/80">Scheduled:</span> "execute at 9:00 AM daily for optimal timing"</div>
+                                            </div>
                                         </div>
 
                                     </div>
