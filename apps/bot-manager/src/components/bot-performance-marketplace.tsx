@@ -106,7 +106,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
   }));
 
   // Ensure we have at least some variation in the data for proper chart rendering
-  const hasVariation = chartData.length > 1 && 
+  const hasVariation = chartData.length > 1 &&
     Math.max(...chartData.map(d => d.balance)) > Math.min(...chartData.map(d => d.balance));
 
   // If no variation, add some sample data points for demonstration
@@ -137,7 +137,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
     if (percentile <= 0.1) return 'text-yellow-400'; // Top 10%
     if (percentile <= 0.25) return 'text-green-400'; // Top 25%
     if (percentile <= 0.5) return 'text-blue-400'; // Top 50%
-    return 'text-gray-400';
+    return 'text-card-foreground';
   };
 
   const getRecommendationColor = (strength: string) => {
@@ -156,10 +156,10 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card via-muted to-card border border-border shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl" />
-        
+
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 mb-8">
-            
+
             {/* Bot Identity */}
             <div className="flex items-center gap-6">
               <div className="relative">
@@ -171,7 +171,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
                   </Badge>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-bold text-card-foreground">{bot.name}</h1>
@@ -214,7 +214,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
+            <Button
               onClick={handleCloneBot}
               disabled={isCloning || !isSignedIn}
               className="flex-1 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 px-6 disabled:opacity-50"
@@ -222,7 +222,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
               <GitFork className="w-4 h-4 mr-2" />
               {isCloning ? 'Cloning...' : !isSignedIn ? 'Sign in to Clone' : 'Clone This Bot'}
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => copyToClipboard(bot.strategy, 'Strategy code')}
               className="flex-1 border-primary text-primary hover:bg-primary/10 font-semibold py-3 px-6"
@@ -230,7 +230,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
               <Copy className="w-4 h-4 mr-2" />
               Copy Strategy
             </Button>
-            <Button 
+            <Button
               variant="outline"
               className="sm:w-auto font-semibold py-3 px-6"
             >
@@ -261,23 +261,23 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
               <AreaChart data={displayData}>
                 <defs>
                   <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
+                    <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 12, fill: chartColors.muted }}
                 />
-                <YAxis 
+                <YAxis
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 12, fill: chartColors.muted }}
                   tickFormatter={(value) => formatCurrency(value)}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: chartColors.card,
                     border: `1px solid ${chartColors.border}`,
@@ -296,7 +296,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          
+
           {/* Chart Summary */}
           <div className="mt-4 grid grid-cols-3 gap-4 pt-4 border-t border-border relative">
             <div className="absolute inset-0 bg-muted/30 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
@@ -328,7 +328,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
 
       {/* Performance Metrics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Risk Analysis */}
         <Card className="shadow-xl relative">
           <div className="absolute inset-0 bg-muted/30 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
@@ -348,7 +348,7 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
               <span className="text-muted-foreground">Risk Score</span>
               <span className="text-card-foreground font-bold">{marketplaceMetrics.riskScore.toFixed(0)}/100</span>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Consistency</span>
               <span className="text-card-foreground font-bold">{(performanceMetrics.consistency * 100).toFixed(0)}%</span>
@@ -455,9 +455,9 @@ export function BotPerformanceMarketplace({ bot }: BotPerformanceMarketplaceProp
                   const similarMetrics = BotPerformanceService.calculatePerformanceMetrics(similarBot);
                   const similarMarketplace = BotPerformanceService.calculateMarketplaceMetrics(similarBot, similarMetrics, allBots);
                   const isPositiveReturn = similarMetrics.totalReturn >= 0;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={similarBot.id}
                       className="p-4 bg-muted/50 rounded-lg border border-border hover:border-accent transition-colors cursor-pointer"
                       onClick={() => window.location.href = `/bots/${similarBot.id}`}
