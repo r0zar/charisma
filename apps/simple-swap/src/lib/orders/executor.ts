@@ -8,6 +8,7 @@ import { fetchNonce } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 import { kv } from '@vercel/kv';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
+import { getTokenMetadataCached } from '@repo/tokens';
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();
@@ -378,9 +379,21 @@ export async function processOpenOrders(): Promise<string[]> {
             continue;
         }
 
+        // -------------------------------------------------------------
+        // 2. Check if from token is a subnet token
+        // -------------------------------------------------------------
+        const fromTokenMetadata = await getTokenMetadataCached(order.inputToken);
+        if (!fromTokenMetadata || fromTokenMetadata.type !== 'SUBNET') {
+            console.log({ orderUuid: order.uuid, inputToken: order.inputToken, tokenType: fromTokenMetadata?.type }, 'Order has non-subnet from token. Cancelling order.');
+            order.status = 'cancelled';
+            await updateOrder(order);
+            await releaseLock(order.uuid);
+            continue;
+        }
+
         try {
             // -------------------------------------------------------------
-            // 2. Check if this is a manual order (no conditions) or wildcard order
+            // 3. Check if this is a manual order (no conditions) or wildcard order
             // -------------------------------------------------------------
 
             // Check for wildcard immediate execution first
@@ -394,7 +407,7 @@ export async function processOpenOrders(): Promise<string[]> {
             }
 
             // -------------------------------------------------------------
-            // 3. Process conditional order or execute wildcard immediately
+            // 4. Process conditional order or execute wildcard immediately
             // -------------------------------------------------------------
 
             let shouldExecute = false;
