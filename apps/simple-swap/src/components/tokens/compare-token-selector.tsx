@@ -17,7 +17,7 @@ export default function CompareTokenSelector({ tokens, primary, selectedId, onSe
     const selected = tokens.find((t) => t.contractId === selectedId) || null;
 
     // helper token symbols
-    const helperSymbols = ['aUSD', 'STX', 'sBTC', 'CHA', 'WELSH'];
+    const helperSymbols = ['USDh', 'STX', 'sBTC', 'CHA', 'WELSH'];
     const helpers = helperSymbols
         .map((sym) => tokens.find((t) => t.symbol === sym))
         .filter(Boolean) as TokenSummary[];

@@ -81,12 +81,12 @@ export default async function TokenDetailPage({ params }: PageProps) {
             <div className="flex flex-col min-h-screen">
                 <Header />
 
-                <main className="flex-1 container max-w-4xl mx-auto px-4 py-8">
+                <main className="flex-1 container max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
                     {/* Breadcrumbs */}
                     <TokenBreadcrumbs token={detail} className="mb-6" />
 
                     {/* Main content */}
-                    <div className="space-y-8">
+                    <div className="space-y-6 sm:space-y-8">
                         {/* Header + compare selector + chart handled in client component */}
                         <Suspense fallback={<TokenDetailSkeleton />}>
                             <TokenDetailClient detail={detail} tokens={summaries} />

@@ -47,17 +47,20 @@ function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: Pr
     };
 
     return (
-        <div className={`group relative p-6 rounded-2xl border bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:shadow-lg ${getBorderGlow(change)}`}>
+        <div className={`group relative p-4 sm:p-6 rounded-2xl border bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:shadow-lg ${getBorderGlow(change)}`}>
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
             
-            <div className="relative flex flex-col items-center space-y-3">
+            <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
                 <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
                     {period} {isRelative && compareSymbol && (
-                        <span className="text-white/30">vs {compareSymbol}</span>
+                        <span className="text-white/30 block sm:inline">
+                            <span className="hidden sm:inline">vs </span>
+                            <span className="sm:hidden">vs</span> {compareSymbol}
+                        </span>
                     )}
                 </div>
-                <div className={`text-xl font-semibold font-mono transition-colors duration-300 ${getCleanColor(change)}`}>
+                <div className={`text-lg sm:text-xl font-semibold font-mono transition-colors duration-300 text-center ${getCleanColor(change)}`}>
                     {fmtDelta(change)}
                 </div>
             </div>
@@ -207,7 +210,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
         if (!tokens.length) return null;
 
         // Priority order for default comparison
-        const prioritySymbols = ['aUSD', 'USDC', 'USDT', 'STX'];
+        const prioritySymbols = ['USDh', 'USDC', 'USDT', 'STX'];
         for (const symbol of prioritySymbols) {
             const token = tokens.find((t) => t.symbol === symbol);
             if (token && token.contractId !== detail.contractId) {
@@ -257,28 +260,30 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
 
     return (
         <>
-            {/* Header row with selector on right */}
-            <div className="flex items-start justify-between gap-4 mb-6">
-                {/* token info */}
-                <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden">
+            {/* Header section - mobile responsive */}
+            <div className="space-y-4 mb-6">
+                {/* Token info row */}
+                <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden flex-shrink-0">
                         <TokenImage token={detail} size={56} />
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-semibold leading-tight">{detail.name}</h1>
-                        <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-xl sm:text-2xl font-semibold leading-tight truncate">{detail.name}</h1>
+                        <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-muted-foreground text-sm">
                                 {enhancedDetail.enhancedMetadata?.symbol || detail.symbol}
                             </p>
                             <LivePriceStatus contractIds={[detail.contractId]} />
                             {/* Real-time connection indicator */}
-                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'} flex-shrink-0`}
                                 title={isConnected ? 'Real-time data connected' : 'Real-time data disconnected'} />
                         </div>
                         {/* User balance display with tooltip */}
                         {enhancedDetail.userBalance && (
                             <div className="group relative text-xs text-muted-foreground mt-1 inline-block cursor-help">
-                                Your balance: {(
+                                <span className="hidden sm:inline">Your balance: </span>
+                                <span className="sm:hidden">Balance: </span>
+                                {(
                                     (enhancedDetail.userBalance.formattedBalance || 0) + 
                                     (enhancedDetail.userBalance.formattedSubnetBalance || 0)
                                 ).toFixed(4)} {enhancedDetail.enhancedMetadata?.symbol}
@@ -313,30 +318,32 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                     </div>
                 </div>
 
-                {/* selector */}
-                <CompareTokenSelector
-                    tokens={tokens}
-                    primary={detail}
-                    selectedId={compareId}
-                    onSelect={setCompareId}
-                    isLoading={isLoadingTokens}
-                />
+                {/* Comparison selector - full width on mobile */}
+                <div className="w-full">
+                    <CompareTokenSelector
+                        tokens={tokens}
+                        primary={detail}
+                        selectedId={compareId}
+                        onSelect={setCompareId}
+                        isLoading={isLoadingTokens}
+                    />
+                </div>
             </div>
 
-            {/* Premium comparison stats - Apple/Tesla design */}
-            <div className="grid grid-cols-4 gap-6 mb-8">
-                <div className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:border-white/[0.15] hover:shadow-lg">
+            {/* Premium comparison stats - mobile responsive grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+                <div className="group relative p-4 sm:p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:border-white/[0.15] hover:shadow-lg">
                     {/* Subtle gradient overlay */}
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
                     
-                    <div className="relative flex flex-col items-center space-y-3">
-                        <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300">
+                    <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
+                        <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
                             Price
                         </div>
                         <LivePriceIndicator
                             contractId={detail.contractId}
                             fallbackPrice={detail.price}
-                            className="text-xl font-semibold font-mono text-white/90"
+                            className="text-lg sm:text-xl font-semibold font-mono text-white/90 text-center"
                             showChange={false}
                             showStatus={false}
                         />
