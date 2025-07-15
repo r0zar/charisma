@@ -80,7 +80,7 @@ export async function createActivityFromTransaction(
 async function createSwapActivity(txid: string, swapId: string): Promise<ActivityItem | null> {
   try {
     // Fetch swap record from simple-swap storage
-    const swapData = await kv.hget('swaps', swapId);
+    const swapData = await kv.hget('swap-records', swapId);
     if (!swapData) {
       console.warn(`[TX-MONITOR] No swap record found for ${swapId}`);
       return null;

@@ -10,6 +10,7 @@ export interface ActivityTypeInfo {
 export interface ActivityStatusInfo {
   label: string;
   color: string;
+  bgColor: string;
   icon: string;
   description: string;
 }
@@ -69,31 +70,36 @@ export function getStatusInfo(status: ActivityStatus): ActivityStatusInfo {
     completed: {
       label: 'Completed',
       color: 'text-green-400',
-      icon: 'check-circle',
+      bgColor: 'bg-green-500/10',
+      icon: 'CheckCircle',
       description: 'Successfully completed'
     },
     pending: {
       label: 'Pending',
       color: 'text-yellow-400',
-      icon: 'clock',
+      bgColor: 'bg-yellow-500/10',
+      icon: 'Clock',
       description: 'Awaiting confirmation'
     },
     failed: {
       label: 'Failed',
       color: 'text-red-400',
-      icon: 'x-circle',
+      bgColor: 'bg-red-500/10',
+      icon: 'AlertCircle',
       description: 'Transaction failed'
     },
     cancelled: {
       label: 'Cancelled',
       color: 'text-gray-400',
-      icon: 'x-circle',
+      bgColor: 'bg-gray-500/10',
+      icon: 'XCircle',
       description: 'Transaction was cancelled'
     },
     processing: {
       label: 'Processing',
       color: 'text-blue-400',
-      icon: 'spinner',
+      bgColor: 'bg-blue-500/10',
+      icon: 'Loader',
       description: 'Currently processing'
     }
   };
@@ -101,29 +107,43 @@ export function getStatusInfo(status: ActivityStatus): ActivityStatusInfo {
   return statusMap[status] || {
     label: 'Unknown',
     color: 'text-gray-400',
-    icon: 'question-mark',
+    bgColor: 'bg-gray-500/10',
+    icon: 'HelpCircle',
     description: 'Unknown status'
   };
 }
 
 export function formatTokenAmount(amount: string, decimals: number = 6): string {
-  const numAmount = parseFloat(amount);
-  if (isNaN(numAmount)) return '0';
+  const rawAmount = parseFloat(amount);
+  if (isNaN(rawAmount)) return '0';
   
-  if (numAmount >= 1000000) {
-    return (numAmount / 1000000).toFixed(2) + 'M';
-  } else if (numAmount >= 1000) {
-    return (numAmount / 1000).toFixed(2) + 'K';
-  } else if (numAmount >= 1) {
-    return numAmount.toFixed(2);
+  // Convert from raw amount to human-readable amount using decimals
+  const formattedAmount = rawAmount / Math.pow(10, decimals);
+  
+  if (formattedAmount >= 1000000) {
+    return (formattedAmount / 1000000).toFixed(2) + 'M';
+  } else if (formattedAmount >= 1000) {
+    return (formattedAmount / 1000).toFixed(2) + 'K';
+  } else if (formattedAmount >= 1) {
+    return formattedAmount.toFixed(2);
   } else {
-    return numAmount.toFixed(decimals);
+    return formattedAmount.toFixed(Math.min(decimals, 6)); // Cap display decimals at 6
   }
 }
 
 export function formatUsdValue(value?: number): string {
   if (!value) return '';
-  return `$${formatTokenAmount(value.toString(), 2)}`;
+  
+  // USD values are already in human-readable format, so format directly
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(2)}M`;
+  } else if (value >= 1000) {
+    return `$${(value / 1000).toFixed(2)}K`;
+  } else if (value >= 1) {
+    return `$${value.toFixed(2)}`;
+  } else {
+    return `$${value.toFixed(6)}`;
+  }
 }
 
 export function getRelativeTime(timestamp: number): string {
@@ -217,4 +237,96 @@ export function getPriceImpactColor(impact?: number): string {
 export function getActivityDescription(activity: ActivityItem): string {
   const typeInfo = getActivityTypeInfo(activity.type);
   return `${typeInfo.label}: ${activity.fromToken.symbol} -> ${activity.toToken.symbol}`;
+}
+
+/**
+ * Enriches token info with metadata from Blaze SDK
+ */
+export function enrichTokenWithMetadata(
+  token: TokenInfo,
+  metadata: any,
+  getPrice: (contractId: string) => number | undefined
+): TokenInfo {
+  const tokenMetadata = metadata[token.contractId];
+  const currentPrice = getPrice(token.contractId);
+  
+  // Use metadata decimals if available, fallback to token decimals
+  const correctDecimals = tokenMetadata?.decimals || token.decimals || 6;
+  
+  // Calculate USD value using correct decimals from metadata
+  let usdValue = token.usdValue;
+  if (currentPrice && token.amount) {
+    const formattedAmount = parseFloat(token.amount) / Math.pow(10, correctDecimals);
+    usdValue = formattedAmount * currentPrice;
+  }
+  
+  return {
+    ...token,
+    // Use proper metadata structure from useBlaze
+    name: tokenMetadata?.name || token.symbol,
+    symbol: tokenMetadata?.symbol || token.symbol,
+    decimals: correctDecimals, // Use the correct decimals
+    image: tokenMetadata?.image || undefined,
+    description: tokenMetadata?.description || undefined,
+    price: currentPrice,
+    change24h: tokenMetadata?.change24h || undefined,
+    marketCap: tokenMetadata?.marketCap || undefined,
+    verified: tokenMetadata?.verified || false,
+    usdValue
+  };
+}
+
+export function getUserAvatarLetter(owner: string, displayName?: string): string {
+  if (displayName) {
+    return displayName.charAt(0).toUpperCase();
+  }
+  
+  // Use the first character of the wallet address
+  if (owner && owner.length > 0) {
+    return owner.charAt(0).toUpperCase();
+  }
+  
+  return '?';
+}
+
+export function formatUserName(owner: string, displayName?: string): string {
+  if (displayName) {
+    return displayName;
+  }
+  
+  // Format wallet address to show first 6 and last 4 characters
+  if (owner && owner.length > 10) {
+    return `${owner.slice(0, 6)}...${owner.slice(-4)}`;
+  }
+  
+  return owner || 'Unknown';
+}
+
+export function getStatusIcon(iconName: string) {
+  // Return the actual icon component based on the name
+  switch (iconName) {
+    case 'CheckCircle':
+      return 'CheckCircle';
+    case 'Clock':
+      return 'Clock';
+    case 'AlertCircle':
+      return 'AlertCircle';
+    case 'XCircle':
+      return 'XCircle';
+    case 'Loader':
+      return 'Loader';
+    case 'HelpCircle':
+      return 'HelpCircle';
+    default:
+      return 'HelpCircle';
+  }
+}
+
+export function formatRouteWithTokens(route: string[], metadata: any): string {
+  if (!route || route.length <= 2) return '';
+  
+  return route.map(contractId => {
+    const tokenMetadata = metadata[contractId];
+    return tokenMetadata?.symbol || contractId.split('.').pop()?.slice(0, 8) || contractId.slice(0, 8);
+  }).join(' → ');
 }

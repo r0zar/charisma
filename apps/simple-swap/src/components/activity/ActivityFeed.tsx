@@ -9,6 +9,7 @@ import { RefreshCw, Loader2, BarChart3 } from 'lucide-react';
 
 interface ActivityFeedProps {
   activities: ActivityItem[];
+  metadata?: any;
   loading?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
@@ -22,6 +23,7 @@ interface ActivityFeedProps {
 
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   activities,
+  metadata = {},
   loading = false,
   hasMore = false,
   onLoadMore,
@@ -146,6 +148,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
           <ActivityCard
             key={activity.id}
             activity={activity}
+            metadata={metadata}
             onAction={handleActivityAction}
             onAddReply={onAddReply}
             onEditReply={onEditReply}

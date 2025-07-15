@@ -132,7 +132,7 @@ export async function getActivityTimeline(options: ActivityFeedOptions = {}): Pr
     
     // Get IDs in reverse chronological order by default
     const activityIds = sortOrder === 'desc' 
-      ? await kv.zrevrange(timelineKey, offset, offset + limit - 1)
+      ? await kv.zrange(timelineKey, offset, offset + limit - 1, { rev: true })
       : await kv.zrange(timelineKey, offset, offset + limit - 1);
     
     if (!activityIds || activityIds.length === 0) {

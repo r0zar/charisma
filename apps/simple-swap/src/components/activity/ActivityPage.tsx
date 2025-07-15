@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ActivityItem, ActivityType, ActivityStatus, ActivityFeedFilters, Reply } from '@/lib/activity/types';
 import { fetchActivityTimeline, addActivityReply, updateActivityReply, deleteActivityReply } from '@/lib/activity/api';
 import { ActivityFeed } from './ActivityFeed';
@@ -8,6 +8,8 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { toast } from '../ui/sonner';
+import { useBlaze } from 'blaze-sdk/realtime';
+import { enrichTokenWithMetadata } from '@/lib/activity/utils';
 import {
   Search,
   Filter,
@@ -44,22 +46,46 @@ export const ActivityPage: React.FC = () => {
 
   // Filter state
   const [filters, setFilters] = useState<ActivityFeedFilters>({});
+
+  // Blaze SDK for token metadata and prices
+  const { metadata, getPrice } = useBlaze();
+
+  // Function to enrich activities with token metadata
+  const enrichActivities = useMemo(() => {
+    return (activities: ActivityItem[]): ActivityItem[] => {
+      return activities.map(activity => ({
+        ...activity,
+        fromToken: enrichTokenWithMetadata(activity.fromToken, metadata, getPrice),
+        toToken: enrichTokenWithMetadata(activity.toToken, metadata, getPrice)
+      }));
+    };
+  }, [metadata, getPrice]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Enriched activities with metadata (automatically updates when metadata changes)
+  const enrichedActivities = useMemo(() => {
+    return enrichActivities(activities);
+  }, [activities, enrichActivities]);
+
+  // Enriched filtered activities
+  const enrichedFilteredActivities = useMemo(() => {
+    return enrichActivities(filteredActivities);
+  }, [filteredActivities, enrichActivities]);
 
   // Load initial data
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const result = await fetchActivityTimeline({
           limit: 50,
           offset: 0,
           sortOrder: 'desc'
         });
-        
+
         setActivities(result.activities);
         setFilteredActivities(result.activities);
         setTotal(result.total);
@@ -82,10 +108,10 @@ export const ActivityPage: React.FC = () => {
   useEffect(() => {
     const loadFilteredData = async () => {
       if (loading) return; // Don't filter during initial load
-      
+
       setLoading(true);
       setError(null);
-      
+
       try {
         const result = await fetchActivityTimeline({
           limit: 50,
@@ -95,7 +121,7 @@ export const ActivityPage: React.FC = () => {
           statuses: filters.statuses,
           searchQuery: searchQuery.trim() || undefined
         });
-        
+
         setActivities(result.activities);
         setFilteredActivities(result.activities);
         setTotal(result.total);
@@ -116,10 +142,10 @@ export const ActivityPage: React.FC = () => {
 
   const handleLoadMore = async () => {
     if (loading || !hasMore) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await fetchActivityTimeline({
         limit: 50,
@@ -129,7 +155,7 @@ export const ActivityPage: React.FC = () => {
         statuses: filters.statuses,
         searchQuery: searchQuery.trim() || undefined
       });
-      
+
       setActivities(prev => [...prev, ...result.activities]);
       setFilteredActivities(prev => [...prev, ...result.activities]);
       setHasMore(result.hasMore);
@@ -145,7 +171,7 @@ export const ActivityPage: React.FC = () => {
   const handleRefresh = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await fetchActivityTimeline({
         limit: 50,
@@ -155,7 +181,7 @@ export const ActivityPage: React.FC = () => {
         statuses: filters.statuses,
         searchQuery: searchQuery.trim() || undefined
       });
-      
+
       setActivities(result.activities);
       setFilteredActivities(result.activities);
       setTotal(result.total);
@@ -178,11 +204,11 @@ export const ActivityPage: React.FC = () => {
   const handleAddReply = async (activityId: string, content: string) => {
     try {
       console.log('Adding reply to activity:', activityId, content);
-      
+
       // Call API to add reply
       const newReply = await addActivityReply(
-        activityId, 
-        content, 
+        activityId,
+        content,
         'SP1K1A1PMGW2ZJCNF46NWZWHG8TS1D23EGH1KNK60' // Current user - TODO: get from auth context
       );
 
@@ -199,7 +225,7 @@ export const ActivityPage: React.FC = () => {
         }
         return activity;
       }));
-      
+
       setFilteredActivities(prev => prev.map(activity => {
         if (activity.id === activityId) {
           const updatedReplies = [...(activity.replies || []), newReply];
@@ -212,7 +238,7 @@ export const ActivityPage: React.FC = () => {
         }
         return activity;
       }));
-      
+
       toast.success('Reply added successfully');
     } catch (err) {
       console.error('Error adding reply:', err);
@@ -223,7 +249,7 @@ export const ActivityPage: React.FC = () => {
   const handleEditReply = async (replyId: string, newContent: string) => {
     try {
       console.log('Editing reply:', replyId, newContent);
-      
+
       // Find the activity and reply to get the activityId
       let activityId: string | null = null;
       for (const activity of activities) {
@@ -232,11 +258,11 @@ export const ActivityPage: React.FC = () => {
           break;
         }
       }
-      
+
       if (!activityId) {
         throw new Error('Activity not found for reply');
       }
-      
+
       // Call API to update reply
       const updatedReply = await updateActivityReply(
         activityId,
@@ -244,19 +270,19 @@ export const ActivityPage: React.FC = () => {
         newContent,
         'SP1K1A1PMGW2ZJCNF46NWZWHG8TS1D23EGH1KNK60' // Current user - TODO: get from auth context
       );
-      
+
       // Update both activities and filteredActivities
-      const updateReplies = (activities: ActivityItem[]) => 
+      const updateReplies = (activities: ActivityItem[]) =>
         activities.map(activity => ({
           ...activity,
-          replies: activity.replies?.map(reply => 
+          replies: activity.replies?.map(reply =>
             reply.id === replyId ? updatedReply : reply
           )
         }));
-      
+
       setActivities(updateReplies);
       setFilteredActivities(updateReplies);
-      
+
       toast.success('Reply updated successfully');
     } catch (err) {
       console.error('Error updating reply:', err);
@@ -267,7 +293,7 @@ export const ActivityPage: React.FC = () => {
   const handleDeleteReply = async (replyId: string) => {
     try {
       console.log('Deleting reply:', replyId);
-      
+
       // Find the activity and reply to get the activityId
       let activityId: string | null = null;
       for (const activity of activities) {
@@ -276,16 +302,16 @@ export const ActivityPage: React.FC = () => {
           break;
         }
       }
-      
+
       if (!activityId) {
         throw new Error('Activity not found for reply');
       }
-      
+
       // Call API to delete reply
       await deleteActivityReply(activityId, replyId);
-      
+
       // Update both activities and filteredActivities
-      const updateReplies = (activities: ActivityItem[]) => 
+      const updateReplies = (activities: ActivityItem[]) =>
         activities.map(activity => {
           if (activity.replies?.some(reply => reply.id === replyId)) {
             const updatedReplies = activity.replies.filter(reply => reply.id !== replyId);
@@ -298,10 +324,10 @@ export const ActivityPage: React.FC = () => {
           }
           return activity;
         });
-      
+
       setActivities(updateReplies);
       setFilteredActivities(updateReplies);
-      
+
       toast.success('Reply deleted successfully');
     } catch (err) {
       console.error('Error deleting reply:', err);
@@ -593,7 +619,8 @@ export const ActivityPage: React.FC = () => {
 
       {/* Activity Feed */}
       <ActivityFeed
-        activities={filteredActivities}
+        activities={enrichedFilteredActivities}
+        metadata={metadata}
         loading={loading}
         hasMore={hasMore}
         onLoadMore={handleLoadMore}

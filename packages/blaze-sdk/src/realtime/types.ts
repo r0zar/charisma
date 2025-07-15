@@ -234,6 +234,7 @@ export interface BlazeData {
   metadata: Record<string, TokenMetadata>;
   isConnected: boolean;
   lastUpdate: number;
+  isInitialized: boolean;
 
   // Utility functions
   getPrice: (contractId: string) => number | undefined;

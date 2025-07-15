@@ -12,6 +12,15 @@ export interface TokenInfo {
   contractId: string;
   decimals?: number;
   usdValue?: number;
+  
+  // Enriched metadata from Blaze SDK
+  name?: string;
+  image?: string;
+  description?: string;
+  price?: number;
+  change24h?: number;
+  marketCap?: number;
+  verified?: boolean;
 }
 
 export interface Reply {

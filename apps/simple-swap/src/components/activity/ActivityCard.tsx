@@ -1,20 +1,22 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ActivityItem, ActivityActionConfig, Reply } from '@/lib/activity/types';
-import { 
-  getActivityTypeInfo, 
-  getStatusInfo, 
-  formatTokenAmount, 
-  formatUsdValue, 
-  getRelativeTime, 
+import { ActivityItem } from '@/lib/activity/types';
+import {
+  getActivityTypeInfo,
+  getStatusInfo,
+  formatTokenAmount,
+  formatUsdValue,
+  getRelativeTime,
   getFullTimestamp,
   getProminentDate,
   getActivityActions,
   getPriceImpactColor,
   getActivityDescription,
   formatUserName,
-  getUserAvatarLetter
+  getUserAvatarLetter,
+  getStatusIcon,
+  formatRouteWithTokens
 } from '@/lib/activity/utils';
 import TokenLogo from '../TokenLogo';
 import { Badge } from '../ui/badge';
@@ -22,13 +24,14 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../ui/tooltip';
 import { ReplyThread } from './ReplyThread';
 import { toast } from '@/components/ui/sonner';
-import { 
-  Heart, 
-  MessageCircle, 
-  Repeat2, 
-  Share, 
-  MoreHorizontal, 
-  ExternalLink, 
+import { truncateSmartContract } from '@/lib/address-utils';
+import {
+  Heart,
+  MessageCircle,
+  Repeat2,
+  Share,
+  MoreHorizontal,
+  ExternalLink,
   Copy,
   ChevronDown,
   ChevronUp,
@@ -37,11 +40,15 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Users
+  Users,
+  XCircle,
+  Loader,
+  HelpCircle
 } from 'lucide-react';
 
 interface ActivityCardProps {
   activity: ActivityItem;
+  metadata?: any;
   onAction?: (action: string, activity: ActivityItem) => void;
   onAddReply?: (activityId: string, content: string) => void;
   onEditReply?: (replyId: string, newContent: string) => void;
@@ -52,6 +59,7 @@ interface ActivityCardProps {
 
 export const ActivityCard: React.FC<ActivityCardProps> = ({
   activity,
+  metadata = {},
   onAction,
   onAddReply,
   onEditReply,
@@ -62,11 +70,33 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  
+
   const typeInfo = getActivityTypeInfo(activity.type);
   const statusInfo = getStatusInfo(activity.status);
   const actions = getActivityActions(activity);
-  
+
+  // Get the correct icon component
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case 'CheckCircle':
+        return CheckCircle;
+      case 'Clock':
+        return Clock;
+      case 'AlertCircle':
+        return AlertCircle;
+      case 'XCircle':
+        return XCircle;
+      case 'Loader':
+        return Loader;
+      case 'HelpCircle':
+        return HelpCircle;
+      default:
+        return HelpCircle;
+    }
+  };
+
+  const StatusIcon = getIconComponent(statusInfo.icon);
+
   const handleAction = (actionType: string) => {
     if (actionType === 'favorite') {
       setIsFavorited(!isFavorited);
@@ -123,7 +153,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const valueChangePercent = fromValue > 0 ? (valueChange / fromValue) * 100 : 0;
 
   return (
-    <div 
+    <div
       className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15] backdrop-blur-sm ${className}`}
       onClick={handleCardClick}
       aria-label={`${getActivityDescription(activity)}. Click to ${showReplies ? 'hide' : 'show'} replies.`}
@@ -143,7 +173,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 {getUserAvatarLetter(activity.owner, activity.displayName)}
               </span>
             </div>
-            
+
             {/* User Info and Activity Type */}
             <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center space-x-2 flex-wrap">
@@ -162,24 +192,24 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm text-white/60 font-medium">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <span>{getProminentDate(activity.timestamp)}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {getFullTimestamp(activity.timestamp)}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {activity.txid && (
-                <>
-                  <span className="text-white/40">•</span>
-                  <span className="font-mono text-xs text-white/40" title={activity.txid}>
-                    #{activity.txid.substring(0, 8)}
-                  </span>
-                </>
-              )}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <span>{getRelativeTime(activity.timestamp)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {getFullTimestamp(activity.timestamp)}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                {activity.txid && (
+                  <>
+                    <span className="text-white/40">•</span>
+                    <span className="font-mono text-xs text-white/40" title={activity.txid}>
+                      #{activity.txid.substring(0, 8)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -187,10 +217,10 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           {/* Premium Status Badge */}
           <div className="flex items-center gap-3">
             <div className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${statusInfo.color} ${statusInfo.bgColor} border-white/[0.15]`}>
-              <statusInfo.icon className={`w-3 h-3 ${activity.status === 'pending' || activity.status === 'processing' ? 'animate-pulse' : ''}`} />
+              <StatusIcon className={`w-3 h-3 ${activity.status === 'pending' || activity.status === 'processing' ? 'animate-pulse' : ''}`} />
               <span>{statusInfo.label}</span>
             </div>
-            
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -208,48 +238,84 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <TokenLogo 
+              <TokenLogo
                 token={{
                   contractId: activity.fromToken.contractId,
                   symbol: activity.fromToken.symbol,
                   decimals: activity.fromToken.decimals || 6,
                   type: activity.fromToken.contractId.includes('subnet') ? 'SUBNET' : 'BASE',
-                  image: undefined
-                }} 
-                size="sm" 
+                  image: activity.fromToken.image
+                }}
+                size="sm"
               />
-              <span className="text-sm font-medium text-white/80">{activity.fromToken.symbol}</span>
+              <span className="text-sm font-medium text-white/80">
+                {activity.fromToken.name || activity.fromToken.symbol}
+              </span>
+              {activity.fromToken.verified && (
+                <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">✓</span>
+              )}
             </div>
             <div className="flex items-center gap-2 text-white/40">
               <span className="text-lg">→</span>
             </div>
             <div className="flex items-center gap-2">
-              <TokenLogo 
+              <TokenLogo
                 token={{
                   contractId: activity.toToken.contractId,
                   symbol: activity.toToken.symbol,
                   decimals: activity.toToken.decimals || 6,
                   type: activity.toToken.contractId.includes('subnet') ? 'SUBNET' : 'BASE',
-                  image: undefined
-                }} 
-                size="sm" 
+                  image: activity.toToken.image
+                }}
+                size="sm"
               />
-              <span className="text-sm font-medium text-white/80">{activity.toToken.symbol}</span>
+              <span className="text-sm font-medium text-white/80">
+                {activity.toToken.name || activity.toToken.symbol}
+              </span>
+              {activity.toToken.verified && (
+                <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">✓</span>
+              )}
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="text-right space-y-0.5">
             <div className="text-sm font-mono text-white/90">
-              {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)}
+              {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)} {activity.fromToken.symbol}
             </div>
-            <div className="text-xs text-white/40">{activity.fromToken.symbol}</div>
-            {activity.fromToken.usdValue && (
+            {activity.fromToken.name && activity.fromToken.name !== activity.fromToken.symbol && (
               <div className="text-xs text-white/50">
+                {activity.fromToken.name}
+              </div>
+            )}
+            {activity.fromToken.usdValue && (
+              <div className="text-xs text-white/60 font-medium">
                 {formatUsdValue(activity.fromToken.usdValue)}
               </div>
             )}
           </div>
         </div>
+
+        {/* Trade Summary Row - Only for completed swaps with meaningful data */}
+        {activity.status === 'completed' && activity.type === 'instant_swap' && activity.fromToken.usdValue && activity.toToken.usdValue && (
+          <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-white/60">Traded:</span>
+              <span className="text-white/80 font-medium">
+                {formatUsdValue(activity.fromToken.usdValue)}
+              </span>
+              <span className="text-white/40">→</span>
+              <span className="text-white/80 font-medium">
+                {formatUsdValue(activity.toToken.usdValue)}
+              </span>
+            </div>
+            {activity.toToken.amount && activity.fromToken.amount && (
+              <div className="text-sm text-white/70">
+                <span className="text-xs text-white/50">Received: </span>
+                {formatTokenAmount(activity.toToken.amount, activity.toToken.decimals)} {activity.toToken.symbol}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Condition/Status Row */}
         <div className="flex items-center justify-between">
@@ -380,12 +446,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     {activity.route && activity.route.length > 2 && (
                       <div className="flex justify-between items-start">
                         <span className="text-white/60">Route:</span>
-                        <span className="text-white/90 text-xs text-right max-w-[200px]">
-                          {activity.route.join(' → ')}
+                        <span className="text-white/90 text-xs text-right max-w-[200px] font-medium">
+                          {formatRouteWithTokens(activity.route, metadata)}
                         </span>
                       </div>
                     )}
@@ -447,40 +513,35 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 e.stopPropagation();
                 handleAction('favorite');
               }}
-              className={`p-2 rounded-xl transition-all duration-200 ${
-                isFavorited 
-                  ? 'bg-red-500/[0.08] border border-red-500/[0.15] text-red-400' 
-                  : 'bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400'
-              }`}
+              className={`p-2 rounded-xl transition-all duration-200 ${isFavorited
+                ? 'bg-red-500/[0.08] border border-red-500/[0.15] text-red-400'
+                : 'bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400'
+                }`}
             >
               <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
             </button>
-            
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setShowReplies(!showReplies);
               }}
-              className={`relative p-2 rounded-xl transition-all duration-200 ${
-                showReplies
-                  ? 'bg-blue-500/[0.15] border border-blue-500/[0.3] text-blue-300'
-                  : (activity.replyCount && activity.replyCount > 0)
+              className={`relative p-2 rounded-xl transition-all duration-200 ${showReplies
+                ? 'bg-blue-500/[0.15] border border-blue-500/[0.3] text-blue-300'
+                : (activity.replyCount > 0)
                   ? 'bg-blue-500/[0.08] border border-blue-500/[0.15] text-blue-400'
                   : 'bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400'
-              }`}
+                }`}
               title={showReplies ? "Hide replies" : "Show replies"}
             >
               <MessageCircle className="w-4 h-4" />
-              {activity.replyCount && activity.replyCount > 0 && (
-                <span 
-                  className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center px-1 animate-pulse"
-                  style={{ animation: 'bounce 0.6s ease-out' }}
-                >
+              {activity.replyCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center px-1 animate-bounce">
                   {activity.replyCount > 99 ? '99+' : activity.replyCount}
                 </span>
               )}
             </button>
-            
+
             {(activity.type === 'instant_swap' || activity.strategy === 'single') && (
               <button
                 onClick={(e) => {
@@ -492,7 +553,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 <Repeat2 className="w-4 h-4" />
               </button>
             )}
-            
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -521,7 +582,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
             <ReplyThread
               activityId={activity.id}
               replies={activity.replies || []}
-              onAddReply={onAddReply || (() => {})}
+              onAddReply={onAddReply || (() => { })}
               onEditReply={onEditReply}
               onDeleteReply={onDeleteReply}
               onLikeReply={onLikeReply}

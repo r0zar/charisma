@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "@repo/polyglot": "workspace:*",
+    "@repo/tokens": "workspace:*",
     "@stacks/connect": "latest",
     "@stacks/encryption": "latest",
     "@stacks/network": "latest",
