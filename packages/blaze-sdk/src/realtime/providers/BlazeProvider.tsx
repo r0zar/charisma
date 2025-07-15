@@ -3,7 +3,7 @@
  * BlazeProvider - Context provider for real-time price and balance data
  * Simplified version without excessive memoization
  */
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useReducer, useTransition, useMemo, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import { BlazeData, BlazeConfig, PriceData, BalanceData, TokenMetadata } from '../types';
 import { getBalanceKey, isSubnetToken, getTokenFamily } from '../utils/token-utils';
@@ -18,23 +18,173 @@ interface BlazeContextType extends BlazeData {
 
 const BlazeContext = createContext<BlazeContextType | undefined>(undefined);
 
+// Reducer action types for optimized state updates
+type BlazeAction = 
+  | { type: 'SET_PRICES'; payload: Record<string, PriceData> }
+  | { type: 'UPDATE_PRICE'; payload: PriceData }
+  | { type: 'BATCH_PRICE_UPDATES'; payload: PriceData[] }
+  | { type: 'SET_BALANCES'; payload: Record<string, BalanceData> }
+  | { type: 'UPDATE_BALANCE'; payload: { key: string; balance: BalanceData } }
+  | { type: 'BATCH_BALANCE_UPDATES'; payload: Array<{ key: string; balance: BalanceData }> }
+  | { type: 'SET_METADATA'; payload: Record<string, TokenMetadata> }
+  | { type: 'UPDATE_METADATA'; payload: { contractId: string; metadata: TokenMetadata } }
+  | { type: 'SET_CONNECTION_STATUS'; payload: boolean }
+  | { type: 'SET_LAST_UPDATE'; payload: number };
+
+// State interface for the reducer
+interface BlazeState {
+  prices: Record<string, PriceData>;
+  balances: Record<string, BalanceData>;
+  metadata: Record<string, TokenMetadata>;
+  isConnected: boolean;
+  lastUpdate: number;
+}
+
+// Initial state
+const initialState: BlazeState = {
+  prices: {},
+  balances: {},
+  metadata: {},
+  isConnected: false,
+  lastUpdate: Date.now()
+};
+
+// Optimized reducer with change detection
+function blazeReducer(state: BlazeState, action: BlazeAction): BlazeState {
+  switch (action.type) {
+    case 'SET_PRICES':
+      return { ...state, prices: action.payload };
+    
+    case 'UPDATE_PRICE':
+      const existingPrice = state.prices[action.payload.contractId];
+      if (existingPrice?.price === action.payload.price && 
+          existingPrice?.timestamp === action.payload.timestamp) {
+        return state; // No change, return existing state
+      }
+      return { 
+        ...state, 
+        prices: { ...state.prices, [action.payload.contractId]: action.payload }
+      };
+    
+    case 'BATCH_PRICE_UPDATES':
+      const newPrices = { ...state.prices };
+      let priceChanges = false;
+      action.payload.forEach(price => {
+        const existing = newPrices[price.contractId];
+        if (!existing || existing.price !== price.price || existing.timestamp !== price.timestamp) {
+          newPrices[price.contractId] = price;
+          priceChanges = true;
+        }
+      });
+      return priceChanges ? { ...state, prices: newPrices } : state;
+    
+    case 'SET_BALANCES':
+      return { ...state, balances: action.payload };
+    
+    case 'UPDATE_BALANCE':
+      const existingBalance = state.balances[action.payload.key];
+      if (existingBalance?.balance === action.payload.balance.balance && 
+          existingBalance?.formattedBalance === action.payload.balance.formattedBalance &&
+          existingBalance?.timestamp === action.payload.balance.timestamp) {
+        return state; // No change, return existing state
+      }
+      return { 
+        ...state, 
+        balances: { ...state.balances, [action.payload.key]: action.payload.balance }
+      };
+    
+    case 'BATCH_BALANCE_UPDATES':
+      const newBalances = { ...state.balances };
+      let balanceChanges = false;
+      action.payload.forEach(({ key, balance }) => {
+        const existing = newBalances[key];
+        if (!existing || 
+            existing.balance !== balance.balance || 
+            existing.formattedBalance !== balance.formattedBalance ||
+            existing.timestamp !== balance.timestamp) {
+          newBalances[key] = balance;
+          balanceChanges = true;
+        }
+      });
+      return balanceChanges ? { ...state, balances: newBalances } : state;
+    
+    case 'SET_METADATA':
+      return { ...state, metadata: action.payload };
+    
+    case 'UPDATE_METADATA':
+      return { 
+        ...state, 
+        metadata: { ...state.metadata, [action.payload.contractId]: action.payload.metadata }
+      };
+    
+    case 'SET_CONNECTION_STATUS':
+      return { ...state, isConnected: action.payload };
+    
+    case 'SET_LAST_UPDATE':
+      return { ...state, lastUpdate: action.payload };
+    
+    default:
+      return state;
+  }
+}
+
 interface BlazeProviderProps {
   children: ReactNode;
   host?: string;
 }
 
 export function BlazeProvider({ children, host }: BlazeProviderProps) {
-  // State
-  const [prices, setPrices] = useState<Record<string, PriceData>>({});
-  const [balances, setBalances] = useState<Record<string, BalanceData>>({});
-  const [metadata, setMetadata] = useState<Record<string, TokenMetadata>>({});
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  // Optimized state management with useReducer
+  const [state, dispatch] = useReducer(blazeReducer, initialState);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   // Track current balance subscriptions
   const subscribedUsers = useRef<Set<string>>(new Set());
   const socketRefs = useRef<{ prices?: any; balances?: any }>({});
+
+  // Batching queues for performance optimization
+  const balanceUpdateQueue = useRef<Array<{ key: string; balance: BalanceData }>>([]);
+  const priceUpdateQueue = useRef<PriceData[]>([]);
+  const flushTimeout = useRef<NodeJS.Timeout>();
+
+  // Optimized batch processing
+  const flushUpdates = useCallback(() => {
+    const balanceUpdates = balanceUpdateQueue.current.splice(0);
+    const priceUpdates = priceUpdateQueue.current.splice(0);
+
+    if (balanceUpdates.length > 0 || priceUpdates.length > 0) {
+      console.log(`BlazeProvider: Flushing ${balanceUpdates.length} balance updates and ${priceUpdates.length} price updates`);
+      
+      startTransition(() => {
+        if (balanceUpdates.length > 0) {
+          dispatch({ type: 'BATCH_BALANCE_UPDATES', payload: balanceUpdates });
+        }
+        if (priceUpdates.length > 0) {
+          dispatch({ type: 'BATCH_PRICE_UPDATES', payload: priceUpdates });
+        }
+        dispatch({ type: 'SET_LAST_UPDATE', payload: Date.now() });
+      });
+    }
+  }, []);
+
+  // Queue balance update for batching (non-blocking)
+  const queueBalanceUpdate = useCallback((key: string, balance: BalanceData) => {
+    balanceUpdateQueue.current.push({ key, balance });
+    
+    // Debounced flush - batch updates every 50ms
+    clearTimeout(flushTimeout.current);
+    flushTimeout.current = setTimeout(flushUpdates, 50);
+  }, [flushUpdates]);
+
+  // Queue price update for batching (non-blocking)
+  const queuePriceUpdate = useCallback((price: PriceData) => {
+    priceUpdateQueue.current.push(price);
+    
+    // Debounced flush - batch updates every 50ms
+    clearTimeout(flushTimeout.current);
+    flushTimeout.current = setTimeout(flushUpdates, 50);
+  }, [flushUpdates]);
 
   // Initialize metadata on startup
   useEffect(() => {
@@ -70,11 +220,11 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
             }
           });
 
-          setMetadata(initialMetadata);
+          dispatch({ type: 'SET_METADATA', payload: initialMetadata });
           console.log(`BlazeProvider: Initialized metadata for ${tokens.length} tokens`);
           
           // Trigger update notification to client
-          setLastUpdate(Date.now());
+          dispatch({ type: 'SET_LAST_UPDATE', payload: Date.now() });
           console.log('BlazeProvider: Metadata update notification sent');
         }
       } catch (error) {
@@ -85,6 +235,15 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     }
 
     initializeMetadata();
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (flushTimeout.current) {
+        clearTimeout(flushTimeout.current);
+      }
+    };
   }, []);
 
   // Determine host based on environment
@@ -101,7 +260,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     party: 'prices',
     onOpen: () => {
       console.log('BlazeProvider: Prices socket connected to', partyHost);
-      setIsConnected(true);
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: true });
       const subscribeMessage = {
         type: 'SUBSCRIBE',
         contractIds: [], // Empty = subscribe to all
@@ -112,7 +271,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     },
     onClose: () => {
       console.log('BlazeProvider: Prices socket disconnected');
-      setIsConnected(false);
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: false });
     },
     onMessage: (event) => {
       try {
@@ -166,46 +325,42 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   function handlePriceMessage(data: any) {
     switch (data.type) {
       case 'PRICE_UPDATE':
-        console.log('BlazeProvider: Processing price update for', data.contractId, 'price:', data.price);
-        setPrices(prev => ({
-          ...prev,
-          [data.contractId]: {
-            contractId: data.contractId,
-            price: data.price,
-            timestamp: data.timestamp,
-            source: data.source || 'realtime'
-          }
-        }));
-        setLastUpdate(Date.now());
+        console.log('BlazeProvider: Queueing price update for', data.contractId, 'price:', data.price);
+        queuePriceUpdate({
+          contractId: data.contractId,
+          price: data.price,
+          timestamp: data.timestamp,
+          source: data.source || 'realtime'
+        });
         break;
 
       case 'PRICE_BATCH':
         console.log('BlazeProvider: Processing price batch with', data.prices?.length, 'prices');
-        const newPrices: Record<string, PriceData> = {};
         data.prices.forEach((price: any) => {
-          newPrices[price.contractId] = {
+          queuePriceUpdate({
             contractId: price.contractId,
             price: price.price,
             timestamp: price.timestamp,
             source: price.source || 'realtime'
-          };
+          });
         });
-        setPrices(prev => ({ ...prev, ...newPrices }));
-        setLastUpdate(Date.now());
-        console.log('BlazeProvider: Updated prices for', Object.keys(newPrices).length, 'contracts');
+        console.log('BlazeProvider: Queued', data.prices?.length, 'price updates for batch processing');
         break;
 
       case 'METADATA_UPDATE':
         if (data.contractId && data.metadata) {
           console.log('BlazeProvider: Processing metadata update for', data.contractId);
-          setMetadata(prev => ({
-            ...prev,
-            [data.contractId]: {
+          dispatch({
+            type: 'UPDATE_METADATA',
+            payload: {
               contractId: data.contractId,
-              ...data.metadata
+              metadata: {
+                contractId: data.contractId,
+                ...data.metadata
+              }
             }
-          }));
-          setLastUpdate(Date.now());
+          });
+          dispatch({ type: 'SET_LAST_UPDATE', payload: Date.now() });
         } else {
           console.warn('BlazeProvider: Invalid metadata update message:', data);
         }
@@ -223,8 +378,8 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
               };
             }
           });
-          setMetadata(prev => ({ ...prev, ...newMetadata }));
-          setLastUpdate(Date.now());
+          dispatch({ type: 'SET_METADATA', payload: { ...state.metadata, ...newMetadata } });
+          dispatch({ type: 'SET_LAST_UPDATE', payload: Date.now() });
           console.log('BlazeProvider: Updated metadata for', Object.keys(newMetadata).length, 'contracts');
         } else {
           console.warn('BlazeProvider: Invalid metadata batch message:', data);
@@ -279,121 +434,76 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
   }
 
   function updateBalance(data: any) {
-    console.log('BlazeProvider: updateBalance called with data:', data);
-    setBalances(prev => {
-      const key = getBalanceKey(data.userId, data.contractId, data.metadata);
-      const existingBalance = prev[key];
-      const isSubnet = isSubnetToken(data.contractId, data.metadata);
-      console.log('BlazeProvider: Balance key:', key, 'isSubnet:', isSubnet);
+    console.log('BlazeProvider: Queueing balance update for', data.userId, data.contractId);
+    
+    const key = getBalanceKey(data.userId, data.contractId, data.metadata);
+    const existingBalance = state.balances[key];
+    const isSubnet = isSubnetToken(data.contractId, data.metadata);
 
-      const updatedBalance: BalanceData = {
-        // Core fields - only update if this is NOT a subnet token
-        balance: isSubnet ? (existingBalance?.balance || '0') : String(data.balance || 0),
-        totalSent: isSubnet ? (existingBalance?.totalSent || '0') : (data.totalSent || '0'),
-        totalReceived: isSubnet ? (existingBalance?.totalReceived || '0') : (data.totalReceived || '0'),
-        formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (data.formattedBalance || 0),
-        timestamp: data.timestamp || Date.now(),
-        source: data.source || 'realtime',
+    const updatedBalance: BalanceData = {
+      // Core fields - only update if this is NOT a subnet token
+      balance: isSubnet ? (existingBalance?.balance || '0') : String(data.balance || 0),
+      totalSent: isSubnet ? (existingBalance?.totalSent || '0') : (data.totalSent || '0'),
+      totalReceived: isSubnet ? (existingBalance?.totalReceived || '0') : (data.totalReceived || '0'),
+      formattedBalance: isSubnet ? (existingBalance?.formattedBalance || 0) : (data.formattedBalance || 0),
+      timestamp: data.timestamp || Date.now(),
+      source: data.source || 'realtime',
 
-        // Subnet fields - only update if this is a subnet token
-        ...(isSubnet ? {
-          subnetBalance: data.balance,
-          formattedSubnetBalance: data.formattedBalance,
-          subnetContractId: data.contractId,
-        } : {
-          subnetBalance: existingBalance?.subnetBalance,
-          formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
-          subnetContractId: existingBalance?.subnetContractId,
-        }),
+      // Subnet fields - only update if this is a subnet token
+      ...(isSubnet ? {
+        subnetBalance: data.balance,
+        formattedSubnetBalance: data.formattedBalance,
+        subnetContractId: data.contractId,
+      } : {
+        subnetBalance: existingBalance?.subnetBalance,
+        formattedSubnetBalance: existingBalance?.formattedSubnetBalance,
+        subnetContractId: existingBalance?.subnetContractId,
+      }),
 
-        // Metadata
-        metadata: {
-          ...existingBalance?.metadata,
-          ...data.metadata,
-        },
+      // Balance metadata (keep existing metadata, don't overwrite with new data)
+      metadata: existingBalance?.metadata || {},
 
-        // Legacy fields
-        name: data.name,
-        symbol: data.symbol,
-        decimals: data.decimals || 6,
-        description: data.description,
-        image: data.image,
-        total_supply: data.total_supply,
-        type: data.tokenType,
-        identifier: data.identifier,
-        token_uri: data.token_uri,
-        lastUpdated: data.lastUpdated,
-        tokenAContract: data.tokenAContract,
-        tokenBContract: data.tokenBContract,
-        lpRebatePercent: data.lpRebatePercent,
-        externalPoolId: data.externalPoolId,
-        engineContractId: data.engineContractId,
-        base: data.baseToken
-      };
+      // Preserve existing legacy fields (don't update from balance messages)
+      name: existingBalance?.name || data.name,
+      symbol: existingBalance?.symbol || data.symbol,
+      decimals: existingBalance?.decimals || data.decimals || 6,
+      description: existingBalance?.description || data.description,
+      image: existingBalance?.image || data.image,
+      total_supply: existingBalance?.total_supply || data.total_supply,
+      type: existingBalance?.type || data.tokenType,
+      identifier: existingBalance?.identifier || data.identifier,
+      token_uri: existingBalance?.token_uri || data.token_uri,
+      lastUpdated: existingBalance?.lastUpdated || data.lastUpdated,
+      tokenAContract: existingBalance?.tokenAContract || data.tokenAContract,
+      tokenBContract: existingBalance?.tokenBContract || data.tokenBContract,
+      lpRebatePercent: existingBalance?.lpRebatePercent || data.lpRebatePercent,
+      externalPoolId: existingBalance?.externalPoolId || data.externalPoolId,
+      engineContractId: existingBalance?.engineContractId || data.engineContractId,
+      base: existingBalance?.base || data.baseToken
+    };
 
-      return { ...prev, [key]: updatedBalance };
-    });
-
-    // Extract and update metadata from balance data
-    if (data.contractId) {
-      console.log('BlazeProvider: Extracting metadata from balance data for', data.contractId);
-      console.log('BlazeProvider: Balance data fields:', { 
-        name: data.name, 
-        symbol: data.symbol, 
-        decimals: data.decimals,
-        image: data.image,
-        hasMetadata: !!data.metadata 
-      });
-      
-      setMetadata(prev => {
-        const existing = prev[data.contractId];
-        const updated = {
-          contractId: data.contractId,
-          name: data.name || existing?.name,
-          symbol: data.symbol || existing?.symbol,
-          decimals: data.decimals || existing?.decimals || 6,
-          description: data.description || existing?.description,
-          image: data.image || existing?.image,
-          type: data.tokenType || existing?.type,
-          identifier: data.identifier || existing?.identifier,
-          token_uri: data.token_uri || existing?.token_uri,
-          lastUpdated: data.lastUpdated || existing?.lastUpdated,
-          total_supply: data.total_supply || existing?.total_supply,
-          tokenAContract: data.tokenAContract || existing?.tokenAContract,
-          tokenBContract: data.tokenBContract || existing?.tokenBContract,
-          lpRebatePercent: data.lpRebatePercent || existing?.lpRebatePercent,
-          externalPoolId: data.externalPoolId || existing?.externalPoolId,
-          engineContractId: data.engineContractId || existing?.engineContractId,
-          base: data.baseToken || existing?.base,
-          ...(data.metadata || {})
-        };
-        
-        console.log('BlazeProvider: Updated metadata for', data.contractId, ':', updated);
-        return { ...prev, [data.contractId]: updated };
-      });
-    }
-
-    setLastUpdate(Date.now());
+    // Queue the balance update for batching (prevents excessive rerenders)
+    queueBalanceUpdate(key, updatedBalance);
   }
 
-  // Simple utility functions (no memoization needed)
-  function getPrice(contractId: string): number | undefined {
-    return prices[contractId]?.price;
-  }
+  // Optimized utility functions with memoization
+  const getPrice = useCallback((contractId: string): number | undefined => {
+    return state.prices[contractId]?.price;
+  }, [state.prices]);
 
-  function getBalance(userId: string, contractId: string): BalanceData | undefined {
+  const getBalance = useCallback((userId: string, contractId: string): BalanceData | undefined => {
     if (!userId || !contractId || typeof userId !== 'string' || typeof contractId !== 'string') {
       return undefined;
     }
     const key = getBalanceKey(userId.trim(), contractId.trim());
-    return balances[key];
-  }
+    return state.balances[key];
+  }, [state.balances]);
 
-  function getMetadata(contractId: string): TokenMetadata | undefined {
-    return metadata[contractId];
-  }
+  const getMetadata = useCallback((contractId: string): TokenMetadata | undefined => {
+    return state.metadata[contractId];
+  }, [state.metadata]);
 
-  function getUserBalances(userId?: string | null): Record<string, BalanceData> {
+  const getUserBalances = useCallback((userId?: string | null): Record<string, BalanceData> => {
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
       return {};
     }
@@ -401,7 +511,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     const trimmedUserId = userId.trim();
     const userBalances: Record<string, BalanceData> = {};
 
-    Object.entries(balances).forEach(([key, balance]) => {
+    Object.entries(state.balances).forEach(([key, balance]) => {
       if (key.startsWith(`${trimmedUserId}:`)) {
         const contractId = key.substring(trimmedUserId.length + 1);
         userBalances[contractId] = balance;
@@ -409,7 +519,7 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     });
 
     return userBalances;
-  }
+  }, [state.balances]);
 
   // Subscription management
   function subscribeToUserBalances(userIds: string[]) {
@@ -497,13 +607,13 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     }
   }
 
-  // Build context value
-  const contextValue: BlazeContextType = {
-    prices,
-    balances,
-    metadata,
-    isConnected,
-    lastUpdate,
+  // Optimized context value with memoization - only recreates when necessary
+  const contextValue: BlazeContextType = useMemo(() => ({
+    prices: state.prices,
+    balances: state.balances,
+    metadata: state.metadata,
+    isConnected: state.isConnected,
+    lastUpdate: state.lastUpdate,
     isInitialized,
     getPrice,
     getBalance,
@@ -512,7 +622,18 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
     _subscribeToUserBalances: subscribeToUserBalances,
     _unsubscribeFromUserBalances: unsubscribeFromUserBalances,
     refreshBalances
-  };
+  }), [
+    state.prices,
+    state.balances,
+    state.metadata,
+    state.isConnected,
+    state.lastUpdate,
+    isInitialized,
+    getPrice,
+    getBalance,
+    getMetadata,
+    getUserBalances
+  ]);
 
   return (
     <BlazeContext.Provider value={contextValue}>

@@ -388,6 +388,12 @@ export function useRouterTrading() {
               duration: 7000 
             }
           );
+
+          // Trigger activity refresh when transaction is confirmed
+          window.dispatchEvent(new CustomEvent('activityStatusUpdate', {
+            detail: { txid, recordId: swapRecordId, status: finalStatus.status }
+          }));
+          console.log(`[Enhanced Toast] Triggered activity refresh for confirmed transaction: ${txid}`);
         } else if (finalStatus.status === 'abort_by_response' || finalStatus.status === 'abort_by_post_condition') {
           // Update toast to failed
           toast.error(
@@ -412,6 +418,12 @@ export function useRouterTrading() {
               duration: 7000 
             }
           );
+
+          // Trigger activity refresh when transaction fails
+          window.dispatchEvent(new CustomEvent('activityStatusUpdate', {
+            detail: { txid, recordId: swapRecordId, status: finalStatus.status }
+          }));
+          console.log(`[Enhanced Toast] Triggered activity refresh for failed transaction: ${txid}`);
         } else if (finalStatus.status === 'not_found') {
           // Transaction not found
           toast.error(

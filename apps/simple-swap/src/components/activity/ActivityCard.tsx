@@ -317,41 +317,9 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           </div>
         )}
 
-        {/* Condition/Status Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            {activity.type === 'instant_swap' ? (
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">Market execution</span>
-                {activity.priceImpact !== undefined && (
-                  <>
-                    <span className="text-white/40">•</span>
-                    <span className={`${getPriceImpactColor(activity.priceImpact)}`}>
-                      {activity.priceImpact > 0 ? '+' : ''}{activity.priceImpact.toFixed(2)}% impact
-                    </span>
-                  </>
-                )}
-              </div>
-            ) : activity.targetPrice ? (
-              <div className="flex items-center gap-2 font-mono">
-                <span className="text-white/60">When</span>
-                <span className="text-white/80">1 {activity.fromToken.symbol}</span>
-                <span className="text-lg text-white/60">≥</span>
-                <span className="text-white/90">${Number(activity.targetPrice).toLocaleString()}</span>
-                <span className="text-white/60">USD</span>
-              </div>
-            ) : activity.waitTime ? (
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-white/60" />
-                <span className="text-white/60">Waited {activity.waitTime}</span>
-              </div>
-            ) : (
-              <span className="text-white/60">Strategy execution</span>
-            )}
-          </div>
-
-          {/* Action buttons for active orders */}
-          {activity.status === "pending" && activity.type !== 'instant_swap' && (
+        {/* Action buttons for active orders */}
+        {activity.status === "pending" && activity.type !== 'instant_swap' && (
+          <div className="flex justify-end">
             <div className="flex gap-2">
               <button
                 onClick={(e) => {
@@ -373,8 +341,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 <AlertCircle className="h-4 w-4" />
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Expanded Details */}
         {isExpanded && (
@@ -407,6 +375,36 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-white/60">Strategy:</span>
                         <span className="text-white/90 capitalize">{activity.strategy}</span>
+                      </div>
+                    )}
+                    
+                    {/* Market Execution Information */}
+                    {activity.type === 'instant_swap' && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60">Execution Type:</span>
+                        <span className="text-white/90">Market execution</span>
+                      </div>
+                    )}
+                    {activity.priceImpact !== undefined && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60">Price Impact:</span>
+                        <span className={`${getPriceImpactColor(activity.priceImpact)}`}>
+                          {activity.priceImpact > 0 ? '+' : ''}{activity.priceImpact.toFixed(2)}%
+                        </span>
+                      </div>
+                    )}
+                    {activity.targetPrice && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60">Trigger Condition:</span>
+                        <span className="text-white/90 font-mono text-xs">
+                          1 {activity.fromToken.symbol} ≥ ${Number(activity.targetPrice).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {activity.waitTime && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-white/60">Wait Time:</span>
+                        <span className="text-white/90">{activity.waitTime}</span>
                       </div>
                     )}
                   </div>
@@ -456,13 +454,6 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       </div>
                     )}
 
-                    {activity.targetPrice && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-white/60">Target Price:</span>
-                        <span className="text-white/90">${activity.targetPrice.toLocaleString()}</span>
-                      </div>
-                    )}
-
                     {activity.executionPrice && (
                       <div className="flex justify-between items-center">
                         <span className="text-white/60">Execution Price:</span>
@@ -470,10 +461,38 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       </div>
                     )}
 
-                    {activity.waitTime && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-white/60">Wait Time:</span>
-                        <span className="text-white/90">{activity.waitTime}</span>
+                    {/* Price Snapshot Information */}
+                    {(activity.fromToken.priceSnapshot || activity.toToken.priceSnapshot) && (
+                      <div className="bg-white/[0.02] rounded-lg p-3 border border-white/[0.08] mt-3">
+                        <div className="text-white/60 text-xs mb-2 uppercase tracking-wider">Price Snapshot</div>
+                        <div className="space-y-2">
+                          {activity.fromToken.priceSnapshot && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-white/60 text-sm">{activity.fromToken.symbol} Price:</span>
+                              <div className="text-right">
+                                <div className="text-white/90 text-sm font-mono">
+                                  ${activity.fromToken.priceSnapshot.price.toLocaleString()}
+                                </div>
+                                <div className="text-white/50 text-xs">
+                                  {new Date(activity.fromToken.priceSnapshot.timestamp).toLocaleString()} • {activity.fromToken.priceSnapshot.source}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {activity.toToken.priceSnapshot && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-white/60 text-sm">{activity.toToken.symbol} Price:</span>
+                              <div className="text-right">
+                                <div className="text-white/90 text-sm font-mono">
+                                  ${activity.toToken.priceSnapshot.price.toLocaleString()}
+                                </div>
+                                <div className="text-white/50 text-xs">
+                                  {new Date(activity.toToken.priceSnapshot.timestamp).toLocaleString()} • {activity.toToken.priceSnapshot.source}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

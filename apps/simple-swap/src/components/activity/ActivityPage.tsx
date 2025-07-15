@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useDeferredValue, useRef, useCallback } from 'react';
 import { ActivityItem, ActivityType, ActivityStatus, ActivityFeedFilters, Reply } from '@/lib/activity/types';
 import { fetchActivityTimeline, addActivityReply, updateActivityReply, deleteActivityReply } from '@/lib/activity/api';
 import { ActivityFeed } from './ActivityFeed';
@@ -43,12 +43,16 @@ export const ActivityPage: React.FC = () => {
   const [loadOffset, setLoadOffset] = useState(0);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   // Filter state
   const [filters, setFilters] = useState<ActivityFeedFilters>({});
 
   // Blaze SDK for token metadata and prices
   const { metadata, getPrice } = useBlaze();
+
+  // Real-time refresh for pending activities
+  const [pendingActivities, setPendingActivities] = useState<Set<string>>(new Set());
 
   // Function to enrich activities with token metadata
   const enrichActivities = useMemo(() => {
@@ -62,6 +66,20 @@ export const ActivityPage: React.FC = () => {
   }, [metadata, getPrice]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPending, startTransition] = useTransition();
+  
+  // Use deferred value for search query to avoid blocking UI during typing
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  
+  // Use refs for stable references
+  const loadingRef = useRef(loading);
+  const activitiesRef = useRef(activities);
+  
+  // Update refs when values change
+  useEffect(() => {
+    loadingRef.current = loading;
+    activitiesRef.current = activities;
+  }, [loading, activities]);
 
   // Enriched activities with metadata (automatically updates when metadata changes)
   const enrichedActivities = useMemo(() => {
@@ -72,6 +90,104 @@ export const ActivityPage: React.FC = () => {
   const enrichedFilteredActivities = useMemo(() => {
     return enrichActivities(filteredActivities);
   }, [filteredActivities, enrichActivities]);
+
+  // Track pending activities for real-time polling
+  useEffect(() => {
+    const updatePendingActivities = () => {
+      const pendingIds = new Set<string>();
+      activities.forEach(activity => {
+        if (activity.status === 'pending' || activity.status === 'processing') {
+          pendingIds.add(activity.id);
+        }
+      });
+      setPendingActivities(pendingIds);
+    };
+
+    updatePendingActivities();
+  }, [activities]);
+
+  // Real-time polling for pending activities
+  useEffect(() => {
+    if (pendingActivities.size === 0) return;
+
+    console.log(`[ActivityPage] Polling ${pendingActivities.size} pending activities for status updates`);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        // Refresh activities to get latest status updates
+        const result = await fetchActivityTimeline({
+          limit: 50,
+          offset: 0,
+          sortOrder: 'desc',
+          types: filters.types,
+          statuses: filters.statuses,
+          searchQuery: searchQuery.trim() || undefined
+        });
+
+        // Check if any pending activities have been updated
+        let hasUpdates = false;
+        const updatedPendingIds = new Set<string>();
+
+        result.activities.forEach(activity => {
+          if (pendingActivities.has(activity.id)) {
+            if (activity.status !== 'pending' && activity.status !== 'processing') {
+              console.log(`[ActivityPage] Activity ${activity.id} status updated: ${activity.status}`);
+              hasUpdates = true;
+            } else {
+              updatedPendingIds.add(activity.id);
+            }
+          }
+        });
+
+        // Update activities if we found status changes
+        if (hasUpdates) {
+          setActivities(result.activities);
+          setFilteredActivities(result.activities);
+          setPendingActivities(updatedPendingIds);
+          setLastRefresh(Date.now());
+          console.log(`[ActivityPage] Updated ${pendingActivities.size - updatedPendingIds.size} activities from pending status`);
+        }
+      } catch (error) {
+        console.error('[ActivityPage] Error polling pending activities:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [pendingActivities, filters, searchQuery]);
+
+  // Listen for activity status updates from transaction completions
+  useEffect(() => {
+    const handleActivityStatusUpdate = async (event: CustomEvent) => {
+      const { txid, recordId, status } = event.detail;
+      console.log(`[ActivityPage] Received activity status update: ${recordId} (${txid}) -> ${status}`);
+      
+      // Force refresh the activities to get the latest status
+      try {
+        const result = await fetchActivityTimeline({
+          limit: 50,
+          offset: 0,
+          sortOrder: 'desc',
+          types: filters.types,
+          statuses: filters.statuses,
+          searchQuery: searchQuery.trim() || undefined
+        });
+
+        setActivities(result.activities);
+        setFilteredActivities(result.activities);
+        setLastRefresh(Date.now());
+        console.log(`[ActivityPage] Refreshed activities after transaction completion: ${txid}`);
+      } catch (error) {
+        console.error('[ActivityPage] Error refreshing activities after status update:', error);
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('activityStatusUpdate', handleActivityStatusUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('activityStatusUpdate', handleActivityStatusUpdate as EventListener);
+    };
+  }, [filters, searchQuery]);
 
   // Load initial data
   useEffect(() => {
@@ -104,13 +220,16 @@ export const ActivityPage: React.FC = () => {
     loadInitialData();
   }, []);
 
-  // Apply filters - trigger new API call instead of client-side filtering
+  // Optimized filter application using deferred value and transitions
   useEffect(() => {
     const loadFilteredData = async () => {
-      if (loading) return; // Don't filter during initial load
+      if (loadingRef.current) return; // Don't filter during initial load
 
-      setLoading(true);
-      setError(null);
+      // Use transition for non-blocking updates
+      startTransition(() => {
+        setLoading(true);
+        setError(null);
+      });
 
       try {
         const result = await fetchActivityTimeline({
@@ -119,32 +238,42 @@ export const ActivityPage: React.FC = () => {
           sortOrder: 'desc',
           types: filters.types,
           statuses: filters.statuses,
-          searchQuery: searchQuery.trim() || undefined
+          searchQuery: deferredSearchQuery.trim() || undefined
         });
 
-        setActivities(result.activities);
-        setFilteredActivities(result.activities);
-        setTotal(result.total);
-        setHasMore(result.hasMore);
-        setLoadOffset(50); // Reset offset for filtered results
+        // Update state in a transition to avoid blocking
+        startTransition(() => {
+          setActivities(result.activities);
+          setFilteredActivities(result.activities);
+          setTotal(result.total);
+          setHasMore(result.hasMore);
+          setLoadOffset(50); // Reset offset for filtered results
+        });
       } catch (err) {
         console.error('Error loading filtered activity data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to filter activities');
+        startTransition(() => {
+          setError(err instanceof Error ? err.message : 'Failed to filter activities');
+        });
       } finally {
-        setLoading(false);
+        startTransition(() => {
+          setLoading(false);
+        });
       }
     };
 
-    // Debounce the search query
+    // Debounce the deferred search query
     const debounceTimer = setTimeout(loadFilteredData, 300);
     return () => clearTimeout(debounceTimer);
-  }, [filters, searchQuery]);
+  }, [filters, deferredSearchQuery]);
 
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (loading || !hasMore) return;
 
-    setLoading(true);
-    setError(null);
+    // Use transition for smooth loading state
+    startTransition(() => {
+      setLoading(true);
+      setError(null);
+    });
 
     try {
       const result = await fetchActivityTimeline({
@@ -153,24 +282,32 @@ export const ActivityPage: React.FC = () => {
         sortOrder: 'desc',
         types: filters.types,
         statuses: filters.statuses,
-        searchQuery: searchQuery.trim() || undefined
+        searchQuery: deferredSearchQuery.trim() || undefined
       });
 
-      setActivities(prev => [...prev, ...result.activities]);
-      setFilteredActivities(prev => [...prev, ...result.activities]);
-      setHasMore(result.hasMore);
-      setLoadOffset(prev => prev + 50);
+      startTransition(() => {
+        setActivities(prev => [...prev, ...result.activities]);
+        setFilteredActivities(prev => [...prev, ...result.activities]);
+        setHasMore(result.hasMore);
+        setLoadOffset(prev => prev + 50);
+      });
     } catch (err) {
       console.error('Error loading more activities:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load more activities');
+      startTransition(() => {
+        setError(err instanceof Error ? err.message : 'Failed to load more activities');
+      });
     } finally {
-      setLoading(false);
+      startTransition(() => {
+        setLoading(false);
+      });
     }
-  };
+  }, [loading, hasMore, loadOffset, filters, deferredSearchQuery]);
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    setError(null);
+  const handleRefresh = useCallback(async () => {
+    startTransition(() => {
+      setLoading(true);
+      setError(null);
+    });
 
     try {
       const result = await fetchActivityTimeline({
@@ -179,21 +316,28 @@ export const ActivityPage: React.FC = () => {
         sortOrder: 'desc',
         types: filters.types,
         statuses: filters.statuses,
-        searchQuery: searchQuery.trim() || undefined
+        searchQuery: deferredSearchQuery.trim() || undefined
       });
 
-      setActivities(result.activities);
-      setFilteredActivities(result.activities);
-      setTotal(result.total);
-      setHasMore(result.hasMore);
-      setLoadOffset(50);
+      startTransition(() => {
+        setActivities(result.activities);
+        setFilteredActivities(result.activities);
+        setTotal(result.total);
+        setHasMore(result.hasMore);
+        setLoadOffset(50);
+        setLastRefresh(Date.now());
+      });
     } catch (err) {
       console.error('Error refreshing activities:', err);
-      setError(err instanceof Error ? err.message : 'Failed to refresh activities');
+      startTransition(() => {
+        setError(err instanceof Error ? err.message : 'Failed to refresh activities');
+      });
     } finally {
-      setLoading(false);
+      startTransition(() => {
+        setLoading(false);
+      });
     }
-  };
+  }, [filters, deferredSearchQuery]);
 
   const handleActivityAction = (action: string, activity: ActivityItem) => {
     console.log('Activity action:', action, activity.id);
@@ -340,38 +484,44 @@ export const ActivityPage: React.FC = () => {
     // In a real app, this would update like status in the backend
   };
 
-  const toggleTypeFilter = (type: ActivityType) => {
-    setFilters(prev => {
-      const currentTypes = prev.types || [];
-      const newTypes = currentTypes.includes(type)
-        ? currentTypes.filter(t => t !== type)
-        : [...currentTypes, type];
+  const toggleTypeFilter = useCallback((type: ActivityType) => {
+    startTransition(() => {
+      setFilters(prev => {
+        const currentTypes = prev.types || [];
+        const newTypes = currentTypes.includes(type)
+          ? currentTypes.filter(t => t !== type)
+          : [...currentTypes, type];
 
-      return {
-        ...prev,
-        types: newTypes.length > 0 ? newTypes : undefined
-      };
+        return {
+          ...prev,
+          types: newTypes.length > 0 ? newTypes : undefined
+        };
+      });
     });
-  };
+  }, []);
 
-  const toggleStatusFilter = (status: ActivityStatus) => {
-    setFilters(prev => {
-      const currentStatuses = prev.statuses || [];
-      const newStatuses = currentStatuses.includes(status)
-        ? currentStatuses.filter(s => s !== status)
-        : [...currentStatuses, status];
+  const toggleStatusFilter = useCallback((status: ActivityStatus) => {
+    startTransition(() => {
+      setFilters(prev => {
+        const currentStatuses = prev.statuses || [];
+        const newStatuses = currentStatuses.includes(status)
+          ? currentStatuses.filter(s => s !== status)
+          : [...currentStatuses, status];
 
-      return {
-        ...prev,
-        statuses: newStatuses.length > 0 ? newStatuses : undefined
-      };
+        return {
+          ...prev,
+          statuses: newStatuses.length > 0 ? newStatuses : undefined
+        };
+      });
     });
-  };
+  }, []);
 
-  const clearFilters = () => {
-    setFilters({});
-    setSearchQuery('');
-  };
+  const clearFilters = useCallback(() => {
+    startTransition(() => {
+      setFilters({});
+      setSearchQuery('');
+    });
+  }, []);
 
   const activeFilterCount = [
     filters.types?.length || 0,
@@ -395,16 +545,19 @@ export const ActivityPage: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-6 text-sm text-white/40">
-              <span>
+              <span className={isPending ? 'opacity-70 transition-opacity' : ''}>
                 {total > 0 ? `${filteredActivities.length} of ${total} activities` : `${filteredActivities.length} activities`}
+                {isPending && <span className="ml-2 text-xs text-white/40">(updating...)</span>}
               </span>
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <div className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                  <div className="absolute inset-0 h-1.5 w-1.5 bg-emerald-400/40 rounded-full animate-ping" />
-                  <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-emerald-400/20 rounded-full blur-sm animate-pulse" />
+                  <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${pendingActivities.size > 0 ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
+                  <div className={`absolute inset-0 h-1.5 w-1.5 rounded-full animate-ping ${pendingActivities.size > 0 ? 'bg-yellow-400/40' : 'bg-emerald-400/40'}`} />
+                  <div className={`absolute inset-[-1px] h-2.5 w-2.5 rounded-full blur-sm animate-pulse ${pendingActivities.size > 0 ? 'bg-yellow-400/20' : 'bg-emerald-400/20'}`} />
                 </div>
-                <span className="animate-pulse">Live monitoring</span>
+                <span className="animate-pulse">
+                  {pendingActivities.size > 0 ? `Monitoring ${pendingActivities.size} pending` : 'Live monitoring'}
+                </span>
               </div>
             </div>
           </div>

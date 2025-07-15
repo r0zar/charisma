@@ -12,6 +12,12 @@ export interface TokenInfo {
   contractId: string;
   decimals?: number;
   usdValue?: number;
+  // Price snapshot fields for historical accuracy
+  priceSnapshot?: {
+    price: number;
+    timestamp: number;
+    source: string; // 'blaze' | 'coinmarketcap' | 'manual'
+  };
 }
 
 export interface Reply {

@@ -21,9 +21,44 @@ function normalizeTimestamp(timestamp: string | number): number {
 }
 
 /**
- * Helper to create TokenInfo from token contract ID
+ * Capture price snapshot for a token
  */
-function createTokenInfo(tokenId: string, amount: string, decimals = 6): TokenInfo {
+async function captureTokenPriceSnapshot(tokenId: string): Promise<TokenInfo['priceSnapshot'] | undefined> {
+  try {
+    // For now, we'll make an HTTP call to a price API
+    // In production, this could be enhanced to use multiple sources
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SIMPLE_SWAP_URL}/api/prices/${encodeURIComponent(tokenId)}`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      const priceData = await response.json();
+      if (priceData.price) {
+        return {
+          price: priceData.price,
+          timestamp: Date.now(),
+          source: 'simple-swap-api'
+        };
+      }
+    }
+    
+    console.warn(`[TX-MONITOR] Could not fetch price for token ${tokenId}`);
+    return undefined;
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error fetching price snapshot for ${tokenId}:`, error);
+    return undefined;
+  }
+}
+
+/**
+ * Helper to create TokenInfo from token contract ID with price snapshot
+ */
+async function createTokenInfo(tokenId: string, amount: string, decimals = 6): Promise<TokenInfo> {
   // Extract symbol from contract ID or use the ID itself
   let symbol = tokenId;
   if (tokenId.includes('.')) {
@@ -33,11 +68,23 @@ function createTokenInfo(tokenId: string, amount: string, decimals = 6): TokenIn
     symbol = 'STX';
   }
   
+  // Capture price snapshot for historical accuracy
+  const priceSnapshot = await captureTokenPriceSnapshot(tokenId);
+  
+  // Calculate USD value if we have price and amount
+  let usdValue: number | undefined;
+  if (priceSnapshot && amount && amount !== '0') {
+    const tokenAmount = parseFloat(amount) / Math.pow(10, decimals);
+    usdValue = tokenAmount * priceSnapshot.price;
+  }
+  
   return {
     symbol,
     amount,
     contractId: tokenId,
-    decimals
+    decimals,
+    usdValue,
+    priceSnapshot
   };
 }
 
@@ -88,6 +135,12 @@ async function createSwapActivity(txid: string, swapId: string): Promise<Activit
     
     const swap = typeof swapData === 'string' ? JSON.parse(swapData) : swapData;
     
+    // Create token info with price snapshots
+    const fromToken = await createTokenInfo(swap.inputToken, swap.inputAmount, 6);
+    const toToken = await createTokenInfo(swap.outputToken, swap.outputAmount || '0', 6);
+    
+    console.log(`[TX-MONITOR] Captured price snapshots - From: ${fromToken.priceSnapshot?.price || 'N/A'}, To: ${toToken.priceSnapshot?.price || 'N/A'}`);
+    
     // Create activity from swap data
     const activity: ActivityItem = {
       id: generateActivityId('instant_swap', swapId),
@@ -95,8 +148,8 @@ async function createSwapActivity(txid: string, swapId: string): Promise<Activit
       timestamp: normalizeTimestamp(swap.timestamp),
       status: mapSwapStatusToActivity(swap.status),
       owner: swap.owner,
-      fromToken: createTokenInfo(swap.inputToken, swap.inputAmount, 6),
-      toToken: createTokenInfo(swap.outputToken, swap.outputAmount || '0', 6),
+      fromToken,
+      toToken,
       txid: txid,
       route: swap.routePath || [],
       priceImpact: swap.priceImpact,
@@ -105,7 +158,8 @@ async function createSwapActivity(txid: string, swapId: string): Promise<Activit
       metadata: {
         router: 'dexterity',
         isSubnetShift: swap.metadata?.isSubnetShift || false,
-        notes: 'Instant swap transaction'
+        notes: 'Instant swap transaction',
+        priceSnapshotCaptured: Date.now()
       }
     };
     
@@ -142,6 +196,12 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
       activityType = 'twitter_trigger';
     }
     
+    // Create token info with price snapshots
+    const fromToken = await createTokenInfo(order.fromToken, order.amountIn, 6);
+    const toToken = await createTokenInfo(order.toToken, order.amountOut || '0', 6);
+    
+    console.log(`[TX-MONITOR] Captured price snapshots for order - From: ${fromToken.priceSnapshot?.price || 'N/A'}, To: ${toToken.priceSnapshot?.price || 'N/A'}`);
+    
     // Create activity from order data
     const activity: ActivityItem = {
       id: generateActivityId(activityType, orderId),
@@ -149,8 +209,8 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
       timestamp: normalizeTimestamp(order.timestamp),
       status: mapOrderStatusToActivity(order.status),
       owner: order.owner,
-      fromToken: createTokenInfo(order.fromToken, order.amountIn, 6),
-      toToken: createTokenInfo(order.toToken, order.amountOut || '0', 6),
+      fromToken,
+      toToken,
       txid: txid,
       orderType: order.conditionType || 'manual',
       targetPrice: order.targetPrice,
@@ -164,7 +224,8 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
         notes: order.description || 'Triggered order execution',
         isTwitterTriggered: order.strategy === 'twitter',
         twitterHandle: order.twitterHandle,
-        cancellationReason: order.cancellationReason
+        cancellationReason: order.cancellationReason,
+        priceSnapshotCaptured: Date.now()
       }
     };
     
@@ -184,6 +245,10 @@ export async function createActivityFromUnknownTransaction(txid: string): Promis
   try {
     console.log(`[TX-MONITOR] Creating activity for unknown transaction ${txid}`);
     
+    // Create token info (will not have price snapshots for unknown tokens)
+    const fromToken = await createTokenInfo('unknown', '0');
+    const toToken = await createTokenInfo('unknown', '0');
+    
     // Create a generic activity for unknown transactions
     const activity: ActivityItem = {
       id: generateActivityId('instant_swap', txid),
@@ -191,8 +256,8 @@ export async function createActivityFromUnknownTransaction(txid: string): Promis
       timestamp: Date.now(),
       status: 'pending',
       owner: 'unknown',
-      fromToken: createTokenInfo('unknown', '0'),
-      toToken: createTokenInfo('unknown', '0'),
+      fromToken,
+      toToken,
       txid: txid,
       replyCount: 0,
       hasReplies: false,

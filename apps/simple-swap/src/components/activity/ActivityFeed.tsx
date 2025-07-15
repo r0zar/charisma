@@ -21,7 +21,7 @@ interface ActivityFeedProps {
   onLikeReply?: (replyId: string) => void;
 }
 
-export const ActivityFeed: React.FC<ActivityFeedProps> = ({
+export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
   activities,
   metadata = {},
   loading = false,
@@ -74,7 +74,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
   const handleActivityAction = (action: string, activity: ActivityItem) => {
     onActivityAction?.(action, activity);
-    
+
     // Handle built-in actions
     switch (action) {
       case 'copy_tx':
@@ -187,12 +187,12 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       {/* End Message */}
       {!hasMore && activities.length > 0 && (
         <div className="text-center py-8 text-white/50 text-sm">
-          That's all your activity! 🎉
+          That's all the activity! 🎉
         </div>
       )}
     </div>
   );
-};
+});
 
 // Premium skeleton loader for initial loading state
 export const ActivityFeedSkeleton: React.FC = () => {
@@ -208,13 +208,13 @@ export const ActivityFeedSkeleton: React.FC = () => {
           {/* Activity Card Skeletons */}
           <div className="space-y-4">
             {[...Array(2)].map((_, cardIndex) => (
-              <div 
+              <div
                 key={cardIndex}
                 className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm animate-pulse"
               >
                 {/* Subtle gradient overlay */}
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-                
+
                 <div className="relative space-y-4">
                   {/* Header row */}
                   <div className="flex items-start justify-between">
@@ -224,7 +224,7 @@ export const ActivityFeedSkeleton: React.FC = () => {
                     </div>
                     <div className="h-6 w-20 bg-white/[0.06] rounded-full" />
                   </div>
-                  
+
                   {/* Swap row */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export const ActivityFeedSkeleton: React.FC = () => {
                     </div>
                     <div className="h-4 w-24 bg-white/[0.06] rounded-lg" />
                   </div>
-                  
+
                   {/* Condition row */}
                   <div className="flex items-center justify-between">
                     <div className="h-4 w-48 bg-white/[0.06] rounded-lg" />

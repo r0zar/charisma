@@ -165,8 +165,11 @@ export async function handleTransactionStatusUpdate(
   previousStatus: TransactionStatus,
   currentStatus: TransactionStatus
 ): Promise<void> {
+  console.log(`[TX-MONITOR] handleTransactionStatusUpdate: ${txid} - ${previousStatus} → ${currentStatus}`);
+  
   // Only process if status actually changed
   if (previousStatus === currentStatus) {
+    console.log(`[TX-MONITOR] Status unchanged for ${txid}, skipping update`);
     return;
   }
 
@@ -179,6 +182,8 @@ export async function handleTransactionStatusUpdate(
     return;
   }
 
+  console.log(`[TX-MONITOR] Found mapping for ${txid}: ${mapping.recordType} ${mapping.recordId}`);
+  
   // Update existing activity
   await updateExistingActivity(mapping.recordId, txid, currentStatus);
 }
