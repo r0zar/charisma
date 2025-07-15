@@ -304,7 +304,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         signMessage,
         authenticated: walletState.connected,
         stxAddress: walletState.address || null,
-        isConnecting,
+        isConnecting: _isConnecting,
     };
 
     return (
