@@ -16,6 +16,12 @@ import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useOrderConditions } from '../contexts/order-conditions-context';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { useWallet } from '@/contexts/wallet-context';
+import { TxMonitorClient } from '@repo/tx-monitor-client';
+import { registerTransactionForMonitoring } from '@/lib/activity/tx-monitor-client';
+import { toast } from 'sonner';
+
+// Initialize tx-monitor client
+const txMonitorClient = new TxMonitorClient();
 
 interface BalanceCheckResult {
   hasEnoughSubnet: boolean;
@@ -308,6 +314,186 @@ export function useRouterTrading() {
   // Create a ref to store the current totalPriceImpact value
   const totalPriceImpactRef = useRef<{ priceImpact: number | null } | null>(null);
 
+  // Enhanced toast system for swap transactions
+  const createEnhancedSwapToast = useCallback((txid: string, swapRecordId: string) => {
+    // Create a unique toast ID for this transaction
+    const toastId = `swap-${txid}`;
+    
+    // Show initial "Broadcasted" toast
+    toast.loading(
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="font-semibold text-foreground">Swap Broadcasted</div>
+          <div className="text-muted-foreground text-sm">
+            Waiting for blockchain confirmation...
+          </div>
+          <a
+            href={`https://explorer.stacks.co/txid/${txid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+          >
+            View on explorer
+          </a>
+        </div>
+      </div>,
+      { 
+        id: toastId,
+        duration: 30000 // 30 seconds
+      }
+    );
+
+    // Register transaction with tx-monitor and wait for confirmation
+    const monitorTransaction = async () => {
+      try {
+        // Register transaction for monitoring
+        await registerTransactionForMonitoring(txid, swapRecordId, 'swap');
+        
+        // Use the package's built-in polling method with proper error handling
+        const finalStatus = await txMonitorClient.pollTransactionStatus(txid, {
+          timeout: 30000, // 30 seconds
+          interval: 2000, // Check every 2 seconds
+          onStatusChange: (status) => {
+            console.log(`[Enhanced Toast] Transaction ${txid} status: ${status.status}`);
+            // The initial "Broadcasted" toast stays until we get a final result
+          },
+          onError: (error) => {
+            console.error(`[Enhanced Toast] Error polling transaction ${txid}:`, error);
+            // The package will handle retries, we just log errors
+          }
+        });
+        
+        // Handle final status
+        if (finalStatus.status === 'success') {
+          // Update toast to success
+          toast.success(
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="font-semibold text-foreground">Swap Confirmed ✅</div>
+                <div className="text-muted-foreground text-sm">
+                  Your swap has been confirmed on the blockchain.
+                </div>
+                <a
+                  href={`https://explorer.stacks.co/txid/${txid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+                >
+                  View on explorer
+                </a>
+              </div>
+            </div>,
+            { 
+              id: toastId,
+              duration: 7000 
+            }
+          );
+        } else if (finalStatus.status === 'abort_by_response' || finalStatus.status === 'abort_by_post_condition') {
+          // Update toast to failed
+          toast.error(
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="font-semibold text-foreground">Swap Failed ❌</div>
+                <div className="text-muted-foreground text-sm">
+                  Transaction failed: {finalStatus.status}
+                </div>
+                <a
+                  href={`https://explorer.stacks.co/txid/${txid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+                >
+                  View on explorer
+                </a>
+              </div>
+            </div>,
+            { 
+              id: toastId,
+              duration: 7000 
+            }
+          );
+        } else if (finalStatus.status === 'not_found') {
+          // Transaction not found
+          toast.error(
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="font-semibold text-foreground">Transaction Not Found ❌</div>
+                <div className="text-muted-foreground text-sm">
+                  Transaction could not be found on the blockchain.
+                </div>
+                <a
+                  href={`https://explorer.stacks.co/txid/${txid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+                >
+                  View on explorer
+                </a>
+              </div>
+            </div>,
+            { 
+              id: toastId,
+              duration: 7000 
+            }
+          );
+        } else {
+          // Still pending or timeout reached
+          toast.info(
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="font-semibold text-foreground">Still Processing</div>
+                <div className="text-muted-foreground text-sm">
+                  Your swap is still being processed. Check the explorer for updates.
+                </div>
+                <a
+                  href={`https://explorer.stacks.co/txid/${txid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+                >
+                  View on explorer
+                </a>
+              </div>
+            </div>,
+            { 
+              id: toastId,
+              duration: 7000 
+            }
+          );
+        }
+        
+      } catch (error) {
+        console.error('Error monitoring transaction:', error);
+        // Show fallback toast
+        toast.info(
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1">
+              <div className="font-semibold text-foreground">Swap Broadcasted</div>
+              <div className="text-muted-foreground text-sm">
+                Your transaction has been broadcast to the blockchain.
+              </div>
+              <a
+                href={`https://explorer.stacks.co/txid/${txid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
+              >
+                View on explorer
+              </a>
+            </div>
+          </div>,
+          { 
+            id: toastId,
+            duration: 7000 
+          }
+        );
+      }
+    };
+    
+    // Start monitoring in the background
+    monitorTransaction();
+  }, []);
+
   // Execute swap transaction
   const handleSwap = useCallback(async () => {
     if (!quote || !walletAddress || !selectedFromToken || !selectedToToken) return;
@@ -367,7 +553,13 @@ export function useRouterTrading() {
         console.log('📊 Updated swap record with txid:', res.txid);
       }
 
-      setSwapSuccessInfo(res);
+      // Use enhanced toast system instead of setting swapSuccessInfo
+      if (res.txid && swapRecordId) {
+        createEnhancedSwapToast(res.txid, swapRecordId);
+      } else {
+        // Fallback to old behavior if no txid
+        setSwapSuccessInfo(res);
+      }
     } catch (err) {
       console.error('Swap failed:', err);
       
@@ -388,7 +580,7 @@ export function useRouterTrading() {
     } finally {
       setSwapping(false);
     }
-  }, [quote, walletAddress, selectedFromToken, selectedToToken]);
+  }, [quote, walletAddress, selectedFromToken, selectedToToken, createEnhancedSwapToast]);
 
   // Helper function to get quote for specific tokens and amount (used in balance checking)
   const getQuoteForTokens = useCallback(async (

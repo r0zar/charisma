@@ -18,7 +18,11 @@ export type {
   QueueDetailsResponse,
   ApiResponse,
   TxMonitorConfig,
-  PollingOptions
+  PollingOptions,
+  // Activity integration types
+  TransactionRegistration,
+  QueueAddWithMappingRequest,
+  QueueAddWithMappingResponse
 } from './types';
 
 export {

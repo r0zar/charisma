@@ -39,8 +39,6 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
     quote,
     balanceCheckResult,
     setBalanceCheckResult,
-    swapSuccessInfo,
-    clearSwapSuccessInfo,
     orderSuccessInfo,
     clearOrderSuccessInfo,
   } = useRouterTrading();
@@ -66,29 +64,9 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
       );
       clearOrderSuccessInfo();
     }
-    if (swapSuccessInfo && swapSuccessInfo.txid) {
-      toast.success(
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <div className="font-semibold text-foreground">Swap Successful</div>
-            <div className="text-muted-foreground text-sm">
-              Your transaction has been broadcast to the Stacks blockchain.
-            </div>
-            <a
-              href={`https://explorer.stacks.co/txid/${swapSuccessInfo.txid}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
-            >
-              View on explorer
-            </a>
-          </div>
-        </div>,
-        { duration: 7000 }
-      );
-      clearSwapSuccessInfo();
-    }
-  }, [orderSuccessInfo, swapSuccessInfo, toast, clearOrderSuccessInfo, clearSwapSuccessInfo]);
+    // Note: Swap success toasts are now handled by the enhanced toast system in useRouterTrading
+    // The old swapSuccessInfo toast has been removed to avoid duplicates
+  }, [orderSuccessInfo, toast, clearOrderSuccessInfo]);
 
   // Header-only mode for the full-width header
   if (headerOnly) {

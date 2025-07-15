@@ -20,6 +20,24 @@ export interface QueueAddResponse {
   alreadyMonitored: string[];
 }
 
+// Activity integration types
+export interface TransactionRegistration {
+  txid: string;
+  recordId: string;
+  recordType: 'order' | 'swap';
+}
+
+export interface QueueAddWithMappingRequest {
+  transactions: TransactionRegistration[];
+}
+
+export interface QueueAddWithMappingResponse {
+  success: boolean;
+  added: string[];
+  alreadyMonitored: string[];
+  mappingsStored: number;
+}
+
 export interface StatusResponse {
   txid: string;
   status: TransactionStatus;

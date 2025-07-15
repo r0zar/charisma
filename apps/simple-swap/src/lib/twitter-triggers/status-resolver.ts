@@ -185,8 +185,9 @@ async function checkBlockchainStatus(txid: string): Promise<{
     blockTime?: number;
 } | null> {
     try {
-        const { checkTransactionStatus } = await import('../transaction-monitor');
-        const result = await checkTransactionStatus(txid);
+        const { TxMonitorClient } = await import('@repo/tx-monitor-client');
+        const txMonitorClient = new TxMonitorClient();
+        const result = await txMonitorClient.getTransactionStatus(txid);
         
         return {
             status: result.status,
