@@ -261,7 +261,7 @@ KV_REST_API_URL=your_redis_url
 KV_REST_API_TOKEN=your_redis_token
 
 # Transaction Monitor Integration
-TX_MONITOR_URL=http://localhost:3001
+NEXT_PUBLIC_TX_MONITOR_URL=http://localhost:3012
 ACTIVITY_WEBHOOK_SECRET=your_webhook_secret
 
 # Simple Swap Configuration

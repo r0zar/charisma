@@ -36,7 +36,7 @@
         "VERCEL_TOKEN",
         "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
         "CLERK_SECRET_KEY",
-        "TX_MONITOR_URL",
+        "NEXT_PUBLIC_TX_MONITOR_URL",
         "ACTIVITY_WEBHOOK_SECRET"
       ]
     },

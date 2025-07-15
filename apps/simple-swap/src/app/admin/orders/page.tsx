@@ -28,10 +28,10 @@ interface AdminStats {
 }
 
 async function fetchAdminStats(): Promise<AdminStats> {
-    const TX_MONITOR_URL = process.env.TX_MONITOR_URL || 'http://localhost:3001';
+    const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';
     const response = await fetch(`${TX_MONITOR_URL}/api/v1/queue/stats`);
     const data = await response.json();
-    
+
     if (data.success) {
         // Map tx-monitor stats to the expected format
         const stats = data.data;
@@ -57,7 +57,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
             }
         };
     }
-    
+
     throw new Error('Failed to fetch admin stats');
 }
 
@@ -128,7 +128,7 @@ export default function OrderManagement() {
 
     useEffect(() => {
         loadStats();
-        
+
         // Auto-refresh disabled - users can manually refresh using the refresh button
         // const interval = setInterval(loadStats, 30000);
         // return () => clearInterval(interval);
@@ -170,7 +170,7 @@ export default function OrderManagement() {
                         </Button>
                         <Button variant="outline" size="sm" onClick={async () => {
                             try {
-                                const TX_MONITOR_URL = process.env.TX_MONITOR_URL || 'http://localhost:3001';
+                                const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';
                                 const response = await fetch(`${TX_MONITOR_URL}/api/v1/admin/trigger`, { method: 'POST' });
                                 if (response.ok) {
                                     alert('Transaction monitoring triggered successfully');
