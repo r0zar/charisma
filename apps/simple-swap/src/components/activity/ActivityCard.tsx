@@ -295,27 +295,80 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           </div>
         </div>
 
-        {/* Trade Summary Row - Only for completed swaps with meaningful data */}
-        {activity.status === 'completed' && activity.type === 'instant_swap' && activity.fromToken.usdValue && activity.toToken.usdValue && (
-          <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-white/60">Traded:</span>
-              <span className="text-white/80 font-medium">
-                {formatUsdValue(activity.fromToken.usdValue)}
-              </span>
-              <span className="text-white/40">→</span>
-              <span className="text-white/80 font-medium">
-                {formatUsdValue(activity.toToken.usdValue)}
-              </span>
-            </div>
-            {activity.toToken.amount && activity.fromToken.amount && (
-              <div className="text-sm text-white/70">
-                <span className="text-xs text-white/50">Received: </span>
-                {formatTokenAmount(activity.toToken.amount, activity.toToken.decimals)} {activity.toToken.symbol}
+        {/* Trade Summary Row - Enhanced with transaction analysis data */}
+        {activity.status === 'completed' && activity.type === 'instant_swap' && activity.fromToken.amount && (() => {
+          // Get actual received amount from transaction analysis
+          const transactionAnalysis = activity.metadata?.transactionAnalysis;
+          const actualOutputAmount = transactionAnalysis?.analysis?.finalOutputAmount;
+          const slippage = transactionAnalysis?.analysis?.slippage;
+          
+          // Use actual amount if available, otherwise fall back to original data
+          const displayAmount = actualOutputAmount || activity.toToken.amount;
+          const hasActualData = !!actualOutputAmount;
+          
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-white/60">Traded:</span>
+                  {activity.fromToken.usdValue && activity.toToken.usdValue ? (
+                    <>
+                      <span className="text-white/80 font-medium">
+                        {formatUsdValue(activity.fromToken.usdValue)}
+                      </span>
+                      <span className="text-white/40">→</span>
+                      <span className="text-white/80 font-medium">
+                        {formatUsdValue(activity.toToken.usdValue)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-white/80 font-medium">
+                        {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)} {activity.fromToken.symbol}
+                      </span>
+                      <span className="text-white/40">→</span>
+                      <span className="text-white/80 font-medium">
+                        {displayAmount && parseFloat(displayAmount.toString()) > 0 
+                          ? `${formatTokenAmount(displayAmount, activity.toToken.decimals)} ${activity.toToken.symbol}`
+                          : 'Processing...'
+                        }
+                      </span>
+                    </>
+                  )}
+                </div>
+                {displayAmount && parseFloat(displayAmount.toString()) > 0 && (
+                  <div className="text-sm text-white/70">
+                    <span className="text-xs text-white/50">Received: </span>
+                    <span className={hasActualData ? "text-emerald-400 font-medium" : ""}>
+                      {formatTokenAmount(displayAmount, activity.toToken.decimals)} {activity.toToken.symbol}
+                    </span>
+                    {hasActualData && (
+                      <span className="text-xs text-emerald-500/60 ml-1">✓</span>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+              
+              {/* Slippage indicator */}
+              {slippage && typeof slippage.slippagePercent === 'number' && !isNaN(slippage.slippagePercent) && isFinite(slippage.slippagePercent) && (
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-orange-500/[0.05] to-red-500/[0.05] border border-orange-500/[0.15]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-orange-400 text-xs">⚠️</span>
+                    <span className="text-orange-300 text-sm font-medium">Slippage:</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-orange-200 text-sm font-medium">
+                      {slippage.slippagePercent > 0 ? '+' : ''}{slippage.slippagePercent.toFixed(2)}%
+                    </div>
+                    <div className="text-orange-400/60 text-xs">
+                      {formatTokenAmount(Math.abs(slippage.difference || 0).toString(), activity.toToken.decimals || 6)} {activity.toToken.symbol} difference
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Action buttons for active orders */}
         {activity.status === "pending" && activity.type !== 'instant_swap' && (
@@ -458,6 +511,60 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-white/60">Execution Price:</span>
                         <span className="text-white/90">${activity.executionPrice.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    {/* Enhanced Transaction Analysis */}
+                    {activity.metadata?.transactionAnalysis && (
+                      <div className="bg-gradient-to-br from-emerald-500/[0.05] to-blue-500/[0.05] rounded-lg p-3 border border-emerald-500/[0.15] mt-3">
+                        <div className="text-emerald-300 text-xs mb-3 uppercase tracking-wider flex items-center gap-2">
+                          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                          Transaction Analysis
+                        </div>
+                        <div className="space-y-3">
+                          {/* Actual vs Quoted Amounts */}
+                          {activity.metadata.transactionAnalysis.analysis.slippage && (
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-white/60 text-sm">Quoted Amount:</span>
+                                <span className="text-white/80 font-mono text-sm">
+                                  {formatTokenAmount(activity.metadata.transactionAnalysis.analysis.slippage.quotedAmount, activity.toToken.decimals || 6)} {activity.toToken.symbol}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-white/60 text-sm">Actual Received:</span>
+                                <span className="text-emerald-300 font-mono text-sm font-medium">
+                                  {formatTokenAmount(activity.metadata.transactionAnalysis.analysis.slippage.actualAmount, activity.toToken.decimals || 6)} {activity.toToken.symbol}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-white/60 text-sm">Difference:</span>
+                                <span className={`font-mono text-sm ${(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0) > 0 ? 'text-red-300' : 'text-green-300'}`}>
+                                  {(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0) > 0 ? '-' : '+'}{formatTokenAmount(Math.abs(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0).toString(), activity.toToken.decimals || 6)} {activity.toToken.symbol}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Token Flow Summary */}
+                          <div className="pt-2 border-t border-white/[0.08]">
+                            <div className="text-white/60 text-xs mb-2">Token Flow:</div>
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-red-300">Input Transfers:</span>
+                                <span className="text-white/70">{activity.metadata.transactionAnalysis.analysis.inputTokens.length}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-green-300">Output Transfers:</span>
+                                <span className="text-white/70">{activity.metadata.transactionAnalysis.analysis.outputTokens.length}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-blue-300">Total Events:</span>
+                                <span className="text-white/70">{activity.metadata.transactionAnalysis.totalEvents}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
 

@@ -15,39 +15,49 @@ function normalizeTimestamp(timestamp: string | number): number {
     // Convert to milliseconds if it appears to be in seconds
     return timestamp < 10000000000 ? timestamp * 1000 : timestamp;
   }
-  
+
   // If it's a string, parse ISO date
   return new Date(timestamp).getTime();
 }
 
 /**
- * Capture price snapshot for a token
+ * Capture price snapshot for a token using charisma-party prices API
  */
 async function captureTokenPriceSnapshot(tokenId: string): Promise<TokenInfo['priceSnapshot'] | undefined> {
   try {
-    // For now, we'll make an HTTP call to a price API
-    // In production, this could be enhanced to use multiple sources
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SIMPLE_SWAP_URL}/api/prices/${encodeURIComponent(tokenId)}`, {
-      signal: controller.signal
+
+    // Use charisma-party prices API
+    const pricesUrl = `${process.env.NEXT_PUBLIC_CHARISMA_PARTY_URL || 'https://party.charisma.rocks'}/parties/prices?tokens=${encodeURIComponent(tokenId)}`;
+
+    const response = await fetch(pricesUrl, {
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+      }
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (response.ok) {
-      const priceData = await response.json();
-      if (priceData.price) {
-        return {
-          price: priceData.price,
-          timestamp: Date.now(),
-          source: 'simple-swap-api'
-        };
+      const data = await response.json();
+
+      // charisma-party returns: { prices: [{ contractId, price, timestamp, source }] }
+      if (data.prices && Array.isArray(data.prices) && data.prices.length > 0) {
+        const priceUpdate = data.prices.find((p: any) => p.contractId === tokenId);
+
+        if (priceUpdate && typeof priceUpdate.price === 'number') {
+          return {
+            price: priceUpdate.price,
+            timestamp: priceUpdate.timestamp || Date.now(),
+            source: priceUpdate.source || 'charisma-party'
+          };
+        }
       }
     }
-    
-    console.warn(`[TX-MONITOR] Could not fetch price for token ${tokenId}`);
+
+    console.warn(`[TX-MONITOR] Could not fetch price for token ${tokenId} from charisma-party`);
     return undefined;
   } catch (error) {
     console.error(`[TX-MONITOR] Error fetching price snapshot for ${tokenId}:`, error);
@@ -67,17 +77,17 @@ async function createTokenInfo(tokenId: string, amount: string, decimals = 6): P
   } else if (tokenId === 'STX') {
     symbol = 'STX';
   }
-  
+
   // Capture price snapshot for historical accuracy
   const priceSnapshot = await captureTokenPriceSnapshot(tokenId);
-  
+
   // Calculate USD value if we have price and amount
   let usdValue: number | undefined;
   if (priceSnapshot && amount && amount !== '0') {
     const tokenAmount = parseFloat(amount) / Math.pow(10, decimals);
     usdValue = tokenAmount * priceSnapshot.price;
   }
-  
+
   return {
     symbol,
     amount,
@@ -107,13 +117,13 @@ export async function createActivityFromTransaction(
 ): Promise<ActivityItem | null> {
   try {
     console.log(`[TX-MONITOR] Creating activity for transaction ${txid}, record ${recordId}, type ${recordType}`);
-    
+
     if (recordType === 'swap') {
       return await createSwapActivity(txid, recordId);
     } else if (recordType === 'order') {
       return await createOrderActivity(txid, recordId);
     }
-    
+
     return null;
   } catch (error) {
     console.error(`[TX-MONITOR] Error creating activity for transaction ${txid}:`, error);
@@ -132,15 +142,15 @@ async function createSwapActivity(txid: string, swapId: string): Promise<Activit
       console.warn(`[TX-MONITOR] No swap record found for ${swapId}`);
       return null;
     }
-    
+
     const swap = typeof swapData === 'string' ? JSON.parse(swapData) : swapData;
-    
+
     // Create token info with price snapshots
     const fromToken = await createTokenInfo(swap.inputToken, swap.inputAmount, 6);
     const toToken = await createTokenInfo(swap.outputToken, swap.outputAmount || '0', 6);
-    
+
     console.log(`[TX-MONITOR] Captured price snapshots - From: ${fromToken.priceSnapshot?.price || 'N/A'}, To: ${toToken.priceSnapshot?.price || 'N/A'}`);
-    
+
     // Create activity from swap data
     const activity: ActivityItem = {
       id: generateActivityId('instant_swap', swapId),
@@ -162,10 +172,10 @@ async function createSwapActivity(txid: string, swapId: string): Promise<Activit
         priceSnapshotCaptured: Date.now()
       }
     };
-    
+
     console.log(`[TX-MONITOR] Created swap activity: ${activity.id}`);
     return activity;
-    
+
   } catch (error) {
     console.error(`[TX-MONITOR] Error creating swap activity for ${swapId}:`, error);
     return null;
@@ -183,9 +193,9 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
       console.warn(`[TX-MONITOR] No order record found for ${orderId}`);
       return null;
     }
-    
+
     const order = typeof orderData === 'string' ? JSON.parse(orderData) : orderData;
-    
+
     // Determine activity type based on order status
     let activityType: ActivityType = 'order_filled';
     if (order.status === 'cancelled') {
@@ -195,13 +205,13 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
     } else if (order.strategy === 'twitter') {
       activityType = 'twitter_trigger';
     }
-    
+
     // Create token info with price snapshots
     const fromToken = await createTokenInfo(order.fromToken, order.amountIn, 6);
     const toToken = await createTokenInfo(order.toToken, order.amountOut || '0', 6);
-    
+
     console.log(`[TX-MONITOR] Captured price snapshots for order - From: ${fromToken.priceSnapshot?.price || 'N/A'}, To: ${toToken.priceSnapshot?.price || 'N/A'}`);
-    
+
     // Create activity from order data
     const activity: ActivityItem = {
       id: generateActivityId(activityType, orderId),
@@ -228,10 +238,10 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
         priceSnapshotCaptured: Date.now()
       }
     };
-    
+
     console.log(`[TX-MONITOR] Created order activity: ${activity.id}`);
     return activity;
-    
+
   } catch (error) {
     console.error(`[TX-MONITOR] Error creating order activity for ${orderId}:`, error);
     return null;
@@ -244,11 +254,11 @@ async function createOrderActivity(txid: string, orderId: string): Promise<Activ
 export async function createActivityFromUnknownTransaction(txid: string): Promise<ActivityItem | null> {
   try {
     console.log(`[TX-MONITOR] Creating activity for unknown transaction ${txid}`);
-    
+
     // Create token info (will not have price snapshots for unknown tokens)
     const fromToken = await createTokenInfo('unknown', '0');
     const toToken = await createTokenInfo('unknown', '0');
-    
+
     // Create a generic activity for unknown transactions
     const activity: ActivityItem = {
       id: generateActivityId('instant_swap', txid),
@@ -265,10 +275,10 @@ export async function createActivityFromUnknownTransaction(txid: string): Promis
         notes: 'Transaction discovered in monitoring queue'
       }
     };
-    
+
     console.log(`[TX-MONITOR] Created unknown transaction activity: ${activity.id}`);
     return activity;
-    
+
   } catch (error) {
     console.error(`[TX-MONITOR] Error creating activity for unknown transaction ${txid}:`, error);
     return null;

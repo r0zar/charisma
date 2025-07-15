@@ -5,6 +5,7 @@
 
 import { kv } from '@vercel/kv';
 import { ActivityItem, ActivityFeedOptions, ActivityFeedResult, ActivityUpdate, Reply } from './activity-types';
+import { validateActivityForProduction } from './activity-validation';
 
 // Storage keys following existing patterns
 const ACTIVITY_HASH_KEY = 'activity_timeline';
@@ -23,6 +24,9 @@ const ACTIVITY_REPLIES_SET = 'activity_replies:';
  */
 export async function addActivity(activity: ActivityItem): Promise<void> {
   try {
+    // Validate activity is not a test activity in production
+    validateActivityForProduction(activity);
+    
     // Store in main hash (follows orders/swaps pattern)
     await kv.hset(ACTIVITY_HASH_KEY, { [activity.id]: JSON.stringify(activity) });
     

@@ -3,6 +3,8 @@
  * Combines instant swaps and triggered orders into a consistent interface
  */
 
+import type { TransactionAnalysis } from './extract-actual-amounts';
+
 export type ActivityType = 'instant_swap' | 'order_filled' | 'order_cancelled' | 'dca_update' | 'twitter_trigger';
 export type ActivityStatus = 'completed' | 'pending' | 'failed' | 'cancelled' | 'processing';
 
@@ -83,6 +85,10 @@ export interface ActivityItem {
     averagePrice?: string;
     cancellationReason?: string;
     errorMessage?: string;
+    // Enhanced transaction analysis for detailed visualizations
+    transactionAnalysis?: TransactionAnalysis;
+    lastStatusUpdate?: number;
+    txStatus?: string;
     [key: string]: any;
   };
 }

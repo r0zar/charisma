@@ -8,6 +8,7 @@ import type { TransactionStatus } from './types';
 import { addActivity, updateActivity, getActivity } from './activity-storage';
 import { createActivityFromTransaction, createActivityFromUnknownTransaction, mapTransactionStatusToActivity } from './activity-adapters';
 import { ActivityItem } from './activity-types';
+import { analyzeTransaction, extractActualOutputAmount } from './extract-actual-amounts';
 
 interface ActivityUpdatePayload {
   txid: string;
@@ -239,14 +240,58 @@ async function updateActivityByTxid(
     
     const activityStatus = mapTransactionStatusToActivity(currentStatus);
     
-    // Update the activity status
+    // Enhanced metadata with transaction analysis for successful transactions
+    let enhancedMetadata = {
+      ...matchingActivity.metadata,
+      lastStatusUpdate: Date.now(),
+      txStatus: currentStatus
+    };
+
+    // Add comprehensive transaction analysis for successful swaps
+    if (currentStatus === 'success' && matchingActivity.type === 'instant_swap' && matchingActivity.owner) {
+      try {
+        console.log(`[TX-MONITOR] Performing transaction analysis for successful swap ${txid}`);
+        
+        // Extract actual output amount and store it
+        const actualAmount = await extractActualOutputAmount(
+          txid, 
+          matchingActivity.owner, 
+          matchingActivity.toToken.contractId
+        );
+
+        if (actualAmount) {
+          console.log(`[TX-MONITOR] Extracted actual amount: ${actualAmount} for expected token: ${matchingActivity.toToken.contractId}`);
+          
+          // Get quoted amount from current activity data for slippage calculation
+          const quotedAmount = matchingActivity.toToken.amount;
+          
+          // Perform comprehensive transaction analysis
+          const analysis = await analyzeTransaction(
+            txid,
+            matchingActivity.owner,
+            matchingActivity.toToken.contractId,
+            quotedAmount
+          );
+
+          if (analysis) {
+            enhancedMetadata.transactionAnalysis = analysis;
+            console.log(`[TX-MONITOR] Added transaction analysis to activity ${matchingActivity.id}`);
+            
+            if (analysis.analysis.slippage) {
+              console.log(`[TX-MONITOR] Slippage detected: ${analysis.analysis.slippage.slippagePercent.toFixed(2)}%`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[TX-MONITOR] Error performing transaction analysis for ${txid}:`, error);
+        // Don't fail the status update if analysis fails
+      }
+    }
+    
+    // Update the activity status and metadata
     await updateActivity(matchingActivity.id, {
       status: activityStatus,
-      metadata: {
-        ...matchingActivity.metadata,
-        lastStatusUpdate: Date.now(),
-        txStatus: currentStatus
-      }
+      metadata: enhancedMetadata
     });
     
     console.log(`[TX-MONITOR] Updated activity ${matchingActivity.id} (txid: ${txid}) to status: ${activityStatus}`);
