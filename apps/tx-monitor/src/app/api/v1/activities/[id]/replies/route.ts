@@ -10,10 +10,10 @@ import { Reply } from '@/lib/activity-types';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const activityId = params.id;
+    const { id: activityId } = await params;
     
     if (!activityId) {
       return NextResponse.json(
@@ -45,10 +45,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const activityId = params.id;
+    const { id: activityId } = await params;
     
     if (!activityId) {
       return NextResponse.json(
