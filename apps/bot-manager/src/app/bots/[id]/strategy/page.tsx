@@ -162,7 +162,7 @@ export default function BotStrategyPage() {
                 type="url"
                 value={localBot?.gitRepository || ''}
                 onChange={(e) => localBot && setLocalBot({ ...localBot, gitRepository: e.target.value })}
-                placeholder="https://github.com/username/repository.git"
+                placeholder="https://github.com/r0zar/charisma.git"
                 className="bg-input border-border text-foreground text-sm"
               />
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -179,7 +179,7 @@ export default function BotStrategyPage() {
               />
               <div className="space-y-1">
                 <Label htmlFor="isMonorepo" className="text-card-foreground text-sm font-medium cursor-pointer">This is a monorepo</Label>
-                <p className="text-xs text-muted-foreground">Enable if your repository contains multiple packages</p>
+                <p className="text-xs text-muted-foreground">Enable if your repository contains multiple apps or packages</p>
               </div>
             </div>
 
@@ -191,11 +191,11 @@ export default function BotStrategyPage() {
                   type="text"
                   value={localBot?.packagePath || ''}
                   onChange={(e) => localBot && setLocalBot({ ...localBot, packagePath: e.target.value })}
-                  placeholder="packages/polyglot"
+                  placeholder="bots/basic"
                   className="bg-input border-border text-foreground text-sm"
                 />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Path to the package within the monorepo (e.g., "packages/polyglot")
+                  Path to the package within the monorepo (e.g., "bots/basic")
                 </p>
               </div>
             )}
