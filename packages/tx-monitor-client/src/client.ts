@@ -25,9 +25,8 @@ export class TxMonitorClient {
   private config: Required<Omit<TxMonitorConfig, 'adminAuth'>> & { adminAuth?: TxMonitorConfig['adminAuth'] };
 
   constructor(config: TxMonitorConfig = {}) {
-    console.log('TX_MONITOR_URL', process.env.TX_MONITOR_URL);
     this.config = {
-      baseUrl: (process.env.TX_MONITOR_URL || 'http://localhost:3012').replace(/\/$/, ''),
+      baseUrl: (process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012').replace(/\/$/, ''),
       timeout: config.timeout ?? 30000,
       retryAttempts: config.retryAttempts ?? 3,
       retryDelay: config.retryDelay ?? 1000,
