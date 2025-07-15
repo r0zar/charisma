@@ -97,7 +97,8 @@ export function NavigationDrawer() {
     const originalPush = router.push;
     router.push = (...args) => {
       handleRouteChangeStart();
-      return originalPush.apply(router, args).finally(handleRouteChangeComplete);
+      originalPush.apply(router, args);
+      handleRouteChangeComplete();
     };
 
     // Also reset on pathname change (for back/forward navigation)
