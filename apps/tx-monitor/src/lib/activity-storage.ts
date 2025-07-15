@@ -85,9 +85,16 @@ export async function updateActivity(id: string, updates: ActivityUpdate): Promi
     }
     
     // Merge updates
+    const { toToken: updatedToToken, ...otherUpdates } = updates;
     const updated: ActivityItem = {
       ...existing,
-      ...updates,
+      ...otherUpdates,
+      ...(updatedToToken && {
+        toToken: {
+          ...existing.toToken,
+          ...updatedToToken
+        }
+      }),
       metadata: {
         ...existing.metadata,
         ...updates.metadata

@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     
     // Filter parameters
-    const owner = searchParams.get('owner');
+    const owner = searchParams.get('owner') || undefined;
     const types = searchParams.get('types')?.split(',') as ActivityType[] | undefined;
     const statuses = searchParams.get('statuses')?.split(',') as ActivityStatus[] | undefined;
-    const searchQuery = searchParams.get('search');
+    const searchQuery = searchParams.get('search') || undefined;
     
     // Date range filtering
     const startDate = searchParams.get('startDate');
