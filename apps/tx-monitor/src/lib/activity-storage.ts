@@ -138,9 +138,9 @@ export async function getActivityTimeline(options: ActivityFeedOptions = {}): Pr
     const timelineKey = owner ? `${USER_TIMELINE_SORTED}${owner}` : ACTIVITY_TIMELINE_SORTED;
     
     // Get IDs in reverse chronological order by default
-    const activityIds = sortOrder === 'desc' 
+    const activityIds = (sortOrder === 'desc' 
       ? await kv.zrange(timelineKey, offset, offset + limit - 1, { rev: true })
-      : await kv.zrange(timelineKey, offset, offset + limit - 1);
+      : await kv.zrange(timelineKey, offset, offset + limit - 1)) as string[];
     
     if (!activityIds || activityIds.length === 0) {
       return { activities: [], total: 0, hasMore: false };
@@ -243,7 +243,7 @@ export async function addActivityReply(activityId: string, reply: Reply): Promis
  */
 export async function getActivityReplies(activityId: string): Promise<Reply[]> {
   try {
-    const replyIds = await kv.zrange(`${ACTIVITY_REPLIES_SET}${activityId}`, 0, -1);
+    const replyIds = await kv.zrange(`${ACTIVITY_REPLIES_SET}${activityId}`, 0, -1) as string[];
     if (!replyIds || replyIds.length === 0) return [];
     
     const replies: Reply[] = [];

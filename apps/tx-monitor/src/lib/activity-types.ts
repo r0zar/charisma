@@ -115,6 +115,8 @@ export interface ActivityUpdate {
   confirmations?: number;
   metadata?: Partial<ActivityItem['metadata']>;
   toToken?: Partial<TokenInfo>;
+  replyCount?: number;
+  hasReplies?: boolean;
 }
 
 export interface ActivityFeedFilters {
