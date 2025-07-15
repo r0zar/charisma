@@ -120,14 +120,15 @@ export default function SwapHeader() {
                 <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-xl p-1">
                     <button
                         onClick={() => setMode('swap')}
-                        className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 cursor-pointer ${mode === 'swap'
+                        className={`relative px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 cursor-pointer ${mode === 'swap'
                             ? 'bg-white/[0.1] text-white'
                             : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05]'
                             }`}
                     >
-                        <div className={`h-2 w-2 rounded-full transition-all duration-300 ${mode === 'swap' ? 'bg-blue-400' : 'bg-white/40'}`} />
+                        <div className={`hidden sm:block h-2 w-2 rounded-full transition-all duration-300 ${mode === 'swap' ? 'bg-blue-400' : 'bg-white/40'}`} />
                         <Repeat className="w-4 h-4" />
-                        <span>Instant Swaps</span>
+                        <span className="hidden sm:inline">Instant Swaps</span>
+                        <span className="sm:hidden">Instant</span>
                     </button>
                     <button
                         onClick={() => !isOrderModeDisabled && setMode('order')}
@@ -136,16 +137,17 @@ export default function SwapHeader() {
                             ? "Order mode requires a token with subnet support. Please select a different token."
                             : "Switch to order mode for triggered swaps"
                         }
-                        className={`relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${isOrderModeDisabled
+                        className={`relative px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${isOrderModeDisabled
                             ? 'text-white/30 cursor-not-allowed opacity-50'
                             : mode === 'order'
                                 ? 'bg-white/[0.1] text-white cursor-pointer'
                                 : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] cursor-pointer'
                             }`}
                     >
-                        <div className={`h-2 w-2 rounded-full transition-all duration-300 ${mode === 'order' && !isOrderModeDisabled ? 'bg-purple-400' : 'bg-white/40'}`} />
+                        <div className={`hidden sm:block h-2 w-2 rounded-full transition-all duration-300 ${mode === 'order' && !isOrderModeDisabled ? 'bg-purple-400' : 'bg-white/40'}`} />
                         <AlarmCheck className="w-4 h-4" />
-                        <span>Triggered Swaps</span>
+                        <span className="hidden sm:inline">Triggered Swaps</span>
+                        <span className="sm:hidden">Triggered</span>
                     </button>
                 </div>
             </div>
