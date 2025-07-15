@@ -73,7 +73,7 @@ export function NavigationDrawer() {
   const { botStats, bots } = useBots();
   const hasAlphaAccess = useAlphaAccess();
   const { openSearch } = useSearch();
-  const snapPoints = ['20px', '80px', 0.7];
+  const snapPoints = ['20px', '80px', 0.8];
   const [snap, setSnap] = useState<number | string | null>(snapPoints[1]);
   const [open, setOpen] = useState(true);
   const {
@@ -418,7 +418,7 @@ export function NavigationDrawer() {
         {/* Navigation Section */}
         <div>
           <h3 className="text-sm font-medium text-foreground mb-3">Quick Navigation</h3>
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
