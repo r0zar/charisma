@@ -33,7 +33,7 @@ async function fixActivityData() {
     const timeline = await getActivityTimeline({ limit: 50 });
     const activitiesToFix = timeline.activities.filter(activity => 
       activity.type === 'instant_swap' && 
-      (!activity.toToken.amount || activity.toToken.amount === '0' || activity.toToken.amount === 0)
+      (!activity.toToken.amount || activity.toToken.amount === '0')
     );
     
     await logger.info(`📊 Found ${activitiesToFix.length} activities that might need fixing`);

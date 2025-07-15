@@ -67,14 +67,14 @@ export const ActivityPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
-  
+
   // Use deferred value for search query to avoid blocking UI during typing
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  
+
   // Use refs for stable references
   const loadingRef = useRef(loading);
   const activitiesRef = useRef(activities);
-  
+
   // Update refs when values change
   useEffect(() => {
     loadingRef.current = loading;
@@ -160,7 +160,7 @@ export const ActivityPage: React.FC = () => {
     const handleActivityStatusUpdate = async (event: CustomEvent) => {
       const { txid, recordId, status } = event.detail;
       console.log(`[ActivityPage] Received activity status update: ${recordId} (${txid}) -> ${status}`);
-      
+
       // Force refresh the activities to get the latest status
       try {
         const result = await fetchActivityTimeline({

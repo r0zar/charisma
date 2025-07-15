@@ -366,7 +366,8 @@ export async function getActivityStats(): Promise<{
     const stats = {
       total,
       byType: {} as Record<string, number>,
-      byStatus: {} as Record<string, number>
+      byStatus: {} as Record<string, number>,
+      oldestActivityAge: undefined as number | undefined
     };
     
     // Get type counts

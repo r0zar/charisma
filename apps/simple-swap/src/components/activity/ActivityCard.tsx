@@ -25,6 +25,10 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../ui/
 import { ReplyThread } from './ReplyThread';
 import { toast } from '@/components/ui/sonner';
 import { truncateSmartContract } from '@/lib/address-utils';
+import { ProfitabilityMiniChart } from './profitability/ProfitabilityMiniChart';
+import { ProfitabilityMetricsComponent } from './profitability/ProfitabilityMetrics';
+import { ProfitabilityDrawer } from './profitability/ProfitabilityDrawer';
+import { getMockProfitabilityData } from '@/lib/mock-profitability-data';
 import {
   Heart,
   MessageCircle,
@@ -43,7 +47,8 @@ import {
   Users,
   XCircle,
   Loader,
-  HelpCircle
+  HelpCircle,
+  BarChart3
 } from 'lucide-react';
 
 interface ActivityCardProps {
@@ -70,6 +75,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
+  const [showProfitabilityDrawer, setShowProfitabilityDrawer] = useState(false);
 
   const typeInfo = getActivityTypeInfo(activity.type);
   const statusInfo = getStatusInfo(activity.status);
@@ -151,6 +157,11 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const toValue = activity.toToken.usdValue || 0;
   const valueChange = toValue - fromValue;
   const valueChangePercent = fromValue > 0 ? (valueChange / fromValue) * 100 : 0;
+
+  // Get profitability data for completed swaps
+  const profitabilityData = activity.status === 'completed' && activity.type === 'instant_swap' 
+    ? getMockProfitabilityData(activity.id) 
+    : null;
 
   return (
     <div
@@ -308,67 +319,78 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           
           return (
             <div className="space-y-2">
-              <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-white/60">Traded:</span>
-                  {activity.fromToken.usdValue && activity.toToken.usdValue ? (
-                    <>
-                      <span className="text-white/80 font-medium">
-                        {formatUsdValue(activity.fromToken.usdValue)}
+              {/* Mobile: Stack vertically, Desktop: Side by side */}
+              <div className="flex flex-col md:flex-row md:gap-2 space-y-2 md:space-y-0">
+                {/* Traded Section */}
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05] md:flex-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-white/60">Traded:</span>
+                    {activity.fromToken.usdValue && activity.toToken.usdValue ? (
+                      <>
+                        <span className="text-white/80 font-medium">
+                          {formatUsdValue(activity.fromToken.usdValue)}
+                        </span>
+                        <span className="text-white/40">→</span>
+                        <span className="text-white/80 font-medium">
+                          {formatUsdValue(activity.toToken.usdValue)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-white/80 font-medium">
+                          {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)} {activity.fromToken.symbol}
+                        </span>
+                        <span className="text-white/40">→</span>
+                        <span className="text-white/80 font-medium">
+                          {displayAmount && parseFloat(displayAmount.toString()) > 0 
+                            ? `${formatTokenAmount(displayAmount, activity.toToken.decimals)} ${activity.toToken.symbol}`
+                            : 'Processing...'
+                          }
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {displayAmount && parseFloat(displayAmount.toString()) > 0 && (
+                    <div className="text-sm text-white/70">
+                      <span className="text-xs text-white/50">Received: </span>
+                      <span className={hasActualData ? "text-emerald-400 font-medium" : ""}>
+                        {formatTokenAmount(displayAmount, activity.toToken.decimals)} {activity.toToken.symbol}
                       </span>
-                      <span className="text-white/40">→</span>
-                      <span className="text-white/80 font-medium">
-                        {formatUsdValue(activity.toToken.usdValue)}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-white/80 font-medium">
-                        {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)} {activity.fromToken.symbol}
-                      </span>
-                      <span className="text-white/40">→</span>
-                      <span className="text-white/80 font-medium">
-                        {displayAmount && parseFloat(displayAmount.toString()) > 0 
-                          ? `${formatTokenAmount(displayAmount, activity.toToken.decimals)} ${activity.toToken.symbol}`
-                          : 'Processing...'
-                        }
-                      </span>
-                    </>
+                      {hasActualData && (
+                        <span className="text-xs text-emerald-500/60 ml-1">✓</span>
+                      )}
+                    </div>
                   )}
                 </div>
-                {displayAmount && parseFloat(displayAmount.toString()) > 0 && (
-                  <div className="text-sm text-white/70">
-                    <span className="text-xs text-white/50">Received: </span>
-                    <span className={hasActualData ? "text-emerald-400 font-medium" : ""}>
-                      {formatTokenAmount(displayAmount, activity.toToken.decimals)} {activity.toToken.symbol}
-                    </span>
-                    {hasActualData && (
-                      <span className="text-xs text-emerald-500/60 ml-1">✓</span>
-                    )}
+
+                {/* Real-time P&L Display */}
+                {profitabilityData && (
+                  <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15] md:flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded bg-blue-500/10">
+                        {profitabilityData.metrics.currentPnL.percentage >= 0 ? (
+                          <TrendingUp className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3 text-red-400" />
+                        )}
+                      </div>
+                      <span className="text-white/80 text-sm font-medium">Current P&L:</span>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-sm font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {profitabilityData.metrics.currentPnL.percentage >= 0 ? '+' : ''}{profitabilityData.metrics.currentPnL.percentage.toFixed(1)}%
+                      </div>
+                      <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {profitabilityData.metrics.currentPnL.usdValue >= 0 ? '+$' : '-$'}{Math.abs(profitabilityData.metrics.currentPnL.usdValue).toFixed(2)}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
-              
-              {/* Slippage indicator */}
-              {slippage && typeof slippage.slippagePercent === 'number' && !isNaN(slippage.slippagePercent) && isFinite(slippage.slippagePercent) && (
-                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-orange-500/[0.05] to-red-500/[0.05] border border-orange-500/[0.15]">
-                  <div className="flex items-center gap-2">
-                    <span className="text-orange-400 text-xs">⚠️</span>
-                    <span className="text-orange-300 text-sm font-medium">Slippage:</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-orange-200 text-sm font-medium">
-                      {slippage.slippagePercent > 0 ? '+' : ''}{slippage.slippagePercent.toFixed(2)}%
-                    </div>
-                    <div className="text-orange-400/60 text-xs">
-                      {formatTokenAmount(Math.abs(slippage.difference || 0).toString(), activity.toToken.decimals || 6)} {activity.toToken.symbol} difference
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })()}
+
 
         {/* Action buttons for active orders */}
         {activity.status === "pending" && activity.type !== 'instant_swap' && (
@@ -400,7 +422,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
         {/* Expanded Details */}
         {isExpanded && (
           <div className="pt-4 border-t border-white/[0.08] animate-[slideDown_0.2s_ease-out]">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 text-sm">
               {/* Activity Details Column */}
               <div className="space-y-4">
                 <div>
@@ -438,14 +460,36 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                         <span className="text-white/90">Market execution</span>
                       </div>
                     )}
-                    {activity.priceImpact !== undefined && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-white/60">Price Impact:</span>
-                        <span className={`${getPriceImpactColor(activity.priceImpact)}`}>
-                          {activity.priceImpact > 0 ? '+' : ''}{activity.priceImpact.toFixed(2)}%
-                        </span>
-                      </div>
-                    )}
+                    {(() => {
+                      const transactionAnalysis = activity.metadata?.transactionAnalysis;
+                      const slippage = transactionAnalysis?.analysis?.slippage;
+                      
+                      if (slippage && typeof slippage.slippagePercent === 'number' && !isNaN(slippage.slippagePercent) && isFinite(slippage.slippagePercent)) {
+                        return (
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/60">Actual Slippage:</span>
+                            <div className="text-right">
+                              <div className="text-orange-200 text-sm font-medium">
+                                {slippage.slippagePercent > 0 ? '+' : ''}{slippage.slippagePercent.toFixed(2)}%
+                              </div>
+                              <div className="text-orange-400/60 text-xs">
+                                {formatTokenAmount(Math.abs(slippage.difference || 0).toString(), activity.toToken.decimals || 6)} {activity.toToken.symbol} difference
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      } else if (activity.priceImpact !== undefined) {
+                        return (
+                          <div className="flex justify-between items-center">
+                            <span className="text-white/60">Est. Price Impact:</span>
+                            <span className={`${getPriceImpactColor(activity.priceImpact)}`}>
+                              {activity.priceImpact > 0 ? '+' : ''}{activity.priceImpact.toFixed(2)}%
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     {activity.targetPrice && (
                       <div className="flex justify-between items-center">
                         <span className="text-white/60">Trigger Condition:</span>
@@ -462,6 +506,16 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Notes */}
+                {activity.metadata?.notes && (
+                  <div className="bg-white/[0.02] rounded-lg p-3 border border-white/[0.08]">
+                    <div className="text-white/60 text-xs mb-1 uppercase tracking-wider">Note</div>
+                    <div className="text-white/90 text-sm">
+                      {activity.metadata.notes}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Transaction Details Column */}
@@ -605,16 +659,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   </div>
                 </div>
 
-                {/* Notes and Errors */}
-                {activity.metadata?.notes && (
-                  <div className="bg-white/[0.02] rounded-lg p-3 border border-white/[0.08]">
-                    <div className="text-white/60 text-xs mb-1 uppercase tracking-wider">Note</div>
-                    <div className="text-white/90 text-sm">
-                      {activity.metadata.notes}
-                    </div>
-                  </div>
-                )}
-
+                {/* Errors */}
                 {activity.metadata?.errorMessage && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                     <div className="flex items-center space-x-2 text-red-400 mb-2">
@@ -627,6 +672,77 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Trade Performance Column - Only show if profitability data exists */}
+              {profitabilityData && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Trade Performance</h4>
+                    
+                    {/* Performance Summary */}
+                    <div className="bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15] rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded bg-blue-500/10">
+                            {profitabilityData.metrics.currentPnL.percentage >= 0 ? (
+                              <TrendingUp className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                              <TrendingDown className="w-4 h-4 text-red-400" />
+                            )}
+                          </div>
+                          <span className="text-white/80 text-sm font-medium">Current P&L</span>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-lg font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {profitabilityData.metrics.currentPnL.percentage >= 0 ? '+' : ''}{profitabilityData.metrics.currentPnL.percentage.toFixed(1)}%
+                          </div>
+                          <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+                            {profitabilityData.metrics.currentPnL.usdValue >= 0 ? '+$' : '-$'}{Math.abs(profitabilityData.metrics.currentPnL.usdValue).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Mini Chart */}
+                      <div className="h-20 w-full mb-3">
+                        <ProfitabilityMiniChart 
+                          data={profitabilityData.chartData} 
+                          height={80}
+                          className="rounded-md"
+                        />
+                      </div>
+                      
+                      {/* Key Metrics */}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <div className="text-white/60">Best</div>
+                          <div className="text-emerald-400 font-medium">
+                            +{profitabilityData.metrics.bestPerformance.percentage.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-white/60">Worst</div>
+                          <div className="text-red-400 font-medium">
+                            {profitabilityData.metrics.worstPerformance.percentage.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-white/60">Time Held</div>
+                          <div className="text-white/80 font-medium">
+                            {Math.floor(profitabilityData.metrics.timeHeld / (1000 * 60 * 60 * 24))}d{' '}
+                            {Math.floor((profitabilityData.metrics.timeHeld % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))}h
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-white/60">Avg Return</div>
+                          <div className={`font-medium ${profitabilityData.metrics.averageReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {profitabilityData.metrics.averageReturn >= 0 ? '+' : ''}{profitabilityData.metrics.averageReturn.toFixed(1)}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -667,6 +783,19 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 </span>
               )}
             </button>
+
+{profitabilityData && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowProfitabilityDrawer(true);
+                }}
+                className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400 transition-all duration-200"
+                title="View trade performance details"
+              >
+                <BarChart3 className="w-4 h-4" />
+              </button>
+            )}
 
             {(activity.type === 'instant_swap' || activity.strategy === 'single') && (
               <button
@@ -717,6 +846,19 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Profitability Drawer */}
+      {profitabilityData && (
+        <ProfitabilityDrawer
+          isOpen={showProfitabilityDrawer}
+          onClose={() => setShowProfitabilityDrawer(false)}
+          data={profitabilityData}
+          tokenPair={{
+            inputSymbol: activity.fromToken.symbol,
+            outputSymbol: activity.toToken.symbol
+          }}
+        />
+      )}
     </div>
   );
 };

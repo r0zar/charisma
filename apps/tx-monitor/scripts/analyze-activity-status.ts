@@ -121,7 +121,7 @@ async function analyzeActivityStatus() {
     await logger.info('\n🔍 Step 4: Checking transaction monitoring system...');
     
     const queuedTxids = await kv.smembers('tx:queue');
-    const activityTxids = activities.filter(a => a.txid).map(a => a.txid);
+    const activityTxids = activities.filter(a => a.txid).map(a => a.txid).filter((txid): txid is string => txid !== undefined);
     
     await logger.info(`📊 Transaction Monitoring:
       📈 Queued Transactions: ${queuedTxids?.length || 0}

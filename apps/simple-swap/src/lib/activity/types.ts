@@ -12,7 +12,7 @@ export interface TokenInfo {
   contractId: string;
   decimals?: number;
   usdValue?: number;
-  
+
   // Enriched metadata from Blaze SDK
   name?: string;
   image?: string;

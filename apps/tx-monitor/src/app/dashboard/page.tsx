@@ -132,7 +132,7 @@ async function fetchMetricsHistory(hours: number = 24): Promise<MetricsHistoryRe
 // Calculate appropriate time range based on oldest transaction and activity data
 function calculateTimeRange(oldestTransactionAge?: number, oldestActivityAge?: number): number {
   // Find the oldest data point between transactions and activities
-  const ages = [oldestTransactionAge, oldestActivityAge].filter(Boolean);
+  const ages = [oldestTransactionAge, oldestActivityAge].filter((age): age is number => age !== undefined);
   
   if (ages.length === 0) return 24; // Default to 24 hours
   
