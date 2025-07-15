@@ -114,6 +114,13 @@ export async function retryFailedNotifications(): Promise<void> {
 
     for (const notificationStr of failedNotifications) {
       try {
+        // Validate that notificationStr is a proper JSON string
+        if (!notificationStr || typeof notificationStr !== 'string' || notificationStr === '[object Object]') {
+          console.warn('[TX-MONITOR] Skipping corrupted notification data:', notificationStr);
+          await kv.lrem('failed_activity_notifications', 1, notificationStr);
+          continue;
+        }
+
         const notification = JSON.parse(notificationStr as string);
 
         // Skip if too many retries
@@ -143,12 +150,25 @@ export async function retryFailedNotifications(): Promise<void> {
       } catch (error) {
         console.error('[TX-MONITOR] Error retrying failed notification:', error);
 
-        // Update retry count
-        const notification = JSON.parse(notificationStr as string);
-        notification.retryCount = (notification.retryCount || 0) + 1;
+        // Validate notification data before updating retry count
+        if (!notificationStr || typeof notificationStr !== 'string' || notificationStr === '[object Object]') {
+          console.warn('[TX-MONITOR] Removing corrupted notification from failed queue:', notificationStr);
+          await kv.lrem('failed_activity_notifications', 1, notificationStr);
+          continue;
+        }
 
-        await kv.lrem('failed_activity_notifications', 1, notificationStr);
-        await kv.lpush('failed_activity_notifications', JSON.stringify(notification));
+        try {
+          // Update retry count
+          const notification = JSON.parse(notificationStr as string);
+          notification.retryCount = (notification.retryCount || 0) + 1;
+
+          await kv.lrem('failed_activity_notifications', 1, notificationStr);
+          await kv.lpush('failed_activity_notifications', JSON.stringify(notification));
+        } catch (parseError) {
+          console.error('[TX-MONITOR] Failed to parse notification for retry count update:', parseError);
+          // Remove corrupted data
+          await kv.lrem('failed_activity_notifications', 1, notificationStr);
+        }
       }
     }
   } catch (error) {
