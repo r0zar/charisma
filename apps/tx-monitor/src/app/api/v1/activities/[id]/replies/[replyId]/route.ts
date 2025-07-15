@@ -81,7 +81,7 @@ export async function PUT(
       content,
       metadata: {
         isEdited: true,
-        lastEditedAt: Date.now()
+        editedAt: Date.now()
       }
     });
     
