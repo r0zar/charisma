@@ -1,11 +1,9 @@
 'use client';
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { WalletProvider } from '@/contexts/wallet-context';
 import { ComparisonTokenProvider } from '@/contexts/comparison-token-context';
-import { OrderConditionsProvider } from '@/contexts/order-conditions-context';
 import { BlazeProvider } from 'blaze-sdk/realtime';
-import { TokenCacheData } from '@repo/tokens';
 
 interface ClientProvidersProps {
     children: React.ReactNode;
@@ -80,41 +78,12 @@ function GlobalLoadingSpinner() {
     );
 }
 
-// Token fetching wrapper component
+// Simple wrapper component - OrderConditionsProvider is now handled locally in SwapInterfaceContent
 function TokenAwareProviders({ children }: { children: React.ReactNode }) {
-    const [tokens, setTokens] = useState<TokenCacheData[]>([]);
-    const [isLoadingTokens, setIsLoadingTokens] = useState(true);
-
-    useEffect(() => {
-        // Fetch tokens for OrderConditionsProvider
-        async function fetchTokens() {
-            try {
-                const response = await fetch('/api/token-summaries');
-                if (response.ok) {
-                    const tokenData = await response.json();
-                    setTokens(tokenData);
-                }
-            } catch (error) {
-                console.error('Failed to fetch tokens for OrderConditionsProvider:', error);
-            } finally {
-                setIsLoadingTokens(false);
-            }
-        }
-
-        fetchTokens();
-    }, []);
-
-    // Show loading while tokens are fetching
-    if (isLoadingTokens) {
-        return <GlobalLoadingSpinner />;
-    }
-
     return (
-        <OrderConditionsProvider availableTokens={tokens}>
-            <ComparisonTokenProvider>
-                {children}
-            </ComparisonTokenProvider>
-        </OrderConditionsProvider>
+        <ComparisonTokenProvider>
+            {children}
+        </ComparisonTokenProvider>
     );
 }
 

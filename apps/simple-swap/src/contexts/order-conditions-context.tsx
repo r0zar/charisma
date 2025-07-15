@@ -193,8 +193,6 @@ export function OrderConditionsProvider({
         const startTs = Date.parse(timeStartTime);
         if (Number.isNaN(startTs)) {
           errors.push('Time trigger start time must be a valid date');
-        } else if (startTs < Date.now()) {
-          errors.push('Time trigger start time cannot be in the past');
         }
       }
       // Validate end time if provided
@@ -202,8 +200,6 @@ export function OrderConditionsProvider({
         const endTs = Date.parse(timeEndTime);
         if (Number.isNaN(endTs)) {
           errors.push('Time trigger end time must be a valid date');
-        } else if (endTs < Date.now()) {
-          errors.push('Time trigger end time cannot be in the past');
         } else if (timeStartTime && endTs <= Date.parse(timeStartTime)) {
           errors.push('Time trigger end time must be after start time');
         }
@@ -329,7 +325,7 @@ export function OrderConditionsProvider({
     if (timeStartTime && timeEndTime) {
       return `Execute between ${startDisplay} and ${new Date(timeEndTime).toLocaleString()}`;
     } else if (timeStartTime) {
-      return `Execute starting ${startDisplay}`;
+      return `Execute after ${startDisplay}`;
     } else if (timeEndTime) {
       return `Execute until ${new Date(timeEndTime).toLocaleString()}`;
     } else {
@@ -414,8 +410,29 @@ export function OrderConditionsProvider({
   }) => {
     console.log('📝 OrderConditionsContext createOrder called with:', params);
 
+    // Debug subnet token validation
+    const fromTokenInList = availableTokens.find(t => t.contractId === params.fromToken);
+    console.log('🔍 Subnet token validation debug:', {
+      fromTokenContractId: params.fromToken,
+      tokenFoundInList: !!fromTokenInList,
+      tokenType: fromTokenInList?.type,
+      tokenSymbol: fromTokenInList?.symbol,
+      availableTokensCount: availableTokens.length,
+      subnetTokensInList: availableTokens.filter(t => t.type === 'SUBNET').map(t => ({
+        contractId: t.contractId,
+        symbol: t.symbol,
+        type: t.type
+      }))
+    });
+
     // if from token is not a subnet token, throw an error (subnet tokens are .type = 'SUBNET')
-    if (availableTokens.find(t => t.contractId === params.fromToken)?.type !== 'SUBNET') {
+    if (fromTokenInList?.type !== 'SUBNET') {
+      console.error('❌ Subnet token validation failed:', {
+        reason: fromTokenInList ? 'Token found but not SUBNET type' : 'Token not found in availableTokens',
+        tokenFound: fromTokenInList,
+        expectedType: 'SUBNET',
+        actualType: fromTokenInList?.type
+      });
       throw new Error('Must use a subnet token as the from token for triggered swaps');
     }
 

@@ -11,10 +11,10 @@ import { toast } from 'sonner';
 
 export default function OrderButton() {
     const { createOrder, isCreatingOrder, isValidTriggers } = useOrderConditions();
-    const { 
-        mode, 
-        displayAmount, 
-        triggerValidationAlert, 
+    const {
+        mode,
+        displayAmount,
+        triggerValidationAlert,
         setIsDcaDialogOpen,
         selectedFromToken,
         selectedToToken,
@@ -23,37 +23,37 @@ export default function OrderButton() {
         subnetDisplayTokens
     } = useSwapTokens();
     const { address: walletAddress } = useWallet();
-    
+
     // Helper function to get the contract ID to use for a token based on subnet toggle
     const getContractIdForToken = (token: any, useSubnet: boolean): string | null => {
         if (!token) return null;
-        
+
         // If we want subnet and token is mainnet, find subnet version
         if (useSubnet && token.type !== 'SUBNET') {
             const subnetVersion = subnetDisplayTokens.find(t => t.base === token.contractId);
             return subnetVersion?.contractId || token.contractId;
         }
-        
+
         return token.contractId;
     };
 
     // Button should be disabled if creating order, no required data
-    const isDisabled = isCreatingOrder || 
-                      !displayAmount || 
-                      displayAmount === "0" || 
-                      displayAmount.trim() === "" ||
-                      !selectedFromToken ||
-                      !selectedToToken ||
-                      !walletAddress;
+    const isDisabled = isCreatingOrder ||
+        !displayAmount ||
+        displayAmount === "0" ||
+        displayAmount.trim() === "" ||
+        !selectedFromToken ||
+        !selectedToToken ||
+        !walletAddress;
 
     // For DCA dialog, only check basic requirements (not trigger validation)
-    const isDcaDisabled = isCreatingOrder || 
-                         !displayAmount || 
-                         displayAmount === "0" || 
-                         displayAmount.trim() === "" ||
-                         !selectedFromToken ||
-                         !selectedToToken ||
-                         !walletAddress;
+    const isDcaDisabled = isCreatingOrder ||
+        !displayAmount ||
+        displayAmount === "0" ||
+        displayAmount.trim() === "" ||
+        !selectedFromToken ||
+        !selectedToToken ||
+        !walletAddress;
 
     const handleClick = async () => {
         if (isDisabled) {
@@ -69,8 +69,35 @@ export default function OrderButton() {
         try {
             const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
             const toContractId = getContractIdForToken(selectedToToken, useSubnetTo);
-            
+
+            // Debug token selection and contract ID resolution
+            console.log('🎯 Order creation token debug:', {
+                selectedFromToken: {
+                    symbol: selectedFromToken.symbol,
+                    contractId: selectedFromToken.contractId,
+                    type: selectedFromToken.type
+                },
+                selectedToToken: {
+                    symbol: selectedToToken.symbol,
+                    contractId: selectedToToken.contractId,
+                    type: selectedToToken.type
+                },
+                useSubnetFrom,
+                useSubnetTo,
+                resolvedFromContractId: fromContractId,
+                resolvedToContractId: toContractId,
+                subnetDisplayTokensCount: subnetDisplayTokens.length
+            });
+
             if (!fromContractId || !toContractId) {
+                console.error('❌ Contract ID resolution failed:', {
+                    fromContractId,
+                    toContractId,
+                    selectedFromToken,
+                    selectedToToken,
+                    useSubnetFrom,
+                    useSubnetTo
+                });
                 throw new Error('Unable to determine contract IDs');
             }
 
@@ -103,13 +130,13 @@ export default function OrderButton() {
 
         } catch (error) {
             console.error('Order creation failed:', error);
-            
+
             // Show error toast
             const errorMessage = error instanceof Error ? error.message : 'Order creation failed';
             toast.error('Order Creation Failed', {
                 description: errorMessage,
                 duration: 5000,
-                id: 'order-creation'
+                id: 'order-creation',
             });
         }
     };
@@ -127,11 +154,10 @@ export default function OrderButton() {
             <div className="flex w-full shadow-lg">
                 <Button
                     onClick={handleClick}
-                    className={`relative flex-1 rounded-r-none bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 font-semibold overflow-hidden transition-transform focus:outline-none rounded-l-xl ${
-                        isDisabled 
-                            ? 'opacity-70 cursor-pointer hover:opacity-80'
-                            : 'hover:brightness-110 active:scale-95'
-                    }`}
+                    className={`relative flex-1 rounded-r-none bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 font-semibold overflow-hidden transition-transform focus:outline-none rounded-l-xl ${isDisabled
+                        ? 'opacity-70 cursor-pointer hover:opacity-80'
+                        : 'hover:brightness-110 active:scale-95'
+                        }`}
                 >
                     <span className="absolute inset-0 opacity-10 animate-pulse" />
                     <span className="relative z-10 flex items-center justify-center">
@@ -151,11 +177,10 @@ export default function OrderButton() {
 
                 {/* DCA trigger button */}
                 <Button
-                    className={`relative w-12 h-auto rounded-l-none bg-gradient-to-r from-purple-700 to-purple-800 text-white overflow-hidden transition-transform focus:outline-none rounded-r-xl border-l border-white/20 ${
-                        isDcaDisabled
-                            ? 'opacity-70 cursor-pointer hover:opacity-80'
-                            : 'hover:brightness-110 active:scale-95'
-                    }`}
+                    className={`relative w-12 h-auto rounded-l-none bg-gradient-to-r from-purple-700 to-purple-800 text-white overflow-hidden transition-transform focus:outline-none rounded-r-xl border-l border-white/20 ${isDcaDisabled
+                        ? 'opacity-70 cursor-pointer hover:opacity-80'
+                        : 'hover:brightness-110 active:scale-95'
+                        }`}
                     title="Create DCA orders"
                     onClick={handleDcaClick}
                 >

@@ -10,7 +10,7 @@
 export function formatOrderDate(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return 'Invalid Date';
-    
+
     return d.toLocaleString(undefined, {
         year: 'numeric',
         month: 'short',
@@ -28,7 +28,7 @@ export function formatOrderDate(date: string | Date): string {
 export function formatRelativeTime(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return 'Invalid Date';
-    
+
     const now = new Date();
     const diffMs = d.getTime() - now.getTime(); // Changed order to handle future dates
     const diffSec = Math.floor(Math.abs(diffMs) / 1000);
@@ -88,7 +88,7 @@ export function formatExecWindow(validFrom?: string, validTo?: string): string {
 export function formatShortDate(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return 'Invalid Date';
-    
+
     return d.toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
@@ -103,7 +103,7 @@ export function formatShortDate(date: string | Date): string {
 export function formatTime(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return 'Invalid Time';
-    
+
     return d.toLocaleTimeString(undefined, {
         hour: '2-digit',
         minute: '2-digit',
@@ -124,16 +124,16 @@ export function formatExecWindowCompact(validFrom?: string, validTo?: string): s
     if (to && isNaN(to.getTime())) return 'Invalid Range';
 
     if (!from && !to) return 'Anytime';
-    
+
     // Check if both dates are on the same day
-    const sameDay = from && to && 
+    const sameDay = from && to &&
         from.getDate() === to.getDate() &&
         from.getMonth() === to.getMonth() &&
         from.getFullYear() === to.getFullYear();
-    
+
     if (from && !to) return `After ${formatShortDate(from)}`;
     if (!from && to) return `Before ${formatShortDate(to)}`;
-    
+
     if (from && to) {
         if (sameDay) {
             return `${formatShortDate(from)} ${formatTime(from)} – ${formatTime(to)}`;
@@ -141,7 +141,7 @@ export function formatExecWindowCompact(validFrom?: string, validTo?: string): s
             return `${formatShortDate(from)} – ${formatShortDate(to)}`;
         }
     }
-    
+
     return 'Anytime';
 }
 
@@ -161,45 +161,45 @@ export function formatExecWindowHuman(validFrom?: string, validTo?: string, orde
     // For confirmed orders, show past tense
     if (orderStatus === 'confirmed') {
         if (!from && !to) return 'Executed (no time constraints)';
-        
+
         if (from && !to) {
             return `Executed (valid from ${formatRelativeTime(from)})`;
         }
-        
+
         if (!from && to) {
             return `Executed (valid until ${formatRelativeTime(to)})`;
         }
-        
+
         if (from && to) {
             const fromRelative = formatRelativeTime(from);
             const toRelative = formatRelativeTime(to);
-            
+
             // If both times format to "Just now", use absolute times for clarity
             if (fromRelative === 'Just now' && toRelative === 'Just now') {
                 return `Executed (valid ${formatTime(from)} to ${formatTime(to)})`;
             }
-            
+
             return `Executed (valid ${fromRelative} to ${toRelative})`;
         }
     }
 
     // For non-confirmed orders, show future tense
     if (!from && !to) return 'Execute anytime';
-    
+
     if (from && !to) {
         // Only start time
         if (from <= now) {
             return 'Execute now or later';
         } else {
-            return `Execute starting ${formatRelativeTime(from)}`;
+            return `Execute after ${formatRelativeTime(from)}`;
         }
     }
-    
+
     if (!from && to) {
         // Only end time
         return `Execute before ${formatRelativeTime(to)}`;
     }
-    
+
     if (from && to) {
         // Both times specified
         if (from <= now) {
@@ -207,16 +207,16 @@ export function formatExecWindowHuman(validFrom?: string, validTo?: string, orde
         } else {
             const fromRelative = formatRelativeTime(from);
             const toRelative = formatRelativeTime(to);
-            
+
             // If both times format to "Just now", use absolute times for clarity
             if (fromRelative === 'Just now' && toRelative === 'Just now') {
                 return `Execute between ${formatTime(from)} and ${formatTime(to)}`;
             }
-            
+
             // If both are less than a day away, show more specific timing
             const fromDiffHours = Math.abs(from.getTime() - now.getTime()) / (1000 * 60 * 60);
             const toDiffHours = Math.abs(to.getTime() - now.getTime()) / (1000 * 60 * 60);
-            
+
             if (fromDiffHours < 24 && toDiffHours < 24) {
                 return `Execute between ${formatTime(from)} and ${formatTime(to)}`;
             } else {
@@ -224,7 +224,7 @@ export function formatExecWindowHuman(validFrom?: string, validTo?: string, orde
             }
         }
     }
-    
+
     return 'Execute anytime';
 }
 
@@ -253,7 +253,7 @@ interface StrategyLike {
  */
 export function formatOrderStatusTime(order: OrderLike): { text: string; tooltip: string } {
     const createdDate = new Date(order.createdAt);
-    
+
     switch (order.status) {
         case 'confirmed': {
             const confirmedDate = order.confirmedAt ? new Date(order.confirmedAt) : createdDate;
@@ -304,25 +304,25 @@ export function formatOrderStatusTime(order: OrderLike): { text: string; tooltip
  */
 export function formatStrategyStatusTime(strategy: StrategyLike): { text: string; tooltip: string } {
     const { status, orders } = strategy;
-    
+
     if (orders.length === 0) {
         return {
             text: 'No orders',
             tooltip: 'Strategy contains no orders'
         };
     }
-    
+
     // Sort orders by creation time to get earliest
-    const earliestOrder = orders.reduce((earliest, order) => 
+    const earliestOrder = orders.reduce((earliest, order) =>
         new Date(order.createdAt) < new Date(earliest.createdAt) ? order : earliest
     );
-    
+
     switch (status) {
         case 'completed': {
             // Find the latest confirmed order
             const confirmedOrders = orders.filter(o => o.status === 'confirmed' && o.confirmedAt);
             if (confirmedOrders.length > 0) {
-                const latestConfirmed = confirmedOrders.reduce((latest, order) => 
+                const latestConfirmed = confirmedOrders.reduce((latest, order) =>
                     new Date(order.confirmedAt!) > new Date(latest.confirmedAt!) ? order : latest
                 );
                 return {
@@ -340,7 +340,7 @@ export function formatStrategyStatusTime(strategy: StrategyLike): { text: string
             // Find the latest execution among confirmed orders
             const confirmedOrders = orders.filter(o => o.status === 'confirmed' && o.confirmedAt);
             if (confirmedOrders.length > 0) {
-                const latestExecution = confirmedOrders.reduce((latest, order) => 
+                const latestExecution = confirmedOrders.reduce((latest, order) =>
                     new Date(order.confirmedAt!) > new Date(latest.confirmedAt!) ? order : latest
                 );
                 const completedCount = confirmedOrders.length;
@@ -377,14 +377,14 @@ export function formatStrategyStatusTime(strategy: StrategyLike): { text: string
  */
 export function getOrderTimestamps(order: OrderLike): Array<{ label: string; time: string; isMain?: boolean }> {
     const timestamps = [];
-    
+
     // Always include creation time
     timestamps.push({
         label: 'Created',
         time: formatOrderDate(order.createdAt),
         isMain: order.status === 'open'
     });
-    
+
     // Add status-specific timestamps
     if (order.status === 'confirmed' && order.confirmedAt) {
         timestamps.push({
@@ -393,7 +393,7 @@ export function getOrderTimestamps(order: OrderLike): Array<{ label: string; tim
             isMain: true
         });
     }
-    
+
     if (order.status === 'failed' && order.failedAt) {
         timestamps.push({
             label: 'Failed',
@@ -401,7 +401,7 @@ export function getOrderTimestamps(order: OrderLike): Array<{ label: string; tim
             isMain: true
         });
     }
-    
+
     if (order.status === 'broadcasted') {
         timestamps.push({
             label: 'Broadcasted',
@@ -409,7 +409,7 @@ export function getOrderTimestamps(order: OrderLike): Array<{ label: string; tim
             isMain: true
         });
     }
-    
+
     if (order.status === 'cancelled') {
         timestamps.push({
             label: 'Cancelled',
@@ -417,7 +417,7 @@ export function getOrderTimestamps(order: OrderLike): Array<{ label: string; tim
             isMain: true
         });
     }
-    
+
     return timestamps;
 }
 
@@ -437,47 +437,47 @@ interface OrderConditionInfo {
  * Returns the emoji icon that represents the order's execution condition
  */
 export function getConditionIcon(
-    order: OrderConditionInfo, 
+    order: OrderConditionInfo,
     strategyType?: 'dca' | 'single' | 'twitter' | 'split' | 'batch'
 ): string | null {
     // For Twitter strategy orders, prioritize Twitter-based execution
     if (strategyType === 'twitter') {
         return '🐦';
     }
-    
+
     // For DCA strategy orders, prioritize time-based execution
     if (strategyType === 'dca') {
         return '⏰';
     }
-    
+
     // For split/batch strategy orders
     if (strategyType === 'split') {
         return '🔀';
     }
-    
+
     if (strategyType === 'batch') {
         return '📦';
     }
-    
+
     // Check for immediate execution (wildcard condition)
     if (order.conditionToken === '*' && order.targetPrice === '0' && order.direction === 'gt') {
         return '⚡';
     }
-    
+
     // Check for price-based conditions
     if (order.conditionToken && order.targetPrice && order.direction) {
         return '💰';
     }
-    
+
     // Check for time-based execution windows
     if (order.validFrom || order.validTo) {
         return '⏰';
     }
-    
+
     // Manual/programmatic execution (no conditions)
     if (!order.conditionToken || !order.targetPrice || !order.direction) {
         return '🎯';
     }
-    
+
     return null;
 }

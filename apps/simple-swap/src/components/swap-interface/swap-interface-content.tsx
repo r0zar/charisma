@@ -12,7 +12,6 @@ import BalanceCheckDialog from './balance-check-dialog';
 import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@repo/tokens";
 import { useSwapTokens } from "../../contexts/swap-tokens-context";
-import { OrderConditionsProvider } from "../../contexts/order-conditions-context";
 import { useRouterTrading } from "../../hooks/useRouterTrading";
 import { useOrderConditions } from "../../contexts/order-conditions-context";
 import { toast } from '@/components/ui/sonner';
@@ -210,14 +209,6 @@ function SwapInterfaceContentInner() {
 
 // Main component that uses the existing swap context
 export default function SwapInterfaceContent({ initialTokens = [], searchParams }: SwapInterfaceContentProps) {
-  // Get tokens from swap context to pass to order conditions provider
-  const { displayTokens } = useSwapTokens();
-
-  return (
-    <OrderConditionsProvider
-      availableTokens={displayTokens}
-    >
-      <SwapInterfaceContentInner />
-    </OrderConditionsProvider>
-  );
+  // OrderConditionsProvider is now provided at a higher level in SwapPageClient
+  return <SwapInterfaceContentInner />;
 }
