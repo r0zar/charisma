@@ -4,6 +4,8 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
+import { toast } from 'sonner';
+import { shouldShowErrorToast, getErrorMessage } from '@/lib/error-utils';
 
 export default function SwapButton() {
     // Get swap state from context
@@ -105,12 +107,26 @@ export default function SwapButton() {
         );
     }
 
-    const handleClick = () => {
+    const handleClick = async () => {
         if (isDisabled) {
             triggerValidationAlert('swap');
             return;
         }
-        handleSwap();
+        
+        try {
+            await handleSwap();
+        } catch (error) {
+            console.error('Swap failed:', error);
+            
+            // Only show toast for real errors, not user cancellations
+            if (shouldShowErrorToast(error)) {
+                const errorMessage = getErrorMessage(error, 'Swap failed');
+                toast.error('Swap Failed', {
+                    description: errorMessage,
+                    duration: 5000,
+                });
+            }
+        }
     };
 
     return (

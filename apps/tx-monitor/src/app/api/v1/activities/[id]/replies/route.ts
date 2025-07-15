@@ -1,12 +1,12 @@
 /**
  * Activity Replies API endpoint
- * GET /api/v1/activity/[id]/replies - Get replies for an activity
- * POST /api/v1/activity/[id]/replies - Add reply to an activity
+ * GET /api/v1/activities/[id]/replies - Get replies for an activity
+ * POST /api/v1/activities/[id]/replies - Add reply to an activity
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getActivityReplies, addReply } from '@/lib/activity/storage';
-import { Reply } from '@/lib/activity/types';
+import { getActivityReplies, addActivityReply } from '@/lib/activity-storage';
+import { Reply } from '@/lib/activity-types';
 
 export async function GET(
   request: NextRequest,
@@ -31,7 +31,7 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error('Error fetching activity replies:', error);
+    console.error('[TX-MONITOR] Error fetching activity replies:', error);
     
     return NextResponse.json(
       { 
@@ -81,7 +81,7 @@ export async function POST(
     };
     
     // Add reply to storage
-    await addReply(reply);
+    await addActivityReply(activityId, reply);
     
     return NextResponse.json({
       success: true,
@@ -89,7 +89,7 @@ export async function POST(
     });
     
   } catch (error) {
-    console.error('Error adding reply:', error);
+    console.error('[TX-MONITOR] Error adding reply:', error);
     
     return NextResponse.json(
       { 

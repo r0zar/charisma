@@ -540,7 +540,8 @@ export function useRouterTrading() {
         }
         
         setError("Swap failed");
-        return;
+        // Throw error so it can be caught by swap-button
+        throw new Error(res.error);
       }
 
       // Update swap record with transaction ID

@@ -8,6 +8,7 @@ import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { convertToMicroUnits } from '@/lib/swap-utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { toast } from 'sonner';
+import { shouldShowErrorToast, getErrorMessage } from '@/lib/error-utils';
 
 export default function OrderButton() {
     const { createOrder, isCreatingOrder, isValidTriggers } = useOrderConditions();
@@ -131,13 +132,18 @@ export default function OrderButton() {
         } catch (error) {
             console.error('Order creation failed:', error);
 
-            // Show error toast
-            const errorMessage = error instanceof Error ? error.message : 'Order creation failed';
-            toast.error('Order Creation Failed', {
-                description: errorMessage,
-                duration: 5000,
-                id: 'order-creation',
-            });
+            // Only show toast for real errors, not user cancellations
+            if (shouldShowErrorToast(error)) {
+                const errorMessage = getErrorMessage(error, 'Order creation failed');
+                toast.error('Order Creation Failed', {
+                    description: errorMessage,
+                    duration: 5000,
+                    id: 'order-creation',
+                });
+            } else {
+                // Just dismiss the loading toast for cancellations
+                toast.dismiss('order-creation');
+            }
         }
     };
 

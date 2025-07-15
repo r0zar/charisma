@@ -1,11 +1,13 @@
 /**
  * Activity API client
- * Replaces mock data with real API calls to activity endpoints
+ * Fetches activities from tx-monitor service
  */
 
 import { ActivityItem, ActivityFeedOptions, ActivityFeedResult, Reply } from './types';
 
-const API_BASE = '/api/v1/activity';
+// Use tx-monitor service for activities
+const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';
+const API_BASE = `${TX_MONITOR_URL}/api/v1/activities`;
 
 /**
  * Fetch activity timeline from API

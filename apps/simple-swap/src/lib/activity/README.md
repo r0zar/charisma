@@ -10,30 +10,26 @@ The Activity Timeline System is a production-ready feature that creates a unifie
 
 ### Core Components
 
-1. **Activity Storage** (`storage.ts`)
+1. **Activity Management** (tx-monitor service)
+   - All activity storage and business logic now lives in tx-monitor
    - Redis-based storage using sorted sets for time-based queries
    - Efficient pagination and filtering
    - User-specific and global timelines
 
-2. **Activity Ingestion** (`ingestion.ts`)
-   - Automated pipeline for importing existing data
-   - Real-time sync with transaction monitoring
-   - Support for multiple data sources
-
-3. **Transaction Monitoring Integration** (`monitor.ts`)
-   - Real-time status updates from tx-monitor service
-   - Automatic activity status synchronization
-   - Webhook-based communication
-
-4. **API Layer** (`api.ts`)
-   - RESTful endpoints for activity management
-   - Reply system with CRUD operations
+2. **Activity API Client** (`api.ts`)
+   - Client library for fetching activities from tx-monitor service
    - Pagination and filtering support
+   - Reply system integration
 
-5. **Data Adapters** (`adapters.ts`)
-   - Unified data transformation layer
-   - Converts various data sources to ActivityItem format
-   - Handles orders, swaps, Twitter triggers, bots, and perpetuals
+3. **Transaction Registration** (`tx-monitor-client.ts`)
+   - Register transactions for monitoring from simple-swap
+   - Direct integration with tx-monitor service
+   - No more webhook-based communication
+
+4. **Frontend Components** (`types.ts`, `utils.ts`)
+   - TypeScript interfaces for activity data
+   - Utility functions for UI formatting and display
+   - Activity timeline rendering components
 
 ## Features
 
