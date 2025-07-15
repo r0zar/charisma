@@ -115,10 +115,6 @@ export default function SwapButton() {
         
         try {
             await handleSwap();
-            // Test toast to verify it works
-            toast.success('Swap completed successfully!', { duration: 3000 });
-            // Uncomment to test error toast:
-            // throw new Error('Test error to verify error toast');
         } catch (error) {
             console.error('Swap failed:', error);
             

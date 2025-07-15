@@ -517,53 +517,38 @@ export function useRouterTrading() {
     let swapRecordId: string | null = null;
     
     try {
-      // Create swap record for tracking
-      const { addSwapRecord } = await import('@/lib/swaps/store');
-      
-      const swapRecord = await addSwapRecord({
-        owner: walletAddress,
-        inputToken: selectedFromToken.contractId,
-        outputToken: selectedToToken.contractId,
-        inputAmount: quote.amountIn,
-        routePath: quote.path.map(token => token.contractId),
-        priceImpact: totalPriceImpactRef.current?.priceImpact || undefined,
-        metadata: {
-          route: quote.hops,
-          isSubnetShift: quote.hops.some((hop: any) => hop.vault.type === 'SUBLINK')
-        }
-      });
-      swapRecordId = swapRecord.id;
-      console.log('📊 Created swap record:', swapRecordId);
-      
+      // First, build and submit transaction to wallet
       const txCfg = await buildSwapTransaction(router.current, quote, walletAddress);
       const res = await request('stx_callContract', txCfg);
       console.log("Swap result:", res);
 
       if ("error" in res) {
         console.error("Swap failed:", res.error);
-        
-        // Update swap record to failed status
-        if (swapRecordId) {
-          const { updateSwapRecord } = await import('@/lib/swaps/store');
-          await updateSwapRecord(swapRecordId, {
-            status: 'failed',
-            metadata: { error: res.error }
-          });
-        }
-        
         setError("Swap failed");
         // Throw error so it can be caught by swap-button
         throw new Error(res.error);
       }
 
-      // Update swap record with transaction ID
-      if (swapRecordId && res.txid) {
-        const { updateSwapRecord } = await import('@/lib/swaps/store');
-        await updateSwapRecord(swapRecordId, {
+      // Only create swap record after successful broadcast with txid
+      if (res.txid) {
+        const { addSwapRecord } = await import('@/lib/swaps/store');
+        
+        const swapRecord = await addSwapRecord({
+          owner: walletAddress,
+          inputToken: selectedFromToken.contractId,
+          outputToken: selectedToToken.contractId,
+          inputAmount: quote.amountIn,
+          routePath: quote.path.map(token => token.contractId),
+          priceImpact: totalPriceImpactRef.current?.priceImpact || undefined,
           status: 'pending',
-          txid: res.txid
+          txid: res.txid,
+          metadata: {
+            route: quote.hops,
+            isSubnetShift: quote.hops.some((hop: any) => hop.vault.type === 'SUBLINK')
+          }
         });
-        console.log('📊 Updated swap record with txid:', res.txid);
+        swapRecordId = swapRecord.id;
+        console.log('📊 Created swap record after successful broadcast:', swapRecordId, 'txid:', res.txid);
       }
 
       // Use enhanced toast system instead of setting swapSuccessInfo
@@ -576,7 +561,28 @@ export function useRouterTrading() {
     } catch (err) {
       console.error('Swap failed:', err);
       
-      // Update swap record to failed status
+      // Check if this is a wallet broadcast failure
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isWalletBroadcastError = errorMessage.includes('JsonRpcError') && errorMessage.includes('Error broadcasting transaction');
+      
+      if (isWalletBroadcastError) {
+        // Show wallet-specific error toast
+        toast.error(
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1">
+              <div className="font-semibold text-foreground">Wallet Broadcast Failed</div>
+              <div className="text-muted-foreground text-sm">
+                Your wallet failed to broadcast the transaction. Please check your connection and try again.
+              </div>
+            </div>
+          </div>,
+          { 
+            duration: 7000 
+          }
+        );
+      }
+      
+      // Only update swap record if it was created (i.e., transaction was broadcasted)
       if (swapRecordId) {
         try {
           const { updateSwapRecord } = await import('@/lib/swaps/store');
