@@ -11,10 +11,10 @@ import { kv } from '@vercel/kv';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; replyId: string } }
+  { params }: { params: Promise<{ id: string; replyId: string }> }
 ) {
   try {
-    const { id: activityId, replyId } = params;
+    const { id: activityId, replyId } = await params;
     
     if (!activityId || !replyId) {
       return NextResponse.json(
@@ -54,10 +54,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; replyId: string } }
+  { params }: { params: Promise<{ id: string; replyId: string }> }
 ) {
   try {
-    const { id: activityId, replyId } = params;
+    const { id: activityId, replyId } = await params;
     
     if (!activityId || !replyId) {
       return NextResponse.json(
@@ -112,10 +112,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; replyId: string } }
+  { params }: { params: Promise<{ id: string; replyId: string }> }
 ) {
   try {
-    const { id: activityId, replyId } = params;
+    const { id: activityId, replyId } = await params;
     
     if (!activityId || !replyId) {
       return NextResponse.json(
