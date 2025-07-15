@@ -15,29 +15,11 @@ interface ActivityUpdatePayload {
 }
 
 /**
- * Map transaction status to activity status
- */
-function _mapTransactionToActivityStatus(txStatus: TransactionStatus): string {
-  switch (txStatus) {
-    case 'success':
-      return 'completed';
-    case 'abort_by_response':
-    case 'abort_by_post_condition':
-      return 'failed';
-    case 'pending':
-    case 'broadcasted':
-      return 'pending';
-    default:
-      return 'pending';
-  }
-}
-
-/**
  * Store transaction-to-record mapping when transactions are added to queue
  */
 export async function storeTransactionMapping(
-  txid: string, 
-  recordId: string, 
+  txid: string,
+  recordId: string,
   recordType: 'order' | 'swap'
 ): Promise<void> {
   try {
@@ -46,7 +28,7 @@ export async function storeTransactionMapping(
       recordType,
       timestamp: Date.now()
     };
-    
+
     await kv.set(`tx_mapping:${txid}`, mapping, { ex: 7 * 24 * 60 * 60 }); // Keep for 7 days
     console.log(`[TX-MONITOR] Stored mapping for ${txid} -> ${recordType} ${recordId}`);
   } catch (error) {
@@ -77,10 +59,10 @@ export async function getTransactionMapping(txid: string): Promise<{
 export async function notifyActivitySystem(payload: ActivityUpdatePayload): Promise<void> {
   try {
     console.log(`[TX-MONITOR] Notifying activity system: ${payload.txid} - ${payload.previousStatus} -> ${payload.currentStatus}`);
-    
+
     // Send webhook to simple-swap app's activity monitoring endpoint
     const response = await fetch(
-      `${process.env.SIMPLE_SWAP_URL || 'http://localhost:3000'}/api/v1/activity/webhook/transaction-update`,
+      `${process.env.SIMPLE_SWAP_URL || 'http://localhost:3002'}/api/v1/activity/webhook/transaction-update`,
       {
         method: 'POST',
         headers: {
@@ -90,16 +72,16 @@ export async function notifyActivitySystem(payload: ActivityUpdatePayload): Prom
         body: JSON.stringify(payload)
       }
     );
-    
+
     if (!response.ok) {
       throw new Error(`Activity webhook failed: ${response.status} ${response.statusText}`);
     }
-    
+
     console.log(`[TX-MONITOR] Activity system notified successfully for ${payload.txid}`);
-    
+
   } catch (error) {
     console.error(`[TX-MONITOR] Error notifying activity system for ${payload.txid}:`, error);
-    
+
     // Store failed notification for retry
     await storeFailedNotification(payload);
   }
@@ -115,7 +97,7 @@ async function storeFailedNotification(payload: ActivityUpdatePayload): Promise<
       failedAt: Date.now(),
       retryCount: 0
     };
-    
+
     await kv.lpush('failed_activity_notifications', JSON.stringify(failedNotification));
     console.log(`[TX-MONITOR] Stored failed notification for retry: ${payload.txid}`);
   } catch (error) {
@@ -129,23 +111,23 @@ async function storeFailedNotification(payload: ActivityUpdatePayload): Promise<
 export async function retryFailedNotifications(): Promise<void> {
   try {
     const failedNotifications = await kv.lrange('failed_activity_notifications', 0, 10);
-    
+
     for (const notificationStr of failedNotifications) {
       try {
         const notification = JSON.parse(notificationStr as string);
-        
+
         // Skip if too many retries
         if (notification.retryCount >= 5) {
           await kv.lrem('failed_activity_notifications', 1, notificationStr);
           continue;
         }
-        
+
         // Skip if too old (older than 1 hour)
         if (Date.now() - notification.failedAt > 60 * 60 * 1000) {
           await kv.lrem('failed_activity_notifications', 1, notificationStr);
           continue;
         }
-        
+
         // Retry notification
         await notifyActivitySystem({
           txid: notification.txid,
@@ -154,17 +136,17 @@ export async function retryFailedNotifications(): Promise<void> {
           previousStatus: notification.previousStatus,
           currentStatus: notification.currentStatus
         });
-        
+
         // Remove from failed queue on success
         await kv.lrem('failed_activity_notifications', 1, notificationStr);
-        
+
       } catch (error) {
         console.error('[TX-MONITOR] Error retrying failed notification:', error);
-        
+
         // Update retry count
         const notification = JSON.parse(notificationStr as string);
         notification.retryCount = (notification.retryCount || 0) + 1;
-        
+
         await kv.lrem('failed_activity_notifications', 1, notificationStr);
         await kv.lpush('failed_activity_notifications', JSON.stringify(notification));
       }
@@ -186,14 +168,14 @@ export async function handleTransactionStatusUpdate(
   if (previousStatus === currentStatus) {
     return;
   }
-  
+
   // Get the transaction mapping
   const mapping = await getTransactionMapping(txid);
   if (!mapping) {
     console.warn(`[TX-MONITOR] No mapping found for transaction ${txid}, skipping activity notification`);
     return;
   }
-  
+
   // Send notification to activity system
   await notifyActivitySystem({
     txid,

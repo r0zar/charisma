@@ -265,7 +265,7 @@ NEXT_PUBLIC_TX_MONITOR_URL=http://localhost:3012
 ACTIVITY_WEBHOOK_SECRET=your_webhook_secret
 
 # Simple Swap Configuration
-SIMPLE_SWAP_URL=http://localhost:3000
+SIMPLE_SWAP_URL=http://localhost:3002
 ```
 
 ### Installation
