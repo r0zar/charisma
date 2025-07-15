@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { 
-    getOrdersNeedingMonitoring, 
-    type TransactionMonitorResult as SingleTransactionResult
-} from '@/lib/transaction-monitor';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { confirmOrder, failOrder, cancelOrder } from '@/lib/orders/store';
 
@@ -12,6 +8,15 @@ const CRON_SECRET = process.env.CRON_SECRET;
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();
+
+interface SingleTransactionResult {
+    txid: string;
+    orderId: string;
+    previousStatus: string;
+    currentStatus: string;
+    orderUpdated: boolean;
+    error?: string;
+}
 
 interface CronOrderMonitorResult {
     ordersChecked: number;
@@ -24,6 +29,32 @@ interface CronOrderMonitorResult {
     expiredByBroadcast: number;
     errors: string[];
     orderResults: SingleTransactionResult[];
+}
+
+/**
+ * Get orders that need transaction monitoring
+ * These are orders with broadcasted transactions that need status checking
+ */
+async function getOrdersNeedingMonitoring(): Promise<Array<{ uuid: string; order: any }>> {
+    const orders = await kv.hgetall('orders') || {};
+    const ordersToCheck = [];
+    
+    for (const [uuid, orderData] of Object.entries(orders)) {
+        if (typeof orderData === 'string') {
+            try {
+                const order = JSON.parse(orderData);
+                
+                // Only monitor orders with broadcasted transactions
+                if (order.status === 'broadcasted' && order.txid) {
+                    ordersToCheck.push({ uuid, order });
+                }
+            } catch (error) {
+                console.error(`[ORDER-MONITOR] Error parsing order ${uuid}:`, error);
+            }
+        }
+    }
+    
+    return ordersToCheck;
 }
 
 /**

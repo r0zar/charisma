@@ -28,11 +28,34 @@ interface AdminStats {
 }
 
 async function fetchAdminStats(): Promise<AdminStats> {
-    const response = await fetch('/api/admin/transaction-monitor/stats');
+    const TX_MONITOR_URL = process.env.TX_MONITOR_URL || 'http://localhost:3001';
+    const response = await fetch(`${TX_MONITOR_URL}/api/v1/queue/stats`);
     const data = await response.json();
     
     if (data.success) {
-        return data.data;
+        // Map tx-monitor stats to the expected format
+        const stats = data.data;
+        return {
+            totalOrders: stats.totalTransactions || 0,
+            ordersNeedingMonitoring: stats.queueSize || 0,
+            pendingTransactions: stats.pendingCount || 0,
+            confirmedTransactions: stats.confirmedCount || 0,
+            failedTransactions: stats.failedCount || 0,
+            processingHealth: stats.processingHealth || 'error',
+            lastCheckTime: stats.lastChecked,
+            txMonitor: {
+                queueSize: stats.queueSize || 0,
+                totalProcessed: stats.totalProcessed || 0,
+                totalFailed: stats.failedCount || 0,
+                totalSuccessful: stats.confirmedCount || 0,
+                processingHealth: stats.processingHealth || 'error'
+            },
+            orderTypes: {
+                single: 0, // These would need to be calculated separately if needed
+                dca: 0,
+                sandwich: 0
+            }
+        };
     }
     
     throw new Error('Failed to fetch admin stats');
@@ -147,7 +170,8 @@ export default function OrderManagement() {
                         </Button>
                         <Button variant="outline" size="sm" onClick={async () => {
                             try {
-                                const response = await fetch('/api/admin/transaction-monitor/trigger', { method: 'POST' });
+                                const TX_MONITOR_URL = process.env.TX_MONITOR_URL || 'http://localhost:3001';
+                                const response = await fetch(`${TX_MONITOR_URL}/api/v1/admin/trigger`, { method: 'POST' });
                                 if (response.ok) {
                                     alert('Transaction monitoring triggered successfully');
                                 } else {

@@ -119,7 +119,7 @@ export function SwapInformationSidebar() {
                             <div className="flex items-center space-x-2 mt-2">
                                 <div className="flex items-center space-x-1">
                                     {quote.path.slice(0, 7).map((token, index) => (
-                                        <React.Fragment key={token.contractId || index}>
+                                        <React.Fragment key={`${token.contractId || 'unknown'}-${index}`}>
                                             <TokenLogo token={token} size="sm" />
                                             {index < Math.min(quote.path.length - 1, 6) && (
                                                 <svg className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">

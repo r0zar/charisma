@@ -1,6 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrdersNeedingMonitoring } from '@/lib/transaction-monitor';
+import { kv } from '@vercel/kv';
 import { cancelOrder } from '@/lib/orders/store';
+
+/**
+ * Get orders that need transaction monitoring
+ * These are orders with broadcasted transactions that need status checking
+ */
+async function getOrdersNeedingMonitoring(): Promise<Array<{ uuid: string; order: any }>> {
+    const orders = await kv.hgetall('orders') || {};
+    const ordersToCheck = [];
+    
+    for (const [uuid, orderData] of Object.entries(orders)) {
+        if (typeof orderData === 'string') {
+            try {
+                const order = JSON.parse(orderData);
+                
+                // Only monitor orders with broadcasted transactions
+                if (order.status === 'broadcasted' && order.txid) {
+                    ordersToCheck.push({ uuid, order });
+                }
+            } catch (error) {
+                console.error(`[CLEANUP-OLD-ORDERS] Error parsing order ${uuid}:`, error);
+            }
+        }
+    }
+    
+    return ordersToCheck;
+}
 
 /**
  * Admin endpoint to manually clean up old broadcasted orders

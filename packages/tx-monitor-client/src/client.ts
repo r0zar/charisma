@@ -9,7 +9,10 @@ import type {
   HealthCheckResponse,
   CronMonitorResult,
   ApiResponse,
-  PollingOptions
+  PollingOptions,
+  TransactionRegistration,
+  QueueAddWithMappingRequest,
+  QueueAddWithMappingResponse
 } from './types';
 
 import {
@@ -23,7 +26,7 @@ export class TxMonitorClient {
 
   constructor(config: TxMonitorConfig = {}) {
     this.config = {
-      baseUrl: (config.baseUrl || 'https://tx.charisma.rocks').replace(/\/$/, ''),
+      baseUrl: (process.env.TX_MONITOR_URL || 'http://localhost:3012').replace(/\/$/, ''),
       timeout: config.timeout ?? 30000,
       retryAttempts: config.retryAttempts ?? 3,
       retryDelay: config.retryDelay ?? 1000,
@@ -66,11 +69,11 @@ export class TxMonitorClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
         if (response.status === 404) {
           throw new TxMonitorNotFoundError(errorData.message || 'Not found');
         }
-        
+
         throw new TxMonitorError(
           errorData.message || errorData.error || `Request failed with status ${response.status}`,
           response.status,
@@ -81,15 +84,15 @@ export class TxMonitorClient {
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (error instanceof TxMonitorError) {
         throw error;
       }
-      
+
       if (error instanceof Error && error.name === 'AbortError') {
         throw new TxMonitorTimeoutError();
       }
-      
+
       throw new TxMonitorError(
         error instanceof Error ? error.message : 'Unknown error occurred'
       );
@@ -102,24 +105,24 @@ export class TxMonitorClient {
     isAdmin: boolean = false
   ): Promise<ApiResponse<T>> {
     let lastError: Error;
-    
+
     for (let attempt = 0; attempt <= this.config.retryAttempts; attempt++) {
       try {
         return await this.request<T>(endpoint, options, isAdmin);
       } catch (error) {
         lastError = error as Error;
-        
-        if (error instanceof TxMonitorNotFoundError || 
-            (error instanceof TxMonitorError && error.status && error.status >= 400 && error.status < 500)) {
+
+        if (error instanceof TxMonitorNotFoundError ||
+          (error instanceof TxMonitorError && error.status && error.status >= 400 && error.status < 500)) {
           throw error;
         }
-        
+
         if (attempt < this.config.retryAttempts) {
           await new Promise(resolve => setTimeout(resolve, this.config.retryDelay * Math.pow(2, attempt)));
         }
       }
     }
-    
+
     throw lastError!;
   }
 
@@ -131,23 +134,53 @@ export class TxMonitorClient {
         body: JSON.stringify({ txids } as QueueAddRequest)
       }
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to add transactions to queue');
     }
-    
+
     return response.data;
+  }
+
+  async addToQueueWithMapping(transactions: TransactionRegistration[]): Promise<QueueAddWithMappingResponse> {
+    const response = await this.requestWithRetry<QueueAddWithMappingResponse>(
+      '/api/v1/queue/add-with-mapping',
+      {
+        method: 'POST',
+        body: JSON.stringify({ transactions } as QueueAddWithMappingRequest)
+      }
+    );
+
+    if (!response.success || !response.data) {
+      throw new TxMonitorError(response.error || 'Failed to add transactions to queue with mapping');
+    }
+
+    return response.data;
+  }
+
+  async addTransactionWithMapping(
+    txid: string,
+    recordId: string,
+    recordType: 'order' | 'swap'
+  ): Promise<QueueAddWithMappingResponse> {
+    const transactions: TransactionRegistration[] = [{
+      txid,
+      recordId,
+      recordType
+    }];
+
+    return await this.addToQueueWithMapping(transactions);
   }
 
   async getTransactionStatus(txid: string): Promise<StatusResponse> {
     const response = await this.requestWithRetry<StatusResponse>(
       `/api/v1/status/${encodeURIComponent(txid)}`
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to get transaction status');
     }
-    
+
     return response.data;
   }
 
@@ -155,11 +188,11 @@ export class TxMonitorClient {
     const response = await this.requestWithRetry<QueueStatsResponse>(
       '/api/v1/queue/stats'
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to get queue statistics');
     }
-    
+
     return response.data;
   }
 
@@ -169,11 +202,11 @@ export class TxMonitorClient {
       {},
       true
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to get queue details');
     }
-    
+
     return response.data;
   }
 
@@ -183,11 +216,11 @@ export class TxMonitorClient {
       { method: 'POST' },
       true
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to trigger cron job');
     }
-    
+
     return response.data;
   }
 
@@ -195,11 +228,11 @@ export class TxMonitorClient {
     const response = await this.requestWithRetry<MetricsHistoryResponse>(
       `/api/v1/metrics/history?period=${encodeURIComponent(period)}`
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to get metrics history');
     }
-    
+
     return response.data;
   }
 
@@ -207,11 +240,11 @@ export class TxMonitorClient {
     const response = await this.requestWithRetry<HealthCheckResponse>(
       '/api/v1/health'
     );
-    
+
     if (!response.success || !response.data) {
       throw new TxMonitorError(response.error || 'Failed to get health check');
     }
-    
+
     return response.data;
   }
 
@@ -235,7 +268,7 @@ export class TxMonitorClient {
         try {
           attempts++;
           const status = await this.getTransactionStatus(txid);
-          
+
           if (onStatusChange) {
             onStatusChange(status);
           }
@@ -260,7 +293,7 @@ export class TxMonitorClient {
           if (onError) {
             onError(error as Error);
           }
-          
+
           if (error instanceof TxMonitorNotFoundError) {
             resolve({
               txid,
@@ -286,7 +319,7 @@ export class TxMonitorClient {
 
   async batchAddToQueue(txids: string[], batchSize: number = 10): Promise<QueueAddResponse[]> {
     const batches: string[][] = [];
-    
+
     for (let i = 0; i < txids.length; i += batchSize) {
       batches.push(txids.slice(i, i + batchSize));
     }
@@ -317,6 +350,42 @@ export class TxMonitorClient {
     return responses;
   }
 
+  async batchAddToQueueWithMapping(
+    transactions: TransactionRegistration[],
+    batchSize: number = 10
+  ): Promise<QueueAddWithMappingResponse[]> {
+    const batches: TransactionRegistration[][] = [];
+
+    for (let i = 0; i < transactions.length; i += batchSize) {
+      batches.push(transactions.slice(i, i + batchSize));
+    }
+
+    const results = await Promise.allSettled(
+      batches.map(batch => this.addToQueueWithMapping(batch))
+    );
+
+    const responses: QueueAddWithMappingResponse[] = [];
+    const errors: Error[] = [];
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        responses.push(result.value);
+      } else {
+        errors.push(result.reason);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new TxMonitorError(
+        `Batch operation with mapping failed: ${errors.map(e => e.message).join(', ')}`,
+        undefined,
+        { errors }
+      );
+    }
+
+    return responses;
+  }
+
   async waitForTransaction(
     txid: string,
     options: PollingOptions = {}
@@ -327,10 +396,10 @@ export class TxMonitorClient {
   async isHealthy(): Promise<boolean> {
     try {
       const health = await this.getHealthCheck();
-      return health.cron === 'healthy' && 
-             health.api === 'healthy' && 
-             health.queue === 'healthy' && 
-             health.kvConnectivity;
+      return health.cron === 'healthy' &&
+        health.api === 'healthy' &&
+        health.queue === 'healthy' &&
+        health.kvConnectivity;
     } catch {
       return false;
     }

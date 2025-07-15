@@ -1,15 +1,14 @@
 /**
  * Client for interacting with tx-monitor service
  * Handles registering transactions for monitoring with activity integration
+ * 
+ * This file now uses the @packages/tx-monitor-client package for all functionality
  */
 
-interface TransactionRegistration {
-  txid: string;
-  recordId: string;
-  recordType: 'order' | 'swap';
-}
+import { TxMonitorClient, type TransactionRegistration, type QueueAddWithMappingResponse } from '@repo/tx-monitor-client';
 
-const TX_MONITOR_URL = process.env.TX_MONITOR_URL || 'http://localhost:3001';
+// Initialize the client
+const txMonitorClient = new TxMonitorClient();
 
 /**
  * Register transactions for monitoring with activity integration
@@ -23,33 +22,14 @@ export async function registerTransactionsForMonitoring(
   mappingsStored: number;
 }> {
   try {
-    const response = await fetch(`${TX_MONITOR_URL}/api/v1/queue/add-with-mapping`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        transactions
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`TX Monitor API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to register transactions');
-    }
+    const result = await txMonitorClient.addToQueueWithMapping(transactions);
     
     return {
-      success: true,
-      added: data.data.added || [],
-      alreadyMonitored: data.data.alreadyMonitored || [],
-      mappingsStored: data.data.mappingsStored || 0
+      success: result.success,
+      added: result.added,
+      alreadyMonitored: result.alreadyMonitored,
+      mappingsStored: result.mappingsStored
     };
-    
   } catch (error) {
     console.error('Error registering transactions for monitoring:', error);
     throw error;
@@ -68,15 +48,16 @@ export async function registerTransactionForMonitoring(
   added: string[];
   alreadyMonitored: string[];
 }> {
-  const result = await registerTransactionsForMonitoring([{
-    txid,
-    recordId,
-    recordType
-  }]);
-  
-  return {
-    success: result.success,
-    added: result.added,
-    alreadyMonitored: result.alreadyMonitored
-  };
+  try {
+    const result = await txMonitorClient.addTransactionWithMapping(txid, recordId, recordType);
+    
+    return {
+      success: result.success,
+      added: result.added,
+      alreadyMonitored: result.alreadyMonitored
+    };
+  } catch (error) {
+    console.error('Error registering transaction for monitoring:', error);
+    throw error;
+  }
 }

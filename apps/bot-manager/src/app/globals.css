@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+/* Skeleton loading animations */
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--color-muted)) 0%,
+    hsl(var(--color-muted-foreground) / 0.1) 50%,
+    hsl(var(--color-muted)) 100%
+  );
+  background-size: 200px 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-loading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--color-muted-foreground) / 0.1);
+  animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
 @theme {
   --default-transition-duration: 150ms;
   --default-font-family: var(--font-geist-sans);

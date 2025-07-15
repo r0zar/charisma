@@ -97,7 +97,8 @@ export function NavigationDrawer() {
     const originalPush = router.push;
     router.push = (...args) => {
       handleRouteChangeStart();
-      return originalPush.apply(router, args).finally(handleRouteChangeComplete);
+      originalPush.apply(router, args);
+      handleRouteChangeComplete();
     };
 
     // Also reset on pathname change (for back/forward navigation)
@@ -113,45 +114,6 @@ export function NavigationDrawer() {
 
   const MobileNavigationBar = () => (
     <div className="flex items-center justify-center p-4">
-      {/* Skeleton loading animation styles */}
-      <style jsx>{`
-        @keyframes skeleton-pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.4;
-          }
-        }
-        
-        @keyframes skeleton-shimmer {
-          0% {
-            background-position: -200px 0;
-          }
-          100% {
-            background-position: calc(200px + 100%) 0;
-          }
-        }
-        
-        .skeleton-loading {
-          background: linear-gradient(
-            90deg,
-            hsl(var(--muted)) 0%,
-            hsl(var(--muted-foreground) / 0.1) 50%,
-            hsl(var(--muted)) 100%
-          );
-          background-size: 200px 100%;
-          animation: skeleton-shimmer 1.5s ease-in-out infinite;
-        }
-        
-        .skeleton-loading::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: hsl(var(--muted-foreground) / 0.1);
-          animation: skeleton-pulse 2s ease-in-out infinite;
-        }
-      `}</style>
       
       {/* Actions */}
       <div className="flex items-center gap-2">

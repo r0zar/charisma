@@ -304,4 +304,191 @@ describe('TxMonitorClient', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('Activity Integration Methods', () => {
+    describe('addToQueueWithMapping', () => {
+      it('should add transactions with activity mapping successfully', async () => {
+        const mockResponse = {
+          success: true,
+          data: {
+            success: true,
+            added: ['tx1', 'tx2'],
+            alreadyMonitored: [],
+            mappingsStored: 2
+          }
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse
+        } as Response);
+
+        const transactions = [
+          { txid: 'tx1', recordId: 'order-1', recordType: 'order' as const },
+          { txid: 'tx2', recordId: 'swap-1', recordType: 'swap' as const }
+        ];
+
+        const result = await client.addToQueueWithMapping(transactions);
+
+        expect(result).toEqual(mockResponse.data);
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${baseUrl}/api/v1/queue/add-with-mapping`,
+          expect.objectContaining({
+            method: 'POST',
+            headers: expect.objectContaining({
+              'Content-Type': 'application/json'
+            }),
+            body: JSON.stringify({ transactions })
+          })
+        );
+      });
+
+      it('should handle empty transactions array', async () => {
+        const mockResponse = {
+          success: true,
+          data: {
+            success: true,
+            added: [],
+            alreadyMonitored: [],
+            mappingsStored: 0
+          }
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse
+        } as Response);
+
+        const result = await client.addToQueueWithMapping([]);
+
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it('should handle API errors', async () => {
+        const mockResponse = {
+          success: false,
+          error: 'Invalid record type'
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          json: async () => mockResponse
+        } as Response);
+
+        const transactions = [
+          { txid: 'tx1', recordId: 'order-1', recordType: 'invalid' as any }
+        ];
+
+        await expect(client.addToQueueWithMapping(transactions)).rejects.toThrow(TxMonitorError);
+      });
+    });
+
+    describe('addTransactionWithMapping', () => {
+      it('should add single transaction with mapping successfully', async () => {
+        const mockResponse = {
+          success: true,
+          data: {
+            success: true,
+            added: ['tx1'],
+            alreadyMonitored: [],
+            mappingsStored: 1
+          }
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse
+        } as Response);
+
+        const result = await client.addTransactionWithMapping('tx1', 'order-1', 'order');
+
+        expect(result).toEqual(mockResponse.data);
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${baseUrl}/api/v1/queue/add-with-mapping`,
+          expect.objectContaining({
+            method: 'POST',
+            headers: expect.objectContaining({
+              'Content-Type': 'application/json'
+            }),
+            body: JSON.stringify({ 
+              transactions: [{ txid: 'tx1', recordId: 'order-1', recordType: 'order' }]
+            })
+          })
+        );
+      });
+
+      it('should handle already monitored transactions', async () => {
+        const mockResponse = {
+          success: true,
+          data: {
+            success: true,
+            added: [],
+            alreadyMonitored: ['tx1'],
+            mappingsStored: 1
+          }
+        };
+
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse
+        } as Response);
+
+        const result = await client.addTransactionWithMapping('tx1', 'swap-1', 'swap');
+
+        expect(result).toEqual(mockResponse.data);
+      });
+    });
+
+    describe('batchAddToQueueWithMapping', () => {
+      it('should process transactions with mappings in batches', async () => {
+        const mockResponse = {
+          success: true,
+          data: {
+            success: true,
+            added: ['tx1', 'tx2'],
+            alreadyMonitored: [],
+            mappingsStored: 2
+          }
+        };
+
+        mockFetch.mockResolvedValue({
+          ok: true,
+          json: async () => mockResponse
+        } as Response);
+
+        const transactions = [
+          { txid: 'tx1', recordId: 'order-1', recordType: 'order' as const },
+          { txid: 'tx2', recordId: 'order-2', recordType: 'order' as const },
+          { txid: 'tx3', recordId: 'swap-1', recordType: 'swap' as const },
+          { txid: 'tx4', recordId: 'swap-2', recordType: 'swap' as const },
+          { txid: 'tx5', recordId: 'order-3', recordType: 'order' as const }
+        ];
+
+        const results = await client.batchAddToQueueWithMapping(transactions, 2);
+
+        expect(results).toHaveLength(3); // 5 transactions with batch size 2 = 3 batches
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+      });
+
+      it('should handle batch processing errors', async () => {
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+              success: true,
+              data: { success: true, added: ['tx1'], alreadyMonitored: [], mappingsStored: 1 }
+            })
+          } as Response)
+          .mockRejectedValueOnce(new Error('Network error'));
+
+        const transactions = [
+          { txid: 'tx1', recordId: 'order-1', recordType: 'order' as const },
+          { txid: 'tx2', recordId: 'order-2', recordType: 'order' as const }
+        ];
+
+        await expect(client.batchAddToQueueWithMapping(transactions, 1)).rejects.toThrow(TxMonitorError);
+      });
+    });
+  });
 });
