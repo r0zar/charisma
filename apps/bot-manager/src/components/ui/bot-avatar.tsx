@@ -30,16 +30,26 @@ export function BotAvatar({
 }: BotAvatarProps) {
   const [imageError, setImageError] = useState(false);
   const [fallbackError, setFallbackError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const primaryImageUrl = getBotImageWithFallback(bot);
   const fallbackImageUrl = getBotImageFallback(bot.name);
 
   const handleImageError = () => {
+    setIsLoading(false);
     if (!imageError) {
       setImageError(true);
+      setImageLoaded(false);
     } else if (!fallbackError) {
       setFallbackError(true);
+      setImageLoaded(false);
     }
+  };
+
+  const handleImageLoad = () => {
+    setIsLoading(false);
+    setImageLoaded(true);
   };
 
   const getImageUrl = () => {
@@ -61,11 +71,22 @@ export function BotAvatar({
           src={imageUrl}
           alt={`${bot.name} avatar`}
           onError={handleImageError}
-          className="object-cover"
+          onLoad={handleImageLoad}
+          className={cn(
+            "object-cover transition-opacity duration-200",
+            imageLoaded ? "opacity-100" : "opacity-0"
+          )}
         />
       )}
-      <AvatarFallback className="bg-blue-500/20 text-blue-400 border border-blue-500/30">
-        {showFallbackIcon ? (
+      <AvatarFallback className={cn(
+        "transition-opacity duration-200",
+        isLoading && imageUrl ? "bg-muted/50 animate-pulse" : "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+        imageLoaded && imageUrl ? "opacity-0" : "opacity-100"
+      )}>
+        {isLoading && imageUrl ? (
+          // Show subtle loading state without icon
+          <div className="w-full h-full" />
+        ) : showFallbackIcon ? (
           <BotIcon className={cn(
             size === 'sm' && 'w-4 h-4',
             size === 'md' && 'w-6 h-6',

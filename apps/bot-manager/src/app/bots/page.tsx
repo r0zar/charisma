@@ -101,15 +101,15 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
     return (
       <Card className="bg-card border-border hover:bg-card/90 hover:border-primary/50 hover:translate-x-1 transition-all duration-200 p-0 cursor-pointer group">
         <Link href={`/bots/${bot.id}`} className="block">
-          <CardContent className="px-2">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1">
-                <BotAvatar bot={bot} size="lg" />
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <BotAvatar bot={bot} size="md" />
 
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-card-foreground group-hover:text-primary transition-colors">{bot.name}</h3>
-                    <div className={`w-2 h-2 rounded-full ${bot.status === 'active' ? 'bg-green-400 animate-pulse' :
+                    <h3 className="font-medium text-card-foreground group-hover:text-primary transition-colors truncate">{bot.name}</h3>
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${bot.status === 'active' ? 'bg-green-400 animate-pulse' :
                       bot.status === 'paused' ? 'bg-yellow-400' :
                         bot.status === 'error' ? 'bg-red-400' :
                           bot.status === 'setup' ? 'bg-blue-400' :
@@ -117,35 +117,21 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                       }`} />
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{getStrategyDisplayName(bot.strategy)}</span>
-                    <span>{truncateAddress(bot.id)}</span>
-                    {bot.status === 'setup' ? (
-                      <span className="flex items-center gap-1 text-muted-foreground">
-                        <Settings className="w-3 h-3" />
-                        <span>Setup required - configure strategy and activate bot</span>
-                      </span>
-                    ) : (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="truncate">{getStrategyDisplayName(bot.strategy)}</span>
+                    <span className="hidden sm:inline text-muted-foreground/60">•</span>
+                    <span className="hidden sm:inline truncate">{truncateAddress(bot.id)}</span>
+                    {bot.status === 'setup' && (
                       <>
-                        <span className="flex items-center gap-1">
-                          <Fuel className="w-3 h-3" />
-                          <span className="text-gray-500 italic">No balance data</span>
-                        </span>
-                        <span className="flex items-center gap-1 text-gray-500">
-                          <TrendingUp className="w-3 h-3" />
-                          <span className="italic">No P&L data</span>
-                        </span>
-                        <span className="flex items-center gap-1 text-gray-500">
-                          <Target className="w-3 h-3" />
-                          <span className="italic">No success rate</span>
-                        </span>
+                        <span className="hidden md:inline text-muted-foreground/60">•</span>
+                        <span className="hidden md:inline text-orange-400">Setup required</span>
                       </>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                 {bot.status === 'active' ? (
                   <Button
                     size="sm"
@@ -156,10 +142,10 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                       if (updated) onPause(bot.id);
                     }}
                     disabled={isTransitioning}
-                    className="h-7 text-xs border-yellow-600 text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50"
+                    className="h-8 text-xs border-yellow-600 text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-50"
                   >
-                    <Pause className="w-3 h-3 mr-1" />
-                    Pause
+                    <Pause className="w-3 h-3 sm:mr-1" />
+                    <span className="hidden sm:inline">Pause</span>
                   </Button>
                 ) : (
                   <Button
@@ -171,22 +157,20 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                       if (updated) onStart(bot.id);
                     }}
                     disabled={isTransitioning || bot.status === 'setup'}
-                    className="h-7 text-xs border-green-600 text-green-400 hover:bg-green-500/10 disabled:opacity-50"
+                    className="h-8 text-xs border-green-600 text-green-400 hover:bg-green-500/10 disabled:opacity-50"
                   >
-                    <Play className="w-3 h-3 mr-1" />
-                    Start
+                    <Play className="w-3 h-3 sm:mr-1" />
+                    <span className="hidden sm:inline">Start</span>
                   </Button>
                 )}
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                      <MoreHorizontal className="w-3 h-3" />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover border-border">
-                    <DropdownMenuLabel className="text-popover-foreground">Bot Wallet</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem asChild className="text-popover-foreground hover:bg-accent">
                       <Link href={`/bots/${bot.id}`}>
                         <Settings className="w-4 h-4 mr-2" />
@@ -198,14 +182,14 @@ function BotCard({ bot, onStart, onPause, onDelete, viewMode }: BotCardProps) {
                       className="text-popover-foreground hover:bg-accent"
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      Copy Bot Address
+                      Copy Address
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => openInExplorer(bot.id)}
                       className="text-popover-foreground hover:bg-accent"
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
-                      View in Explorer
+                      View Explorer
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -518,7 +502,13 @@ export default function BotsPage() {
   const hasAlphaAccess = useAlphaAccess();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    // Default to list view on mobile, grid view on desktop
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? 'list' : 'grid';
+    }
+    return 'grid';
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const botsPerPage = 20;
 
@@ -584,6 +574,20 @@ export default function BotsPage() {
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
+
+  // Update view mode based on screen size
+  React.useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      // Only auto-switch to list on mobile if user hasn't manually changed view
+      if (isMobile && viewMode === 'grid') {
+        setViewMode('list');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [viewMode]);
 
   // Smart action handler that uses the correct transition based on bot status
   const handleStartAction = async (bot: BotType, reason: string) => {

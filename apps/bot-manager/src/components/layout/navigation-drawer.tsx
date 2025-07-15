@@ -308,7 +308,7 @@ export function NavigationDrawer() {
         <div className="bg-card rounded-lg p-3 text-center">
           <Bot className="w-5 h-5 text-primary mx-auto mb-1" />
           <p className="text-xl font-semibold text-foreground">{botStats.totalBots}</p>
-          <p className="text-xs text-muted-foreground">Total Bots</p>
+          <p className="text-xs text-muted-foreground">Bots</p>
         </div>
         <div className="bg-card rounded-lg p-3 text-center">
           <TrendingUp className="w-5 h-5 text-green-500 mx-auto mb-1" />
