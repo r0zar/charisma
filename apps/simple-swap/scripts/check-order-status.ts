@@ -20,8 +20,33 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../.env.local') });
 
 import { kv } from '@vercel/kv';
-import { getOrdersNeedingMonitoring } from '../src/lib/transaction-monitor';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
+
+/**
+ * Get orders that need transaction monitoring
+ * These are orders with broadcasted transactions that need status checking
+ */
+async function getOrdersNeedingMonitoring(): Promise<Array<{ uuid: string; order: any }>> {
+    const orders = await kv.hgetall('orders') || {};
+    const ordersToCheck = [];
+    
+    for (const [uuid, orderData] of Object.entries(orders)) {
+        if (typeof orderData === 'string') {
+            try {
+                const order = JSON.parse(orderData);
+                
+                // Only monitor orders with broadcasted transactions
+                if (order.status === 'broadcasted' && order.txid) {
+                    ordersToCheck.push({ uuid, order });
+                }
+            } catch (error) {
+                console.error(`Error parsing order ${uuid}:`, error);
+            }
+        }
+    }
+    
+    return ordersToCheck;
+}
 
 interface ScriptArgs {
     hours?: number;

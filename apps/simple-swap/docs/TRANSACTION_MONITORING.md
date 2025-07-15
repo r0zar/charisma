@@ -4,7 +4,7 @@ This document describes the transaction monitoring system that tracks the actual
 
 ## Overview
 
-Previously, when orders were executed, they were immediately marked as "filled" even though they were only broadcasted to the network. The transaction monitoring system adds proper tracking to distinguish between:
+The transaction monitoring system has been refactored to use a centralized service (`@apps/tx-monitor`). This provides proper tracking to distinguish between:
 
 - **Broadcasted**: Transaction sent to network but not yet confirmed
 - **Confirmed**: Transaction successfully included in a block
@@ -14,25 +14,39 @@ Previously, when orders were executed, they were immediately marked as "filled" 
 
 ### Components
 
-1. **Cron Job** (`/api/cron/transaction-monitor`)
+1. **TX Monitor Service** (`@apps/tx-monitor`)
+   - Dedicated service for transaction monitoring
+   - Provides REST API for transaction status checking
+   - Runs automated cron jobs for monitoring
+   - Centralized queue management with Redis
+   - Activity integration via webhooks
+
+2. **Order Monitor Cron Job** (`/api/cron/order-monitor`)
    - Runs every minute via Vercel cron
-   - Checks pending transactions using Stacks blockchain API
-   - Updates order status based on blockchain confirmation
+   - Handles order-specific logic (expiration, balance refresh)
+   - Uses `@repo/tx-monitor-client` for transaction status
+   - Manages order lifecycle (broadcasted -> confirmed/failed)
 
-2. **Transaction Monitor Library** (`/lib/transaction-monitor.ts`)
-   - Utility functions for checking and caching transaction statuses
-   - Integrates with Vercel KV for persistent storage
-   - Uses `@packages/polyglot` for blockchain queries
+3. **TX Monitor Client** (`@repo/tx-monitor-client`)
+   - Client library for communicating with tx-monitor service
+   - Handles transaction registration and status checking
+   - Provides TypeScript types and error handling
 
-3. **UI Components**
-   - `TransactionStatusIndicator`: Shows real-time transaction status
-   - `PremiumStatusBadge`: Enhanced status badges with transaction info
+4. **UI Components**
+   - `TransactionMonitoringStats`: Admin dashboard showing service health
    - `useTransactionStatus`: React hook for transaction status checking
 
-4. **Admin Endpoints**
-   - `/api/admin/transaction-monitor/stats`: Get monitoring statistics
-   - `/api/admin/transaction-monitor/trigger`: Manually trigger monitoring
-   - `/api/admin/transaction-monitor/status/[txid]`: Get specific transaction status
+## TX Monitor Service Endpoints
+
+The tx-monitor service provides the following endpoints:
+
+- `GET /api/v1/health`: Health check and service status
+- `GET /api/v1/queue/stats`: Queue statistics and metrics
+- `POST /api/v1/admin/trigger`: Manually trigger monitoring
+- `GET /api/v1/admin/queue`: View current queue contents
+- `POST /api/v1/queue/add`: Add transaction to monitoring queue
+- `POST /api/v1/queue/add-with-mapping`: Add transaction with activity mapping
+- `GET /api/v1/status/{txid}`: Get specific transaction status
 
 ## Transaction Status Flow
 

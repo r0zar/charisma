@@ -32,33 +32,45 @@ interface TransactionStats {
 
 async function fetchTransactionStats(): Promise<TransactionStats> {
     try {
-        const response = await fetch('/api/admin/transaction-monitor/stats');
-        const data = await response.json();
+        const TX_MONITOR_URL = process.env.TX_MONITOR_URL || 'http://localhost:3001';
         
-        if (data.success) {
-            const rawStats = data.data;
-            
-            // Calculate derived values
-            const totalMonitored = rawStats.pendingTransactions + rawStats.confirmedTransactions + rawStats.failedTransactions;
-            
-            // Determine processing health
-            let processingHealth: TransactionStats['processingHealth'] = 'healthy';
-            if (totalMonitored === 0) {
-                processingHealth = 'healthy'; // No transactions to monitor is fine
-            } else if (rawStats.failedTransactions > totalMonitored * 0.1) { // More than 10% failed
-                processingHealth = 'error';
-            } else if (rawStats.pendingTransactions > totalMonitored * 0.3) { // More than 30% pending
-                processingHealth = 'warning';
-            }
+        // Fetch from tx-monitor service
+        const [statsResponse, healthResponse] = await Promise.all([
+            fetch(`${TX_MONITOR_URL}/api/v1/queue/stats`),
+            fetch(`${TX_MONITOR_URL}/api/v1/health`)
+        ]);
+        
+        const [statsData, healthData] = await Promise.all([
+            statsResponse.json(),
+            healthResponse.json()
+        ]);
+        
+        if (statsData.success && healthData.success) {
+            const stats = statsData.data;
+            const health = healthData.data;
             
             return {
-                ...rawStats,
-                processingHealth,
-                lastCheckTime: rawStats.lastCheckTime
+                totalOrders: stats.totalTransactions || 0,
+                ordersNeedingMonitoring: stats.queueSize || 0,
+                pendingTransactions: stats.pendingCount || 0,
+                confirmedTransactions: stats.confirmedCount || 0,
+                failedTransactions: stats.failedCount || 0,
+                processingHealth: stats.processingHealth || 'error',
+                lastCheckTime: stats.lastChecked || undefined,
+                txMonitor: {
+                    queueSize: stats.queueSize || 0,
+                    oldestTransaction: stats.oldestTransactionId,
+                    oldestTransactionAge: stats.oldestTransactionAge,
+                    totalProcessed: stats.totalProcessed || 0,
+                    totalFailed: stats.failedCount || 0,
+                    totalSuccessful: stats.confirmedCount || 0,
+                    processingHealth: stats.processingHealth || 'error',
+                    serviceHealth: health
+                }
             };
         }
         
-        throw new Error('Failed to fetch transaction stats');
+        throw new Error('Failed to fetch transaction stats from tx-monitor service');
     } catch (error) {
         console.error('Failed to fetch transaction stats:', error);
         return {

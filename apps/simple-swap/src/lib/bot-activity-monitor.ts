@@ -1,6 +1,11 @@
 import { kv } from '@vercel/kv';
-import { checkTransactionStatus, type TransactionStatus } from './transaction-monitor';
+import { TxMonitorClient } from '@repo/tx-monitor-client';
 import type { BotActivityRecord, BotData } from '@/types/bot';
+
+// Initialize tx-monitor client
+const txMonitorClient = new TxMonitorClient();
+
+type TransactionStatus = 'pending' | 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'not_found' | 'broadcasted';
 
 /**
  * Result of monitoring a single bot activity transaction
@@ -89,7 +94,7 @@ export async function monitorBotActivityTransaction(
         }
 
         // Check current transaction status on blockchain
-        const txStatus = await checkTransactionStatus(activity.txid);
+        const txStatus = await txMonitorClient.getTransactionStatus(activity.txid);
         result.currentStatus = txStatus.status;
 
         // Only update if status has changed
