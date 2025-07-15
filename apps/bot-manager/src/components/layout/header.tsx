@@ -3,7 +3,6 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import {
   Bell,
-  RefreshCw,
   Search
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -39,7 +38,7 @@ const pageTitles: Record<string, string> = {
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { refreshData, loading, botStats } = useBots();
+  const { botStats } = useBots();
   const { isAuthenticated } = useAppAuth();
   const { openSearch } = useSearch();
   const {
@@ -53,9 +52,6 @@ export function Header() {
 
   const currentPageTitle = pageTitles[pathname] || 'Tokemon';
 
-  const handleRefresh = async () => {
-    await refreshData();
-  };
 
 
   // Get notifications from the new context
@@ -86,7 +82,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/30 bg-transparent backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/0">
+    <header className="hidden">
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
         {/* Left: Page Title */}
         <div className="flex items-center gap-4">
@@ -117,15 +113,14 @@ export function Header() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          {/* Refresh Button */}
+          {/* Search Button */}
           <Button
             variant="outline"
             size="icon"
-            onClick={handleRefresh}
-            disabled={loading}
+            onClick={openSearch}
             className="h-10 w-10 flex flex-col items-center justify-center"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <Search className="w-4 h-4" />
           </Button>
 
           {/* Notifications */}
@@ -252,22 +247,6 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Search */}
-      <div className="md:hidden border-t border-border/30 p-4">
-        <button
-          onClick={openSearch}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-background/5 border border-border/30 text-foreground placeholder:text-muted-foreground backdrop-blur-xl shadow-2xl ring-1 ring-background/10 rounded-lg hover:bg-background/10 transition-colors"
-        >
-          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-          <span className="text-muted-foreground text-sm">Search for anything...</span>
-          <div className="ml-auto flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-xs text-muted-foreground">
-              {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
-            </kbd>
-            <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-xs text-muted-foreground">K</kbd>
-          </div>
-        </button>
-      </div>
     </header>
   );
 }

@@ -6,7 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
 import { Header } from "@/components/layout/header";
-import { Sidebar } from "@/components/layout/sidebar";
+import { NavigationDrawer } from "@/components/layout/navigation-drawer";
 import { SearchOverlay } from "@/components/search";
 import { AuthProvider, SkinProvider, WalletProvider } from "@/contexts";
 import { BotProvider } from "@/contexts/bot-context";
@@ -171,14 +171,14 @@ export default async function RootLayout({
                         <NotificationsProvider initialNotifications={notifications}>
                           <SearchProvider>
                             <div className="flex h-screen bg-background">
-                              <Sidebar />
-                              <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+                              <div className="flex-1 flex flex-col overflow-hidden">
                                 <Header />
                                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background">
                                   {children}
                                 </main>
                               </div>
                             </div>
+                            <NavigationDrawer />
                             <SearchOverlay />
                           </SearchProvider>
                         </NotificationsProvider>

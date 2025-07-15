@@ -15,7 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { CountdownTimer } from '@/components/countdown-timer';
 import { Badge } from '@/components/ui/badge';
