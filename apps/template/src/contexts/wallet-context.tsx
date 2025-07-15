@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { connect, request } from "@stacks/connect";
 
 // Types
@@ -115,7 +115,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
 
     // Helper function to load wallet state for a specific network
-    const loadWalletStateForNetwork = (targetNetwork: Network) => {
+    const loadWalletStateForNetwork = useCallback((targetNetwork: Network) => {
         try {
             const storageKey = getStorageKey(targetNetwork);
             const addresses = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -166,7 +166,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error(`Error loading wallet state from localStorage for ${targetNetwork}:`, error);
         }
-    };
+    }, [network, setWalletState, detectNetworkFromAddress]);
 
     // Check if there's wallet info in localStorage on initial load
     useEffect(() => {

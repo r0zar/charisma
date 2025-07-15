@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, LogOut, User, Menu, BarChart3, Code, Home, Wallet, Palette } from "lucide-react"
+import { Settings, User, Menu, BarChart3, Home, Wallet, Palette } from "lucide-react"
 import { useWallet } from "@/contexts"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer"
@@ -111,7 +111,7 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
 
 
 export function WalletDropdown() {
-  const { walletState, network, connectWallet, isConnecting } = useWallet()
+  const { walletState, network, connectWallet: _connectWallet, isConnecting: _isConnecting } = useWallet()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
