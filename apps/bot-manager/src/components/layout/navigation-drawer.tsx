@@ -1,6 +1,6 @@
 'use client';
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/nextjs';
 import {
   AlertCircle,
   Bell,
@@ -10,30 +10,25 @@ import {
   Plus,
   Search,
   Settings,
-  TrendingUp
+  TrendingUp,
+  User
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Drawer } from 'vaul';
+import { motion } from 'framer-motion';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useBots } from '@/contexts/bot-context';
-import { useNotificationsData } from '@/contexts/notifications-context';
 import { useSearch } from '@/contexts/search-context';
 import { useAlphaAccess } from '@/hooks/use-alpha-access';
 import { cn } from '@/lib/utils';
+import { NotificationsDrawer } from './notifications-drawer';
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -70,65 +65,225 @@ const navigation = [
 
 export function NavigationDrawer() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isLoaded } = useUser();
   const { botStats, bots } = useBots();
   const hasAlphaAccess = useAlphaAccess();
   const { openSearch } = useSearch();
   const snapPoints = ['20px', '80px', 0.8];
   const [snap, setSnap] = useState<number | string | null>(snapPoints[1]);
   const [open, setOpen] = useState(true);
-  const {
-    notifications: liveNotifications,
-    getUnreadCount,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-  } = useNotificationsData();
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Hack to remove focus trap from vaul drawer (known issue)
+  // See: https://github.com/emilkowalski/vaul/issues/494
+  useLayoutEffect(() => {
+    document.addEventListener('focusin', e => e.stopImmediatePropagation());
+    document.addEventListener('focusout', e => e.stopImmediatePropagation());
+  }, []);
+
+  // Track navigation state to show loading skeletons
+  React.useEffect(() => {
+    const handleRouteChangeStart = () => {
+      setIsNavigating(true);
+    };
+
+    const handleRouteChangeComplete = () => {
+      // Small delay to ensure smooth transition
+      setTimeout(() => setIsNavigating(false), 150);
+    };
+
+    // Listen for navigation events
+    const originalPush = router.push;
+    router.push = (...args) => {
+      handleRouteChangeStart();
+      return originalPush.apply(router, args).finally(handleRouteChangeComplete);
+    };
+
+    // Also reset on pathname change (for back/forward navigation)
+    handleRouteChangeComplete();
+
+    return () => {
+      router.push = originalPush;
+    };
+  }, [router, pathname]);
+
 
   const currentPageTitle = pageTitles[pathname] || 'Tokemon';
-  const unreadCount = getUnreadCount();
-
-  const recentNotifications = (Array.isArray(liveNotifications) ? liveNotifications : [])
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 5);
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'error': return '🔴';
-      case 'warning': return '🟡';
-      case 'success': return '🟢';
-      case 'info': return '🔵';
-      default: return '📢';
-    }
-  };
-
-  const handleNotificationClick = async (notification: any) => {
-    if (!notification.read) {
-      await markAsRead(notification.id);
-    }
-    if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
-    }
-  };
 
   const MobileNavigationBar = () => (
-    <div className="flex items-center justify-between p-4 bg-background">
-      {/* Left: Page Title */}
-      <div className="flex flex-col min-w-0 flex-1">
-        <h1 className="text-sm font-semibold text-foreground truncate">{currentPageTitle}</h1>
-        <p className="text-xs text-muted-foreground">
-          {botStats.totalBots} bots • {botStats.activeBots} active
-        </p>
-      </div>
-
-      {/* Right: Actions */}
+    <div className="flex items-center justify-center p-4">
+      {/* Skeleton loading animation styles */}
+      <style jsx>{`
+        @keyframes skeleton-pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.4;
+          }
+        }
+        
+        @keyframes skeleton-shimmer {
+          0% {
+            background-position: -200px 0;
+          }
+          100% {
+            background-position: calc(200px + 100%) 0;
+          }
+        }
+        
+        .skeleton-loading {
+          background: linear-gradient(
+            90deg,
+            hsl(var(--muted)) 0%,
+            hsl(var(--muted-foreground) / 0.1) 50%,
+            hsl(var(--muted)) 100%
+          );
+          background-size: 200px 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+        
+        .skeleton-loading::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: hsl(var(--muted-foreground) / 0.1);
+          animation: skeleton-pulse 2s ease-in-out infinite;
+        }
+      `}</style>
+      
+      {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* Home/Dashboard */}
+        {(() => {
+          const item = navigation[0]; // Dashboard
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Button
+              key={item.name}
+              asChild
+              variant={isActive ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "h-9 w-9 flex flex-col items-center justify-center relative overflow-hidden",
+                isNavigating ? "skeleton-loading" : "",
+                isActive 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                  : "hover:bg-accent/50"
+              )}
+            >
+              <Link href={item.href}>
+                <item.icon className={cn("w-4 h-4", isNavigating ? "invisible" : "")} />
+              </Link>
+            </Button>
+          );
+        })()}
+
+        {/* Bots */}
+        {(() => {
+          const item = navigation[1]; // Bots
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Button
+              key={item.name}
+              asChild
+              variant={isActive ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "h-9 w-9 flex flex-col items-center justify-center relative overflow-hidden",
+                isNavigating ? "skeleton-loading" : "",
+                isActive 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                  : "hover:bg-accent/50"
+              )}
+            >
+              <Link href={item.href}>
+                <item.icon className={cn("w-4 h-4", isNavigating ? "invisible" : "")} />
+              </Link>
+            </Button>
+          );
+        })()}
+
+        {/* Settings */}
+        {(() => {
+          const item = navigation[2]; // Settings
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Button
+              key={item.name}
+              asChild
+              variant={isActive ? "default" : "outline"}
+              size="icon"
+              className={cn(
+                "h-9 w-9 flex flex-col items-center justify-center relative overflow-hidden",
+                isNavigating ? "skeleton-loading" : "",
+                isActive 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                  : "hover:bg-accent/50"
+              )}
+            >
+              <Link href={item.href}>
+                <item.icon className={cn("w-4 h-4", isNavigating ? "invisible" : "")} />
+              </Link>
+            </Button>
+          );
+        })()}
+
+        {/* User Menu - Center */}
+        <div className="w-9 h-9 flex items-center justify-center">
+          <SignedIn>
+            <div className="flex items-center justify-center">
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: {
+                      width: '2.25rem',
+                      height: '2.25rem',
+                    },
+                  },
+                }}
+              />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <SignInButton
+              mode="modal"
+              signUpForceRedirectUrl="/dashboard"
+              forceRedirectUrl="/dashboard"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 bg-background/5 backdrop-blur-2xl border-border/30 hover:bg-background/10 hover:border-primary/50 transition-all duration-200 relative overflow-hidden"
+              >
+                Sign In
+              </Button>
+            </SignInButton>
+          </SignedOut>
+        </div>
+
+        {/* Notifications */}
+        <NotificationsDrawer isNavigating={isNavigating} />
+
+        {/* Search Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={openSearch}
+          className={cn("h-9 w-9 flex flex-col items-center justify-center relative overflow-hidden", isNavigating ? "skeleton-loading" : "")}
+        >
+          <Search className={cn("w-4 h-4", isNavigating ? "invisible" : "")} />
+        </Button>
+
         {/* Create Bot Button */}
         {hasAlphaAccess ? (
           <Button
             asChild
             variant="outline"
             size="icon"
-            className="h-9 w-9 flex flex-col items-center justify-center"
+            className="h-9 w-9 flex flex-col items-center justify-center border-green-600 text-green-400 hover:bg-green-500/10 relative overflow-hidden"
           >
             <Link href="/bots/create">
               <Plus className="w-4 h-4" />
@@ -139,145 +294,12 @@ export function NavigationDrawer() {
             disabled
             variant="outline"
             size="icon"
-            className="h-9 w-9 flex flex-col items-center justify-center opacity-50"
+            className="h-9 w-9 flex flex-col items-center justify-center opacity-50 relative overflow-hidden"
             title="Bot creation is currently in alpha. Add #alpha to the URL for access."
           >
             <Plus className="w-4 h-4" />
           </Button>
         )}
-
-        {/* Search Button */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={openSearch}
-          className="h-9 w-9 flex flex-col items-center justify-center"
-        >
-          <Search className="w-4 h-4" />
-        </Button>
-
-        {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="relative h-9 w-9 flex flex-col items-center justify-center">
-              <Bell className="w-4 h-4" />
-              {unreadCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-xs bg-destructive text-destructive-foreground"
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Badge>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 bg-background/95 backdrop-blur-2xl border-border/30 shadow-2xl ring-1 ring-background/10">
-            <DropdownMenuLabel className="text-foreground flex items-center justify-between">
-              <span>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</span>
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={markAllAsRead}
-                  className="h-6 px-2 text-xs"
-                >
-                  Mark all read
-                </Button>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-border/30" />
-            {recentNotifications.length === 0 ? (
-              <DropdownMenuItem className="text-muted-foreground cursor-default">
-                <div className="flex items-center justify-center w-full py-4">
-                  <p className="text-sm">No notifications</p>
-                </div>
-              </DropdownMenuItem>
-            ) : (
-              recentNotifications.map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className={`group text-muted-foreground hover:text-foreground hover:bg-background/10 hover:backdrop-blur-xl cursor-pointer ${!notification.read ? 'bg-background/5' : ''}`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start gap-3 w-full">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <span className="text-sm">{getNotificationIcon(notification.type)}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className={`font-medium text-sm ${!notification.read ? 'text-foreground' : ''}`}>
-                          {notification.title}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notification.id);
-                            }}
-                            className="h-4 w-4 p-0 text-xs opacity-0 group-hover:opacity-100 hover:text-destructive"
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      </div>
-                      {notification.message && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {notification.message}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(notification.timestamp).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))
-            )}
-            {Array.isArray(liveNotifications) && liveNotifications.length > 5 && (
-              <>
-                <DropdownMenuSeparator className="bg-border/30" />
-                <DropdownMenuItem className="text-center text-muted-foreground hover:text-foreground hover:bg-background/10">
-                  <span className="w-full text-sm">View all notifications</span>
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* User Menu */}
-        <SignedIn>
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox: {
-                  width: '2.25rem',
-                  height: '2.25rem',
-                },
-              },
-            }}
-          />
-        </SignedIn>
-
-        <SignedOut>
-          <SignInButton
-            mode="modal"
-            signUpForceRedirectUrl="/dashboard"
-            forceRedirectUrl="/dashboard"
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 bg-background/5 backdrop-blur-2xl border-border/30 hover:bg-background/10 hover:border-primary/50 transition-all duration-200"
-            >
-              Sign In
-            </Button>
-          </SignInButton>
-        </SignedOut>
       </div>
     </div>
   );
@@ -460,8 +482,7 @@ export function NavigationDrawer() {
       >
         {/* @ts-ignore */}
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/20 z-40" />
-          <Drawer.Content className="bg-background/95 backdrop-blur-md border-t border-border/30 flex flex-col rounded-t-[10px] h-full fixed bottom-0 left-0 right-0 z-50">
+          <Drawer.Content className="bg-background/25 backdrop-blur-3xl border-t border-border/30 flex flex-col rounded-t-[10px] h-full fixed bottom-0 left-0 right-0 z-50 shadow-sm">
             <Drawer.Title className="sr-only">Navigation Drawer</Drawer.Title>
             <div className="flex flex-col h-full">
               {/* Drag Handle */}

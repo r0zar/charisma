@@ -25,7 +25,7 @@ import {
   XCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 
 // Removed usePublicBots hook - using SSR data instead
 import { getStrategyDisplayName } from '@/components/strategy-code-editor/strategy-utils';
@@ -502,6 +502,9 @@ export default function BotsPage() {
   const hasAlphaAccess = useAlphaAccess();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Debounce search query to prevent blocking on every keystroke
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     // Default to list view on mobile, grid view on desktop
     if (typeof window !== 'undefined') {
@@ -512,8 +515,8 @@ export default function BotsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const botsPerPage = 20;
 
-  // Calculate public stats from all bots (excluding current user's bots for community display)
-  const getPublicStats = () => {
+  // Memoize public stats calculation (expensive operation)
+  const publicStats = useMemo(() => {
     if (!allBots || allBots.length === 0) {
       return { totalBots: 0, activeBots: 0, pausedBots: 0, errorBots: 0, totalUsers: 0 };
     }
@@ -529,21 +532,30 @@ export default function BotsPage() {
       errorBots: communityBots.filter(bot => bot.status === 'error').length,
       totalUsers: uniqueOwners.size,
     };
-  };
+  }, [allBots, isSignedIn, user?.id]);
 
-  const getFilteredBots = () =>
-    bots.filter(bot => {
-      const matchesSearch = bot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bot.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        getStrategyDisplayName(bot.strategy).toLowerCase().includes(searchQuery.toLowerCase());
+  // Memoize filtered bots calculation (expensive string operations)
+  const filteredBots = useMemo(() => {
+    const searchLower = deferredSearchQuery.toLowerCase();
+    
+    return bots.filter(bot => {
+      const matchesSearch = searchLower === '' || 
+        bot.name.toLowerCase().includes(searchLower) ||
+        bot.id.toLowerCase().includes(searchLower) ||
+        getStrategyDisplayName(bot.strategy).toLowerCase().includes(searchLower);
       const matchesStatus = statusFilter === 'all' || bot.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
+  }, [bots, deferredSearchQuery, statusFilter]);
 
-  const getFilteredPublicBots = () => {
+  // Memoize filtered public bots calculation (most expensive operation)
+  const filteredPublicBots = useMemo(() => {
     if (!allBots || !Array.isArray(allBots)) {
       return [];
     }
+    
+    const searchLower = deferredSearchQuery.toLowerCase();
+    
     return allBots.filter(bot => {
       // Safety check - ensure bot and required properties exist
       if (!bot || !bot.name || !bot.id || !bot.strategy || !bot.status) {
@@ -553,27 +565,25 @@ export default function BotsPage() {
       if (isSignedIn && user?.id && bot.ownerId === user.id) {
         return false;
       }
-      const matchesSearch = bot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bot.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        getStrategyDisplayName(bot.strategy).toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = searchLower === '' ||
+        bot.name.toLowerCase().includes(searchLower) ||
+        bot.id.toLowerCase().includes(searchLower) ||
+        getStrategyDisplayName(bot.strategy).toLowerCase().includes(searchLower);
       const matchesStatus = statusFilter === 'all' || bot.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  };
+  }, [allBots, deferredSearchQuery, statusFilter, isSignedIn, user?.id]);
 
   // Pagination for public bots (now inline)
-  const filteredBots = getFilteredBots();
-  const filteredPublicBots = getFilteredPublicBots();
-  const publicStats = getPublicStats();
   const totalPages = Math.ceil(filteredPublicBots.length / botsPerPage);
   const startIndex = (currentPage - 1) * botsPerPage;
   const endIndex = startIndex + botsPerPage;
   const paginatedPublicBots = filteredPublicBots.slice(startIndex, endIndex);
 
-  // Reset page when filters change
+  // Reset page when filters change (use deferred search to avoid excessive resets)
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [deferredSearchQuery, statusFilter]);
 
   // Update view mode based on screen size
   React.useEffect(() => {
