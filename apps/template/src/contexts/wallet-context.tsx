@@ -173,7 +173,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         // Load addresses for both networks
         loadWalletStateForNetwork("mainnet");
         loadWalletStateForNetwork("testnet");
-    }, []);
+    }, [loadWalletStateForNetwork]);
 
     // Switch active address when network changes
     useEffect(() => {

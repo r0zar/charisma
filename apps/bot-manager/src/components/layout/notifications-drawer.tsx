@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { useNotificationsData } from '@/contexts/notifications-context';
 import { cn } from '@/lib/utils';
 
+const Portal = Drawer.Portal as React.ComponentType<{ children: React.ReactNode }>;
+
 interface NotificationsDrawerProps {
   isNavigating?: boolean;
 }
@@ -50,11 +52,11 @@ export function NotificationsDrawer({ isNavigating = false }: NotificationsDrawe
   return (
     <Drawer.Root direction="right" open={open} onOpenChange={setOpen}>
       <Drawer.Trigger asChild>
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           className={cn(
-            "relative h-9 w-9 flex flex-col items-center justify-center overflow-hidden", 
+            "relative h-9 w-9 flex flex-col items-center justify-center overflow-hidden",
             isNavigating ? "skeleton-loading" : ""
           )}
         >
@@ -70,7 +72,7 @@ export function NotificationsDrawer({ isNavigating = false }: NotificationsDrawe
         </Button>
       </Drawer.Trigger>
 
-      <Drawer.Portal as any>
+      <Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
         <Drawer.Content className="bg-background/95 backdrop-blur-3xl border-l border-border/30 flex flex-col fixed right-0 top-0 bottom-0 z-50 w-[400px] max-w-[90vw] shadow-2xl rounded-l-[10px]">
           <div className="flex flex-col h-full">
@@ -171,7 +173,7 @@ export function NotificationsDrawer({ isNavigating = false }: NotificationsDrawe
             )}
           </div>
         </Drawer.Content>
-      </Drawer.Portal>
+      </Portal>
     </Drawer.Root>
   );
 }
