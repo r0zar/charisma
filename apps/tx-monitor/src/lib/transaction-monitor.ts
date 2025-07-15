@@ -376,18 +376,50 @@ export async function storeMetricsSnapshot(): Promise<void> {
         const now = Date.now();
         const hourKey = Math.floor(now / (60 * 60 * 1000)); // Hour-based key
         
+        // Get previous hour's snapshot to calculate incremental values
+        const previousHourKey = hourKey - 1;
+        const previousSnapshot = await kv.get(`${METRICS_KEY_PREFIX}${previousHourKey}`) as MetricsSnapshot | null;
+        
+        // Calculate incremental processing metrics
+        // We need to track cumulative totals to calculate incremental values
+        const cumulativeKey = `${METRICS_KEY_PREFIX}cumulative`;
+        const lastCumulative = await kv.get(cumulativeKey) as {
+            processed: number;
+            successful: number;
+            failed: number;
+        } | null;
+        
+        const incrementalProcessed = lastCumulative 
+            ? Math.max(0, stats.totalProcessed - lastCumulative.processed)
+            : stats.totalProcessed;
+            
+        const incrementalSuccessful = lastCumulative 
+            ? Math.max(0, stats.totalSuccessful - lastCumulative.successful)
+            : stats.totalSuccessful;
+            
+        const incrementalFailed = lastCumulative 
+            ? Math.max(0, stats.totalFailed - lastCumulative.failed)
+            : stats.totalFailed;
+        
+        // Store new cumulative values
+        await kv.set(cumulativeKey, {
+            processed: stats.totalProcessed,
+            successful: stats.totalSuccessful,
+            failed: stats.totalFailed
+        }, { ex: 7 * 24 * 60 * 60 });
+        
         const snapshot: MetricsSnapshot = {
             timestamp: now,
             queueSize: stats.queueSize,
-            processed: stats.totalProcessed,
-            successful: stats.totalSuccessful,
-            failed: stats.totalFailed,
+            processed: incrementalProcessed, // Store incremental values for charts
+            successful: incrementalSuccessful,
+            failed: incrementalFailed,
             oldestTransactionAge: stats.oldestTransactionAge,
             processingHealth: stats.processingHealth
         };
         
         await kv.set(`${METRICS_KEY_PREFIX}${hourKey}`, snapshot, { ex: 7 * 24 * 60 * 60 }); // Keep for 7 days
-        console.log(`[TX-MONITOR] Stored metrics snapshot for hour ${hourKey}`);
+        console.log(`[TX-MONITOR] Stored metrics snapshot for hour ${hourKey}: processed=${incrementalProcessed}, successful=${incrementalSuccessful}, failed=${incrementalFailed}`);
         
     } catch (error) {
         console.error('[TX-MONITOR] Error storing metrics snapshot:', error);

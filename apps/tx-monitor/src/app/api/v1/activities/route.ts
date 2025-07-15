@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100); // Max 100 per page
-    const sortBy = searchParams.get('sortBy') || 'timestamp';
+    const sortByParam = searchParams.get('sortBy') || 'timestamp';
+    const sortBy = ['timestamp', 'type', 'status'].includes(sortByParam) 
+      ? sortByParam as 'timestamp' | 'type' | 'status'
+      : 'timestamp';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
     
     const offset = (page - 1) * limit;

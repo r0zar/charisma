@@ -19,7 +19,6 @@ import {
   AlertCircle
 } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts"
-import { TransactionMonitoringStats } from '@/components/TransactionMonitoringStats'
 import { TransactionQueue } from '@/components/TransactionQueue'
 import type { QueueStatsResponse, MetricsHistoryResponse, HealthCheckResponse } from '@/lib/types'
 
@@ -45,13 +44,24 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 // Transform metrics data for charts
 const transformMetricsForCharts = (metrics: MetricsHistoryResponse) => {
-  return metrics.metrics.map(metric => ({
-    time: new Date(metric.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    queueSize: metric.queueSize,
-    processed: metric.processed,
-    successful: metric.successful,
-    failed: metric.failed
-  }))
+  return metrics.metrics.map(metric => {
+    const date = new Date(metric.timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    // Show more detailed time formatting
+    const timeFormat = isToday 
+      ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit' });
+    
+    return {
+      time: timeFormat,
+      queueSize: metric.queueSize,
+      processed: metric.processed,
+      successful: metric.successful,
+      failed: metric.failed
+    };
+  });
 }
 
 async function fetchQueueStats(): Promise<QueueStatsResponse> {
@@ -102,6 +112,22 @@ async function fetchHealthCheck(): Promise<HealthCheckResponse> {
   }
 }
 
+async function fetchActivityStats(): Promise<any> {
+  try {
+    const response = await fetch('/api/v1/activities/stats');
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data;
+    }
+    
+    throw new Error('Failed to fetch activity stats');
+  } catch (error) {
+    console.error('Failed to fetch activity stats:', error);
+    throw error;
+  }
+}
+
 async function processQueue(): Promise<void> {
   const response = await fetch('/api/v1/admin/trigger', {
     method: 'POST',
@@ -121,6 +147,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<QueueStatsResponse | null>(null)
   const [metrics, setMetrics] = useState<MetricsHistoryResponse | null>(null)
   const [health, setHealth] = useState<HealthCheckResponse | null>(null)
+  const [activityStats, setActivityStats] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [chartsLoading, setChartsLoading] = useState(true)
 
@@ -139,15 +166,17 @@ export default function DashboardPage() {
       setChartsLoading(true)
       
       // Fetch all data in parallel
-      const [statsData, metricsData, healthData] = await Promise.all([
+      const [statsData, metricsData, healthData, activityData] = await Promise.all([
         fetchQueueStats(),
         fetchMetricsHistory(24),
-        fetchHealthCheck().catch(() => null) // Don't fail if health check fails
+        fetchHealthCheck().catch(() => null), // Don't fail if health check fails
+        fetchActivityStats().catch(() => null) // Don't fail if activity stats fail
       ])
       
       setStats(statsData)
       setMetrics(metricsData)
       setHealth(healthData)
+      setActivityStats(activityData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
     } finally {
@@ -385,8 +414,42 @@ export default function DashboardPage() {
 
         {/* Right Column - Sidebar */}
         <div className="space-y-8">
-          {/* Transaction Monitoring Stats */}
-          <TransactionMonitoringStats />
+          {/* Activity Integration */}
+          {activityStats && (
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="h-5 w-5" />
+                  <span>Activity Timeline</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total Activities</span>
+                  <span className="text-sm font-mono">{activityStats.total || 0}</span>
+                </div>
+                {activityStats.byType && Object.entries(activityStats.byType).map(([type, count]) => (
+                  <div key={type} className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground capitalize">{type.replace('_', ' ')}</span>
+                    <span className="text-sm font-mono">{count as number}</span>
+                  </div>
+                ))}
+                <Separator />
+                {activityStats.byStatus && Object.entries(activityStats.byStatus).map(([status, count]) => (
+                  <div key={status} className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground capitalize">{status}</span>
+                    <span className={`text-sm font-mono ${
+                      status === 'completed' ? 'text-green-600' : 
+                      status === 'failed' ? 'text-red-600' : 
+                      status === 'pending' ? 'text-yellow-600' : ''
+                    }`}>
+                      {count as number}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* System Status */}
           <Card>

@@ -37,7 +37,6 @@
         "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
         "CLERK_SECRET_KEY",
         "NEXT_PUBLIC_TX_MONITOR_URL",
-        "ACTIVITY_WEBHOOK_SECRET"
       ]
     },
     "test": {
