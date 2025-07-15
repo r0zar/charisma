@@ -15,21 +15,9 @@ const txMonitorClient = new TxMonitorClient();
  */
 export async function registerTransactionsForMonitoring(
   transactions: TransactionRegistration[]
-): Promise<{
-  success: boolean;
-  added: string[];
-  alreadyMonitored: string[];
-  mappingsStored: number;
-}> {
+): Promise<QueueAddWithMappingResponse> {
   try {
-    const result = await txMonitorClient.addToQueueWithMapping(transactions);
-    
-    return {
-      success: result.success,
-      added: result.added,
-      alreadyMonitored: result.alreadyMonitored,
-      mappingsStored: result.mappingsStored
-    };
+    return await txMonitorClient.addToQueueWithMapping(transactions);
   } catch (error) {
     console.error('Error registering transactions for monitoring:', error);
     throw error;
@@ -43,19 +31,9 @@ export async function registerTransactionForMonitoring(
   txid: string,
   recordId: string,
   recordType: 'order' | 'swap'
-): Promise<{
-  success: boolean;
-  added: string[];
-  alreadyMonitored: string[];
-}> {
+): Promise<QueueAddWithMappingResponse> {
   try {
-    const result = await txMonitorClient.addTransactionWithMapping(txid, recordId, recordType);
-    
-    return {
-      success: result.success,
-      added: result.added,
-      alreadyMonitored: result.alreadyMonitored
-    };
+    return await txMonitorClient.addTransactionWithMapping(txid, recordId, recordType);
   } catch (error) {
     console.error('Error registering transaction for monitoring:', error);
     throw error;

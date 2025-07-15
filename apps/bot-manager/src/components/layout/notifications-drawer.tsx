@@ -70,7 +70,7 @@ export function NotificationsDrawer({ isNavigating = false }: NotificationsDrawe
         </Button>
       </Drawer.Trigger>
 
-      <Drawer.Portal>
+      <Drawer.Portal as any>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-50" />
         <Drawer.Content className="bg-background/95 backdrop-blur-3xl border-l border-border/30 flex flex-col fixed right-0 top-0 bottom-0 z-50 w-[400px] max-w-[90vw] shadow-2xl rounded-l-[10px]">
           <div className="flex flex-col h-full">
