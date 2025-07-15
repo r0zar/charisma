@@ -47,6 +47,14 @@ export interface CronMonitorResult {
   duration: number;
 }
 
+export interface ActivityMetrics {
+  completed: number;
+  pending: number;
+  failed: number;
+  cancelled: number;
+  processing: number;
+}
+
 export interface MetricsSnapshot {
   timestamp: number;
   queueSize: number;
@@ -55,6 +63,8 @@ export interface MetricsSnapshot {
   failed: number;
   oldestTransactionAge?: number;
   processingHealth: 'healthy' | 'warning' | 'error';
+  // Activity metrics
+  activities?: ActivityMetrics;
 }
 
 export interface MetricsHistoryResponse {

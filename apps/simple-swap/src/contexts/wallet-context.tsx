@@ -118,13 +118,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }, [address]);
 
     // get wallet prices
-    useEffect(() => {
-        const fetchPrices = async () => {
-            const prices = await listPrices();
-            if (prices) setPrices(prices);
-        };
-        fetchPrices();
-    }, []);
+    // useEffect(() => {
+    //     const fetchPrices = async () => {
+    //         const prices = await listPrices();
+    //         if (prices) setPrices(prices);
+    //     };
+    //     fetchPrices();
+    // }, []);
 
     // Function to connect wallet
     const connectWallet = async () => {

@@ -354,6 +354,7 @@ export async function getActivityStats(): Promise<{
   total: number;
   byType: Record<string, number>;
   byStatus: Record<string, number>;
+  oldestActivityAge?: number;
 }> {
   try {
     const total = await kv.hlen(ACTIVITY_HASH_KEY);
@@ -376,6 +377,17 @@ export async function getActivityStats(): Promise<{
     for (const status of statuses) {
       const count = await kv.scard(`${STATUS_ACTIVITIES_SET}${status}`);
       stats.byStatus[status] = count;
+    }
+    
+    // Get oldest activity timestamp
+    if (total > 0) {
+      const oldestActivityId = await kv.zrange(ACTIVITY_TIMELINE_SORTED, 0, 0);
+      if (oldestActivityId && oldestActivityId.length > 0) {
+        const oldestActivity = await getActivity(oldestActivityId[0] as string);
+        if (oldestActivity) {
+          stats.oldestActivityAge = Date.now() - oldestActivity.timestamp;
+        }
+      }
     }
     
     return stats;

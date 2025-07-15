@@ -18,7 +18,7 @@ import {
   Database,
   AlertCircle
 } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts"
 import { TransactionQueue } from '@/components/TransactionQueue'
 import type { QueueStatsResponse, MetricsHistoryResponse, HealthCheckResponse } from '@/lib/types'
 
@@ -26,15 +26,41 @@ import type { QueueStatsResponse, MetricsHistoryResponse, HealthCheckResponse } 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-background border border-border rounded-lg shadow-lg p-3">
+      <div className="bg-background border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
         <p className="text-sm font-medium text-foreground mb-2">{label}</p>
+        <div className="space-y-1">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-muted-foreground">{entry.name || entry.dataKey}:</span>
+              </div>
+              <span className="font-medium text-foreground">{entry.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
+// Custom legend component
+const CustomLegend = ({ payload }: any) => {
+  if (payload && payload.length) {
+    return (
+      <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mt-4">
         {payload.map((entry: any, index: number) => (
-          <p key={index} className="text-sm text-muted-foreground">
-            <span className="font-medium" style={{ color: entry.color }}>
-              {entry.dataKey}:
-            </span>{' '}
-            {entry.value}
-          </p>
+          <div key={index} className="flex items-center gap-1 sm:gap-2">
+            <div 
+              className="w-2 h-2 sm:w-3 sm:h-3 rounded-full" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs sm:text-sm text-muted-foreground">{entry.value}</span>
+          </div>
         ))}
       </div>
     )
@@ -56,10 +82,17 @@ const transformMetricsForCharts = (metrics: MetricsHistoryResponse) => {
     
     return {
       time: timeFormat,
+      // Transaction metrics
       queueSize: metric.queueSize,
       processed: metric.processed,
       successful: metric.successful,
-      failed: metric.failed
+      failed: metric.failed,
+      // Activity metrics
+      activityCompleted: metric.activities?.completed || 0,
+      activityPending: metric.activities?.pending || 0,
+      activityFailed: metric.activities?.failed || 0,
+      activityCancelled: metric.activities?.cancelled || 0,
+      activityProcessing: metric.activities?.processing || 0
     };
   });
 }
@@ -94,6 +127,38 @@ async function fetchMetricsHistory(hours: number = 24): Promise<MetricsHistoryRe
     console.error('Failed to fetch metrics history:', error);
     throw error;
   }
+}
+
+// Calculate appropriate time range based on oldest transaction and activity data
+function calculateTimeRange(oldestTransactionAge?: number, oldestActivityAge?: number): number {
+  // Find the oldest data point between transactions and activities
+  const ages = [oldestTransactionAge, oldestActivityAge].filter(Boolean);
+  
+  if (ages.length === 0) return 24; // Default to 24 hours
+  
+  const oldestAge = Math.max(...ages);
+  const ageInHours = Math.ceil(oldestAge / (60 * 60 * 1000));
+  
+  // Add some buffer and cap at 7 days max
+  const bufferedHours = Math.min(ageInHours + 2, 168);
+  
+  // More responsive minimum - use actual age if over 1 hour, otherwise 24 hours
+  const minHours = ageInHours > 1 ? Math.max(ageInHours + 2, 6) : 24;
+  
+  const finalHours = Math.max(bufferedHours, minHours);
+  
+  // Debug logging
+  console.log('[DASHBOARD] Time range calculation:', {
+    oldestTransactionAge,
+    oldestActivityAge,
+    oldestAge,
+    ageInHours,
+    bufferedHours,
+    minHours,
+    finalHours
+  });
+  
+  return finalHours;
 }
 
 async function fetchHealthCheck(): Promise<HealthCheckResponse> {
@@ -165,12 +230,23 @@ export default function DashboardPage() {
       setError(null)
       setChartsLoading(true)
       
-      // Fetch all data in parallel
-      const [statsData, metricsData, healthData, activityData] = await Promise.all([
+      // First fetch queue stats and activity stats to determine appropriate time range
+      const [statsData, activityData] = await Promise.all([
         fetchQueueStats(),
-        fetchMetricsHistory(24),
-        fetchHealthCheck().catch(() => null), // Don't fail if health check fails
         fetchActivityStats().catch(() => null) // Don't fail if activity stats fail
+      ])
+      
+      const timeRange = calculateTimeRange(
+        statsData.oldestTransactionAge,
+        activityData?.oldestActivityAge
+      )
+      
+      console.log('[DASHBOARD] Calculated time range:', timeRange, 'hours')
+      
+      // Fetch remaining data in parallel with dynamic time range
+      const [metricsData, healthData] = await Promise.all([
+        fetchMetricsHistory(timeRange),
+        fetchHealthCheck().catch(() => null), // Don't fail if health check fails
       ])
       
       setStats(statsData)
@@ -322,17 +398,17 @@ export default function DashboardPage() {
                 <span>Queue Trends</span>
               </CardTitle>
               <CardDescription>
-                Transaction queue size and processing metrics over the last 24 hours
+                Transaction and activity processing metrics over the last {metrics?.period || '24h'}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <Tabs defaultValue="queue" className="w-full">
+              <Tabs defaultValue="transactions" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="queue">Queue Size</TabsTrigger>
-                  <TabsTrigger value="processing">Processing</TabsTrigger>
+                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
+                  <TabsTrigger value="activities">Activities</TabsTrigger>
                 </TabsList>
-                <TabsContent value="queue" className="space-y-4">
-                  <div className="h-[300px]">
+                <TabsContent value="transactions" className="space-y-4">
+                  <div className="h-[250px] sm:h-[300px]">
                     {chartsLoading ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-muted-foreground">Loading chart data...</div>
@@ -354,27 +430,58 @@ export default function DashboardPage() {
                             className="text-muted-foreground"
                           />
                           <Tooltip content={<CustomTooltip />} />
+                          <Legend content={<CustomLegend />} />
+                          {/* Queue Size - Blue solid line */}
                           <Line 
                             type="monotone" 
                             dataKey="queueSize" 
                             stroke="#3b82f6" 
                             strokeWidth={3}
                             dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                            name="Queue Size"
+                          />
+                          {/* Successful Transactions - Green solid line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="successful" 
+                            stroke="#10b981" 
+                            strokeWidth={3}
+                            dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                            name="Successful"
+                          />
+                          {/* Failed Transactions - Red solid line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="failed" 
+                            stroke="#ef4444" 
+                            strokeWidth={3}
+                            dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                            name="Failed"
+                          />
+                          {/* Total Processed - Purple dashed line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="processed" 
+                            stroke="#8b5cf6" 
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 3 }}
+                            name="Total Processed"
                           />
                         </LineChart>
                       </ResponsiveContainer>
                     )}
                   </div>
                 </TabsContent>
-                <TabsContent value="processing" className="space-y-4">
-                  <div className="h-[300px]">
+                <TabsContent value="activities" className="space-y-4">
+                  <div className="h-[250px] sm:h-[300px]">
                     {chartsLoading ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-muted-foreground">Loading chart data...</div>
                       </div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={metrics ? transformMetricsForCharts(metrics) : []}>
+                        <LineChart data={metrics ? transformMetricsForCharts(metrics) : []}>
                           <CartesianGrid 
                             strokeDasharray="3 3" 
                             className="opacity-30"
@@ -389,17 +496,54 @@ export default function DashboardPage() {
                             className="text-muted-foreground"
                           />
                           <Tooltip content={<CustomTooltip />} />
-                          <Bar 
-                            dataKey="successful" 
-                            fill="#10b981"
-                            opacity={0.8}
+                          <Legend content={<CustomLegend />} />
+                          {/* Completed Activities - Green solid line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="activityCompleted" 
+                            stroke="#10b981" 
+                            strokeWidth={3}
+                            dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                            name="Completed"
                           />
-                          <Bar 
-                            dataKey="failed" 
-                            fill="#ef4444"
-                            opacity={0.8}
+                          {/* Pending Activities - Yellow/Orange solid line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="activityPending" 
+                            stroke="#f59e0b" 
+                            strokeWidth={3}
+                            dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
+                            name="Pending"
                           />
-                        </BarChart>
+                          {/* Failed Activities - Red solid line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="activityFailed" 
+                            stroke="#ef4444" 
+                            strokeWidth={3}
+                            dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                            name="Failed"
+                          />
+                          {/* Processing Activities - Blue solid line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="activityProcessing" 
+                            stroke="#3b82f6" 
+                            strokeWidth={3}
+                            dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                            name="Processing"
+                          />
+                          {/* Cancelled Activities - Brown dashed line */}
+                          <Line 
+                            type="monotone" 
+                            dataKey="activityCancelled" 
+                            stroke="#8b5a2b" 
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={{ fill: "#8b5a2b", strokeWidth: 2, r: 3 }}
+                            name="Cancelled"
+                          />
+                        </LineChart>
                       </ResponsiveContainer>
                     )}
                   </div>

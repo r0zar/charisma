@@ -376,6 +376,10 @@ export async function storeMetricsSnapshot(): Promise<void> {
         const now = Date.now();
         const hourKey = Math.floor(now / (60 * 60 * 1000)); // Hour-based key
         
+        // Get activity stats for this snapshot
+        const { getActivityStats } = await import('./activity-storage');
+        const activityStats = await getActivityStats().catch(() => null);
+        
         // Get previous hour's snapshot to calculate incremental values
         const previousHourKey = hourKey - 1;
         const previousSnapshot = await kv.get(`${METRICS_KEY_PREFIX}${previousHourKey}`) as MetricsSnapshot | null;
@@ -387,6 +391,13 @@ export async function storeMetricsSnapshot(): Promise<void> {
             processed: number;
             successful: number;
             failed: number;
+            activities?: {
+                completed: number;
+                pending: number;
+                failed: number;
+                cancelled: number;
+                processing: number;
+            };
         } | null;
         
         const incrementalProcessed = lastCumulative 
@@ -401,11 +412,27 @@ export async function storeMetricsSnapshot(): Promise<void> {
             ? Math.max(0, stats.totalFailed - lastCumulative.failed)
             : stats.totalFailed;
         
+        // Use cumulative activity metrics (current state) instead of incremental
+        const activityMetrics = activityStats ? {
+            completed: activityStats.byStatus.completed,
+            pending: activityStats.byStatus.pending,
+            failed: activityStats.byStatus.failed,
+            cancelled: activityStats.byStatus.cancelled,
+            processing: activityStats.byStatus.processing
+        } : undefined;
+        
         // Store new cumulative values
         await kv.set(cumulativeKey, {
             processed: stats.totalProcessed,
             successful: stats.totalSuccessful,
-            failed: stats.totalFailed
+            failed: stats.totalFailed,
+            activities: activityStats ? {
+                completed: activityStats.byStatus.completed,
+                pending: activityStats.byStatus.pending,
+                failed: activityStats.byStatus.failed,
+                cancelled: activityStats.byStatus.cancelled,
+                processing: activityStats.byStatus.processing
+            } : undefined
         }, { ex: 7 * 24 * 60 * 60 });
         
         const snapshot: MetricsSnapshot = {
@@ -415,11 +442,12 @@ export async function storeMetricsSnapshot(): Promise<void> {
             successful: incrementalSuccessful,
             failed: incrementalFailed,
             oldestTransactionAge: stats.oldestTransactionAge,
-            processingHealth: stats.processingHealth
+            processingHealth: stats.processingHealth,
+            activities: activityMetrics
         };
         
         await kv.set(`${METRICS_KEY_PREFIX}${hourKey}`, snapshot, { ex: 7 * 24 * 60 * 60 }); // Keep for 7 days
-        console.log(`[TX-MONITOR] Stored metrics snapshot for hour ${hourKey}: processed=${incrementalProcessed}, successful=${incrementalSuccessful}, failed=${incrementalFailed}`);
+        console.log(`[TX-MONITOR] Stored metrics snapshot for hour ${hourKey}: processed=${incrementalProcessed}, successful=${incrementalSuccessful}, failed=${incrementalFailed}, activities=${JSON.stringify(activityMetrics)}`);
         
     } catch (error) {
         console.error('[TX-MONITOR] Error storing metrics snapshot:', error);
@@ -441,7 +469,18 @@ export async function getMetricsHistory(hours: number = 24): Promise<MetricsHist
             const snapshot = await kv.get(`${METRICS_KEY_PREFIX}${hourKey}`);
             
             if (snapshot && typeof snapshot === 'object') {
-                metrics.unshift(snapshot as MetricsSnapshot);
+                const normalizedSnapshot = snapshot as MetricsSnapshot;
+                // Ensure activity data exists for older snapshots
+                if (!normalizedSnapshot.activities) {
+                    normalizedSnapshot.activities = {
+                        completed: 0,
+                        pending: 0,
+                        failed: 0,
+                        cancelled: 0,
+                        processing: 0
+                    };
+                }
+                metrics.unshift(normalizedSnapshot);
             } else {
                 // Fill missing hours with empty data
                 metrics.unshift({
@@ -450,7 +489,14 @@ export async function getMetricsHistory(hours: number = 24): Promise<MetricsHist
                     processed: 0,
                     successful: 0,
                     failed: 0,
-                    processingHealth: 'healthy'
+                    processingHealth: 'healthy',
+                    activities: {
+                        completed: 0,
+                        pending: 0,
+                        failed: 0,
+                        cancelled: 0,
+                        processing: 0
+                    }
                 });
             }
         }

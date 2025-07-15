@@ -1,6 +1,10 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs/promises';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local
+config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

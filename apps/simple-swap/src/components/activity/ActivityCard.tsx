@@ -377,7 +377,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                         <span className="text-white/90 capitalize">{activity.strategy}</span>
                       </div>
                     )}
-                    
+
                     {/* Market Execution Information */}
                     {activity.type === 'instant_swap' && (
                       <div className="flex justify-between items-center">
@@ -420,7 +420,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-white/60">TxID:</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-white/90 font-mono text-xs truncate max-w-[120px]" title={activity.txid}>
+                          <span className="text-white/90 font-mono text-xs truncate max-w-[300px]" title={activity.txid}>
                             {activity.txid.slice(0, 8)}...{activity.txid.slice(-8)}
                           </span>
                           <button
@@ -448,7 +448,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                     {activity.route && activity.route.length > 2 && (
                       <div className="flex justify-between items-start">
                         <span className="text-white/60">Route:</span>
-                        <span className="text-white/90 text-xs text-right max-w-[200px] font-medium">
+                        <span className="text-white/90 text-xs text-right max-w-[300px] font-medium">
                           {formatRouteWithTokens(activity.route, metadata)}
                         </span>
                       </div>

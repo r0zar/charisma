@@ -173,18 +173,20 @@ export async function handleTransactionStatusUpdate(
     return;
   }
 
-  // Get the transaction mapping
+  // First, try to find activity by txid directly
+  await updateActivityByTxid(txid, currentStatus);
+
+  // Also check for transaction mapping for backward compatibility
   const mapping = await getTransactionMapping(txid);
   
   if (!mapping) {
-    console.log(`[TX-MONITOR] No mapping found for transaction ${txid}, creating activity for unknown transaction`);
-    await createActivityForUnknownTransaction(txid, currentStatus);
+    console.log(`[TX-MONITOR] No mapping found for transaction ${txid}, activity should have been updated by txid`);
     return;
   }
 
   console.log(`[TX-MONITOR] Found mapping for ${txid}: ${mapping.recordType} ${mapping.recordId}`);
   
-  // Update existing activity
+  // Update existing activity via mapping as fallback
   await updateExistingActivity(mapping.recordId, txid, currentStatus);
 }
 
@@ -216,6 +218,44 @@ async function createActivityForUnknownTransaction(
 }
 
 /**
+ * Update activity by searching for matching txid
+ */
+async function updateActivityByTxid(
+  txid: string,
+  currentStatus: TransactionStatus
+): Promise<void> {
+  try {
+    // Import activity storage functions
+    const { getActivityTimeline } = await import('./activity-storage');
+    
+    // Get recent activities to find one matching this txid
+    const timeline = await getActivityTimeline({ limit: 100 });
+    const matchingActivity = timeline.activities.find(activity => activity.txid === txid);
+    
+    if (!matchingActivity) {
+      console.log(`[TX-MONITOR] No activity found with txid: ${txid}`);
+      return;
+    }
+    
+    const activityStatus = mapTransactionStatusToActivity(currentStatus);
+    
+    // Update the activity status
+    await updateActivity(matchingActivity.id, {
+      status: activityStatus,
+      metadata: {
+        ...matchingActivity.metadata,
+        lastStatusUpdate: Date.now(),
+        txStatus: currentStatus
+      }
+    });
+    
+    console.log(`[TX-MONITOR] Updated activity ${matchingActivity.id} (txid: ${txid}) to status: ${activityStatus}`);
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error updating activity by txid ${txid}:`, error);
+  }
+}
+
+/**
  * Update existing activity based on transaction status change
  */
 async function updateExistingActivity(
@@ -241,6 +281,47 @@ async function updateExistingActivity(
     console.log(`[TX-MONITOR] Updated activity ${recordId} to status: ${activityStatus}`);
   } catch (error) {
     console.error(`[TX-MONITOR] Error updating activity ${recordId}:`, error);
+  }
+}
+
+/**
+ * Add activity transactions to monitoring queue
+ * This ensures that activities with transaction IDs are automatically monitored
+ */
+export async function addActivityTransactionsToQueue(): Promise<void> {
+  try {
+    console.log(`[TX-MONITOR] Adding activity transactions to monitoring queue`);
+    
+    // Import required functions
+    const { getActivityTimeline } = await import('./activity-storage');
+    const { addToQueue } = await import('./transaction-monitor');
+    
+    // Get activities with transaction IDs that are still pending
+    const timeline = await getActivityTimeline({ limit: 200 });
+    const pendingActivitiesWithTxids = timeline.activities.filter(activity => 
+      activity.txid && 
+      (activity.status === 'pending' || activity.status === 'processing')
+    );
+    
+    if (pendingActivitiesWithTxids.length === 0) {
+      console.log(`[TX-MONITOR] No pending activities with transaction IDs found`);
+      return;
+    }
+    
+    const txidsToAdd = pendingActivitiesWithTxids.map(activity => activity.txid!);
+    
+    console.log(`[TX-MONITOR] Adding ${txidsToAdd.length} activity transaction IDs to monitoring queue`);
+    
+    const result = await addToQueue(txidsToAdd);
+    
+    console.log(`[TX-MONITOR] Queue update result: added=${result.added.length}, already_monitored=${result.alreadyMonitored.length}`);
+    
+    if (result.added.length > 0) {
+      console.log(`[TX-MONITOR] Successfully added transaction IDs: ${result.added.join(', ')}`);
+    }
+    
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error adding activity transactions to queue:`, error);
   }
 }
 

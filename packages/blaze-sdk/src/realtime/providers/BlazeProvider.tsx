@@ -424,6 +424,17 @@ export function BlazeProvider({ children, host }: BlazeProviderProps) {
         }
         break;
 
+      case 'SERVER_INFO':
+        console.log('BlazeProvider: Balances server info received:', {
+          party: data.party,
+          isLocalDev: data.isLocalDev,
+          metadataLoaded: data.metadataLoaded,
+          metadataCount: data.metadataCount,
+          initialized: data.initialized,
+          timestamp: data.timestamp
+        });
+        break;
+
       case 'ERROR':
         console.error('BlazeProvider: Balances server error:', data.message);
         break;

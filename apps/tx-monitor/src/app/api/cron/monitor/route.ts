@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getQueuedTransactions, checkTransactionStatus, setCachedStatus, removeFromQueue, cleanupOldTransactions, storeMetricsSnapshot, updateLastCronRun, getCachedStatus } from '@/lib/transaction-monitor';
-import { handleTransactionStatusUpdate, retryFailedNotifications } from '@/lib/activity-integration';
+import { handleTransactionStatusUpdate, retryFailedNotifications, addActivityTransactionsToQueue } from '@/lib/activity-integration';
 import type { TransactionInfo, CronMonitorResult } from '@/lib/types';
 
 // Environment variable for cron authentication
@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
         
         // Retry failed activity notifications
         await retryFailedNotifications();
+        
+        // Add activity transactions to monitoring queue
+        await addActivityTransactionsToQueue();
         
         // Get all transactions that need monitoring
         const txids = await getQueuedTransactions();
