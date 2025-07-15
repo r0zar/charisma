@@ -76,7 +76,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         publicKey: "",
         addresses: {}
     });
-    const [isConnecting, setIsConnecting] = useState(false);
+    const [_isConnecting, setIsConnecting] = useState(false);
 
     // Network switcher function
     const setNetwork = (newNetwork: Network) => {

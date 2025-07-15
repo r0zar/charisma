@@ -1,8 +1,8 @@
 /**
- * Client for interacting with tx-monitor service
- * Handles registering transactions for monitoring with activity integration
+ * Client wrapper for tx-monitor service with activity integration
  * 
- * This file now uses the @packages/tx-monitor-client package for all functionality
+ * This file provides simplified wrappers around @packages/tx-monitor-client
+ * for registering transactions with activity monitoring integration.
  */
 
 import { TxMonitorClient, type TransactionRegistration, type QueueAddWithMappingResponse } from '@repo/tx-monitor-client';
