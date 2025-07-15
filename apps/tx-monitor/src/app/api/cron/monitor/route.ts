@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getQueuedTransactions, checkTransactionStatus, setCachedStatus, removeFromQueue, cleanupOldTransactions, storeMetricsSnapshot, updateLastCronRun } from '@/lib/transaction-monitor';
+import { getQueuedTransactions, checkTransactionStatus, setCachedStatus, removeFromQueue, cleanupOldTransactions, storeMetricsSnapshot, updateLastCronRun, getCachedStatus } from '@/lib/transaction-monitor';
+import { handleTransactionStatusUpdate, retryFailedNotifications } from '@/lib/activity-integration';
 import type { TransactionInfo, CronMonitorResult } from '@/lib/types';
 
 // Environment variable for cron authentication
@@ -36,6 +37,9 @@ export async function GET(request: NextRequest) {
             console.log(`[TX-MONITOR-CRON] Cleaned up ${cleanedUp.length} old transactions`);
         }
         
+        // Retry failed activity notifications
+        await retryFailedNotifications();
+        
         // Get all transactions that need monitoring
         const txids = await getQueuedTransactions();
         
@@ -62,6 +66,10 @@ export async function GET(request: NextRequest) {
                 
                 console.log(`[TX-MONITOR-CRON] Checking transaction ${txid}`);
                 
+                // Get previous status for activity integration
+                const previousInfo = await getCachedStatus(txid);
+                const previousStatus = previousInfo?.status || 'pending';
+                
                 const txResult = await checkTransactionStatus(txid);
                 
                 const info: TransactionInfo = {
@@ -76,6 +84,11 @@ export async function GET(request: NextRequest) {
                 
                 await setCachedStatus(txid, info);
                 result.updated++;
+                
+                // Notify activity system if status changed
+                if (previousStatus !== txResult.status) {
+                    await handleTransactionStatusUpdate(txid, previousStatus, txResult.status);
+                }
                 
                 // If transaction is confirmed or failed, remove from queue
                 if (txResult.status === 'success' || txResult.status === 'abort_by_response' || txResult.status === 'abort_by_post_condition') {

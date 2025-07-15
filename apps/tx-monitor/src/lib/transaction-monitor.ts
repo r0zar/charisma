@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
 import { getTransactionDetails } from '@repo/polyglot';
-import type { TransactionStatus, TransactionInfo, QueueAddRequest, QueueAddResponse, StatusResponse, QueueStatsResponse, MetricsSnapshot, MetricsHistoryResponse } from './types';
+import type { TransactionStatus, TransactionInfo, QueueAddResponse, StatusResponse, QueueStatsResponse, MetricsSnapshot, MetricsHistoryResponse } from './types';
 
 const QUEUE_KEY = 'tx:queue';
 const STATUS_KEY_PREFIX = 'tx:status:';

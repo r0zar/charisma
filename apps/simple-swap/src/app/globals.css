@@ -264,6 +264,54 @@
       transform: scale(1);
     }
   }
+
+  @keyframes replySlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+      max-height: 0;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 200px;
+    }
+  }
+
+  @keyframes replyFadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+      transform: translate3d(0, 0, 0);
+    }
+    40%, 43% {
+      transform: translate3d(0, -4px, 0);
+    }
+    70% {
+      transform: translate3d(0, -2px, 0);
+    }
+    90% {
+      transform: translate3d(0, -1px, 0);
+    }
+  }
 }
 
 /* FLUID CONTAINER ------------------------------------------- */

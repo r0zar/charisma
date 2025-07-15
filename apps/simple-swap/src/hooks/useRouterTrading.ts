@@ -305,31 +305,90 @@ export function useRouterTrading() {
     }
   }, [quote, mode, walletAddress]);
 
+  // Create a ref to store the current totalPriceImpact value
+  const totalPriceImpactRef = useRef<{ priceImpact: number | null } | null>(null);
+
   // Execute swap transaction
   const handleSwap = useCallback(async () => {
-    if (!quote || !walletAddress) return;
+    if (!quote || !walletAddress || !selectedFromToken || !selectedToToken) return;
     setError(null);
     setSwapSuccessInfo(null);
     setSwapping(true);
+    
+    // Track swap initiation
+    let swapRecordId: string | null = null;
+    
     try {
+      // Create swap record for tracking
+      const { addSwapRecord } = await import('@/lib/swaps/store');
+      
+      const swapRecord = await addSwapRecord({
+        owner: walletAddress,
+        inputToken: selectedFromToken.contractId,
+        outputToken: selectedToToken.contractId,
+        inputAmount: quote.amountIn,
+        routePath: quote.path.map(token => token.contractId),
+        priceImpact: totalPriceImpactRef.current?.priceImpact || undefined,
+        metadata: {
+          route: quote.hops,
+          isSubnetShift: quote.hops.some((hop: any) => hop.vault.type === 'SUBLINK')
+        }
+      });
+      swapRecordId = swapRecord.id;
+      console.log('📊 Created swap record:', swapRecordId);
+      
       const txCfg = await buildSwapTransaction(router.current, quote, walletAddress);
       const res = await request('stx_callContract', txCfg);
       console.log("Swap result:", res);
 
       if ("error" in res) {
         console.error("Swap failed:", res.error);
+        
+        // Update swap record to failed status
+        if (swapRecordId) {
+          const { updateSwapRecord } = await import('@/lib/swaps/store');
+          await updateSwapRecord(swapRecordId, {
+            status: 'failed',
+            metadata: { error: res.error }
+          });
+        }
+        
         setError("Swap failed");
         return;
+      }
+
+      // Update swap record with transaction ID
+      if (swapRecordId && res.txid) {
+        const { updateSwapRecord } = await import('@/lib/swaps/store');
+        await updateSwapRecord(swapRecordId, {
+          status: 'pending',
+          txid: res.txid
+        });
+        console.log('📊 Updated swap record with txid:', res.txid);
       }
 
       setSwapSuccessInfo(res);
     } catch (err) {
       console.error('Swap failed:', err);
+      
+      // Update swap record to failed status
+      if (swapRecordId) {
+        try {
+          const { updateSwapRecord } = await import('@/lib/swaps/store');
+          await updateSwapRecord(swapRecordId, {
+            status: 'failed',
+            metadata: { error: err instanceof Error ? err.message : 'Unknown error' }
+          });
+        } catch (updateErr) {
+          console.error('Failed to update swap record:', updateErr);
+        }
+      }
+      
       setError(err instanceof Error ? err.message : "Swap failed");
     } finally {
       setSwapping(false);
     }
-  }, [quote, walletAddress]);
+  }, [quote, walletAddress, selectedFromToken, selectedToToken]);
 
   // Helper function to get quote for specific tokens and amount (used in balance checking)
   const getQuoteForTokens = useCallback(async (
@@ -891,6 +950,11 @@ export function useRouterTrading() {
 
     return { priceImpacts: hopImpacts, totalPriceImpact: totalImpact };
   }, [quote, prices, selectedFromToken, selectedToToken, microAmount]);
+
+  // Update the ref whenever totalPriceImpact changes
+  useEffect(() => {
+    totalPriceImpactRef.current = totalPriceImpact;
+  }, [totalPriceImpact]);
 
   // ---------------------- Security Level ----------------------
   const securityLevel = useMemo((): 'high' | 'medium' | 'low' => {

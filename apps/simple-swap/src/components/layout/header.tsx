@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 
 // Navigation links array for reuse in both desktop and mobile views
 const navigationLinks = [
+    { href: "/activity", label: "Activity" },
     { href: "/swap", label: "Swap" },
     { href: "/orders", label: "Orders" },
     { href: "/tokens", label: "Tokens" },

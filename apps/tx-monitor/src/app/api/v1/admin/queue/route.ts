@@ -6,7 +6,7 @@ import { kv } from '@vercel/kv';
  * Get current queue with transaction details
  * GET /api/v1/admin/queue
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     try {
         console.log('[TX-MONITOR-ADMIN] Fetching current queue');
         
