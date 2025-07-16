@@ -354,14 +354,7 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
         {portfolio.topHoldings.slice(0, 3).map((holding, index) => (
           <div key={holding.contractId} className="relative">
             <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-3 hover:bg-white/[0.05] hover:border-emerald-500/[0.3] transition-all duration-200">
-              {/* Medal Badge */}
-              <div className="flex items-center mb-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-2 ${index === 0 ? 'bg-yellow-500 text-yellow-900' :
-                    index === 1 ? 'bg-gray-400 text-gray-900' :
-                      'bg-amber-600 text-amber-100'
-                  }`}>
-                  {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                </div>
+              <div className="flex items-center space-x-3 mb-2">
                 <TokenLogo
                   token={{
                     contractId: holding.contractId,
@@ -371,9 +364,12 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
                     decimals: holding.decimals || 6,
                     type: holding.type || 'BASE'
                   }}
-                  size="sm"
+                  size="md"
                 />
-                <div className="text-emerald-400 text-sm font-bold ml-2">{holding.name || holding.symbol}</div>
+                <div>
+                  <div className="text-emerald-400 text-sm font-bold">{holding.name || holding.symbol}</div>
+                  <div className="text-emerald-400/60 text-xs">{holding.symbol}</div>
+                </div>
               </div>
               <div className="text-white/95 font-bold">${holding.value.toLocaleString()}</div>
               <div className="text-emerald-400/80 text-sm">{holding.percentageOfPortfolio.toFixed(1)}% ALLOCATION</div>
