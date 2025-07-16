@@ -102,11 +102,11 @@ async function verifyEntryPriceCalculation() {
       }
       
     } catch (error) {
-      logger.error('Error fetching current prices', { error: error.message });
+      logger.error('Error fetching current prices', { error: error instanceof Error ? error.message : String(error) });
     }
 
   } catch (error) {
-    logger.error('Verification failed', { error: error.message });
+    logger.error('Verification failed', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
