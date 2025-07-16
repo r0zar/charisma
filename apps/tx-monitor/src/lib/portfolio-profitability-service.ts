@@ -6,32 +6,22 @@
 import { ActivityItem } from './activity-types';
 import { getUserActivityTimeline } from './activity-storage';
 import { calculateTradeProfitability } from './profitability-service';
+import { getTokenMetadataCached } from '@repo/tokens';
 import {
   PortfolioProfitabilityData,
   PortfolioProfitabilityMetrics,
   PortfolioPosition,
+  PortfolioOverview,
+  TradingPerformance,
+  TopHolding,
   ProfitabilityDataPoint,
   ProfitabilityData,
   TimeRange
 } from './profitability-types';
 
-// Types for charisma-party API responses
-interface BalanceMessage {
-  type: 'BALANCE_UPDATE';
-  userId: string;
-  contractId: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  balance: string;
-  formattedBalance: number;
-  timestamp: number;
-  source: string;
-  metadata?: any;
-}
-
+// Types for charisma-party API responses (normalized format)
 interface BalanceResponse {
-  balances: BalanceMessage[];
+  balances: Record<string, number>; // contractId -> balance (formatted units)
   party: string;
   serverTime: number;
   initialized: boolean;
@@ -53,10 +43,11 @@ interface PriceResponse {
 }
 
 /**
- * Get current portfolio value using charisma-party balances and prices
+ * Get current portfolio data using charisma-party balances and prices
  */
-async function getCurrentPortfolioValue(userAddress: string): Promise<{
+async function getCurrentPortfolioData(userAddress: string): Promise<{
   currentPortfolioValue: number;
+  topHoldings: TopHolding[];
   tokenBreakdown: { contractId: string; balance: number; value: number; price: number }[];
 } | null> {
   try {
@@ -80,7 +71,7 @@ async function getCurrentPortfolioValue(userAddress: string): Promise<{
     }
 
     const balanceData: BalanceResponse = await balanceResponse.json();
-    console.log(`[PORTFOLIO] Retrieved ${balanceData.balances?.length || 0} balance entries`);
+    console.log(`[PORTFOLIO] Retrieved ${Object.keys(balanceData.balances).length} balance entries`);
 
     // Fetch all current prices
     const priceResponse = await fetch(`${charismaPartyUrl}/parties/prices/main`, {
@@ -106,34 +97,86 @@ async function getCurrentPortfolioValue(userAddress: string): Promise<{
       priceMap.set(priceUpdate.contractId, priceUpdate.price);
     }
 
-    // Calculate portfolio value
+    // Calculate portfolio value from normalized balance format
     let totalValue = 0;
     const tokenBreakdown: { contractId: string; balance: number; value: number; price: number }[] = [];
 
-    for (const balance of balanceData.balances) {
-      if (balance.userId !== userAddress || balance.formattedBalance <= 0) {
+    for (const [contractId, formattedBalance] of Object.entries(balanceData.balances)) {
+      if (formattedBalance <= 0) {
         continue;
       }
 
-      const price = priceMap.get(balance.contractId) || 0;
-      const value = balance.formattedBalance * price;
+      const price = priceMap.get(contractId) || 0;
+      const value = formattedBalance * price;
 
       totalValue += value;
 
       tokenBreakdown.push({
-        contractId: balance.contractId,
-        balance: balance.formattedBalance,
+        contractId,
+        balance: formattedBalance,
         value,
         price
       });
 
-      console.log(`[PORTFOLIO] ${balance.symbol}: ${balance.formattedBalance} × $${price} = $${value.toFixed(2)}`);
+      console.log(`[PORTFOLIO] ${contractId}: ${formattedBalance.toFixed(6)} × $${price} = $${value.toFixed(2)}`);
     }
 
     console.log(`[PORTFOLIO] Total current portfolio value: $${totalValue.toFixed(2)}`);
 
+    // Sort tokens by value and get top 5 holdings
+    const sortedTokens = tokenBreakdown
+      .filter(token => token.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+
+    // Enrich top holdings with token metadata
+    const topHoldings: TopHolding[] = await Promise.all(
+      sortedTokens.map(async (token) => {
+        try {
+          // Fetch token metadata from cache
+          const tokenMetadata = await getTokenMetadataCached(token.contractId);
+          
+          // Extract symbol from contract ID as fallback
+          const fallbackSymbol = token.contractId.includes('.') 
+            ? token.contractId.split('.')[1]?.toUpperCase().replace(/-/g, '') || 'UNKNOWN'
+            : token.contractId.toUpperCase();
+
+          return {
+            contractId: token.contractId,
+            symbol: tokenMetadata?.symbol || fallbackSymbol,
+            name: tokenMetadata?.name,
+            image: tokenMetadata?.image,
+            balance: token.balance,
+            value: token.value,
+            price: token.price,
+            percentageOfPortfolio: totalValue > 0 ? (token.value / totalValue) * 100 : 0,
+            decimals: tokenMetadata?.decimals,
+            type: token.contractId.includes('subnet') ? 'SUBNET' as const : 'BASE' as const
+          };
+        } catch (error) {
+          console.warn(`[PORTFOLIO] Failed to fetch metadata for ${token.contractId}:`, error);
+          
+          // Fallback to basic token info
+          const fallbackSymbol = token.contractId.includes('.') 
+            ? token.contractId.split('.')[1]?.toUpperCase().replace(/-/g, '') || 'UNKNOWN'
+            : token.contractId.toUpperCase();
+
+          return {
+            contractId: token.contractId,
+            symbol: fallbackSymbol,
+            balance: token.balance,
+            value: token.value,
+            price: token.price,
+            percentageOfPortfolio: totalValue > 0 ? (token.value / totalValue) * 100 : 0,
+            type: token.contractId.includes('subnet') ? 'SUBNET' as const : 'BASE' as const
+          };
+        }
+      })
+    );
+
     return {
       currentPortfolioValue: totalValue,
+      topHoldings,
       tokenBreakdown
     };
 
@@ -153,15 +196,15 @@ export async function calculatePortfolioProfitability(
   try {
     console.log(`[PORTFOLIO] Calculating portfolio P&L for user: ${userAddress}`);
 
-    // Get current portfolio value from actual token holdings
-    let portfolioValue = await getCurrentPortfolioValue(userAddress);
-    if (!portfolioValue) {
-      console.log(`[PORTFOLIO] Unable to fetch current portfolio value for: ${userAddress}, falling back to trading activity only`);
+    // Get current portfolio data from actual token holdings
+    let portfolioData = await getCurrentPortfolioData(userAddress);
+    if (!portfolioData) {
+      console.log(`[PORTFOLIO] Unable to fetch current portfolio data for: ${userAddress}, falling back to trading activity only`);
 
-      // Fallback: if we can't get portfolio value, still try to show trading activity data
-      // Set portfolio value to 0 for now - this will show trading P&L vs 0 current value
-      portfolioValue = {
+      // Fallback: if we can't get portfolio data, still try to show trading activity data
+      portfolioData = {
         currentPortfolioValue: 0,
+        topHoldings: [],
         tokenBreakdown: []
       };
     }
@@ -179,34 +222,45 @@ export async function calculatePortfolioProfitability(
       console.log(`[PORTFOLIO] No completed swap activities found for user: ${userAddress}`);
 
       // Still return portfolio data if user has token holdings but no tracked trades
-      // This will show current portfolio value even without trading history
       return {
-        metrics: {
-          totalPnL: {
-            percentage: 0,
-            usdValue: portfolioValue.currentPortfolioValue // Show current value as "gain" if no trades tracked
+        portfolio: {
+          currentValue: portfolioData.currentPortfolioValue,
+          change24h: {
+            percentage: 0, // TODO: Calculate 24h change
+            usdValue: 0
           },
-          bestPosition: {
-            activityId: '',
-            percentage: 0,
-            usdValue: 0,
-            timestamp: Date.now()
+          topHoldings: portfolioData.topHoldings
+        },
+        trading: {
+          tradingVolume: 0,
+          metrics: {
+            tradingPnL: {
+              percentage: 0,
+              usdValue: 0
+            },
+            bestPosition: {
+              activityId: '',
+              percentage: 0,
+              usdValue: 0,
+              timestamp: Date.now()
+            },
+            worstPosition: {
+              activityId: '',
+              percentage: 0,
+              usdValue: 0,
+              timestamp: Date.now()
+            },
+            averageReturn: 0,
+            totalPositions: 0,
+            profitablePositions: 0,
+            winRate: 0
           },
-          worstPosition: {
-            activityId: '',
-            percentage: 0,
-            usdValue: 0,
-            timestamp: Date.now()
-          },
-          averageReturn: 0,
-          totalPositions: 0,
-          profitablePositions: 0,
-          winRate: 0
+          positions: []
         },
         chartData: [],
-        positions: [],
+        // Legacy compatibility
         totalInvested: 0,
-        currentValue: portfolioValue.currentPortfolioValue
+        currentValue: portfolioData.currentPortfolioValue
       };
     }
 
@@ -214,7 +268,7 @@ export async function calculatePortfolioProfitability(
 
     // Calculate profitability for each activity in parallel with limited concurrency
     const positions: PortfolioPosition[] = [];
-    let totalInvested = 0;
+    let tradingVolume = 0;
 
     const concurrency = 5;
     for (let i = 0; i < result.activities.length; i += concurrency) {
@@ -228,9 +282,9 @@ export async function calculatePortfolioProfitability(
             return null;
           }
 
-          // Calculate original investment amount for this trade
+          // Calculate original trading volume for this trade
           const originalValue = getActivityOriginalValue(activity);
-          totalInvested += originalValue;
+          tradingVolume += originalValue;
 
           return {
             activityId: activity.id,
@@ -247,7 +301,7 @@ export async function calculatePortfolioProfitability(
           positions.push({
             activityId: result.value.activityId,
             profitabilityData: result.value.profitabilityData,
-            weight: totalInvested > 0 ? result.value.originalValue / totalInvested : 0
+            weight: tradingVolume > 0 ? result.value.originalValue / tradingVolume : 0
           });
         }
       }
@@ -258,18 +312,31 @@ export async function calculatePortfolioProfitability(
       return null;
     }
 
-    // Calculate portfolio metrics using actual current portfolio value vs historical investments
-    const metrics = calculatePortfolioMetrics(positions, totalInvested, portfolioValue.currentPortfolioValue);
+    // Calculate trading metrics (only from tracked trades)
+    const tradingMetrics = calculateTradingMetrics(positions, tradingVolume);
 
     // Generate portfolio chart data
-    const chartData = generatePortfolioChartData(positions, timeRange);
+    const chartData = generatePortfolioChartData(positions, timeRange, tradingVolume);
 
     return {
-      metrics,
+      portfolio: {
+        currentValue: portfolioData.currentPortfolioValue,
+        change24h: {
+          percentage: 0, // TODO: Calculate 24h change
+          usdValue: 0
+        },
+        topHoldings: portfolioData.topHoldings
+      },
+      trading: {
+        tradingVolume,
+        metrics: tradingMetrics,
+        positions
+      },
       chartData,
-      positions,
-      totalInvested,
-      currentValue: portfolioValue.currentPortfolioValue
+      // Legacy compatibility
+      totalInvested: tradingVolume,
+      currentValue: portfolioData.currentPortfolioValue,
+      metrics: tradingMetrics
     };
 
   } catch (error) {
@@ -301,24 +368,24 @@ function getActivityOriginalValue(activity: ActivityItem): number {
 }
 
 /**
- * Calculate portfolio-level metrics from individual positions
+ * Calculate trading-level metrics from individual trade positions
  */
-function calculatePortfolioMetrics(
+function calculateTradingMetrics(
   positions: PortfolioPosition[],
-  totalInvested: number,
-  currentValue: number
+  tradingVolume: number
 ): PortfolioProfitabilityMetrics {
-  // Portfolio P&L is now: current portfolio value vs total invested in trades
-  const totalPnLUsd = currentValue - totalInvested;
-  const totalPnLPercentage = totalInvested > 0 ? (totalPnLUsd / totalInvested) * 100 : 0;
+  // Trading P&L: sum of individual trade P&L vs trading volume
+  const tradingPnLUsd = positions.reduce((sum, position) => 
+    sum + position.profitabilityData.metrics.currentPnL.usdValue, 0);
+  const tradingPnLPercentage = tradingVolume > 0 ? (tradingPnLUsd / tradingVolume) * 100 : 0;
 
-  console.log(`[PORTFOLIO] Portfolio P&L: $${currentValue.toFixed(2)} current - $${totalInvested.toFixed(2)} invested = ${totalPnLPercentage.toFixed(2)}%`);
+  console.log(`[TRADING] Trading P&L: $${tradingPnLUsd.toFixed(2)} profit from $${tradingVolume.toFixed(2)} volume = ${tradingPnLPercentage.toFixed(2)}%`);
 
   if (positions.length === 0) {
     return {
-      totalPnL: {
-        percentage: totalPnLPercentage,
-        usdValue: totalPnLUsd
+      tradingPnL: {
+        percentage: tradingPnLPercentage,
+        usdValue: tradingPnLUsd
       },
       bestPosition: {
         activityId: '',
@@ -367,9 +434,9 @@ function calculatePortfolioMetrics(
   const winRate = positions.length > 0 ? (profitablePositions / positions.length) * 100 : 0;
 
   return {
-    totalPnL: {
-      percentage: totalPnLPercentage,
-      usdValue: totalPnLUsd
+    tradingPnL: {
+      percentage: tradingPnLPercentage,
+      usdValue: tradingPnLUsd
     },
     bestPosition: {
       activityId: bestPosition.activityId,
@@ -395,7 +462,8 @@ function calculatePortfolioMetrics(
  */
 function generatePortfolioChartData(
   positions: PortfolioPosition[],
-  timeRange: TimeRange
+  timeRange: TimeRange,
+  tradingVolume: number = 0
 ): ProfitabilityDataPoint[] {
   // Collect all unique timestamps from all positions
   const allTimestamps = new Set<number>();
@@ -444,7 +512,7 @@ function generatePortfolioChartData(
 
     // For each position, find the closest data point to this timestamp
     for (const position of positions) {
-      const originalValue = position.weight * getTotalInvestedFromPositions(positions);
+      const originalValue = position.weight * (tradingVolume || 1); // Use trading volume directly
       totalOriginalValue += originalValue;
 
       // Find closest chart data point for this timestamp

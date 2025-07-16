@@ -18,7 +18,10 @@ import {
   Settings,
   Download,
   ChevronDown,
-  X
+  X,
+  BarChart3,
+  Zap,
+  Terminal
 } from 'lucide-react';
 
 const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
@@ -56,6 +59,39 @@ export const ActivityPage: React.FC = () => {
 
   // Real-time refresh for pending activities
   const [pendingActivities, setPendingActivities] = useState<Set<string>>(new Set());
+
+  // Settings dropdown and UI style state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [portfolioUIStyle, setPortfolioUIStyle] = useState<'dashboard' | 'command' | 'terminal'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('portfolioUIStyle') as 'dashboard' | 'command' | 'terminal') || 'dashboard';
+    }
+    return 'dashboard';
+  });
+
+  // Handle UI style changes
+  const handleUIStyleChange = (newStyle: 'dashboard' | 'command' | 'terminal') => {
+    setPortfolioUIStyle(newStyle);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('portfolioUIStyle', newStyle);
+    }
+    setSettingsOpen(false); // Close dropdown after selection
+  };
+
+  // Close settings dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (settingsOpen && !target.closest('[data-settings-dropdown]')) {
+        setSettingsOpen(false);
+      }
+    };
+
+    if (settingsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [settingsOpen]);
 
   // Function to enrich activities with token metadata
   const enrichActivities = useMemo(() => {
@@ -589,21 +625,99 @@ export const ActivityPage: React.FC = () => {
               Export
             </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toast.info('Activity settings coming soon!', {
-                description: 'Customize filters, notifications, and display preferences'
-              })}
-              className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
+            <div className="relative" data-settings-dropdown>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                <ChevronDown className={`w-3 h-3 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+              </Button>
+
+              {/* Settings Dropdown */}
+              {settingsOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-4 z-50 shadow-2xl">
+                  {/* Portfolio UI Style Section */}
+                  <div className="mb-4">
+                    <h3 className="text-sm font-medium text-white/80 mb-3">Portfolio Style</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => handleUIStyleChange('dashboard')}
+                        className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                          portfolioUIStyle === 'dashboard' 
+                            ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' 
+                            : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white'
+                        }`}
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                        <div className="text-left">
+                          <div className="text-sm font-medium">Dashboard</div>
+                          <div className="text-xs opacity-60">Clean grid with ranking badges</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleUIStyleChange('command')}
+                        className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                          portfolioUIStyle === 'command' 
+                            ? 'bg-purple-500/20 border border-purple-500/30 text-purple-400' 
+                            : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white'
+                        }`}
+                      >
+                        <Zap className="w-4 h-4" />
+                        <div className="text-left">
+                          <div className="text-sm font-medium">Command Center</div>
+                          <div className="text-xs opacity-60">Futuristic with hexagonal badges</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleUIStyleChange('terminal')}
+                        className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                          portfolioUIStyle === 'terminal' 
+                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400' 
+                            : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white'
+                        }`}
+                      >
+                        <Terminal className="w-4 h-4" />
+                        <div className="text-left">
+                          <div className="text-sm font-medium">Terminal</div>
+                          <div className="text-xs opacity-60">Gaming/cyberpunk with medals</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Other Settings */}
+                  <div className="border-t border-white/10 pt-4">
+                    <button
+                      onClick={() => {
+                        setSettingsOpen(false);
+                        toast.info('Activity settings coming soon!', {
+                          description: 'Customize filters, notifications, and display preferences'
+                        });
+                      }}
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <div className="text-left">
+                        <div className="text-sm font-medium">General Settings</div>
+                        <div className="text-xs opacity-60">Filters, notifications & more</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Portfolio P&L Widget - prominently displayed */}
-        <PortfolioPnLWidget className="px-6 py-4 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm" />
+        <PortfolioPnLWidget 
+          uiStyle={portfolioUIStyle}
+        />
       </div>
 
       {/* Search and Filter Controls */}

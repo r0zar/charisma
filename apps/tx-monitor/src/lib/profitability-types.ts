@@ -73,7 +73,8 @@ export interface HistoricalPricePoint {
  * Portfolio-level profitability types
  */
 export interface PortfolioProfitabilityMetrics {
-  totalPnL: {
+  // Trading performance metrics (only from tracked trades)
+  tradingPnL: {
     percentage: number;
     usdValue: number;
   };
@@ -101,10 +102,44 @@ export interface PortfolioPosition {
   weight: number; // position size as percentage of total portfolio
 }
 
-export interface PortfolioProfitabilityData {
+// Top token holding information
+export interface TopHolding {
+  contractId: string;
+  symbol: string;
+  name?: string;
+  image?: string;
+  balance: number;
+  value: number;
+  price: number;
+  percentageOfPortfolio: number;
+  decimals?: number;
+  type?: 'BASE' | 'SUBNET';
+}
+
+// Portfolio overview data
+export interface PortfolioOverview {
+  currentValue: number; // current USD value of total portfolio
+  change24h: {
+    percentage: number;
+    usdValue: number;
+  };
+  topHoldings: TopHolding[]; // top 5 holdings by value
+}
+
+// Trading performance data  
+export interface TradingPerformance {
+  tradingVolume: number; // total USD value of tracked trades
   metrics: PortfolioProfitabilityMetrics;
-  chartData: ProfitabilityDataPoint[];
   positions: PortfolioPosition[];
-  totalInvested: number; // total USD value invested
-  currentValue: number; // current USD value of portfolio
+}
+
+export interface PortfolioProfitabilityData {
+  portfolio: PortfolioOverview;
+  trading: TradingPerformance;
+  chartData: ProfitabilityDataPoint[];
+  
+  // Legacy fields for backward compatibility (deprecated)
+  totalInvested?: number;
+  currentValue?: number;
+  metrics?: PortfolioProfitabilityMetrics;
 }

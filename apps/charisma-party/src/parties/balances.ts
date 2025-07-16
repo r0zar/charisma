@@ -24,7 +24,7 @@ import {
 const BALANCE_UPDATE_INTERVAL = 300_000; // 5 minutes
 const INITIAL_FETCH_DELAY = 3_000; // 3 seconds
 const DEFAULT_DECIMALS = 6;
-const INITIALIZATION_TIMEOUT = 10_000; // 10 seconds
+const INITIALIZATION_TIMEOUT = 20_000; // 20 seconds
 const HIBERNATION_DETECTION_THRESHOLD = 5_000; // 5 seconds
 
 export default class BalancesParty implements Party.Server {
@@ -319,18 +319,64 @@ export default class BalancesParty implements Party.Server {
                 const url = new URL(request.url);
                 const userIds = url.searchParams.get('users')?.split(',') || [];
 
-                const messages = userIds.length === 0
-                    ? this.createAllBalanceMessages()
-                    : this.createBalanceMessagesForUsers(userIds);
+                if (userIds.length === 0) {
+                    // No specific users requested, return all cached balances in old format for compatibility
+                    const messages = this.createAllBalanceMessages();
+                    return new Response(JSON.stringify({
+                        balances: messages,
+                        party: 'balances',
+                        serverTime: Date.now(),
+                        initialized: this.isInitialized
+                    }), {
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                            'Access-Control-Max-Age': '86400',
+                        }
+                    });
+                } else {
+                    // Specific users requested - fetch fresh balance data and return normalized format
+                    console.log(`🔍 GET request for specific users: ${userIds.join(', ')}`);
+                    await this.fetchAndBroadcastBalancesForUsers(userIds);
+                    
+                    // Create normalized key-value format: contractId -> balance (formatted units)
+                    const normalizedBalances: Record<string, number> = {};
+                    
+                    for (const [key, balance] of this.balances.entries()) {
+                        const [userId] = key.split(':');
+                        if (userIds.includes(userId!) && balance.mainnetBalance > 0) {
+                            // Get token record for decimals
+                            const mainnetRecord = this.findTokenRecord(balance.mainnetContractId);
+                            const decimals = mainnetRecord?.decimals || 6;
+                            const formattedBalance = formatBalance(balance.mainnetBalance.toString(), decimals);
+                            normalizedBalances[balance.mainnetContractId] = formattedBalance;
+                        }
+                        // Also include subnet balances if they exist
+                        if (userIds.includes(userId!) && balance.subnetBalance !== undefined && balance.subnetBalance > 0 && balance.subnetContractId) {
+                            const subnetRecord = this.findTokenRecord(balance.subnetContractId);
+                            const decimals = subnetRecord?.decimals || 6;
+                            const formattedBalance = formatBalance(balance.subnetBalance.toString(), decimals);
+                            normalizedBalances[balance.subnetContractId] = formattedBalance;
+                        }
+                    }
 
-                return new Response(JSON.stringify({
-                    balances: messages,
-                    party: 'balances',
-                    serverTime: Date.now(),
-                    initialized: this.isInitialized
-                }), {
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                    return new Response(JSON.stringify({
+                        balances: normalizedBalances,
+                        party: 'balances',
+                        serverTime: Date.now(),
+                        initialized: this.isInitialized
+                    }), {
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*',
+                            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                            'Access-Control-Max-Age': '86400',
+                        }
+                    });
+                }
             } catch (error) {
                 console.error('❌ Request failed due to initialization error:', error);
                 return new Response(JSON.stringify({
@@ -340,7 +386,13 @@ export default class BalancesParty implements Party.Server {
                     initialized: false
                 }), {
                     status: 503,
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                        'Access-Control-Max-Age': '86400',
+                    }
                 });
             }
         }
@@ -352,7 +404,13 @@ export default class BalancesParty implements Party.Server {
                 party: 'balances',
                 timestamp: Date.now()
             }), {
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                    'Access-Control-Max-Age': '86400',
+                }
             });
         }
 

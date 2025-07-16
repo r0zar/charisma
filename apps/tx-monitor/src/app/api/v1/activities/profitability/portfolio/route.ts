@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         owner,
         timeRange,
         calculatedAt: new Date().toISOString(),
-        positionsIncluded: portfolioData.positions.length
+        positionsIncluded: portfolioData.trading?.positions?.length || portfolioData.positions?.length || 0
       }
     };
 
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     const responseObj = NextResponse.json(response);
     responseObj.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600'); // Cache for 5 minutes
     
-    console.log(`[PORTFOLIO-API] Successfully calculated portfolio for ${owner}: ${portfolioData.positions.length} positions, ${portfolioData.metrics.totalPnL.percentage.toFixed(2)}% total P&L`);
+    console.log(`[PORTFOLIO-API] Successfully calculated portfolio for ${owner}: ${portfolioData.trading?.positions?.length || 0} positions, ${portfolioData.trading?.metrics?.tradingPnL?.percentage?.toFixed(2) || 0}% trading P&L`);
 
     return responseObj;
 

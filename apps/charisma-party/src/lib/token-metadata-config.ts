@@ -62,8 +62,8 @@ export function getTokenSources(): TokenSource[] {
     {
       name: 'token-cache',
       url: isDev
-        ? 'http://localhost:3000/api/v1/tokens'
-        : 'https://tokens.charisma.rocks/api/v1/tokens',
+        ? 'http://localhost:3000/api/v1/sip10'
+        : 'https://tokens.charisma.rocks/api/v1/sip10',
       priority: 60,
       timeout: 8000,
       enabled: true
