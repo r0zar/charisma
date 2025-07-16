@@ -288,11 +288,25 @@ async function updateActivityByTxid(
       }
     }
     
-    // Update the activity status and metadata
-    await updateActivity(matchingActivity.id, {
+    // Prepare activity updates
+    let activityUpdates: any = {
       status: activityStatus,
       metadata: enhancedMetadata
-    });
+    };
+
+    // CRITICAL FIX: Update toToken amount with real amount from transaction analysis
+    if (enhancedMetadata.transactionAnalysis?.analysis?.finalOutputAmount) {
+      const realAmount = enhancedMetadata.transactionAnalysis.analysis.finalOutputAmount;
+      console.log(`[TX-MONITOR] Updating toToken amount from ${matchingActivity.toToken.amount} to ${realAmount}`);
+      
+      activityUpdates.toToken = {
+        ...matchingActivity.toToken,
+        amount: realAmount
+      };
+    }
+
+    // Update the activity with status, metadata, and corrected amounts
+    await updateActivity(matchingActivity.id, activityUpdates);
     
     console.log(`[TX-MONITOR] Updated activity ${matchingActivity.id} (txid: ${txid}) to status: ${activityStatus}`);
   } catch (error) {

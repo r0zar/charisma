@@ -10,6 +10,7 @@ import { Badge } from '../ui/badge';
 import { toast } from '../ui/sonner';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { enrichTokenWithMetadata } from '@/lib/activity/utils';
+import { useWallet } from '@/contexts/wallet-context';
 import {
   Search,
   Filter,
@@ -36,6 +37,7 @@ const STATUS_LABELS: Record<ActivityStatus, string> = {
 };
 
 export const ActivityPage: React.FC = () => {
+  const { address: userAddress, connected } = useWallet();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -347,13 +349,18 @@ export const ActivityPage: React.FC = () => {
   // Reply handlers
   const handleAddReply = async (activityId: string, content: string) => {
     try {
+      if (!connected || !userAddress) {
+        toast.error('Please connect your wallet to add replies');
+        return;
+      }
+
       console.log('Adding reply to activity:', activityId, content);
 
       // Call API to add reply
       const newReply = await addActivityReply(
         activityId,
         content,
-        'SP1K1A1PMGW2ZJCNF46NWZWHG8TS1D23EGH1KNK60' // Current user - TODO: get from auth context
+        userAddress
       );
 
       // Update activities state
@@ -392,6 +399,11 @@ export const ActivityPage: React.FC = () => {
 
   const handleEditReply = async (replyId: string, newContent: string) => {
     try {
+      if (!connected || !userAddress) {
+        toast.error('Please connect your wallet to edit replies');
+        return;
+      }
+
       console.log('Editing reply:', replyId, newContent);
 
       // Find the activity and reply to get the activityId
@@ -412,7 +424,7 @@ export const ActivityPage: React.FC = () => {
         activityId,
         replyId,
         newContent,
-        'SP1K1A1PMGW2ZJCNF46NWZWHG8TS1D23EGH1KNK60' // Current user - TODO: get from auth context
+        userAddress
       );
 
       // Update both activities and filteredActivities

@@ -90,7 +90,7 @@ GET /api/v1/activity
       "type": "instant_swap",
       "timestamp": 1704067200000,
       "status": "completed",
-      "owner": "SP1K1A1PMGW2ZJCNF46NWZWHG8TS1D23EGH1KNK60",
+      "owner": "SP1ABC...DEF123",
       "txid": "0x123abc...",
       "fromToken": {
         "symbol": "STX",
@@ -136,7 +136,7 @@ POST /api/v1/activity/{activityId}/replies
 ```json
 {
   "content": "Great timing on this swap! 🎯",
-  "author": "SP1K1A1PMGW2ZJCNF46NWZWHG8TS1D23EGH1KNK60"
+  "author": "SP1ABC...DEF123"
 }
 ```
 

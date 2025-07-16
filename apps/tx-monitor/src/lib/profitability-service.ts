@@ -297,21 +297,47 @@ async function getEntryPrices(activity: ActivityItem): Promise<{ inputToken: num
     }
   }
 
-  // Strategy 3: No other fallback strategy available
-
-  // Strategy 4: For stablecoin pairs, assume $1 for common stablecoins
+  // Strategy 3: Calculate entry price from swap execution data
+  // This is the CRITICAL fix for stablecoin → volatile token swaps
   const stablecoins = ['USDC', 'aeUSDC', 'USDT', 'DAI', 'BUSD'];
   const isFromStable = stablecoins.some(stable => activity.fromToken.symbol.includes(stable));
   const isToStable = stablecoins.some(stable => activity.toToken.symbol.includes(stable));
 
-  if (isFromStable || isToStable) {
-    console.warn(`Using stablecoin assumption for activity ${activity.id}`);
+  if (isFromStable && !isToStable) {
+    // Stablecoin to volatile token swap - calculate real entry price
+    const inputAmountRaw = parseFloat(activity.fromToken.amount);
+    const outputAmountRaw = parseFloat(activity.toToken.amount);
+    
+    if (inputAmountRaw > 0 && outputAmountRaw > 0) {
+      const inputDecimals = Math.max(0, Math.min(18, activity.fromToken.decimals || 6));
+      const outputDecimals = Math.max(0, Math.min(18, activity.toToken.decimals || 6));
+      
+      const inputAmount = inputAmountRaw / Math.pow(10, inputDecimals);
+      const outputAmount = outputAmountRaw / Math.pow(10, outputDecimals);
+      
+      // Calculate real entry price: input USD value ÷ output token amount
+      const realEntryPrice = inputAmount / outputAmount; // Assuming stablecoin ≈ $1
+      
+      console.log(`[getEntryPrices] Calculated real entry price for ${activity.id}: ${inputAmount} ${activity.fromToken.symbol} ÷ ${outputAmount} ${activity.toToken.symbol} = $${realEntryPrice.toFixed(6)} per ${activity.toToken.symbol}`);
+      
+      return {
+        inputToken: 1.0, // Stablecoin ≈ $1
+        outputToken: realEntryPrice // Real calculated entry price
+      };
+    }
+  }
+
+  // Strategy 4: For stablecoin-to-stablecoin or other pairs
+  if (isFromStable && isToStable) {
+    console.log(`[getEntryPrices] Stablecoin-to-stablecoin swap for activity ${activity.id}`);
     return {
-      inputToken: isFromStable ? 1.0 : 1.0, // Simplified fallback
-      outputToken: isToStable ? 1.0 : 1.0   // Simplified fallback
+      inputToken: 1.0,
+      outputToken: 1.0
     };
   }
 
+  // Strategy 5: Fallback for other token types (but avoid wrong assumptions)
+  console.warn(`[getEntryPrices] No suitable entry price strategy found for activity ${activity.id} - ${activity.fromToken.symbol} → ${activity.toToken.symbol}`);
   return null;
 }
 
@@ -356,11 +382,29 @@ function calculateProfitabilityFromData(
   // Calculate metrics from chart data
   const metrics = calculateMetricsFromChartData(chartData, tradeTimestamp);
 
-  // Update current metrics
+  // Update current metrics with live prices
   metrics.currentPnL = {
     percentage: currentPnLPercentage,
     usdValue: currentPnLUsd
   };
+
+  // CRITICAL FIX: Update best/worst to include current P&L
+  // The current P&L uses live prices and might be more recent than chart data
+  if (currentPnLPercentage > metrics.bestPerformance.percentage) {
+    metrics.bestPerformance = {
+      percentage: currentPnLPercentage,
+      usdValue: currentPnLUsd,
+      timestamp: Date.now()
+    };
+  }
+
+  if (currentPnLPercentage < metrics.worstPerformance.percentage) {
+    metrics.worstPerformance = {
+      percentage: currentPnLPercentage,
+      usdValue: currentPnLUsd,
+      timestamp: Date.now()
+    };
+  }
 
   // Calculate token breakdown
   const inputTokenChange = ((currentInputPrice - entryPrices.inputToken) / entryPrices.inputToken) * 100;
