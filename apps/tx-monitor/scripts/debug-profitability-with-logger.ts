@@ -111,7 +111,7 @@ async function debugProfitabilityCalculations() {
       }
       
     } catch (error) {
-      logger.error('Error fetching current prices', { error: error.message });
+      logger.error('Error fetching current prices', { error: error instanceof Error ? error.message : String(error) });
     }
     
     // System vs Reality Comparison
@@ -123,7 +123,7 @@ async function debugProfitabilityCalculations() {
     });
 
   } catch (error) {
-    logger.error('❌ Error during debugging', { error: error.message });
+    logger.error('❌ Error during debugging', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 

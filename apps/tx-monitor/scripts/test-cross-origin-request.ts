@@ -24,13 +24,13 @@ async function testCrossOriginRequest() {
       logger.info('✅ Direct request successful');
       try {
         const parsed = JSON.parse(directData);
-        logger.info('Direct response data available:', !!parsed.data);
+        logger.info(`Direct response data available: ${!!parsed.data}`);
       } catch (e) {
-        logger.info('Direct response (raw):', directData.substring(0, 200));
+        logger.info(`Direct response (raw): ${directData.substring(0, 200)}`);
       }
     } else {
       const errorText = await directResponse.text();
-      logger.error('❌ Direct request failed:', errorText);
+      logger.error(`❌ Direct request failed: ${errorText}`);
     }
 
     // Test 2: Check CORS headers

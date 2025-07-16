@@ -337,3 +337,126 @@ export function mapTransactionStatusToActivity(txStatus: string): ActivityStatus
       return 'pending';
   }
 }
+
+/**
+ * Create activity from successful transaction with real amounts from on-chain data
+ */
+export async function createActivityFromSuccessfulTransaction(
+  txid: string,
+  recordId: string,
+  recordType: 'order' | 'swap'
+): Promise<ActivityItem | null> {
+  try {
+    console.log(`[TX-MONITOR] Creating activity for successful transaction ${txid}, record ${recordId}, type ${recordType}`);
+
+    if (recordType === 'swap') {
+      return await createSwapActivityFromSuccessfulTransaction(txid, recordId);
+    } else if (recordType === 'order') {
+      return await createOrderActivityFromSuccessfulTransaction(txid, recordId);
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error creating activity for successful transaction ${txid}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Create swap activity from successful transaction with real output amounts
+ */
+async function createSwapActivityFromSuccessfulTransaction(txid: string, swapId: string): Promise<ActivityItem | null> {
+  try {
+    // Fetch swap record from simple-swap storage
+    const swapData = await kv.hget('swap-records', swapId);
+    if (!swapData) {
+      console.warn(`[TX-MONITOR] No swap record found for ${swapId}`);
+      return null;
+    }
+
+    const swap = typeof swapData === 'string' ? JSON.parse(swapData) : swapData;
+
+    // Import transaction analysis functions
+    const { extractActualOutputAmount, analyzeTransaction } = await import('./extract-actual-amounts');
+
+    // Extract real output amount from transaction events
+    let realOutputAmount = swap.outputAmount || '0';
+    if (swap.owner && swap.outputToken) {
+      try {
+        const extractedAmount = await extractActualOutputAmount(txid, swap.owner, swap.outputToken);
+        if (extractedAmount) {
+          realOutputAmount = extractedAmount;
+          console.log(`[TX-MONITOR] Extracted real output amount: ${realOutputAmount} for ${swap.outputToken}`);
+        }
+      } catch (error) {
+        console.warn(`[TX-MONITOR] Failed to extract real output amount for ${txid}:`, error);
+      }
+    }
+
+    // Create token info with price snapshots - use real amounts
+    const fromToken = await createTokenInfo(swap.inputToken, swap.inputAmount, 6);
+    const toToken = await createTokenInfo(swap.outputToken, realOutputAmount, 6);
+
+    console.log(`[TX-MONITOR] Creating swap activity with real amounts - From: ${swap.inputAmount}, To: ${realOutputAmount}`);
+
+    // Perform comprehensive transaction analysis for metadata
+    let transactionAnalysis;
+    if (swap.owner && swap.outputToken) {
+      try {
+        transactionAnalysis = await analyzeTransaction(txid, swap.owner, swap.outputToken, swap.outputAmount);
+        if (transactionAnalysis) {
+          console.log(`[TX-MONITOR] Added transaction analysis for successful swap ${txid}`);
+        }
+      } catch (error) {
+        console.warn(`[TX-MONITOR] Failed to create transaction analysis for ${txid}:`, error);
+      }
+    }
+
+    // Create activity from swap data with real amounts
+    const activity: ActivityItem = {
+      id: generateActivityId('instant_swap', swapId),
+      type: 'instant_swap',
+      timestamp: normalizeTimestamp(swap.timestamp),
+      status: 'completed', // Always completed since transaction succeeded
+      owner: swap.owner,
+      fromToken,
+      toToken,
+      txid: txid,
+      route: swap.routePath || [],
+      priceImpact: swap.priceImpact,
+      replyCount: 0,
+      hasReplies: false,
+      metadata: {
+        router: 'dexterity',
+        isSubnetShift: swap.metadata?.isSubnetShift || false,
+        notes: 'Instant swap transaction',
+        priceSnapshotCaptured: Date.now(),
+        lastStatusUpdate: Date.now(),
+        txStatus: 'success',
+        actualOutputAmount: realOutputAmount,
+        transactionAnalysis: transactionAnalysis || undefined
+      }
+    };
+
+    console.log(`[TX-MONITOR] Created successful swap activity: ${activity.id} with real output amount: ${realOutputAmount}`);
+    return activity;
+
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error creating successful swap activity for ${swapId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Create order activity from successful transaction with real amounts
+ */
+async function createOrderActivityFromSuccessfulTransaction(txid: string, orderId: string): Promise<ActivityItem | null> {
+  try {
+    // For now, orders use the same logic as regular orders since they're less common
+    // This can be enhanced later with real amount extraction if needed
+    return await createOrderActivity(txid, orderId);
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error creating successful order activity for ${orderId}:`, error);
+    return null;
+  }
+}

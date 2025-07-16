@@ -42,12 +42,12 @@ async function checkCurrentPrices() {
     });
 
   } catch (error) {
-    logger.error('Error checking prices', { error: error.message });
+    logger.error('Error checking prices', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
 checkCurrentPrices().then(() => {
   logger.info('Price check completed');
 }).catch(error => {
-  logger.error('Price check failed', { error: error.message });
+  logger.error('Price check failed', { error: error instanceof Error ? error.message : String(error) });
 });

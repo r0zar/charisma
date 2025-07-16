@@ -61,7 +61,7 @@ async function debugActivityData() {
             console.log(`   ❌ Profitability calculation returned null`);
           }
         } catch (error) {
-          console.log(`   ❌ Profitability calculation failed:`, error.message);
+          console.log(`   ❌ Profitability calculation failed:`, error instanceof Error ? error.message : String(error));
         }
       }
 

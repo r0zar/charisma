@@ -59,7 +59,7 @@ async function fixZeroOutputAmounts() {
         console.log(`   ✅ Fixed! Updated toToken amount from ${activity.toToken.amount} to ${correctAmount}`);
         fixedCount++;
       } catch (error) {
-        console.log(`   ❌ Failed to update activity: ${error.message}`);
+        console.log(`   ❌ Failed to update activity: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 

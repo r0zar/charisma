@@ -6,7 +6,7 @@
 import { kv } from '@vercel/kv';
 import type { TransactionStatus } from './types';
 import { addActivity, updateActivity, getActivity } from './activity-storage';
-import { createActivityFromTransaction, createActivityFromUnknownTransaction, mapTransactionStatusToActivity } from './activity-adapters';
+import { createActivityFromTransaction, createActivityFromUnknownTransaction, createActivityFromSuccessfulTransaction, mapTransactionStatusToActivity } from './activity-adapters';
 import { ActivityItem } from './activity-types';
 import { analyzeTransaction, extractActualOutputAmount } from './extract-actual-amounts';
 
@@ -34,10 +34,10 @@ export async function storeTransactionMapping(
     };
 
     await kv.set(`tx_mapping:${txid}`, mapping, { ex: 7 * 24 * 60 * 60 }); // Keep for 7 days
-    console.log(`[TX-MONITOR] Stored mapping for ${txid} -> ${recordType} ${recordId}`);
+    console.log(`[TX-MONITOR] Stored mapping for ${txid} -> ${recordType} ${recordId} (activity will be created when transaction completes)`);
     
-    // Create initial activity for this transaction
-    await createInitialActivity(txid, recordId, recordType);
+    // NOTE: No longer creating initial activity here - wait for transaction success
+    // This prevents activities with outputAmount = 0
   } catch (error) {
     console.error(`[TX-MONITOR] Error storing transaction mapping for ${txid}:`, error);
   }
@@ -219,7 +219,7 @@ async function createActivityForUnknownTransaction(
 }
 
 /**
- * Update activity by searching for matching txid
+ * Update activity by searching for matching txid, or create new activity for successful transactions
  */
 async function updateActivityByTxid(
   txid: string,
@@ -235,6 +235,13 @@ async function updateActivityByTxid(
     
     if (!matchingActivity) {
       console.log(`[TX-MONITOR] No activity found with txid: ${txid}`);
+      
+      // If transaction succeeded and we have mapping, create activity with real data
+      if (currentStatus === 'success') {
+        await createActivityOnTransactionSuccess(txid);
+      } else if (currentStatus === 'abort_by_response' || currentStatus === 'abort_by_post_condition') {
+        await createActivityOnTransactionFailure(txid, currentStatus);
+      }
       return;
     }
     
@@ -386,30 +393,92 @@ export async function addActivityTransactionsToQueue(): Promise<void> {
 
 /**
  * Create initial activity when a transaction is first added with mapping
+ * NOTE: This function is deprecated - activities are now created on transaction success
  */
 export async function createInitialActivity(
   txid: string,
   recordId: string,
   recordType: 'order' | 'swap'
 ): Promise<void> {
+  console.log(`[TX-MONITOR] createInitialActivity called but deprecated for ${recordType} ${recordId}, txid: ${txid}`);
+  // This function is no longer used to prevent creating activities with outputAmount = 0
+}
+
+/**
+ * Create activity when transaction succeeds, using real amounts from on-chain data
+ */
+async function createActivityOnTransactionSuccess(txid: string): Promise<void> {
   try {
-    console.log(`[TX-MONITOR] Creating initial activity for ${recordType} ${recordId}, txid: ${txid}`);
+    console.log(`[TX-MONITOR] Creating activity for successful transaction: ${txid}`);
     
-    // Create activity from transaction mapping
-    const activity = await createActivityFromTransaction(txid, recordId, recordType);
+    // Get transaction mapping
+    const mapping = await getTransactionMapping(txid);
+    if (!mapping) {
+      console.log(`[TX-MONITOR] No mapping found for successful transaction ${txid}, creating unknown transaction activity`);
+      await createActivityForUnknownTransaction(txid, 'success');
+      return;
+    }
+
+    console.log(`[TX-MONITOR] Found mapping for successful transaction ${txid}: ${mapping.recordType} ${mapping.recordId}`);
+    
+    // Create activity with correct amounts from transaction data
+    const activity = await createActivityFromSuccessfulTransaction(txid, mapping.recordId, mapping.recordType);
     if (!activity) {
-      console.warn(`[TX-MONITOR] Failed to create activity for ${recordType} ${recordId}`);
+      console.warn(`[TX-MONITOR] Failed to create activity for successful transaction ${txid}`);
       return;
     }
 
     // Set the activity ID to match the record ID for easier updates
-    activity.id = recordId;
+    activity.id = mapping.recordId;
     
     // Add to activity storage
     await addActivity(activity);
     
-    console.log(`[TX-MONITOR] Created initial activity: ${activity.id} (${activity.type})`);
+    console.log(`[TX-MONITOR] Created activity for successful transaction: ${activity.id} (${activity.type})`);
   } catch (error) {
-    console.error(`[TX-MONITOR] Error creating initial activity for ${recordType} ${recordId}:`, error);
+    console.error(`[TX-MONITOR] Error creating activity for successful transaction ${txid}:`, error);
+  }
+}
+
+/**
+ * Create activity when transaction fails
+ */
+async function createActivityOnTransactionFailure(txid: string, failureStatus: TransactionStatus): Promise<void> {
+  try {
+    console.log(`[TX-MONITOR] Creating activity for failed transaction: ${txid} (${failureStatus})`);
+    
+    // Get transaction mapping
+    const mapping = await getTransactionMapping(txid);
+    if (!mapping) {
+      console.log(`[TX-MONITOR] No mapping found for failed transaction ${txid}, creating unknown transaction activity`);
+      await createActivityForUnknownTransaction(txid, failureStatus);
+      return;
+    }
+
+    console.log(`[TX-MONITOR] Found mapping for failed transaction ${txid}: ${mapping.recordType} ${mapping.recordId}`);
+    
+    // Create activity from original transaction data (will have attempted amounts)
+    const activity = await createActivityFromTransaction(txid, mapping.recordId, mapping.recordType);
+    if (!activity) {
+      console.warn(`[TX-MONITOR] Failed to create activity for failed transaction ${txid}`);
+      return;
+    }
+
+    // Set failure status and add failure metadata
+    activity.id = mapping.recordId;
+    activity.status = mapTransactionStatusToActivity(failureStatus);
+    activity.metadata = {
+      ...activity.metadata,
+      lastStatusUpdate: Date.now(),
+      txStatus: failureStatus,
+      notes: `Transaction failed: ${failureStatus}`
+    };
+    
+    // Add to activity storage
+    await addActivity(activity);
+    
+    console.log(`[TX-MONITOR] Created activity for failed transaction: ${activity.id} (${activity.type}) - status: ${activity.status}`);
+  } catch (error) {
+    console.error(`[TX-MONITOR] Error creating activity for failed transaction ${txid}:`, error);
   }
 }

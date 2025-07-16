@@ -46,7 +46,7 @@ async function debugPerformanceMetrics() {
 
     // Analyze chart data to see what's happening
     logger.info('Chart Data Analysis', {
-      chartPoints: chartData.map((point, index) => ({
+      chartPoints: chartData.map((point: any, index: number) => ({
         point: index + 1,
         time: new Date(point.time * 1000).toLocaleString(),
         value: `${point.value}%`,
@@ -55,7 +55,7 @@ async function debugPerformanceMetrics() {
     });
 
     // Find the actual best and worst from chart data
-    const chartValues = chartData.map(p => p.value);
+    const chartValues = chartData.map((p: any) => p.value);
     const actualBest = Math.max(...chartValues);
     const actualWorst = Math.min(...chartValues);
     const currentValue = chartData[chartData.length - 1]?.value || 0;
@@ -73,7 +73,7 @@ async function debugPerformanceMetrics() {
     });
 
   } catch (error) {
-    logger.error('Debug failed', { error: error.message });
+    logger.error('Debug failed', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 

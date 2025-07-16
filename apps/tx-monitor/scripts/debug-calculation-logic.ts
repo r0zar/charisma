@@ -16,17 +16,17 @@ async function debugCalculationLogic() {
     }
 
     logger.info('📋 Raw activity data:');
-    logger.info('ID:', activity.id);
-    logger.info('Status:', activity.status);
-    logger.info('Type:', activity.type);
-    logger.info('Timestamp:', activity.timestamp, 'Date:', new Date(activity.timestamp).toISOString());
+    logger.info(`ID: ${activity.id}`);
+    logger.info(`Status: ${activity.status}`);
+    logger.info(`Type: ${activity.type}`);
+    logger.info(`Timestamp: ${activity.timestamp} Date: ${new Date(activity.timestamp).toISOString()}`);
     logger.info('FromToken:', {
       symbol: activity.fromToken.symbol,
       amount: activity.fromToken.amount,
       amountType: typeof activity.fromToken.amount,
       decimals: activity.fromToken.decimals,
       usdValue: activity.fromToken.usdValue,
-      price: activity.fromToken.price,
+      price: activity.fromToken.priceSnapshot?.price,
       priceSnapshot: activity.fromToken.priceSnapshot
     });
     logger.info('ToToken:', {
@@ -35,7 +35,7 @@ async function debugCalculationLogic() {
       amountType: typeof activity.toToken.amount,
       decimals: activity.toToken.decimals,
       usdValue: activity.toToken.usdValue,
-      price: activity.toToken.price,
+      price: activity.toToken.priceSnapshot?.price,
       priceSnapshot: activity.toToken.priceSnapshot
     });
 

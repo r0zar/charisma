@@ -82,11 +82,9 @@ async function debugProfitabilityCalculations() {
       console.log(`     This is WRONG for ${activity.toToken.symbol} which is NOT a stablecoin!`);
     }
 
-    // Test current price fetching
+    // Test current price fetching (using main profitability function)
     console.log(`\n💰 Current Price Analysis:`);
-    const { getCurrentPrices } = await import('../src/lib/profitability-service');
-    // We need to access the internal function, so let's check what prices we get
-    console.log(`   Checking current prices for contracts:`);
+    console.log(`   Contract analysis:`);
     console.log(`     Input: ${activity.fromToken.contractId}`);
     console.log(`     Output: ${activity.toToken.contractId}`);
 
