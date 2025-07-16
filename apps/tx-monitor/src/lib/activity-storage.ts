@@ -352,13 +352,101 @@ export async function deleteActivity(id: string): Promise<void> {
 }
 
 /**
- * Get activity statistics
+ * Calculate pipeline health metrics for activity stats
+ */
+async function calculatePipelineMetrics(stats: any): Promise<void> {
+  try {
+    const now = Date.now();
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+    const oneHourAgo = now - (60 * 60 * 1000);
+    
+    // Get recent activities for rate calculations
+    const recentActivities = await getActivityTimeline({ 
+      limit: 1000,
+      // We'll filter by timestamp manually since we need specific time ranges
+    });
+    
+    // Filter activities by time ranges
+    const activitiesLast24h = recentActivities.activities.filter(a => a.timestamp >= oneDayAgo);
+    const activitiesLastHour = recentActivities.activities.filter(a => a.timestamp >= oneHourAgo);
+    
+    // 1. Activity Creation Rate (per hour)
+    stats.pipeline.activityCreationRate = activitiesLastHour.length;
+    
+    // 2. Success Rate (% completed)
+    const completedCount = stats.byStatus.completed || 0;
+    const totalNonPending = stats.total - (stats.byStatus.pending || 0);
+    stats.pipeline.successRate = totalNonPending > 0 ? (completedCount / totalNonPending) * 100 : 100;
+    
+    // 3. Error Rate (% failed/cancelled)
+    const failedCount = (stats.byStatus.failed || 0) + (stats.byStatus.cancelled || 0);
+    stats.pipeline.errorRate = totalNonPending > 0 ? (failedCount / totalNonPending) * 100 : 0;
+    
+    // 4. Processing Lag (avg time from creation to completion for recent completed activities)
+    const recentCompleted = activitiesLast24h.filter(a => 
+      a.status === 'completed' && a.metadata?.lastStatusUpdate
+    );
+    
+    if (recentCompleted.length > 0) {
+      const totalLag = recentCompleted.reduce((sum, activity) => {
+        const lag = (activity.metadata?.lastStatusUpdate || activity.timestamp) - activity.timestamp;
+        return sum + Math.max(0, lag); // Ensure non-negative lag
+      }, 0);
+      stats.pipeline.processingLag = totalLag / recentCompleted.length;
+    } else {
+      stats.pipeline.processingLag = 0;
+    }
+    
+    // 5. Active Users (unique users in last 24h)
+    const uniqueUsers = new Set(activitiesLast24h.map(a => a.owner));
+    stats.pipeline.activeUsers = uniqueUsers.size;
+    
+    // 6. Health Score (composite metric: 0-100)
+    // Base score on success rate, with penalties for high error rate and processing lag
+    let healthScore = stats.pipeline.successRate; // Start with success rate (0-100)
+    
+    // Penalty for high error rate
+    if (stats.pipeline.errorRate > 10) {
+      healthScore -= Math.min(20, stats.pipeline.errorRate - 10);
+    }
+    
+    // Penalty for high processing lag (over 1 hour)
+    const lagHours = stats.pipeline.processingLag / (60 * 60 * 1000);
+    if (lagHours > 1) {
+      healthScore -= Math.min(20, (lagHours - 1) * 5);
+    }
+    
+    // Bonus for activity (high creation rate)
+    if (stats.pipeline.activityCreationRate > 5) {
+      healthScore += Math.min(10, stats.pipeline.activityCreationRate - 5);
+    }
+    
+    // Ensure score is between 0-100
+    stats.pipeline.healthScore = Math.max(0, Math.min(100, healthScore));
+    
+  } catch (error) {
+    console.error('[TX-MONITOR] Error calculating pipeline metrics:', error);
+    // Keep default values (0) if calculation fails
+  }
+}
+
+/**
+ * Get activity statistics with pipeline health metrics
  */
 export async function getActivityStats(): Promise<{
   total: number;
   byType: Record<string, number>;
   byStatus: Record<string, number>;
   oldestActivityAge?: number;
+  // Pipeline health metrics
+  pipeline: {
+    healthScore: number;
+    activityCreationRate: number; // activities per hour
+    successRate: number; // % of completed activities
+    processingLag: number; // avg time between activity creation and completion
+    errorRate: number; // % of failed/cancelled activities
+    activeUsers: number; // unique users with activities in last 24h
+  };
 }> {
   try {
     const total = await kv.hlen(ACTIVITY_HASH_KEY);
@@ -367,7 +455,15 @@ export async function getActivityStats(): Promise<{
       total,
       byType: {} as Record<string, number>,
       byStatus: {} as Record<string, number>,
-      oldestActivityAge: undefined as number | undefined
+      oldestActivityAge: undefined as number | undefined,
+      pipeline: {
+        healthScore: 0,
+        activityCreationRate: 0,
+        successRate: 0,
+        processingLag: 0,
+        errorRate: 0,
+        activeUsers: 0
+      }
     };
     
     // Get type counts
@@ -395,9 +491,24 @@ export async function getActivityStats(): Promise<{
       }
     }
     
+    // Calculate pipeline health metrics
+    await calculatePipelineMetrics(stats);
+    
     return stats;
   } catch (error) {
     console.error('[TX-MONITOR] Error getting activity stats:', error);
-    return { total: 0, byType: {}, byStatus: {} };
+    return { 
+      total: 0, 
+      byType: {}, 
+      byStatus: {},
+      pipeline: {
+        healthScore: 0,
+        activityCreationRate: 0,
+        successRate: 0,
+        processingLag: 0,
+        errorRate: 0,
+        activeUsers: 0
+      }
+    };
   }
 }

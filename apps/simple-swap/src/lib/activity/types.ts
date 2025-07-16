@@ -6,6 +6,13 @@
 export type ActivityType = 'instant_swap' | 'order_filled' | 'order_cancelled' | 'dca_update' | 'twitter_trigger';
 export type ActivityStatus = 'completed' | 'pending' | 'failed' | 'cancelled' | 'processing';
 
+export interface PriceSnapshot {
+  price: number;
+  timestamp: number;
+  source: string; // 'oracle', 'dex', 'coingecko', etc.
+  blockHeight?: number;
+}
+
 export interface TokenInfo {
   symbol: string;
   amount: string;
@@ -13,11 +20,14 @@ export interface TokenInfo {
   decimals?: number;
   usdValue?: number;
 
+  // Price data captured at trade execution time
+  priceSnapshot?: PriceSnapshot;
+
   // Enriched metadata from Blaze SDK
   name?: string;
   image?: string;
   description?: string;
-  price?: number;
+  price?: number; // Current price (for display)
   change24h?: number;
   marketCap?: number;
   verified?: boolean;
@@ -86,6 +96,15 @@ export interface ActivityItem {
     averagePrice?: string;
     cancellationReason?: string;
     errorMessage?: string;
+    
+    // Profitability tracking metadata
+    tradeValue?: number; // USD value at trade execution
+    entryPrices?: {
+      fromToken: number;
+      toToken: number;
+    };
+    transactionAnalysis?: any; // Keep existing transaction analysis
+    
     [key: string]: any;
   };
 }

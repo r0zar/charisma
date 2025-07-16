@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActivityItem } from '@/lib/activity/types';
 import {
   getActivityTypeInfo,
@@ -28,7 +28,7 @@ import { truncateSmartContract } from '@/lib/address-utils';
 import { ProfitabilityMiniChart } from './profitability/ProfitabilityMiniChart';
 import { ProfitabilityMetricsComponent } from './profitability/ProfitabilityMetrics';
 import { ProfitabilityDrawer } from './profitability/ProfitabilityDrawer';
-import { getMockProfitabilityData } from '@/lib/mock-profitability-data';
+import { fetchActivityProfitability, ProfitabilityData } from '@/lib/profitability-api';
 import {
   Heart,
   MessageCircle,
@@ -76,6 +76,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const [isFavorited, setIsFavorited] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [showProfitabilityDrawer, setShowProfitabilityDrawer] = useState(false);
+  const [profitabilityData, setProfitabilityData] = useState<ProfitabilityData | null>(null);
+  const [isLoadingProfitability, setIsLoadingProfitability] = useState(false);
 
   const typeInfo = getActivityTypeInfo(activity.type);
   const statusInfo = getStatusInfo(activity.status);
@@ -158,10 +160,31 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const valueChange = toValue - fromValue;
   const valueChangePercent = fromValue > 0 ? (valueChange / fromValue) * 100 : 0;
 
-  // Get profitability data for completed swaps
-  const profitabilityData = activity.status === 'completed' && activity.type === 'instant_swap' 
-    ? getMockProfitabilityData(activity.id) 
-    : null;
+  // Track which activities we've attempted to fetch profitability for
+  const attemptedFetch = useRef<Set<string>>(new Set());
+  
+  // Fetch real profitability data for completed swaps
+  useEffect(() => {
+    const shouldFetchProfitability = activity.status === 'completed' && activity.type === 'instant_swap';
+    const hasAttempted = attemptedFetch.current.has(activity.id);
+    
+    if (shouldFetchProfitability && !profitabilityData && !isLoadingProfitability && !hasAttempted) {
+      attemptedFetch.current.add(activity.id);
+      setIsLoadingProfitability(true);
+      
+      fetchActivityProfitability(activity.id)
+        .then((data) => {
+          setProfitabilityData(data);
+        })
+        .catch((error) => {
+          console.error('Error fetching profitability data:', error);
+          // Don't retry on errors to prevent infinite loops
+        })
+        .finally(() => {
+          setIsLoadingProfitability(false);
+        });
+    }
+  }, [activity.id, activity.status, activity.type, profitabilityData]);
 
   return (
     <div
@@ -364,26 +387,43 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 </div>
 
                 {/* Real-time P&L Display */}
-                {profitabilityData && (
-                  <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15] md:flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 rounded bg-blue-500/10">
-                        {profitabilityData.metrics.currentPnL.percentage >= 0 ? (
-                          <TrendingUp className="w-3 h-3 text-emerald-400" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3 text-red-400" />
-                        )}
+                {(activity.status === 'completed' && activity.type === 'instant_swap') && (
+                  <div className="md:flex-1">
+                    {isLoadingProfitability ? (
+                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15] animate-pulse">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded bg-blue-500/10">
+                            <Loader className="w-3 h-3 text-blue-400 animate-spin" />
+                          </div>
+                          <span className="text-white/80 text-sm font-medium">Loading P&L...</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="w-12 h-4 bg-white/10 rounded animate-pulse mb-1"></div>
+                          <div className="w-8 h-3 bg-white/10 rounded animate-pulse"></div>
+                        </div>
                       </div>
-                      <span className="text-white/80 text-sm font-medium">Current P&L:</span>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-sm font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {profitabilityData.metrics.currentPnL.percentage >= 0 ? '+' : ''}{profitabilityData.metrics.currentPnL.percentage.toFixed(1)}%
+                    ) : profitabilityData ? (
+                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15]">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 rounded bg-blue-500/10">
+                            {profitabilityData.metrics.currentPnL.percentage >= 0 ? (
+                              <TrendingUp className="w-3 h-3 text-emerald-400" />
+                            ) : (
+                              <TrendingDown className="w-3 h-3 text-red-400" />
+                            )}
+                          </div>
+                          <span className="text-white/80 text-sm font-medium">Current P&L:</span>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {profitabilityData.metrics.currentPnL.percentage >= 0 ? '+' : ''}{profitabilityData.metrics.currentPnL.percentage.toFixed(1)}%
+                          </div>
+                          <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {profitabilityData.metrics.currentPnL.usdValue >= 0 ? '+$' : '-$'}{Math.abs(profitabilityData.metrics.currentPnL.usdValue).toFixed(2)}
+                          </div>
+                        </div>
                       </div>
-                      <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {profitabilityData.metrics.currentPnL.usdValue >= 0 ? '+$' : '-$'}{Math.abs(profitabilityData.metrics.currentPnL.usdValue).toFixed(2)}
-                      </div>
-                    </div>
+                    ) : null}
                   </div>
                 )}
               </div>

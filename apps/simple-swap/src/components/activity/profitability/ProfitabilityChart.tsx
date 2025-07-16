@@ -9,8 +9,35 @@ import {
   LineSeries,
   ColorType,
 } from 'lightweight-charts';
-import { ProfitabilityData, TimeRange } from '@/types/profitability';
-import { filterDataByTimeRange } from '@/lib/mock-profitability-data';
+import { ProfitabilityData, TimeRange, ProfitabilityDataPoint } from '@/types/profitability';
+
+// Helper function to filter chart data by time range
+function filterDataByTimeRange(
+  data: ProfitabilityDataPoint[],
+  timeRange: string
+): ProfitabilityDataPoint[] {
+  const now = Date.now() / 1000;
+  let cutoffTime: number;
+  
+  switch (timeRange) {
+    case '1H':
+      cutoffTime = now - (60 * 60);
+      break;
+    case '24H':
+      cutoffTime = now - (24 * 60 * 60);
+      break;
+    case '7D':
+      cutoffTime = now - (7 * 24 * 60 * 60);
+      break;
+    case '30D':
+      cutoffTime = now - (30 * 24 * 60 * 60);
+      break;
+    default:
+      return data; // Return all data for 'ALL'
+  }
+  
+  return data.filter(point => point.time >= cutoffTime);
+}
 
 interface ProfitabilityChartProps {
   data: ProfitabilityData;

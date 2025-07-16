@@ -1,5 +1,5 @@
 /**
- * Types for trade profitability tracking and visualization
+ * Types for trade profitability tracking and calculation
  */
 
 export interface ProfitabilityMetrics {
@@ -37,13 +37,34 @@ export interface ProfitabilityData {
   };
 }
 
-
 export type TimeRange = '1H' | '24H' | '7D' | '30D' | 'ALL';
 
-export interface ProfitabilityChartProps {
-  data: ProfitabilityData;
-  timeRange: TimeRange;
-  height?: number;
-  showControls?: boolean;
-  miniMode?: boolean;
+export interface ProfitabilityCalculationInput {
+  activityId: string;
+  entryPrices: {
+    inputToken: number;
+    outputToken: number;
+  };
+  amounts: {
+    inputAmount: number;
+    outputAmount: number;
+  };
+  tradeTimestamp: number;
+  tokenContracts: {
+    inputContractId: string;
+    outputContractId: string;
+  };
+}
+
+export interface CurrentPriceData {
+  contractId: string;
+  price: number;
+  timestamp: number;
+  source: string;
+}
+
+export interface HistoricalPricePoint {
+  timestamp: number;
+  price: number;
+  source: string;
 }

@@ -312,42 +312,42 @@ export default function DashboardPage() {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Queue Size */}
+        {/* Activity Creation Rate */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Queue Size</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Activity Rate</CardTitle>
+            <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-3">
-              {stats?.queueSize || 0}
+              {activityStats?.pipeline?.activityCreationRate || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              Transactions pending
+              Activities per hour
             </p>
           </CardContent>
         </Card>
 
-        {/* Processing Health */}
+        {/* Pipeline Health Score */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">System Health</CardTitle>
+            <CardTitle className="text-sm font-medium">Pipeline Health</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
             <div className={`text-2xl font-bold mb-2 ${
-              stats?.processingHealth === 'healthy' ? 'text-green-600' : 
-              stats?.processingHealth === 'warning' ? 'text-yellow-600' : 'text-red-600'
+              (activityStats?.pipeline?.healthScore || 0) >= 80 ? 'text-green-600' : 
+              (activityStats?.pipeline?.healthScore || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
             }`}>
-              {stats?.processingHealth || 'Unknown'}
+              {Math.round(activityStats?.pipeline?.healthScore || 0)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              Current status
+              Overall health score
             </p>
           </CardContent>
         </Card>
 
-        {/* Success Rate */}
+        {/* Activity Success Rate */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
@@ -355,32 +355,89 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2">
-              {stats?.totalProcessed && stats.totalProcessed > 0 
-                ? `${((stats.totalSuccessful / stats.totalProcessed) * 100).toFixed(1)}%`
+              {activityStats?.pipeline?.successRate !== undefined
+                ? `${activityStats.pipeline.successRate.toFixed(1)}%`
                 : '0%'
               }
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats?.totalSuccessful || 0} of {stats?.totalProcessed || 0} successful
+              Activities completed successfully
             </p>
           </CardContent>
         </Card>
 
-        {/* Oldest Transaction */}
+        {/* Active Users */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Oldest Transaction</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold mb-2">
+              {activityStats?.pipeline?.activeUsers || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Users active in 24h
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Pipeline Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Processing Lag */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium">Processing Lag</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2">
-              {stats?.oldestTransactionAge 
-                ? `${Math.round(stats.oldestTransactionAge / (60 * 1000))}m`
-                : 'None'
+              {activityStats?.pipeline?.processingLag 
+                ? `${Math.round(activityStats.pipeline.processingLag / (60 * 1000))}m`
+                : '0m'
               }
             </div>
             <p className="text-xs text-muted-foreground">
-              Age of oldest pending
+              Avg time to completion
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Error Rate */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className={`text-2xl font-bold mb-2 ${
+              (activityStats?.pipeline?.errorRate || 0) < 5 ? 'text-green-600' : 
+              (activityStats?.pipeline?.errorRate || 0) < 15 ? 'text-yellow-600' : 'text-red-600'
+            }`}>
+              {activityStats?.pipeline?.errorRate !== undefined
+                ? `${activityStats.pipeline.errorRate.toFixed(1)}%`
+                : '0%'
+              }
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Failed/cancelled activities
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Total Activities */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold mb-2">
+              {activityStats?.total || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Activities in system
             </p>
           </CardContent>
         </Card>

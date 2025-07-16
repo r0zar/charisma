@@ -79,10 +79,17 @@ export const ProfitabilityMiniChart: React.FC<ProfitabilityMiniChartProps> = ({
     }));
 
     // Create zero line data
-    const zeroLineData: LineData[] = [
-      { time: data[0].time, value: 0 },
-      { time: data[data.length - 1].time, value: 0 }
-    ];
+    const zeroLineData: LineData[] = [];
+    if (data.length === 1) {
+      // For single data point, just use that timestamp
+      zeroLineData.push({ time: data[0].time, value: 0 });
+    } else {
+      // For multiple data points, use start and end
+      zeroLineData.push(
+        { time: data[0].time, value: 0 },
+        { time: data[data.length - 1].time, value: 0 }
+      );
+    }
 
     // Set data
     lineSeries.setData(chartData);
