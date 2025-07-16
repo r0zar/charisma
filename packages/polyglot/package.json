@@ -43,11 +43,11 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^24.0.12",
+    "@types/node": "^24.0.14",
     "@vercel/kv": "^3.0.0",
     "bunchee": "^6.5.4",
     "dotenv": "^16.4.5",
-    "eslint": "^9.30.1",
+    "eslint": "^9.31.0",
     "happy-dom": "^18.0.1",
     "typescript": "5.8.3",
     "vitest": "^3.1.3"
