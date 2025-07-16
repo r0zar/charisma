@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         owner,
         timeRange,
         calculatedAt: new Date().toISOString(),
-        positionsIncluded: portfolioData.trading?.positions?.length || portfolioData.positions?.length || 0
+        positionsIncluded: portfolioData.trading?.positions?.length || 0
       }
     };
 

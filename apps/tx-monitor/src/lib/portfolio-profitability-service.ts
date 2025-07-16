@@ -145,7 +145,7 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
             contractId: token.contractId,
             symbol: tokenMetadata?.symbol || fallbackSymbol,
             name: tokenMetadata?.name,
-            image: tokenMetadata?.image,
+            image: tokenMetadata?.image || undefined,
             balance: token.balance,
             value: token.value,
             price: token.price,
