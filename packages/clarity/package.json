@@ -35,17 +35,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@stacks/blockchain-api-client": "^8.11.3",
+    "@stacks/blockchain-api-client": "^8.11.4",
     "@stacks/connect": "^8.1.9",
     "@stacks/network": "^7.0.2",
     "@stacks/stacks-blockchain-api-types": "^7.14.1",
     "@stacks/transactions": "^7.1.0",
-    "@hirosystems/clarinet-sdk": "^3.2.0",
+    "@hirosystems/clarinet-sdk": "^3.3.0",
     "chokidar-cli": "^3.0.0",
     "bunchee": "^6.5.4",
     "lucide-react": "0.525.0",
     "typescript": "^5.8.3",
-    "vite": "^7.0.3",
+    "vite": "^7.0.4",
     "vitest": "^3.0.0",
     "vitest-environment-clarinet": "^2.3.0"
   }
