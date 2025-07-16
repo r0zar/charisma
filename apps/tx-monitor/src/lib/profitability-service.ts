@@ -299,7 +299,7 @@ async function getEntryPrices(activity: ActivityItem): Promise<{ inputToken: num
 
   // Strategy 3: Calculate entry price from swap execution data
   // This is the CRITICAL fix for stablecoin → volatile token swaps
-  const stablecoins = ['USDC', 'aeUSDC', 'USDT', 'DAI', 'BUSD'];
+  const stablecoins = ['USDC', 'aeUSDC', 'USDT', 'USDh'];
   const isFromStable = stablecoins.some(stable => activity.fromToken.symbol.includes(stable));
   const isToStable = stablecoins.some(stable => activity.toToken.symbol.includes(stable));
 
@@ -307,19 +307,19 @@ async function getEntryPrices(activity: ActivityItem): Promise<{ inputToken: num
     // Stablecoin to volatile token swap - calculate real entry price
     const inputAmountRaw = parseFloat(activity.fromToken.amount);
     const outputAmountRaw = parseFloat(activity.toToken.amount);
-    
+
     if (inputAmountRaw > 0 && outputAmountRaw > 0) {
       const inputDecimals = Math.max(0, Math.min(18, activity.fromToken.decimals || 6));
       const outputDecimals = Math.max(0, Math.min(18, activity.toToken.decimals || 6));
-      
+
       const inputAmount = inputAmountRaw / Math.pow(10, inputDecimals);
       const outputAmount = outputAmountRaw / Math.pow(10, outputDecimals);
-      
+
       // Calculate real entry price: input USD value ÷ output token amount
       const realEntryPrice = inputAmount / outputAmount; // Assuming stablecoin ≈ $1
-      
+
       console.log(`[getEntryPrices] Calculated real entry price for ${activity.id}: ${inputAmount} ${activity.fromToken.symbol} ÷ ${outputAmount} ${activity.toToken.symbol} = $${realEntryPrice.toFixed(6)} per ${activity.toToken.symbol}`);
-      
+
       return {
         inputToken: 1.0, // Stablecoin ≈ $1
         outputToken: realEntryPrice // Real calculated entry price
@@ -614,9 +614,9 @@ async function getCurrentPrices(contractIds: string[]): Promise<CurrentPriceData
         source = 'packages-tokens';
       } else {
         // Fallback for stablecoins based on contract ID
-        if (contractId.includes('usdc') || contractId.includes('USDC') || 
-            contractId.includes('usdt') || contractId.includes('USDT') ||
-            contractId.includes('dai') || contractId.includes('DAI')) {
+        if (contractId.includes('usdc') || contractId.includes('USDC') ||
+          contractId.includes('usdt') || contractId.includes('USDT') ||
+          contractId.includes('dai') || contractId.includes('DAI')) {
           price = 1.0;
           source = 'stablecoin-fallback';
         } else {
@@ -642,67 +642,11 @@ async function getCurrentPrices(contractIds: string[]): Promise<CurrentPriceData
     // Final fallback
     return contractIds.map(contractId => ({
       contractId,
-      price: (contractId.includes('usdc') || contractId.includes('USDC') || 
-              contractId.includes('usdt') || contractId.includes('USDT') ||
-              contractId.includes('dai') || contractId.includes('DAI')) ? 1.0 : 1.0,
+      price: (contractId.includes('usdc') || contractId.includes('USDC') ||
+        contractId.includes('usdt') || contractId.includes('USDT') ||
+        contractId.includes('dai') || contractId.includes('DAI')) ? 1.0 : 1.0,
       timestamp: Date.now(),
       source: 'error-fallback'
-    }));
-  }
-}
-
-/**
- * Fallback to get current prices directly from simple-swap price store
- */
-async function getCurrentPricesFromPriceStore(contractIds: string[]): Promise<CurrentPriceData[]> {
-  try {
-    // Import the price store functions directly
-    const { getLatestPrice } = await import('../../../simple-swap/src/lib/price/store');
-
-    const results: CurrentPriceData[] = [];
-
-    for (const contractId of contractIds) {
-      let price: number;
-      let source: string;
-
-      const latestPrice = await getLatestPrice(contractId);
-      if (latestPrice !== undefined) {
-        price = latestPrice;
-        source = 'price-store';
-      } else {
-        // Simple fallback without async calls
-        if (contractId.includes('usdc') || contractId.includes('USDC') || 
-            contractId.includes('usdt') || contractId.includes('USDT') ||
-            contractId.includes('dai') || contractId.includes('DAI')) {
-          price = 1.0;
-        } else {
-          price = 1.0;
-        }
-        source = 'fallback';
-      }
-
-      results.push({
-        contractId,
-        price,
-        timestamp: Date.now(),
-        source
-      });
-    }
-
-    console.log(`[getCurrentPricesFromPriceStore] Retrieved prices for ${contractIds.length} contract IDs`);
-
-    return results;
-  } catch (error) {
-    console.error(`[getCurrentPricesFromPriceStore] Error accessing price store:`, error);
-
-    // Final fallback - simple static prices
-    return contractIds.map(contractId => ({
-      contractId,
-      price: (contractId.includes('usdc') || contractId.includes('USDC') || 
-              contractId.includes('usdt') || contractId.includes('USDT') ||
-              contractId.includes('dai') || contractId.includes('DAI')) ? 1.0 : 1.0,
-      timestamp: Date.now(),
-      source: 'fallback'
     }));
   }
 }
@@ -770,7 +714,7 @@ async function getHistoricalPriceData(
 }
 
 /**
- * Fallback to get historical data directly from simple-swap price store
+ * Fallback to get historical data via API call to simple-swap
  */
 async function getHistoricalDataFromPriceStore(
   inputContractId: string,
@@ -779,46 +723,63 @@ async function getHistoricalDataFromPriceStore(
   endTimestamp: number
 ): Promise<HistoricalPricePoint[][]> {
   try {
-    // Import the price store functions directly
-    const { getPricesInRange } = await import('../../../simple-swap/src/lib/price/store');
-
     if (!inputContractId || !outputContractId) {
       console.warn(`[getHistoricalDataFromPriceStore] Missing contract IDs`);
       return [[], []];
     }
 
-    // Get price data for both tokens
-    const [inputPrices, outputPrices] = await Promise.all([
-      getPricesInRange(inputContractId, startTimestamp, endTimestamp),
-      getPricesInRange(outputContractId, startTimestamp, endTimestamp)
-    ]);
+    // Convert timestamps to seconds for the API
+    const fromSeconds = Math.floor(startTimestamp / 1000);
+    const toSeconds = Math.floor(endTimestamp / 1000);
 
-    // Convert to our format
-    const inputHistory: HistoricalPricePoint[] = inputPrices.map(([timestamp, price]) => ({
-      timestamp,
-      price,
-      source: 'price-store'
+    // Call simple-swap API endpoint directly (same as main function but as fallback)
+    const contractIds = [inputContractId, outputContractId].join(',');
+    const url = `${process.env.SIMPLE_SWAP_URL || 'http://localhost:3002'}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
+
+    console.log(`[getHistoricalDataFromPriceStore] Calling simple-swap API as fallback: ${url}`);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API call failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Convert API response to our format
+    const inputData = data[inputContractId] || [];
+    const outputData = data[outputContractId] || [];
+
+    const inputHistory: HistoricalPricePoint[] = inputData.map((point: { time: number, value: number }) => ({
+      timestamp: point.time * 1000, // Convert back to milliseconds
+      price: point.value,
+      source: 'price-store-api'
     }));
 
-    const outputHistory: HistoricalPricePoint[] = outputPrices.map(([timestamp, price]) => ({
-      timestamp,
-      price,
-      source: 'price-store'
+    const outputHistory: HistoricalPricePoint[] = outputData.map((point: { time: number, value: number }) => ({
+      timestamp: point.time * 1000, // Convert back to milliseconds
+      price: point.value,
+      source: 'price-store-api'
     }));
 
-    console.log(`[getHistoricalDataFromPriceStore] Retrieved ${inputHistory.length} points for ${inputContractId}, ${outputHistory.length} points for ${outputContractId}`);
+    console.log(`[getHistoricalDataFromPriceStore] Retrieved ${inputHistory.length} points for ${inputContractId}, ${outputHistory.length} points for ${outputContractId} via API`);
 
     return [inputHistory, outputHistory];
   } catch (error) {
-    console.error(`[getHistoricalDataFromPriceStore] Error accessing price store:`, error);
+    console.error(`[getHistoricalDataFromPriceStore] Error calling simple-swap API:`, error);
 
     // Final fallback to minimal static data if everything fails
     console.warn(`[getHistoricalDataFromPriceStore] Using minimal fallback data for ${inputContractId}, ${outputContractId}`);
 
     const getSimplePrice = (contractId: string): number => {
-      if (contractId.includes('usdc') || contractId.includes('USDC') || 
-          contractId.includes('usdt') || contractId.includes('USDT') ||
-          contractId.includes('dai') || contractId.includes('DAI')) {
+      if (contractId.includes('usdc') || contractId.includes('USDC') ||
+        contractId.includes('usdt') || contractId.includes('USDT') ||
+        contractId.includes('dai') || contractId.includes('DAI')) {
         return 1.0;
       }
       return 1.0;

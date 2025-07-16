@@ -29,7 +29,7 @@ async function captureTokenPriceSnapshot(tokenId: string): Promise<TokenInfo['pr
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
     // Use charisma-party prices API
-    const pricesUrl = `${process.env.NEXT_PUBLIC_CHARISMA_PARTY_URL || 'https://party.charisma.rocks'}/parties/prices?tokens=${encodeURIComponent(tokenId)}`;
+    const pricesUrl = `${process.env.NEXT_PUBLIC_CHARISMA_PARTY_URL || 'https://party.charisma.rocks'}/party/prices?tokens=${encodeURIComponent(tokenId)}`;
 
     const response = await fetch(pricesUrl, {
       signal: controller.signal,

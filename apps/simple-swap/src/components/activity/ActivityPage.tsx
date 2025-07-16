@@ -11,6 +11,7 @@ import { toast } from '../ui/sonner';
 import { useBlaze } from 'blaze-sdk/realtime';
 import { enrichTokenWithMetadata } from '@/lib/activity/utils';
 import { useWallet } from '@/contexts/wallet-context';
+import { PortfolioPnLWidget } from './PortfolioPnLWidget';
 import {
   Search,
   Filter,
@@ -600,6 +601,9 @@ export const ActivityPage: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Portfolio P&L Widget - prominently displayed */}
+        <PortfolioPnLWidget className="px-6 py-4 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm" />
       </div>
 
       {/* Search and Filter Controls */}

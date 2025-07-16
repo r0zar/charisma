@@ -68,3 +68,43 @@ export interface HistoricalPricePoint {
   price: number;
   source: string;
 }
+
+/**
+ * Portfolio-level profitability types
+ */
+export interface PortfolioProfitabilityMetrics {
+  totalPnL: {
+    percentage: number;
+    usdValue: number;
+  };
+  bestPosition: {
+    activityId: string;
+    percentage: number;
+    usdValue: number;
+    timestamp: number;
+  };
+  worstPosition: {
+    activityId: string;
+    percentage: number;
+    usdValue: number;
+    timestamp: number;
+  };
+  averageReturn: number;
+  totalPositions: number;
+  profitablePositions: number;
+  winRate: number; // percentage of profitable positions
+}
+
+export interface PortfolioPosition {
+  activityId: string;
+  profitabilityData: ProfitabilityData;
+  weight: number; // position size as percentage of total portfolio
+}
+
+export interface PortfolioProfitabilityData {
+  metrics: PortfolioProfitabilityMetrics;
+  chartData: ProfitabilityDataPoint[];
+  positions: PortfolioPosition[];
+  totalInvested: number; // total USD value invested
+  currentValue: number; // current USD value of portfolio
+}
