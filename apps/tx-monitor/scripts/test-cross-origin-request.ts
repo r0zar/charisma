@@ -106,16 +106,16 @@ async function testCrossOriginRequest() {
           metadata: parsed.metadata
         });
       } catch (e) {
-        logger.info('Bulk response (raw):', bulkData.substring(0, 200));
+        logger.info(`Bulk response (raw): ${bulkData.substring(0, 200)}`);
       }
     } else {
       const bulkError = await bulkResponse.text();
-      logger.error('❌ Bulk endpoint failed:', bulkError);
+      logger.error(`❌ Bulk endpoint failed: ${bulkError}`);
     }
 
     // Test 6: Check environment variable resolution
     logger.info('🔧 Environment variable check...');
-    logger.info('Process env NEXT_PUBLIC_TX_MONITOR_URL:', process.env.NEXT_PUBLIC_TX_MONITOR_URL);
+    logger.info(`Process env NEXT_PUBLIC_TX_MONITOR_URL: ${process.env.NEXT_PUBLIC_TX_MONITOR_URL}`);
     
     // Test the actual URL from environment
     const envUrl = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';

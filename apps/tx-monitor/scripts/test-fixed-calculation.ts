@@ -54,7 +54,7 @@ async function testFixedCalculation() {
     }
 
   } catch (error) {
-    logger.error('Test failed', { error: error.message });
+    logger.error('Test failed', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 

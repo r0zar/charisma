@@ -10,6 +10,7 @@ dist-ssr
 .cache
 server/dist
 public/dist
+*.tsbuildinfo
 
 # test coverage
 coverage
