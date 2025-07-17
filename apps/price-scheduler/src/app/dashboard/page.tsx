@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useWallet } from "@/contexts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,23 +9,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Activity, 
   TrendingUp, 
-  Wallet, 
-  Network, 
-  Copy, 
-  Check, 
   RefreshCw,
   BarChart3,
-  PieChart,
-  Calendar,
+  Database,
   Clock,
-  Globe,
+  Zap,
   Settings,
-  Zap
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  ArrowUpDown
 } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Cell, Pie } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import Link from "next/link"
 
-// Custom tooltip component that uses theme styles
+// Types for real price service data
+interface SystemStatus {
+  status: 'healthy' | 'degraded' | 'error';
+  timestamp: number;
+  lastUpdate: number | null;
+  lastUpdateAge: number | null;
+  storage: {
+    totalSnapshots: number;
+    estimatedStorageGB: number;
+  };
+  latestSnapshot: {
+    timestamp: number;
+    tokenCount: number;
+    arbitrageOpportunities: number;
+    engineStats: {
+      oracle: number;
+      market: number;
+      intrinsic: number;
+      hybrid: number;
+    };
+  } | null;
+  environment: {
+    INVEST_URL: string;
+    SWAP_URL: string;
+    NODE_ENV: string;
+  };
+}
+
+interface EngineHealth {
+  engine: string;
+  status: 'healthy' | 'degraded' | 'failed' | 'unknown';
+  lastSuccess: number;
+  errorRate: number;
+  averageResponseTime: number;
+  details?: any;
+}
+
+// Custom tooltip component
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -46,84 +81,115 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
-// Custom pie chart tooltip
-const CustomPieTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-background border border-border rounded-lg shadow-lg p-3">
-        <p className="text-sm font-medium text-foreground">
-          {payload[0].name}: {payload[0].value}%
-        </p>
-      </div>
-    )
-  }
-  return null
-}
-
-// Mock data generators
-const generateBalanceData = () => {
-  const data = []
-  const now = new Date()
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
-    data.push({
-      date: date.toLocaleDateString(),
-      balance: Math.floor(Math.random() * 1000) + 500,
-      transactions: Math.floor(Math.random() * 10) + 1
-    })
-  }
-  return data
-}
-
-const generateTransactionData = () => {
-  const types = ['Send', 'Receive', 'Contract Call', 'Token Transfer']
-  const statuses = ['Confirmed', 'Pending', 'Failed']
-  return Array.from({ length: 20 }, (_, i) => ({
-    id: `tx_${i + 1}`,
-    type: types[Math.floor(Math.random() * types.length)],
-    amount: (Math.random() * 100).toFixed(2),
-    status: statuses[Math.floor(Math.random() * statuses.length)],
-    timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-    hash: `0x${Math.random().toString(16).substring(2, 10)}...${Math.random().toString(16).substring(2, 6)}`
-  }))
-}
-
-const generateNetworkData = () => [
-  { name: 'Mainnet', value: 85, color: '#3b82f6' },
-  { name: 'Testnet', value: 15, color: '#10b981' }
-]
-
 export default function DashboardPage() {
-  const { walletState, network, connectWallet, disconnectWallet, isConnecting } = useWallet()
-  const [copied, setCopied] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
+  const [engineHealth, setEngineHealth] = useState<EngineHealth[]>([])
+  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
-  // Mock data
-  const [balanceData] = useState(generateBalanceData())
-  const [transactionData] = useState(generateTransactionData())
-  const [networkData] = useState(generateNetworkData())
-
   useEffect(() => {
-    setMounted(true)
+    fetchSystemData()
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchSystemData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
-  const copyAddress = async () => {
-    if (walletState.address) {
-      await navigator.clipboard.writeText(walletState.address)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+  const fetchSystemData = async () => {
+    setRefreshing(true)
+    try {
+      // Fetch real system status
+      const statusResponse = await fetch('/api/status')
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json()
+        setSystemStatus(statusData)
+      }
+
+      // Fetch real engine health
+      const healthResponse = await fetch('/api/engine-health')
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json()
+        if (healthData.success && healthData.engines) {
+          setEngineHealth(healthData.engines)
+        }
+      } else {
+        // Fallback engine health data
+        setEngineHealth([
+          { engine: 'Oracle', status: 'unknown', lastSuccess: Date.now() - 60000, errorRate: 0, averageResponseTime: 0 },
+          { engine: 'CPMM', status: 'unknown', lastSuccess: Date.now() - 30000, errorRate: 0, averageResponseTime: 0 },
+          { engine: 'Intrinsic', status: 'unknown', lastSuccess: Date.now() - 180000, errorRate: 0, averageResponseTime: 0 }
+        ])
+      }
+
+    } catch (error) {
+      console.error('Error fetching system data:', error)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
   }
 
-  const handleRefresh = () => {
-    setRefreshing(true)
-    setTimeout(() => setRefreshing(false), 1000)
+  const handleManualTrigger = async () => {
+    try {
+      const response = await fetch('/api/trigger', { method: 'POST' })
+      const result = await response.json()
+      console.log('Manual trigger result:', result)
+      // Refresh data after trigger
+      setTimeout(fetchSystemData, 2000)
+    } catch (error) {
+      console.error('Manual trigger failed:', error)
+    }
   }
 
-  if (!mounted) {
-    return <div className="p-8">Loading...</div>
+  const formatDuration = (ms: number | null) => {
+    if (!ms) return 'Never'
+    const minutes = Math.floor(ms / 60000)
+    const seconds = Math.floor((ms % 60000) / 1000)
+    if (minutes > 60) {
+      const hours = Math.floor(minutes / 60)
+      return `${hours}h ${minutes % 60}m ago`
+    }
+    return `${minutes}m ${seconds}s ago`
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'healthy': return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'degraded': return <AlertCircle className="h-4 w-4 text-yellow-600" />
+      case 'failed': 
+      case 'error': return <XCircle className="h-4 w-4 text-red-600" />
+      case 'unknown': return <Activity className="h-4 w-4 text-gray-400" />
+      default: return <Activity className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy': return 'text-green-600'
+      case 'degraded': return 'text-yellow-600'
+      case 'failed':
+      case 'error': return 'text-red-600'
+      case 'unknown': return 'text-gray-400'
+      default: return 'text-gray-600'
+    }
+  }
+
+  // Generate engine distribution chart data
+  const engineData = systemStatus?.latestSnapshot ? [
+    { name: 'Oracle', value: systemStatus.latestSnapshot.engineStats.oracle, color: '#3b82f6' },
+    { name: 'Market', value: systemStatus.latestSnapshot.engineStats.market, color: '#10b981' },
+    { name: 'Intrinsic', value: systemStatus.latestSnapshot.engineStats.intrinsic, color: '#f59e0b' },
+    { name: 'Hybrid', value: systemStatus.latestSnapshot.engineStats.hybrid, color: '#ef4444' }
+  ].filter(item => item.value > 0) : []
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="h-6 w-6 animate-spin" />
+          <span>Loading price service dashboard...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -131,358 +197,281 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold">Price Service Dashboard</h1>
           <p className="text-muted-foreground">
-            Monitor your wallet activity and network status
+            Monitor the three-engine price discovery system
           </p>
         </div>
-        <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={fetchSystemData} disabled={refreshing} variant="outline">
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={handleManualTrigger} variant="outline">
+            <Zap className="h-4 w-4 mr-2" />
+            Manual Trigger
+          </Button>
+        </div>
       </div>
 
-      {/* Key Metrics Cards */}
+      {/* System Status Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Wallet Status */}
+        {/* System Health */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Wallet Status</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
+            {getStatusIcon(systemStatus?.status || 'unknown')}
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-3">
-              {walletState.connected ? "Connected" : "Disconnected"}
+            <div className={`text-2xl font-bold mb-3 ${getStatusColor(systemStatus?.status || 'unknown')}`}>
+              {systemStatus?.status?.charAt(0).toUpperCase() + systemStatus?.status?.slice(1) || 'Unknown'}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={network === "mainnet" ? "default" : "secondary"}>
-                {network}
-              </Badge>
-              <Badge variant={walletState.connected ? "default" : "destructive"}>
-                {walletState.connected ? "Active" : "Inactive"}
+              <Badge variant="outline">
+                {systemStatus?.environment.NODE_ENV || 'unknown'}
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* Mock Balance */}
+        {/* Last Update */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Portfolio Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Last Update</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-2">$2,847.50</div>
+            <div className="text-2xl font-bold mb-2">
+              {formatDuration(systemStatus?.lastUpdateAge || null)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12.5%</span> from last month
+              {systemStatus?.lastUpdate ? new Date(systemStatus.lastUpdate).toLocaleString() : 'Never'}
             </p>
           </CardContent>
         </Card>
 
-        {/* Transactions */}
+        {/* Tokens Priced */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-2">147</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8</span> this week
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Price System Health */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Price System</CardTitle>
+            <CardTitle className="text-sm font-medium">Tokens Priced</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-green-600 mb-2">Active</div>
+            <div className="text-2xl font-bold mb-2">
+              {systemStatus?.latestSnapshot?.tokenCount || 0}
+            </div>
             <p className="text-xs text-muted-foreground">
-              <Link href="/dashboard/history" className="text-blue-600 hover:underline">
-                View History →
-              </Link>
+              Last snapshot
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Storage Used */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium">Storage</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-2xl font-bold mb-2">
+              {systemStatus?.storage.estimatedStorageGB.toFixed(2) || '0.00'} GB
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {systemStatus?.storage.totalSnapshots || 0} snapshots
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Dashboard Grid */}
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Charts */}
+        {/* Left Column - Engine Status */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Balance Chart */}
+          {/* Engine Health */}
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
-                <span>Portfolio Overview</span>
+                <Activity className="h-5 w-5" />
+                <span>Engine Health</span>
               </CardTitle>
               <CardDescription>
-                Your portfolio performance over the last 30 days
+                Status of the three pricing engines
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <Tabs defaultValue="balance" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="balance">Balance</TabsTrigger>
-                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                </TabsList>
-                <TabsContent value="balance" className="space-y-4">
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={balanceData}>
-                        <CartesianGrid 
-                          strokeDasharray="3 3" 
-                          className="opacity-30"
-                        />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={12}
-                          className="text-muted-foreground"
-                        />
-                        <YAxis 
-                          fontSize={12}
-                          className="text-muted-foreground"
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Line 
-                          type="monotone" 
-                          dataKey="balance" 
-                          stroke="#3b82f6" 
-                          strokeWidth={3}
-                          dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-                <TabsContent value="transactions" className="space-y-4">
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={balanceData}>
-                        <CartesianGrid 
-                          strokeDasharray="3 3" 
-                          className="opacity-30"
-                        />
-                        <XAxis 
-                          dataKey="date" 
-                          fontSize={12}
-                          className="text-muted-foreground"
-                        />
-                        <YAxis 
-                          fontSize={12}
-                          className="text-muted-foreground"
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar 
-                          dataKey="transactions" 
-                          fill="#3b82f6"
-                          opacity={0.8}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* Price System Management */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
-                <span>Price System</span>
-              </CardTitle>
-              <CardDescription>
-                Monitor and manage the three-engine price discovery system
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">Active</div>
-                  <div className="text-sm text-muted-foreground">System Status</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">3</div>
-                  <div className="text-sm text-muted-foreground">Engines Running</div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <Link href="/dashboard/history">
-                  <Button className="w-full justify-start" size="lg">
-                    <BarChart3 className="mr-2 h-5 w-5" />
-                    View Price History & Export Data
-                  </Button>
-                </Link>
-                <div className="grid grid-cols-2 gap-2">
-                  <Link href="/api/trigger">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <RefreshCw className="mr-1 h-4 w-4" />
-                      Manual Trigger
-                    </Button>
-                  </Link>
-                  <Link href="/api/status">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Activity className="mr-1 h-4 w-4" />
-                      System Status
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Transaction History */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="h-5 w-5" />
-                <span>Recent Transactions</span>
-              </CardTitle>
-              <CardDescription>
-                Your latest transaction activity
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-3">
-                {transactionData.slice(0, 8).map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline">{tx.type}</Badge>
-                        <Badge 
-                          variant={
-                            tx.status === 'Confirmed' ? 'default' : 
-                            tx.status === 'Pending' ? 'secondary' : 'destructive'
-                          }
-                        >
-                          {tx.status}
-                        </Badge>
+              <div className="space-y-4">
+                {engineHealth.map((engine) => (
+                  <div key={engine.engine} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      {getStatusIcon(engine.status)}
+                      <div>
+                        <div className="font-medium">{engine.engine} Engine</div>
+                        <div className="text-sm text-muted-foreground">
+                          Last success: {formatDuration(Date.now() - engine.lastSuccess)}
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {tx.hash} • {tx.timestamp}
-                      </p>
                     </div>
-                    <div className="text-right ml-4">
-                      <p className="font-semibold">{tx.amount} STX</p>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">
+                        {Math.round((1 - engine.errorRate) * 100)}% success
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {engine.averageResponseTime}ms avg
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right Column - Sidebar */}
-        <div className="space-y-8">
-          {/* Wallet Details */}
-          {walletState.connected && (
+          {/* Latest Snapshot Details */}
+          {systemStatus?.latestSnapshot && (
             <Card>
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center space-x-2">
-                  <Wallet className="h-5 w-5" />
-                  <span>Wallet Details</span>
+                  <BarChart3 className="h-5 w-5" />
+                  <span>Latest Price Snapshot</span>
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-4">
-                <div>
-                  <p className="text-sm font-medium mb-3">Address</p>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs bg-muted p-2 rounded flex-1 break-all">
-                      {walletState.address}
-                    </code>
-                    <Button size="sm" variant="ghost" onClick={copyAddress}>
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <Separator />
-                <div>
-                  <p className="text-sm font-medium mb-3">Network</p>
-                  <Badge variant={network === "mainnet" ? "default" : "secondary"}>
-                    {network}
-                  </Badge>
-                </div>
-                <Button 
-                  onClick={disconnectWallet}
-                  variant="outline" 
-                  className="w-full"
-                >
-                  Disconnect Wallet
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Connect Wallet */}
-          {!walletState.connected && (
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle>Connect Wallet</CardTitle>
                 <CardDescription>
-                  Connect your wallet to access all features
+                  {new Date(systemStatus.latestSnapshot.timestamp).toLocaleString()}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
-                <Button 
-                  onClick={connectWallet}
-                  disabled={isConnecting}
-                  className="w-full"
-                >
-                  {isConnecting ? "Connecting..." : "Connect Wallet"}
-                </Button>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {systemStatus.latestSnapshot.tokenCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Tokens Priced</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {systemStatus.latestSnapshot.arbitrageOpportunities}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Arbitrage Opps</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {Object.values(systemStatus.latestSnapshot.engineStats).reduce((a, b) => a + b, 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Calculations</div>
+                  </div>
+                </div>
+
+                {/* Engine Distribution Chart */}
+                {engineData.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-4">Engine Usage Distribution</h4>
+                    <div className="flex items-center gap-8">
+                      <div className="h-[200px] w-[200px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip content={<CustomTooltip />} />
+                            <Pie
+                              data={engineData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={40}
+                              outerRadius={80}
+                              dataKey="value"
+                              strokeWidth={2}
+                            >
+                              {engineData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-2">
+                        {engineData.map((item) => (
+                          <div key={item.name} className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="text-sm font-medium">{item.name}</span>
+                            <span className="text-sm text-muted-foreground">({item.value})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
+        </div>
 
-          {/* Network Distribution */}
+        {/* Right Column - Actions & System Info */}
+        <div className="space-y-8">
+          {/* Price System Actions */}
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center space-x-2">
-                <PieChart className="h-5 w-5" />
-                <span>Network Usage</span>
+                <Zap className="h-5 w-5" />
+                <span>System Actions</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Tooltip content={<CustomPieTooltip />} />
-                    <Pie
-                      data={networkData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={60}
-                      fill="#8884d8"
-                      dataKey="value"
-                      strokeWidth={2}
-                    >
-                      {networkData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+            <CardContent className="pt-0 space-y-3">
+              <Link href="/dashboard/history">
+                <Button className="w-full justify-start" size="lg">
+                  <BarChart3 className="mr-2 h-5 w-5" />
+                  View Price History & Export Data
+                </Button>
+              </Link>
+              <div className="grid grid-cols-1 gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={handleManualTrigger}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Manual Price Update
+                </Button>
+                <Link href="/api/status">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Activity className="mr-2 h-4 w-4" />
+                    View System Status
+                  </Button>
+                </Link>
               </div>
-              <div className="space-y-2 mt-4">
-                {networkData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-sm">{item.name}</span>
-                    </div>
-                    <span className="text-sm font-medium">{item.value}%</span>
+            </CardContent>
+          </Card>
+
+          {/* Environment Info */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-2">
+                <Settings className="h-5 w-5" />
+                <span>Environment</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-4">
+              <div>
+                <div className="text-sm font-medium mb-2">Environment</div>
+                <Badge variant="outline">
+                  {systemStatus?.environment.NODE_ENV || 'unknown'}
+                </Badge>
+              </div>
+              <Separator />
+              <div>
+                <div className="text-sm font-medium mb-2">Service URLs</div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span>Invest:</span>
+                    <span className="font-mono text-muted-foreground">
+                      {systemStatus?.environment.INVEST_URL || 'Not configured'}
+                    </span>
                   </div>
-                ))}
+                  <div className="flex justify-between">
+                    <span>Swap:</span>
+                    <span className="font-mono text-muted-foreground">
+                      {systemStatus?.environment.SWAP_URL || 'Not configured'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -491,33 +480,21 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center space-x-2">
-                <Zap className="h-5 w-5" />
+                <Calendar className="h-5 w-5" />
                 <span>Quick Actions</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
-              <Link href="/dashboard/history">
-                <Button variant="outline" className="w-full justify-start">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Price History
-                </Button>
-              </Link>
               <Link href="/settings">
                 <Button variant="outline" className="w-full justify-start">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Button>
               </Link>
-              <Link href="/skins">
+              <Link href="/docs">
                 <Button variant="outline" className="w-full justify-start">
-                  <Globe className="mr-2 h-4 w-4" />
-                  Change Theme
-                </Button>
-              </Link>
-              <Link href="/settings">
-                <Button variant="outline" className="w-full justify-start">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  App Settings
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Documentation
                 </Button>
               </Link>
             </CardContent>
