@@ -32,7 +32,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@stacks/blockchain-api-client": "^8.11.3",
+    "@stacks/blockchain-api-client": "^8.11.4",
     "@stacks/connect": "^8.1.9",
     "@stacks/network": "^7",
     "@stacks/stacks-blockchain-api-types": "^7.14.1",
