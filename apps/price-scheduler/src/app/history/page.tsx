@@ -24,13 +24,13 @@ import {
   Table as TableIcon,
   BarChart3
 } from "lucide-react"
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -112,10 +112,10 @@ export default function HistoryPage() {
       const response = await fetch(`/api/history/snapshots/${snapshotId}`)
       if (response.ok) {
         const data = await response.json()
-        
+
         // Debug: Log the raw price data to see what we're working with
         console.log('Raw price data from API:', data.prices?.slice(0, 3))
-        
+
         setSelectedSnapshot(data)
       }
     } catch (error) {
@@ -136,7 +136,7 @@ export default function HistoryPage() {
           exportedAt: Date.now(),
           format: format
         }
-        
+
         const jsonString = JSON.stringify(data, null, 2)
         const blob = new Blob([jsonString], { type: 'application/json' })
         const downloadUrl = window.URL.createObjectURL(blob)
@@ -159,7 +159,7 @@ export default function HistoryPage() {
           timeFilter: timeFilter,
           format: format
         }
-        
+
         const jsonString = JSON.stringify(data, null, 2)
         const blob = new Blob([jsonString], { type: 'application/json' })
         const downloadUrl = window.URL.createObjectURL(blob)
@@ -261,7 +261,7 @@ export default function HistoryPage() {
       </Card>
 
       {/* Two-Panel Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-400px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-400px)]">
         {/* Left Panel - Snapshots List */}
         <Card className="flex flex-col bg-gradient-to-br from-card to-card/80 border-border shadow-sm">
           <CardHeader>
@@ -283,11 +283,10 @@ export default function HistoryPage() {
                 {filteredSnapshots.map((snapshot) => (
                   <div
                     key={snapshot.id}
-                    className={`group relative p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                      selectedSnapshot?.snapshot.id === snapshot.id
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-border hover:border-primary/50 hover:bg-accent/50'
-                    }`}
+                    className={`group relative p-3 rounded-lg border cursor-pointer transition-all duration-200 ${selectedSnapshot?.snapshot.id === snapshot.id
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border hover:border-primary/50 hover:bg-accent/50'
+                      }`}
                     onClick={() => fetchSnapshotDetail(snapshot.id)}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -295,13 +294,12 @@ export default function HistoryPage() {
                         <div className="text-sm font-medium">
                           {new Date(snapshot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          (snapshot.successfulPrices / snapshot.totalTokens) > 0.9
-                            ? 'bg-success/20 text-success'
-                            : (snapshot.successfulPrices / snapshot.totalTokens) > 0.7
-                              ? 'bg-warning/20 text-warning'
-                              : 'bg-error/20 text-error'
-                        }`}>
+                        <div className={`text-xs px-2 py-0.5 rounded-full font-medium ${(snapshot.successfulPrices / snapshot.totalTokens) > 0.9
+                          ? 'bg-success/20 text-success'
+                          : (snapshot.successfulPrices / snapshot.totalTokens) > 0.7
+                            ? 'bg-warning/20 text-warning'
+                            : 'bg-error/20 text-error'
+                          }`}>
                           {Math.round((snapshot.successfulPrices / snapshot.totalTokens) * 100)}%
                         </div>
                       </div>
@@ -318,12 +316,12 @@ export default function HistoryPage() {
                         <Download className="h-3 w-3" />
                       </Button>
                     </div>
-                    
+
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                       <span className="font-medium">{snapshot.successfulPrices}/{snapshot.totalTokens} tokens</span>
                       <span>{snapshot.calculationTimeMs}ms</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1">
                         {snapshot.engineStats.oracle > 0 && (
@@ -361,14 +359,14 @@ export default function HistoryPage() {
         </Card>
 
         {/* Right Panel - Snapshot Preview */}
-        <Card className="flex flex-col bg-gradient-to-br from-card to-card/80 border-border shadow-sm">
+        <Card className="flex flex-col bg-gradient-to-br col-span-1 sm:col-span-2 from-card to-card/80 border-border shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
               Snapshot Preview
             </CardTitle>
             <CardDescription>
-              {selectedSnapshot 
+              {selectedSnapshot
                 ? `${new Date(selectedSnapshot.snapshot.timestamp).toLocaleString()} • ${selectedSnapshot.prices.length} tokens`
                 : 'Select a snapshot to preview'
               }
@@ -404,8 +402,8 @@ export default function HistoryPage() {
                     {generateEngineDistributionData(selectedSnapshot.snapshot.engineStats).map((item) => (
                       <div key={item.name} className="flex items-center justify-between p-3 bg-gradient-to-r from-accent/50 to-accent/20 border border-accent rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div 
-                            className="w-4 h-4 rounded-full shadow-sm" 
+                          <div
+                            className="w-4 h-4 rounded-full shadow-sm"
                             style={{ backgroundColor: item.color }}
                           />
                           <span className="text-sm font-medium">{item.name} Engine</span>
@@ -524,12 +522,12 @@ function formatPrice(price: number): string {
   if (price === 0 || price === null || price === undefined || isNaN(price)) {
     return '$0.00'
   }
-  
+
   // Handle negative values
   if (price < 0) {
     return `-${formatPrice(-price)}`
   }
-  
+
   // Progressive precision based on magnitude
   if (price >= 1) return `$${price.toFixed(2)}`
   if (price >= 0.01) return `$${price.toFixed(4)}`
@@ -540,12 +538,12 @@ function formatPrice(price: number): string {
   if (price >= 0.0000001) return `$${price.toFixed(14)}`
   if (price >= 0.00000001) return `$${price.toFixed(16)}`
   if (price >= 0.000000001) return `$${price.toFixed(18)}`
-  
+
   // For extremely small values, use scientific notation
   if (price > 0) {
     return `$${price.toExponential(8)}`
   }
-  
+
   return '$0.00'
 }
 
@@ -559,7 +557,7 @@ function formatRatio(ratio: number): string {
   if (ratio >= 0.0000001) return ratio.toFixed(16)
   if (ratio >= 0.00000001) return ratio.toFixed(18)
   if (ratio >= 0.000000001) return ratio.toFixed(20)
-  
+
   // For extremely small values, use scientific notation
   return ratio.toExponential(6)
 }
@@ -620,7 +618,7 @@ function generateMockSnapshotDetail(snapshotId: string): SnapshotDetail {
 
   const prices: TokenPrice[] = tokens.map((tokenId, i) => {
     let usdPrice: number
-    
+
     // Generate realistic micro-cap token prices
     if (i < 6) {
       // Very small tokens (like NOT, BERI, etc.)
@@ -635,7 +633,7 @@ function generateMockSnapshotDetail(snapshotId: string): SnapshotDetail {
       // Larger tokens (sBTC, ALEX)
       usdPrice = Math.random() * 1000 + 1 // Between 1 and 1000
     }
-    
+
     return {
       tokenId,
       symbol: symbols[i] || `TOKEN${i}`,
@@ -691,7 +689,7 @@ function generatePriceTrendsData(prices: TokenPrice[]) {
     const hour = 23 - i;
     const avgPrice = prices.reduce((sum, p) => sum + p.usdPrice, 0) / prices.length;
     const medianPrice = prices.sort((a, b) => a.usdPrice - b.usdPrice)[Math.floor(prices.length / 2)]?.usdPrice || 0;
-    
+
     return {
       time: `${hour}:00`,
       avgPrice: avgPrice * (0.9 + Math.random() * 0.2),

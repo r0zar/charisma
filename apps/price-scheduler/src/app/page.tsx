@@ -380,7 +380,7 @@ export default function UnifiedDashboard() {
                           outerRadius={120}
                           dataKey="value"
                           strokeWidth={2}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
                         >
                           {engineData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -561,6 +561,12 @@ export default function UnifiedDashboard() {
                   <Button variant="outline" className="w-full justify-start" size="lg">
                     <History className="mr-2 h-4 w-4" />
                     View Price History
+                  </Button>
+                </Link>
+                <Link href="/series" className="w-full">
+                  <Button variant="outline" className="w-full justify-start" size="lg">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Price Series Analysis
                   </Button>
                 </Link>
                 <Link href="/api/status" className="w-full">
