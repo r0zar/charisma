@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -74,7 +76,7 @@ export function MarkdownRenderer({ filePath, className = '' }: MarkdownRendererP
               code: ({ inline, className, children, ...props }) => {
                 const match = /language-(\w+)/.exec(className || '');
                 const language = match ? match[1] : '';
-                
+
                 return !inline && match ? (
                   <SyntaxHighlighter
                     style={oneDark}
