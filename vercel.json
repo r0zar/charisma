@@ -1,5 +1,10 @@
 {
   "buildCommand": "pnpm build",
-  "installCommand": "npm install -g pnpm@8.15.6 && pnpm install",
-  "framework": null
+  "installCommand": "npm install -g pnpm@latest && pnpm install",
+  "framework": null,
+  "functions": {
+    "apps/*/src/app/api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
