@@ -107,15 +107,11 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
         getRemoveLiquidityQuote: async (contractId: string, amount: number) => {
             try {
                 console.log(`[PriceScheduler] Getting remove liquidity quote for ${contractId}, amount: ${amount}`);
-                const swapUrl = getHostUrl('swap');
-                const response = await fetch(`${swapUrl}/api/v1/quote`, {
+                const dexCacheUrl = getHostUrl('dex-cache');
+                const response = await fetch(`${dexCacheUrl}/api/v1/quote/remove-liquidity`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: 'remove-liquidity',
-                        contractId,
-                        amount: amount.toString()
-                    })
+                    body: JSON.stringify({ vaultContractId: contractId, targetLpAmountToBurn: amount })
                 });
 
                 if (!response.ok) {
@@ -126,10 +122,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
                 if (data.success && data.quote) {
                     return {
                         success: true,
-                        quote: {
-                            dx: parseFloat(data.quote.dx),
-                            dy: parseFloat(data.quote.dy)
-                        }
+                        quote: data.quote
                     };
                 }
 
