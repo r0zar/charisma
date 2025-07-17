@@ -51,7 +51,11 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
             if (!response.ok) {
                 throw new Error(`Failed to fetch vaults: ${response.statusText}`);
             }
-            const data = await response.json();
+            const { data } = await response.json();
+            if (!Array.isArray(data)) {
+                console.error('[PriceScheduler] Vault data is not an array:', data);
+                throw new Error('Vault data is not an array');
+            }
             console.log(`[PriceScheduler] Found ${data.length} vaults`);
             return data;
         }
